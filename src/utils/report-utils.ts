@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { registerArabicSupport, safeSetRTL, testArabicSupport } from './jspdf-arabic-font';
 
 /**
  * Generates a CSV string from an array of objects
@@ -124,50 +125,111 @@ export const addReportFooter = (doc: jsPDF): void => {
  * @param title Report title
  * @param dateRange Date range for the report 
  * @param contentGenerator Function that adds content to the document
+ * @param localeOptions (optional) Language/font configuration: { rtl: boolean, font?: string }
  * @returns PDF document
  */
 export const generateStandardReport = (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number) => number
+  contentGenerator: (doc: jsPDF, startY: number, options?: { rtl?: boolean; font?: string }) => number,
+  localeOptions?: { rtl?: boolean; font?: string }
 ): jsPDF => {
+  // Create PDF document
   const doc = new jsPDF();
-  const startY = addReportHeader(doc, title, dateRange);
-  contentGenerator(doc, startY);
   
+  // Setup Arabic support if RTL is enabled
+  if (localeOptions?.rtl) {
+    registerArabicSupport(doc);
+    
+    // Test if Arabic is supported
+    const arabicSupported = testArabicSupport(doc);
+    console.log("Arabic support test result:", arabicSupported);
+  }
+  
+  // Set standard font
+  doc.setFont('helvetica');
+  
+  const startY = addReportHeader(doc, title, dateRange);
+  contentGenerator(doc, startY, localeOptions);
+
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addReportFooter(doc);
   }
-  
+
   return doc;
 };
 
 /**
- * Generate a Traffic Fines Report
- * @param trafficData Array of traffic fine data
- * @returns jsPDF document
+ * Use safe wrapper for setting font with string keys only
  */
-export const generateTrafficFinesReport = (trafficData: any[]) => {
+const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
+  try {
+    if (typeof fontName === 'string' && fontName.trim() !== '') {
+      // Use only standard built-in fonts for reliability
+      if (['helvetica', 'courier', 'times'].includes(fontName.toLowerCase())) {
+        if (fontStyle) {
+          doc.setFont(fontName, fontStyle);
+        } else {
+          doc.setFont(fontName);
+        }
+        return;
+      }
+    }
+    
+    // Fallback to helvetica if fontName invalid or not available
+    if (fontStyle) {
+      doc.setFont('helvetica', fontStyle);
+    } else {
+      doc.setFont('helvetica');
+    }
+  } catch (e) {
+    console.log('Error setting font:', e);
+    doc.setFont('helvetica');
+  }
+};
+
+export const generateTrafficFinesReport = (
+  trafficData: any[], 
+  options?: { rtl?: boolean; font?: string }
+): jsPDF => {
+  // Create document
   const doc = new jsPDF();
+  
+  // Configure Arabic support if RTL is enabled
+  if (options?.rtl) {
+    registerArabicSupport(doc);
+    console.log("Arabic support enabled for traffic fines report");
+  }
+
+  // Set font
+  safeSetFont(doc, 'helvetica');
+
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
   // Add header
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Fleet Report', pageWidth / 2, currentY, { align: 'center' });
-  
+  safeSetFont(doc, 'helvetica', 'bold');
+
+  // Traffic Fines Report Title
+  doc.text('Traffic Fines Report', pageWidth / 2, currentY, { align: 'center' });
+
   // Add report period
   currentY += 15;
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Report Period: ${format(new Date(), 'MMMM dd, yyyy')} - ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
-  
+  safeSetFont(doc, 'helvetica', 'normal');
+
+  // Format dates safely
+  const fromDate = format(new Date(), 'MMMM dd, yyyy');
+  const toDate = format(new Date(), 'MMMM dd, yyyy');
+
+  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, currentY, { align: 'center' });
+
   currentY += 10;
   doc.text(`Generated on: ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
-  
+
   // Draw metrics table
   currentY += 20;
   const metrics = [
@@ -184,18 +246,19 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   doc.setFillColor(255, 140, 0);
   doc.rect(14, currentY, pageWidth - 28, 8, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
+  safeSetFont(doc, 'helvetica', 'bold');
+
   doc.text('Metric', 16, currentY + 6);
   doc.text('Value', pageWidth / 2, currentY + 6);
 
   // Draw data rows
   currentY += 8;
   doc.setTextColor(0);
-  doc.setFont('helvetica', 'normal');
-  
+  safeSetFont(doc, 'helvetica', 'normal');
+
   metrics.forEach(([label, value]) => {
-    // Check if we need a new page
-    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
+    // Check if we need a new page - modified to add more buffer space
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 5) {
       doc.addPage();
       currentY = 20;
       addReportFooter(doc);
@@ -228,8 +291,8 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
-    // Check if we need a new page
-    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+    // Check if we need a new page - with increased buffer space
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 45) {
       doc.addPage();
       currentY = 20;
       addReportFooter(doc);
@@ -239,7 +302,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     doc.setFillColor(255, 140, 0);
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
+    safeSetFont(doc, 'helvetica', 'bold');
     doc.text(customerName, 16, currentY + 6);
     currentY += 12;
 
@@ -248,7 +311,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     
     // Draw headers
     Array.from(data.vehicles).forEach((vehicle: string) => {
-      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 20) {
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 25) {
         doc.addPage();
         currentY = 20;
         addReportFooter(doc);
@@ -270,7 +333,9 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
     // Violations table
     if (data.fines.length > 0) {
-      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+      // Check if there's enough space for the table headers and at least one row
+      // If not, start a new page
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 45) {
         doc.addPage();
         currentY = 20;
         addReportFooter(doc);
@@ -290,7 +355,8 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
       // Draw violations
       data.fines.forEach((fine: any) => {
-        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 10) {
+        // Check if we need a new page with increased buffer space
+        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 15) {
           doc.addPage();
           currentY = 20;
           addReportFooter(doc);
@@ -323,10 +389,96 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 };
 
 /**
- * Helper function to format currency (for consistency across reports)
- * @param amount Amount to format as currency
- * @param currency Currency code (default: QAR)
- * @returns Formatted currency string
+ * Add bilingual text to a PDF document (English and Arabic)
+ */
+export const addBilingualText = (
+  doc: jsPDF,
+  englishText: string,
+  arabicText: string,
+  x: number,
+  y: number,
+  options?: { 
+    englishFont?: string; 
+    arabicFont?: string; 
+    fontSize?: number;
+    spacing?: number;
+    maxWidth?: number;
+    align?: 'left' | 'center' | 'right';
+  }
+): number => {
+  // Apply default options
+  const opts = {
+    englishFont: 'helvetica',
+    arabicFont: 'helvetica',
+    fontSize: 12,
+    spacing: 7,
+    maxWidth: 0,
+    align: 'left' as const,
+    ...options
+  };
+  
+  // Save current font state
+  const currentFont = doc.getFont();
+  const currentFontSize = doc.getFontSize();
+  
+  // Set font size
+  doc.setFontSize(opts.fontSize);
+  
+  // Add English text
+  safeSetFont(doc, 'helvetica');
+  
+  // Make sure RTL is off for English
+  let prevR2L = false;
+  try {
+    if (typeof (doc as any).getR2L === 'function') {
+      prevR2L = (doc as any).getR2L();
+      safeSetRTL(doc, false);
+    }
+  } catch (e) {
+    console.log('R2L not supported', e);
+  }
+  
+  doc.text(englishText, x, y, { 
+    maxWidth: opts.maxWidth || undefined, 
+    align: opts.align
+  });
+  
+  // Switch to RTL for Arabic
+  try {
+    safeSetRTL(doc, true);
+  } catch (e) {
+    console.log('R2L not supported for Arabic text', e);
+  }
+  
+  // Calculate position for Arabic text
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const textX = opts.align === 'right' ? x : 
+               opts.align === 'center' ? pageWidth / 2 : 
+               pageWidth - x - CONTENT_MARGIN;
+  
+  // Add Arabic text
+  doc.text(arabicText, textX, y + opts.spacing, { 
+    maxWidth: opts.maxWidth || undefined, 
+    align: opts.align === 'left' ? 'right' : opts.align
+  });
+  
+  // Restore RTL setting
+  try {
+    safeSetRTL(doc, prevR2L);
+  } catch (e) {
+    console.log('Error restoring R2L setting', e);
+  }
+  
+  // Restore font settings
+  safeSetFont(doc, currentFont.fontName);
+  doc.setFontSize(currentFontSize);
+  
+  // Return next Y position
+  return y + opts.spacing * 2;
+};
+
+/**
+ * Helper function to format currency
  */
 export const formatReportCurrency = (amount: number, currency = 'QAR'): string => {
   return new Intl.NumberFormat('en-US', {
