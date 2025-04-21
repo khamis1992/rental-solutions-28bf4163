@@ -11,6 +11,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FlattenType } from '@/utils/type-utils';
 
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
@@ -37,6 +38,9 @@ export type SimpleAgreement = BaseAgreement & {
   };
   signature_url?: string;
 };
+
+// Use FlattenType to avoid deep type instantiation issues
+export type FlattenedAgreement = FlattenType<SimpleAgreement>;
 
 interface SearchParams {
   query?: string;
@@ -235,18 +239,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
+      // Use a simpler approach to avoid deep type instantiation
       const agreements: SimpleAgreement[] = data.map(item => {
         // Fix the type instantiation issue by using explicit casting
-        const rawStatus = item.status as unknown as string;
-        const status = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
+        const rawStatus = item.status as string;
+        const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
         
-        return {
+        // Create the agreement object as a simple object first
+        const agreement: SimpleAgreement = {
           id: item.id,
           customer_id: item.customer_id,
           vehicle_id: item.vehicle_id,
           start_date: new Date(item.start_date),
           end_date: new Date(item.end_date),
-          status, // Use the mapped status directly without type assertion
+          status: mappedStatus,
           agreement_number: item.agreement_number || '',
           total_amount: item.total_amount || 0,
           deposit_amount: item.deposit_amount || 0,
@@ -256,6 +262,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           created_at: item.created_at ? new Date(item.created_at) : undefined,
           updated_at: item.updated_at ? new Date(item.updated_at) : undefined
         };
+        
+        return agreement;
       });
 
       return agreements;
