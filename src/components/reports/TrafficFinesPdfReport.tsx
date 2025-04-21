@@ -15,7 +15,6 @@ Font.register({
   family: 'Cairo',
   src: 'https://fonts.gstatic.com/s/cairo/v20/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf',
   fontWeight: 'normal',
-  // Remove format property as it's not supported in the type definition
 });
 
 const styles = StyleSheet.create({
@@ -89,7 +88,6 @@ interface TrafficFinesPdfReportProps {
   fines: Array<{
     customerName?: string;
     licensePlate?: string;
-    // agreementNumber?: string; // REMOVED
     violationNumber?: string;
     violationDate?: string | Date;
     fineAmount?: number;
@@ -112,7 +110,6 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
       <View style={[styles.tableRow, {backgroundColor:'#f1f5f9'}]}>
         <Text style={[styles.tableCell, styles.tableHeader]}>Customer / العميل</Text>
         <Text style={[styles.tableCell, styles.tableHeader]}>Plate / اللوحة</Text>
-        {/* Agreement column removed */}
         <Text style={[styles.tableCell, styles.tableHeader]}>Violation No. / رقم المخالفة</Text>
         <Text style={[styles.tableCell, styles.tableHeader]}>Date / التاريخ</Text>
         <Text style={[styles.tableCell, styles.tableHeader]}>Amount / المبلغ</Text>
@@ -127,7 +124,6 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
           <Text style={styles.tableCell} wrap>
             {fine.licensePlate || "--"}
           </Text>
-          {/* Agreement column removed */}
           <Text style={[styles.tableCell, styles.cellRTL]} wrap>
             {fine.violationNumber || "--"}
           </Text>
@@ -163,16 +159,19 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
  * Utility: Renders a download button for PDF using React PDF
  */
 export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfReportProps['fines'] }> = ({ fines }) => {
+  // Create a state to track loading
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  
   return (
     <div className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
+      {/* Fix: Use the PDFDownloadLink with children as a React node, not a function */}
       <PDFDownloadLink 
         document={<TrafficFinesPdfDocument fines={fines} />}
         fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
         className="no-underline text-white w-full h-full block"
+        onClick={() => setIsGenerating(true)}
       >
-        {({ loading }) => (
-          <span>{loading ? "Generating..." : "Download PDF"}</span>
-        )}
+        {isGenerating ? "Generating..." : "Download PDF"}
       </PDFDownloadLink>
     </div>
   );

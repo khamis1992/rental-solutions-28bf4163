@@ -13,7 +13,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FlattenType } from '@/utils/type-utils';
 
-export type SimpleAgreement = BaseAgreement & {
+// Define a more explicit type for SimpleAgreement to avoid deep type instantiation
+export type SimpleAgreement = {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: Date;
+  end_date: Date;
+  status: string;
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -39,9 +46,8 @@ export type SimpleAgreement = BaseAgreement & {
   signature_url?: string;
 };
 
-// Tell TypeScript to avoid checking this type too deeply
-// @ts-ignore
-export type FlattenedAgreement = FlattenType<SimpleAgreement>;
+// Use a simplified version to avoid deep type instantiation
+export type FlattenedAgreement = SimpleAgreement;
 
 interface SearchParams {
   query?: string;
