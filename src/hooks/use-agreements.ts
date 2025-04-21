@@ -129,6 +129,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
 
+      // Use explicit typing to avoid excessive type instantiation
       const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -239,14 +240,32 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Use a simpler approach to avoid deep type instantiation
-      const agreements: SimpleAgreement[] = data.map(item => {
+      // Create a simpler type to avoid deep type instantiation
+      type SimpleAgreementItem = {
+        id: string;
+        customer_id: string;
+        vehicle_id: string;
+        start_date: Date;
+        end_date: Date;
+        status: AgreementStatus;
+        agreement_number: string;
+        total_amount: number;
+        deposit_amount: number;
+        notes: string;
+        customers: any;
+        vehicles: any;
+        created_at?: Date;
+        updated_at?: Date;
+      };
+
+      // Map data to simplified objects to avoid excessive type instantiation
+      const agreements: SimpleAgreementItem[] = data.map(item => {
         // Fix the type instantiation issue by using explicit casting
         const rawStatus = item.status as string;
         const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
         
-        // Create the agreement object as a simple object first
-        const agreement: SimpleAgreement = {
+        // Create the agreement object as a simple flat object
+        return {
           id: item.id,
           customer_id: item.customer_id,
           vehicle_id: item.vehicle_id,
@@ -262,11 +281,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           created_at: item.created_at ? new Date(item.created_at) : undefined,
           updated_at: item.updated_at ? new Date(item.updated_at) : undefined
         };
-        
-        return agreement;
       });
 
-      return agreements;
+      // Cast to the expected return type
+      return agreements as SimpleAgreement[];
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
