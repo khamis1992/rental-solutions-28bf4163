@@ -1,7 +1,19 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { Agreement as AgreementType } from '@/hooks/use-agreements';
+import { SimpleAgreement, AgreementStatus } from '@/hooks/use-agreements';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+
+// Define the database agreement status enum
+export const DB_AGREEMENT_STATUS = {
+  ACTIVE: 'active',
+  DRAFT: 'draft',
+  PENDING: 'pending',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+  CLOSED: 'closed',
+  TERMINATED: 'terminated',
+  ARCHIVED: 'archived'
+};
 
 // Helper function to adapt SimpleAgreement to Agreement type for detail pages
 export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement) => {
@@ -12,7 +24,7 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement) => 
     vehicle_id: simpleAgreement.vehicle_id,
     start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
     end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
-    status: simpleAgreement.status as DatabaseAgreementStatus,
+    status: simpleAgreement.status as string,
     created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
     updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
     total_amount: simpleAgreement.total_amount || 0,

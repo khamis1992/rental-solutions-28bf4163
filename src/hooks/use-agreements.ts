@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Define the agreement status enum to avoid reference errors
+export enum AgreementStatus {
+  ACTIVE = 'active',
+  DRAFT = 'draft',
+  PENDING = 'pending',
+  EXPIRED = 'expired',
+  CANCELLED = 'cancelled',
+  CLOSED = 'closed',
+  TERMINATED = 'terminated',
+  ARCHIVED = 'archived'
+}
+
 // Type for agreement search parameters that avoids deep recursion
 export interface AgreementSearchParams {
   query?: string;
@@ -26,7 +38,31 @@ export interface Agreement {
   licensePlate?: string;
   vehicleId?: string;
   customerId?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  total_amount?: number;
+  rent_amount?: number;
   // Add other fields as needed, but don't create recursive references
+}
+
+// Simple agreement interface to avoid deep recursion
+export interface SimpleAgreement {
+  id: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date?: string | Date;
+  end_date?: string | Date;
+  status?: string;
+  total_amount?: number;
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  rent_amount?: number;
+  deposit_amount?: number;
+  agreement_number?: string;
+  notes?: string;
+  vehicles?: any;
+  customers?: any;
+  lease_payments?: any[];
 }
 
 export function useAgreements(initialParams?: Partial<AgreementSearchParams>) {
@@ -107,7 +143,7 @@ export function useAgreements(initialParams?: Partial<AgreementSearchParams>) {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as SimpleAgreement;
     } catch (error: any) {
       console.error('Error fetching agreement:', error.message);
       throw new Error(error.message);

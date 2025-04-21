@@ -34,7 +34,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     isLoading: isLoadingAgreements,
     setSearchParams
   } = useAgreements({
-    vehicle_id: vehicle.id
+    vehicleId: vehicle.id
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);

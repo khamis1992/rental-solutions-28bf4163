@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Document,
@@ -155,7 +154,7 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
         <Text style={styles.title}>Traffic Fines Report / تقرير المخالفات المرورية</Text>
         <Text style={styles.subtitle}>
           All traffic fines associated with agreements and vehicles {"\n"}
-          جميع المخالفات المرورية المرتبطة بالمركبات
+          جميع المخالفات المرورية المرتبطة بالمرك��ات
         </Text>
       </View>
       {/* Table Headers */}
@@ -223,17 +222,9 @@ export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfRepor
         className="no-underline text-white w-full h-full block"
         onClick={handlePdfGeneration}
       >
-        {({ loading, error }) => {
-          if (loading || isLoading) {
-            return "Generating PDF...";
-          }
-          if (error) {
-            setError(error.message);
-            setIsLoading(false);
-            return "Error generating PDF";
-          }
-          return "Download PDF";
-        }}
+        <span>
+          {isLoading ? "Generating PDF..." : error ? "Error generating PDF" : "Download PDF"}
+        </span>
       </PDFDownloadLink>
       {error && (
         <div className="absolute bg-red-600 text-white text-xs rounded p-1 -top-8 left-0 right-0">
