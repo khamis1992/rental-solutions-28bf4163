@@ -132,3 +132,4 @@ export function downloadCSV(data: Record<string, any>[], filename: string): void
   link.click();
   document.body.removeChild(link);
 }
+
