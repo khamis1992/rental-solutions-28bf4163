@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -39,7 +38,6 @@ export type SimpleAgreement = BaseAgreement & {
   signature_url?: string;
 };
 
-// Use FlattenType to avoid deep type instantiation issues
 export type FlattenedAgreement = FlattenType<SimpleAgreement>;
 
 interface SearchParams {
@@ -129,7 +127,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
 
-      // Use explicit typing to avoid excessive type instantiation
       const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -240,7 +237,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // To avoid type instantiation issues, use a simple array of objects with defined properties
       const agreements: SimpleAgreement[] = [];
       
       for (const item of data) {
@@ -281,8 +277,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  // Fix the type instantiation error in this mutation
-  const updateAgreementMutation = useMutation({
+  const updateAgreementMutation = useMutation<any, Error, UpdateAgreementParams>({
     mutationFn: async (params: UpdateAgreementParams) => {
       console.log("Update mutation called with:", params);
       return {};

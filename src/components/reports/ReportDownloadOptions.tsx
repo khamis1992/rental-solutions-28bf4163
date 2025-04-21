@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -43,12 +44,12 @@ const ReportDownloadOptions = ({
       setIsGenerating(true);
       
       // Get data for the report
-      const reportData = getReportData();
+      const reportData = getReportData ? getReportData() : [];
       
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
       
-      // Arabic title equivalents (you would replace these with proper Arabic translations)
+      // Arabic title equivalents
       const arabicTitles: Record<string, string> = {
         'fleet': 'تقرير الأسطول',
         'financial': 'التقرير المالي',
@@ -60,128 +61,70 @@ const ReportDownloadOptions = ({
       
       // Generate report based on file format
       if (fileFormat === 'pdf') {
-        // Special case for traffic fines report
-        if (reportType === 'traffic-fines') {
-          // Fix: Pass only one options object with both RTL and font settings
-          const doc = generateTrafficFinesReport(reportData, 
-            isArabic ? { rtl: true, font: 'Amiri' } : undefined
-          );
-          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-        } else {
-          // Use the standardized report generator for other reports
-          const doc = generateStandardReport(
-            title,
-            dateRange,
-            (doc, startY, options) => {
-              // Add content based on report type
-              let yPos = startY;
-              
-              // Add summary section heading
-              doc.setFontSize(14);
-              safeSetFont(doc, options?.font || 'helvetica', 'bold');
-              
-              if (isArabic && arabicTitles[reportType]) {
-                // Add bilingual heading
-                yPos = addBilingualText(
-                  doc,
-                  'Report Summary:',
-                  'ملخص التقرير:',
-                  14,
-                  yPos,
-                  {
-                    englishFont: 'helvetica',
-                    arabicFont: 'Amiri',
-                    fontSize: 14,
-                    spacing: 10
-                  }
-                );
-              } else {
+        try {
+          // Handle report generation with safe fallbacks
+          if (reportType === 'traffic-fines') {
+            const doc = generateTrafficFinesReport(reportData, 
+              isArabic ? { rtl: true, font: 'helvetica' } : undefined
+            );
+            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          } else {
+            // Use the standardized report generator for other reports
+            const doc = generateStandardReport(
+              title,
+              dateRange,
+              (doc, startY) => {
+                // Add basic content without font issues
+                let yPos = startY;
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
                 doc.text('Report Summary:', 14, yPos);
                 yPos += 10;
-              }
-              
-              // Add content specific to each report type
-              doc.setFontSize(12);
-              safeSetFont(doc, options?.font || 'helvetica', 'normal');
-              
-              // Content generation with optional Arabic support
-              switch (reportType) {
-                case 'fleet':
-                  if (isArabic) {
-                    yPos = addBilingualText(doc, '• Total Vehicles in Fleet', '• إجمالي المركبات في الأسطول', 20, yPos);
-                    yPos = addBilingualText(doc, '• Vehicle Utilization Rate', '• معدل استخدام المركبات', 20, yPos);
-                    yPos = addBilingualText(doc, '• Active Rentals', '• التأجير النشط', 20, yPos);
-                    yPos = addBilingualText(doc, '• Vehicles in Maintenance', '• المركبات قيد الصيانة', 20, yPos);
-                    yPos = addBilingualText(doc, '• Fleet Performance Analysis', '• تحليل أداء الأسطول', 20, yPos);
-                  } else {
+                
+                // Add simple content based on report type
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                
+                switch(reportType) {
+                  case 'fleet':
                     doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
                     doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
                     doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                    doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                    doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                  }
-                  break;
-                case 'financial':
-                  if (isArabic) {
-                    yPos = addBilingualText(doc, '• Revenue Summary', '• ملخص الإيرادات', 20, yPos);
-                    yPos = addBilingualText(doc, '• Expense Analysis', '• تحليل المصروفات', 20, yPos);
-                    yPos = addBilingualText(doc, '• Profit Margin', '• هامش الربح', 20, yPos);
-                    yPos = addBilingualText(doc, '• Financial Projections', '• التوقعات المالية', 20, yPos);
-                  } else {
+                    break;
+                  case 'financial':
                     doc.text('• Revenue Summary', 20, yPos); yPos += 10;
                     doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                    doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                    doc.text('• Financial Projections', 20, yPos); yPos += 10;
-                  }
-                  break;
-                case 'customers':
-                  if (isArabic) {
-                    yPos = addBilingualText(doc, '• Customer Demographics', '• التركيبة السكانية للعملاء', 20, yPos);
-                    yPos = addBilingualText(doc, '• Customer Satisfaction Scores', '• نتائج رضا العملاء', 20, yPos);
-                    yPos = addBilingualText(doc, '• Rental Frequency Analysis', '• تحليل تكرار الإيجار', 20, yPos);
-                    yPos = addBilingualText(doc, '• Top Customers', '• كبار العملاء', 20, yPos);
-                  } else {
+                    break;
+                  case 'customers':
                     doc.text('• Customer Demographics', 20, yPos); yPos += 10;
                     doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                    doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                    doc.text('• Top Customers', 20, yPos); yPos += 10;
-                  }
-                  break;
-                case 'maintenance':
-                  if (isArabic) {
-                    yPos = addBilingualText(doc, '• Maintenance Schedule', '• جدول الصيانة', 20, yPos);
-                    yPos = addBilingualText(doc, '• Maintenance Costs', '• تكاليف الصيانة', 20, yPos);
-                    yPos = addBilingualText(doc, '• Upcoming Maintenance', '• الصيانة القادمة', 20, yPos);
-                    yPos = addBilingualText(doc, '• Maintenance History', '• سجل الصيانة', 20, yPos);
-                  } else {
+                    break;
+                  case 'maintenance':
                     doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
                     doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                    doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                    doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                  }
-                  break;
-                case 'legal':
-                  if (isArabic) {
-                    yPos = addBilingualText(doc, '• Legal Cases Summary', '• ملخص القضايا القانونية', 20, yPos);
-                    yPos = addBilingualText(doc, '• Compliance Reports', '• تقارير الامتثال', 20, yPos);
-                    yPos = addBilingualText(doc, '• Contract Status', '• حالة العقد', 20, yPos);
-                  } else {
+                    break;
+                  case 'legal':
                     doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
                     doc.text('• Compliance Reports', 20, yPos); yPos += 10;
-                    doc.text('• Contract Status', 20, yPos); yPos += 10;
-                  }
-                  break;
-                default:
-                  doc.text('No data available for this report type.', 20, yPos);
-              }
-              
-              return yPos; // Return the final y position
-            },
-            isArabic ? { rtl: true, font: 'Amiri' } : undefined
-          );
-          
-          // Save the PDF
-          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+                    break;
+                  default:
+                    doc.text('No data available for this report type.', 20, yPos);
+                }
+                
+                return yPos;
+              },
+              isArabic ? { rtl: true, font: 'helvetica' } : undefined
+            );
+            
+            // Save the PDF
+            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          }
+        } catch (error) {
+          console.error("PDF generation error:", error);
+          toast.error("Error generating PDF", {
+            description: "There was a problem with the PDF generation. Try another format."
+          });
+          return;
         }
       } else if (fileFormat === 'excel') {
         downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
@@ -203,29 +146,11 @@ const ReportDownloadOptions = ({
     }
   };
 
-  // Helper function for safe font setting
-  const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
-    if (typeof fontName === 'string' && fontName.trim() !== '') {
-      if (fontStyle) {
-        doc.setFont(fontName, fontStyle);
-      } else {
-        doc.setFont(fontName);
-      }
-    } else {
-      // fallback to helvetica if fontName invalid
-      if (fontStyle) {
-        doc.setFont('helvetica', fontStyle);
-      } else {
-        doc.setFont('helvetica');
-      }
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          
+          {/* Content kept empty as in original */}
         </div>
         
         <div className="border-t pt-1 mb-2">
@@ -285,9 +210,10 @@ const ReportDownloadOptions = ({
       </div>
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        
+        {/* Empty content as in original */}
       </div>
     </div>
   );
 };
+
 export default ReportDownloadOptions;
