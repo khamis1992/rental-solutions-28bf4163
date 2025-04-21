@@ -46,7 +46,7 @@ export type SimpleAgreement = {
   signature_url?: string;
 };
 
-// Use a simplified version to avoid deep type instantiation
+// Use SimpleAgreement directly to avoid deep type instantiation
 export type FlattenedAgreement = SimpleAgreement;
 
 interface SearchParams {

@@ -10,11 +10,24 @@ import {
   PDFDownloadLink,
 } from '@react-pdf/renderer';
 
-// Register Cairo for Arabic/English display
+// Register Cairo for Arabic/English display with updated URL
 Font.register({
   family: 'Cairo',
-  src: 'https://fonts.gstatic.com/s/cairo/v20/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf',
+  // Updated URL to a more reliable Cairo font location
+  src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs0SgZR.ttf',
   fontWeight: 'normal',
+});
+
+// Register Helvetica as a fallback
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf' },
+    { 
+      src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAw.ttf',
+      fontWeight: 'bold' 
+    }
+  ]
 });
 
 const styles = StyleSheet.create({
@@ -159,19 +172,29 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
  * Utility: Renders a download button for PDF using React PDF
  */
 export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfReportProps['fines'] }> = ({ fines }) => {
-  // Create a state to track loading
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
   
   return (
     <div className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
-      {/* Fix: Use the PDFDownloadLink with children as a React node, not a function */}
-      <PDFDownloadLink 
+      <PDFDownloadLink
         document={<TrafficFinesPdfDocument fines={fines} />}
         fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
         className="no-underline text-white w-full h-full block"
-        onClick={() => setIsGenerating(true)}
+        onClick={() => setIsLoading(true)}
       >
-        {isGenerating ? "Generating..." : "Download PDF"}
+        {({ blob, url, loading, error }) => {
+          if (error) {
+            console.error("PDF generation error:", error);
+            return "Error generating PDF";
+          }
+          
+          // When complete, reset loading state
+          if (!loading && isLoading) {
+            setTimeout(() => setIsLoading(false), 100);
+          }
+          
+          return loading || isLoading ? "Generating..." : "Download PDF";
+        }}
       </PDFDownloadLink>
     </div>
   );
