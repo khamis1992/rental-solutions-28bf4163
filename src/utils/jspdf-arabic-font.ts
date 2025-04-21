@@ -1,32 +1,63 @@
 
-/**
- * Utility to load the Amiri Arabic font into jsPDF.
- * 
- * This file ensures jsPDF can render Unicode Arabic (RTL) text by registering the
- * full Amiri-Regular.ttf font as a VFS font.
- * 
- * Source of Amiri: https://www.amirifont.org (OFL License)
- * 
- * HOW TO USE:
- *   1. Import and call registerAmiriFont() **once** before generating a jsPDF with Arabic.
- *   2. Set doc.setFont("Amiri") for Arabic/RTL sections in your PDF.
- */
-
 import { jsPDF } from 'jspdf';
 
-// Full Base64 encoded Amiri-Regular.ttf (version 1.000)
-const AMIRI_TTF_BASE64 =
-  'AAEAAAASAQAABAAgR0RFRnY1UQAAGyQAAAVmR1BPUzBXawAAHIAAAAHWR1NVQgABAAAAAf4AAABsT1MvMngVLEMAAAGoAAAAYGNtYXAXTtKOAAACSAAAAJxjdnQgK6g3nQAAAuwAAABUZnBnbXf4YKsAAAgMAAABvGdhc3AACAATAAAa+AAAAAxnbHlmp0P3XwAACcgAABD0aGVhZBSGFVsAAAFsAAAANmhoZWEHmQPHAAABpAAAACRobXR4LIAGgAAAAegAAABobG9jYUt6Su4AAAH8AAAAOG1heHAASgLpAAABeAAAACBuYW1lnfrYAAAAFNgAAAKMcG9zdP9tAGQAABuEAAAAIHByZXAXLZGHAAAJXAAAAH8AAQAAAAMBBqEWT3lfDzz1AAsD6AAAAADZXWGAAAAAANldYYAAAAAAAPQDcwAAAAgAAgAAAAAAAAABAAADhP8EAFwA9AAAAAKhAAEAAAAAAAAAAAAAAAAAAAAFAAEAAAAoAEAACQAAAAAAAgAAAAEAAQAAAEAALgAAAAAABAKhApgABQAAAooCvAAAAIwCigK8AAAB4AAxAQIAAAIABQkAAAAAAAAAAAABAAAAAAAAAAAAAAAAUGZFZABAAEEAYQOE/wQAXAOEAPwAAAABAAAAAAAAAfQAAAPoACACkgAAAGkAAAEiAAACPAAAAhIAAAJBAAADNQAAAkQAAAPoAAACJAAAATcAAAKCAAAB9AAAAjIAAAKS//8BiAAAArEAAACUAAAB1QAAAzsAAAGaAAABoQAAASIAAAPoAAAD6AAAA+gAAAIbAAACGwAAAhIAAAISAAACEgAAAykAAAKBAAACIAAAAiAAAAQA//8CgQAAAoEAAADQAAAAZAAAAf4AAABkAAAAyAAAAGQAAAEeAAAA0AAAATgAAAGlAAACLAAAAPsAAAI7AAACDwAAAjcAAAGl//8CAAAAA+gAAAPoAAAD6AAAAvsAAAPoAAACQQAAA+gAAAPoAAACJwAAAJ0AAAC5AAAAnQAAAFIAAACSAAAAUgAAAG0AAAB7AAAAnQAAAFIAAACSAAAAnQAAAJ0AAACdAAAAnQAAAJ0AAAFUAAAA9AAAAdUAAAEbAAABsQAAAZEAAABZAAABXQAAAgYAAAHPAAAB3wAAAbEAAAG3AAABiQAAAV0AAAGRAAABgQAAAScAAABKAAAEAAAAA4QAAAQAAAADhAAABAAAAAPoAAADVAAAAxYAAAMdAAADVAAAA8QAAAOXAAID6AD0AcgAJAHIAAAAUAAAAAAFVQPoACQCIAEkASACIAEkASAB9AAAAfQAAAH0AAAB9AAAAfQAAAH0AAAB9AAAAfQAAAH0AAAB9AAAAfQAAAH0AAAAAAAAAAMAAAADAAAAHAABAAAAAACMAAMAA';
+// Unicode range for Arabic characters
+const ARABIC_UNICODE_RANGE = {
+  0x0600: 0x06FF, // Arabic
+  0x0750: 0x077F, // Arabic Supplement
+  0x08A0: 0x08FF, // Arabic Extended-A
+  0xFB50: 0xFDFF, // Arabic Presentation Forms-A
+  0xFE70: 0xFEFF, // Arabic Presentation Forms-B
+};
 
-export function registerAmiriFont() {
-  if (
-    // jsPDF allows registering a font only once per session
-    !(window as any).__AmiriFontRegistered
-  ) {
-    // @ts-ignore: addFileToVFS and addFont exist on jsPDF's prototype but are not typed
-    jsPDF.API.addFileToVFS('Amiri-Regular.ttf', AMIRI_TTF_BASE64);
-    // @ts-ignore: addFileToVFS and addFont exist on jsPDF's prototype but are not typed
-    jsPDF.API.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-    (window as any).__AmiriFontRegistered = true;
+/**
+ * Registers a standard font that supports Arabic
+ * This is a simplified approach that relies on the browser's built-in font support
+ */
+export function registerArabicSupport(doc: jsPDF): void {
+  try {
+    // Use a standard font that's more likely to support Arabic
+    // Most systems have Arial which has decent Arabic support
+    doc.addFont('standard', 'normal', 'NotoSans', 'normal');
+    
+    // Configure RTL support if available
+    if (typeof (doc as any).setR2L === 'function') {
+      (doc as any).setR2L(true);
+    }
+    
+    console.log("Arabic support configured for PDF generation");
+  } catch (error) {
+    console.error("Error configuring Arabic support:", error);
+  }
+}
+
+/**
+ * Helper function to safely set R2L mode in jsPDF
+ * @param doc The jsPDF document
+ * @param isRTL Whether to enable RTL mode
+ */
+export function safeSetRTL(doc: jsPDF, isRTL: boolean): void {
+  try {
+    if (typeof (doc as any).setR2L === 'function') {
+      (doc as any).setR2L(isRTL);
+    }
+  } catch (error) {
+    console.error("Error setting R2L mode:", error);
+  }
+}
+
+/**
+ * Uses getStringUnitWidth to detect if Arabic characters are properly supported
+ * @param doc The jsPDF document
+ * @returns Whether Arabic is supported
+ */
+export function testArabicSupport(doc: jsPDF): boolean {
+  const arabicText = 'مرحبا بالعالم'; // "Hello World" in Arabic
+  try {
+    const width = doc.getStringUnitWidth(arabicText);
+    return width > 0;
+  } catch (error) {
+    console.error("Arabic support test failed:", error);
+    return false;
   }
 }

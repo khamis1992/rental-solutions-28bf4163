@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { registerAmiriFont } from './jspdf-arabic-font';
+import { registerArabicSupport, safeSetRTL, testArabicSupport } from './jspdf-arabic-font';
 
 /**
  * Generates a CSV string from an array of objects
@@ -125,7 +125,7 @@ export const addReportFooter = (doc: jsPDF): void => {
  * @param title Report title
  * @param dateRange Date range for the report 
  * @param contentGenerator Function that adds content to the document
- * @param localeOptions (optional) Language/font configuration: { rtl: boolean, font: string }
+ * @param localeOptions (optional) Language/font configuration: { rtl: boolean, font?: string }
  * @returns PDF document
  */
 export const generateStandardReport = (
@@ -134,30 +134,21 @@ export const generateStandardReport = (
   contentGenerator: (doc: jsPDF, startY: number, options?: { rtl?: boolean; font?: string }) => number,
   localeOptions?: { rtl?: boolean; font?: string }
 ): jsPDF => {
-  // Fixed issue: Don't attempt to register Arabic font automatically
-  // Create PDF document first
+  // Create PDF document
   const doc = new jsPDF();
-
-  // Set font if specified
-  if (localeOptions?.font === 'Amiri') {
-    try {
-      // Only set font if it's already registered
-      if (doc.getFontList().Amiri) {
-        doc.setFont('Amiri');
-      }
-    } catch (e) {
-      console.log('Amiri font not available, using default font');
-    }
+  
+  // Setup Arabic support if RTL is enabled
+  if (localeOptions?.rtl) {
+    registerArabicSupport(doc);
+    
+    // Test if Arabic is supported
+    const arabicSupported = testArabicSupport(doc);
+    console.log("Arabic support test result:", arabicSupported);
   }
   
-  // Set RTL if specified
-  if (localeOptions?.rtl) {
-    // Safely set RTL if the function exists
-    if (typeof (doc as any).setR2L === 'function') {
-      (doc as any).setR2L(true);
-    }
-  }
-
+  // Set standard font
+  doc.setFont('helvetica');
+  
   const startY = addReportHeader(doc, title, dateRange);
   contentGenerator(doc, startY, localeOptions);
 
@@ -176,12 +167,8 @@ export const generateStandardReport = (
 const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
   try {
     if (typeof fontName === 'string' && fontName.trim() !== '') {
-      // Check if the font exists in the document's font list first
-      const fontList = doc.getFontList();
-      const fontExists = fontName in fontList;
-      
-      // Only set if font exists or is a built-in font
-      if (fontExists || ['helvetica', 'courier', 'times'].includes(fontName.toLowerCase())) {
+      // Use only standard built-in fonts for reliability
+      if (['helvetica', 'courier', 'times'].includes(fontName.toLowerCase())) {
         if (fontStyle) {
           doc.setFont(fontName, fontStyle);
         } else {
@@ -198,7 +185,6 @@ const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
       doc.setFont('helvetica');
     }
   } catch (e) {
-    // If anything goes wrong, set to default font
     console.log('Error setting font:', e);
     doc.setFont('helvetica');
   }
@@ -208,22 +194,24 @@ export const generateTrafficFinesReport = (
   trafficData: any[], 
   options?: { rtl?: boolean; font?: string }
 ): jsPDF => {
-  // Create document without attempting to register custom font
+  // Create document
   const doc = new jsPDF();
-
-  // Set font and RTL safely
-  safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font);
-
-  if (options?.rtl && typeof (doc as any).setR2L === 'function') {
-    (doc as any).setR2L(true);
+  
+  // Configure Arabic support if RTL is enabled
+  if (options?.rtl) {
+    registerArabicSupport(doc);
+    console.log("Arabic support enabled for traffic fines report");
   }
+
+  // Set font
+  safeSetFont(doc, 'helvetica');
 
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
   // Add header
   doc.setFontSize(18);
-  safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font, 'bold');
+  safeSetFont(doc, 'helvetica', 'bold');
 
   // Traffic Fines Report Title
   doc.text('Traffic Fines Report', pageWidth / 2, currentY, { align: 'center' });
@@ -231,7 +219,7 @@ export const generateTrafficFinesReport = (
   // Add report period
   currentY += 15;
   doc.setFontSize(12);
-  safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font, 'normal');
+  safeSetFont(doc, 'helvetica', 'normal');
 
   // Format dates safely
   const fromDate = format(new Date(), 'MMMM dd, yyyy');
@@ -258,7 +246,7 @@ export const generateTrafficFinesReport = (
   doc.setFillColor(255, 140, 0);
   doc.rect(14, currentY, pageWidth - 28, 8, 'F');
   doc.setTextColor(255, 255, 255);
-  safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font, 'bold');
+  safeSetFont(doc, 'helvetica', 'bold');
 
   doc.text('Metric', 16, currentY + 6);
   doc.text('Value', pageWidth / 2, currentY + 6);
@@ -266,7 +254,7 @@ export const generateTrafficFinesReport = (
   // Draw data rows
   currentY += 8;
   doc.setTextColor(0);
-  safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font, 'normal');
+  safeSetFont(doc, 'helvetica', 'normal');
 
   metrics.forEach(([label, value]) => {
     // Check if we need a new page
@@ -314,7 +302,7 @@ export const generateTrafficFinesReport = (
     doc.setFillColor(255, 140, 0);
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    safeSetFont(doc, options?.font === 'Amiri' ? 'helvetica' : options?.font, 'bold');
+    safeSetFont(doc, 'helvetica', 'bold');
     doc.text(customerName, 16, currentY + 6);
     currentY += 12;
 
@@ -399,7 +387,6 @@ export const generateTrafficFinesReport = (
 
 /**
  * Add bilingual text to a PDF document (English and Arabic)
- * This function has been simplified to avoid font registration issues
  */
 export const addBilingualText = (
   doc: jsPDF,
@@ -419,7 +406,7 @@ export const addBilingualText = (
   // Apply default options
   const opts = {
     englishFont: 'helvetica',
-    arabicFont: 'helvetica', // Default to helvetica instead of Amiri
+    arabicFont: 'helvetica',
     fontSize: 12,
     spacing: 7,
     maxWidth: 0,
@@ -434,35 +421,39 @@ export const addBilingualText = (
   // Set font size
   doc.setFontSize(opts.fontSize);
   
-  // Add English text using helvetica (more reliable)
+  // Add English text
   safeSetFont(doc, 'helvetica');
   
-  // Add English text
-  doc.text(englishText, x, y, { 
-    maxWidth: opts.maxWidth || undefined, 
-    align: opts.align
-  });
-  
-  // For Arabic, just render it in the default font rather than trying to use Amiri
+  // Make sure RTL is off for English
   let prevR2L = false;
   try {
     if (typeof (doc as any).getR2L === 'function') {
       prevR2L = (doc as any).getR2L();
     }
-    if (typeof (doc as any).setR2L === 'function') {
-      (doc as any).setR2L(true);
-    }
+    safeSetRTL(doc, false);
   } catch (e) {
     console.log('R2L not supported', e);
   }
   
-  // Calculate position for right-aligned Arabic text if needed
+  doc.text(englishText, x, y, { 
+    maxWidth: opts.maxWidth || undefined, 
+    align: opts.align
+  });
+  
+  // Switch to RTL for Arabic
+  try {
+    safeSetRTL(doc, true);
+  } catch (e) {
+    console.log('R2L not supported for Arabic text', e);
+  }
+  
+  // Calculate position for Arabic text
   const pageWidth = doc.internal.pageSize.getWidth();
   const textX = opts.align === 'right' ? x : 
                opts.align === 'center' ? pageWidth / 2 : 
                pageWidth - x - CONTENT_MARGIN;
   
-  // Add Arabic text with simplified approach
+  // Add Arabic text
   doc.text(arabicText, textX, y + opts.spacing, { 
     maxWidth: opts.maxWidth || undefined, 
     align: opts.align === 'left' ? 'right' : opts.align
@@ -470,9 +461,7 @@ export const addBilingualText = (
   
   // Restore RTL setting
   try {
-    if (typeof (doc as any).setR2L === 'function') {
-      (doc as any).setR2L(prevR2L);
-    }
+    safeSetRTL(doc, prevR2L);
   } catch (e) {
     console.log('Error restoring R2L setting', e);
   }

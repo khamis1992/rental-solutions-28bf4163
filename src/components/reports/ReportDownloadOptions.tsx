@@ -15,8 +15,10 @@ import {
   downloadCSV, 
   downloadExcel, 
   generateStandardReport, 
-  generateTrafficFinesReport
+  generateTrafficFinesReport,
+  addBilingualText
 } from '@/utils/report-utils';
+import { testArabicSupport } from '@/utils/jspdf-arabic-font';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -70,10 +72,20 @@ const ReportDownloadOptions = ({
       if (fileFormat === 'pdf') {
         try {
           console.log(`Generating ${reportType} PDF report with ${reportData.length} records`);
+          
+          // Test PDF Arabic support first
+          if (isArabic) {
+            const testDoc = new jsPDF();
+            const arabicSupported = testArabicSupport(testDoc);
+            if (!arabicSupported) {
+              console.warn("Arabic support test failed. Arabic text may not render correctly.");
+            }
+          }
+          
           // Handle report generation with safe fallbacks
           if (reportType === 'traffic-fines') {
             const doc = generateTrafficFinesReport(reportData, 
-              isArabic ? { rtl: true, font: 'helvetica' } : undefined
+              isArabic ? { rtl: true } : undefined
             );
             doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
           } else {
@@ -87,12 +99,20 @@ const ReportDownloadOptions = ({
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('Report Summary:', 14, yPos);
-                yPos += 10;
+                
+                if (isArabic) {
+                  // Add Arabic title below English title using our bilingual text helper
+                  const arabicTitle = arabicTitles[reportType] || 'تقرير';
+                  yPos = addBilingualText(doc, 'Report Summary:', arabicTitle, 14, yPos + 10);
+                } else {
+                  yPos += 10;
+                }
                 
                 // Add simple content based on report type
                 doc.setFontSize(12);
                 doc.setFont('helvetica', 'normal');
                 
+                // Add report-specific content
                 switch(reportType) {
                   case 'fleet':
                     doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
@@ -121,13 +141,14 @@ const ReportDownloadOptions = ({
                 
                 return yPos;
               },
-              isArabic ? { rtl: true, font: 'helvetica' } : undefined
+              isArabic ? { rtl: true } : undefined
             );
             
             // Save the PDF
             doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
           }
           console.log("PDF report generated successfully");
+          
         } catch (error) {
           console.error("PDF generation error:", error);
           toast.error("Error generating PDF", {
