@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { registerArabicSupport, safeSetRTL, testArabicSupport, writeArabicText } from './jspdf-arabic-font';
+import { registerArabicSupport, safeSetRTL, testArabicSupport, writeArabicText as importedWriteArabicText } from './jspdf-arabic-font';
 
 /**
  * Generates a CSV string from an array of objects with UTF-8 BOM support for Arabic
@@ -468,21 +468,16 @@ export const addBilingualText = (
 
   // Try to use dedicated Arabic text writer if available
   try {
-    if (typeof writeArabicText === 'function') {
-      writeArabicText(doc, arabicText, textX, y + opts.spacing, { 
-        align: opts.align === 'left' ? 'right' : opts.align
-      });
-    } else {
-      // Fallback to regular text
-      doc.text(arabicText, textX, y + opts.spacing, { 
-        maxWidth: opts.maxWidth || undefined, 
-        align: opts.align === 'left' ? 'right' : opts.align
-      });
-    }
+    importedWriteArabicText(doc, arabicText, textX, y + opts.spacing, { 
+      align: opts.align === 'left' ? 'right' : opts.align
+    });
   } catch (e) {
     console.error('Error writing Arabic text:', e);
-    // Last resort fallback
-    doc.text(arabicText, textX, y + opts.spacing);
+    // Fallback to regular text
+    doc.text(arabicText, textX, y + opts.spacing, { 
+      maxWidth: opts.maxWidth || undefined, 
+      align: opts.align === 'left' ? 'right' : opts.align
+    });
   }
 
   // Restore RTL setting
@@ -509,10 +504,4 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
     currency: currency,
     minimumFractionDigits: 2
   }).format(amount);
-};
-
-// Placeholder for a more robust Arabic text writing function.  This needs to be replaced with actual implementation.
-const writeArabicText = (doc: jsPDF, text: string, x: number, y: number, options: any) => {
-  console.log("writeArabicText called with:", text, x, y, options);
-  doc.text(text, x, y, options);
 };
