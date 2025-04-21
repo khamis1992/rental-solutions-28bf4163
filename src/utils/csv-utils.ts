@@ -9,15 +9,8 @@ import { prepareArabicText, containsArabic } from './arabic-text-utils';
  */
 export function encodeCSVText(text: string): string {
   if (!text) return '';
-
-  // Handle Arabic text
-  if (containsArabic(text)) {
-    const normalizedText = prepareArabicText(text);
-    // Ensure proper encoding
-    const encoded = new TextEncoder().encode(normalizedText);
-    return new TextDecoder('utf-8').decode(encoded);
-  }
-  return text;
+  const preparedText = containsArabic(text) ? prepareArabicText(text) : text;
+  return preparedText;
 }
 
 /**
@@ -27,116 +20,60 @@ export function formatCSVValue(value: any): string {
   if (value === null || value === undefined) return '';
 
   const stringValue = String(value);
+  const preparedValue = encodeCSVText(stringValue);
 
-  // If the value contains quotes, commas, or newlines, wrap it in quotes and escape existing quotes
-  if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
+  // Escape quotes and handle special characters
+  if (preparedValue.includes('"') || preparedValue.includes(',') || preparedValue.includes('\n')) {
+    return `"${preparedValue.replace(/"/g, '""')}"`;
   }
 
-  return stringValue;
+  return preparedValue;
 }
 
 /**
  * Generate and download a CSV template file
  */
 export function downloadCSVTemplate(fields: string[], filename: string): void {
-  // Generate CSV headers
-  const headers = fields.join(',');
-
-  // Create a CSV file with headers only
-  const csvContent = `${headers}\n`;
-
-  // Add UTF-8 BOM for Excel compatibility
-  const BOM = '\uFEFF';
-  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-
-  // Create a URL for the blob
+  const headers = fields.map(field => formatCSVValue(field)).join(',');
+  const csvContent = `\uFEFF${headers}\n`; // Add BOM for Excel compatibility
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-
-  // Create a temporary link to trigger the download
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', filename);
-
-  // Add to document, click and remove to trigger download
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
-  // Clean up the URL object
   URL.revokeObjectURL(url);
 }
 
 /**
  * Parse a CSV file to an array of objects
  */
-export function parseCSVFile<T extends Record<string, any>>(
-  file: File, 
-  headerMap: Record<string, keyof T & string>
-): Promise<T[]> {
+export function parseCSVFile<T extends Record<string, any>>(file: File): Promise<T[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = (event) => {
       try {
-        const csvText = event.target?.result as string;
-        const lines = csvText.split('\n').filter(line => line.trim() !== '');
-
-        // Extract and validate headers
-        const headers = lines[0].split(',').map(header => header.trim());
-
-        // Process data rows
-        const results: T[] = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-
-          // Handle quoted values properly
-          const values: string[] = [];
-          let current = '';
-          let inQuotes = false;
-
-          for (let j = 0; j < line.length; j++) {
-            const char = line[j];
-
-            if (char === '"' && (j === 0 || line[j-1] !== '\\')) {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              values.push(current);
-              current = '';
-            } else {
-              current += char;
-            }
-          }
-
-          // Push the last value
-          values.push(current);
-
-          // Create object using headerMap
-          const obj = {} as any;
-
-          headers.forEach((header, index) => {
-            const mappedKey = headerMap[header];
-            if (mappedKey && values[index] !== undefined) {
-              obj[mappedKey] = values[index].replace(/^"|"$/g, ''); // Remove surrounding quotes
-            }
+        const text = event.target?.result as string;
+        const rows = text.split('\n').map(row => 
+          row.split(',').map(cell => encodeCSVText(cell.trim()))
+        );
+        const headers = rows[0];
+        const data = rows.slice(1).map(row => {
+          const obj: Record<string, any> = {};
+          headers.forEach((header, i) => {
+            obj[header] = row[i] || '';
           });
-
-          results.push(obj as T);
-        }
-
-        resolve(results);
+          return obj;
+        });
+        resolve(data as T[]);
       } catch (error) {
         reject(error);
       }
     };
-
-    reader.onerror = (error) => {
-      reject(error);
-    };
-
-    reader.readAsText(file);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'utf-8');
   });
 }
 
@@ -146,67 +83,22 @@ export function parseCSVFile<T extends Record<string, any>>(
 export function previewCSVFile(file: File, maxRows: number = 5): Promise<{headers: string[], rows: string[][]}> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = (event) => {
       try {
-        const csvText = event.target?.result as string;
-        const lines = csvText.split('\n').filter(line => line.trim() !== '');
-
-        if (lines.length === 0) {
-          throw new Error('CSV file is empty');
-        }
-
-        // Extract headers
-        const headers = lines[0].split(',').map(header => header.trim());
-
-        // Process only the first few rows
-        const previewRows: string[][] = [];
-        const rowsToProcess = Math.min(maxRows, lines.length - 1);
-
-        for (let i = 1; i <= rowsToProcess; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-
-          // Handle quoted values properly
-          const values: string[] = [];
-          let current = '';
-          let inQuotes = false;
-
-          for (let j = 0; j < line.length; j++) {
-            const char = line[j];
-
-            if (char === '"' && (j === 0 || line[j-1] !== '\\')) {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              values.push(current);
-              current = '';
-            } else {
-              current += char;
-            }
-          }
-
-          // Push the last value
-          values.push(current);
-
-          // Remove surrounding quotes from values
-          const cleanedValues = values.map(val => val.replace(/^"|"$/g, ''));
-          previewRows.push(cleanedValues);
-        }
-
+        const text = event.target?.result as string;
+        const rows = text.split('\n')
+          .slice(0, maxRows + 1)
+          .map(row => row.split(',').map(cell => encodeCSVText(cell.trim())));
         resolve({
-          headers,
-          rows: previewRows
+          headers: rows[0],
+          rows: rows.slice(1)
         });
       } catch (error) {
         reject(error);
       }
     };
-
-    reader.onerror = (error) => {
-      reject(error);
-    };
-
-    reader.readAsText(file);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'utf-8');
   });
 }
 
@@ -216,30 +108,15 @@ export function previewCSVFile(file: File, maxRows: number = 5): Promise<{header
 export function generateCSV(data: Record<string, any>[]): string {
   if (!data || data.length === 0) return '';
 
-  // Add BOM for UTF-8
-  let csv = '\ufeff';
-
-  // Get headers
   const headers = Object.keys(data[0]);
-  csv += headers.join(',') + '\n';
+  const csvRows = [
+    headers.map(header => formatCSVValue(header)).join(','),
+    ...data.map(row =>
+      headers.map(header => formatCSVValue(row[header])).join(',')
+    )
+  ];
 
-  // Add data rows
-  data.forEach(item => {
-    const row = headers.map(header => {
-      const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      const processedValue = encodeCSVText(String(value));
-
-      // Escape quotes and wrap in quotes if contains comma or quote
-      if (processedValue.includes(',') || processedValue.includes('"')) {
-        return `"${processedValue.replace(/"/g, '""')}"`;
-      }
-      return processedValue;
-    });
-
-    csv += row.join(',') + '\n';
-  });
-
-  return csv;
+  return `\uFEFF${csvRows.join('\n')}`; // Add BOM for Excel compatibility
 }
 
 export function downloadCSV(data: Record<string, any>[], filename: string): void {

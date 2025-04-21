@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import '@fontsource/amiri';
 
@@ -8,13 +7,17 @@ function getBidiText(text: string): string {
 }
 
 // Prepare Arabic text for PDF rendering
-export function prepareArabicText(text: string): string {
+export const prepareArabicText = (text: string): string => {
   if (!text) return '';
-  
-  // Remove any invisible characters and normalize
-  const normalizedText = text.normalize('NFKC').trim();
-  return containsArabic(normalizedText) ? getBidiText(normalizedText) : normalizedText;
-}
+
+  // Normalize Arabic text (converts presentation forms)
+  text = text.normalize('NFKC');
+
+  // Handle special cases like Arabic numbers
+  text = text.replace(/[٠-٩]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 1632 + 48));
+
+  return text;
+};
 
 // Configure PDF document for Arabic support
 export function configureArabicPDF(doc: jsPDF): void {
@@ -36,9 +39,11 @@ export function configureArabicPDF(doc: jsPDF): void {
 }
 
 // Helper to determine if text contains Arabic
-export function containsArabic(text: string): boolean {
-  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
-}
+export const containsArabic = (text: string): boolean => {
+  if (!text) return false;
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicPattern.test(text);
+};
 
 // Format mixed text (Arabic/English)
 export function formatMixedText(text: string): string {
