@@ -240,13 +240,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Use basic object type to avoid nested type instantiation
-      const agreements = data.map(item => {
+      // To avoid type instantiation issues, use a simple array of objects with defined properties
+      const agreements: SimpleAgreement[] = [];
+      
+      for (const item of data) {
         const rawStatus = item.status as string;
         const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
         
-        // Create a plain object without explicit typing to avoid deep instantiation
-        return {
+        agreements.push({
           id: item.id,
           customer_id: item.customer_id,
           vehicle_id: item.vehicle_id,
@@ -261,11 +262,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles: item.vehicles,
           created_at: item.created_at ? new Date(item.created_at) : undefined,
           updated_at: item.updated_at ? new Date(item.updated_at) : undefined
-        };
-      });
+        });
+      }
 
-      // Use type assertion directly to SimpleAgreement[] without intermediate steps
-      return agreements as SimpleAgreement[];
+      return agreements;
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
