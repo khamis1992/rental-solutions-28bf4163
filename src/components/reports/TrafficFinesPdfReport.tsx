@@ -169,9 +169,8 @@ export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfRepor
       display: 'inline-block'
     }}
   >
-    {({ loading }: { loading: boolean }) =>
-      loading ? "Generating PDF..." : "Download PDF"
-    }
+    {/* Fix: Use ReactNode as children instead of function */}
+    Download PDF
   </PDFDownloadLink>
 );
 
