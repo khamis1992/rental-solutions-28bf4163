@@ -187,7 +187,11 @@ export const generateStandardReport = (
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
-export const generateTrafficFinesReport = async (trafficData: any[]) => {
+export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
+  if (!Array.isArray(trafficData)) {
+    console.error('Invalid traffic data provided');
+    throw new Error('Invalid traffic data format');
+  }
   const doc = new jsPDF();
   await setupArabicFont(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -209,14 +213,22 @@ export const generateTrafficFinesReport = async (trafficData: any[]) => {
 
   // Draw metrics table
   currentY += 20;
+  // Calculate metrics from actual data
+  const totalFines = trafficData.length;
+  const totalAmount = trafficData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+  const pendingFines = trafficData.filter(fine => fine.paymentStatus === 'pending');
+  const pendingAmount = pendingFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+  const completedAmount = totalAmount - pendingAmount;
+  const unassignedFines = trafficData.filter(fine => !fine.customerId);
+  const unassignedAmount = unassignedFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+
   const metrics = [
-    ['Total Vehicles', '74'],
-    ['Total Fines', '909'],
-    ['Total Amount', 'QAR 558,900.00'],
-    ['Pending Amount', 'QAR 558,900.00'],
-    ['Completed Amount', 'QAR 0.00'],
-    ['Unassigned Fines', '525'],
-    ['Unassigned Amount', 'QAR 341,400.00']
+    ['Total Fines', totalFines.toString()],
+    ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
+    ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
+    ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
+    ['Unassigned Fines', unassignedFines.length.toString()],
+    ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
   ];
 
   // Draw header row with orange background
