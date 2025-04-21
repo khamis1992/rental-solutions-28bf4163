@@ -17,6 +17,7 @@ import {
   generateStandardReport, 
   generateTrafficFinesReport 
 } from '@/utils/report-utils';
+import { addRtlMarkIfNeeded, containsArabic } from '@/utils/arabic-text-utils';
 
 interface ReportDownloadOptionsProps {
   reportType: string;

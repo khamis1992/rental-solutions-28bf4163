@@ -265,7 +265,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   type UpdateAgreementParams = { 
     id: string; 
-    data: Record<string, any> 
+    // Fix: Replace Record<string, any> with a simpler type to avoid excessive type instantiation
+    data: Record<string, unknown> 
   };
 
   const updateAgreementMutation = useMutation({

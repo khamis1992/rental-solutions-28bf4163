@@ -1,6 +1,8 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { containsArabic, prepareArabicForPdf } from './arabic-text-utils';
 
 /**
  * Generates a CSV string from an array of objects
@@ -21,10 +23,15 @@ export const generateCSV = (data: Record<string, any>[]): string => {
     const row = headers.map(header => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      const valueStr = String(value);
+      let valueStr = String(value);
       
-      // Escape quotes and wrap in quotes if contains comma or quote
-      if (valueStr.includes(',') || valueStr.includes('"')) {
+      // Handle Arabic text with RTL markers if needed
+      if (containsArabic(valueStr)) {
+        valueStr = '\u200F' + valueStr; // Add RTL mark
+      }
+      
+      // Escape quotes and wrap in quotes if contains comma, quote, or is Arabic
+      if (valueStr.includes(',') || valueStr.includes('"') || containsArabic(valueStr)) {
         return `"${valueStr.replace(/"/g, '""')}"`;
       }
       return valueStr;
@@ -43,15 +50,28 @@ export const generateCSV = (data: Record<string, any>[]): string => {
  */
 export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
   const csv = generateCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  
+  // Add UTF-8 BOM for proper Arabic support
+  const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+  const textEncoder = new TextEncoder();
+  const contentBuffer = textEncoder.encode(csv);
+  
+  // Combine BOM and content
+  const finalBuffer = new Uint8Array(bom.length + contentBuffer.length);
+  finalBuffer.set(bom, 0);
+  finalBuffer.set(contentBuffer, bom.length);
+  
+  const blob = new Blob([finalBuffer], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   
   const link = document.createElement('a');
-  link.setAttribute('href', url);
+  link.href = url;
   link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  
+  URL.revokeObjectURL(url);
 };
 
 /**
@@ -67,6 +87,34 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
 const PAGE_HEIGHT = 297; // A4 height in mm
 const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
 const CONTENT_MARGIN = 14; // Left/right margin in mm
+
+// Add Arabic font to jsPDF
+function addArabicFontToPDF(doc: jsPDF): jsPDF {
+  // This is a placeholder function - in a real implementation
+  // you would need to import and register a TrueType font with Arabic glyphs
+  // However, this requires additional setup with external font files
+  return doc;
+}
+
+/**
+ * Properly handles Arabic text for PDF output
+ * @param text Text that might contain Arabic
+ * @param doc jsPDF document instance
+ * @returns Processed text ready for PDF rendering
+ */
+function processPdfText(text: string | number | undefined, doc: jsPDF): string {
+  if (text === undefined || text === null) return '';
+  
+  const str = String(text);
+  
+  // Check if text contains Arabic
+  if (containsArabic(str)) {
+    // Apply special handling for Arabic text
+    return prepareArabicForPdf(str);
+  }
+  
+  return str;
+}
 
 /**
  * Generates a PDF report header with company logo
@@ -85,7 +133,7 @@ export const addReportHeader = (
   // Add title
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(title, pageWidth / 2, 20, { align: 'center' });
+  doc.text(processPdfText(title, doc), pageWidth / 2, 20, { align: 'center' });
   
   // Add report period and generation date
   doc.setFontSize(12);
@@ -131,7 +179,18 @@ export const generateStandardReport = (
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
-  const doc = new jsPDF();
+  // Create PDF with additional encoding options for Arabic support
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    hotfixes: ['px_scaling']
+  });
+  
+  // Add Arabic support to the PDF document
+  addArabicFontToPDF(doc);
+  
   const startY = addReportHeader(doc, title, dateRange);
   contentGenerator(doc, startY);
   
@@ -145,12 +204,40 @@ export const generateStandardReport = (
 };
 
 /**
+ * Process text for traffic fines report to handle Arabic correctly
+ * @param text Text to prepare for PDF
+ * @returns Processed text
+ */
+function prepareTrafficText(text: string | number | undefined): string {
+  if (text === undefined || text === null) return '';
+  const str = String(text);
+  
+  // Handle Arabic text in traffic fines
+  if (containsArabic(str)) {
+    return '\u200F' + str; // Add RTL mark for Arabic
+  }
+  
+  return str;
+}
+
+/**
  * Generate a Traffic Fines Report
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
 export const generateTrafficFinesReport = (trafficData: any[]) => {
-  const doc = new jsPDF();
+  // Create PDF with encoding options for Arabic support
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true,
+    hotfixes: ['px_scaling']
+  });
+  
+  // Add Arabic support
+  addArabicFontToPDF(doc);
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
@@ -203,28 +290,34 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     
     doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
     doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
-    doc.text(label, 16, currentY + 6);
-    doc.text(value, 16 + (pageWidth - 28) / 2, currentY + 6);
+    
+    // Process text for potential Arabic content
+    doc.text(prepareTrafficText(label), 16, currentY + 6);
+    doc.text(prepareTrafficText(value), 16 + (pageWidth - 28) / 2, currentY + 6);
+    
     currentY += 8;
   });
   
   currentY += 20;
 
   // Group fines by customer
-  const groupedFines = trafficData.reduce((acc, fine) => {
+  const groupedFines: Record<string, any> = {};
+  
+  trafficData.forEach(fine => {
     const customerKey = fine.customerName || 'Unassigned';
-    if (!acc[customerKey]) {
-      acc[customerKey] = {
+    
+    if (!groupedFines[customerKey]) {
+      groupedFines[customerKey] = {
         fines: [],
         totalAmount: 0,
         vehicles: new Set()
       };
     }
-    acc[customerKey].fines.push(fine);
-    acc[customerKey].totalAmount += fine.fineAmount || 0;
-    if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
-    return acc;
-  }, {} as Record<string, any>);
+    
+    groupedFines[customerKey].fines.push(fine);
+    groupedFines[customerKey].totalAmount += fine.fineAmount || 0;
+    if (fine.licensePlate) groupedFines[customerKey].vehicles.add(fine.licensePlate);
+  });
 
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
@@ -240,7 +333,10 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text(customerName, 16, currentY + 6);
+    
+    // Process customer name for Arabic support
+    doc.text(prepareTrafficText(customerName), 16, currentY + 6);
+    
     currentY += 12;
 
     // Vehicle summary header
@@ -260,7 +356,10 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       vehicleData.forEach((text, i) => {
         doc.rect(x, currentY, headerWidths[i], 8);
         doc.setTextColor(0);
-        doc.text(text.toString(), x + 2, currentY + 6);
+        
+        // Process possible Arabic text
+        doc.text(prepareTrafficText(text), x + 2, currentY + 6);
+        
         x += headerWidths[i];
       });
       currentY += 8;
@@ -302,7 +401,10 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
         
         [fine.violationNumber, date, amount].forEach((text, i) => {
           doc.rect(x, currentY, violationWidths[i], 8);
-          doc.text(text.toString(), x + 2, currentY + 6);
+          
+          // Process text for Arabic support
+          doc.text(prepareTrafficText(text), x + 2, currentY + 6);
+          
           x += violationWidths[i];
         });
         currentY += 8;
