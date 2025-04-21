@@ -168,9 +168,11 @@ export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfRepor
       <PDFDownloadLink 
         document={<TrafficFinesPdfDocument fines={fines} />}
         fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
-        className="no-underline text-white"
+        className="no-underline text-white w-full h-full block"
       >
-        Download PDF
+        {({ loading }) => (
+          <span>{loading ? "Generating..." : "Download PDF"}</span>
+        )}
       </PDFDownloadLink>
     </div>
   );

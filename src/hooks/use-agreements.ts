@@ -40,7 +40,7 @@ export type SimpleAgreement = BaseAgreement & {
 };
 
 // Tell TypeScript to avoid checking this type too deeply
-// @ts-ignore: Type instantiation is excessively deep and possibly infinite
+// @ts-ignore
 export type FlattenedAgreement = FlattenType<SimpleAgreement>;
 
 interface SearchParams {
