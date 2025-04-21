@@ -22,14 +22,13 @@ export const prepareArabicText = (text: string): string => {
 // Configure PDF document for Arabic support
 export function configureArabicPDF(doc: jsPDF): void {
   try {
-    // Add font
-    doc.addFont('Amiri', 'normal');
-    doc.setFont('Amiri');
-    
+    // Use a fallback font that's bundled with jsPDF
+    doc.setFont('Helvetica');
+
     // Configure right-to-left and language
     doc.setR2L(true);
     doc.setLanguage('ar');
-    
+
     // Set default font size
     doc.setFontSize(12);
   } catch (error) {
@@ -48,7 +47,7 @@ export const containsArabic = (text: string): boolean => {
 // Format mixed text (Arabic/English)
 export function formatMixedText(text: string): string {
   if (!text) return '';
-  
+
   return text.split(' ').map(word => {
     return containsArabic(word) ? getBidiText(word) : word;
   }).join(' ');
