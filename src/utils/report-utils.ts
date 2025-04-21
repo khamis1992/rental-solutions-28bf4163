@@ -222,14 +222,28 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
   const unassignedFines = trafficData.filter(fine => !fine.customerId);
   const unassignedAmount = unassignedFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
 
-  const metrics = [
-    ['Total Fines', totalFines.toString()],
-    ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
-    ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
-    ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
-    ['Unassigned Fines', unassignedFines.length.toString()],
-    ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
-  ];
+  // Add try-catch blocks for database operations
+  let metrics = [];
+  try {
+    metrics = [
+      ['Total Fines', totalFines.toString()],
+      ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
+      ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
+      ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
+      ['Unassigned Fines', unassignedFines.length.toString()],
+      ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
+    ];
+  } catch (error) {
+    console.error('Error preparing metrics:', error);
+    metrics = [
+      ['Total Fines', '0'],
+      ['Total Amount', 'QAR 0'],
+      ['Pending Amount', 'QAR 0'],
+      ['Completed Amount', 'QAR 0'],
+      ['Unassigned Fines', '0'],
+      ['Unassigned Amount', 'QAR 0']
+    ];
+  }
 
   // Draw header row with orange background
   doc.setFillColor(255, 140, 0);
@@ -268,16 +282,17 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
 
   currentY += 20;
 
-  // Group fines by customer
-  const groupedFines = trafficData.reduce((acc, fine) => {
-    const customerKey = fine.customerName || 'Unassigned';
-    if (!acc[customerKey]) {
-      acc[customerKey] = {
-        fines: [],
-        totalAmount: 0,
-        vehicles: new Set()
-      };
-    }
+  // Group fines by customer with error handling
+  const groupedFines = (trafficData || []).reduce((acc, fine) => {
+    try {
+      const customerKey = fine.customerName || 'Unassigned';
+      if (!acc[customerKey]) {
+        acc[customerKey] = {
+          fines: [],
+          totalAmount: 0,
+          vehicles: new Set()
+        };
+      }
     acc[customerKey].fines.push(fine);
     acc[customerKey].totalAmount += fine.fineAmount || 0;
     if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
