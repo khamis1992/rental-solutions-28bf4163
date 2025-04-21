@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 
 // Bidirectional text handling
@@ -32,15 +33,51 @@ export const prepareArabicText = (text: string): string => {
 };
 
 // Configure PDF document for Arabic support
-export function configureArabicPDF(doc: jsPDF): void {
+export async function configureArabicPDF(doc: jsPDF): Promise<void> {
   try {
+    // Set font for Arabic support
     doc.setFont('times', 'normal');
-    doc.setR2L(true);
+    doc.setR2L(true); // Enable right-to-left text direction
     doc.setLanguage('ar');
     doc.setFontSize(12);
+
+    // Override text rendering method to handle Arabic text
+    const originalText = doc.text.bind(doc);
+    doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
+      if (!text) return doc;
+      
+      const defaultOptions = { align: 'right', ...options };
+      
+      // Handle array of strings
+      if (Array.isArray(text)) {
+        text.forEach((line, i) => {
+          if (!line) return;
+          try {
+            const processed = formatMixedText(prepareArabicText(line.toString()));
+            originalText(processed, x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
+          } catch (error) {
+            console.error('Error processing text line:', error);
+            originalText(line.toString(), x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
+          }
+        });
+        return doc;
+      }
+
+      // Handle single string
+      try {
+        const processed = formatMixedText(prepareArabicText(text.toString()));
+        return originalText(processed, x, y, defaultOptions);
+      } catch (error) {
+        console.error('Error processing text:', error);
+        return originalText(text.toString(), x, y, defaultOptions);
+      }
+    };
+    
+    return Promise.resolve();
   } catch (error) {
     console.error('Error configuring Arabic PDF:', error);
     doc.setFont('helvetica', 'normal');
+    return Promise.resolve();
   }
 }
 

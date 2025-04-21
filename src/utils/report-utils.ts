@@ -1,6 +1,8 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { prepareArabicText, containsArabic, configureArabicPDF, formatMixedText } from '@/utils/arabic-text-utils';
 
 /**
  * Generates a CSV string from an array of objects
@@ -13,8 +15,8 @@ export const generateCSV = (data: Record<string, any>[]): string => {
   // Get headers from the first object
   const headers = Object.keys(data[0]);
 
-  // Create CSV header row
-  let csv = headers.join(',') + '\n';
+  // Add BOM for UTF-8 encoding support for Arabic text
+  let csv = '\uFEFF' + headers.join(',') + '\n';
 
   // Add data rows
   data.forEach(item => {
@@ -22,12 +24,15 @@ export const generateCSV = (data: Record<string, any>[]): string => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
       const valueStr = String(value);
+      
+      // Properly encode text that might contain Arabic characters
+      const processedValue = containsArabic(valueStr) ? prepareArabicText(valueStr) : valueStr;
 
       // Escape quotes and wrap in quotes if contains comma or quote
-      if (valueStr.includes(',') || valueStr.includes('"')) {
-        return `"${valueStr.replace(/"/g, '""')}"`;
+      if (processedValue.includes(',') || processedValue.includes('"')) {
+        return `"${processedValue.replace(/"/g, '""')}"`;
       }
-      return valueStr;
+      return processedValue;
     });
 
     csv += row.join(',') + '\n';
@@ -52,58 +57,32 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 /**
- * Downloads data as a CSV file
- * @param data Array of objects to download as CSV
+ * Downloads data as an Excel file
+ * @param data Array of objects to download as Excel
  * @param filename Name for the downloaded file
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
   // For simplicity, we're using CSV with .xlsx extension
-  downloadCSV(data, filename);
+  // Make sure we add the BOM character for Excel to recognize UTF-8
+  const csv = generateCSV(data);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 const PAGE_HEIGHT = 297; // A4 height in mm
 const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
-
-// Add Arabic font support
-async function setupArabicFont(doc: jsPDF) {
-  const { configureArabicPDF, prepareArabicText, formatMixedText } = await import('@/utils/arabic-text-utils');
-  configureArabicPDF(doc);
-
-  // Override text rendering method
-  const originalText = doc.text.bind(doc);
-  doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
-    if (!text) return doc;
-    
-    const defaultOptions = { align: 'right', ...options };
-    
-    // Handle array of strings
-    if (Array.isArray(text)) {
-      text.forEach((line, i) => {
-        if (!line) return;
-        try {
-          const processed = formatMixedText(prepareArabicText(line.toString()));
-          originalText(processed, x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
-        } catch (error) {
-          console.error('Error processing text line:', error);
-          originalText(line.toString(), x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
-        }
-      });
-      return doc;
-    }
-
-    // Handle single string
-    try {
-      const processed = formatMixedText(prepareArabicText(text.toString()));
-      return originalText(processed, x, y, defaultOptions);
-    } catch (error) {
-      console.error('Error processing text:', error);
-      return originalText(text.toString(), x, y, defaultOptions);
-    }
-  };
-}
 const CONTENT_MARGIN = 14; // Left/right margin in mm
 
 /**
@@ -164,12 +143,16 @@ export const addReportFooter = (doc: jsPDF): void => {
  * @param contentGenerator Function that adds content to the document
  * @returns PDF document
  */
-export const generateStandardReport = (
+export const generateStandardReport = async (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
-): jsPDF => {
+): Promise<jsPDF> => {
   const doc = new jsPDF();
+  
+  // Configure document for Arabic support
+  await configureArabicPDF(doc);
+  
   const startY = addReportHeader(doc, title, dateRange);
   contentGenerator(doc, startY);
 
@@ -193,7 +176,10 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
     throw new Error('Invalid traffic data format');
   }
   const doc = new jsPDF();
-  await setupArabicFont(doc);
+  
+  // Configure document for Arabic support
+  await configureArabicPDF(doc);
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
@@ -259,7 +245,7 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
   doc.setFont('helvetica', 'normal');
 
   // Format metrics
-  metrics.forEach(async ([label, value]) => {
+  for (const [label, value] of metrics) {
     // Check if we need a new page
     if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
       doc.addPage();
@@ -270,15 +256,11 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
     doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
     doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
 
-    // Handle Arabic text properly
-    const { formatMixedText } = await import('@/utils/arabic-text-utils');
-    const formattedLabel = formatMixedText(label);
-    const formattedValue = formatMixedText(value);
-
-    doc.text(formattedLabel, pageWidth / 2 - 2, currentY + 6, { align: 'right' });
-    doc.text(formattedValue, pageWidth - 16, currentY + 6, { align: 'right' });
+    // Apply text formatting for potential Arabic content
+    doc.text(label, pageWidth / 2 - 2, currentY + 6, { align: 'right' });
+    doc.text(value, pageWidth - 16, currentY + 6, { align: 'right' });
     currentY += 8;
-  });
+  }
 
   currentY += 20;
 
@@ -293,14 +275,18 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
           vehicles: new Set()
         };
       }
-    acc[customerKey].fines.push(fine);
-    acc[customerKey].totalAmount += fine.fineAmount || 0;
-    if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
-    return acc;
+      acc[customerKey].fines.push(fine);
+      acc[customerKey].totalAmount += fine.fineAmount || 0;
+      if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
+      return acc;
+    } catch (error) {
+      console.error('Error processing fine:', error, fine);
+      return acc;
+    }
   }, {} as { [key: string]: { fines: any[], totalAmount: number, vehicles: Set<string> } });
 
   // Add customer sections
-  Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
+  for (const [customerName, data] of Object.entries(groupedFines)) {
     // Check if we need a new page
     if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
       doc.addPage();
@@ -313,7 +299,12 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text(customerName, 16, currentY + 6);
+    
+    // Format customer name properly
+    const processedCustomerName = containsArabic(customerName) ? 
+      formatMixedText(prepareArabicText(customerName)) : 
+      customerName;
+    doc.text(processedCustomerName, 16, currentY + 6);
     currentY += 12;
 
     // Vehicle summary header
@@ -333,7 +324,12 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
       vehicleData.forEach((text, i) => {
         doc.rect(x, currentY, headerWidths[i], 8);
         doc.setTextColor(0);
-        doc.text(text.toString(), x + 2, currentY + 6);
+        
+        // Process text for potential Arabic content
+        const processedText = containsArabic(text.toString()) ? 
+          formatMixedText(prepareArabicText(text.toString())) : 
+          text.toString();
+        doc.text(processedText, x + 2, currentY + 6);
         x += headerWidths[i];
       });
       currentY += 8;
@@ -375,7 +371,12 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
 
         [fine.violationNumber, date, amount].forEach((text, i) => {
           doc.rect(x, currentY, violationWidths[i], 8);
-          doc.text(text.toString(), x + 2, currentY + 6);
+          
+          // Process text for potential Arabic content
+          const processedText = containsArabic(text.toString()) ? 
+            formatMixedText(prepareArabicText(text.toString())) : 
+            text.toString();
+          doc.text(processedText, x + 2, currentY + 6);
           x += violationWidths[i];
         });
         currentY += 8;
@@ -383,7 +384,7 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
     }
 
     currentY += 12;
-  });
+  }
 
   // Add footer to all pages
   const totalPages = doc.getNumberOfPages();

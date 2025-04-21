@@ -1,3 +1,4 @@
+
 import { prepareArabicText, containsArabic } from './arabic-text-utils';
 
 /**
