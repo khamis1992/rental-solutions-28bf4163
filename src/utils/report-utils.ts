@@ -297,7 +297,7 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
     acc[customerKey].totalAmount += fine.fineAmount || 0;
     if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
     return acc;
-  } as unknown as { [key: string]: { fines: any[], totalAmount: number, vehicles: Set<string> } }, {});
+  }, {} as { [key: string]: { fines: any[], totalAmount: number, vehicles: Set<string> } });
 
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
