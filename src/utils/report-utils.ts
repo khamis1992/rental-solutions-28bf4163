@@ -1,15 +1,18 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { registerArabicSupport, safeSetRTL, testArabicSupport } from './jspdf-arabic-font';
+import { registerArabicSupport, safeSetRTL, testArabicSupport, writeArabicText } from './jspdf-arabic-font';
 
 /**
- * Generates a CSV string from an array of objects
+ * Generates a CSV string from an array of objects with UTF-8 BOM support for Arabic
  * @param data Array of objects to convert to CSV
  * @returns CSV formatted string
  */
 export const generateCSV = (data: Record<string, any>[]): string => {
   if (!data || data.length === 0) return '';
+
+  // Add UTF-8 BOM for proper Arabic text rendering
+  const BOM = '\uFEFF';
 
   // Get headers from the first object
   const headers = Object.keys(data[0]);
@@ -24,8 +27,11 @@ export const generateCSV = (data: Record<string, any>[]): string => {
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
       const valueStr = String(value);
 
-      // Escape quotes and wrap in quotes if contains comma or quote
-      if (valueStr.includes(',') || valueStr.includes('"')) {
+      // Check for Arabic text
+      const containsArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(valueStr);
+      
+      // Escape quotes and wrap in quotes if contains comma, quote or Arabic
+      if (valueStr.includes(',') || valueStr.includes('"') || containsArabic) {
         return `"${valueStr.replace(/"/g, '""')}"`;
       }
       return valueStr;
@@ -34,16 +40,17 @@ export const generateCSV = (data: Record<string, any>[]): string => {
     csv += row.join(',') + '\n';
   });
 
-  return csv;
+  return BOM + csv;
 };
 
 /**
- * Downloads data as a CSV file
+ * Downloads data as a CSV file with UTF-8 BOM support for Arabic
  * @param data Array of objects to download as CSV
  * @param filename Name for the downloaded file
  */
 export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
   const csv = generateCSV(data);
+  // Use UTF-8 encoding for Arabic support
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
 
@@ -53,6 +60,7 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 /**
@@ -62,6 +70,7 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
   // For simplicity, we're using CSV with .xlsx extension
+  // But still need UTF-8 BOM for Arabic text
   downloadCSV(data, filename);
 };
 
@@ -390,6 +399,7 @@ export const generateTrafficFinesReport = (
 
 /**
  * Add bilingual text to a PDF document (English and Arabic)
+ * Enhanced to handle Arabic text alignment better
  */
 export const addBilingualText = (
   doc: jsPDF,
@@ -454,13 +464,26 @@ export const addBilingualText = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const textX = opts.align === 'right' ? x : 
                opts.align === 'center' ? pageWidth / 2 : 
-               pageWidth - x - CONTENT_MARGIN;
+               pageWidth - x - (opts.maxWidth || 0);
 
-  // Add Arabic text
-  doc.text(arabicText, textX, y + opts.spacing, { 
-    maxWidth: opts.maxWidth || undefined, 
-    align: opts.align === 'left' ? 'right' : opts.align
-  });
+  // Try to use dedicated Arabic text writer if available
+  try {
+    if (typeof writeArabicText === 'function') {
+      writeArabicText(doc, arabicText, textX, y + opts.spacing, { 
+        align: opts.align === 'left' ? 'right' : opts.align
+      });
+    } else {
+      // Fallback to regular text
+      doc.text(arabicText, textX, y + opts.spacing, { 
+        maxWidth: opts.maxWidth || undefined, 
+        align: opts.align === 'left' ? 'right' : opts.align
+      });
+    }
+  } catch (e) {
+    console.error('Error writing Arabic text:', e);
+    // Last resort fallback
+    doc.text(arabicText, textX, y + opts.spacing);
+  }
 
   // Restore RTL setting
   try {

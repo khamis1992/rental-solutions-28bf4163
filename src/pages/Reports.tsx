@@ -22,6 +22,16 @@ import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import TrafficFinesPdfDownloadLink from '@/components/reports/TrafficFinesPdfReport';
 
+// Define interface for traffic fines data
+interface TrafficFineData {
+  customerName?: string;
+  licensePlate?: string;
+  violationNumber?: string;
+  violationDate?: string | Date;
+  fineAmount?: number;
+  paymentStatus?: string;
+}
+
 const Reports = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('fleet');
@@ -62,7 +72,8 @@ const Reports = () => {
     }, 2000);
   };
   
-  const getReportData = () => {
+  // Type-safe implementation to fix error TS2322
+  const getReportData = (): Record<string, any>[] | TrafficFineData[] => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -116,6 +127,20 @@ const Reports = () => {
       default:
         return [];
     }
+  };
+
+  // Get traffic fines data in the correct format for the PDF
+  const getTrafficFinesData = (): TrafficFineData[] => {
+    if (!trafficFines) return [];
+    
+    return trafficFines.map(fine => ({
+      customerName: fine.customerName || 'Unassigned',
+      licensePlate: fine.licensePlate,
+      violationNumber: fine.violationNumber,
+      violationDate: fine.violationDate,
+      fineAmount: fine.fineAmount,
+      paymentStatus: fine.paymentStatus
+    }));
   };
 
   return (
@@ -200,7 +225,7 @@ const Reports = () => {
                   
                   <div className="mb-4">
                     <h4 className="text-sm font-semibold mb-2">Download PDF Report</h4>
-                    <TrafficFinesPdfDownloadLink fines={getReportData()} />
+                    <TrafficFinesPdfDownloadLink fines={getTrafficFinesData()} />
                   </div>
                   
                   <div className="mt-6">

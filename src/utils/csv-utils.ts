@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for CSV file operations
  */
@@ -12,10 +11,11 @@ export function downloadCSVTemplate(fields: string[], filename: string): void {
   // Generate CSV headers
   const headers = fields.join(',');
   
-  // Create a CSV file with headers only
-  const csvContent = `${headers}\n`;
+  // Create a CSV file with headers only and UTF-8 BOM for proper Arabic support
+  const BOM = '\uFEFF'; // UTF-8 BOM
+  const csvContent = `${BOM}${headers}\n`;
   
-  // Create a blob with the CSV content
+  // Create a blob with the CSV content with UTF-8 encoding
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   
   // Create a URL for the blob
@@ -36,6 +36,26 @@ export function downloadCSVTemplate(fields: string[], filename: string): void {
 }
 
 /**
+ * Helper function to detect Arabic text
+ */
+export function containsArabicText(text: string): boolean {
+  // Arabic Unicode ranges
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicPattern.test(text);
+}
+
+/**
+ * Helper function to normalize Arabic text for CSV
+ */
+export function normalizeArabicText(text: string): string {
+  // Basic normalization to improve display in CSV readers
+  if (typeof text !== 'string') return String(text);
+  
+  return text
+    .replace(/[\u064B-\u065F]/g, ''); // Remove diacritics
+}
+
+/**
  * Parse a CSV file to an array of objects
  * Type-safe version to avoid deep type instantiation errors
  * 
@@ -45,7 +65,7 @@ export function downloadCSVTemplate(fields: string[], filename: string): void {
  */
 export function parseCSVFile<T extends Record<string, any>>(
   file: File, 
-  headerMap: Record<string, keyof T & string>
+  headerMap: Record<string, keyof T>
 ): Promise<T[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -55,8 +75,15 @@ export function parseCSVFile<T extends Record<string, any>>(
         const csvText = event.target?.result as string;
         const lines = csvText.split('\n').filter(line => line.trim() !== '');
         
+        // Handle BOM if present
+        let firstLine = lines[0];
+        if (firstLine.charCodeAt(0) === 0xFEFF) {
+          firstLine = firstLine.substring(1);
+          lines[0] = firstLine;
+        }
+        
         // Extract and validate headers
-        const headers = lines[0].split(',').map(header => header.trim());
+        const headers = firstLine.split(',').map(header => header.trim());
         
         // Process data rows
         const results: T[] = [];
@@ -86,13 +113,14 @@ export function parseCSVFile<T extends Record<string, any>>(
           // Push the last value
           values.push(current);
           
-          // Create object using headerMap
-          const obj = {} as any;
+          // Create object using headerMap - handle Arabic text correctly
+          const obj = {} as Record<string, any>;
           
           headers.forEach((header, index) => {
             const mappedKey = headerMap[header];
             if (mappedKey && values[index] !== undefined) {
-              obj[mappedKey] = values[index].replace(/^"|"$/g, ''); // Remove surrounding quotes
+              const value = values[index].replace(/^"|"$/g, ''); // Remove quotes
+              obj[mappedKey as string] = value;
             }
           });
           
@@ -109,7 +137,8 @@ export function parseCSVFile<T extends Record<string, any>>(
       reject(error);
     };
     
-    reader.readAsText(file);
+    // Read file as text with UTF-8 encoding
+    reader.readAsText(file, 'UTF-8');
   });
 }
 
@@ -194,9 +223,17 @@ export function previewCSVFile(file: File, maxRows: number = 5): Promise<{header
 export function formatCSVValue(value: any): string {
   if (value === null || value === undefined) return '';
   
+  // Convert to string safely
   const stringValue = String(value);
   
-  // If the value contains quotes, commas, or newlines, wrap it in quotes and escape existing quotes
+  // Special handling for Arabic text
+  if (containsArabicText(stringValue)) {
+    const normalizedValue = normalizeArabicText(stringValue);
+    // Double escaping quotes is important for Arabic text
+    return `"${normalizedValue.replace(/"/g, '""')}"`;
+  }
+  
+  // Regular handling for other values
   if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
@@ -213,6 +250,9 @@ export function formatCSVValue(value: any): string {
 export function generateCSV(data: Record<string, any>[], headers?: string[]): string {
   if (data.length === 0) return '';
   
+  // Add UTF-8 BOM for proper Arabic text rendering in Excel
+  const BOM = '\uFEFF';
+  
   // Use provided headers or extract from first object
   const csvHeaders = headers || Object.keys(data[0]);
   
@@ -222,7 +262,7 @@ export function generateCSV(data: Record<string, any>[], headers?: string[]): st
     csvHeaders.map(header => formatCSVValue(item[header])).join(',')
   );
   
-  return [headerRow, ...rows].join('\n');
+  return BOM + [headerRow, ...rows].join('\n');
 }
 
 /**
@@ -233,6 +273,8 @@ export function generateCSV(data: Record<string, any>[], headers?: string[]): st
  */
 export function downloadCSV(data: Record<string, any>[], filename: string, headers?: string[]): void {
   const csvContent = generateCSV(data, headers);
+  
+  // Ensure UTF-8 encoding with BOM for Arabic text support
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   

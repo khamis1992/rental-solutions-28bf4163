@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Document,
@@ -12,9 +13,16 @@ import {
 // Register Cairo for Arabic/English display with updated URL
 Font.register({
   family: 'Cairo',
-  // Updated URL to a more reliable Cairo font location
-  src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs0SgZR.ttf',
+  // Updated URL to a more reliable Cairo font CDN location
+  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.8/files/cairo-all-400-normal.woff',
   fontWeight: 'normal',
+});
+
+// Register Cairo Bold
+Font.register({
+  family: 'Cairo',
+  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.8/files/cairo-all-700-normal.woff',
+  fontWeight: 'bold',
 });
 
 // Register Helvetica as a fallback
@@ -67,7 +75,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     borderBottomWidth: 1,
     alignItems: 'center',
-    minHeight: 20,
+    minHeight: 24,
   },
   tableHeader: {
     backgroundColor: '#f1f5f9',
@@ -87,13 +95,26 @@ const styles = StyleSheet.create({
     direction: 'rtl',
     textAlign: 'right',
   },
+  arabicText: {
+    direction: 'rtl',
+    textAlign: 'right',
+    fontFamily: 'Cairo',
+  },
   footer: {
-    marginTop: 28,
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
     fontSize: 10,
     color: '#888',
     textAlign: 'center',
     fontFamily: 'Cairo',
   },
+  noData: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#666',
+  }
 });
 
 interface TrafficFinesPdfReportProps {
@@ -106,6 +127,25 @@ interface TrafficFinesPdfReportProps {
     paymentStatus?: string;
   }>;
 }
+
+// Helper function to normalize Arabic text for better display
+const normalizeArabicText = (text: string): string => {
+  // Basic Arabic text normalization
+  return text
+    .replace(/\u0640/g, '') // Remove tatweel
+    .replace(/[\u064B-\u065F]/g, ''); // Remove tashkeel (diacritics)
+};
+
+// Helper to safely format dates
+const formatDate = (date: string | Date | undefined): string => {
+  if (!date) return "--";
+  try {
+    return new Date(date).toLocaleDateString('en-US');
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return String(date);
+  }
+};
 
 export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) => (
   <Document>
@@ -140,27 +180,23 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
             {fine.violationNumber || "--"}
           </Text>
           <Text style={styles.tableCell} wrap>
-            {fine.violationDate
-              ? typeof fine.violationDate === "string"
-                ? fine.violationDate
-                : new Date(fine.violationDate).toLocaleDateString('en-US')
-              : "--"}
+            {formatDate(fine.violationDate)}
           </Text>
           <Text style={styles.tableCell} wrap>
             {typeof fine.fineAmount === "number" ?
               `QAR ${fine.fineAmount.toLocaleString("en-US")}` : "--"}
           </Text>
-          <Text style={styles.tableCell} wrap>
+          <Text style={[styles.tableCell, styles.cellRTL]} wrap>
             {fine.paymentStatus === 'paid' ? 'Paid / مدفوعة' : 'Pending / غير مدفوعة'}
           </Text>
         </View>
       )) : (
         <View style={styles.tableRow}>
-          <Text style={styles.tableCell}>No data found / لا توجد بيانات</Text>
+          <Text style={styles.noData}>No data found / لا توجد بيانات</Text>
         </View>
       )}
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={styles.footer} fixed>
         <Text>© 2025 ALARAF CAR RENTAL · Generated on {new Date().toLocaleDateString()} / تم التوليد في {new Date().toLocaleDateString('ar-EG')}</Text>
       </View>
     </Page>
@@ -172,18 +208,38 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
  */
 export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfReportProps['fines'] }> = ({ fines }) => {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  
+  const handlePdfGeneration = () => {
+    setIsLoading(true);
+    setError(null);
+  };
   
   return (
-    <div className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
+    <div className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer relative">
       <PDFDownloadLink
         document={<TrafficFinesPdfDocument fines={fines} />}
         fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
         className="no-underline text-white w-full h-full block"
-        onClick={() => setIsLoading(true)}
+        onClick={handlePdfGeneration}
       >
-        Download PDF
+        {({ loading, error }) => {
+          if (loading || isLoading) {
+            return "Generating PDF...";
+          }
+          if (error) {
+            setError(error.message);
+            setIsLoading(false);
+            return "Error generating PDF";
+          }
+          return "Download PDF";
+        }}
       </PDFDownloadLink>
-      {isLoading && <span className="ml-2">Generating...</span>}
+      {error && (
+        <div className="absolute bg-red-600 text-white text-xs rounded p-1 -top-8 left-0 right-0">
+          Error: {error}
+        </div>
+      )}
     </div>
   );
 };
