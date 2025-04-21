@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -9,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { 
+  addReportHeader, 
+  addReportFooter, 
   downloadCSV, 
   downloadExcel, 
   generateStandardReport, 
@@ -48,11 +51,11 @@ const ReportDownloadOptions = ({
       if (fileFormat === 'pdf') {
         // Special case for traffic fines report
         if (reportType === 'traffic-fines') {
-          const doc = await generateTrafficFinesReport(reportData);
+          const doc = generateTrafficFinesReport(reportData);
           doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         } else {
           // Use the standardized report generator for other reports
-          const doc = await generateStandardReport(
+          const doc = generateStandardReport(
             title,
             dateRange,
             (doc, startY) => {
