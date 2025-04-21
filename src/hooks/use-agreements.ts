@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -264,7 +265,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   type UpdateAgreementParams = { 
     id: string; 
-    data: Record<string, unknown> 
+    data: Record<string, any> 
   };
 
   const updateAgreementMutation = useMutation({
@@ -377,13 +378,4 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     updateAgreement: updateAgreementMutation,
     deleteAgreement,
   };
-};
-
-export type CreatePaymentParams = {
-  leaseId: string;
-  amount: number;
-  description?: string;
-  dueDate?: string | Date;
-  status?: string;
-  paymentMethod?: string;
 };

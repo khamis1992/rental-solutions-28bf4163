@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -16,7 +17,6 @@ import {
   generateStandardReport, 
   generateTrafficFinesReport 
 } from '@/utils/report-utils';
-import { addRtlMarkIfNeeded, containsArabic } from '@/utils/arabic-text-utils';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -46,13 +46,6 @@ const ReportDownloadOptions = ({
       
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
-      
-      // Check if data contains Arabic text 
-      const hasArabicContent = reportData.some(item => 
-        Object.values(item).some(value => 
-          typeof value === 'string' && containsArabic(value)
-        )
-      );
       
       // Generate report based on file format
       if (fileFormat === 'pdf') {
@@ -109,7 +102,7 @@ const ReportDownloadOptions = ({
                   doc.text('No data available for this report type.', 20, yPos);
               }
               
-              return startY + 10; // Return the final y position
+              return yPos; // Return the final y position
             }
           );
           
