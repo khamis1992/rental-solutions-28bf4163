@@ -62,9 +62,10 @@ const ReportDownloadOptions = ({
       if (fileFormat === 'pdf') {
         // Special case for traffic fines report
         if (reportType === 'traffic-fines') {
-          const doc = isArabic 
-            ? generateTrafficFinesReport(reportData, { rtl: true, font: 'Amiri' })
-            : generateTrafficFinesReport(reportData);
+          // Fix: Pass only one options object with both RTL and font settings
+          const doc = generateTrafficFinesReport(reportData, 
+            isArabic ? { rtl: true, font: 'Amiri' } : undefined
+          );
           doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         } else {
           // Use the standardized report generator for other reports
@@ -77,7 +78,7 @@ const ReportDownloadOptions = ({
               
               // Add summary section heading
               doc.setFontSize(14);
-              doc.setFont(options?.font || 'helvetica', 'bold');
+              safeSetFont(doc, options?.font || 'helvetica', 'bold');
               
               if (isArabic && arabicTitles[reportType]) {
                 // Add bilingual heading
@@ -101,7 +102,7 @@ const ReportDownloadOptions = ({
               
               // Add content specific to each report type
               doc.setFontSize(12);
-              doc.setFont(options?.font || 'helvetica', 'normal');
+              safeSetFont(doc, options?.font || 'helvetica', 'normal');
               
               // Content generation with optional Arabic support
               switch (reportType) {
@@ -199,6 +200,24 @@ const ReportDownloadOptions = ({
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Helper function for safe font setting
+  const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
+    if (typeof fontName === 'string' && fontName.trim() !== '') {
+      if (fontStyle) {
+        doc.setFont(fontName, fontStyle);
+      } else {
+        doc.setFont(fontName);
+      }
+    } else {
+      // fallback to helvetica if fontName invalid
+      if (fontStyle) {
+        doc.setFont('helvetica', fontStyle);
+      } else {
+        doc.setFont('helvetica');
+      }
     }
   };
 

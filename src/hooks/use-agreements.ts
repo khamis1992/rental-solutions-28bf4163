@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -235,8 +236,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Found ${data.length} agreements`, data);
 
       const agreements: SimpleAgreement[] = data.map(item => {
+        // Fix the type instantiation issue by using explicit casting
         const rawStatus = item.status as unknown as string;
-        const status = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus) as AgreementStatus;
+        const status = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
         
         return {
           id: item.id,
@@ -244,7 +246,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicle_id: item.vehicle_id,
           start_date: new Date(item.start_date),
           end_date: new Date(item.end_date),
-          status,
+          status, // Use the mapped status directly without type assertion
           agreement_number: item.agreement_number || '',
           total_amount: item.total_amount || 0,
           deposit_amount: item.deposit_amount || 0,

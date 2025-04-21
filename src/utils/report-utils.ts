@@ -423,7 +423,8 @@ export const addBilingualText = (
   doc.setFontSize(opts.fontSize);
   
   // Add English text
-  doc.setFont(opts.englishFont);
+  safeSetFont(doc, opts.englishFont, undefined);
+  
   // Fix doc.text with proper options syntax
   doc.text(englishText, x, y, { 
     maxWidth: opts.maxWidth || undefined, 
@@ -431,7 +432,7 @@ export const addBilingualText = (
   });
   
   // Add Arabic text with RTL support
-  doc.setFont(opts.arabicFont);
+  safeSetFont(doc, opts.arabicFont, undefined);
   
   // Enable RTL for Arabic text
   const prevR2L = (doc as any).getR2L?.() || false;
@@ -453,7 +454,7 @@ export const addBilingualText = (
   (doc as any).setR2L?.(prevR2L);
   
   // Restore font settings
-  doc.setFont(currentFont);
+  safeSetFont(doc, currentFont.fontName, undefined);
   doc.setFontSize(currentFontSize);
   
   // Return next Y position
