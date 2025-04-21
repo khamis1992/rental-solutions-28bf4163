@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -11,7 +10,6 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType } from '@/utils/type-utils';
 
 // Define a more explicit type for SimpleAgreement to avoid deep type instantiation
 export type SimpleAgreement = {
@@ -46,7 +44,7 @@ export type SimpleAgreement = {
   signature_url?: string;
 };
 
-// Use SimpleAgreement directly to avoid deep type instantiation
+// Use a direct type rather than a complex type transformation
 export type FlattenedAgreement = SimpleAgreement;
 
 interface SearchParams {

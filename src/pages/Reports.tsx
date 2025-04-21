@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { generateTrafficFinesReport } from '@/utils/report-utils';
+import TrafficFinesPdfDownloadLink from '@/components/reports/TrafficFinesPdfReport';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -106,7 +107,6 @@ const Reports = () => {
         return trafficFines.map(fine => ({
           customerName: fine.customerName || 'Unassigned',
           licensePlate: fine.licensePlate,
-          agreementNumber: fine.leaseId,
           violationNumber: fine.violationNumber,
           violationDate: fine.violationDate,
           fineAmount: fine.fineAmount,
@@ -198,10 +198,18 @@ const Reports = () => {
                     </p>
                   </div>
                   
-                  <ReportDownloadOptions
-                    reportType="traffic-fines"
-                    getReportData={getReportData}
-                  />
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold mb-2">Download PDF Report</h4>
+                    <TrafficFinesPdfDownloadLink fines={getReportData()} />
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold mb-2">Other Export Options</h4>
+                    <ReportDownloadOptions
+                      reportType="traffic-fines"
+                      getReportData={getReportData}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

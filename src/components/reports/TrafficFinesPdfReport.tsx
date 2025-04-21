@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Document,
@@ -182,20 +181,9 @@ export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfRepor
         className="no-underline text-white w-full h-full block"
         onClick={() => setIsLoading(true)}
       >
-        {({ blob, url, loading, error }) => {
-          if (error) {
-            console.error("PDF generation error:", error);
-            return "Error generating PDF";
-          }
-          
-          // When complete, reset loading state
-          if (!loading && isLoading) {
-            setTimeout(() => setIsLoading(false), 100);
-          }
-          
-          return loading || isLoading ? "Generating..." : "Download PDF";
-        }}
+        Download PDF
       </PDFDownloadLink>
+      {isLoading && <span className="ml-2">Generating...</span>}
     </div>
   );
 };

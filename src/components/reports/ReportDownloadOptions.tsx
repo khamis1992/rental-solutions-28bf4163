@@ -19,7 +19,6 @@ import {
   addBilingualText
 } from '@/utils/report-utils';
 import { testArabicSupport, registerArabicSupport } from '@/utils/jspdf-arabic-font';
-import TrafficFinesPdfDownloadLink from './TrafficFinesPdfReport';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -41,6 +40,7 @@ const ReportDownloadOptions = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isArabic, setIsArabic] = useState(false);
 
+  // Skip PDF generation for traffic fines as we're using our custom component
   const isTrafficFinesPdf = fileFormat === 'pdf' && reportType === 'traffic-fines';
 
   const handleDownload = async () => {
@@ -71,10 +71,10 @@ const ReportDownloadOptions = ({
         'traffic-fines': 'تقرير المخالفات المرورية'
       };
       
-      // Generate report based on file format
+      // Skip PDF generation for traffic fines as we have a specialized component
       if (isTrafficFinesPdf) {
         setIsGenerating(false);
-        // Nothing to do here, the render output will show the download link below!
+        toast.info("Use the dedicated PDF download button for Traffic Fines");
         return;
       }
       
@@ -91,80 +91,67 @@ const ReportDownloadOptions = ({
             console.log("Arabic support test:", arabicSupported ? "Passed" : "Failed");
           }
           
-          // Handle report generation with safe fallbacks
-          if (reportType === 'traffic-fines') {
-            try {
-              const doc = generateTrafficFinesReport(reportData, 
-                isArabic ? { rtl: true } : undefined
-              );
-              doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-            } catch (error) {
-              console.error("Error generating traffic fines report:", error);
-              throw new Error("Failed to generate the traffic fines report");
-            }
-          } else {
-            // Use the standardized report generator for other reports
-            try {
-              const doc = generateStandardReport(
-                title,
-                dateRange,
-                (doc, startY) => {
-                  // Add basic content without font issues
-                  let yPos = startY;
-                  doc.setFontSize(14);
-                  doc.setFont('helvetica', 'bold');
-                  doc.text('Report Summary:', 14, yPos);
-                  
-                  if (isArabic) {
-                    // Add Arabic title below English title using our bilingual text helper
-                    const arabicTitle = arabicTitles[reportType] || 'تقرير';
-                    yPos = addBilingualText(doc, 'Report Summary:', arabicTitle, 14, yPos + 10);
-                  } else {
-                    yPos += 10;
-                  }
-                  
-                  // Add simple content based on report type
-                  doc.setFontSize(12);
-                  doc.setFont('helvetica', 'normal');
-                  
-                  // Add report-specific content
-                  switch(reportType) {
-                    case 'fleet':
-                      doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                      doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                      doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                      break;
-                    case 'financial':
-                      doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                      doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                      break;
-                    case 'customers':
-                      doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                      doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                      break;
-                    case 'maintenance':
-                      doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                      doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                      break;
-                    case 'legal':
-                      doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
-                      doc.text('• Compliance Reports', 20, yPos); yPos += 10;
-                      break;
-                    default:
-                      doc.text('No data available for this report type.', 20, yPos);
-                  }
-                  
-                  return yPos;
-                },
-                isArabic ? { rtl: true } : undefined
-              );
-              
-              // Save the PDF
-              doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-            } catch (error) {
-              console.error("Error generating standard report:", error);
-              throw new Error("Failed to generate the report");
-            }
+          // Use the standardized report generator for reports
+          try {
+            const doc = generateStandardReport(
+              title,
+              dateRange,
+              (doc, startY) => {
+                // Add basic content without font issues
+                let yPos = startY;
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Report Summary:', 14, yPos);
+                
+                if (isArabic) {
+                  // Add Arabic title below English title using our bilingual text helper
+                  const arabicTitle = arabicTitles[reportType] || 'تقرير';
+                  yPos = addBilingualText(doc, 'Report Summary:', arabicTitle, 14, yPos + 10);
+                } else {
+                  yPos += 10;
+                }
+                
+                // Add simple content based on report type
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                
+                // Add report-specific content
+                switch(reportType) {
+                  case 'fleet':
+                    doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                    doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                    doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                    break;
+                  case 'financial':
+                    doc.text('• Revenue Summary', 20, yPos); yPos += 10;
+                    doc.text('• Expense Analysis', 20, yPos); yPos += 10;
+                    break;
+                  case 'customers':
+                    doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                    doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                    break;
+                  case 'maintenance':
+                    doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                    doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                    break;
+                  case 'legal':
+                    doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
+                    doc.text('• Compliance Reports', 20, yPos); yPos += 10;
+                    break;
+                  default:
+                    doc.text('No data available for this report type.', 20, yPos);
+                }
+                
+                return yPos;
+              },
+              isArabic ? { rtl: true } : undefined
+            );
+            
+            // Save the PDF
+            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          } catch (error) {
+            console.error("Error generating standard report:", error);
+            throw new Error("Failed to generate the report");
           }
           console.log("PDF report generated successfully");
           
@@ -253,19 +240,20 @@ const ReportDownloadOptions = ({
           </div>
         )}
 
-        {isTrafficFinesPdf ? (
-          <TrafficFinesPdfDownloadLink fines={getReportData ? getReportData() : []} />
-        ) : (
-          <Button onClick={handleDownload} disabled={isGenerating}>
-            <FileDown className="mr-2 h-4 w-4" />
-            {isGenerating ? 'Generating...' : 'Download Report'}
-          </Button>
-        )}
+        <Button 
+          onClick={handleDownload} 
+          disabled={isGenerating || isTrafficFinesPdf}
+        >
+          <FileDown className="mr-2 h-4 w-4" />
+          {isGenerating ? 'Generating...' : 'Download Report'}
+        </Button>
       </div>
       
-      <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        {/* Empty content as in original */}
-      </div>
+      {isTrafficFinesPdf && (
+        <div className="text-sm text-amber-600">
+          For Traffic Fines PDF reports, please use the dedicated PDF download button above.
+        </div>
+      )}
     </div>
   );
 };
