@@ -1,4 +1,3 @@
-
 import { addUtf8Bom, textToUtf8Buffer, addRtlMarkIfNeeded, containsArabic } from './arabic-text-utils';
 
 /**

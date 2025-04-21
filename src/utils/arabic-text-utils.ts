@@ -33,10 +33,10 @@ export function addRtlMarkIfNeeded(text: string): string {
 export function prepareArabicForPdf(text: string): string {
   if (!text) return '';
   
-  // Handle mixed Arabic-English text
+  // Handle mixed Arabic-English text for PDFs
   if (containsArabic(text)) {
-    // Add RTL mark at the beginning
-    return `\u200F${text}`;
+    // Add RTL mark at the beginning and zero-width joiner for better character connection
+    return `\u200F${text}\u200D`;
   }
   
   return text;
@@ -49,9 +49,6 @@ export function prepareArabicForPdf(text: string): string {
  */
 export function normalizeArabicText(text: string): string {
   if (!text) return '';
-  
-  // Remove diacritics (optional, depending on requirements)
-  // const withoutDiacritics = text.replace(/[\u064B-\u0652]/g, '');
   
   // Normalize different forms of characters (like Alef)
   return text

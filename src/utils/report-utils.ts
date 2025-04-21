@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -92,7 +91,7 @@ const CONTENT_MARGIN = 14; // Left/right margin in mm
 function addArabicFontToPDF(doc: jsPDF): jsPDF {
   // This is a placeholder function - in a real implementation
   // you would need to import and register a TrueType font with Arabic glyphs
-  // However, this requires additional setup with external font files
+  // We'll improve the default handling instead
   return doc;
 }
 
