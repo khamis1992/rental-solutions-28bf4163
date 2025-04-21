@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,6 +18,7 @@ import {
   addBilingualText
 } from '@/utils/report-utils';
 import { testArabicSupport, registerArabicSupport } from '@/utils/jspdf-arabic-font';
+import TrafficFinesPdfDownloadLink from './TrafficFinesPdfReport';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -39,6 +39,8 @@ const ReportDownloadOptions = ({
   const [fileFormat, setFileFormat] = useState('pdf');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isArabic, setIsArabic] = useState(false);
+
+  const isTrafficFinesPdf = fileFormat === 'pdf' && reportType === 'traffic-fines';
 
   const handleDownload = async () => {
     try {
@@ -69,6 +71,12 @@ const ReportDownloadOptions = ({
       };
       
       // Generate report based on file format
+      if (isTrafficFinesPdf) {
+        setIsGenerating(false);
+        // Nothing to do here, the render output will show the download link below!
+        return;
+      }
+      
       if (fileFormat === 'pdf') {
         try {
           console.log(`Generating ${reportType} PDF report with ${reportData.length} records`);
@@ -244,10 +252,14 @@ const ReportDownloadOptions = ({
           </div>
         )}
 
-        <Button onClick={handleDownload} disabled={isGenerating}>
-          <FileDown className="mr-2 h-4 w-4" />
-          {isGenerating ? 'Generating...' : 'Download Report'}
-        </Button>
+        {isTrafficFinesPdf ? (
+          <TrafficFinesPdfDownloadLink fines={getReportData()} />
+        ) : (
+          <Button onClick={handleDownload} disabled={isGenerating}>
+            <FileDown className="mr-2 h-4 w-4" />
+            {isGenerating ? 'Generating...' : 'Download Report'}
+          </Button>
+        )}
       </div>
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
