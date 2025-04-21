@@ -9,30 +9,30 @@ import { formatDate } from '@/lib/date-utils';
  */
 export const generateCSV = (data: Record<string, any>[]): string => {
   if (!data || data.length === 0) return '';
-  
+
   // Get headers from the first object
   const headers = Object.keys(data[0]);
-  
+
   // Create CSV header row
   let csv = headers.join(',') + '\n';
-  
+
   // Add data rows
   data.forEach(item => {
     const row = headers.map(header => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
       const valueStr = String(value);
-      
+
       // Escape quotes and wrap in quotes if contains comma or quote
       if (valueStr.includes(',') || valueStr.includes('"')) {
         return `"${valueStr.replace(/"/g, '""')}"`;
       }
       return valueStr;
     });
-    
+
     csv += row.join(',') + '\n';
   });
-  
+
   return csv;
 };
 
@@ -45,7 +45,7 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
   const csv = generateCSV(data);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  
+
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
@@ -71,7 +71,7 @@ const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
 async function setupArabicFont(doc: jsPDF) {
   const { configureArabicPDF, prepareArabicText, formatMixedText } = await import('@/utils/arabic-text-utils');
   configureArabicPDF(doc);
-  
+
   // Override text rendering method
   const originalText = doc.text.bind(doc);
   doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
@@ -83,7 +83,7 @@ async function setupArabicFont(doc: jsPDF) {
       });
       return doc;
     }
-    
+
     // Handle single string
     const processed = formatMixedText(prepareArabicText(text));
     return originalText(processed, x, y, { ...options, align: 'right' });
@@ -104,12 +104,12 @@ export const addReportHeader = (
   dateRange: { from: Date | undefined; to: Date | undefined }
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  
+
   // Add title
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(title, pageWidth / 2, 20, { align: 'center' });
-  
+
   // Add report period and generation date
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -117,7 +117,7 @@ export const addReportHeader = (
   const toDate = dateRange.to ? formatDate(dateRange.to) : '';
   doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 35, { align: 'center' });
   doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 45, { align: 'center' });
-  
+
   return 60;
 };
 
@@ -128,14 +128,14 @@ export const addReportHeader = (
 export const addReportFooter = (doc: jsPDF): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
+
   // Add footer text
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 25, { align: 'center' });
   doc.setFontSize(8);
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 20, { align: 'center' });
-  
+
   // Add page bottom elements with proper spacing
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
@@ -157,13 +157,13 @@ export const generateStandardReport = (
   const doc = new jsPDF();
   const startY = addReportHeader(doc, title, dateRange);
   contentGenerator(doc, startY);
-  
+
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addReportFooter(doc);
   }
-  
+
   return doc;
 };
 
@@ -172,9 +172,9 @@ export const generateStandardReport = (
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
-export const generateTrafficFinesReport = (trafficData: any[]) => {
+export const generateTrafficFinesReport = async (trafficData: any[]) => {
   const doc = new jsPDF();
-  setupArabicFont(doc);
+  await setupArabicFont(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
@@ -182,16 +182,16 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('Fleet Report', pageWidth / 2, currentY, { align: 'center' });
-  
+
   // Add report period
   currentY += 15;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.text(`Report Period: ${format(new Date(), 'MMMM dd, yyyy')} - ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
-  
+
   currentY += 10;
   doc.text(`Generated on: ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
-  
+
   // Draw metrics table
   currentY += 20;
   const metrics = [
@@ -216,22 +216,29 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   currentY += 8;
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  
-  metrics.forEach(([label, value]) => {
+
+  // Format metrics
+  metrics.forEach(async ([label, value]) => {
     // Check if we need a new page
     if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
       doc.addPage();
       currentY = 20;
       addReportFooter(doc);
     }
-    
+
     doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
     doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
-    doc.text(label, 16, currentY + 6);
-    doc.text(value, 16 + (pageWidth - 28) / 2, currentY + 6);
+
+    // Handle Arabic text properly
+    const { formatMixedText } = await import('@/utils/arabic-text-utils');
+    const formattedLabel = formatMixedText(label);
+    const formattedValue = formatMixedText(value);
+
+    doc.text(formattedLabel, pageWidth / 2 - 2, currentY + 6, { align: 'right' });
+    doc.text(formattedValue, pageWidth - 16, currentY + 6, { align: 'right' });
     currentY += 8;
   });
-  
+
   currentY += 20;
 
   // Group fines by customer
@@ -258,7 +265,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       currentY = 20;
       addReportFooter(doc);
     }
-    
+
     // Draw customer header with orange background
     doc.setFillColor(255, 140, 0);
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
@@ -269,7 +276,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
     // Vehicle summary header
     const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
-    
+
     // Draw headers
     Array.from(data.vehicles).forEach((vehicle: string) => {
       if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 20) {
@@ -280,7 +287,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
       let x = 14;
       const vehicleData = [vehicle, `${data.totalAmount} QAR`];
-      
+
       vehicleData.forEach((text, i) => {
         doc.rect(x, currentY, headerWidths[i], 8);
         doc.setTextColor(0);
@@ -303,7 +310,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       // Headers for violations
       const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
       const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
-      
+
       let x = 14;
       violationHeaders.forEach((header, i) => {
         doc.rect(x, currentY, violationWidths[i], 8);
@@ -323,7 +330,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
         x = 14;
         const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
         const amount = `${fine.fineAmount} QAR`;
-        
+
         [fine.violationNumber, date, amount].forEach((text, i) => {
           doc.rect(x, currentY, violationWidths[i], 8);
           doc.text(text.toString(), x + 2, currentY + 6);
@@ -332,7 +339,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
         currentY += 8;
       });
     }
-    
+
     currentY += 12;
   });
 

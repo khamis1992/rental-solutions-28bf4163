@@ -44,10 +44,9 @@ export const containsArabic = (text: string): boolean => {
 export function formatMixedText(text: string): string {
   if (!text) return '';
 
-  return text.split(' ').map(word => {
-    if (containsArabic(word)) {
-      return getBidiText(word);
-    }
-    return word;
-  }).join(' ');
+  // Handle the entire text as one unit for better RTL support
+  if (containsArabic(text)) {
+    return '\u202B' + prepareArabicText(text) + '\u202C';
+  }
+  return text;
 }
