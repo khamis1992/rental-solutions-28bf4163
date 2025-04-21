@@ -69,16 +69,24 @@ const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
 
 // Add Arabic font support
 async function setupArabicFont(doc: jsPDF) {
-  const { configureArabicPDF, prepareArabicText } = await import('@/utils/arabic-text-utils');
+  const { configureArabicPDF, prepareArabicText, formatMixedText } = await import('@/utils/arabic-text-utils');
   configureArabicPDF(doc);
   
   // Override text rendering method
   const originalText = doc.text.bind(doc);
   doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
-    const processedText = Array.isArray(text) 
-      ? text.map(t => prepareArabicText(t))
-      : prepareArabicText(text);
-    return originalText(processedText, x, y, options);
+    // Handle array of strings
+    if (Array.isArray(text)) {
+      text.forEach((line, i) => {
+        const processed = formatMixedText(prepareArabicText(line));
+        originalText(processed, x, y + (i * (doc.getLineHeight() || 5)), { ...options, align: 'right' });
+      });
+      return doc;
+    }
+    
+    // Handle single string
+    const processed = formatMixedText(prepareArabicText(text));
+    return originalText(processed, x, y, { ...options, align: 'right' });
   };
 }
 const CONTENT_MARGIN = 14; // Left/right margin in mm

@@ -8,11 +8,16 @@ function getBidiText(text: string): string {
 // Prepare Arabic text for PDF rendering
 export const prepareArabicText = (text: string): string => {
   if (!text) return '';
-
-  // Normalize Arabic text
+  
   return text
     .normalize('NFKD')
-    .replace(/[\u0653-\u065F]/g, ''); // Remove tashkeel
+    // Remove tashkeel (diacritics)
+    .replace(/[\u0653-\u065F]/g, '')
+    // Normalize Arabic presentation forms
+    .replace(/[\uFB50-\uFDFF\uFE70-\uFEFF]/g, c => {
+      const n = c.charCodeAt(0);
+      return String.fromCharCode(n - 0xFB50 + 0x0600);
+    });
 };
 
 // Configure PDF document for Arabic support
