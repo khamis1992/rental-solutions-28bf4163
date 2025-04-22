@@ -1,54 +1,51 @@
-import React from 'react';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from './button';
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+import { Button } from "@/components/ui/button";
+import { ErrorBoundary as ReactErrorBoundary } from "react-error-boundary";
+
+interface FallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
 }
 
-const DefaultErrorFallback = ({ error, resetErrorBoundary }) => (
-  <div className="min-h-[50vh] flex items-center justify-center p-4">
-    <div className="max-w-md w-full bg-destructive/5 rounded-lg p-6 text-center">
-      <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-      <h2 className="text-xl font-semibold text-destructive mb-2">Something went wrong</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        {error.message || 'An unexpected error occurred'}
-      </p>
-      <pre className="text-xs bg-destructive/10 p-4 rounded mb-4 overflow-auto max-h-32">
-        {error.stack}
-      </pre>
+export const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
+  return (
+    <div className="flex flex-col items-center justify-center p-6 bg-red-50 rounded-lg border border-red-200 text-red-800">
+      <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
+      <p className="text-sm text-red-700 mb-4">{error.message}</p>
+      <div className="bg-red-100 p-2 rounded overflow-auto max-w-full my-2">
+        <pre className="text-xs whitespace-pre-wrap">{error.stack}</pre>
+      </div>
       <Button 
+        variant="destructive" 
         onClick={resetErrorBoundary}
-        variant="outline"
-        className="gap-2"
+        className="mt-4"
       >
-        <RefreshCw className="h-4 w-4" />
         Try again
       </Button>
     </div>
-  </div>
-);
-
-const logError = (error: Error, info: { componentStack: string }) => {
-  // In production, you would send this to your error tracking service
-  console.error('Error caught by error boundary:', error);
-  console.error('Component stack:', info.componentStack);
+  );
 };
 
-export const ErrorBoundary = ({ children, fallback }: ErrorBoundaryProps) => {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ComponentType<FallbackProps>;
+  onReset?: () => void;
+  onError?: (error: Error, info: { componentStack: string }) => void;
+}
+
+export const ErrorBoundary = ({
+  children,
+  fallback = ErrorFallback,
+  onReset,
+  onError,
+}: ErrorBoundaryProps) => {
   return (
     <ReactErrorBoundary
-      FallbackComponent={fallback || DefaultErrorFallback}
-      onError={logError}
-      onReset={() => {
-        // Optional: Perform any cleanup or state reset here
-      }}
+      FallbackComponent={fallback}
+      onReset={onReset}
+      onError={onError}
     >
       {children}
     </ReactErrorBoundary>
   );
 };
-
-export default ErrorBoundary;

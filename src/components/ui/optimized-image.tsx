@@ -1,71 +1,67 @@
+
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { loadImage, ResourcePriority } from '@/utils/resource-queue';
+import { preloadImage } from '@/utils/resource-queue';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
-  className?: string;
-  placeholderSrc?: string;
   priority?: boolean;
-  loadingPriority?: ResourcePriority;
+  fallbackSrc?: string;
+  className?: string;
+  placeholderClassName?: string;
 }
 
-export function OptimizedImage({ 
-  src, 
-  alt, 
-  className, 
-  placeholderSrc = '/placeholder.svg',
+export const OptimizedImage: React.FC<OptimizedImageProps> = ({
+  src,
+  alt,
   priority = false,
-  loadingPriority = ResourcePriority.MEDIUM,
-  ...props 
-}: OptimizedImageProps) {
-  const [currentSrc, setCurrentSrc] = useState(placeholderSrc);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  fallbackSrc,
+  className,
+  placeholderClassName,
+  ...props
+}) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!src) return;
+    if (priority && src) {
+      // Preload high priority images
+      preloadImage(src).catch(() => setError(true));
+    }
+  }, [src, priority]);
 
-    // If priority is true, use HIGH priority, otherwise use provided loadingPriority
-    const imagePriority = priority ? ResourcePriority.HIGH : loadingPriority;
+  const handleLoad = () => {
+    setLoaded(true);
+  };
 
-    loadImage(src, imagePriority)
-      .then(() => {
-        setCurrentSrc(src);
-        setIsLoading(false);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error('Failed to load image:', err);
-        setError(err);
-        setIsLoading(false);
-      });
-  }, [src, priority, loadingPriority]);
+  const handleError = () => {
+    setError(true);
+  };
 
   return (
-    <div className={cn(
-      'relative overflow-hidden bg-muted',
-      error && 'bg-destructive/10',
-      className
-    )}>
+    <>
+      {!loaded && !error && (
+        <div
+          className={cn(
+            "bg-muted animate-pulse rounded",
+            placeholderClassName,
+            className
+          )}
+          style={{ aspectRatio: props.width && props.height ? `${props.width}/${props.height}` : undefined }}
+        />
+      )}
       <img
-        src={currentSrc}
+        src={error && fallbackSrc ? fallbackSrc : src}
         alt={alt}
+        onLoad={handleLoad}
+        onError={handleError}
         className={cn(
-          'transition-all duration-300',
-          isLoading && 'scale-110 blur-sm',
-          !isLoading && 'scale-100 blur-0',
-          error && 'opacity-50'
+          className,
+          !loaded && "hidden"
         )}
-        loading={priority ? 'eager' : 'lazy'}
         {...props}
       />
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-destructive">
-          Failed to load image
-        </div>
-      )}
-    </div>
+    </>
   );
-}
+};

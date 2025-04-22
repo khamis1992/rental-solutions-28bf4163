@@ -1,73 +1,39 @@
-import { forwardRef, useEffect, useRef } from 'react';
-import { Link, LinkProps, useLocation } from 'react-router-dom';
-import { useRouteLoader } from '@/utils/route-loader';
+
+import { forwardRef } from 'react';
+import { Link, LinkProps as RouterLinkProps } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-interface SmartLinkProps extends Omit<LinkProps, 'to'> {
-  to: string;
+interface SmartLinkProps extends RouterLinkProps {
   prefetch?: boolean;
   className?: string;
+  activeClassName?: string;
+  children: React.ReactNode;
 }
 
+const prepareRoute = async (path: string) => {
+  try {
+    // Implement route preparation logic if needed
+    console.log(`Preparing route: ${path}`);
+  } catch (error) {
+    console.error(`Failed to prepare route: ${path}`, error);
+  }
+};
+
 export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
-  ({ to, prefetch = true, className, children, ...props }, ref) => {
-    const location = useLocation();
-    const { prepareRoute, isRouteLoaded } = useRouteLoader();
-    const linkRef = useRef<HTMLAnchorElement>(null);
-    const mergedRef = (node: HTMLAnchorElement) => {
-      linkRef.current = node;
-      if (typeof ref === 'function') ref(node);
-      else if (ref) ref.current = node;
-    };
-
-    useEffect(() => {
-      if (!prefetch || !linkRef.current) return;
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && !isRouteLoaded(to)) {
-              prepareRoute(to);
-            }
-          });
-        },
-        { threshold: 0.1 }
-      );
-
-      observer.observe(linkRef.current);
-
-      return () => {
-        if (linkRef.current) observer.unobserve(linkRef.current);
-      };
-    }, [to, prefetch, prepareRoute, isRouteLoaded]);
-
-    // Handle hover intent
+  ({ to, prefetch = true, className, activeClassName, children, ...props }, ref) => {
     const handleMouseEnter = () => {
-      if (prefetch && !isRouteLoaded(to)) {
+      if (prefetch && typeof to === 'string') {
         prepareRoute(to);
       }
     };
-
-    // Handle touch start for mobile
-    const handleTouchStart = () => {
-      if (prefetch && !isRouteLoaded(to)) {
-        prepareRoute(to);
-      }
-    };
-
-    const isActive = location.pathname.startsWith(to);
 
     return (
       <Link
-        ref={mergedRef}
+        ref={ref}
         to={to}
-        className={cn(
-          'transition-colors hover:text-primary',
-          isActive && 'text-primary font-medium',
-          className
-        )}
+        className={cn(className)}
         onMouseEnter={handleMouseEnter}
-        onTouchStart={handleTouchStart}
+        onFocus={handleMouseEnter}
         {...props}
       >
         {children}
@@ -75,3 +41,5 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
     );
   }
 );
+
+SmartLink.displayName = 'SmartLink';

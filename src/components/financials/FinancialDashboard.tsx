@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
@@ -9,7 +10,7 @@ import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
-const getPercentageChange = (current, previous) => {
+const getPercentageChange = (current: number, previous: number): number => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
 };

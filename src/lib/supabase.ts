@@ -1,566 +1,186 @@
-import { createClient } from '@supabase/supabase-js'
-import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
-import { toast } from 'sonner';
-import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
+
+import { createClient } from '@supabase/supabase-js';
 import { checkAndUpdateConflictingAgreements } from '@/utils/agreement-status-checker';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Check your .env file.')
-}
-
-// Create Supabase client with optimized configuration
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: { 'x-application-name': 'rental-solutions' }
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-})
+// Initialize Supabase client (using public anon key which is designed to be public)
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 // Cache for query results
-const queryCache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const queryCache = new Map<string, { data: any; timestamp: number; }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Wrapper for Supabase queries with caching and retry logic
-export const executeQuery = async <T>(
-  queryKey: string,
-  queryFn: () => Promise<{ data: T; error: any }>,
-  options: { 
-    cacheDuration?: number;
-    retries?: number;
-    skipCache?: boolean;
-  } = {}
-): Promise<{ data: T | null; error: any }> => {
-  const {
-    cacheDuration = CACHE_DURATION,
-    retries = 3,
-    skipCache = false
-  } = options
-
-  // Check cache first
-  if (!skipCache) {
-    const cached = queryCache.get(queryKey)
-    if (cached && Date.now() - cached.timestamp < cacheDuration) {
-      return { data: cached.data, error: null }
-    }
+/**
+ * Execute a query with caching
+ * @param cacheKey - Unique key for caching the query result
+ * @param queryFn - Function that executes the Supabase query
+ * @returns The query result
+ */
+export const executeQuery = async <T>(cacheKey: string, queryFn: () => Promise<{ data: T; error: any; }>) => {
+  // Check if we have a cached result
+  const cachedResult = queryCache.get(cacheKey);
+  if (cachedResult && (Date.now() - cachedResult.timestamp < CACHE_TTL)) {
+    return { data: cachedResult.data, error: null };
   }
 
-  let attempt = 0
-  while (attempt < retries) {
-    try {
-      const result = await queryFn()
-      if (!result.error) {
-        // Cache successful result
-        queryCache.set(queryKey, {
-          data: result.data,
-          timestamp: Date.now()
-        })
-        return result
-      }
-      
-      // If error is retryable, continue loop
-      if (result.error.code === '40001' || result.error.code === '40003') {
-        attempt++
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
-        continue
-      }
-      
-      return result
-    } catch (err) {
-      attempt++
-      if (attempt === retries) {
-        return { data: null, error: err }
-      }
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
-    }
-  }
+  // Execute the query
+  const result = await queryFn();
   
-  return { data: null, error: new Error('Max retries reached') }
-}
+  // Cache the result if there's no error
+  if (!result.error && result.data) {
+    queryCache.set(cacheKey, { data: result.data, timestamp: Date.now() });
+  }
 
-// Rest of the existing functions, updated to use executeQuery
-export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
+  return result;
+};
+
+/**
+ * Clear cache entries by key prefix
+ * @param keyPrefix - Prefix of cache keys to clear
+ */
+export const clearCacheByPrefix = (keyPrefix: string) => {
+  for (const key of queryCache.keys()) {
+    if (key.startsWith(keyPrefix)) {
+      queryCache.delete(key);
+    }
+  }
+};
+
+/**
+ * Generate monthly payment entries for leases
+ */
+export const checkAndGenerateMonthlyPayments = async () => {
   try {
-    console.log('Checking for monthly payments to generate');
+    console.log("Running monthly payment generation check");
     
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    // Check and fix any overlapping agreements
+    const agreementCheckResult = await checkAndUpdateConflictingAgreements();
     
-    const { data: activeAgreements, error: agreementsError } = await executeQuery(
-      'active-agreements',
-      () => supabase
-        .from('leases')
-        .select('id, rent_amount, start_date, rent_due_day')
-        .in('status', ['active', 'pending_payment'])
-        .lte('start_date', lastDayOfMonth.toISOString())
-        .is('payment_status', null)
-    );
-    
-    if (agreementsError) {
-      console.error('Error fetching active agreements:', agreementsError);
-      return { success: false, message: 'Error fetching agreements', error: agreementsError };
+    if (!agreementCheckResult.success) {
+      return {
+        success: false,
+        message: `Failed to check agreements: ${agreementCheckResult.message}`,
+        generatedCount: 0
+      };
     }
     
-    if (!activeAgreements || activeAgreements.length === 0) {
-      console.log('No agreements require payment generation');
-      return { success: true, message: 'No payments needed to be generated' };
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString().split('T')[0]; 
+    
+    console.log(`Looking for agreements needing payments on ${formattedDate}`);
+    
+    // Find active leases that require payment generation
+    const { data: leases, error: leaseError } = await supabase
+      .from('leases')
+      .select(`
+        id, 
+        agreement_number,
+        rent_amount, 
+        status,
+        start_date,
+        end_date,
+        next_payment_date,
+        payment_frequency
+      `)
+      .eq('status', 'active')
+      .is('rent_amount', 'not.null')
+      .lte('next_payment_date', formattedDate);
+      
+    if (leaseError) {
+      console.error('Error fetching leases for payment generation:', leaseError);
+      return { 
+        success: false, 
+        message: `Database error fetching leases: ${leaseError.message}`,
+        generatedCount: 0
+      };
     }
     
-    console.log(`Found ${activeAgreements.length} agreements that might need payments generated`);
+    if (!leases || leases.length === 0) {
+      console.log("No leases requiring payment generation today");
+      return { success: true, message: "No payments due for generation", generatedCount: 0 };
+    }
+    
+    console.log(`Found ${leases.length} leases requiring payment generation`);
     
     let generatedCount = 0;
     
-    // For each agreement, check if we need to generate a payment for current month
-    for (const agreement of activeAgreements) {
-      // Check if payment already exists for this month
-      const { data: existingPayments, error: paymentsError } = await executeQuery(
-        `existing-payments-${agreement.id}`,
-        () => supabase
+    // Process each eligible lease
+    for (const lease of leases) {
+      try {
+        console.log(`Processing payments for lease ${lease.agreement_number}`);
+        
+        // Determine payment frequency in days
+        let daysToAdd = 30; // Default monthly
+        
+        if (lease.payment_frequency === 'weekly') {
+          daysToAdd = 7;
+        } else if (lease.payment_frequency === 'biweekly') {
+          daysToAdd = 14;
+        } else if (lease.payment_frequency === 'monthly') {
+          daysToAdd = 30;
+        } else if (lease.payment_frequency === 'quarterly') {
+          daysToAdd = 90;
+        }
+        
+        // Calculate next payment date
+        const nextPaymentDate = new Date(lease.next_payment_date);
+        nextPaymentDate.setDate(nextPaymentDate.getDate() + daysToAdd);
+        
+        // Insert payment record
+        const { data: paymentData, error: paymentError } = await supabase
           .from('unified_payments')
-          .select('id')
-          .eq('lease_id', agreement.id)
-          .gte('payment_date', firstDayOfMonth.toISOString())
-          .lt('payment_date', lastDayOfMonth.toISOString())
-      );
+          .insert({
+            lease_id: lease.id,
+            amount: lease.rent_amount,
+            due_date: lease.next_payment_date,
+            status: 'pending',
+            type: 'Income',
+            description: `Rental payment - ${lease.agreement_number}`
+          })
+          .select();
         
-      if (paymentsError) {
-        console.error(`Error checking existing payments for agreement ${agreement.id}:`, paymentsError);
-        continue;
-      }
-      
-      if (existingPayments && existingPayments.length > 0) {
-        console.log(`Payment already exists for agreement ${agreement.id} this month`);
-        continue;
-      }
-      
-      // No payment exists for this month, generate one
-      const dueDay = agreement.rent_due_day || 1;
-      const dueDate = new Date(today.getFullYear(), today.getMonth(), dueDay);
-      
-      // If due date is in the past for this month, set status to overdue
-      const paymentStatus = dueDate < today ? 'overdue' : 'pending';
-      const daysOverdue = dueDate < today ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-      
-      const { data: newPayment, error: createError } = await supabase
-        .from('unified_payments')
-        .insert({
-          lease_id: agreement.id,
-          amount: agreement.rent_amount,
-          description: `Monthly Rent - ${today.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-          type: 'Income',
-          status: paymentStatus,
-          payment_date: null,
-          due_date: dueDate.toISOString(),
-          days_overdue: daysOverdue
-        })
-        .select()
-        .single();
+        if (paymentError) {
+          console.error(`Failed to generate payment for lease ${lease.id}:`, paymentError);
+          continue;
+        }
         
-      if (createError) {
-        console.error(`Error creating payment for agreement ${agreement.id}:`, createError);
-        continue;
-      }
-      
-      generatedCount++;
-      console.log(`Generated payment for agreement ${agreement.id}`);
-    }
-    
-    return { 
-      success: true, 
-      message: `Successfully generated ${generatedCount} monthly payments` 
-    };
-  } catch (err) {
-    console.error('Unexpected error in checkAndGenerateMonthlyPayments:', err);
-    return { 
-      success: false, 
-      message: `Failed to generate payments: ${err.message}`,
-      error: err 
-    };
-  }
-};
-
-export const fixImportedAgreementDates = async (importId: string): Promise<{ success: boolean; message?: string; error?: any }> => {
-  try {
-    console.log(`Fixing dates for import: ${importId}`);
-    
-    // Update the import record status to "fixing"
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'fixing',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-    
-    // Call the RPC function to fix the dates
-    const { data, error } = await supabase.rpc('fix_agreement_import_dates', {
-      p_import_id: importId
-    });
-    
-    if (error) {
-      console.error('Error fixing agreement dates:', error);
-      
-      // Update import status back to its original state
-      await supabase
-        .from('agreement_imports')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', importId);
-        
-      return { 
-        success: false, 
-        message: `Failed to fix date formats: ${error.message}`,
-        error 
-      };
-    }
-    
-    // Update the import status back to "completed"
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'completed',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-    
-    return { 
-      success: true, 
-      message: `Successfully fixed date formats for ${data?.fixed_count || 0} agreements` 
-    };
-  } catch (err) {
-    console.error('Unexpected error in fixImportedAgreementDates:', err);
-    
-    // Update import status back to its original state
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'completed',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-      
-    return { 
-      success: false, 
-      message: `Unexpected error: ${err.message}`,
-      error: err 
-    };
-  }
-};
-
-export const revertAgreementImport = async (
-  importId: string, 
-  reason: string = 'User-initiated revert'
-): Promise<{ success: boolean; message?: string; error?: any }> => {
-  try {
-    console.log(`Reverting import: ${importId}, reason: ${reason}`);
-    
-    // Update the import record status to "reverting"
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'reverting',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-    
-    // Call the RPC function to revert the import
-    const { data, error } = await supabase.rpc('revert_agreement_import', {
-      p_import_id: importId,
-      p_reason: reason
-    });
-    
-    if (error) {
-      console.error('Error reverting import:', error);
-      
-      // Update import status back to its original state
-      await supabase
-        .from('agreement_imports')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', importId);
-        
-      return { 
-        success: false, 
-        message: `Failed to revert import: ${error.message}`,
-        error 
-      };
-    }
-    
-    // Update the import status to "reverted"
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'reverted',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-    
-    return { 
-      success: true, 
-      message: `Successfully reverted import. ${data?.deleted_count || 0} agreements removed.` 
-    };
-  } catch (err) {
-    console.error('Unexpected error in revertAgreementImport:', err);
-    
-    // Update import status back to its original state
-    await supabase
-      .from('agreement_imports')
-      .update({ 
-        status: 'completed',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', importId);
-      
-    return { 
-      success: false, 
-      message: `Unexpected error: ${err.message}`,
-      error: err 
-    };
-  }
-};
-
-export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
-  try {
-    console.log("Running payment schedule maintenance job");
-    
-    // Check for active agreements without payment schedules and create them
-    const result = await checkAndCreateMissingPaymentSchedules();
-    
-    if (!result.success) {
-      console.error("Error in payment schedule maintenance job:", result.error);
-      return {
-        success: false,
-        message: `Payment schedule maintenance job failed: ${result.message}`,
-        error: result.error
-      };
-    }
-    
-    // Now update late fees for all pending payments
-    const lateFeesResult = await updateLateFees();
-    
-    if (result.generatedCount > 0 || lateFeesResult.updatedCount > 0) {
-      console.log(`Successfully generated ${result.generatedCount} payment schedules and updated ${lateFeesResult.updatedCount} late fees`);
-    } else {
-      console.log("No payment schedules needed to be generated or late fees updated");
-    }
-    
-    return {
-      success: true,
-      message: `Payment schedule maintenance job completed successfully. ${result.message} Updated ${lateFeesResult.updatedCount} late fee amounts.`
-    };
-  } catch (error) {
-    console.error("Unexpected error in payment schedule maintenance job:", error);
-    return {
-      success: false,
-      message: `Unexpected error in payment schedule maintenance job: ${error instanceof Error ? error.message : String(error)}`,
-      error
-    };
-  }
-};
-
-export const updateLateFees = async (): Promise<{ success: boolean; updatedCount: number; message?: string; error?: any }> => {
-  try {
-    console.log("Updating late fees for pending payments");
-    
-    // Get all pending payments with due dates in the past
-    const { data: pendingPayments, error: fetchError } = await supabase
-      .from('unified_payments')
-      .select('id, lease_id, original_due_date, amount, days_overdue, late_fine_amount, daily_late_fee')
-      .eq('status', 'pending')
-      .lt('original_due_date', new Date().toISOString());
-    
-    if (fetchError) {
-      console.error("Error fetching pending payments:", fetchError);
-      return {
-        success: false,
-        updatedCount: 0,
-        message: `Error fetching pending payments: ${fetchError.message}`,
-        error: fetchError
-      };
-    }
-    
-    if (!pendingPayments || pendingPayments.length === 0) {
-      console.log("No pending payments found that need late fee updates");
-      return {
-        success: true,
-        updatedCount: 0,
-        message: "No pending payments need late fee updates"
-      };
-    }
-    
-    console.log(`Found ${pendingPayments.length} pending payments to update`);
-    
-    let updatedCount = 0;
-    
-    // Update each payment with current late fee calculation
-    for (const payment of pendingPayments) {
-      const dueDate = new Date(payment.original_due_date);
-      const today = new Date();
-      
-      // Calculate days overdue (excluding time portion)
-      const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const dueDateNoTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-      
-      const diffTime = todayNoTime.getTime() - dueDateNoTime.getTime();
-      const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
-      // Skip if days overdue hasn't changed
-      if (daysOverdue <= (payment.days_overdue || 0)) {
-        continue;
-      }
-      
-      // Get daily late fee from the payment or lease, or use default
-      let dailyLateFee = payment.daily_late_fee;
-      
-      if (!dailyLateFee) {
-        // Try to get daily_late_fee from the lease
-        const { data: leaseData } = await supabase
+        // Update lease next payment date
+        const { error: updateError } = await supabase
           .from('leases')
-          .select('daily_late_fee')
-          .eq('id', payment.lease_id)
-          .single();
+          .update({
+            next_payment_date: nextPaymentDate.toISOString().split('T')[0]
+          })
+          .eq('id', lease.id);
+          
+        if (updateError) {
+          console.error(`Failed to update next payment date for lease ${lease.id}:`, updateError);
+          continue;
+        }
         
-        dailyLateFee = leaseData?.daily_late_fee || 120; // Default to 120 QAR if not specified
+        generatedCount++;
+        console.log(`Successfully generated payment for lease ${lease.agreement_number}`);
+        
+      } catch (err) {
+        console.error(`Error processing lease ${lease.id}:`, err);
       }
-      
-      // Calculate late fee (capped at 3000 QAR)
-      const lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
-      
-      // Update the payment record
-      const { error: updateError } = await supabase
-        .from('unified_payments')
-        .update({
-          days_overdue: daysOverdue,
-          late_fine_amount: lateFineAmount
-        })
-        .eq('id', payment.id);
-      
-      if (updateError) {
-        console.error(`Error updating payment ${payment.id}:`, updateError);
-        continue;
-      }
-      
-      updatedCount++;
     }
     
-    return {
+    console.log(`Payment generation complete. Generated ${generatedCount} payments`);
+    
+    return { 
       success: true,
-      updatedCount,
-      message: `Updated late fees for ${updatedCount} payments`
+      message: `Generated ${generatedCount} payments`,
+      generatedCount
     };
+    
   } catch (error) {
-    console.error("Unexpected error in updateLateFees:", error);
-    return {
-      success: false,
-      updatedCount: 0,
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      error
-    };
-  }
-};
-
-export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
-  try {
-    toast.info("Running payment schedule maintenance...");
-    const result = await runPaymentScheduleMaintenanceJob();
-    
-    if (result.success) {
-      if (result.message?.includes("Generated 0 payment") && !result.message?.includes("Updated")) {
-        toast.info(result.message || "All payment schedules are up to date");
-      } else {
-        toast.success(result.message || "Payment maintenance completed successfully");
-      }
-    } else {
-      toast.error(result.message || "Payment maintenance failed");
-    }
-    
-    return result;
-  } catch (error) {
-    console.error("Error in manual payment maintenance:", error);
-    toast.error("Failed to run payment maintenance");
-    return {
-      success: false,
-      message: `Manual payment maintenance failed: ${error instanceof Error ? error.message : String(error)}`,
-      error
-    };
-  }
-};
-
-export const fixAgreementPayments = async (agreementId: string): Promise<{ success: boolean; message?: string; error?: any }> => {
-  try {
-    toast.info("Checking and fixing payments for this agreement...");
-    const result = await ensureAllMonthlyPayments(agreementId);
-    
-    if (result.success) {
-      if ((result.generatedCount || 0) === 0 && (result.updatedCount || 0) === 0) {
-        toast.info("All payment records are up to date");
-      } else {
-        toast.success(result.message || "Payment records fixed successfully");
-      }
-    } else {
-      toast.error(result.message || "Failed to fix payment records");
-    }
-    
-    return result;
-  } catch (error) {
-    console.error("Error fixing agreement payments:", error);
-    toast.error("Failed to fix agreement payments");
-    return {
-      success: false,
-      message: `Failed to fix agreement payments: ${error instanceof Error ? error.message : String(error)}`,
-      error
-    };
-  }
-};
-
-export const runAgreementStatusMaintenance = async (): Promise<{ 
-  success: boolean; 
-  message?: string; 
-  error?: any 
-}> => {
-  try {
-    console.log("Running agreement status maintenance");
-    
-    // Check for conflicting vehicle assignments
-    const conflictResult = await checkAndUpdateConflictingAgreements();
-    
-    if (!conflictResult.success) {
-      return {
-        success: false,
-        message: `Failed to check conflicting agreements: ${conflictResult.message}`,
-        error: conflictResult
-      };
-    }
-    
-    return {
-      success: true,
-      message: conflictResult.message
-    };
-  } catch (error) {
-    console.error("Error in runAgreementStatusMaintenance:", error);
-    return {
+    console.error('Error in checkAndGenerateMonthlyPayments:', error);
+    return { 
       success: false,
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      error
+      generatedCount: 0
     };
   }
 };

@@ -1,73 +1,74 @@
+
 import { QueryClient } from '@tanstack/react-query';
 
-// Constants for caching and stale time
-export const CACHE_TIME = 1000 * 60 * 30; // 30 minutes
-export const STALE_TIME = 1000 * 60 * 5; // 5 minutes
-export const BACKGROUND_STALE_TIME = 1000 * 60 * 2; // 2 minutes
-
-export const createQueryClient = () => new QueryClient({
+// Create a client
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      retry: 1,
-      staleTime: STALE_TIME,
-      cacheTime: CACHE_TIME,
-      suspense: true,
-      useErrorBoundary: true,
-      refetchInterval: false,
-    },
-    mutations: {
-      useErrorBoundary: true,
-      retry: 1,
     },
   },
-  queryCache: new QueryClient().getQueryCache(),
 });
 
-// Pre-configured query keys
+// Query key factory to ensure consistent keys across the application
 export const queryKeys = {
-  vehicles: {
-    all: ['vehicles'] as const,
-    lists: () => [...queryKeys.vehicles.all, 'list'] as const,
-    list: (filters: Record<string, any>) => [...queryKeys.vehicles.lists(), filters] as const,
-    details: () => [...queryKeys.vehicles.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.vehicles.details(), id] as const,
-  },
-  customers: {
-    all: ['customers'] as const,
-    lists: () => [...queryKeys.customers.all, 'list'] as const,
-    list: (filters: Record<string, any>) => [...queryKeys.customers.lists(), filters] as const,
-    details: () => [...queryKeys.customers.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.customers.details(), id] as const,
-  },
-  agreements: {
-    all: ['agreements'] as const,
-    lists: () => [...queryKeys.agreements.all, 'list'] as const,
-    list: (filters: Record<string, any>) => [...queryKeys.agreements.lists(), filters] as const,
-    details: () => [...queryKeys.agreements.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.agreements.details(), id] as const,
-  },
-  maintenance: {
-    all: ['maintenance'] as const,
-    lists: () => [...queryKeys.maintenance.all, 'list'] as const,
-    list: (filters: Record<string, any>) => [...queryKeys.maintenance.lists(), filters] as const,
-    details: () => [...queryKeys.maintenance.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.maintenance.details(), id] as const,
-  },
+  // Dashboard related queries
   dashboard: {
-    stats: ['dashboard', 'stats'] as const,
-    recentActivity: ['dashboard', 'activity'] as const,
-    charts: ['dashboard', 'charts'] as const,
+    stats: ['dashboard', 'stats'],
+    charts: ['dashboard', 'charts'],
+    recentActivity: ['dashboard', 'activity']
   },
-  settings: {
-    user: ['settings', 'user'] as const,
-    system: ['settings', 'system'] as const,
+  
+  // Vehicle related queries
+  vehicles: {
+    lists: () => ['vehicles', 'list'],
+    detail: (id: string) => ['vehicles', 'detail', id],
+    status: (status: string) => ['vehicles', 'status', status],
   },
-  trafficFines: {
-    all: ['traffic-fines'] as const,
-    lists: () => [...queryKeys.trafficFines.all, 'list'] as const,
-    list: (filters: Record<string, any>) => [...queryKeys.trafficFines.lists(), filters] as const,
-  }
+  
+  // Customer related queries
+  customers: {
+    lists: () => ['customers', 'list'],
+    detail: (id: string) => ['customers', 'detail', id],
+    stats: ['customers', 'stats'],
+  },
+  
+  // Agreement related queries
+  agreements: {
+    lists: () => ['agreements', 'list'],
+    detail: (id: string) => ['agreements', 'detail', id],
+    active: ['agreements', 'active'],
+    pending: ['agreements', 'pending'],
+  },
+  
+  // Maintenance related queries
+  maintenance: {
+    lists: () => ['maintenance', 'list'],
+    detail: (id: string) => ['maintenance', 'detail', id],
+    scheduled: ['maintenance', 'scheduled'],
+    history: (vehicleId: string) => ['maintenance', 'history', vehicleId],
+  },
+  
+  // Financial related queries
+  financial: {
+    summary: ['financial', 'summary'],
+    transactions: (filters?: any) => ['financial', 'transactions', filters],
+    expenses: (filters?: any) => ['financial', 'expenses', filters],
+  },
+  
+  // Legal related queries
+  legal: {
+    cases: ['legal', 'cases'],
+    caseDetail: (id: string) => ['legal', 'case', id],
+    templates: ['legal', 'templates'],
+  },
+  
+  // User related queries
+  user: {
+    profile: (id: string) => ['user', 'profile', id],
+    preferences: (id: string) => ['user', 'preferences', id],
+  },
 };

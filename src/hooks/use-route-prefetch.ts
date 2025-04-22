@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -95,30 +96,51 @@ export const usePrefetchRouteData = () => {
       // Dashboard prefetching
       if (path.startsWith('/dashboard')) {
         await Promise.all([
-          queryClient.prefetchQuery(queryKeys.dashboard.stats),
-          queryClient.prefetchQuery(queryKeys.dashboard.recentActivity),
-          queryClient.prefetchQuery(queryKeys.dashboard.charts),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.dashboard.stats,
+            queryFn: () => fetch('/api/dashboard/stats').then(res => res.json())
+          }),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.dashboard.recentActivity,
+            queryFn: () => fetch('/api/dashboard/activity').then(res => res.json())
+          }),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.dashboard.charts,
+            queryFn: () => fetch('/api/dashboard/charts').then(res => res.json())
+          })
         ]);
       }
 
       // Vehicles list prefetching
       if (path.startsWith('/vehicles')) {
-        await queryClient.prefetchQuery(queryKeys.vehicles.lists());
+        await queryClient.prefetchQuery({
+          queryKey: queryKeys.vehicles.lists(),
+          queryFn: () => fetch('/api/vehicles').then(res => res.json())
+        });
       }
 
       // Customers list prefetching
       if (path.startsWith('/customers')) {
-        await queryClient.prefetchQuery(queryKeys.customers.lists());
+        await queryClient.prefetchQuery({
+          queryKey: queryKeys.customers.lists(),
+          queryFn: () => fetch('/api/customers').then(res => res.json())
+        });
       }
 
       // Agreements list prefetching
       if (path.startsWith('/agreements')) {
-        await queryClient.prefetchQuery(queryKeys.agreements.lists());
+        await queryClient.prefetchQuery({
+          queryKey: queryKeys.agreements.lists(),
+          queryFn: () => fetch('/api/agreements').then(res => res.json())
+        });
       }
 
       // Maintenance list prefetching
       if (path.startsWith('/maintenance')) {
-        await queryClient.prefetchQuery(queryKeys.maintenance.lists());
+        await queryClient.prefetchQuery({
+          queryKey: queryKeys.maintenance.lists(),
+          queryFn: () => fetch('/api/maintenance').then(res => res.json())
+        });
       }
 
       // Individual item prefetching
@@ -127,16 +149,28 @@ export const usePrefetchRouteData = () => {
         const [, type, id] = matches;
         switch (type) {
           case 'vehicles':
-            await queryClient.prefetchQuery(queryKeys.vehicles.detail(id));
+            await queryClient.prefetchQuery({
+              queryKey: queryKeys.vehicles.detail(id),
+              queryFn: () => fetch(`/api/vehicles/${id}`).then(res => res.json())
+            });
             break;
           case 'customers':
-            await queryClient.prefetchQuery(queryKeys.customers.detail(id));
+            await queryClient.prefetchQuery({
+              queryKey: queryKeys.customers.detail(id),
+              queryFn: () => fetch(`/api/customers/${id}`).then(res => res.json())
+            });
             break;
           case 'agreements':
-            await queryClient.prefetchQuery(queryKeys.agreements.detail(id));
+            await queryClient.prefetchQuery({
+              queryKey: queryKeys.agreements.detail(id),
+              queryFn: () => fetch(`/api/agreements/${id}`).then(res => res.json())
+            });
             break;
           case 'maintenance':
-            await queryClient.prefetchQuery(queryKeys.maintenance.detail(id));
+            await queryClient.prefetchQuery({
+              queryKey: queryKeys.maintenance.detail(id),
+              queryFn: () => fetch(`/api/maintenance/${id}`).then(res => res.json())
+            });
             break;
         }
       }

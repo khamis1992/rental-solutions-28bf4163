@@ -1,8 +1,10 @@
-import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
+
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
 import { executeQuery } from '@/lib/supabase';
+import { useState, useEffect, useMemo } from 'react';
 
 // Constants for caching and stale time
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
@@ -64,71 +66,67 @@ export interface RecentActivity {
 
 // Separate query functions for parallel execution
 const fetchVehicleStats = async () => {
-  const { data, error } = await executeQuery('dashboard-vehicles', () =>
-    supabase.from('vehicles').select('id, status')
-  );
+  const { data, error } = await supabase.from('vehicles').select('id, status');
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 const fetchPayments = async (startDate: Date) => {
-  const { data, error } = await executeQuery(`dashboard-payments-${startDate.toISOString()}`, () =>
-    supabase
-      .from('unified_payments')
-      .select('amount_paid, payment_date')
-      .gte('payment_date', startDate.toISOString())
-  );
+  const { data, error } = await supabase
+    .from('unified_payments')
+    .select('amount_paid, payment_date')
+    .gte('payment_date', startDate.toISOString());
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 const fetchCustomers = async () => {
-  const { data, error } = await executeQuery('dashboard-customers', () =>
-    supabase
-      .from('profiles')
-      .select('id, created_at')
-      .eq('role', 'customer')
-  );
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, created_at')
+    .eq('role', 'customer');
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 const fetchAgreements = async () => {
-  const { data, error } = await executeQuery('dashboard-agreements', () =>
-    supabase
-      .from('leases')
-      .select('id, status, customer_id, created_at')
-  );
+  const { data, error } = await supabase
+    .from('leases')
+    .select('id, status, customer_id, created_at');
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 const fetchRecentActivity = async () => {
-  const [leases, payments, maintenance] = await Promise.all([
-    executeQuery('dashboard-recent-leases', () =>
-      supabase
-        .from('leases')
-        .select('id, created_at, customer_id, vehicle_id, profiles:customer_id(full_name), vehicles:vehicle_id(make, model, license_plate)')
-        .order('created_at', { ascending: false })
-        .limit(3)
-    ),
-    executeQuery('dashboard-recent-payments', () =>
-      supabase
-        .from('unified_payments')
-        .select('id, amount, amount_paid, payment_date, lease_id')
-        .order('payment_date', { ascending: false })
-        .limit(3)
-    ),
-    executeQuery('dashboard-recent-maintenance', () =>
-      supabase
-        .from('maintenance')
-        .select('id, created_at, vehicle_id, maintenance_type, vehicles:vehicle_id(make, model, license_plate)')
-        .order('created_at', { ascending: false })
-        .limit(2)
-    )
-  ]);
+  const { data: leases, error: leaseError } = await supabase
+    .from('leases')
+    .select('id, created_at, customer_id, vehicle_id, profiles:customer_id(full_name), vehicles:vehicle_id(make, model, license_plate)')
+    .order('created_at', { ascending: false })
+    .limit(3);
+    
+  if (leaseError) throw leaseError;
 
-  return { leases: leases.data || [], payments: payments.data || [], maintenance: maintenance.data || [] };
+  const { data: payments, error: paymentsError } = await supabase
+    .from('unified_payments')
+    .select('id, amount, amount_paid, payment_date, lease_id')
+    .order('payment_date', { ascending: false })
+    .limit(3);
+    
+  if (paymentsError) throw paymentsError;
+
+  const { data: maintenance, error: maintenanceError } = await supabase
+    .from('maintenance')
+    .select('id, created_at, vehicle_id, maintenance_type, vehicles:vehicle_id(make, model, license_plate)')
+    .order('created_at', { ascending: false })
+    .limit(2);
+    
+  if (maintenanceError) throw maintenanceError;
+
+  return { 
+    leases: leases || [], 
+    payments: payments || [], 
+    maintenance: maintenance || [] 
+  };
 };
 
 // Prefetch function for initial data load
@@ -153,31 +151,31 @@ export function useDashboardData() {
         queryKey: ['dashboard', 'vehicles'],
         queryFn: fetchVehicleStats,
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME
+        gcTime: CACHE_TIME // using gcTime instead of cacheTime as per new React Query v5
       },
       {
         queryKey: ['dashboard', 'payments'],
         queryFn: () => fetchPayments(new Date(new Date().getFullYear(), new Date().getMonth() - 7, 1)),
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME
+        gcTime: CACHE_TIME
       },
       {
         queryKey: ['dashboard', 'customers'],
         queryFn: fetchCustomers,
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME
+        gcTime: CACHE_TIME
       },
       {
         queryKey: ['dashboard', 'agreements'],
         queryFn: fetchAgreements,
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME
+        gcTime: CACHE_TIME
       },
       {
         queryKey: ['dashboard', 'activity'],
         queryFn: fetchRecentActivity,
         staleTime: STALE_TIME / 2, // More frequent updates for activity
-        cacheTime: CACHE_TIME
+        gcTime: CACHE_TIME
       }
     ]
   });
@@ -185,15 +183,21 @@ export function useDashboardData() {
   const [vehiclesQuery, paymentsQuery, customersQuery, agreementsQuery, activityQuery] = queries;
 
   // Process the data only when all queries are successful
-  const processedData = React.useMemo(() => {
+  const processedData = useMemo(() => {
     if (queries.some(query => query.isLoading || query.isError)) return null;
 
+    const vehicleData = vehiclesQuery.data || [];
+    const paymentData = paymentsQuery.data || [];
+    const customerData = customersQuery.data || [];
+    const agreementData = agreementsQuery.data || [];
+    const activityData = activityQuery.data || { leases: [], payments: [], maintenance: [] };
+
     // Calculate stats using the fetched data
-    const vehicleStats = calculateVehicleStats(vehiclesQuery.data);
-    const financialStats = calculateFinancialStats(paymentsQuery.data);
-    const customerStats = calculateCustomerStats(customersQuery.data);
-    const agreementStats = calculateAgreementStats(agreementsQuery.data);
-    const activities = processActivities(activityQuery.data);
+    const vehicleStats = calculateVehicleStats(vehicleData);
+    const financialStats = calculateFinancialStats(paymentData);
+    const customerStats = calculateCustomerStats(customerData);
+    const agreementStats = calculateAgreementStats(agreementData);
+    const activities = processActivities(activityData);
 
     return {
       stats: {
@@ -202,7 +206,7 @@ export function useDashboardData() {
         customerStats,
         agreementStats
       },
-      revenue: calculateRevenueData(paymentsQuery.data),
+      revenue: calculateRevenueData(paymentData),
       activity: activities
     };
   }, [queries.map(q => q.data)]);
@@ -304,24 +308,22 @@ function processActivities(activityData: any) {
 
   const activities: RecentActivity[] = [];
 
-  leases.forEach(lease => {
-    const typedLease = lease as unknown as LeaseWithRelations;
-    
-    const customerName = typedLease.profiles?.full_name || 'Customer';
-    const vehicleMake = typedLease.vehicles?.make || '';
-    const vehicleModel = typedLease.vehicles?.model || '';
-    const licensePlate = typedLease.vehicles?.license_plate || '';
+  leases.forEach((lease: LeaseWithRelations) => {
+    const customerName = lease.profiles?.full_name || 'Customer';
+    const vehicleMake = lease.vehicles?.make || '';
+    const vehicleModel = lease.vehicles?.model || '';
+    const licensePlate = lease.vehicles?.license_plate || '';
     
     activities.push({
-      id: typedLease.id,
+      id: lease.id,
       type: 'rental',
       title: 'New Rental',
       description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
-      time: getTimeAgo(new Date(typedLease.created_at))
+      time: getTimeAgo(new Date(lease.created_at))
     });
   });
 
-  payments.forEach(payment => {
+  payments.forEach((payment: any) => {
     const paymentAmount = payment.amount_paid || payment.amount;
     
     activities.push({
@@ -333,19 +335,17 @@ function processActivities(activityData: any) {
     });
   });
 
-  maintenance.forEach(item => {
-    const typedItem = item as unknown as MaintenanceWithRelations;
-    
-    const vehicleMake = typedItem.vehicles?.make || '';
-    const vehicleModel = typedItem.vehicles?.model || '';
-    const licensePlate = typedItem.vehicles?.license_plate || '';
+  maintenance.forEach((item: MaintenanceWithRelations) => {
+    const vehicleMake = item.vehicles?.make || '';
+    const vehicleModel = item.vehicles?.model || '';
+    const licensePlate = item.vehicles?.license_plate || '';
     
     activities.push({
-      id: typedItem.id,
+      id: item.id,
       type: 'maintenance',
       title: 'Maintenance Scheduled',
-      description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${typedItem.maintenance_type}`,
-      time: getTimeAgo(new Date(typedItem.created_at))
+      description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${item.maintenance_type}`,
+      time: getTimeAgo(new Date(item.created_at))
     });
   });
 
