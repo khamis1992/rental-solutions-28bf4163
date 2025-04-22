@@ -16,6 +16,17 @@ serve(async (req) => {
 
   try {
     const { text } = await req.json();
+    
+    if (!text || typeof text !== 'string') {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input. Text must be a non-empty string.' 
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    console.log(`Transliterating text: "${text}"`);
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -28,11 +39,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a name transliterator. Convert Arabic names to their English representation using standard romanization. Only return the romanized name, nothing else. Examples: عبد الله -> Abdullah, محمد -> Mohammed, فاطمة -> Fatima, زينب -> Zainab'
+            content: 'You are a name transliterator expert. Convert Arabic and other non-Latin script names and text to their English representation using standard romanization. Only return the romanized text, nothing else. Do not add any explanations or notes. Examples: عبد الله -> Abdullah, محمد -> Mohammed, فاطمة -> Fatima, زينب -> Zainab, عبد الرحمن -> Abdul Rahman, مركز الملك عبدالله المالي -> King Abdullah Financial Center'
           },
           {
             role: 'user',
-            content: `Transliterate this Arabic name to English: ${text}`
+            content: `Transliterate this text to English (romanized form): ${text}`
           }
         ],
         temperature: 0.1,
@@ -41,7 +52,14 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response from Perplexity API:', data);
+      throw new Error('Invalid response from transliteration service');
+    }
+    
     const transliteratedText = data.choices[0].message.content.trim();
+    console.log(`Transliteration result: "${transliteratedText}"`);
 
     return new Response(JSON.stringify({ translatedText: transliteratedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

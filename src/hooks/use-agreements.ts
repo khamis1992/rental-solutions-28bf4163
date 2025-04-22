@@ -11,6 +11,42 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface CustomerProfile {
+  id: string;
+  full_name?: string;
+  email?: string;
+  phone_number?: string;
+}
+
+interface VehicleData {
+  id: string;
+  make?: string;
+  model?: string;
+  license_plate?: string;
+  image_url?: string;
+  year?: number;
+  color?: string;
+  vin?: string;
+}
+
+interface AgreementData {
+  id: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  agreement_number?: string;
+  total_amount?: number;
+  deposit_amount?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  profiles?: CustomerProfile;
+  vehicles?: VehicleData;
+  signature_url?: string;
+}
+
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
   total_amount?: number;
@@ -234,7 +270,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map(item => ({
+      const agreements: SimpleAgreement[] = data.map((item: AgreementData) => ({
         id: item.id,
         customer_id: item.customer_id,
         vehicle_id: item.vehicle_id,

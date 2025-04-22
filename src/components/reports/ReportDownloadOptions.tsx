@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { translateArabicName } from '@/utils/translation-utils';
+import { prepareReportData } from '@/utils/translation-utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -41,24 +41,8 @@ const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportD
       // Get data for the report
       let reportData = getReportData();
       
-      // Transliterate Arabic names if present
-      if (reportData.length > 0 && (reportType === 'customers' || reportType === 'traffic-fines')) {
-        const transliteratedData = await Promise.all(reportData.map(async (item) => {
-          const updatedItem = { ...item };
-          
-          // Handle customer names
-          if (item.full_name) {
-            updatedItem.full_name = await translateArabicName(item.full_name);
-          }
-          if (item.customerName) {
-            updatedItem.customerName = await translateArabicName(item.customerName);
-          }
-          
-          return updatedItem;
-        }));
-        
-        reportData = transliteratedData;
-      }
+      // Transliterate all text fields in the report data
+      reportData = await prepareReportData(reportData);
       
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;

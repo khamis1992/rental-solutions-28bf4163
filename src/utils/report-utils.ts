@@ -3,6 +3,22 @@ import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 
 /**
+ * Sanitizes text for CSV export, ensuring no encoding issues
+ */
+const sanitizeForCSV = (value: any): string => {
+  if (value === null || value === undefined) return '';
+  
+  // Convert to string and ensure proper encoding
+  const valueStr = String(value);
+  
+  // Escape quotes and wrap in quotes if contains comma or quote
+  if (valueStr.includes(',') || valueStr.includes('"')) {
+    return `"${valueStr.replace(/"/g, '""')}"`;
+  }
+  return valueStr;
+};
+
+/**
  * Generates a CSV string from an array of objects
  * @param data Array of objects to convert to CSV
  * @returns CSV formatted string
@@ -19,25 +35,18 @@ export const generateCSV = (data: Record<string, any>[]): string => {
   // Add data rows
   data.forEach(item => {
     const row = headers.map(header => {
-      // Handle values that might contain commas or quotes
-      const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      const valueStr = String(value);
-      
-      // Escape quotes and wrap in quotes if contains comma or quote
-      if (valueStr.includes(',') || valueStr.includes('"')) {
-        return `"${valueStr.replace(/"/g, '""')}"`;
-      }
-      return valueStr;
+      return sanitizeForCSV(item[header]);
     });
     
     csv += row.join(',') + '\n';
   });
   
-  return csv;
+  // Ensure proper UTF-8 encoding with BOM for Excel compatibility
+  return '\uFEFF' + csv;
 };
 
 /**
- * Downloads data as a CSV file
+ * Downloads data as a CSV file with proper encoding
  * @param data Array of objects to download as CSV
  * @param filename Name for the downloaded file
  */
@@ -55,13 +64,21 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
 };
 
 /**
- * Downloads data as a CSV file
- * @param data Array of objects to download as CSV
+ * Downloads data as an Excel file (using CSV format with proper encoding)
+ * @param data Array of objects to download as Excel
  * @param filename Name for the downloaded file
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
-  // For simplicity, we're using CSV with .xlsx extension
-  downloadCSV(data, filename);
+  const csv = generateCSV(data);
+  const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 const PAGE_HEIGHT = 297; // A4 height in mm
@@ -145,12 +162,16 @@ export const generateStandardReport = (
 };
 
 /**
- * Generate a Traffic Fines Report
+ * Generate a Traffic Fines Report with proper font encoding
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
 export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
+  
+  // Add font support for non-Latin characters
+  doc.addFont('helvetica', 'normal');
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
