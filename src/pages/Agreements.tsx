@@ -11,7 +11,7 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
-import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,7 +55,7 @@ const Agreements = () => {
     const runMaintenanceJob = async () => {
       try {
         console.log("Running automatic payment schedule maintenance check");
-        await runPaymentScheduleMaintenanceJob();
+        await checkAndGenerateMonthlyPayments();
       } catch (error) {
         console.error("Error running payment maintenance job:", error);
         // We don't show a toast here since this is a background task

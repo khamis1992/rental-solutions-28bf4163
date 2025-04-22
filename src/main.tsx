@@ -1,70 +1,41 @@
-// Add type declarations
-declare global {
-  interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: Record<string, any>;
-    performance: Performance;
-  }
-}
 
-declare const process: {
-  env: {
-    NODE_ENV: 'development' | 'production' | 'test';
-  };
-};
-
-import { createRoot } from 'react-dom/client';
-import { startTransition } from 'react';
-import ErrorBoundary from '@/components/ui/error-boundary';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { initializePerformanceMonitoring } from '@/utils/performance-monitor';
-import { preloadCriticalAssets, preconnectToCriticalDomains } from '@/utils/preload-critical';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/query-client';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { reportWebVitals } from './reportWebVitals';
+import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { setUpMonitoring } from '@/lib/monitoring';
+import './tailwind.css';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-// Initialize performance API if needed
-if (typeof window !== 'undefined' && !window.performance) {
-  window.performance = {
-    now: () => Date.now(),
-    getEntriesByType: () => [],
-    mark: () => undefined,
-    measure: () => undefined,
-    clearMarks: () => undefined,
-    clearMeasures: () => undefined
-  } as Performance;
+// Set up performance monitoring if available
+if (typeof window !== 'undefined' && window.performance) {
+  const performance = window.performance as unknown as Performance;
+  setUpMonitoring(performance);
 }
 
-// Preload critical assets and establish connections early
-if (typeof window !== 'undefined') {
-  preloadCriticalAssets();
-  preconnectToCriticalDomains();
-}
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+        <TooltipProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+          <Toaster />
+        </TooltipProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </ThemeProvider>
+    </QueryClientProvider>
+  </React.StrictMode>,
+);
 
-// Initialize performance monitoring in production
-if (process?.env?.NODE_ENV === 'production') {
-  initializePerformanceMonitoring({
-    debug: false,
-    sampleRate: 0.1 // Sample 10% of users
-  });
-
-  // Disable React dev tools in production
-  if (typeof window !== 'undefined' && window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
-    Object.keys(window.__REACT_DEVTOOLS_GLOBAL_HOOK__).forEach(key => {
-      window.__REACT_DEVTOOLS_GLOBAL_HOOK__![key] = 
-        typeof window.__REACT_DEVTOOLS_GLOBAL_HOOK__![key] === 'function' ? () => {} : null;
-    });
-  }
-}
-
-// Initialize root with error boundary
-const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Failed to find the root element');
-
-const root = createRoot(rootElement);
-
-// Hydrate app with transition to prevent blocking
-startTransition(() => {
-  root.render(
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  );
-});
+// Report web vitals
+reportWebVitals(console.log);

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { checkAndUpdateConflictingAgreements } from '@/utils/agreement-status-checker';
 
@@ -181,6 +180,112 @@ export const checkAndGenerateMonthlyPayments = async () => {
       success: false,
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
       generatedCount: 0
+    };
+  }
+};
+
+// Add the missing functions needed in other files
+export const manuallyRunPaymentMaintenance = async () => {
+  try {
+    console.log('Running manual payment maintenance job');
+    const result = await checkAndGenerateMonthlyPayments();
+    return result;
+  } catch (error) {
+    console.error('Error running payment maintenance job:', error);
+    return {
+      success: false, 
+      message: `Error in maintenance job: ${error instanceof Error ? error.message : String(error)}`,
+      generatedCount: 0
+    };
+  }
+};
+
+export const fixAgreementPayments = async (leaseId: string) => {
+  if (!leaseId) {
+    console.error('No lease ID provided for fixing payments');
+    return { success: false, message: 'No lease ID provided' };
+  }
+
+  try {
+    console.log(`Fixing payments for agreement ${leaseId}`);
+    
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .select('id, due_date, original_due_date')
+      .eq('lease_id', leaseId)
+      .order('due_date', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching payments:', error);
+      return { success: false, message: `Database error: ${error.message}` };
+    }
+    
+    if (!data || data.length === 0) {
+      return { success: true, message: 'No payments to fix' };
+    }
+    
+    // Analyze and fix the payments
+    const seen = new Map<string, string[]>();
+    const fixedPayments = [];
+    
+    for (const payment of data) {
+      const dueDate = payment.due_date;
+      if (!dueDate) continue;
+      
+      const month = dueDate.substring(0, 7); // YYYY-MM format
+      
+      if (seen.has(month)) {
+        seen.get(month)!.push(payment.id);
+      } else {
+        seen.set(month, [payment.id]);
+      }
+    }
+    
+    // Fix duplicate payments by deduplicating them
+    for (const [month, paymentIds] of seen.entries()) {
+      if (paymentIds.length > 1) {
+        // Keep only the first payment for this month
+        const [keepId, ...duplicateIds] = paymentIds;
+        
+        for (const dupId of duplicateIds) {
+          const { error: deleteError } = await supabase
+            .from('unified_payments')
+            .delete()
+            .eq('id', dupId);
+          
+          if (!deleteError) {
+            fixedPayments.push(dupId);
+          } else {
+            console.error(`Failed to delete duplicate payment ${dupId}:`, deleteError);
+          }
+        }
+      }
+    }
+    
+    return { 
+      success: true, 
+      message: `Fixed ${fixedPayments.length} duplicate payments` 
+    };
+    
+  } catch (error) {
+    console.error('Error fixing agreement payments:', error);
+    return { 
+      success: false, 
+      message: `Error fixing payments: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+};
+
+// Add function for payment schedule maintenance
+export const runPaymentScheduleMaintenanceJob = async () => {
+  try {
+    const result = await checkAndGenerateMonthlyPayments();
+    return result;
+  } catch (error) {
+    console.error('Error in payment schedule maintenance job:', error);
+    return { 
+      success: false, 
+      message: `Error in maintenance job: ${error instanceof Error ? error.message : String(error)}` 
     };
   }
 };

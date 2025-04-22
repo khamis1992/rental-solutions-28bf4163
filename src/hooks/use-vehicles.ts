@@ -1,5 +1,6 @@
+
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
@@ -8,20 +9,35 @@ import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { executeQuery } from '@/lib/supabase';
 
+// Define DatabaseVehicleRecord interface explicitly
+interface DatabaseVehicleRecord {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  vin: string;
+  status: string;
+  [key: string]: any; // For additional properties we're not strict about
+}
+
 // Prefetch configuration
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
-const CACHE_TIME = 30 * 60 * 1000; // 30 minutes
+const GC_TIME = 30 * 60 * 1000; // 30 minutes
 
 // Prefetch vehicles for better UX
 export const prefetchVehicles = async (queryClient: QueryClient) => {
   await queryClient.prefetchQuery({
     queryKey: ['vehicles'],
-    queryFn: () => executeQuery('vehicles-list', () => 
-      supabase
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('vehicles')
         .select('*, vehicle_types(*)')
-        .order('created_at', { ascending: false })
-    ),
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
     staleTime: STALE_TIME,
   });
 };
@@ -31,55 +47,45 @@ export const useVehicles = () => {
   
   return {
     useList: (filters?: VehicleFilterParams) => {
-      // Memoize filters to prevent unnecessary re-renders
-      const memoizedFilters = useMemo(() => filters, [
-        filters?.status,
-        filters?.make,
-        filters?.model,
-        filters?.vehicle_type_id,
-        filters?.location,
-        filters?.year,
-        filters?.search
-      ]);
-
       return useQuery({
-        queryKey: ['vehicles', memoizedFilters],
+        queryKey: ['vehicles', filters],
         queryFn: async () => {
           try {
             const { data, error } = await executeQuery(
-              `vehicles-${JSON.stringify(memoizedFilters)}`,
+              `vehicles-${JSON.stringify(filters)}`,
               async () => {
                 let query = supabase
                   .from('vehicles')
                   .select('*, vehicle_types(*)');
                 
-                if (memoizedFilters) {
-                  if (memoizedFilters.status) {
-                    query = query.eq('status', memoizedFilters.status === 'reserved' ? 'reserve' : memoizedFilters.status);
+                if (filters) {
+                  if (filters.status) {
+                    query = query.eq('status', filters.status === 'reserved' ? 'reserve' : filters.status);
                   }
-                  if (memoizedFilters.make) query = query.eq('make', memoizedFilters.make);
-                  if (memoizedFilters.model) query = query.ilike('model', `%${memoizedFilters.model}%`);
-                  if (memoizedFilters.vehicle_type_id) query = query.eq('vehicle_type_id', memoizedFilters.vehicle_type_id);
-                  if (memoizedFilters.location) query = query.eq('location', memoizedFilters.location);
-                  if (memoizedFilters.year) query = query.eq('year', memoizedFilters.year);
-                  if (memoizedFilters.search) {
-                    query = query.or(`make.ilike.%${memoizedFilters.search}%,model.ilike.%${memoizedFilters.search}%,license_plate.ilike.%${memoizedFilters.search}%`);
+                  if (filters.make) query = query.eq('make', filters.make);
+                  if (filters.model) query = query.ilike('model', `%${filters.model}%`);
+                  if (filters.vehicle_type_id) query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+                  if (filters.location) query = query.eq('location', filters.location);
+                  if (filters.year) query = query.eq('year', filters.year);
+                  if (filters.search) {
+                    query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
                   }
                 }
                 
-                return query.order('created_at', { ascending: false });
+                const result = await query.order('created_at', { ascending: false });
+                return result;
               }
             );
 
             if (error) throw error;
-            return data.map(record => mapDatabaseRecordToVehicle(record));
+            return (data || []).map((record: DatabaseVehicleRecord) => mapDatabaseRecordToVehicle(record));
           } catch (error) {
             handleApiError(error, 'Failed to fetch vehicles');
             throw error;
           }
         },
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME,
+        gcTime: GC_TIME,
         keepPreviousData: true,
       });
     },
@@ -92,21 +98,25 @@ export const useVehicles = () => {
           
           const { data, error } = await executeQuery(
             `vehicle-${id}`,
-            () => supabase
-              .from('vehicles')
-              .select('*, vehicle_types(*)')
-              .eq('id', id)
-              .maybeSingle()
+            async () => {
+              const result = await supabase
+                .from('vehicles')
+                .select('*, vehicle_types(*)')
+                .eq('id', id)
+                .maybeSingle();
+              
+              return result;
+            }
           );
           
           if (error) throw error;
           if (!data) throw new Error(`Vehicle with ID ${id} not found`);
           
-          return mapDatabaseRecordToVehicle(data);
+          return mapDatabaseRecordToVehicle(data as DatabaseVehicleRecord);
         },
         enabled: Boolean(id),
         staleTime: STALE_TIME,
-        cacheTime: CACHE_TIME,
+        gcTime: GC_TIME,
       });
     },
     
@@ -438,7 +448,8 @@ export const useVehicles = () => {
             (payload) => {
               if (!payload.new) return;
 
-              const updatedVehicle = mapDatabaseRecordToVehicle(payload.new);
+              // Explicitly cast to DatabaseVehicleRecord
+              const updatedVehicle = mapDatabaseRecordToVehicle(payload.new as DatabaseVehicleRecord);
               
               switch (payload.eventType) {
                 case 'INSERT':
@@ -460,7 +471,7 @@ export const useVehicles = () => {
                       payload.old.status !== updatedVehicle.status) {
                     toast.info(`Vehicle status updated`, {
                       description: `${updatedVehicle.make} ${updatedVehicle.model} is now ${
-                        updatedVehicle.status === 'reserve' ? 'reserved' : updatedVehicle.status
+                        updatedVehicle.status === 'reserved' ? 'reserved' : updatedVehicle.status
                       }`,
                     });
                   }

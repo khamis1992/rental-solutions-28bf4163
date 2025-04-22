@@ -1,14 +1,12 @@
-
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
-import { VehicleStatus } from '@/types/vehicle';
 import { executeQuery } from '@/lib/supabase';
 import { useState, useEffect, useMemo } from 'react';
 
 // Constants for caching and stale time
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
-const CACHE_TIME = 30 * 60 * 1000; // 30 minutes
+const GC_TIME = 30 * 60 * 1000; // 30 minutes
 
 export interface DashboardStats {
   vehicleStats: {
@@ -151,31 +149,31 @@ export function useDashboardData() {
         queryKey: ['dashboard', 'vehicles'],
         queryFn: fetchVehicleStats,
         staleTime: STALE_TIME,
-        gcTime: CACHE_TIME // using gcTime instead of cacheTime as per new React Query v5
+        gcTime: GC_TIME // using gcTime instead of cacheTime as per new React Query v5
       },
       {
         queryKey: ['dashboard', 'payments'],
         queryFn: () => fetchPayments(new Date(new Date().getFullYear(), new Date().getMonth() - 7, 1)),
         staleTime: STALE_TIME,
-        gcTime: CACHE_TIME
+        gcTime: GC_TIME
       },
       {
         queryKey: ['dashboard', 'customers'],
         queryFn: fetchCustomers,
         staleTime: STALE_TIME,
-        gcTime: CACHE_TIME
+        gcTime: GC_TIME
       },
       {
         queryKey: ['dashboard', 'agreements'],
         queryFn: fetchAgreements,
         staleTime: STALE_TIME,
-        gcTime: CACHE_TIME
+        gcTime: GC_TIME
       },
       {
         queryKey: ['dashboard', 'activity'],
         queryFn: fetchRecentActivity,
         staleTime: STALE_TIME / 2, // More frequent updates for activity
-        gcTime: CACHE_TIME
+        gcTime: GC_TIME
       }
     ]
   });

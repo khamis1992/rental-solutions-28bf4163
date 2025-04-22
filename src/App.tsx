@@ -1,3 +1,4 @@
+
 import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,15 +8,14 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import ErrorBoundary from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import LoadingScreen from "@/components/ui/loading-screen";
-import { createQueryClient } from "@/lib/query-client";
+import { queryClient } from "@/lib/query-client";
 import AppLayout from "@/components/layout/AppLayout";
 import { PrefetchManager, usePrefetchManager } from "@/utils/prefetch-manager";
 import { useRouteLoader } from "@/utils/route-loader";
 
 // Initialize managers
-const queryClient = createQueryClient();
 const prefetchManager = PrefetchManager.getInstance();
 
 // Lazy load components with absolute paths
