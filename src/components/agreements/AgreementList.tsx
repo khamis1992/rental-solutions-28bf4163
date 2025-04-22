@@ -665,10 +665,14 @@ const handletablepreviousPage = useCallback(() => {
             
             <PaginationItem>
               <Button 
+const handletablenextPage = useCallback(() => {
+  table.nextPage()
+}, []);
+
                 variant="outline" 
                 size="default"
                 className="gap-1 pr-2.5"
-                onClick={() => table.nextPage()} 
+                onClick={handletablenextPage 
                 disabled={!table.getCanNextPage()}
                 aria-label="Go to next page"
               >
