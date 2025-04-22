@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { translateArabicName } from '@/utils/translation-utils';
 import { Button } from '@/components/ui/button';
@@ -24,10 +23,7 @@ interface ReportDownloadOptionsProps {
   getReportData?: () => Record<string, any>[];
 }
 
-const ReportDownloadOptions = ({
-  reportType,
-  getReportData = () => []
-}: ReportDownloadOptionsProps) => {
+const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportDownloadOptionsProps) => {
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -45,9 +41,9 @@ const ReportDownloadOptions = ({
       // Get data for the report
       let reportData = getReportData();
       
-      // Translate Arabic names if present
+      // Transliterate Arabic names if present
       if (reportData.length > 0 && (reportType === 'customers' || reportType === 'traffic-fines')) {
-        const translatedData = await Promise.all(reportData.map(async (item) => {
+        const transliteratedData = await Promise.all(reportData.map(async (item) => {
           const updatedItem = { ...item };
           
           // Handle customer names
@@ -61,7 +57,7 @@ const ReportDownloadOptions = ({
           return updatedItem;
         }));
         
-        reportData = translatedData;
+        reportData = transliteratedData;
       }
       
       // Format title based on report type

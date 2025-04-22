@@ -28,11 +28,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'Translate the Arabic name to English. Only return the translated name, nothing else.'
+            content: 'You are a name transliterator. Convert Arabic names to their English representation using standard romanization. Only return the romanized name, nothing else. Examples: عبد الله -> Abdullah, محمد -> Mohammed'
           },
           {
             role: 'user',
-            content: `Translate this Arabic name to English: ${text}`
+            content: `Transliterate this Arabic name to English: ${text}`
           }
         ],
         temperature: 0.1,
@@ -41,9 +41,9 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    const translatedText = data.choices[0].message.content.trim();
+    const transliteratedText = data.choices[0].message.content.trim();
 
-    return new Response(JSON.stringify({ translatedText }), {
+    return new Response(JSON.stringify({ translatedText: transliteratedText }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
