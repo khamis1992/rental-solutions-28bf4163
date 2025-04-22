@@ -1,4 +1,3 @@
-
 import { Agreement, AgreementStatus } from '@/types/agreement';
 import { supabase } from '@/lib/supabase';
 
@@ -149,4 +148,93 @@ export const getAgreementMetrics = async (): Promise<{
 
 export const runAgreementStatusMaintenance = async () => {
   return await checkAndUpdateAgreementStatus();
+};
+
+export const checkAndUpdateConflictingAgreements = async (): Promise<{
+  success: boolean;
+  message?: string;
+  conflictsResolved?: number;
+}> => {
+  try {
+    console.log("Checking for conflicting vehicle assignments in agreements");
+    
+    // Find active agreements with the same vehicle assigned
+    const { data: agreements, error } = await supabase
+      .from('leases')
+      .select('*')
+      .eq('status', 'active');
+      
+    if (error) {
+      console.error("Error fetching agreements:", error);
+      return {
+        success: false,
+        message: `Failed to check conflicting agreements: ${error.message}`
+      };
+    }
+    
+    if (!agreements || agreements.length === 0) {
+      return {
+        success: true,
+        message: 'No active agreements found',
+        conflictsResolved: 0
+      };
+    }
+    
+    // Group agreements by vehicle_id to find conflicts
+    const vehicleAgreements: Record<string, any[]> = {};
+    agreements.forEach(agreement => {
+      if (agreement.vehicle_id) {
+        if (!vehicleAgreements[agreement.vehicle_id]) {
+          vehicleAgreements[agreement.vehicle_id] = [];
+        }
+        vehicleAgreements[agreement.vehicle_id].push(agreement);
+      }
+    });
+    
+    let conflictsResolved = 0;
+    
+    // Check each vehicle for multiple active agreements
+    for (const [vehicleId, vehicleAgreementsList] of Object.entries(vehicleAgreements)) {
+      if (vehicleAgreementsList.length > 1) {
+        console.log(`Found ${vehicleAgreementsList.length} conflicting agreements for vehicle ${vehicleId}`);
+        
+        // Sort by start date, keep the most recent one active
+        vehicleAgreementsList.sort((a, b) => {
+          const dateA = new Date(a.start_date);
+          const dateB = new Date(b.start_date);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        // Keep the first one (most recent) active, set others to conflicted
+        for (let i = 1; i < vehicleAgreementsList.length; i++) {
+          const { error: updateError } = await supabase
+            .from('leases')
+            .update({
+              status: 'conflicted',
+              updated_at: new Date().toISOString(),
+              notes: `${vehicleAgreementsList[i].notes || ''}\nAutomatically marked as conflicted due to another active agreement for the same vehicle.`
+            })
+            .eq('id', vehicleAgreementsList[i].id);
+            
+          if (updateError) {
+            console.error(`Failed to update conflicting agreement ${vehicleAgreementsList[i].id}:`, updateError);
+          } else {
+            conflictsResolved++;
+          }
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      message: `Resolved ${conflictsResolved} agreement conflicts`,
+      conflictsResolved
+    };
+  } catch (error) {
+    console.error("Error checking for conflicting agreements:", error);
+    return {
+      success: false,
+      message: `Error checking for conflicting agreements: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
 };
