@@ -370,7 +370,7 @@ const UserList = () => {
       ));
       
       toast.success(`User status updated to ${newStatus}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating user status:", error.message);
       toast.error("Failed to update user status: " + error.message);
     }
