@@ -399,7 +399,7 @@ const UserList = () => {
       setShowPermissionDialog(false);
       
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving permissions:", error.message);
       toast.error("Failed to save permissions");
     } finally {
