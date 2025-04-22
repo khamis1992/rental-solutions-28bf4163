@@ -347,7 +347,7 @@ export function ImportHistoryList() {
     }
   };
 
-  const canRevertImport = (importItem: any): boolean => {
+  const canRevertImport = (importItem: unknown): boolean => {
     // Allow reverting completed, failed, or processing imports that haven't been reverted yet
     return (
       ['completed', 'failed', 'processing'].includes(importItem.status) && 
