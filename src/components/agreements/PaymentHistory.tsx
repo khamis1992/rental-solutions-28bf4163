@@ -296,10 +296,14 @@ export function PaymentHistory({
                     <div className="max-w-[200px] truncate" title={payment.notes || ''}>
                       {payment.notes}
                     </div>
+const handlehandleRecordPaymentpayment = useCallback(() => {
+  handleRecordPayment(payment)
+}, []);
+
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
+                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={handlehandleRecordPaymentpayment title="Record Payment">
                           <DollarSign className="h-4 w-4" />
                         </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
                           <Edit className="h-4 w-4" />
