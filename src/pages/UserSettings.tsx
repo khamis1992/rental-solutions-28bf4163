@@ -5,7 +5,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { UserCog } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";  // Updated import path
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

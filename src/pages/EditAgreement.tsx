@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Agreement, AgreementStatus } from '@/types/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';  // Updated import path
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
