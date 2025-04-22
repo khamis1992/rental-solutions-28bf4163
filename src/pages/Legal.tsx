@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -19,7 +18,6 @@ const Legal = () => {
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
   
   const handleTabChange = (value: string) => {
-    // This ensures we don't refresh the page when changing tabs
     console.log(`Tab changed to: ${value}`);
   };
   

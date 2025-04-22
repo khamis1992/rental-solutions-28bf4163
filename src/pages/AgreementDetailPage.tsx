@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -21,9 +20,8 @@ import { fixAgreementPayments } from '@/lib/supabase';
 import { analyzeAgreementStatus } from '@/utils/translation-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, Check, Clock } from 'lucide-react';
+import { AlertCircle, Check, Clock, Cpu } from 'lucide-react';
 
-// Analysis result type
 interface AnalysisResult {
   recommendedStatus: string;
   confidence: number;
@@ -86,7 +84,6 @@ const AgreementDetailPage = () => {
         setAgreement(adaptedAgreement);
         fetchPayments();
         
-        // Fetch latest analysis result
         fetchAnalysisResult(adaptedAgreement.id);
       } else {
         toast.error("Agreement not found");
@@ -234,7 +231,6 @@ const AgreementDetailPage = () => {
       const result = await analyzeAgreementStatus(agreement);
       setAnalysisResult(result);
       
-      // Save analysis to database
       await supabase
         .from('agreement_analysis_results')
         .upsert({

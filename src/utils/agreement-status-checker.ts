@@ -146,7 +146,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
           });
           
           // Update the database with analysis results
-          await supabase
+          const { error } = await supabase
             .from('agreement_analysis_results')
             .upsert({
               agreement_id: agreement.id,
@@ -161,7 +161,11 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
               onConflict: 'agreement_id'
             });
             
-          aiAnalyzedCount++;
+          if (error) {
+            console.error(`Error saving analysis results for agreement ${agreement.id}:`, error);
+          } else {
+            aiAnalyzedCount++;
+          }
           
           // If high confidence and risk level is high, auto-update the agreement status
           if (
@@ -172,7 +176,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
             const { error: statusError } = await supabase
               .from('leases')
               .update({ 
-                status: analysis.recommendedStatus,
+                status: analysis.recommendedStatus as DatabaseAgreementStatus,
                 updated_at: new Date().toISOString(),
                 last_ai_update: new Date().toISOString()
               })
