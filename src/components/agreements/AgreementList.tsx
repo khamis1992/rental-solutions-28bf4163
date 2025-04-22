@@ -633,10 +633,14 @@ const handlesetBulkDeleteDialogOpentrue = useCallback(() => {
           <PaginationContent>
             <PaginationItem>
               <Button 
+const handletablepreviousPage = useCallback(() => {
+  table.previousPage()
+}, []);
+
                 variant="outline" 
                 size="default"
                 className="gap-1 pl-2.5"
-                onClick={() => table.previousPage()} 
+                onClick={handletablepreviousPage 
                 disabled={!table.getCanPreviousPage()}
                 aria-label="Go to previous page"
               >
