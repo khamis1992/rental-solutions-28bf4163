@@ -1,240 +1,346 @@
-import { Agreement, AgreementStatus } from '@/types/agreement';
 import { supabase } from '@/lib/supabase';
+import { AgreementStatus } from '@/types/agreement';
 
-export const checkAndUpdateAgreementStatus = async (): Promise<{
-  success: boolean;
-  message?: string;
-  updatedAgreements?: number;
-}> => {
+export enum DB_AGREEMENT_STATUS {
+  PENDING_PAYMENT = 'pending_payment',
+  PENDING_DEPOSIT = 'pending_deposit',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  CLOSED = 'closed',
+  TERMINATED = 'terminated',
+  ARCHIVED = 'archived',
+  DRAFT = 'draft'
+}
+
+type DatabaseAgreementStatus = 
+  | 'pending_payment'
+  | 'pending_deposit'
+  | 'active'
+  | 'completed'
+  | 'cancelled'
+  | 'closed'
+  | 'terminated'
+  | 'archived'
+  | 'draft';
+
+export function mapToDBStatus(status: AgreementStatus): DatabaseAgreementStatus {
+  switch(status) {
+    case AgreementStatus.PENDING_PAYMENT:
+      return 'pending_payment';
+    case AgreementStatus.PENDING_DEPOSIT:
+      return 'pending_deposit';
+    case AgreementStatus.ACTIVE:
+      return 'active';
+    case AgreementStatus.COMPLETED:
+      return 'completed';
+    case AgreementStatus.CANCELLED:
+      return 'cancelled';
+    case AgreementStatus.CLOSED:
+      return 'closed';
+    case AgreementStatus.TERMINATED:
+      return 'terminated';
+    case AgreementStatus.ARCHIVED:
+      return 'archived';
+    default:
+      return 'pending_payment';
+  }
+}
+
+export function mapFromDBStatus(dbStatus: DatabaseAgreementStatus): AgreementStatus {
+  switch(dbStatus) {
+    case 'pending_payment':
+      return AgreementStatus.PENDING_PAYMENT;
+    case 'pending_deposit':
+      return AgreementStatus.PENDING_DEPOSIT;
+    case 'active':
+      return AgreementStatus.ACTIVE;
+    case 'completed':
+      return AgreementStatus.COMPLETED;
+    case 'cancelled':
+      return AgreementStatus.CANCELLED;
+    case 'closed':
+      return AgreementStatus.CLOSED;
+    case 'terminated':
+      return AgreementStatus.TERMINATED;
+    case 'archived':
+      return AgreementStatus.ARCHIVED;
+    case 'draft':
+      return AgreementStatus.PENDING_PAYMENT;
+    default:
+      return AgreementStatus.PENDING_PAYMENT;
+  }
+}
+
+const updateAgreementStatus = async (agreementId: string, newStatus: DatabaseAgreementStatus) => {
+  const { error } = await supabase
+    .from('leases')
+    .update({ status: newStatus })
+    .eq('id', agreementId);
+
+  if (error) {
+    console.error('Error updating agreement status:', error);
+    return false;
+  }
+  
+  return true;
+};
+
+export const createDraftAgreement = async (customerData: any) => {
   try {
-    const today = new Date();
-    const { data: agreements, error } = await supabase
+    const { data, error } = await supabase
       .from('leases')
-      .select('*');
+      .insert({
+        customer_id: customerData.id,
+        status: 'draft' as DatabaseAgreementStatus
+      })
+      .select('*')
+      .single();
 
     if (error) {
-      throw error;
+      throw new Error(`Failed to create draft agreement: ${error.message}`);
     }
 
-    if (!agreements || agreements.length === 0) {
-      return {
-        success: true,
-        message: 'No agreements found to update',
-        updatedAgreements: 0,
-      };
-    }
-
-    let updatedCount = 0;
-
-    for (const agreement of agreements) {
-      let shouldUpdate = false;
-      let newStatus = agreement.status;
-      const endDate = new Date(agreement.end_date);
-      const startDate = new Date(agreement.start_date);
-
-      // Check if agreement has expired (end date is in the past)
-      if (agreement.status === 'active' && endDate < today) {
-        newStatus = 'expired';
-        shouldUpdate = true;
-      }
-
-      // Check if agreement should be activated (start date has passed and payment received)
-      else if (
-        agreement.status === 'pending_payment' &&
-        startDate <= today
-      ) {
-        // Here we would normally check if payment has been received
-        // This is a simplified check
-        const { data: payments } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', agreement.id)
-          .eq('status', 'paid');
-
-        if (payments && payments.length > 0) {
-          newStatus = 'active';
-          shouldUpdate = true;
-        }
-      }
-
-      // Update the agreement if status has changed
-      if (shouldUpdate) {
-        const { error: updateError } = await supabase
-          .from('leases')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', agreement.id);
-
-        if (updateError) {
-          console.error(`Failed to update agreement ${agreement.id}:`, updateError);
-        } else {
-          updatedCount++;
-        }
-      }
-    }
-
-    return {
-      success: true,
-      message: `Updated status for ${updatedCount} agreements`,
-      updatedAgreements: updatedCount,
-    };
+    return data;
   } catch (error) {
-    console.error('Error checking agreement statuses:', error);
-    return {
-      success: false,
-      message: `Error updating agreement statuses: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    };
+    console.error('Error in createDraftAgreement:', error);
+    throw error;
   }
 };
 
-export const getAgreementMetrics = async (): Promise<{
-  totalActive: number;
-  expiringSoon: number;
-  overdue: number;
-  status: {
-    [key: string]: number;
-  };
-}> => {
+export const updateAnalysisData = async (agreementId: string, analysisData: any) => {
   try {
-    const { data: agreements, error } = await supabase
-      .from('leases')
-      .select('*');
+    const { data, error } = await supabase.rpc(
+      'update_agreement_analysis' as any,
+      { 
+        agreement_id: agreementId, 
+        analysis_data: analysisData 
+      }
+    );
 
     if (error) {
-      throw error;
+      console.error('Error updating analysis data:', error);
+      return false;
     }
-
-    const today = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-    // Calculate metrics
-    const totalActive = agreements.filter(a => a.status === 'active').length;
     
-    const expiringSoon = agreements.filter(a => {
-      if (a.status !== 'active') return false;
-      const endDate = new Date(a.end_date);
-      return endDate > today && endDate <= thirtyDaysFromNow;
-    }).length;
-
-    const overdue = agreements.filter(a => {
-      // Count agreements with overdue payments
-      // This is a simplified check - real app would check payment records
-      return a.status === 'active'; // Placeholder logic
-    }).length;
-
-    // Count agreements by status
-    const statusCounts = agreements.reduce((acc: {[key: string]: number}, curr) => {
-      const status = curr.status || 'unknown';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {});
-
-    return {
-      totalActive,
-      expiringSoon,
-      overdue,
-      status: statusCounts,
-    };
+    return true;
   } catch (error) {
-    console.error('Error getting agreement metrics:', error);
-    return {
-      totalActive: 0,
-      expiringSoon: 0,
-      overdue: 0,
-      status: {},
-    };
+    console.error('Error in updateAnalysisData:', error);
+    return false;
   }
-};
-
-export const runAgreementStatusMaintenance = async () => {
-  return await checkAndUpdateAgreementStatus();
 };
 
 export const checkAndUpdateConflictingAgreements = async (): Promise<{
   success: boolean;
-  message?: string;
-  conflictsResolved?: number;
+  updatedCount: number;
+  aiAnalyzedCount: number;
+  message: string;
 }> => {
   try {
-    console.log("Checking for conflicting vehicle assignments in agreements");
+    console.log("Starting agreement status check for conflicting vehicle assignments");
     
-    // Find active agreements with the same vehicle assigned
-    const { data: agreements, error } = await supabase
+    const { data: activeAgreements, error: fetchError } = await supabase
       .from('leases')
-      .select('*')
-      .eq('status', 'active');
-      
-    if (error) {
-      console.error("Error fetching agreements:", error);
+      .select('id, vehicle_id, customer_id, status, created_at')
+      .in('status', [DB_AGREEMENT_STATUS.ACTIVE, DB_AGREEMENT_STATUS.PENDING_PAYMENT])
+      .order('created_at', { ascending: false });
+
+    if (fetchError) {
+      console.error("Error fetching agreements:", fetchError);
       return {
         success: false,
-        message: `Failed to check conflicting agreements: ${error.message}`
+        updatedCount: 0,
+        aiAnalyzedCount: 0,
+        message: `Error fetching agreements: ${fetchError.message}`
       };
     }
-    
-    if (!agreements || agreements.length === 0) {
+
+    if (!activeAgreements || activeAgreements.length === 0) {
       return {
         success: true,
-        message: 'No active agreements found',
-        conflictsResolved: 0
+        updatedCount: 0,
+        aiAnalyzedCount: 0,
+        message: "No active agreements found to check"
       };
     }
-    
-    // Group agreements by vehicle_id to find conflicts
-    const vehicleAgreements: Record<string, any[]> = {};
-    agreements.forEach(agreement => {
-      if (agreement.vehicle_id) {
-        if (!vehicleAgreements[agreement.vehicle_id]) {
-          vehicleAgreements[agreement.vehicle_id] = [];
-        }
-        vehicleAgreements[agreement.vehicle_id].push(agreement);
+
+    const agreementsByVehicle = activeAgreements.reduce((acc, agreement) => {
+      if (!acc[agreement.vehicle_id]) {
+        acc[agreement.vehicle_id] = [];
       }
-    });
-    
-    let conflictsResolved = 0;
-    
-    // Check each vehicle for multiple active agreements
-    for (const [vehicleId, vehicleAgreementsList] of Object.entries(vehicleAgreements)) {
-      if (vehicleAgreementsList.length > 1) {
-        console.log(`Found ${vehicleAgreementsList.length} conflicting agreements for vehicle ${vehicleId}`);
-        
-        // Sort by start date, keep the most recent one active
-        vehicleAgreementsList.sort((a, b) => {
-          const dateA = new Date(a.start_date);
-          const dateB = new Date(b.start_date);
-          return dateB.getTime() - dateA.getTime();
-        });
-        
-        // Keep the first one (most recent) active, set others to conflicted
-        for (let i = 1; i < vehicleAgreementsList.length; i++) {
-          const { error: updateError } = await supabase
-            .from('leases')
-            .update({
-              status: 'conflicted',
-              updated_at: new Date().toISOString(),
-              notes: `${vehicleAgreementsList[i].notes || ''}\nAutomatically marked as conflicted due to another active agreement for the same vehicle.`
-            })
-            .eq('id', vehicleAgreementsList[i].id);
-            
+      acc[agreement.vehicle_id].push(agreement as VehicleAgreement);
+      return acc;
+    }, {} as Record<string, VehicleAgreement[]>);
+
+    let updatedCount = 0;
+    let aiAnalyzedCount = 0;
+
+    for (const [vehicleId, agreements] of Object.entries(agreementsByVehicle)) {
+      if (agreements.length > 1) {
+        const sortedAgreements = agreements.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        const [newestAgreement, ...olderAgreements] = sortedAgreements;
+
+        console.log(`Vehicle ${vehicleId} has ${agreements.length} active agreements. Keeping newest (${newestAgreement.id}) and cancelling others.`);
+
+        for (const agreement of olderAgreements) {
+          const { error: updateError } = await updateAgreementStatus(agreement.id, DB_AGREEMENT_STATUS.CANCELLED);
           if (updateError) {
-            console.error(`Failed to update conflicting agreement ${vehicleAgreementsList[i].id}:`, updateError);
-          } else {
-            conflictsResolved++;
+            console.error(`Error updating agreement ${agreement.id}:`, updateError);
+            continue;
           }
+
+          updatedCount++;
+          console.log(`Updated agreement ${agreement.id} to cancelled status`);
         }
       }
     }
+
+    console.log("Starting AI analysis of agreements");
+    const analysisResults: EnhancedAnalysisResult[] = [];
     
+    const { data: agreementsForAnalysis, error: detailError } = await supabase
+      .from('leases')
+      .select(`
+        id, 
+        customer_id, 
+        vehicle_id, 
+        start_date, 
+        end_date, 
+        status, 
+        total_amount, 
+        deposit_amount,
+        agreement_number
+      `)
+      .in('status', [
+        DB_AGREEMENT_STATUS.ACTIVE, 
+        DB_AGREEMENT_STATUS.PENDING_PAYMENT,
+        DB_AGREEMENT_STATUS.DRAFT 
+      ]);
+      
+    if (detailError) {
+      console.error("Error fetching agreements for analysis:", detailError);
+    } else if (agreementsForAnalysis && agreementsForAnalysis.length > 0) {
+      for (const agreement of agreementsForAnalysis) {
+        try {
+          const analysis = await analyzeAgreementStatus(agreement);
+          
+          const enhancedAnalysis: EnhancedAnalysisResult = {
+            id: agreement.id,
+            agreement_id: agreement.id,
+            recommended_status: analysis.recommendedStatus,
+            confidence: analysis.confidence,
+            current_status: agreement.status,
+            risk_level: analysis.riskLevel as 'low' | 'medium' | 'high',
+            analyzed_at: analysis.analyzedAt,
+            explanation: analysis.explanation,
+            action_items: analysis.actionItems || [],
+            historical_data: {},
+            payment_factors: {},
+            vehicle_factors: {},
+            customer_factors: {},
+            risk_factors: {},
+            trend_analysis: {},
+            model_version: '1.0'
+          };
+          
+          analysisResults.push(enhancedAnalysis);
+          
+          try {
+            const { error } = await supabase.rpc('upsert_agreement_analysis', {
+              p_agreement_id: agreement.id,
+              p_recommended_status: analysis.recommendedStatus,
+              p_confidence: analysis.confidence,
+              p_current_status: agreement.status,
+              p_risk_level: analysis.riskLevel,
+              p_analyzed_at: analysis.analyzedAt,
+              p_explanation: analysis.explanation,
+              p_action_items: analysis.actionItems || []
+            });
+            
+            if (error) {
+              console.error(`Error saving analysis results for agreement ${agreement.id}:`, error);
+            } else {
+              aiAnalyzedCount++;
+            }
+          } catch (dbError) {
+            console.error(`Error saving analysis to database for agreement ${agreement.id}:`, dbError);
+          }
+          
+          if (
+            analysis.confidence > 0.85 && 
+            analysis.riskLevel === 'high' && 
+            analysis.recommendedStatus !== agreement.status &&
+            Object.values(DB_AGREEMENT_STATUS).includes(
+              analysis.recommendedStatus as any
+            )
+          ) {
+            const validStatus = Object.values(DB_AGREEMENT_STATUS).includes(
+              analysis.recommendedStatus as any
+            );
+            
+            if (validStatus) {
+              const statusToUpdate = analysis.recommendedStatus as DatabaseAgreementStatus;
+              const { error: statusError } = await updateAgreementStatus(agreement.id, statusToUpdate);
+              
+              if (statusError) {
+                console.error(`Error auto-updating agreement ${agreement.id} status:`, statusError);
+              } else {
+                updatedCount++;
+                console.log(`Auto-updated agreement ${agreement.id} status from ${agreement.status} to ${analysis.recommendedStatus} based on AI recommendation`);
+              }
+            } else {
+              console.warn(`Recommended status "${analysis.recommendedStatus}" is not valid for agreement ${agreement.id}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error analyzing agreement ${agreement.id}:`, error);
+          continue;
+        }
+      }
+    }
+
+    const message = [
+      updatedCount > 0 ? `Updated ${updatedCount} agreement statuses` : "No status updates needed",
+      aiAnalyzedCount > 0 ? `Analyzed ${aiAnalyzedCount} agreements with AI` : "No agreements analyzed"
+    ].join(". ");
+
     return {
       success: true,
-      message: `Resolved ${conflictsResolved} agreement conflicts`,
-      conflictsResolved
+      updatedCount,
+      aiAnalyzedCount,
+      message
     };
   } catch (error) {
-    console.error("Error checking for conflicting agreements:", error);
+    console.error("Unexpected error in checkAndUpdateConflictingAgreements:", error);
     return {
       success: false,
-      message: `Error checking for conflicting agreements: ${error instanceof Error ? error.message : 'Unknown error'}`
+      updatedCount: 0,
+      aiAnalyzedCount: 0,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
     };
+  }
+};
+
+export const runAgreementStatusCheck = async (): Promise<void> => {
+  try {
+    toast.info("Checking agreement statuses with AI assistance...");
+    
+    const result = await checkAndUpdateConflictingAgreements();
+    
+    if (result.success) {
+      if (result.updatedCount > 0 || result.aiAnalyzedCount > 0) {
+        toast.success(result.message);
+      } else {
+        toast.info(result.message);
+      }
+    } else {
+      toast.error(result.message);
+    }
+  } catch (error) {
+    console.error("Error in runAgreementStatusCheck:", error);
+    toast.error("Failed to check agreement statuses");
   }
 };

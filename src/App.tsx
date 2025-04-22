@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +7,7 @@ import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect } from "react";
 
 // Context Providers
-import { AuthProvider } from "@/hooks/useAuth"; // Updated import path
+import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 
 // Auth components
@@ -149,7 +148,7 @@ function App() {
                           <Route 
                             path="/user-management" 
                             element={
-                              <ProtectedRoute>
+                              <ProtectedRoute roles={["admin"]}>
                                 <UserManagement />
                               </ProtectedRoute>
                             } 
@@ -172,6 +171,6 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

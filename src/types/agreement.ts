@@ -8,9 +8,6 @@ export enum AgreementStatus {
   CLOSED = 'closed',
   TERMINATED = 'terminated',
   ARCHIVED = 'archived',
-  PENDING = 'pending',
-  EXPIRED = 'expired',
-  DRAFT = 'draft'
 }
 
 export interface Customer {
@@ -21,9 +18,6 @@ export interface Customer {
   phone?: string;
   driver_license?: string;
   address?: string;
-  full_name?: string;
-  phone_number?: string;
-  nationality?: string;
 }
 
 export interface Vehicle {
@@ -35,7 +29,6 @@ export interface Vehicle {
   vin?: string;
   color?: string;
   status?: string;
-  image_url?: string;
 }
 
 export interface Agreement {

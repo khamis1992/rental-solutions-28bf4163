@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";  // Updated import path
+import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -41,7 +41,10 @@ const Register = () => {
   const onSubmit = async (data: RegisterFormValues) => {
     try {
       setIsLoading(true);
-      await signUp(data.email, data.password, data.fullName);
+      await signUp(data.email, data.password, {
+        full_name: data.fullName,
+        role: "user", // Default role
+      });
       navigate("/auth/login", { replace: true });
     } catch (error) {
       console.error("Registration error:", error);

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase"; // Updated import path
-import { useAuth } from "@/hooks/useAuth"; // Updated to use the hook from hooks instead of contexts
+import { supabase } from "@/integrations/supabase/client"; // Make sure we're using the correct client
+import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
 export interface Profile {
