@@ -214,7 +214,7 @@ const UserList = () => {
       
       setShowDeleteDialog(false);
       setUserToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting user:", error.message);
       toast.error("Failed to delete user: " + error.message);
     } finally {
