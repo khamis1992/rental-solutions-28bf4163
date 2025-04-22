@@ -7,11 +7,91 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Check your .env file.')
+  throw new Error('Missing Supabase environment variables. Check your .env file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create Supabase client with optimized configuration
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: { 'x-application-name': 'rental-solutions' }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+})
 
+// Cache for query results
+const queryCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Wrapper for Supabase queries with caching and retry logic
+export const executeQuery = async <T>(
+  queryKey: string,
+  queryFn: () => Promise<{ data: T; error: any }>,
+  options: { 
+    cacheDuration?: number;
+    retries?: number;
+    skipCache?: boolean;
+  } = {}
+): Promise<{ data: T | null; error: any }> => {
+  const {
+    cacheDuration = CACHE_DURATION,
+    retries = 3,
+    skipCache = false
+  } = options
+
+  // Check cache first
+  if (!skipCache) {
+    const cached = queryCache.get(queryKey)
+    if (cached && Date.now() - cached.timestamp < cacheDuration) {
+      return { data: cached.data, error: null }
+    }
+  }
+
+  let attempt = 0
+  while (attempt < retries) {
+    try {
+      const result = await queryFn()
+      if (!result.error) {
+        // Cache successful result
+        queryCache.set(queryKey, {
+          data: result.data,
+          timestamp: Date.now()
+        })
+        return result
+      }
+      
+      // If error is retryable, continue loop
+      if (result.error.code === '40001' || result.error.code === '40003') {
+        attempt++
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
+        continue
+      }
+      
+      return result
+    } catch (err) {
+      attempt++
+      if (attempt === retries) {
+        return { data: null, error: err }
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100))
+    }
+  }
+  
+  return { data: null, error: new Error('Max retries reached') }
+}
+
+// Rest of the existing functions, updated to use executeQuery
 export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {
     console.log('Checking for monthly payments to generate');
@@ -20,13 +100,15 @@ export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: bool
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     
-    // Find active agreements that might need payments generated
-    const { data: activeAgreements, error: agreementsError } = await supabase
-      .from('leases')
-      .select('id, rent_amount, start_date, rent_due_day')
-      .in('status', ['active', 'pending_payment'])
-      .lte('start_date', lastDayOfMonth.toISOString())
-      .is('payment_status', null);
+    const { data: activeAgreements, error: agreementsError } = await executeQuery(
+      'active-agreements',
+      () => supabase
+        .from('leases')
+        .select('id, rent_amount, start_date, rent_due_day')
+        .in('status', ['active', 'pending_payment'])
+        .lte('start_date', lastDayOfMonth.toISOString())
+        .is('payment_status', null)
+    );
     
     if (agreementsError) {
       console.error('Error fetching active agreements:', agreementsError);
@@ -45,12 +127,15 @@ export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: bool
     // For each agreement, check if we need to generate a payment for current month
     for (const agreement of activeAgreements) {
       // Check if payment already exists for this month
-      const { data: existingPayments, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('id')
-        .eq('lease_id', agreement.id)
-        .gte('payment_date', firstDayOfMonth.toISOString())
-        .lt('payment_date', lastDayOfMonth.toISOString());
+      const { data: existingPayments, error: paymentsError } = await executeQuery(
+        `existing-payments-${agreement.id}`,
+        () => supabase
+          .from('unified_payments')
+          .select('id')
+          .eq('lease_id', agreement.id)
+          .gte('payment_date', firstDayOfMonth.toISOString())
+          .lt('payment_date', lastDayOfMonth.toISOString())
+      );
         
       if (paymentsError) {
         console.error(`Error checking existing payments for agreement ${agreement.id}:`, paymentsError);

@@ -1,80 +1,86 @@
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
+import { executeQuery } from '@/lib/supabase';
+
+// Prefetch configuration
+const STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const CACHE_TIME = 30 * 60 * 1000; // 30 minutes
+
+// Prefetch vehicles for better UX
+export const prefetchVehicles = async (queryClient: QueryClient) => {
+  await queryClient.prefetchQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => executeQuery('vehicles-list', () => 
+      supabase
+        .from('vehicles')
+        .select('*, vehicle_types(*)')
+        .order('created_at', { ascending: false })
+    ),
+    staleTime: STALE_TIME,
+  });
+};
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   
   return {
     useList: (filters?: VehicleFilterParams) => {
+      // Memoize filters to prevent unnecessary re-renders
+      const memoizedFilters = useMemo(() => filters, [
+        filters?.status,
+        filters?.make,
+        filters?.model,
+        filters?.vehicle_type_id,
+        filters?.location,
+        filters?.year,
+        filters?.search
+      ]);
+
       return useQuery({
-        queryKey: ['vehicles', filters],
+        queryKey: ['vehicles', memoizedFilters],
         queryFn: async () => {
           try {
-            // Start with the base query
-            let query = supabase
-              .from('vehicles')
-              .select('*, vehicle_types(*)');
-            
-            // Apply filters if provided
-            if (filters) {
-              // Apply status filter, handling the reserved->reserve mapping
-              if (filters.status) {
-                if (filters.status === 'reserved') {
-                  query = query.eq('status', 'reserve');
-                } else {
-                  query = query.eq('status', filters.status);
+            const { data, error } = await executeQuery(
+              `vehicles-${JSON.stringify(memoizedFilters)}`,
+              async () => {
+                let query = supabase
+                  .from('vehicles')
+                  .select('*, vehicle_types(*)');
+                
+                if (memoizedFilters) {
+                  if (memoizedFilters.status) {
+                    query = query.eq('status', memoizedFilters.status === 'reserved' ? 'reserve' : memoizedFilters.status);
+                  }
+                  if (memoizedFilters.make) query = query.eq('make', memoizedFilters.make);
+                  if (memoizedFilters.model) query = query.ilike('model', `%${memoizedFilters.model}%`);
+                  if (memoizedFilters.vehicle_type_id) query = query.eq('vehicle_type_id', memoizedFilters.vehicle_type_id);
+                  if (memoizedFilters.location) query = query.eq('location', memoizedFilters.location);
+                  if (memoizedFilters.year) query = query.eq('year', memoizedFilters.year);
+                  if (memoizedFilters.search) {
+                    query = query.or(`make.ilike.%${memoizedFilters.search}%,model.ilike.%${memoizedFilters.search}%,license_plate.ilike.%${memoizedFilters.search}%`);
+                  }
                 }
+                
+                return query.order('created_at', { ascending: false });
               }
-              
-              // Apply other filters
-              if (filters.make) {
-                query = query.eq('make', filters.make);
-              }
-              
-              if (filters.model) {
-                query = query.ilike('model', `%${filters.model}%`);
-              }
-              
-              if (filters.vehicle_type_id) {
-                query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-              }
-              
-              if (filters.location) {
-                query = query.eq('location', filters.location);
-              }
-              
-              if (filters.year) {
-                query = query.eq('year', filters.year);
-              }
-              
-              // Add search functionality across multiple fields
-              if (filters.search) {
-                query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
-              }
-            }
-            
-            // Execute the query and sort by creation date
-            const { data, error } = await query.order('created_at', { ascending: false });
-            
-            if (error) {
-              throw error;
-            }
-            
-            // Map the database records to our application model
+            );
+
+            if (error) throw error;
             return data.map(record => mapDatabaseRecordToVehicle(record));
           } catch (error) {
             handleApiError(error, 'Failed to fetch vehicles');
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: STALE_TIME,
+        cacheTime: CACHE_TIME,
+        keepPreviousData: true,
       });
     },
     
@@ -82,37 +88,25 @@ export const useVehicles = () => {
       return useQuery({
         queryKey: ['vehicles', id],
         queryFn: async () => {
-          try {
-            if (!id) {
-              throw new Error('Vehicle ID is required');
-            }
-            
-            console.log(`Fetching vehicle with ID: ${id}`);
-            const { data, error } = await supabase
+          if (!id) throw new Error('Vehicle ID is required');
+          
+          const { data, error } = await executeQuery(
+            `vehicle-${id}`,
+            () => supabase
               .from('vehicles')
               .select('*, vehicle_types(*)')
               .eq('id', id)
-              .maybeSingle(); // Changed from single() to maybeSingle()
-            
-            if (error) {
-              console.error(`Error fetching vehicle ${id}:`, error);
-              throw error;
-            }
-            
-            if (!data) {
-              console.error(`No vehicle found with ID: ${id}`);
-              throw new Error(`Vehicle with ID ${id} not found`);
-            }
-            
-            console.log(`Successfully fetched vehicle data:`, data);
-            return mapDatabaseRecordToVehicle(data);
-          } catch (error) {
-            console.error(`Failed to fetch vehicle ${id}:`, error);
-            handleApiError(error, `Failed to fetch vehicle ${id}`);
-            throw error;
-          }
+              .maybeSingle()
+          );
+          
+          if (error) throw error;
+          if (!data) throw new Error(`Vehicle with ID ${id} not found`);
+          
+          return mapDatabaseRecordToVehicle(data);
         },
         enabled: Boolean(id),
+        staleTime: STALE_TIME,
+        cacheTime: CACHE_TIME,
       });
     },
     
@@ -214,7 +208,10 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: () => {
+        onSuccess: (newVehicle) => {
+          queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+            return [newVehicle, ...old];
+          });
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           toast.success('Vehicle added successfully');
         },
@@ -342,9 +339,15 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: (_, variables) => {
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-          queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
+        onSuccess: (updatedVehicle, variables) => {
+          // Optimistic update for the vehicles list
+          queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+            return old.map(vehicle => 
+              vehicle.id === variables.id ? updatedVehicle : vehicle
+            );
+          });
+          // Update the individual vehicle cache
+          queryClient.setQueryData(['vehicles', variables.id], updatedVehicle);
         },
       });
     },
@@ -410,8 +413,13 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: (id) => {
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        onSuccess: (deletedId) => {
+          // Optimistic update for the vehicles list
+          queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+            return old.filter(vehicle => vehicle.id !== deletedId);
+          });
+          // Remove the individual vehicle from cache
+          queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
           toast.success('Vehicle deleted successfully');
         },
       });
@@ -419,7 +427,7 @@ export const useVehicles = () => {
     
     useRealtimeUpdates: () => {
       useEffect(() => {
-        const subscription = supabase
+        const channel = supabase
           .channel('vehicles-changes')
           .on('postgres_changes', 
             { 
@@ -428,31 +436,49 @@ export const useVehicles = () => {
               table: 'vehicles' 
             }, 
             (payload) => {
-              console.log('Real-time update:', payload);
-              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+              if (!payload.new) return;
+
+              const updatedVehicle = mapDatabaseRecordToVehicle(payload.new);
               
-              if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ['vehicles', payload.new.id] 
-                });
-              }
-              
-              if (payload.eventType === 'UPDATE' && 
-                  payload.old && payload.new && 
-                  typeof payload.old === 'object' && typeof payload.new === 'object' &&
-                  'status' in payload.old && 'status' in payload.new &&
-                  'make' in payload.new && 'model' in payload.new &&
-                  payload.old.status !== payload.new.status) {
-                toast.info(`Vehicle status updated`, {
-                  description: `${payload.new.make} ${payload.new.model} is now ${payload.new.status === 'reserve' ? 'reserved' : payload.new.status}`,
-                });
+              switch (payload.eventType) {
+                case 'INSERT':
+                  queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+                    return [updatedVehicle, ...old];
+                  });
+                  break;
+                  
+                case 'UPDATE':
+                  queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+                    return old.map(vehicle => 
+                      vehicle.id === updatedVehicle.id ? updatedVehicle : vehicle
+                    );
+                  });
+                  queryClient.setQueryData(['vehicles', updatedVehicle.id], updatedVehicle);
+                  
+                  if (payload.old && 
+                      'status' in payload.old && 
+                      payload.old.status !== updatedVehicle.status) {
+                    toast.info(`Vehicle status updated`, {
+                      description: `${updatedVehicle.make} ${updatedVehicle.model} is now ${
+                        updatedVehicle.status === 'reserve' ? 'reserved' : updatedVehicle.status
+                      }`,
+                    });
+                  }
+                  break;
+                  
+                case 'DELETE':
+                  queryClient.setQueryData(['vehicles'], (old: Vehicle[] = []) => {
+                    return old.filter(vehicle => vehicle.id !== updatedVehicle.id);
+                  });
+                  queryClient.removeQueries({ queryKey: ['vehicles', updatedVehicle.id] });
+                  break;
               }
             }
           )
           .subscribe();
           
         return () => {
-          supabase.removeChannel(subscription);
+          supabase.removeChannel(channel);
         };
       }, [queryClient]);
     }
