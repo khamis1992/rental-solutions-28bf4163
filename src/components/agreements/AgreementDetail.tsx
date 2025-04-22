@@ -378,14 +378,10 @@ export function AgreementDetail({
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
-const handlesetIsDeleteDialogOpenfalse = useCallback(() => {
-  setIsDeleteDialogOpen(false)
-}, []);
-
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={handlesetIsDeleteDialogOpenfalse>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>

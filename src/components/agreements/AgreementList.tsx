@@ -400,14 +400,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       accessorKey: "created_at",
       header: ({ column }) => {
         return (
-const handlecolumntoggleSortingcolumngetIsSortedasc = useCallback(() => {
-  column.toggleSorting(column.getIsSorted() === "asc")
-}, []);
-
           <Button
             variant="ghost"
             className="px-0 font-medium"
-            onClick={handlecolumntoggleSortingcolumngetIsSortedasc
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Created Date
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -518,14 +514,10 @@ const handlecolumntoggleSortingcolumngetIsSortedasc = useCallback(() => {
         </div>
         
         <div className="flex gap-2">
-const handlesetBulkDeleteDialogOpentrue = useCallback(() => {
-  setBulkDeleteDialogOpen(true)
-}, []);
-
           {selectedCount > 0 && (
             <Button 
               variant="destructive" 
-              onClick={handlesetBulkDeleteDialogOpentrue
+              onClick={() => setBulkDeleteDialogOpen(true)}
               className="flex items-center gap-1"
             >
               <Trash2 className="h-4 w-4 mr-1" />
@@ -633,14 +625,10 @@ const handlesetBulkDeleteDialogOpentrue = useCallback(() => {
           <PaginationContent>
             <PaginationItem>
               <Button 
-const handletablepreviousPage = useCallback(() => {
-  table.previousPage()
-}, []);
-
                 variant="outline" 
                 size="default"
                 className="gap-1 pl-2.5"
-                onClick={handletablepreviousPage 
+                onClick={() => table.previousPage()} 
                 disabled={!table.getCanPreviousPage()}
                 aria-label="Go to previous page"
               >
@@ -665,14 +653,10 @@ const handletablepreviousPage = useCallback(() => {
             
             <PaginationItem>
               <Button 
-const handletablenextPage = useCallback(() => {
-  table.nextPage()
-}, []);
-
                 variant="outline" 
                 size="default"
                 className="gap-1 pr-2.5"
-                onClick={handletablenextPage 
+                onClick={() => table.nextPage()} 
                 disabled={!table.getCanNextPage()}
                 aria-label="Go to next page"
               >

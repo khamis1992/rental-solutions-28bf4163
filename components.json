@@ -6,9 +6,9 @@
   "tailwind": {
     "config": "tailwind.config.ts",
     "css": "src/index.css",
-    "baseColor": "#4A5568"  // Replace with a specific hex value after ensuring contrast,
+    "baseColor": "slate",
     "cssVariables": true,
-   "prefix": "tw-"
+    "prefix": ""
   },
   "aliases": {
     "components": "@/components",

@@ -522,14 +522,10 @@ const UserList = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="z-50">
-const handleopenPermissionDialoguser = useCallback(() => {
-  openPermissionDialog(user)
-}, []);
-
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={handleopenPermissionDialoguser
+                onClick={() => openPermissionDialog(user)}
                 disabled={!isAdmin}
               >
                 Manage Permissions
@@ -546,25 +542,17 @@ const handleopenPermissionDialoguser = useCallback(() => {
                 onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
                 disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
               >
-const handlehandleUpdateUserStatususeridinactive = useCallback(() => {
-  handleUpdateUserStatus(user.id, "inactive")
-}, []);
-
                 Set Pending
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={handlehandleUpdateUserStatususeridinactive
+                onClick={() => handleUpdateUserStatus(user.id, "inactive")}
                 disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
               >
                 Set Inactive
-const handleopenDeleteDialoguser = useCallback(() => {
-  openDeleteDialog(user)
-}, []);
-
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={handleopenDeleteDialoguser
+                onClick={() => openDeleteDialog(user)}
                 disabled={!isAdmin || currentUserProfile}
                 className="text-red-600"
               >
@@ -762,14 +750,10 @@ const handleopenDeleteDialoguser = useCallback(() => {
           Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
         </div>
         <div className="flex items-center space-x-2">
-const handletablepreviousPage = useCallback(() => {
-  table.previousPage()
-}, []);
-
           <Button
             variant="outline"
             size="sm"
-            onClick={handletablepreviousPage
+            onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
             Previous

@@ -296,20 +296,12 @@ export function PaymentHistory({
                     <div className="max-w-[200px] truncate" title={payment.notes || ''}>
                       {payment.notes}
                     </div>
-const handlehandleRecordPaymentpayment = useCallback(() => {
-  handleRecordPayment(payment)
-}, []);
-
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={handlehandleRecordPaymentpayment title="Record Payment">
+                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
                           <DollarSign className="h-4 w-4" />
-const handlehandleDeletePaymentpayment = useCallback(() => {
-  handleDeletePayment(payment)
-}, []);
-
-                        </Button> : <Button variant="ghost" size="sm" onClick={handlehandleDeletePaymentpayment title="Edit payment">
+                        </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
                           <Edit className="h-4 w-4" />
                         </Button>}
                       <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)} title="Delete payment">
@@ -339,14 +331,10 @@ const handlehandleDeletePaymentpayment = useCallback(() => {
               <DialogTitle>Confirm Payment Deletion</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete this payment? This action cannot be undone.
-const handlesetIsDeleteConfirmOpenfalse = useCallback(() => {
-  setIsDeleteConfirmOpen(false)
-}, []);
-
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={handlesetIsDeleteConfirmOpenfalse>
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
