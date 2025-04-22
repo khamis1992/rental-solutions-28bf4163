@@ -1,169 +1,176 @@
-
-import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Sidebar from "./components/layout/Sidebar";
+import { useState, useEffect } from "react";
+
+// Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
+
+// Auth components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
-import LoadingScreen from "@/components/ui/loading-screen";
-import { queryClient } from "@/lib/query-client";
-import AppLayout from "@/components/layout/AppLayout";
-import { PrefetchManager, usePrefetchManager } from "@/utils/prefetch-manager";
-import { useRouteLoader } from "@/utils/route-loader";
+import AuthLayout from "./pages/auth/AuthLayout";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
-// Initialize managers
-const prefetchManager = PrefetchManager.getInstance();
+// Pages
+import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import Vehicles from "./pages/Vehicles";
+import AddVehicle from "./pages/AddVehicle";
+import VehicleDetailPage from "./pages/VehicleDetailPage";
+import EditVehicle from "./pages/EditVehicle";
+import UserSettings from "./pages/UserSettings";
+import UserManagement from "./pages/UserManagement";
+import NotFound from "./pages/NotFound";
 
-// Lazy load components with absolute paths
-const AuthRoutes = lazy(() => import("@/routes/AuthRoutes").then(module => ({ default: module.default })));
-const DashboardRoutes = lazy(() => import("@/routes/DashboardRoutes").then(module => ({ default: module.default })));
-const VehicleRoutes = lazy(() => import("@/routes/VehicleRoutes").then(module => ({ default: module.default })));
-const CustomerRoutes = lazy(() => import("@/routes/CustomerRoutes").then(module => ({ default: module.default })));
-const AgreementRoutes = lazy(() => import("@/routes/AgreementRoutes").then(module => ({ default: module.default })));
-const MaintenanceRoutes = lazy(() => import("@/routes/MaintenanceRoutes").then(module => ({ default: module.default })));
-const SettingsRoutes = lazy(() => import("@/routes/SettingsRoutes").then(module => ({ default: module.default })));
+// Customer pages
+import Customers from "./pages/Customers";
+import AddCustomer from "./pages/AddCustomer";
+import CustomerDetailPage from "./pages/CustomerDetailPage";
+import EditCustomer from "./pages/EditCustomer";
 
-const IndexPage = lazy(() => import("@/pages/Index").then(module => ({ default: module.default })));
-const LegalPage = lazy(() => import("@/pages/Legal").then(module => ({ default: module.default })));
-const TrafficFinesPage = lazy(() => import("@/pages/TrafficFines").then(module => ({ default: module.default })));
-const FinancialsPage = lazy(() => import("@/pages/Financials").then(module => ({ default: module.default })));
-const ReportsPage = lazy(() => import("@/pages/Reports").then(module => ({ default: module.default })));
-const ScheduledReportsPage = lazy(() => import("@/pages/ScheduledReports").then(module => ({ default: module.default })));
-const UserManagementPage = lazy(() => import("@/pages/UserManagement").then(module => ({ default: module.default })));
-const NotFoundPage = lazy(() => import("@/pages/NotFound").then(module => ({ default: module.default })));
+// Agreement pages
+import Agreements from "./pages/Agreements";
+import AgreementDetailPage from "./pages/AgreementDetailPage";
+import AddAgreement from "./pages/AddAgreement";
+import EditAgreement from "./pages/EditAgreement";
 
-// Route preparation wrapper component
-function RoutePreparation({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const { prepareRoute } = useRouteLoader();
-  const currentPath = location.pathname.split('/')[1]; // Get the first path segment
+// Maintenance pages
+import Maintenance from "./pages/Maintenance";
+import AddMaintenance from "./pages/AddMaintenance";
+import EditMaintenance from "./pages/EditMaintenance";
+import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
 
-  useEffect(() => {
-    if (currentPath) {
-      prepareRoute(`/${currentPath}`);
-    }
-  }, [currentPath, prepareRoute]);
+// Legal pages
+import Legal from "./pages/Legal";
 
-  return <>{children}</>;
-}
+// Traffic Fines pages
+import TrafficFines from "./pages/TrafficFines";
 
-// Prefetching wrapper component
-function PrefetchWrapper({ children }: { children: React.ReactNode }) {
-  usePrefetchManager(); // Initialize prefetching
-  return <>{children}</>;
-}
+// Financials pages
+import Financials from "./pages/Financials";
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
+// Reports pages
+import Reports from "./pages/Reports";
+import ScheduledReports from "./pages/ScheduledReports";
+
+// System Settings pages
+import SystemSettings from "./pages/SystemSettings";
+
+import initializeApp from "./utils/app-initializer";
 
 function App() {
+  // Move the QueryClient initialization inside the component
+  // This ensures React hooks are called in the correct context
+  const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <RoutePreparation>
-            <AuthProvider>
-              <ProfileProvider>
-                <TooltipProvider>
-                  <PrefetchWrapper>
-                    <Routes>
-                      {/* Public Routes */}
-                      <Route path="/" element={
-                        <Suspense fallback={<LoadingScreen />}>
-                          <IndexPage />
-                        </Suspense>
-                      } />
-
-                      {/* Auth Routes */}
-                      <Route path="/auth/*" element={
-                        <Suspense fallback={<LoadingScreen />}>
-                          <AuthRoutes />
-                        </Suspense>
-                      } />
-
-                      {/* Protected App Routes */}
-                      <Route path="/*" element={
-                        <ProtectedRoute>
-                          <ErrorBoundary>
-                            <Suspense fallback={<LoadingScreen />}>
-                              <AppLayout>
-                                <Routes>
-                                  {/* Main Route Groups */}
-                                  <Route path="/dashboard/*" element={<DashboardRoutes />} />
-                                  <Route path="/vehicles/*" element={<VehicleRoutes />} />
-                                  <Route path="/customers/*" element={<CustomerRoutes />} />
-                                  <Route path="/agreements/*" element={<AgreementRoutes />} />
-                                  <Route path="/maintenance/*" element={<MaintenanceRoutes />} />
-                                  <Route path="/settings/*" element={<SettingsRoutes />} />
-                                  
-                                  {/* Standalone Routes */}
-                                  <Route path="/legal" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <LegalPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="/fines" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <TrafficFinesPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="/financials" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <FinancialsPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="/reports" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <ReportsPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="/reports/scheduled" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <ScheduledReportsPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="/user-management" element={
-                                    <ProtectedRoute roles={["admin"]}>
-                                      <Suspense fallback={<LoadingScreen />}>
-                                        <UserManagementPage />
-                                      </Suspense>
-                                    </ProtectedRoute>
-                                  } />
-                                  
-                                  {/* Error Routes */}
-                                  <Route path="/unauthorized" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <NotFoundPage />
-                                    </Suspense>
-                                  } />
-                                  <Route path="*" element={
-                                    <Suspense fallback={<LoadingScreen />}>
-                                      <NotFoundPage />
-                                    </Suspense>
-                                  } />
-                                </Routes>
-                              </AppLayout>
-                            </Suspense>
-                          </ErrorBoundary>
-                        </ProtectedRoute>
-                      } />
-                    </Routes>
-                  </PrefetchWrapper>
-                  <Toaster />
-                  <Sonner />
-                </TooltipProvider>
-              </ProfileProvider>
-            </AuthProvider>
-          </RoutePreparation>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ProfileProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                
+                {/* Auth Routes */}
+                <Route path="auth" element={<AuthLayout />}>
+                  <Route path="login" element={<Login />} />
+                  <Route path="register" element={<Register />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="reset-password" element={<ResetPassword />} />
+                </Route>
+                
+                {/* Protected Routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <>
+                        <Sidebar />
+                        <Routes>
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          
+                          {/* Vehicle Management Routes */}
+                          <Route path="/vehicles" element={<Vehicles />} />
+                          <Route path="/vehicles/add" element={<AddVehicle />} />
+                          <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+                          <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                          
+                          {/* Customer Management Routes */}
+                          <Route path="/customers" element={<Customers />} />
+                          <Route path="/customers/add" element={<AddCustomer />} />
+                          <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                          <Route path="/customers/edit/:id" element={<EditCustomer />} />
+                          
+                          {/* Agreement Management Routes */}
+                          <Route path="/agreements" element={<Agreements />} />
+                          <Route path="/agreements/add" element={<AddAgreement />} />
+                          <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                          <Route path="/agreements/:id" element={<AgreementDetailPage />} />
+                          
+                          {/* Maintenance Management Routes */}
+                          <Route path="/maintenance" element={<Maintenance />} />
+                          <Route path="/maintenance/add" element={<AddMaintenance />} />
+                          <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
+                          <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+                          
+                          {/* Legal Management Route */}
+                          <Route path="/legal" element={<Legal />} />
+                          
+                          {/* Traffic Fines Management Route */}
+                          <Route path="/fines" element={<TrafficFines />} />
+                          
+                          {/* Financials Management Route */}
+                          <Route path="/financials" element={<Financials />} />
+                          
+                          {/* Reports Routes */}
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="/reports/scheduled" element={<ScheduledReports />} />
+                          
+                          {/* System Settings Route */}
+                          <Route path="/settings/system" element={<SystemSettings />} />
+                          
+                          {/* User Management Routes */}
+                          <Route path="/settings" element={<UserSettings />} />
+                          <Route 
+                            path="/user-management" 
+                            element={
+                              <ProtectedRoute roles={["admin"]}>
+                                <UserManagement />
+                              </ProtectedRoute>
+                            } 
+                          />
+                          
+                          {/* Unauthorized Route */}
+                          <Route path="/unauthorized" element={<NotFound />} />
+                          
+                          {/* Catch-all route for 404 */}
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </TooltipProvider>
+          </ProfileProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

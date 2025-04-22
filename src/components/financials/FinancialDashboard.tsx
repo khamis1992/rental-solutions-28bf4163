@@ -10,7 +10,7 @@ import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
-const getPercentageChange = (current: number, previous: number): number => {
+const getPercentageChange = (current, previous) => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
 };
@@ -52,11 +52,10 @@ const FinancialDashboard = () => {
     }
     
     // Create a simplified expenses calculation that doesn't cause recalculations
-    // Ensure item.revenue is treated as a number
     return revenueData.map(item => ({
       name: item.name,
-      revenue: Number(item.revenue) || 0, // Convert to number, default to 0 if conversion fails
-      expenses: (Number(item.revenue) || 0) * 0.6 // Use the converted number here too
+      revenue: item.revenue,
+      expenses: item.revenue * 0.6 // Use a simple estimate instead of complex calculations
     }));
   }, [revenueData]);
   

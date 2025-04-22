@@ -11,7 +11,7 @@ import {
 import LegalDocuments from './LegalDocuments';
 import LegalCaseManagement from './LegalCaseManagement';
 import { Button } from '@/components/ui/button';
-import { runAgreementStatusMaintenance } from '@/utils/agreement-status-checker';
+import { runAgreementStatusMaintenance } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 

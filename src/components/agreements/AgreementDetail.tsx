@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,12 +14,11 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { LegalCaseCard } from './LegalCaseCard';
 import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement as ValidationAgreement } from '@/lib/validation-schemas/agreement';
-import { Agreement, Customer, Vehicle } from '@/types/agreement'; // Import the correct Agreement type for usePaymentGeneration
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 
 interface AgreementDetailProps {
-  agreement: ValidationAgreement | null;
+  agreement: Agreement | null;
   onDelete: (id: string) => void;
   rentAmount: number | null;
   contractAmount: number | null;
@@ -27,57 +26,6 @@ interface AgreementDetailProps {
   onDataRefresh: () => void;
   onGenerateDocument?: () => void;
 }
-
-// Helper function to adapt ValidationAgreement to the Agreement type expected by usePaymentGeneration
-const adaptAgreementForHook = (agreement: ValidationAgreement | null): Agreement | null => {
-  if (!agreement) return null;
-  
-  // Create a customer object that matches the Customer type
-  const customer: Customer = {
-    id: agreement.customer_id || '',
-    first_name: agreement.customers?.full_name?.split(' ')[0] || '',
-    last_name: agreement.customers?.full_name?.split(' ').slice(1).join(' ') || '',
-    email: agreement.customers?.email,
-    phone: agreement.customers?.phone_number,
-    address: agreement.customers?.address,
-    driver_license: agreement.customers?.driver_license,
-    full_name: agreement.customers?.full_name,
-    phone_number: agreement.customers?.phone_number,
-  };
-  
-  // Create a vehicle object that matches the Vehicle type
-  const vehicle: Vehicle = {
-    id: agreement.vehicle_id || '',
-    make: agreement.vehicles?.make || '',
-    model: agreement.vehicles?.model || '',
-    year: agreement.vehicles?.year || 0,
-    license_plate: agreement.vehicles?.license_plate || '',
-    vin: agreement.vehicles?.vin,
-    color: agreement.vehicles?.color,
-  };
-  
-  // Return a properly typed Agreement object
-  return {
-    id: agreement.id,
-    customer_id: agreement.customer_id,
-    vehicle_id: agreement.vehicle_id,
-    start_date: agreement.start_date,
-    end_date: agreement.end_date,
-    status: agreement.status,
-    terms_accepted: agreement.terms_accepted,
-    additional_drivers: agreement.additional_drivers,
-    created_at: agreement.created_at,
-    notes: agreement.notes,
-    agreement_number: agreement.agreement_number,
-    signature_url: agreement.signature_url,
-    total_amount: agreement.total_amount,
-    deposit_amount: agreement.deposit_amount,
-    customers: customer,
-    vehicles: vehicle,
-    // Set a default daily late fee
-    daily_late_fee: 120, 
-  };
-};
 
 export function AgreementDetail({
   agreement,
@@ -98,9 +46,6 @@ export function AgreementDetail({
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  // Adapt the agreement for the hook
-  const adaptedAgreement = useMemo(() => adaptAgreementForHook(agreement), [agreement]);
-
   const {
     payments,
     isLoadingPayments,
@@ -117,7 +62,7 @@ export function AgreementDetail({
   }, [agreement?.id, fetchPayments]);
   const {
     handleSpecialAgreementPayments
-  } = usePaymentGeneration(adaptedAgreement, agreement?.id);
+  } = usePaymentGeneration(agreement, agreement?.id);
 
   const handleDelete = useCallback(() => {
     setIsDeleteDialogOpen(true);
@@ -179,8 +124,7 @@ export function AgreementDetail({
     paymentMethod?: string, 
     referenceNumber?: string, 
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    targetPaymentId?: string | null
+    isPartialPayment?: boolean
   ) => {
     if (agreement && agreement.id) {
       try {
@@ -191,8 +135,7 @@ export function AgreementDetail({
           paymentMethod, 
           referenceNumber, 
           includeLatePaymentFee,
-          isPartialPayment,
-          targetPaymentId
+          isPartialPayment
         );
         if (success) {
           setIsPaymentDialogOpen(false);

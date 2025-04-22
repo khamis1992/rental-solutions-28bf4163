@@ -1,7 +1,8 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { Skeleton } from '@/components/ui/skeleton';
+
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/contexts/ProfileContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,28 +10,27 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, session } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const location = useLocation();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="space-y-4 w-[400px]">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  // Not authenticated
+  if (!user || !session) {
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Check if the user has the required role when roles are specified
+  // Role-based access control (if roles are specified)
   if (roles && roles.length > 0) {
-    const userRole = user?.app_metadata?.role;
-    if (!userRole || !roles.includes(userRole)) {
+    const userRole = profile?.role || 'staff';
+    if (!roles.includes(userRole)) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

@@ -8,7 +8,7 @@ import CustomerLegalObligations from '@/components/legal/CustomerLegalObligation
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { runAgreementStatusMaintenance } from '@/utils/agreement-status-checker';
+import { runAgreementStatusCheck } from '@/utils/agreement-status-checker';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
@@ -28,7 +28,7 @@ const Legal = () => {
   const handleCheckAgreementStatus = async () => {
     setIsCheckingStatus(true);
     try {
-      await runAgreementStatusMaintenance();
+      await runAgreementStatusCheck();
     } finally {
       setIsCheckingStatus(false);
     }

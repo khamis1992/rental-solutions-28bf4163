@@ -23,9 +23,7 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      "@typescript-eslint/no-unused-vars": "warn",
-      "no-console": process.env.NODE_ENV === "production" ? "error" : "warn",
-      "no-debugger": process.env.NODE_ENV === "production" ? "error" : "warn"
+      "@typescript-eslint/no-unused-vars": "off",
     },
   }
 );

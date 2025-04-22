@@ -45,27 +45,21 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     setFilters(initialValues);
   }, [initialValues]);
   
-  const uniqueMakes = React.useMemo(() => {
-    return Array.from(
-      new Set((vehicles || []).map(vehicle => (vehicle?.make || 'unknown')))
-    ).sort();
-  }, [vehicles]);
+  const uniqueMakes = Array.from(
+    new Set(vehicles?.map(vehicle => vehicle.make || 'unknown') || [])
+  ).sort();
   
-  const uniqueLocations = React.useMemo(() => {
-    return Array.from(
-      new Set((vehicles || []).filter(v => v?.location).map(vehicle => (vehicle?.location || 'unknown')))
-    ).sort();
-  }, [vehicles]);
+  const uniqueLocations = Array.from(
+    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location || 'unknown') || [])
+  ).sort();
   
-  const uniqueYears = React.useMemo(() => {
-    return Array.from(
-      new Set((vehicles || []).map(vehicle => (vehicle?.year?.toString() || 'unknown')))
-    ).sort((a, b) => {
-      if (a === 'unknown') return 1;
-      if (b === 'unknown') return -1;
-      return parseInt(b) - parseInt(a);
-    });
-  }, [vehicles]);
+  const uniqueYears = Array.from(
+    new Set(vehicles?.map(vehicle => vehicle.year?.toString() || 'unknown') || [])
+  ).sort((a, b) => {
+    if (a === 'unknown') return 1;
+    if (b === 'unknown') return -1;
+    return parseInt(b) - parseInt(a);
+  });
   
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -103,7 +97,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Makes</SelectItem>
-          {uniqueMakes.map((make) => (
+          {uniqueMakes.map(make => (
             <SelectItem key={make} value={make}>{make}</SelectItem>
           ))}
         </SelectContent>
@@ -118,7 +112,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Locations</SelectItem>
-          {uniqueLocations.map((location) => (
+          {uniqueLocations.map(location => (
             <SelectItem key={location} value={location}>{location}</SelectItem>
           ))}
         </SelectContent>
@@ -133,7 +127,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Years</SelectItem>
-          {uniqueYears.map((year) => (
+          {uniqueYears.map(year => (
             <SelectItem key={year} value={year}>{year}</SelectItem>
           ))}
         </SelectContent>
@@ -148,8 +142,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
-          {(vehicleTypes || []).map((type) => (
-            type?.id ? (
+          {vehicleTypes?.map(type => (
+            type.id ? (
               <SelectItem key={type.id} value={type.id}>
                 {type.name}
               </SelectItem>
