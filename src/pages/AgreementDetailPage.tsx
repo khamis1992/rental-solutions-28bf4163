@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -20,7 +21,7 @@ import { fixAgreementPayments } from '@/lib/supabase';
 import { analyzeAgreementStatus } from '@/utils/translation-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, Check, Clock, Cpu } from 'lucide-react';
+import { AlertCircle, Check, Clock } from 'lucide-react';
 
 interface AnalysisResult {
   recommendedStatus: string;

@@ -146,47 +146,57 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
           });
           
           // Update the database with analysis results
-          const { error } = await supabase
-            .from('agreement_analysis_results')
-            .upsert({
-              agreement_id: agreement.id,
-              recommended_status: analysis.recommendedStatus,
-              confidence: analysis.confidence,
-              current_status: agreement.status,
-              risk_level: analysis.riskLevel,
-              analyzed_at: analysis.analyzedAt,
-              explanation: analysis.explanation,
-              action_items: analysis.actionItems
-            }, {
-              onConflict: 'agreement_id'
+          try {
+            const { error } = await supabase.rpc('upsert_agreement_analysis', {
+              p_agreement_id: agreement.id,
+              p_recommended_status: analysis.recommendedStatus,
+              p_confidence: analysis.confidence,
+              p_current_status: agreement.status,
+              p_risk_level: analysis.riskLevel,
+              p_analyzed_at: analysis.analyzedAt,
+              p_explanation: analysis.explanation,
+              p_action_items: analysis.actionItems || []
             });
             
-          if (error) {
-            console.error(`Error saving analysis results for agreement ${agreement.id}:`, error);
-          } else {
-            aiAnalyzedCount++;
+            if (error) {
+              console.error(`Error saving analysis results for agreement ${agreement.id}:`, error);
+            } else {
+              aiAnalyzedCount++;
+            }
+          } catch (dbError) {
+            console.error(`Error saving analysis to database for agreement ${agreement.id}:`, dbError);
           }
           
           // If high confidence and risk level is high, auto-update the agreement status
           if (
             analysis.confidence > 0.85 && 
             analysis.riskLevel === 'high' && 
-            analysis.recommendedStatus !== agreement.status
+            analysis.recommendedStatus !== agreement.status &&
+            analysis.recommendedStatus in DB_AGREEMENT_STATUS
           ) {
-            const { error: statusError } = await supabase
-              .from('leases')
-              .update({ 
-                status: analysis.recommendedStatus as DatabaseAgreementStatus,
-                updated_at: new Date().toISOString(),
-                last_ai_update: new Date().toISOString()
-              })
-              .eq('id', agreement.id);
-              
-            if (statusError) {
-              console.error(`Error auto-updating agreement ${agreement.id} status:`, statusError);
+            // Ensure the recommendedStatus is a valid DatabaseAgreementStatus
+            const validStatus = Object.values(DB_AGREEMENT_STATUS).includes(
+              analysis.recommendedStatus as any
+            );
+            
+            if (validStatus) {
+              const { error: statusError } = await supabase
+                .from('leases')
+                .update({ 
+                  status: analysis.recommendedStatus,
+                  updated_at: new Date().toISOString(),
+                  last_ai_update: new Date().toISOString()
+                })
+                .eq('id', agreement.id);
+                
+              if (statusError) {
+                console.error(`Error auto-updating agreement ${agreement.id} status:`, statusError);
+              } else {
+                updatedCount++;
+                console.log(`Auto-updated agreement ${agreement.id} status from ${agreement.status} to ${analysis.recommendedStatus} based on AI recommendation`);
+              }
             } else {
-              updatedCount++;
-              console.log(`Auto-updated agreement ${agreement.id} status from ${agreement.status} to ${analysis.recommendedStatus} based on AI recommendation`);
+              console.warn(`Recommended status "${analysis.recommendedStatus}" is not valid for agreement ${agreement.id}`);
             }
           }
         } catch (error) {
