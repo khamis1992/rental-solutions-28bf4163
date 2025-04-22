@@ -762,10 +762,14 @@ const handleopenDeleteDialoguser = useCallback(() => {
           Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
         </div>
         <div className="flex items-center space-x-2">
+const handletablepreviousPage = useCallback(() => {
+  table.previousPage()
+}, []);
+
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
+            onClick={handletablepreviousPage
             disabled={!table.getCanPreviousPage()}
           >
             Previous
