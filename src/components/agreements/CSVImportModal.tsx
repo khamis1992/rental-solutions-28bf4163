@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { uploadCSV, createImportLog, previewAgreementCSV } from '@/utils/agreement-import-utils';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -24,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
+import { supabase } from '@/lib/supabase';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -37,7 +39,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewData, setPreviewData] = useState<{headers: string[], rows: string[][]}>({headers: [], rows: []});
   const [overwriteExisting, setOverwriteExisting] = useState(false);
-  const { getUser } = useAuth();
+  const { user } = useAuth();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -58,7 +60,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     setUploadProgress(10);
 
     try {
-      const user = await getUser();
       if (!user) {
         toast.error("You must be logged in to upload files");
         return;
@@ -114,7 +115,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       }
     } catch (error) {
       console.error("Error during file upload:", error);
-      // Update this line to handle the unknown error type
       toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setUploadProgress(0);
     } finally {

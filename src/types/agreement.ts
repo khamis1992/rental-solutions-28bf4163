@@ -46,7 +46,7 @@ export interface Agreement {
   vehicles?: Vehicle;
   customerId?: string;
   vehicleId?: string;
-  created_at?: string;
+  created_at?: string | Date;
   agreement_number?: string;
   notes?: string;
   total_amount?: number;
@@ -55,30 +55,49 @@ export interface Agreement {
   rent_amount?: number;
   daily_late_fee?: number;
   agreement_type?: string;
+  updated_at?: string | Date;
+  last_ai_update?: string | Date;
 }
 
 export interface EnhancedAnalysisResult {
+  id?: string;
+  agreement_id?: string;
   agreement?: Agreement;
   riskLevel?: 'low' | 'medium' | 'high';
+  risk_level?: 'low' | 'medium' | 'high';
   confidenceScore?: number;
+  confidence?: number;
   recommendations?: string[];
-  paymentFactors?: {
+  recommended_status?: AgreementStatus;
+  explanation?: string;
+  action_items?: string[];
+  actionItems?: string[];
+  analyzed_at?: string;
+  currentStatus?: AgreementStatus;
+  current_status?: AgreementStatus;
+  historical_data?: any;
+  payment_factors?: {
     paymentHistory?: string;
     latePayments?: number;
     missedPayments?: number;
     paymentTrend?: 'improving' | 'stable' | 'declining';
   };
-  vehicleFactors?: {
+  vehicle_factors?: {
     condition?: string;
     maintenanceHistory?: string;
     estimatedValue?: number;
     depreciation?: number;
   };
-  customerFactors?: {
+  customer_factors?: {
     customerHistory?: string;
     previousAgreements?: number;
     paymentReliability?: number;
   };
+  risk_factors?: any;
+  trend_analysis?: any;
+  prediction_accuracy?: number;
+  model_version?: string;
+  intervention_suggestions?: string[];
 }
 
 // Type for the AgreementDetailPage component's state
