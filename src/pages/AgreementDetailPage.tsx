@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -98,7 +97,7 @@ const AgreementDetailPage = () => {
         .order('analyzed_at', { ascending: false })
         .limit(1)
         .single();
-        
+      
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is ok
         console.error("Error fetching analysis:", error);
       } else if (data) {
@@ -109,10 +108,10 @@ const AgreementDetailPage = () => {
           confidence: data.confidence,
           explanation: data.explanation,
           risk_level: data.risk_level as 'low' | 'medium' | 'high',
-          actionItems: data.action_items || [],
+          action_items: data.action_items || [],
           analyzed_at: data.analyzed_at,
           currentStatus: data.current_status,
-          action_items: data.action_items || [],
+          current_status: data.current_status,
           historical_data: data.historical_data || {},
           payment_factors: data.payment_factors || {},
           vehicle_factors: data.vehicle_factors || {},
@@ -121,8 +120,7 @@ const AgreementDetailPage = () => {
           trend_analysis: data.trend_analysis || {},
           prediction_accuracy: data.prediction_accuracy,
           model_version: data.model_version,
-          intervention_suggestions: data.intervention_suggestions || [],
-          current_status: data.current_status,
+          intervention_suggestions: data.intervention_suggestions || []
         });
         
         // Load model information

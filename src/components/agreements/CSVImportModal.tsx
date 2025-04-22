@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -23,8 +22,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from '@/lib/supabase';
 
 interface CSVImportModalProps {
@@ -39,7 +38,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewData, setPreviewData] = useState<{headers: string[], rows: string[][]}>({headers: [], rows: []});
   const [overwriteExisting, setOverwriteExisting] = useState(false);
-  const { user } = useAuth();
+  const { getUser } = useAuth();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -60,6 +59,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     setUploadProgress(10);
 
     try {
+      const user = await getUser();
       if (!user) {
         toast.error("You must be logged in to upload files");
         return;
@@ -67,14 +67,12 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
 
       setUploadProgress(20);
       
-      // Generate a unique file name
       const timestamp = Date.now();
       const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const fileName = `${timestamp}-${safeOriginalName}`;
       
       setUploadProgress(40);
       
-      // Upload the file to Supabase storage
       const filePath = await uploadCSV(file, fileName);
       if (!filePath) {
         throw new Error("Failed to upload file");
@@ -82,7 +80,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       
       setUploadProgress(60);
 
-      // Create a record in the import logs table
       const importId = await createImportLog(
         fileName,
         file.name,
@@ -96,7 +93,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       
       setUploadProgress(80);
       
-      // Trigger the Edge Function to process the CSV
       const { error: functionError } = await supabase.functions.invoke('process-agreement-imports', {
         body: { importId, filePath }
       });
@@ -108,7 +104,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       setUploadProgress(100);
       toast.success("File uploaded successfully. Processing has started...");
       
-      // Close the modal and trigger the callback
       onClose();
       if (onImportComplete) {
         onImportComplete();

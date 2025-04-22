@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
 
-export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
+export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: string) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -12,18 +12,17 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  const handleSpecialAgreementPayments = useCallback(async (
+  const handleSpecialAgreementPayments = async (
     amount: number, 
     paymentDate: Date, 
-    notes?: string,
-    paymentMethod: string = 'cash',
-    referenceNumber?: string,
-    includeLatePaymentFee: boolean = false,
-    isPartialPayment: boolean = false,
-    targetPaymentId?: string
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
   ) => {
-    if (!agreement && !agreementId) {
-      toast.error("Agreement information is missing");
+    if (!agreement || !agreement.id) {
+      toast.error("Agreement details are not available");
       return false;
     }
     
@@ -54,22 +53,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         }
       }
       
-      let dailyLateFee = 120;
-      if (!agreement) {
-        const { data: leaseData, error: leaseError } = await supabase
-          .from('leases')
-          .select('daily_late_fee')
-          .eq('id', agreementId)
-          .single();
-          
-        if (leaseError) {
-          console.error("Error fetching lease data for late fee:", leaseError);
-        } else if (leaseData) {
-          dailyLateFee = leaseData.daily_late_fee || 120;
-        }
-      } else {
-        dailyLateFee = agreement.daily_late_fee || 120;
-      }
+      let dailyLateFee = agreement.daily_late_fee || 120;
       
       let lateFeeAmount = 0;
       let daysLate = 0;
@@ -123,6 +107,8 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           balance = Math.max(0, rentAmount - amount);
         }
         
+        const description = `Monthly Rent for ${agreement.agreement_number || 'Unknown Agreement'} - ${paymentDate.toLocaleDateString()}`;
+        
         const paymentRecord = {
           lease_id: agreementId,
           amount: agreement?.rent_amount || 0,
@@ -131,7 +117,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null,
-          description: notes || `Monthly rent payment for ${agreement?.agreement_number || agreement?.agreementNumber}`,
+          description: notes || description,
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,
@@ -199,7 +185,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     } finally {
       setIsProcessing(false);
     }
-  }, [agreement, agreementId, refreshAgreementData]);
+  };
 
   return {
     refreshTrigger,

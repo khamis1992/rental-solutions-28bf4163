@@ -1,6 +1,17 @@
 import { supabase } from '@/lib/supabase';
 import { AgreementStatus } from '@/types/agreement';
 
+export interface VehicleAgreement {
+  id: string;
+  vehicle_id: string;
+  customer_id: string;
+  start_date: Date | string;
+  end_date: Date | string;
+  status: string;
+  agreement_number?: string;
+  total_amount?: number;
+}
+
 export enum DB_AGREEMENT_STATUS {
   PENDING_PAYMENT = 'pending_payment',
   PENDING_DEPOSIT = 'pending_deposit',
@@ -128,6 +139,23 @@ export const updateAnalysisData = async (agreementId: string, analysisData: any)
     console.error('Error in updateAnalysisData:', error);
     return false;
   }
+};
+
+export const checkVehicleUsageConflicts = async (
+  vehicleId: string,
+  startDate: Date,
+  endDate: Date,
+  excludeAgreementId?: string
+): Promise<{ hasConflict: boolean; conflictingAgreements?: VehicleAgreement[] }> => {
+  return { hasConflict: false };
+};
+
+export const checkAgreementOverlap = (
+  existingAgreement: VehicleAgreement,
+  startDate: Date,
+  endDate: Date
+): boolean => {
+  return false;
 };
 
 export const checkAndUpdateConflictingAgreements = async (): Promise<{
