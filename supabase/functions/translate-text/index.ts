@@ -28,7 +28,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a name transliterator. Convert Arabic names to their English representation using standard romanization. Only return the romanized name, nothing else. Examples: عبد الله -> Abdullah, محمد -> Mohammed'
+            content: 'You are a name transliterator. Convert Arabic names to their English representation using standard romanization. Only return the romanized name, nothing else. Examples: عبد الله -> Abdullah, محمد -> Mohammed, فاطمة -> Fatima, زينب -> Zainab'
           },
           {
             role: 'user',

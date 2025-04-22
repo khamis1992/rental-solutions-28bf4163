@@ -234,25 +234,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map(item => {
-        const agreement: SimpleAgreement = {
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: new Date(item.start_date),
-          end_date: new Date(item.end_date),
-          status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
-          agreement_number: item.agreement_number || '',
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          created_at: item.created_at ? new Date(item.created_at) : undefined,
-          updated_at: item.updated_at ? new Date(item.updated_at) : undefined
-        };
-        return agreement;
-      });
+      const agreements: SimpleAgreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
+        agreement_number: item.agreement_number || '',
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined
+      }));
 
       return agreements;
     } catch (err) {
