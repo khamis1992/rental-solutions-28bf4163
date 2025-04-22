@@ -103,7 +103,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Makes</SelectItem>
-          {uniqueMakes.map(make => (
+          {uniqueMakes.map((make) => (
             <SelectItem key={make} value={make}>{make}</SelectItem>
           ))}
         </SelectContent>
@@ -118,7 +118,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Locations</SelectItem>
-          {uniqueLocations.map(location => (
+          {uniqueLocations.map((location) => (
             <SelectItem key={location} value={location}>{location}</SelectItem>
           ))}
         </SelectContent>
@@ -133,7 +133,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Years</SelectItem>
-          {uniqueYears.map(year => (
+          {uniqueYears.map((year) => (
             <SelectItem key={year} value={year}>{year}</SelectItem>
           ))}
         </SelectContent>
@@ -148,7 +148,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
-          {(vehicleTypes || []).map(type => (
+          {(vehicleTypes || []).map((type) => (
             type?.id ? (
               <SelectItem key={type.id} value={type.id}>
                 {type.name}

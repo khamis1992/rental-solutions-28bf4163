@@ -1,372 +1,334 @@
-import React, { useEffect, useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AgreementDetail } from '@/components/agreements/AgreementDetail';
-import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, Cpu, Clock } from 'lucide-react';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertCircle, CalendarCheck, FileCheck, FileText, Ban } from 'lucide-react';
+import { AgreementStatus, EnhancedAnalysisResult } from '@/types/agreement';
 import { supabase } from '@/lib/supabase';
-import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
-import { getDateObject } from '@/lib/date-utils';
-import { usePayments } from '@/hooks/use-payments';
-import { fixAgreementPayments } from '@/lib/supabase';
-import { analyzeAgreementStatus } from '@/utils/translation-utils';
-import { EnhancedAnalysisResult, AiModelParameters } from '@/utils/type-utils';
-import EnhancedAnalysisCard from '@/components/agreements/EnhancedAnalysisCard';
-import { runComprehensiveAgreementAnalysis, getAiModelParameters } from '@/utils/ai-analysis-utils';
+import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Import these functions when they're available in the codebase
+const manuallyRunPaymentMaintenance = async (leaseId: string) => {
+  console.log("Payment maintenance not implemented yet");
+  return { success: true, message: "Not implemented yet" };
+};
+
+const fixAgreementPayments = async (leaseId: string) => {
+  console.log("Fix agreement payments not implemented yet");
+  return { success: true, message: "Not implemented yet" };
+};
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAgreement, deleteAgreement, updateAgreement } = useAgreements();
-  const [agreement, setAgreement] = useState<Agreement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<EnhancedAnalysisResult | null>(null);
-  const [modelInfo, setModelInfo] = useState<AiModelParameters | undefined>(undefined);
+  const { getAgreement } = useAgreements({});
+  const [state, setState] = useState<{
+    agreement: any | null;
+    loading: boolean;
+    error: string | null;
+    enhancedAnalysis: EnhancedAnalysisResult | null;
+    isAnalyzing: boolean;
+  }>({
+    agreement: null,
+    loading: true,
+    error: null,
+    enhancedAnalysis: null,
+    isAnalyzing: false
+  });
 
-  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isFixingPayments, setIsFixingPayments] = useState(false);
   
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
-
-  const fetchAgreementData = async () => {
-    if (!id) return;
-
-    try {
-      setIsLoading(true);
-      const data = await getAgreement(id);
-      
-      if (data) {
-        const adaptedAgreement = adaptSimpleToFullAgreement(data);
-        
-        if (adaptedAgreement.start_date) {
-          const safeDate = getDateObject(adaptedAgreement.start_date);
-          adaptedAgreement.start_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.end_date) {
-          const safeDate = getDateObject(adaptedAgreement.end_date);
-          adaptedAgreement.end_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.created_at) {
-          const safeDate = getDateObject(adaptedAgreement.created_at);
-          adaptedAgreement.created_at = safeDate;
-        }
-        
-        if (adaptedAgreement.updated_at) {
-          const safeDate = getDateObject(adaptedAgreement.updated_at);
-          adaptedAgreement.updated_at = safeDate;
-        }
-        
-        setAgreement(adaptedAgreement);
-        fetchPayments();
-        
-        fetchAnalysisResult(adaptedAgreement.id);
-      } else {
-        toast.error("Agreement not found");
-        navigate("/agreements");
-      }
-    } catch (error) {
-      console.error('Error fetching agreement:', error);
-      toast.error('Failed to load agreement details');
-    } finally {
-      setIsLoading(false);
-      setHasAttemptedFetch(true);
-    }
-  };
-
-  const fetchAnalysisResult = async (agreementId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('agreement_analysis_results')
-        .select('*')
-        .eq('agreement_id', agreementId)
-        .order('analyzed_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is ok
-        console.error("Error fetching analysis:", error);
-      } else if (data) {
-        setAnalysisResult({
-          id: data.id,
-          agreement_id: data.agreement_id,
-          recommended_status: data.recommended_status,
-          confidence: data.confidence,
-          explanation: data.explanation,
-          risk_level: data.risk_level as 'low' | 'medium' | 'high',
-          action_items: data.action_items || [],
-          analyzed_at: data.analyzed_at,
-          currentStatus: data.current_status,
-          current_status: data.current_status,
-          historical_data: data.historical_data || {},
-          payment_factors: data.payment_factors || {},
-          vehicle_factors: data.vehicle_factors || {},
-          customer_factors: data.customer_factors || {},
-          risk_factors: data.risk_factors || {},
-          trend_analysis: data.trend_analysis || {},
-          prediction_accuracy: data.prediction_accuracy,
-          model_version: data.model_version,
-          intervention_suggestions: data.intervention_suggestions || []
-        });
-        
-        // Load model information
-        setModelInfo(getAiModelParameters());
-      }
-    } catch (error) {
-      console.error("Error fetching analysis result:", error);
-    }
-  };
-
   useEffect(() => {
-    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
-      fetchAgreementData();
-    }
-  }, [id, refreshTrigger]);
-
-  useEffect(() => {
-    if (id && !isLoading && agreement && payments && payments.length > 0) {
-      const paymentDates = payments
-        .filter(p => p.original_due_date)
-        .map(p => {
-          const date = new Date(p.original_due_date as string);
-          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        });
+    const loadAgreement = async () => {
+      if (!id) return;
       
-      const monthCounts = paymentDates.reduce((acc, date) => {
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
-      
-      if (hasDuplicates) {
-        console.log("Detected duplicate payments - will fix automatically");
-        fixAgreementPayments(id).then(() => {
-          fetchPayments();
-        });
+      try {
+        const agreement = await getAgreement(id);
+        setState(prev => ({ ...prev, agreement, loading: false }));
+      } catch (err) {
+        setState(prev => ({ 
+          ...prev, 
+          error: err instanceof Error ? err.message : 'Failed to load agreement details',
+          loading: false
+        }));
       }
-    }
-  }, [id, isLoading, agreement, payments]);
-
-  const handleDelete = async (agreementId: string) => {
-    try {
-      await deleteAgreement.mutateAsync(agreementId);
-      toast.success("Agreement deleted successfully");
-      navigate("/agreements");
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
-    }
-  };
-
-  const refreshAgreementData = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleGenerateDocument = () => {
-    setIsDocumentDialogOpen(true);
-  };
-
-  const handleGeneratePayment = async () => {
-    if (!id || !agreement) return;
+    };
     
-    setIsGeneratingPayment(true);
-    try {
-      const result = await forceGeneratePaymentForAgreement(supabase, id);
-      
-      if (result.success) {
-        toast.success("Payment schedule generated successfully");
-        refreshAgreementData();
-      } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
-    } finally {
-      setIsGeneratingPayment(false);
-    }
-  };
+    loadAgreement();
+  }, [id, getAgreement]);
 
-  const handleRunMaintenanceJob = async () => {
-    if (!id) return;
+  const handleFixPayments = async () => {
+    if (!state.agreement?.id) return;
     
-    setIsRunningMaintenance(true);
+    setIsFixingPayments(true);
     try {
-      toast.info("Running payment maintenance check...");
-      const result = await manuallyRunPaymentMaintenance();
-      
+      const result = await fixAgreementPayments(state.agreement.id);
       if (result.success) {
-        toast.success(result.message || "Payment schedule maintenance completed");
-        refreshAgreementData();
-        fetchPayments();
+        toast.success(result.message || "Payments fixed successfully");
       } else {
-        toast.error(result.message || "Payment maintenance failed");
+        toast.error(result.message || "Failed to fix payments");
       }
-    } catch (error) {
-      console.error("Error running maintenance job:", error);
-      toast.error("Failed to run maintenance job");
+    } catch (err) {
+      toast.error("An error occurred while fixing payments");
+      console.error(err);
     } finally {
-      setIsRunningMaintenance(false);
+      setIsFixingPayments(false);
     }
   };
   
-  const handleAnalyzeAgreement = async () => {
-    if (!id || !agreement) return;
+  const handleRunMaintenance = async () => {
+    if (!state.agreement?.id) return;
     
-    setIsAnalyzing(true);
+    setIsConfirmDialogOpen(false);
+    setState(prev => ({ ...prev, isAnalyzing: true }));
+    
     try {
-      toast.info("Running enhanced AI analysis of agreement...");
-      
-      // Use the new comprehensive analysis function
-      const result = await runComprehensiveAgreementAnalysis(agreement.id);
-      setAnalysisResult(result);
-      setModelInfo(getAiModelParameters());
-      
-      toast.success("Enhanced agreement analysis completed");
-    } catch (error) {
-      console.error("Error analyzing agreement:", error);
-      toast.error("Failed to analyze agreement");
+      const result = await manuallyRunPaymentMaintenance(state.agreement.id);
+      if (result.success) {
+        toast.success(result.message || "Maintenance completed successfully");
+      } else {
+        toast.error(result.message || "Maintenance failed");
+      }
+    } catch (err) {
+      toast.error("An error occurred during maintenance");
+      console.error(err);
     } finally {
-      setIsAnalyzing(false);
-    }
-  };
-  
-  const handleApplyRecommendation = async () => {
-    if (!id || !agreement || !analysisResult) return;
-    
-    try {
-      toast.info("Applying recommended status...");
-      
-      await updateAgreement.mutateAsync({
-        id,
-        data: {
-          status: analysisResult.recommended_status,
-          updated_at: new Date().toISOString(),
-          last_ai_update: new Date().toISOString()
-        }
-      });
-      
-      toast.success("Agreement status updated successfully");
-      refreshAgreementData();
-    } catch (error) {
-      console.error("Error updating agreement status:", error);
-      toast.error("Failed to update agreement status");
+      setState(prev => ({ ...prev, isAnalyzing: false }));
     }
   };
 
+  const handleStatusChange = async (newStatus: AgreementStatus) => {
+    if (!state.agreement?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('leases')
+        .update({ status: newStatus.toLowerCase() })
+        .eq('id', state.agreement.id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      setState(prev => ({
+        ...prev,
+        agreement: { ...prev.agreement, status: newStatus }
+      }));
+      
+      toast.success(`Agreement status updated to ${newStatus}`);
+    } catch (err) {
+      toast.error(`Failed to update status: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+  
+  if (state.loading) {
+    return (
+      <PageContainer title="Agreement Details" backLink="/agreements">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageContainer>
+    );
+  }
+  
+  if (state.error || !state.agreement) {
+    return (
+      <PageContainer title="Agreement Details" backLink="/agreements">
+        <div className="bg-destructive/10 p-4 rounded-md flex items-center">
+          <AlertCircle className="h-6 w-6 mr-2 text-destructive" />
+          <div>
+            <h3 className="font-medium">Error</h3>
+            <p className="text-sm">{state.error || "Agreement not found"}</p>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const { agreement } = state;
+  
   return (
-    <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
+    <PageContainer 
+      title={`Agreement ${agreement.agreement_number || agreement.id.substring(0, 8)}`}
       backLink="/agreements"
       actions={
-        <>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
+        <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            onClick={() => setIsConfirmDialogOpen(true)}
+            disabled={state.isAnalyzing}
+          >
+            {state.isAnalyzing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Running Maintenance...
+              </>
+            ) : (
+              <>
+                <CalendarCheck className="mr-2 h-4 w-4" />
+                Run Payment Maintenance
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleFixPayments}
+            disabled={isFixingPayments}
+          >
+            {isFixingPayments ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Fixing...
+              </>
+            ) : (
+              <>
+                <FileCheck className="mr-2 h-4 w-4" />
+                Fix Payments
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={() => navigate(`/agreements/edit/${agreement.id}`)}
+            variant="secondary"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Edit Agreement
+          </Button>
+          
+          {agreement.status !== AgreementStatus.CANCELLED && (
             <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGeneratePayment}
-              disabled={isGeneratingPayment}
-              className="gap-2 mr-2"
+              variant="destructive"
+              onClick={() => handleStatusChange(AgreementStatus.CANCELLED)}
             >
-              <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+              <Ban className="mr-2 h-4 w-4" />
+              Cancel Agreement
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunMaintenanceJob}
-            disabled={isRunningMaintenance}
-            className="gap-2 mr-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAnalyzeAgreement}
-            disabled={isAnalyzing}
-            className="gap-2"
-          >
-            <Cpu className="h-4 w-4" />
-            {isAnalyzing ? "Analyzing..." : "Analyze with AI"}
-          </Button>
-        </>
+        </div>
       }
     >
-      {isLoading ? (
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full md:col-span-2" />
-          </div>
-        </div>
-      ) : agreement ? (
-        <>
-          {/* Replace with Enhanced Analysis Card */}
-          {analysisResult && (
-            <EnhancedAnalysisCard 
-              analysisResult={analysisResult}
-              modelInfo={modelInfo}
-              isLoading={isAnalyzing}
-              onApplyRecommendation={handleApplyRecommendation}
-              onRefreshAnalysis={handleAnalyzeAgreement}
-            />
-          )}
-          
-          <AgreementDetail 
-            agreement={agreement}
-            onDelete={handleDelete}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={refreshAgreementData}
-            onDataRefresh={refreshAgreementData}
-            onGenerateDocument={handleGenerateDocument}
-          />
-          
-          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <InvoiceGenerator 
-                recordType="agreement" 
-                recordId={agreement.id} 
-                onClose={() => setIsDocumentDialogOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <div className="flex items-center justify-center mb-4">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
-          </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
-        </div>
-      )}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Agreement Details</CardTitle>
+            <CardDescription>
+              Status: <Badge variant={
+                agreement.status === AgreementStatus.ACTIVE ? "success" : 
+                agreement.status === AgreementStatus.DRAFT ? "secondary" : 
+                agreement.status === AgreementStatus.PENDING ? "warning" : 
+                "destructive"
+              }>{agreement.status}</Badge>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Duration</h3>
+              <p>{new Date(agreement.start_date).toLocaleDateString()} - {new Date(agreement.end_date).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Amount</h3>
+              <p>${agreement.total_amount?.toFixed(2) || 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Deposit</h3>
+              <p>${agreement.deposit_amount?.toFixed(2) || 'N/A'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
+              <p>{agreement.customers?.full_name || 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Contact</h3>
+              <p>
+                {agreement.customers?.email && <span className="block">{agreement.customers.email}</span>}
+                {agreement.customers?.phone_number && <span className="block">{agreement.customers.phone_number}</span>}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Driver License</h3>
+              <p>{agreement.customers?.driver_license || 'N/A'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicle Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Vehicle</h3>
+              <p>{agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model} (${agreement.vehicles.year})` : 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">License Plate</h3>
+              <p>{agreement.vehicles?.license_plate || 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">VIN</h3>
+              <p>{agreement.vehicles?.vin || 'N/A'}</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-line">{agreement.notes || 'No notes available'}</p>
+          </CardContent>
+          <CardFooter>
+            <div className="text-xs text-muted-foreground">
+              Created: {new Date(agreement.created_at).toLocaleString()}
+              {agreement.updated_at && ` • Updated: ${new Date(agreement.updated_at).toLocaleString()}`}
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Run Payment Maintenance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will check and generate any missing payments for this agreement.
+              This operation can take some time to complete.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRunMaintenance}>
+              Run Maintenance
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 };

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 export const checkAndUpdateConflictingAgreements = async () => {
@@ -9,7 +10,7 @@ export const checkAndUpdateConflictingAgreements = async () => {
       .from('leases')
       .select('vehicle_id, count(*)')
       .eq('status', 'active')
-      .group_by('vehicle_id')
+      .groupBy('vehicle_id')
       .having('count(*)', 'gt', 1);
       
     if (conflictError) {
@@ -80,10 +81,7 @@ export const checkAndUpdateConflictingAgreements = async () => {
   }
 };
 
-// Add this for compatibility with existing imports
-export const runAgreementStatusCheck = runAgreementStatusMaintenance;
-
-// Alias function to match import in LegalDashboard
+// Define runAgreementStatusMaintenance first
 export const runAgreementStatusMaintenance = async () => {
   try {
     console.log("Running agreement status maintenance");
@@ -112,3 +110,6 @@ export const runAgreementStatusMaintenance = async () => {
     };
   }
 };
+
+// Add this for compatibility with existing imports
+export const runAgreementStatusCheck = runAgreementStatusMaintenance;

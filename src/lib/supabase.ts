@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { checkAndUpdateConflictingAgreements } from '@/utils/agreement-status-checker';
 
@@ -185,9 +186,11 @@ export const checkAndGenerateMonthlyPayments = async () => {
 };
 
 // Add the missing functions needed in other files
-export const manuallyRunPaymentMaintenance = async () => {
+export const manuallyRunPaymentMaintenance = async (leaseId: string) => {
   try {
-    console.log('Running manual payment maintenance job');
+    console.log('Running manual payment maintenance job for lease:', leaseId);
+    // In a real implementation, this would run maintenance just for the specified lease
+    // For now, we'll run the general maintenance job
     const result = await checkAndGenerateMonthlyPayments();
     return result;
   } catch (error) {
