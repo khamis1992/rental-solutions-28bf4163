@@ -50,7 +50,7 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
       // Only update the local role state if the server update succeeded
       setRole(newRole);
       toast.success(`${fullName}'s role updated to ${newRole}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating user role:", error.message);
       toast.error("Failed to update user role: " + error.message);
       // Reset to the previous role on error
