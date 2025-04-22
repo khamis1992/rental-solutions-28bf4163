@@ -72,6 +72,8 @@ export type SimpleAgreement = BaseAgreement & {
     vin?: string;
   };
   signature_url?: string;
+  rent_amount?: number;
+  daily_late_fee?: number;
 };
 
 interface SearchParams {
@@ -304,8 +306,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  const updateAgreementMutation = useMutation<any, Error, BreakTypeRecursion<UpdateAgreementParams>>({
-    mutationFn: async (params: UpdateAgreementParams) => {
+  const updateAgreementMutation = useMutation<any, Error, {id: string; data: Record<string, any>}>({
+    mutationFn: async (params: {id: string; data: Record<string, any>}) => {
       console.log("Update mutation called with:", params);
       return {};
     },

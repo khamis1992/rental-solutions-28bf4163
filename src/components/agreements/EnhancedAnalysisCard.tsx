@@ -1,12 +1,28 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, ArrowRight, CheckCircle, ChevronDown, ChevronUp, CircleDashed, Cpu, Info, RefreshCcw } from "lucide-react";
+
+import React from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { EnhancedAnalysisResult, AiModelParameters } from '@/utils/type-utils';
+import { 
+  AlertTriangle, 
+  CheckCircle, 
+  Info, 
+  Cpu, 
+  LineChart, 
+  ArrowRight, 
+  ChevronRight, 
+  Clock, 
+  Calendar,
+  RefreshCcw as RefreshIcon,
+  DollarSign,
+  Car,
+  Users
+} from 'lucide-react';
+import { format } from 'date-fns';
 
 interface EnhancedAnalysisCardProps {
   analysisResult: EnhancedAnalysisResult | null;
@@ -16,343 +32,360 @@ interface EnhancedAnalysisCardProps {
   onRefreshAnalysis: () => void;
 }
 
-const EnhancedAnalysisCard: React.FC<EnhancedAnalysisCardProps> = ({
+const EnhancedAnalysisCard = ({
   analysisResult,
   modelInfo,
   isLoading,
   onApplyRecommendation,
   onRefreshAnalysis
-}) => {
-  const [expandedSections, setExpandedSections] = useState<{
-    paymentFactors: boolean;
-    vehicleFactors: boolean;
-    customerFactors: boolean;
-    riskFactors: boolean;
-    trendAnalysis: boolean;
-    interventionSuggestions: boolean;
-  }>({
-    paymentFactors: false,
-    vehicleFactors: false,
-    customerFactors: false,
-    riskFactors: false,
-    trendAnalysis: false,
-    interventionSuggestions: false
-  });
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
+}: EnhancedAnalysisCardProps) => {
   if (!analysisResult) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Agreement Analysis</CardTitle>
-          <CardDescription>No analysis available.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>Analysis results are not available for this agreement.</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
-  const riskLevelBadge = (riskLevel: string) => {
+  const getRiskBadgeColor = (riskLevel: string) => {
     switch (riskLevel) {
       case 'low':
-        return <Badge className="bg-green-500 text-white">Low Risk</Badge>;
+        return 'bg-green-100 text-green-800';
       case 'medium':
-        return <Badge className="bg-yellow-500 text-white">Medium Risk</Badge>;
+        return 'bg-yellow-100 text-yellow-800';
       case 'high':
-        return <Badge className="bg-red-500 text-white">High Risk</Badge>;
+        return 'bg-red-100 text-red-800';
       default:
-        return <Badge className="bg-gray-500 text-white">Unknown Risk</Badge>;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const confidenceDisplay = analysisResult.confidence ? (
-    <div className="space-y-1">
-      <p className="text-sm font-medium">Confidence Level</p>
-      <Progress value={analysisResult.confidence * 100} />
-      <p className="text-xs text-muted-foreground">
-        {Math.round(analysisResult.confidence * 100)}% confident in the analysis
-      </p>
-    </div>
-  ) : (
-    <p>Confidence level not available.</p>
-  );
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return 'bg-green-500';
+    if (confidence >= 60) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+  
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return dateString;
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Agreement Analysis</CardTitle>
-        <CardDescription>
-          AI-driven insights and recommendations for this agreement.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Risk Level</p>
-            {riskLevelBadge(analysisResult.risk_level)}
+    <Card className="mb-6">
+      <CardHeader className="bg-muted/30">
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Enhanced AI Agreement Analysis</CardTitle>
+            </div>
+            <CardDescription>AI-powered risk analysis and recommendations</CardDescription>
           </div>
-          {confidenceDisplay}
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Recommended Status</p>
+          
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{analysisResult.recommended_status}</Badge>
-            {analysisResult.recommended_status !== analysisResult.current_status && (
-              <Button variant="outline" size="sm" onClick={onApplyRecommendation} disabled={isLoading}>
-                Apply Recommendation
-              </Button>
-            )}
+            <Badge className={getRiskBadgeColor(analysisResult.risk_level)}>
+              {analysisResult.risk_level.toUpperCase()} RISK
+            </Badge>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRefreshAnalysis}
+              disabled={isLoading}
+            >
+              <RefreshIcon className="h-4 w-4 mr-1" />
+              {isLoading ? "Analyzing..." : "Refresh Analysis"}
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Current Status: {analysisResult.current_status}
-          </p>
         </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Analysis Explanation</p>
-          <p className="text-sm">{analysisResult.explanation}</p>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Key Action Items</p>
-          <ul className="list-disc pl-5">
-            {analysisResult.action_items.map((item, index) => (
-              <li key={index} className="text-sm">{item}</li>
-            ))}
-          </ul>
-        </div>
-
-        <Separator />
-
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
+      </CardHeader>
+      
+      <CardContent className="pt-6">
+        <Tabs defaultValue="summary">
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="details">Risk Factors</TabsTrigger>
+            <TabsTrigger value="payments">Payment Analysis</TabsTrigger>
+            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
           </TabsList>
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Factors</CardTitle>
-                  <CardDescription>Insights into payment behavior</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Payment Consistency: {analysisResult.payment_factors?.payment_consistency_score}</p>
-                  <p>Average Delay: {analysisResult.payment_factors?.average_delay_days} days</p>
-                  <p>Late Payments: {analysisResult.payment_factors?.late_payments}</p>
-                </CardContent>
-              </Card>
+          
+          <TabsContent value="summary" className="mt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Status Analysis</h3>
+                  <div className="bg-muted rounded-md p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Current Status</p>
+                        <p className="text-sm text-muted-foreground">{analysisResult.current_status}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Recommended Status</p>
+                        <p className="text-sm text-muted-foreground">{analysisResult.recommended_status}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <p className="text-sm font-medium mb-1">Analysis Confidence</p>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={analysisResult.confidence} 
+                          className={getConfidenceColor(analysisResult.confidence)}
+                        />
+                        <span className="text-sm">{analysisResult.confidence}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Analysis Summary</h3>
+                  <p className="text-sm">{analysisResult.explanation}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Model Information</h3>
+                  <div className="bg-muted rounded-md p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <p className="text-sm text-muted-foreground">Model</p>
+                      <p className="text-sm">{modelInfo?.modelName || 'AgreementAnalyzer'}</p>
+                    </div>
+                    <div className="flex justify-between">
+                      <p className="text-sm text-muted-foreground">Version</p>
+                      <p className="text-sm">{modelInfo?.version || analysisResult.model_version || '1.0'}</p>
+                    </div>
+                    <div className="flex justify-between">
+                      <p className="text-sm text-muted-foreground">Last Analysis</p>
+                      <p className="text-sm">{formatDate(analysisResult.analyzed_at)}</p>
+                    </div>
+                    <div className="flex justify-between">
+                      <p className="text-sm text-muted-foreground">Prediction Accuracy</p>
+                      <p className="text-sm">{analysisResult.prediction_accuracy ? `${analysisResult.prediction_accuracy}%` : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Action Items</h3>
+                  {analysisResult.action_items && analysisResult.action_items.length > 0 ? (
+                    <ul className="space-y-1">
+                      {analysisResult.action_items.map((item, i) => (
+                        <li key={i} className="text-sm flex">
+                          <ArrowRight className="h-4 w-4 mr-1 mt-1 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No action items recommended</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Vehicle Factors</CardTitle>
-                  <CardDescription>Insights into vehicle condition</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Maintenance Frequency: {analysisResult.vehicle_factors?.maintenance_frequency}</p>
-                  <p>Major Issues: {analysisResult.vehicle_factors?.major_issues_count}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Customer Factors</CardTitle>
-                  <CardDescription>Insights into customer behavior</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Traffic Fines: {analysisResult.customer_factors?.traffic_fines_count}</p>
-                  <p>Total Fine Amount: {analysisResult.customer_factors?.total_fine_amount}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Risk Factors</CardTitle>
-                  <CardDescription>Overall risk assessment</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>Payment Risk: {analysisResult.risk_factors?.payment_risk_score}</p>
-                  <p>Vehicle Risk: {analysisResult.risk_factors?.vehicle_risk_score}</p>
-                  <p>Customer Risk: {analysisResult.risk_factors?.customer_risk_score}</p>
-                </CardContent>
-              </Card>
+            {analysisResult.current_status !== analysisResult.recommended_status && (
+              <div className="mt-4 p-4 border border-yellow-200 bg-yellow-50 rounded-md">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">Status change recommended</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      The AI suggests changing the agreement status from <strong>{analysisResult.current_status}</strong> to <strong>{analysisResult.recommended_status}</strong>
+                    </p>
+                    <Button size="sm" onClick={onApplyRecommendation}>
+                      Apply Recommended Status
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="details" className="mt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Users className="h-4 w-4 mr-1" />
+                  Customer Factors
+                </h3>
+                <div className="bg-muted rounded-md p-4">
+                  <ScrollArea className="h-[200px]">
+                    {analysisResult.customer_factors && Object.keys(analysisResult.customer_factors).length > 0 ? (
+                      <dl className="space-y-2">
+                        {Object.entries(analysisResult.customer_factors).map(([key, value]) => (
+                          <div key={key} className="grid grid-cols-2">
+                            <dt className="text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                            <dd className="text-sm font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No customer factors available</p>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Car className="h-4 w-4 mr-1" />
+                  Vehicle Factors
+                </h3>
+                <div className="bg-muted rounded-md p-4">
+                  <ScrollArea className="h-[200px]">
+                    {analysisResult.vehicle_factors && Object.keys(analysisResult.vehicle_factors).length > 0 ? (
+                      <dl className="space-y-2">
+                        {Object.entries(analysisResult.vehicle_factors).map(([key, value]) => (
+                          <div key={key} className="grid grid-cols-2">
+                            <dt className="text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                            <dd className="text-sm font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No vehicle factors available</p>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <LineChart className="h-4 w-4 mr-1" />
+                  Trend Analysis
+                </h3>
+                <div className="bg-muted rounded-md p-4">
+                  <ScrollArea className="h-[200px]">
+                    {analysisResult.trend_analysis && Object.keys(analysisResult.trend_analysis).length > 0 ? (
+                      <dl className="space-y-2">
+                        {Object.entries(analysisResult.trend_analysis).map(([key, value]) => (
+                          <div key={key} className="grid grid-cols-2">
+                            <dt className="text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                            <dd className="text-sm font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No trend analysis available</p>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Risk Factors
+                </h3>
+                <div className="bg-muted rounded-md p-4">
+                  <ScrollArea className="h-[200px]">
+                    {analysisResult.risk_factors && Object.keys(analysisResult.risk_factors).length > 0 ? (
+                      <dl className="space-y-2">
+                        {Object.entries(analysisResult.risk_factors).map(([key, value]) => (
+                          <div key={key} className="grid grid-cols-2">
+                            <dt className="text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                            <dd className="text-sm font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No risk factors available</p>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
             </div>
           </TabsContent>
-          <TabsContent value="details" className="space-y-4">
+          
+          <TabsContent value="payments" className="mt-4">
             <div className="space-y-4">
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('paymentFactors')}
-                >
-                  <h3 className="text-lg font-semibold">Payment Factors</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.paymentFactors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {expandedSections.paymentFactors && (
-                  <div className="mt-2">
-                    <p>Total Payments: {analysisResult.payment_factors?.total_payments}</p>
-                    <p>On-Time Payments: {analysisResult.payment_factors?.on_time_payments}</p>
-                    <p>Late Payments: {analysisResult.payment_factors?.late_payments}</p>
-                    <p>Payment Consistency Score: {analysisResult.payment_factors?.payment_consistency_score}</p>
-                    <p>Average Delay Days: {analysisResult.payment_factors?.average_delay_days}</p>
-                    <p>Recent Trend: {analysisResult.payment_factors?.recent_trend}</p>
-                    <p>Last Payment Date: {analysisResult.payment_factors?.last_payment_date}</p>
-                  </div>
-                )}
+              <h3 className="text-sm font-medium flex items-center">
+                <DollarSign className="h-4 w-4 mr-1" />
+                Payment Analysis
+              </h3>
+              
+              <div className="bg-muted rounded-md p-4">
+                <ScrollArea className="h-[300px]">
+                  {analysisResult.payment_factors && Object.keys(analysisResult.payment_factors).length > 0 ? (
+                    <dl className="space-y-4">
+                      {Object.entries(analysisResult.payment_factors).map(([key, value]) => (
+                        <div key={key} className="border-b pb-3 last:border-0 last:pb-0">
+                          <dt className="text-sm font-medium mb-1">{key.replace(/_/g, ' ')}</dt>
+                          <dd className="text-sm">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No payment analysis available</p>
+                  )}
+                </ScrollArea>
               </div>
-
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('vehicleFactors')}
-                >
-                  <h3 className="text-lg font-semibold">Vehicle Factors</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.vehicleFactors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
+              
+              <div className="bg-blue-50 rounded-md p-4 border border-blue-100">
+                <h4 className="text-sm font-medium flex items-center">
+                  <Info className="h-4 w-4 mr-1 text-blue-500" />
+                  Historical Payment Data
+                </h4>
+                <div className="mt-2">
+                  {analysisResult.historical_data && Object.keys(analysisResult.historical_data).length > 0 ? (
+                    <dl className="space-y-2">
+                      {Object.entries(analysisResult.historical_data).map(([key, value]) => (
+                        <div key={key} className="grid grid-cols-2">
+                          <dt className="text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</dt>
+                          <dd className="text-sm font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No historical payment data available</p>
+                  )}
                 </div>
-                {expandedSections.vehicleFactors && (
-                  <div className="mt-2">
-                    <p>Maintenance Frequency: {analysisResult.vehicle_factors?.maintenance_frequency}</p>
-                    <p>Major Issues Count: {analysisResult.vehicle_factors?.major_issues_count}</p>
-                    <p>Last Maintenance Date: {analysisResult.vehicle_factors?.last_maintenance_date}</p>
-                    <p>Maintenance Score: {analysisResult.vehicle_factors?.maintenance_score}</p>
-                    <p>Vehicle Age: {analysisResult.vehicle_factors?.vehicle_age}</p>
-                    <p>Vehicle Make: {analysisResult.vehicle_factors?.vehicle_make}</p>
-                    <p>Vehicle Model: {analysisResult.vehicle_factors?.vehicle_model}</p>
-                  </div>
-                )}
               </div>
-
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('customerFactors')}
-                >
-                  <h3 className="text-lg font-semibold">Customer Factors</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.customerFactors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {expandedSections.customerFactors && (
-                  <div className="mt-2">
-                    <p>Traffic Fines Count: {analysisResult.customer_factors?.traffic_fines_count}</p>
-                    <p>Total Fine Amount: {analysisResult.customer_factors?.total_fine_amount}</p>
-                    <p>Customer Since: {analysisResult.customer_factors?.customer_since}</p>
-                    <p>Previous Agreements Count: {analysisResult.customer_factors?.previous_agreements_count}</p>
-                    <p>Payment Reliability Score: {analysisResult.customer_factors?.payment_reliability_score}</p>
-                    <p>Customer Name: {analysisResult.customer_factors?.customer_name}</p>
-                    <p>Customer Contact: {analysisResult.customer_factors?.customer_contact}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('riskFactors')}
-                >
-                  <h3 className="text-lg font-semibold">Risk Factors</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.riskFactors ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {expandedSections.riskFactors && (
-                  <div className="mt-2">
-                    <p>Payment Risk Score: {analysisResult.risk_factors?.payment_risk_score}</p>
-                    <p>Vehicle Risk Score: {analysisResult.risk_factors?.vehicle_risk_score}</p>
-                    <p>Customer Risk Score: {analysisResult.risk_factors?.customer_risk_score}</p>
-                    <p>Overall Risk Score: {analysisResult.risk_factors?.overall_risk_score}</p>
-                    <p>Risk Factors: {analysisResult.risk_factors?.risk_factors?.join(', ') || 'None'}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('trendAnalysis')}
-                >
-                  <h3 className="text-lg font-semibold">Trend Analysis</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.trendAnalysis ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {expandedSections.trendAnalysis && (
-                  <div className="mt-2">
-                    <p>Overall Direction: {analysisResult.trend_analysis?.overall_direction}</p>
-                    <p>Data Points: {analysisResult.trend_analysis?.data_points}</p>
-                    {analysisResult.trend_analysis?.monthly_trends && (
-                      <ul className="list-disc pl-5">
-                        {analysisResult.trend_analysis.monthly_trends.map((trend, index) => (
-                          <li key={index}>
-                            {trend.month}: Payments - {trend.payments}, On-Time - {trend.on_time}, Late - {trend.late}, Fines - {trend.fines}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="border rounded-md p-4">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => toggleSection('interventionSuggestions')}
-                >
-                  <h3 className="text-lg font-semibold">Intervention Suggestions</h3>
-                  <Button variant="ghost" size="icon">
-                    {expandedSections.interventionSuggestions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {expandedSections.interventionSuggestions && (
-                  <ul className="list-disc pl-5 mt-2">
-                    {analysisResult.intervention_suggestions?.map((suggestion, index) => (
-                      <li key={index}>{suggestion}</li>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="recommendations" className="mt-4">
+            <div className="space-y-4">
+              {analysisResult.intervention_suggestions && analysisResult.intervention_suggestions.length > 0 ? (
+                <>
+                  <h3 className="text-sm font-medium">Recommended Interventions</h3>
+                  <ul className="space-y-3">
+                    {analysisResult.intervention_suggestions.map((suggestion, i) => (
+                      <li key={i} className="bg-muted rounded-md p-4">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                          <div>
+                            <p className="text-sm">{suggestion}</p>
+                          </div>
+                        </div>
+                      </li>
                     ))}
                   </ul>
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="bg-muted rounded-md p-4 text-center">
+                  <Info className="h-5 w-5 mx-auto text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">No specific interventions recommended at this time</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          Last Analyzed: {formatDate(analysisResult.analyzed_at)}
-        </p>
-        <Button variant="outline" size="sm" onClick={onRefreshAnalysis} disabled={isLoading} className="gap-2">
-          <RefreshCcw className="h-4 w-4" />
-          {isLoading ? "Analyzing..." : "Refresh Analysis"}
-        </Button>
+      
+      <CardFooter className="bg-muted/30 text-xs text-muted-foreground flex items-center justify-between">
+        <div className="flex items-center">
+          <Cpu className="h-3 w-3 mr-1" />
+          <span>AI Analysis {analysisResult.model_version || 'v1.0'}</span>
+        </div>
+        <div className="flex items-center">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>Analyzed: {formatDate(analysisResult.analyzed_at)}</span>
+        </div>
       </CardFooter>
     </Card>
   );

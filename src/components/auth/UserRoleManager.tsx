@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Shield, UserCog } from "lucide-react";
 import { 
@@ -22,7 +21,6 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
   const [role, setRole] = useState<string>(currentRole);
   const [isChanging, setIsChanging] = useState(false);
 
-  // Update the role state when currentRole prop changes
   useEffect(() => {
     setRole(currentRole);
   }, [currentRole]);
@@ -47,14 +45,11 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
       
       console.log("Update response:", data);
       
-      // Only update the local role state if the server update succeeded
       setRole(newRole);
       toast.success(`${fullName}'s role updated to ${newRole}`);
-    } catch (error: unknown) {
-      console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role: " + error.message);
-      // Reset to the previous role on error
-      setRole(currentRole);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setIsChanging(false);
     }
