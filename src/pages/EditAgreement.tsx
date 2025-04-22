@@ -6,15 +6,15 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/types/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAgreement, updateAgreement } = useAgreements();
+  const { getAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
@@ -64,8 +64,8 @@ const EditAgreement = () => {
       setIsSubmitting(true);
       
       // Check if status is being changed to active
-      const isChangingToActive = updatedAgreement.status === 'active' && 
-                              agreement?.status !== 'active';
+      const isChangingToActive = updatedAgreement.status === AgreementStatus.ACTIVE && 
+                              agreement?.status !== AgreementStatus.ACTIVE;
                               
       if (isChangingToActive) {
         console.log("Status is being changed to active, payment schedule will be generated");

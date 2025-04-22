@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, Cpu, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -17,11 +17,15 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
+import { analyzeAgreementStatus } from '@/utils/translation-utils';
+import { EnhancedAnalysisResult, AiModelParameters } from '@/utils/type-utils';
+import EnhancedAnalysisCard from '@/components/agreements/EnhancedAnalysisCard';
+import { runComprehensiveAgreementAnalysis, getAiModelParameters } from '@/utils/ai-analysis-utils';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAgreement, deleteAgreement } = useAgreements();
+  const { getAgreement, deleteAgreement, updateAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -29,6 +33,9 @@ const AgreementDetailPage = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<EnhancedAnalysisResult | null>(null);
+  const [modelInfo, setModelInfo] = useState<AiModelParameters | undefined>(undefined);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -66,6 +73,8 @@ const AgreementDetailPage = () => {
         
         setAgreement(adaptedAgreement);
         fetchPayments();
+        
+        fetchAnalysisResult(adaptedAgreement.id);
       } else {
         toast.error("Agreement not found");
         navigate("/agreements");
@@ -76,6 +85,49 @@ const AgreementDetailPage = () => {
     } finally {
       setIsLoading(false);
       setHasAttemptedFetch(true);
+    }
+  };
+
+  const fetchAnalysisResult = async (agreementId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('agreement_analysis_results')
+        .select('*')
+        .eq('agreement_id', agreementId)
+        .order('analyzed_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is ok
+        console.error("Error fetching analysis:", error);
+      } else if (data) {
+        setAnalysisResult({
+          id: data.id,
+          agreement_id: data.agreement_id,
+          recommended_status: data.recommended_status,
+          confidence: data.confidence,
+          explanation: data.explanation,
+          risk_level: data.risk_level as 'low' | 'medium' | 'high',
+          action_items: data.action_items || [],
+          analyzed_at: data.analyzed_at,
+          currentStatus: data.current_status,
+          current_status: data.current_status,
+          historical_data: data.historical_data || {},
+          payment_factors: data.payment_factors || {},
+          vehicle_factors: data.vehicle_factors || {},
+          customer_factors: data.customer_factors || {},
+          risk_factors: data.risk_factors || {},
+          trend_analysis: data.trend_analysis || {},
+          prediction_accuracy: data.prediction_accuracy,
+          model_version: data.model_version,
+          intervention_suggestions: data.intervention_suggestions || []
+        });
+        
+        // Load model information
+        setModelInfo(getAiModelParameters());
+      }
+    } catch (error) {
+      console.error("Error fetching analysis result:", error);
     }
   };
 
@@ -172,6 +224,50 @@ const AgreementDetailPage = () => {
       setIsRunningMaintenance(false);
     }
   };
+  
+  const handleAnalyzeAgreement = async () => {
+    if (!id || !agreement) return;
+    
+    setIsAnalyzing(true);
+    try {
+      toast.info("Running enhanced AI analysis of agreement...");
+      
+      // Use the new comprehensive analysis function
+      const result = await runComprehensiveAgreementAnalysis(agreement.id);
+      setAnalysisResult(result);
+      setModelInfo(getAiModelParameters());
+      
+      toast.success("Enhanced agreement analysis completed");
+    } catch (error) {
+      console.error("Error analyzing agreement:", error);
+      toast.error("Failed to analyze agreement");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
+  const handleApplyRecommendation = async () => {
+    if (!id || !agreement || !analysisResult) return;
+    
+    try {
+      toast.info("Applying recommended status...");
+      
+      await updateAgreement.mutateAsync({
+        id,
+        data: {
+          status: analysisResult.recommended_status,
+          updated_at: new Date().toISOString(),
+          last_ai_update: new Date().toISOString()
+        }
+      });
+      
+      toast.success("Agreement status updated successfully");
+      refreshAgreementData();
+    } catch (error) {
+      console.error("Error updating agreement status:", error);
+      toast.error("Failed to update agreement status");
+    }
+  };
 
   return (
     <PageContainer
@@ -197,10 +293,20 @@ const AgreementDetailPage = () => {
             size="sm"
             onClick={handleRunMaintenanceJob}
             disabled={isRunningMaintenance}
-            className="gap-2"
+            className="gap-2 mr-2"
           >
             <RefreshCcw className="h-4 w-4" />
             {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAnalyzeAgreement}
+            disabled={isAnalyzing}
+            className="gap-2"
+          >
+            <Cpu className="h-4 w-4" />
+            {isAnalyzing ? "Analyzing..." : "Analyze with AI"}
           </Button>
         </>
       }
@@ -216,6 +322,17 @@ const AgreementDetailPage = () => {
         </div>
       ) : agreement ? (
         <>
+          {/* Replace with Enhanced Analysis Card */}
+          {analysisResult && (
+            <EnhancedAnalysisCard 
+              analysisResult={analysisResult}
+              modelInfo={modelInfo}
+              isLoading={isAnalyzing}
+              onApplyRecommendation={handleApplyRecommendation}
+              onRefreshAnalysis={handleAnalyzeAgreement}
+            />
+          )}
+          
           <AgreementDetail 
             agreement={agreement}
             onDelete={handleDelete}

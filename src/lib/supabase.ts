@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { toast } from 'sonner';
 import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
+import { checkAndUpdateConflictingAgreements } from '@/utils/agreement-status-checker';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -337,7 +338,6 @@ export const revertAgreementImport = async (
   }
 };
 
-// Function to check for active agreements without payment schedules and create them
 export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {
     console.log("Running payment schedule maintenance job");
@@ -377,7 +377,6 @@ export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boo
   }
 };
 
-// Function to update late fees for pending payments
 export const updateLateFees = async (): Promise<{ success: boolean; updatedCount: number; message?: string; error?: any }> => {
   try {
     console.log("Updating late fees for pending payments");
@@ -479,7 +478,6 @@ export const updateLateFees = async (): Promise<{ success: boolean; updatedCount
   }
 };
 
-// Function to manually run the maintenance job (can be called from UI)
 export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {
     toast.info("Running payment schedule maintenance...");
@@ -507,7 +505,6 @@ export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolea
   }
 };
 
-// Function to check and fix payments for a specific agreement
 export const fixAgreementPayments = async (agreementId: string): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {
     toast.info("Checking and fixing payments for this agreement...");
@@ -530,6 +527,39 @@ export const fixAgreementPayments = async (agreementId: string): Promise<{ succe
     return {
       success: false,
       message: `Failed to fix agreement payments: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    };
+  }
+};
+
+export const runAgreementStatusMaintenance = async (): Promise<{ 
+  success: boolean; 
+  message?: string; 
+  error?: any 
+}> => {
+  try {
+    console.log("Running agreement status maintenance");
+    
+    // Check for conflicting vehicle assignments
+    const conflictResult = await checkAndUpdateConflictingAgreements();
+    
+    if (!conflictResult.success) {
+      return {
+        success: false,
+        message: `Failed to check conflicting agreements: ${conflictResult.message}`,
+        error: conflictResult
+      };
+    }
+    
+    return {
+      success: true,
+      message: conflictResult.message
+    };
+  } catch (error) {
+    console.error("Error in runAgreementStatusMaintenance:", error);
+    return {
+      success: false,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
       error
     };
   }
