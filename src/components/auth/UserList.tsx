@@ -546,10 +546,14 @@ const handleopenPermissionDialoguser = useCallback(() => {
                 onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
                 disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
               >
+const handlehandleUpdateUserStatususeridinactive = useCallback(() => {
+  handleUpdateUserStatus(user.id, "inactive")
+}, []);
+
                 Set Pending
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "inactive")}
+                onClick={handlehandleUpdateUserStatususeridinactive
                 disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
               >
                 Set Inactive
