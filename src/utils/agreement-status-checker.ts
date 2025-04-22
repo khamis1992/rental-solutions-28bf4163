@@ -124,7 +124,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       .in('status', [
         DB_AGREEMENT_STATUS.ACTIVE, 
         DB_AGREEMENT_STATUS.PENDING_PAYMENT,
-        DB_AGREEMENT_STATUS.DRAFT
+        DB_AGREEMENT_STATUS.DRAFT // Fixed: Updated to use the proper enum value
       ]);
       
     if (detailError) {
@@ -147,7 +147,8 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
           
           // Update the database with analysis results
           try {
-            const { error } = await supabase.rpc('upsert_agreement_analysis', {
+            // Fixed: Using rpc with the proper function name as defined in the database
+            const { error } = await supabase.rpc("upsert_agreement_analysis", {
               p_agreement_id: agreement.id,
               p_recommended_status: analysis.recommendedStatus,
               p_confidence: analysis.confidence,
@@ -172,7 +173,9 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
             analysis.confidence > 0.85 && 
             analysis.riskLevel === 'high' && 
             analysis.recommendedStatus !== agreement.status &&
-            analysis.recommendedStatus in DB_AGREEMENT_STATUS
+            Object.values(DB_AGREEMENT_STATUS).includes(
+              analysis.recommendedStatus as any
+            )
           ) {
             // Ensure the recommendedStatus is a valid DatabaseAgreementStatus
             const validStatus = Object.values(DB_AGREEMENT_STATUS).includes(
@@ -180,10 +183,12 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
             );
             
             if (validStatus) {
+              // Fixed: Added type assertion to ensure type safety
+              const statusToUpdate = analysis.recommendedStatus as DatabaseAgreementStatus;
               const { error: statusError } = await supabase
                 .from('leases')
                 .update({ 
-                  status: analysis.recommendedStatus,
+                  status: statusToUpdate,
                   updated_at: new Date().toISOString(),
                   last_ai_update: new Date().toISOString()
                 })

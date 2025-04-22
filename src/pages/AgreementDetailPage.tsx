@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -8,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, Cpu } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, Cpu, AlertCircle, Check, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -21,7 +20,6 @@ import { fixAgreementPayments } from '@/lib/supabase';
 import { analyzeAgreementStatus } from '@/utils/translation-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, Check, Clock } from 'lucide-react';
 
 interface AnalysisResult {
   recommendedStatus: string;

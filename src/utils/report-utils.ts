@@ -206,8 +206,8 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   doc.rect(14, currentY, pageWidth - 28, 8, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.text('Metric', 16, currentY + 6);
-  doc.text('Value', pageWidth / 2, currentY + 6);
+  doc.text('Metric', 16, currentY + 6, { align: 'left' });
+  doc.text('Value', pageWidth / 2, currentY + 6, { align: 'left' });
 
   // Draw data rows
   currentY += 8;
