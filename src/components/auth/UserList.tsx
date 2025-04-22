@@ -549,10 +549,14 @@ const UserList = () => {
                 disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
               >
                 Set Inactive
+const handleopenDeleteDialoguser = useCallback(() => {
+  openDeleteDialog(user)
+}, []);
+
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => openDeleteDialog(user)}
+                onClick={handleopenDeleteDialoguser
                 disabled={!isAdmin || currentUserProfile}
                 className="text-red-600"
               >
