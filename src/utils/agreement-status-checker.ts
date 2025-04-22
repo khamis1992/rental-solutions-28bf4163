@@ -1,6 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DatabaseAgreementStatus, DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
+import { analyzeAgreementStatus } from '@/utils/translation-utils';
 
 interface VehicleAgreement {
   id: string;
@@ -10,9 +12,20 @@ interface VehicleAgreement {
   created_at: string;
 }
 
+interface AgreementAnalysisResult {
+  id: string;
+  recommended_status: string;
+  confidence: number;
+  current_status: string;
+  risk_level: string;
+  analyzed_at: string;
+  explanation: string;
+}
+
 export const checkAndUpdateConflictingAgreements = async (): Promise<{
   success: boolean;
   updatedCount: number;
+  aiAnalyzedCount: number;
   message: string;
 }> => {
   try {
@@ -30,6 +43,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       return {
         success: false,
         updatedCount: 0,
+        aiAnalyzedCount: 0,
         message: `Error fetching agreements: ${fetchError.message}`
       };
     }
@@ -38,6 +52,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       return {
         success: true,
         updatedCount: 0,
+        aiAnalyzedCount: 0,
         message: "No active agreements found to check"
       };
     }
@@ -52,6 +67,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
     }, {} as Record<string, VehicleAgreement[]>);
 
     let updatedCount = 0;
+    let aiAnalyzedCount = 0;
 
     // Check each vehicle's agreements
     for (const [vehicleId, agreements] of Object.entries(agreementsByVehicle)) {
@@ -87,13 +103,105 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       }
     }
 
-    const message = updatedCount > 0 
-      ? `Updated ${updatedCount} conflicting agreements to cancelled status`
-      : "No conflicting agreements found";
+    // Now perform AI analysis on all agreements with detailed information
+    console.log("Starting AI analysis of agreements");
+    const analysisResults: AgreementAnalysisResult[] = [];
+    
+    // Get all active and pending agreements with more details
+    const { data: agreementsForAnalysis, error: detailError } = await supabase
+      .from('leases')
+      .select(`
+        id, 
+        customer_id, 
+        vehicle_id, 
+        start_date, 
+        end_date, 
+        status, 
+        total_amount, 
+        deposit_amount,
+        agreement_number
+      `)
+      .in('status', [
+        DB_AGREEMENT_STATUS.ACTIVE, 
+        DB_AGREEMENT_STATUS.PENDING_PAYMENT,
+        DB_AGREEMENT_STATUS.DRAFT
+      ]);
+      
+    if (detailError) {
+      console.error("Error fetching agreements for analysis:", detailError);
+    } else if (agreementsForAnalysis && agreementsForAnalysis.length > 0) {
+      // Process each agreement with AI
+      for (const agreement of agreementsForAnalysis) {
+        try {
+          const analysis = await analyzeAgreementStatus(agreement);
+          
+          analysisResults.push({
+            id: agreement.id,
+            recommended_status: analysis.recommendedStatus,
+            confidence: analysis.confidence,
+            current_status: agreement.status,
+            risk_level: analysis.riskLevel,
+            analyzed_at: analysis.analyzedAt,
+            explanation: analysis.explanation
+          });
+          
+          // Update the database with analysis results
+          await supabase
+            .from('agreement_analysis_results')
+            .upsert({
+              agreement_id: agreement.id,
+              recommended_status: analysis.recommendedStatus,
+              confidence: analysis.confidence,
+              current_status: agreement.status,
+              risk_level: analysis.riskLevel,
+              analyzed_at: analysis.analyzedAt,
+              explanation: analysis.explanation,
+              action_items: analysis.actionItems
+            }, {
+              onConflict: 'agreement_id'
+            });
+            
+          aiAnalyzedCount++;
+          
+          // If high confidence and risk level is high, auto-update the agreement status
+          if (
+            analysis.confidence > 0.85 && 
+            analysis.riskLevel === 'high' && 
+            analysis.recommendedStatus !== agreement.status
+          ) {
+            const { error: statusError } = await supabase
+              .from('leases')
+              .update({ 
+                status: analysis.recommendedStatus,
+                updated_at: new Date().toISOString(),
+                last_ai_update: new Date().toISOString()
+              })
+              .eq('id', agreement.id);
+              
+            if (statusError) {
+              console.error(`Error auto-updating agreement ${agreement.id} status:`, statusError);
+            } else {
+              updatedCount++;
+              console.log(`Auto-updated agreement ${agreement.id} status from ${agreement.status} to ${analysis.recommendedStatus} based on AI recommendation`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error analyzing agreement ${agreement.id}:`, error);
+          continue;
+        }
+      }
+    }
+
+    // Create a message summarizing what was done
+    const message = [
+      updatedCount > 0 ? `Updated ${updatedCount} agreement statuses` : "No status updates needed",
+      aiAnalyzedCount > 0 ? `Analyzed ${aiAnalyzedCount} agreements with AI` : "No agreements analyzed"
+    ].join(". ");
 
     return {
       success: true,
       updatedCount,
+      aiAnalyzedCount,
       message
     };
   } catch (error) {
@@ -101,6 +209,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
     return {
       success: false,
       updatedCount: 0,
+      aiAnalyzedCount: 0,
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
     };
   }
@@ -109,12 +218,12 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
 // Function to run the check manually (can be triggered from UI)
 export const runAgreementStatusCheck = async (): Promise<void> => {
   try {
-    toast.info("Checking for conflicting vehicle agreements...");
+    toast.info("Checking agreement statuses with AI assistance...");
     
     const result = await checkAndUpdateConflictingAgreements();
     
     if (result.success) {
-      if (result.updatedCount > 0) {
+      if (result.updatedCount > 0 || result.aiAnalyzedCount > 0) {
         toast.success(result.message);
       } else {
         toast.info(result.message);

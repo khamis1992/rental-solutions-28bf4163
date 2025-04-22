@@ -32,7 +32,7 @@ export const transliterateArabicName = async (text: string): Promise<string> => 
     console.log(`Transliterating text: ${text}`);
     
     const { data, error } = await supabase.functions.invoke('translate-text', {
-      body: { text },
+      body: { text, mode: 'transliteration' },
     });
 
     if (error) {
@@ -71,11 +71,11 @@ export const transliterateTextFields = async <T extends Record<string, any>>(obj
     } else if (Array.isArray(value)) {
       // Process arrays recursively
       result[key as keyof T] = await Promise.all(
-        value.map(item => 
-          typeof item === 'object' ? transliterateTextFields(item) : item
+        value.map(async item => 
+          typeof item === 'object' && item !== null ? await transliterateTextFields(item) : item
         )
       ) as any;
-    } else if (value && typeof value === 'object') {
+    } else if (value && typeof value === 'object' && value !== null) {
       // Process nested objects recursively
       result[key as keyof T] = await transliterateTextFields(value) as any;
     }
@@ -98,4 +98,59 @@ export const prepareReportData = async <T extends Record<string, any>[]>(data: T
   );
   
   return transliteratedData as T;
+};
+
+/**
+ * Analyzes an agreement using AI to recommend a status
+ * @param agreementData Agreement data to analyze
+ * @returns Analysis results with status recommendation
+ */
+export const analyzeAgreementStatus = async (agreementData: any): Promise<{
+  recommendedStatus: string;
+  confidence: number;
+  explanation: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  actionItems: string[];
+  agreementId: string;
+  analyzedAt: string;
+  currentStatus: string;
+}> => {
+  try {
+    console.log(`Analyzing agreement status for ID: ${agreementData.id}`);
+    
+    // Get payments data for this agreement
+    const { data: payments, error: paymentsError } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', agreementData.id);
+      
+    if (paymentsError) {
+      console.error("Error fetching payments:", paymentsError);
+      throw new Error(`Failed to fetch payment data: ${paymentsError.message}`);
+    }
+    
+    // Enrich agreement data with payments
+    const enrichedData = {
+      ...agreementData,
+      payments: payments || []
+    };
+    
+    // Call the AI service to analyze the agreement
+    const { data, error } = await supabase.functions.invoke('translate-text', {
+      body: { 
+        mode: 'agreement_analysis',
+        agreementData: enrichedData
+      },
+    });
+
+    if (error) {
+      console.error('Agreement analysis error:', error);
+      throw new Error(`Failed to analyze agreement: ${error.message}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error analyzing agreement status:', err);
+    throw err;
+  }
 };
