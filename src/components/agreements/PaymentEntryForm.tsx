@@ -271,10 +271,14 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
                       key={payment.id}
                       className={`p-2 border rounded-md cursor-pointer ${
                         selectedPendingPayment === payment.id 
+const handlehandlePendingPaymentSelectpaymentid = useCallback(() => {
+  handlePendingPaymentSelect(payment.id)
+}, []);
+
                           ? "border-blue-500 bg-blue-100" 
                           : "border-gray-200"
                       }`}
-                      onClick={() => handlePendingPaymentSelect(payment.id)}
+                      onClick={handlehandlePendingPaymentSelectpaymentid
                     >
                       <div className="flex justify-between">
                         <span>{format(new Date(payment.date), "MMMM d, yyyy")}</span>
