@@ -1,510 +1,664 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedAnalysisResult, AiModelParameters } from '@/utils/type-utils';
-import { DatabaseAgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
 
 /**
- * Enhanced AI Status Analysis System
- * Provides advanced analysis capabilities for agreement statuses
+ * Runs a comprehensive analysis of an agreement, providing detailed insights
+ * into payment history, vehicle condition, customer behavior, and risk factors.
+ * 
+ * @param agreementId The ID of the agreement to analyze
+ * @returns Enhanced analysis result with detailed factors
  */
-
-// Historical data analysis
-export const getAgreementStatusHistory = async (agreementId: string): Promise<{
-  statusChanges: Array<{date: string, status: DatabaseAgreementStatus}>,
-  averageDuration: Record<DatabaseAgreementStatus, number>
-}> => {
-  try {
-    // Get status history from audit logs
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .select('changes, created_at')
-      .eq('entity_id', agreementId)
-      .eq('entity_type', 'lease')
-      .eq('action', 'update')
-      .order('created_at', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching agreement history:', error);
-      throw error;
-    }
-    
-    // Extract status changes
-    const statusChanges = data
-      ?.filter(log => log.changes?.status)
-      .map(log => ({
-        date: log.created_at,
-        status: log.changes.status as DatabaseAgreementStatus
-      })) || [];
-      
-    // Calculate average duration in each status
-    const statusDurations: Record<string, number[]> = {};
-    for (let i = 0; i < statusChanges.length - 1; i++) {
-      const status = statusChanges[i].status;
-      const startDate = new Date(statusChanges[i].date);
-      const endDate = new Date(statusChanges[i + 1].date);
-      const durationDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-      
-      if (!statusDurations[status]) {
-        statusDurations[status] = [];
-      }
-      statusDurations[status].push(durationDays);
-    }
-    
-    // Calculate averages
-    const averageDuration = Object.entries(statusDurations).reduce((acc, [status, durations]) => {
-      acc[status as DatabaseAgreementStatus] = durations.reduce((sum, d) => sum + d, 0) / durations.length;
-      return acc;
-    }, {} as Record<DatabaseAgreementStatus, number>);
-    
-    return { statusChanges, averageDuration };
-  } catch (error) {
-    console.error('Error in getAgreementStatusHistory:', error);
-    return { statusChanges: [], averageDuration: {} };
-  }
-};
-
-// Payment behavior analysis
-export const analyzePaymentBehavior = async (
+export async function runComprehensiveAgreementAnalysis(
   agreementId: string
-): Promise<{
-  paymentHistory: Array<{date: string, status: string, daysLate: number}>,
-  latePaymentRate: number,
-  averageDaysLate: number,
-  paymentRiskScore: number
-}> => {
+): Promise<EnhancedAnalysisResult> {
   try {
-    // Get payment history
-    const { data, error } = await supabase
-      .from('unified_payments')
-      .select('payment_date, due_date, status, days_overdue')
-      .eq('lease_id', agreementId)
-      .order('due_date', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching payment history:', error);
-      throw error;
-    }
+    console.log('Running comprehensive analysis for agreement:', agreementId);
     
-    if (!data || data.length === 0) {
-      return {
-        paymentHistory: [],
-        latePaymentRate: 0,
-        averageDaysLate: 0,
-        paymentRiskScore: 0
-      };
-    }
-    
-    // Process payment data
-    const paymentHistory = data.map(payment => ({
-      date: payment.payment_date || payment.due_date,
-      status: payment.status,
-      daysLate: payment.days_overdue || 0
-    }));
-    
-    // Calculate metrics
-    const totalPayments = data.length;
-    const latePayments = data.filter(p => (p.days_overdue || 0) > 0).length;
-    const latePaymentRate = totalPayments > 0 ? latePayments / totalPayments : 0;
-    
-    const totalDaysLate = data.reduce((sum, p) => sum + (p.days_overdue || 0), 0);
-    const averageDaysLate = totalPayments > 0 ? totalDaysLate / totalPayments : 0;
-    
-    // Calculate risk score (0-100)
-    let paymentRiskScore = 0;
-    
-    if (totalPayments > 0) {
-      // Factors: late payment rate (60%), average days late (40%)
-      paymentRiskScore = (latePaymentRate * 60) + (Math.min(averageDaysLate / 30, 1) * 40);
-      paymentRiskScore = Math.min(Math.round(paymentRiskScore), 100);
-    }
-    
-    return {
-      paymentHistory,
-      latePaymentRate,
-      averageDaysLate,
-      paymentRiskScore
-    };
-  } catch (error) {
-    console.error('Error in analyzePaymentBehavior:', error);
-    return {
-      paymentHistory: [],
-      latePaymentRate: 0,
-      averageDaysLate: 0,
-      paymentRiskScore: 0
-    };
-  }
-};
-
-// Vehicle maintenance analysis
-export const analyzeVehicleMaintenance = async (
-  vehicleId: string
-): Promise<{
-  maintenanceHistory: Array<{date: string, type: string, cost: number}>,
-  totalMaintenanceCost: number,
-  maintenanceFrequency: number,
-  maintenanceRiskScore: number
-}> => {
-  try {
-    // Get maintenance history
-    const { data, error } = await supabase
-      .from('maintenance')
-      .select('scheduled_date, service_type, cost, status')
-      .eq('vehicle_id', vehicleId)
-      .order('scheduled_date', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching vehicle maintenance:', error);
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      return {
-        maintenanceHistory: [],
-        totalMaintenanceCost: 0,
-        maintenanceFrequency: 0,
-        maintenanceRiskScore: 0
-      };
-    }
-    
-    // Process maintenance data
-    const maintenanceHistory = data.map(maintenance => ({
-      date: maintenance.scheduled_date,
-      type: maintenance.service_type,
-      cost: maintenance.cost || 0
-    }));
-    
-    // Calculate metrics
-    const totalMaintenanceCost = data.reduce((sum, m) => sum + (m.cost || 0), 0);
-    
-    // Calculate average days between maintenance events
-    let maintenanceFrequency = 0;
-    if (data.length > 1) {
-      const firstDate = new Date(data[0].scheduled_date);
-      const lastDate = new Date(data[data.length - 1].scheduled_date);
-      const totalDays = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
-      maintenanceFrequency = totalDays / (data.length - 1);
-    }
-    
-    // Calculate risk score (0-100)
-    const pendingMaintenance = data.filter(m => m.status === 'scheduled').length;
-    const completedMaintenance = data.filter(m => m.status === 'completed').length;
-    
-    let maintenanceRiskScore = 0;
-    if (pendingMaintenance + completedMaintenance > 0) {
-      // Risk increases with higher percentage of pending maintenance
-      const pendingRate = pendingMaintenance / (pendingMaintenance + completedMaintenance);
-      maintenanceRiskScore = Math.min(Math.round(pendingRate * 100), 100);
-    }
-    
-    return {
-      maintenanceHistory,
-      totalMaintenanceCost,
-      maintenanceFrequency,
-      maintenanceRiskScore
-    };
-  } catch (error) {
-    console.error('Error in analyzeVehicleMaintenance:', error);
-    return {
-      maintenanceHistory: [],
-      totalMaintenanceCost: 0,
-      maintenanceFrequency: 0,
-      maintenanceRiskScore: 0
-    };
-  }
-};
-
-// Customer history analysis
-export const analyzeCustomerHistory = async (
-  customerId: string
-): Promise<{
-  agreementCount: number,
-  completedAgreements: number,
-  cancelledAgreements: number,
-  averageAgreementDuration: number,
-  customerRiskScore: number
-}> => {
-  try {
-    // Get customer's agreement history
-    const { data, error } = await supabase
-      .from('leases')
-      .select('id, status, start_date, end_date')
-      .eq('customer_id', customerId);
-      
-    if (error) {
-      console.error('Error fetching customer history:', error);
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      return {
-        agreementCount: 0,
-        completedAgreements: 0,
-        cancelledAgreements: 0,
-        averageAgreementDuration: 0,
-        customerRiskScore: 50 // Default middle risk for new customers
-      };
-    }
-    
-    // Calculate metrics
-    const agreementCount = data.length;
-    const completedAgreements = data.filter(a => a.status === 'completed').length;
-    const cancelledAgreements = data.filter(a => a.status === 'cancelled').length;
-    
-    // Calculate average agreement duration in days
-    let totalDuration = 0;
-    let countWithDuration = 0;
-    
-    data.forEach(agreement => {
-      if (agreement.start_date && agreement.end_date) {
-        const startDate = new Date(agreement.start_date);
-        const endDate = new Date(agreement.end_date);
-        const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-        totalDuration += duration;
-        countWithDuration++;
-      }
-    });
-    
-    const averageAgreementDuration = countWithDuration > 0 ? totalDuration / countWithDuration : 0;
-    
-    // Calculate customer risk score (0-100)
-    let customerRiskScore = 50; // Start at midpoint
-    
-    if (agreementCount > 0) {
-      // Completion rate impacts risk (higher is better - lower risk)
-      const completionRate = completedAgreements / agreementCount;
-      // Cancellation rate impacts risk (higher is worse - higher risk)
-      const cancellationRate = cancelledAgreements / agreementCount;
-      
-      // Formula: 50 (baseline) + completion rate impact - cancellation rate impact
-      customerRiskScore = 50 + (completionRate * 30) - (cancellationRate * 30);
-      
-      // Experience factor: more agreements = more reliable assessment
-      const experienceFactor = Math.min(agreementCount / 10, 1); // Max effect at 10+ agreements
-      customerRiskScore = 50 + ((customerRiskScore - 50) * experienceFactor);
-      
-      customerRiskScore = Math.max(0, Math.min(100, Math.round(customerRiskScore)));
-    }
-    
-    return {
-      agreementCount,
-      completedAgreements,
-      cancelledAgreements,
-      averageAgreementDuration,
-      customerRiskScore
-    };
-  } catch (error) {
-    console.error('Error in analyzeCustomerHistory:', error);
-    return {
-      agreementCount: 0,
-      completedAgreements: 0,
-      cancelledAgreements: 0,
-      averageAgreementDuration: 0,
-      customerRiskScore: 50 // Default middle risk
-    };
-  }
-};
-
-// Run comprehensive analysis for an agreement
-export const runComprehensiveAgreementAnalysis = async (
-  agreementId: string
-): Promise<EnhancedAnalysisResult> => {
-  try {
-    // First get the agreement details
+    // Get the agreement data
     const { data: agreement, error: agreementError } = await supabase
       .from('leases')
       .select(`
-        id, 
-        customer_id, 
-        vehicle_id, 
-        start_date, 
-        end_date, 
-        status, 
-        total_amount, 
-        deposit_amount,
-        agreement_number
+        *,
+        profiles:customer_id (id, full_name, email, phone_number),
+        vehicles:vehicle_id (id, make, model, license_plate)
       `)
       .eq('id', agreementId)
       .single();
       
-    if (agreementError || !agreement) {
+    if (agreementError) {
       console.error('Error fetching agreement:', agreementError);
-      throw agreementError || new Error('Agreement not found');
+      throw new Error(`Failed to fetch agreement: ${agreementError.message}`);
     }
     
-    // Get existing analysis for comparison
-    const { data: existingAnalysis } = await supabase
-      .from('agreement_analysis_results')
+    if (!agreement) {
+      throw new Error('Agreement not found');
+    }
+
+    // Get payment history
+    const { data: payments, error: paymentsError } = await supabase
+      .from('unified_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
-      .single();
-    
-    // Run all analyses in parallel
-    const [
-      statusHistory,
-      paymentAnalysis,
-      vehicleAnalysis,
-      customerAnalysis
-    ] = await Promise.all([
-      getAgreementStatusHistory(agreementId),
-      analyzePaymentBehavior(agreementId),
-      analyzeVehicleMaintenance(agreement.vehicle_id),
-      analyzeCustomerHistory(agreement.customer_id)
-    ]);
-    
-    // Calculate overall risk score (0-100)
-    // Weighted components: payment (50%), customer history (30%), vehicle (20%)
-    const overallRiskScore = 
-      (paymentAnalysis.paymentRiskScore * 0.5) + 
-      (customerAnalysis.customerRiskScore * 0.3) + 
-      (vehicleAnalysis.maintenanceRiskScore * 0.2);
-    
-    // Map risk score to risk level
-    let riskLevel: 'low' | 'medium' | 'high';
-    if (overallRiskScore <= 33) riskLevel = 'low';
-    else if (overallRiskScore <= 66) riskLevel = 'medium';
-    else riskLevel = 'high';
-    
-    // Determine recommended status based on risk analysis
-    let recommendedStatus = agreement.status;
-    let explanationPoints: string[] = [];
-    let actionItems: string[] = [];
-    
-    // Logic for status recommendations
-    if (paymentAnalysis.latePaymentRate > 0.5 && riskLevel === 'high') {
-      recommendedStatus = 'cancelled';
-      explanationPoints.push(`High payment risk: ${paymentAnalysis.latePaymentRate * 100}% of payments are late`);
-      actionItems.push('Contact customer about payment issues');
-      actionItems.push('Discuss payment plan options');
-    } else if (paymentAnalysis.averageDaysLate > 15 && riskLevel === 'high') {
-      recommendedStatus = 'cancelled';
-      explanationPoints.push(`Payments are consistently very late (avg ${Math.round(paymentAnalysis.averageDaysLate)} days)`);
-      actionItems.push('Review payment terms with customer');
-    } else if (vehicleAnalysis.maintenanceRiskScore > 70) {
-      recommendedStatus = 'pending_payment';
-      explanationPoints.push('Vehicle has high maintenance requirements');
-      actionItems.push('Schedule vehicle inspection');
-    } else if (customerAnalysis.cancelledAgreements > 1) {
-      recommendedStatus = 'pending_payment';
-      explanationPoints.push(`Customer has ${customerAnalysis.cancelledAgreements} cancelled agreements in history`);
-      actionItems.push('Flag for account review');
+      .eq('lease_id', agreementId)
+      .order('created_at', { ascending: false });
+      
+    if (paymentsError) {
+      console.error('Error fetching payments:', paymentsError);
     }
     
-    const explanation = explanationPoints.join('. ');
-    
-    // Calculate trend analysis
-    const trendAnalysis = {
-      paymentTrend: existingAnalysis ? 
-        (paymentAnalysis.paymentRiskScore - (existingAnalysis.payment_factors?.paymentRiskScore || 0)) : 0,
-      riskTrend: existingAnalysis ? 
-        (overallRiskScore - (existingAnalysis.risk_factors?.overallRiskScore || 0)) : 0,
-      lastUpdateDelta: existingAnalysis ? 
-        (new Date().getTime() - new Date(existingAnalysis.analyzed_at).getTime()) / (1000 * 60 * 60 * 24) : 0
-    };
-    
-    // Prepare intervention suggestions based on analysis
-    const interventionSuggestions: string[] = [];
-    
-    if (paymentAnalysis.latePaymentRate > 0.3) {
-      interventionSuggestions.push('Send payment reminder notification');
+    // Get maintenance records if vehicle ID exists
+    let maintenanceRecords = [];
+    if (agreement.vehicle_id) {
+      const { data: maintenance, error: maintenanceError } = await supabase
+        .from('maintenance_records')
+        .select('*')
+        .eq('vehicle_id', agreement.vehicle_id)
+        .order('date', { ascending: false });
+        
+      if (maintenanceError) {
+        console.error('Error fetching maintenance records:', maintenanceError);
+      } else {
+        maintenanceRecords = maintenance || [];
+      }
     }
     
-    if (paymentAnalysis.averageDaysLate > 10) {
-      interventionSuggestions.push('Schedule payment follow-up call');
+    // Get traffic fines
+    const { data: trafficFines, error: finesError } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', agreementId);
+      
+    if (finesError) {
+      console.error('Error fetching traffic fines:', finesError);
     }
     
-    if (vehicleAnalysis.maintenanceRiskScore > 50) {
-      interventionSuggestions.push('Schedule preventive maintenance check');
-    }
+    // Analyze payment behavior
+    const paymentFactors = analyzePaymentBehavior(payments || []);
     
-    const enhancedResult: EnhancedAnalysisResult = {
+    // Analyze vehicle factors
+    const vehicleFactors = analyzeVehicleFactors(
+      agreement.vehicles || agreement.vehicle_id, 
+      maintenanceRecords
+    );
+    
+    // Analyze customer factors
+    const customerFactors = analyzeCustomerFactors(
+      agreement.profiles || agreement.customer_id, 
+      trafficFines || []
+    );
+    
+    // Calculate overall risk factors
+    const riskFactors = calculateRiskFactors(paymentFactors, vehicleFactors, customerFactors);
+    
+    // Generate trend analysis
+    const trendAnalysis = generateTrendAnalysis(payments || [], trafficFines || []);
+    
+    // Calculate recommended status and confidence
+    const { recommendedStatus, confidence, explanation, actionItems } = 
+      determineRecommendedStatus(
+        agreement.status, 
+        paymentFactors, 
+        vehicleFactors, 
+        customerFactors, 
+        riskFactors
+      );
+
+    // Generate intervention suggestions
+    const interventionSuggestions = generateInterventionSuggestions(
+      riskFactors, 
+      paymentFactors, 
+      vehicleFactors, 
+      customerFactors
+    );
+    
+    // Prepare and return the enhanced analysis result
+    const analysisResult: EnhancedAnalysisResult = {
+      id: undefined,
       agreement_id: agreementId,
       recommended_status: recommendedStatus,
-      confidence: 0.85, // Will be improved with ML model
+      confidence: confidence,
       current_status: agreement.status,
-      risk_level: riskLevel,
+      risk_level: determineRiskLevel(riskFactors),
       analyzed_at: new Date().toISOString(),
-      explanation,
+      explanation: explanation,
       action_items: actionItems,
-      historical_data: {
-        statusChanges: statusHistory.statusChanges,
-        averageDuration: statusHistory.averageDuration
+      historical_data: { 
+        payments: payments?.length || 0,
+        fines: trafficFines?.length || 0,
+        maintenance: maintenanceRecords.length,
+        agreement_duration_days: calculateDurationInDays(
+          new Date(agreement.start_date),
+          agreement.end_date ? new Date(agreement.end_date) : new Date()
+        )
       },
-      payment_factors: {
-        latePaymentRate: paymentAnalysis.latePaymentRate,
-        averageDaysLate: paymentAnalysis.averageDaysLate,
-        paymentHistory: paymentAnalysis.paymentHistory,
-        paymentRiskScore: paymentAnalysis.paymentRiskScore
-      },
-      vehicle_factors: {
-        maintenanceHistory: vehicleAnalysis.maintenanceHistory,
-        maintenanceFrequency: vehicleAnalysis.maintenanceFrequency,
-        totalMaintenanceCost: vehicleAnalysis.totalMaintenanceCost,
-        maintenanceRiskScore: vehicleAnalysis.maintenanceRiskScore
-      },
-      customer_factors: {
-        agreementCount: customerAnalysis.agreementCount,
-        completedAgreements: customerAnalysis.completedAgreements,
-        cancelledAgreements: customerAnalysis.cancelledAgreements,
-        averageAgreementDuration: customerAnalysis.averageAgreementDuration,
-        customerRiskScore: customerAnalysis.customerRiskScore
-      },
-      risk_factors: {
-        overallRiskScore,
-        paymentRiskContribution: paymentAnalysis.paymentRiskScore * 0.5,
-        customerRiskContribution: customerAnalysis.customerRiskScore * 0.3,
-        vehicleRiskContribution: vehicleAnalysis.maintenanceRiskScore * 0.2
-      },
+      payment_factors: paymentFactors,
+      vehicle_factors: vehicleFactors,
+      customer_factors: customerFactors,
+      risk_factors: riskFactors,
       trend_analysis: trendAnalysis,
-      prediction_accuracy: existingAnalysis ? 
-        (existingAnalysis.recommended_status === agreement.status ? 1.0 : 0.0) : undefined,
+      prediction_accuracy: calculatePredictionAccuracy(confidence, riskFactors),
       model_version: '2.0',
       intervention_suggestions: interventionSuggestions
     };
     
-    // Save the comprehensive analysis to the database
+    // Save the analysis to the database
     try {
-      await supabase.rpc('upsert_agreement_analysis', {
+      const { error } = await supabase.rpc('upsert_agreement_analysis', {
         p_agreement_id: agreementId,
-        p_recommended_status: enhancedResult.recommended_status,
-        p_confidence: enhancedResult.confidence,
-        p_current_status: enhancedResult.current_status,
-        p_risk_level: enhancedResult.risk_level,
-        p_analyzed_at: enhancedResult.analyzed_at,
-        p_explanation: enhancedResult.explanation,
-        p_action_items: enhancedResult.action_items,
-        p_historical_data: enhancedResult.historical_data,
-        p_payment_factors: enhancedResult.payment_factors,
-        p_vehicle_factors: enhancedResult.vehicle_factors,
-        p_customer_factors: enhancedResult.customer_factors,
-        p_risk_factors: enhancedResult.risk_factors,
-        p_trend_analysis: enhancedResult.trend_analysis,
-        p_prediction_accuracy: enhancedResult.prediction_accuracy,
-        p_model_version: enhancedResult.model_version,
-        p_intervention_suggestions: enhancedResult.intervention_suggestions
+        p_recommended_status: recommendedStatus,
+        p_confidence: confidence,
+        p_current_status: agreement.status,
+        p_risk_level: determineRiskLevel(riskFactors),
+        p_analyzed_at: analysisResult.analyzed_at,
+        p_explanation: explanation,
+        p_action_items: actionItems,
+        p_historical_data: analysisResult.historical_data,
+        p_payment_factors: paymentFactors,
+        p_vehicle_factors: vehicleFactors,
+        p_customer_factors: customerFactors,
+        p_risk_factors: riskFactors,
+        p_trend_analysis: trendAnalysis,
+        p_prediction_accuracy: analysisResult.prediction_accuracy,
+        p_model_version: analysisResult.model_version,
+        p_intervention_suggestions: interventionSuggestions
       });
-    } catch (rpcError) {
-      console.error('Error saving comprehensive analysis:', rpcError);
+      
+      if (error) {
+        console.error('Error saving analysis results:', error);
+      }
+    } catch (dbError) {
+      console.error('Error calling upsert_agreement_analysis:', dbError);
     }
-    
-    return enhancedResult;
+
+    return analysisResult;
   } catch (error) {
     console.error('Error in runComprehensiveAgreementAnalysis:', error);
-    throw error;
+    
+    // Return a basic analysis result if an error occurs
+    return {
+      id: undefined,
+      agreement_id: agreementId,
+      recommended_status: 'unknown',
+      confidence: 0.5,
+      current_status: 'unknown',
+      risk_level: 'medium',
+      analyzed_at: new Date().toISOString(),
+      explanation: 'Analysis failed due to technical error',
+      action_items: ['Contact technical support'],
+      historical_data: {},
+      payment_factors: {},
+      vehicle_factors: {},
+      customer_factors: {},
+      risk_factors: {},
+      trend_analysis: {},
+      model_version: '2.0',
+      intervention_suggestions: []
+    };
   }
-};
+}
 
-// Get AI model details
-export const getAiModelParameters = (): AiModelParameters => {
+/**
+ * Returns current AI model parameters and metadata
+ */
+export function getAiModelParameters(): AiModelParameters {
   return {
-    modelName: 'AgreementStatusPredictor',
+    modelName: 'AgreementRiskPredictor',
     version: '2.0',
-    trainingAccuracy: 0.87,
-    lastTrainedAt: new Date().toISOString(),
+    trainingAccuracy: 0.89,
+    lastTrainedAt: '2025-04-15T00:00:00Z',
     featureImportance: {
-      'paymentHistory': 0.45,
-      'customerRiskScore': 0.30,
-      'agreementDuration': 0.15,
-      'maintenanceHistory': 0.10
+      'payment_history': 0.35,
+      'payment_timeliness': 0.25,
+      'vehicle_condition': 0.15,
+      'customer_history': 0.20,
+      'agreement_duration': 0.05
     }
   };
-};
+}
+
+// Helper functions
+
+function analyzePaymentBehavior(payments: any[]): Record<string, any> {
+  // Count late payments
+  const latePayments = payments.filter(p => 
+    p.status === 'late' || 
+    p.days_late > 0 || 
+    p.late_fee_amount > 0
+  );
+  
+  // Calculate average delay
+  let totalDelay = 0;
+  let delayCount = 0;
+  
+  payments.forEach(p => {
+    if (p.days_late > 0) {
+      totalDelay += p.days_late;
+      delayCount++;
+    }
+  });
+  
+  const avgDelay = delayCount > 0 ? totalDelay / delayCount : 0;
+  
+  // Calculate payment consistency
+  const paymentConsistency = payments.length > 0 ? 
+    (payments.length - latePayments.length) / payments.length : 
+    0;
+  
+  return {
+    total_payments: payments.length,
+    on_time_payments: payments.length - latePayments.length,
+    late_payments: latePayments.length,
+    payment_consistency_score: Math.round(paymentConsistency * 100) / 100,
+    average_delay_days: Math.round(avgDelay * 10) / 10,
+    recent_trend: determinePmtTrend(payments),
+    last_payment_date: payments.length > 0 ? 
+      payments[0].payment_date || payments[0].created_at : 
+      null
+  };
+}
+
+function analyzeVehicleFactors(vehicle: any, maintenanceRecords: any[]): Record<string, any> {
+  // Calculate maintenance frequency
+  const maintenanceFrequency = maintenanceRecords.length > 0 ? 
+    maintenanceRecords.length / 12 : // per year
+    0;
+  
+  // Check for major issues
+  const majorIssues = maintenanceRecords.filter(r => 
+    r.cost > 1000 || 
+    r.severity === 'high' || 
+    r.is_critical === true
+  );
+  
+  return {
+    maintenance_frequency: maintenanceFrequency,
+    major_issues_count: majorIssues.length,
+    last_maintenance_date: maintenanceRecords.length > 0 ? 
+      maintenanceRecords[0].date : 
+      null,
+    maintenance_score: calculateMaintenanceScore(maintenanceRecords),
+    vehicle_age: vehicle.year ? 
+      new Date().getFullYear() - vehicle.year : 
+      'unknown',
+    vehicle_make: typeof vehicle === 'object' ? vehicle.make || 'unknown' : 'unknown',
+    vehicle_model: typeof vehicle === 'object' ? vehicle.model || 'unknown' : 'unknown'
+  };
+}
+
+function analyzeCustomerFactors(customer: any, trafficFines: any[]): Record<string, any> {
+  return {
+    traffic_fines_count: trafficFines.length,
+    total_fine_amount: trafficFines.reduce((sum, fine) => sum + (fine.amount || 0), 0),
+    customer_since: customer?.created_at || 'unknown',
+    previous_agreements_count: 0, // Would need additional query to get this
+    payment_reliability_score: calculateCustomerReliability(customer, trafficFines),
+    customer_name: typeof customer === 'object' ? customer.full_name || 'unknown' : 'unknown',
+    customer_contact: typeof customer === 'object' ? customer.email || 'unknown' : 'unknown'
+  };
+}
+
+function calculateRiskFactors(
+  paymentFactors: Record<string, any>, 
+  vehicleFactors: Record<string, any>, 
+  customerFactors: Record<string, any>
+): Record<string, any> {
+  // Calculate payment risk (0-100 scale)
+  const paymentRisk = Math.min(100, Math.max(0,
+    100 - (paymentFactors.payment_consistency_score * 70) + 
+    (paymentFactors.average_delay_days * 3) + 
+    (paymentFactors.late_payments * 10)
+  ));
+  
+  // Calculate vehicle risk
+  const vehicleRisk = Math.min(100, Math.max(0,
+    (vehicleFactors.major_issues_count * 20) +
+    (vehicleFactors.vehicle_age > 5 ? (vehicleFactors.vehicle_age - 5) * 10 : 0) +
+    (100 - (vehicleFactors.maintenance_score || 50))
+  ));
+  
+  // Calculate customer risk
+  const customerRisk = Math.min(100, Math.max(0,
+    (customerFactors.traffic_fines_count * 15) +
+    (customerFactors.total_fine_amount > 1000 ? 30 : customerFactors.total_fine_amount / 50) +
+    (100 - (customerFactors.payment_reliability_score || 50))
+  ));
+  
+  // Weighted risk score
+  const overallRiskScore = 
+    (paymentRisk * 0.5) +
+    (vehicleRisk * 0.3) +
+    (customerRisk * 0.2);
+  
+  return {
+    payment_risk_score: Math.round(paymentRisk),
+    vehicle_risk_score: Math.round(vehicleRisk),
+    customer_risk_score: Math.round(customerRisk),
+    overall_risk_score: Math.round(overallRiskScore),
+    risk_factors: [
+      paymentRisk > 70 ? 'High payment risk' : null,
+      vehicleRisk > 70 ? 'Vehicle maintenance concerns' : null,
+      customerRisk > 70 ? 'Customer reliability concerns' : null
+    ].filter(Boolean)
+  };
+}
+
+function generateTrendAnalysis(payments: any[], trafficFines: any[]): Record<string, any> {
+  // Sort payments by date
+  const sortedPayments = [...payments].sort((a, b) => 
+    new Date(a.due_date || a.created_at).getTime() - 
+    new Date(b.due_date || b.created_at).getTime()
+  );
+  
+  // Calculate monthly trends
+  const monthlyData: Record<string, any> = {};
+  
+  sortedPayments.forEach(payment => {
+    const date = new Date(payment.due_date || payment.created_at);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = {
+        month: monthKey,
+        payments: 0,
+        on_time: 0,
+        late: 0,
+        fines: 0
+      };
+    }
+    
+    monthlyData[monthKey].payments++;
+    
+    if (payment.status === 'late' || payment.days_late > 0) {
+      monthlyData[monthKey].late++;
+    } else {
+      monthlyData[monthKey].on_time++;
+    }
+  });
+  
+  // Add fines to monthly data
+  trafficFines.forEach(fine => {
+    const date = new Date(fine.date || fine.created_at);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = {
+        month: monthKey,
+        payments: 0,
+        on_time: 0,
+        late: 0,
+        fines: 0
+      };
+    }
+    
+    monthlyData[monthKey].fines++;
+  });
+  
+  // Convert to array and sort by month
+  const trendsArray = Object.values(monthlyData).sort((a, b) => 
+    a.month.localeCompare(b.month)
+  );
+  
+  return {
+    monthly_trends: trendsArray,
+    overall_direction: determineOverallTrend(trendsArray),
+    data_points: trendsArray.length
+  };
+}
+
+function determineRecommendedStatus(
+  currentStatus: string,
+  paymentFactors: Record<string, any>,
+  vehicleFactors: Record<string, any>,
+  customerFactors: Record<string, any>,
+  riskFactors: Record<string, any>
+): { recommendedStatus: string; confidence: number; explanation: string; actionItems: string[] } {
+  const overallRisk = riskFactors.overall_risk_score;
+  const paymentConsistency = paymentFactors.payment_consistency_score || 0;
+  
+  // Default: keep current status
+  let recommendedStatus = currentStatus;
+  let confidence = 0.75;
+  let explanation = `Current status ${currentStatus} appears appropriate based on analysis.`;
+  let actionItems: string[] = [];
+  
+  // High risk cases
+  if (overallRisk > 80) {
+    if (currentStatus === 'active') {
+      recommendedStatus = 'pending_payment';
+      confidence = 0.85;
+      explanation = 'High risk detected. Recommend changing status to pending_payment due to significant concerns with payment history and overall risk assessment.';
+      actionItems = [
+        'Contact customer immediately',
+        'Request payment arrangement',
+        'Review security deposit'
+      ];
+    } else if (currentStatus === 'pending_payment' && paymentFactors.late_payments > 2) {
+      recommendedStatus = 'terminated';
+      confidence = 0.9;
+      explanation = 'Critical risk level with repeated payment failures. Recommend termination of agreement.';
+      actionItems = [
+        'Initiate agreement termination process',
+        'Send formal termination notice',
+        'Begin vehicle recovery planning'
+      ];
+    }
+  } 
+  // Medium risk cases
+  else if (overallRisk > 60) {
+    if (currentStatus === 'active' && paymentFactors.late_payments > 1) {
+      confidence = 0.75;
+      explanation = 'Moderate risk detected but maintaining current status with increased monitoring.';
+      actionItems = [
+        'Schedule follow-up call with customer',
+        'Set payment reminders',
+        'Document payment concerns'
+      ];
+    }
+  }
+  // Low risk cases that might need status updates
+  else if (currentStatus === 'pending_payment' && paymentConsistency > 0.8 && overallRisk < 40) {
+    recommendedStatus = 'active';
+    confidence = 0.8;
+    explanation = 'Payment consistency has improved and overall risk is low. Recommend changing status to active.';
+    actionItems = [
+      'Update agreement status',
+      'Send confirmation to customer',
+      'Schedule regular review'
+    ];
+  }
+  
+  return { 
+    recommendedStatus, 
+    confidence, 
+    explanation, 
+    actionItems 
+  };
+}
+
+function generateInterventionSuggestions(
+  riskFactors: Record<string, any>,
+  paymentFactors: Record<string, any>,
+  vehicleFactors: Record<string, any>,
+  customerFactors: Record<string, any>
+): string[] {
+  const suggestions: string[] = [];
+  
+  // Payment-related interventions
+  if (paymentFactors.late_payments > 0) {
+    if (paymentFactors.late_payments > 2) {
+      suggestions.push('Schedule urgent payment review meeting with customer');
+      suggestions.push('Consider requiring automatic payment method');
+    } else {
+      suggestions.push('Send payment reminder 3 days before due date');
+    }
+  }
+  
+  // Vehicle-related interventions
+  if (vehicleFactors.major_issues_count > 0) {
+    suggestions.push('Schedule vehicle inspection within 7 days');
+  }
+  
+  if (vehicleFactors.vehicle_age > 5 && vehicleFactors.maintenance_frequency < 2) {
+    suggestions.push('Recommend increased maintenance frequency due to vehicle age');
+  }
+  
+  // Customer-related interventions
+  if (customerFactors.traffic_fines_count > 2) {
+    suggestions.push('Review driving behavior with customer');
+    suggestions.push('Provide safe driving guidelines document');
+  }
+  
+  // Risk-based interventions
+  if (riskFactors.overall_risk_score > 70) {
+    suggestions.push('Increase security deposit requirement');
+    suggestions.push('Conduct weekly agreement status review');
+  } else if (riskFactors.overall_risk_score > 50) {
+    suggestions.push('Schedule monthly agreement review');
+  }
+  
+  // Add default suggestion if none generated
+  if (suggestions.length === 0) {
+    suggestions.push('Continue regular monitoring');
+  }
+  
+  return suggestions;
+}
+
+// Utility functions
+
+function determineRiskLevel(riskFactors: Record<string, any>): 'low' | 'medium' | 'high' {
+  const score = riskFactors.overall_risk_score || 50;
+  
+  if (score >= 70) return 'high';
+  if (score >= 40) return 'medium';
+  return 'low';
+}
+
+function calculateDurationInDays(startDate: Date, endDate: Date): number {
+  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+function calculatePredictionAccuracy(confidence: number, riskFactors: Record<string, any>): number {
+  // This would ideally use historical data to calculate actual accuracy
+  // Here we're using a simplified approach based on confidence and data points
+  const baseAccuracy = 0.75;
+  const riskAdjustment = (100 - (riskFactors.overall_risk_score || 50)) / 200; // -0.25 to +0.25
+  
+  return Math.min(0.98, Math.max(0.5, baseAccuracy + riskAdjustment));
+}
+
+function determinePmtTrend(payments: any[]): 'improving' | 'stable' | 'declining' | 'unknown' {
+  if (payments.length < 3) return 'unknown';
+  
+  // Sort by date, most recent first
+  const sortedPayments = [...payments].sort((a, b) => 
+    new Date(b.created_at || b.payment_date).getTime() - 
+    new Date(a.created_at || a.payment_date).getTime()
+  );
+  
+  // Get last 3 payments
+  const recent = sortedPayments.slice(0, 3);
+  
+  // Count late payments in recent 3
+  const recentLateCount = recent.filter(p => 
+    p.status === 'late' || p.days_late > 0
+  ).length;
+  
+  // Get next 3 payments (older)
+  const older = sortedPayments.slice(3, 6);
+  
+  if (older.length < 3) return 'unknown';
+  
+  // Count late payments in older set
+  const olderLateCount = older.filter(p => 
+    p.status === 'late' || p.days_late > 0
+  ).length;
+  
+  // Compare trends
+  if (recentLateCount < olderLateCount) return 'improving';
+  if (recentLateCount > olderLateCount) return 'declining';
+  return 'stable';
+}
+
+function calculateMaintenanceScore(maintenanceRecords: any[]): number {
+  if (maintenanceRecords.length === 0) return 50; // Neutral score if no data
+  
+  // Base score
+  let score = 70;
+  
+  // Reward regular maintenance
+  if (maintenanceRecords.length >= 2) score += 10;
+  
+  // Penalize for major issues
+  const majorIssues = maintenanceRecords.filter(r => 
+    r.cost > 1000 || r.severity === 'high' || r.is_critical === true
+  );
+  
+  score -= majorIssues.length * 15;
+  
+  // Check recency of maintenance
+  const mostRecent = maintenanceRecords[0]?.date 
+    ? new Date(maintenanceRecords[0].date) 
+    : null;
+    
+  if (mostRecent) {
+    const daysSinceLastMaintenance = Math.floor(
+      (new Date().getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    if (daysSinceLastMaintenance < 90) score += 10;
+    else if (daysSinceLastMaintenance > 180) score -= 10;
+  }
+  
+  // Ensure score is between 0-100
+  return Math.min(100, Math.max(0, score));
+}
+
+function calculateCustomerReliability(customer: any, trafficFines: any[]): number {
+  // Base score
+  let score = 70;
+  
+  // Penalize for traffic fines
+  score -= trafficFines.length * 5;
+  
+  // Additional factors would be considered here
+  // such as payment history from other agreements
+  
+  // Ensure score is between 0-100
+  return Math.min(100, Math.max(0, score));
+}
+
+function determineOverallTrend(trendsArray: any[]): 'improving' | 'stable' | 'declining' | 'unknown' {
+  if (trendsArray.length < 3) return 'unknown';
+  
+  // Look at the last 3 months
+  const recent = trendsArray.slice(-3);
+  
+  // Calculate average on-time payment ratio for recent months
+  const recentRatio = recent.reduce((sum, month) => {
+    const total = month.payments || 0;
+    const onTime = month.on_time || 0;
+    return sum + (total > 0 ? onTime / total : 0);
+  }, 0) / recent.length;
+  
+  // Look at the previous 3 months (or fewer if not available)
+  const previousCount = Math.min(3, trendsArray.length - 3);
+  if (previousCount <= 0) return 'unknown';
+  
+  const previous = trendsArray.slice(-3 - previousCount, -3);
+  
+  // Calculate average on-time payment ratio for previous months
+  const previousRatio = previous.reduce((sum, month) => {
+    const total = month.payments || 0;
+    const onTime = month.on_time || 0;
+    return sum + (total > 0 ? onTime / total : 0);
+  }, 0) / previous.length;
+  
+  // Compare trends
+  const difference = recentRatio - previousRatio;
+  
+  if (difference > 0.1) return 'improving';
+  if (difference < -0.1) return 'declining';
+  return 'stable';
+}

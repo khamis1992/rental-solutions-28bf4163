@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase, revertAgreementImport, fixImportedAgreementDates } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -50,6 +49,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { Textarea } from "@/components/ui/textarea";
+
+interface ImportHistoryItem {
+  id: string;
+  status: string;
+  // other properties...
+}
 
 export function ImportHistoryList() {
   const [imports, setImports] = useState<any[]>([]);

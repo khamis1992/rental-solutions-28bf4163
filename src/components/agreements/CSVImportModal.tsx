@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,11 @@ interface CSVImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImportComplete: () => void;
+}
+
+interface ApiError {
+  message: string;
+  status?: number;
 }
 
 export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImportModalProps) {
@@ -61,7 +65,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       setPreviewData(preview);
     } catch (error) {
       console.error('Failed to preview file:', error);
-      toast.error('Failed to preview file');
+      toast.error(`Error: ${(error as ApiError).message || 'Unknown error'}`);
     } finally {
       setIsPreviewLoading(false);
     }
@@ -82,7 +86,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     setUploadProgress('uploading');
 
     try {
-      // First check if the edge function is available
       const isEdgeFunctionAvailable = await checkEdgeFunctionAvailability();
       if (!isEdgeFunctionAvailable) {
         toast.error('Import service is currently unavailable. Please try again later.');
@@ -91,12 +94,10 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         return;
       }
 
-      // Generate a unique filename
       const timestamp = new Date().getTime();
       const fileExt = file.name.split('.').pop();
       const fileName = `agreement-import-${timestamp}.${fileExt}`;
 
-      // Upload the file to Supabase Storage
       const filePath = await uploadCSV(file, fileName);
       if (!filePath) {
         setUploadProgress('error');
@@ -104,7 +105,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         return;
       }
 
-      // Create an import log entry with overwrite flag
       const importId = await createImportLog(fileName, file.name, user.id, overwriteExisting);
       if (!importId) {
         setUploadProgress('error');
@@ -116,7 +116,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
 
       console.log('Calling process-agreement-imports function with importId:', importId);
       
-      // Call the Edge Function to process the file
       try {
         const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
           body: { 
@@ -147,7 +146,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       setUploadProgress('error');
     } finally {
       setIsUploading(false);
-      // Close the modal after a short delay to show the success/error state
       setTimeout(() => {
         onOpenChange(false);
         setFile(null);
@@ -271,7 +269,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
             </div>
           )}
 
-          {/* CSV Preview Section */}
           {showPreview && (
             <div className="bg-white rounded-md border p-4">
               <div className="flex justify-between items-center mb-4">
