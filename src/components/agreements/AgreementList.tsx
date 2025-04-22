@@ -400,10 +400,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       accessorKey: "created_at",
       header: ({ column }) => {
         return (
+const handlecolumntoggleSortingcolumngetIsSortedasc = useCallback(() => {
+  column.toggleSorting(column.getIsSorted() === "asc")
+}, []);
+
           <Button
             variant="ghost"
             className="px-0 font-medium"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={handlecolumntoggleSortingcolumngetIsSortedasc
           >
             Created Date
             <ArrowUpDown className="ml-2 h-4 w-4" />
