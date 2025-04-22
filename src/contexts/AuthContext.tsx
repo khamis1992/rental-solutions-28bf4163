@@ -1,16 +1,17 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { User as SupabaseUser } from '@supabase/auth-js';
 
-interface User {
-  id: string;
-  email?: string;
-  user_metadata?: {
-    name?: string;
-  };
-  app_metadata?: {
+// Extend the Supabase User type to ensure we have the properties we need
+interface User extends SupabaseUser {
+  app_metadata: {
     role?: string;
+    [key: string]: any;
+  };
+  user_metadata: {
+    name?: string;
+    [key: string]: any;
   };
 }
 
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (data.session) {
           const { data: userData } = await supabase.auth.getUser();
-          setUser(userData.user);
+          setUser(userData.user as User);
         }
       } catch (error) {
         console.error('Error checking authentication session:', error);
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           const { data: userData } = await supabase.auth.getUser();
-          setUser(userData.user);
+          setUser(userData.user as User);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.auth.getUser();
       if (error) throw error;
-      return data.user;
+      return data.user as User;
     } catch (error) {
       console.error('Error getting user:', error);
       return null;
@@ -85,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
       if (error) throw error;
-      setUser(data.user);
+      setUser(data.user as User);
       toast.success('Successfully signed in');
     } catch (error: any) {
       toast.error(`Error signing in: ${error.message}`);

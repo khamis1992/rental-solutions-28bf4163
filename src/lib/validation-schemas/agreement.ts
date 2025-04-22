@@ -83,6 +83,29 @@ export const agreementSchema = z.object({
   status: z.nativeEnum(AgreementStatus),
   terms_accepted: z.boolean().default(false),
   additional_drivers: z.array(z.string()).optional(),
+  // Add missing properties
+  created_at: z.date().or(z.string()).optional(),
+  notes: z.string().optional(),
+  agreement_number: z.string().optional(),
+  signature_url: z.string().optional(),
+  total_amount: z.number().optional(),
+  deposit_amount: z.number().optional(),
+  // Relations
+  customers: z.object({
+    full_name: z.string().optional(),
+    email: z.string().optional(),
+    phone_number: z.string().optional(),
+    address: z.string().optional(),
+    driver_license: z.string().optional(),
+  }).optional(),
+  vehicles: z.object({
+    make: z.string().optional(),
+    model: z.string().optional(),
+    year: z.number().optional(),
+    license_plate: z.string().optional(),
+    color: z.string().optional(),
+    vin: z.string().optional(),
+  }).optional(),
 });
 
 export const baseAgreementSchema = z.object({

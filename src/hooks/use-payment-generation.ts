@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -76,7 +75,8 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: 
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    targetPaymentId?: string | null
   ) => {
     if (!agreementId) {
       toast.error('No agreement ID provided');
@@ -96,20 +96,40 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: 
         }
       }
       
-      // Create the payment record
-      const { error } = await supabase.from('unified_payments').insert({
-        lease_id: agreementId,
-        amount,
-        payment_date: paymentDate.toISOString(),
-        status: 'paid',
-        description: notes || (isPartialPayment ? 'Partial rent payment' : 'Rent payment'),
-        payment_method: paymentMethod || 'cash',
-        transaction_id: referenceNumber || undefined,
-        late_fine_amount: lateFeeAmount > 0 ? lateFeeAmount : undefined,
-      });
+      // If we have a targetPaymentId, update that payment record instead of creating a new one
+      if (targetPaymentId) {
+        const { error } = await supabase
+          .from('unified_payments')
+          .update({
+            amount_paid: amount,
+            payment_date: paymentDate.toISOString(),
+            status: 'paid',
+            payment_method: paymentMethod || 'cash',
+            transaction_id: referenceNumber || undefined,
+            notes: notes || undefined,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', targetPaymentId);
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+      } else {
+        // Create the payment record
+        const { error } = await supabase.from('unified_payments').insert({
+          lease_id: agreementId,
+          amount,
+          payment_date: paymentDate.toISOString(),
+          status: 'paid',
+          description: notes || (isPartialPayment ? 'Partial rent payment' : 'Rent payment'),
+          payment_method: paymentMethod || 'cash',
+          transaction_id: referenceNumber || undefined,
+          late_fine_amount: lateFeeAmount > 0 ? lateFeeAmount : undefined,
+        });
+
+        if (error) {
+          throw error;
+        }
       }
 
       // If this is a payment for an agreement with 'pending_payment' status, update the agreement

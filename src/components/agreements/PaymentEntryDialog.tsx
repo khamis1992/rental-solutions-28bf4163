@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,8 @@ interface PaymentEntryDialogProps {
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    targetPaymentId?: string | null
   ) => void;
   defaultAmount?: number;
   title?: string;
@@ -62,7 +62,8 @@ export function PaymentEntryDialog({
       paymentMethod,
       referenceNumber,
       includeLatePaymentFee,
-      isPartialPayment
+      isPartialPayment,
+      selectedPayment?.id || null
     );
   };
   
