@@ -136,7 +136,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           setUploadProgress('success');
           onImportComplete();
         }
-      } catch (fnError: any) {
+      } catch (fnError: unknown) {
         console.error('Exception calling edge function:', fnError);
         toast.error(`Failed to process import: ${fnError.message}`);
         setUploadProgress('error');
