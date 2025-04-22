@@ -355,7 +355,7 @@ export function ImportHistoryList() {
     );
   };
 
-  const canFixDates = (importItem: any): boolean => {
+  const canFixDates = (importItem: unknown): boolean => {
     // Only allow fixing dates for completed imports that haven't been reverted
     return (
       importItem.status === 'completed' && 
