@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
@@ -52,10 +51,11 @@ const FinancialDashboard = () => {
     }
     
     // Create a simplified expenses calculation that doesn't cause recalculations
+    // Ensure item.revenue is treated as a number
     return revenueData.map(item => ({
       name: item.name,
-      revenue: item.revenue,
-      expenses: item.revenue * 0.6 // Use a simple estimate instead of complex calculations
+      revenue: Number(item.revenue) || 0, // Convert to number, default to 0 if conversion fails
+      expenses: (Number(item.revenue) || 0) * 0.6 // Use the converted number here too
     }));
   }, [revenueData]);
   
