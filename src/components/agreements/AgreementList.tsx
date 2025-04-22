@@ -518,10 +518,14 @@ const handlecolumntoggleSortingcolumngetIsSortedasc = useCallback(() => {
         </div>
         
         <div className="flex gap-2">
+const handlesetBulkDeleteDialogOpentrue = useCallback(() => {
+  setBulkDeleteDialogOpen(true)
+}, []);
+
           {selectedCount > 0 && (
             <Button 
               variant="destructive" 
-              onClick={() => setBulkDeleteDialogOpen(true)}
+              onClick={handlesetBulkDeleteDialogOpentrue
               className="flex items-center gap-1"
             >
               <Trash2 className="h-4 w-4 mr-1" />
