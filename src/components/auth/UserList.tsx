@@ -187,7 +187,7 @@ const UserList = () => {
       
       console.log("Fetched users:", data);
       setUsers(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching users:", error.message);
       toast.error("Failed to load users: " + error.message);
     } finally {
