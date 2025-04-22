@@ -522,10 +522,14 @@ const UserList = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="z-50">
+const handleopenPermissionDialoguser = useCallback(() => {
+  openPermissionDialog(user)
+}, []);
+
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => openPermissionDialog(user)}
+                onClick={handleopenPermissionDialoguser
                 disabled={!isAdmin}
               >
                 Manage Permissions
