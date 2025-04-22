@@ -1,5 +1,4 @@
 
-
 /**
  * Utility types to help with TypeScript complex type issues
  */
@@ -79,3 +78,37 @@ export type TypeSafeDeep<T> = {
   [K in keyof T]: T[K] extends object ? any : T[K];
 };
 
+/**
+ * Utility type for AI analysis results with enhanced fields
+ */
+export interface EnhancedAnalysisResult {
+  id?: string;
+  agreement_id: string;
+  recommended_status: string;
+  confidence: number;
+  current_status: string;
+  risk_level: 'low' | 'medium' | 'high';
+  analyzed_at: string;
+  explanation: string;
+  action_items: string[];
+  historical_data?: Record<string, any>;
+  payment_factors?: Record<string, any>;
+  vehicle_factors?: Record<string, any>;
+  customer_factors?: Record<string, any>;
+  risk_factors?: Record<string, any>;
+  trend_analysis?: Record<string, any>;
+  prediction_accuracy?: number;
+  model_version?: string;
+  intervention_suggestions?: string[];
+}
+
+/**
+ * Utility type for AI model parameters
+ */
+export interface AiModelParameters {
+  modelName: string;
+  version: string;
+  trainingAccuracy: number;
+  lastTrainedAt: string;
+  featureImportance: Record<string, number>;
+}

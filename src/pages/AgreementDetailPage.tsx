@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -7,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, Cpu, AlertCircle, Check, Clock } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, Cpu, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -18,19 +19,9 @@ import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
 import { analyzeAgreementStatus } from '@/utils/translation-utils';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-interface AnalysisResult {
-  recommendedStatus: string;
-  confidence: number;
-  explanation: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  actionItems: string[];
-  agreementId: string;
-  analyzedAt: string;
-  currentStatus: string;
-}
+import { EnhancedAnalysisResult, AiModelParameters } from '@/utils/type-utils';
+import EnhancedAnalysisCard from '@/components/agreements/EnhancedAnalysisCard';
+import { runComprehensiveAgreementAnalysis, getAiModelParameters } from '@/utils/ai-analysis-utils';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +35,8 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<EnhancedAnalysisResult | null>(null);
+  const [modelInfo, setModelInfo] = useState<AiModelParameters | undefined>(undefined);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -111,15 +103,30 @@ const AgreementDetailPage = () => {
         console.error("Error fetching analysis:", error);
       } else if (data) {
         setAnalysisResult({
-          recommendedStatus: data.recommended_status,
+          id: data.id,
+          agreement_id: data.agreement_id,
+          recommended_status: data.recommended_status,
           confidence: data.confidence,
           explanation: data.explanation,
-          riskLevel: data.risk_level as 'low' | 'medium' | 'high',
+          risk_level: data.risk_level as 'low' | 'medium' | 'high',
           actionItems: data.action_items || [],
-          agreementId: data.agreement_id,
-          analyzedAt: data.analyzed_at,
-          currentStatus: data.current_status
+          analyzed_at: data.analyzed_at,
+          currentStatus: data.current_status,
+          action_items: data.action_items || [],
+          historical_data: data.historical_data || {},
+          payment_factors: data.payment_factors || {},
+          vehicle_factors: data.vehicle_factors || {},
+          customer_factors: data.customer_factors || {},
+          risk_factors: data.risk_factors || {},
+          trend_analysis: data.trend_analysis || {},
+          prediction_accuracy: data.prediction_accuracy,
+          model_version: data.model_version,
+          intervention_suggestions: data.intervention_suggestions || [],
+          current_status: data.current_status,
         });
+        
+        // Load model information
+        setModelInfo(getAiModelParameters());
       }
     } catch (error) {
       console.error("Error fetching analysis result:", error);
@@ -225,27 +232,14 @@ const AgreementDetailPage = () => {
     
     setIsAnalyzing(true);
     try {
-      toast.info("Analyzing agreement with AI...");
+      toast.info("Running enhanced AI analysis of agreement...");
       
-      const result = await analyzeAgreementStatus(agreement);
+      // Use the new comprehensive analysis function
+      const result = await runComprehensiveAgreementAnalysis(agreement.id);
       setAnalysisResult(result);
+      setModelInfo(getAiModelParameters());
       
-      await supabase
-        .from('agreement_analysis_results')
-        .upsert({
-          agreement_id: agreement.id,
-          recommended_status: result.recommendedStatus,
-          confidence: result.confidence,
-          current_status: agreement.status,
-          risk_level: result.riskLevel,
-          analyzed_at: result.analyzedAt,
-          explanation: result.explanation,
-          action_items: result.actionItems
-        }, {
-          onConflict: 'agreement_id'
-        });
-      
-      toast.success("Agreement analysis completed");
+      toast.success("Enhanced agreement analysis completed");
     } catch (error) {
       console.error("Error analyzing agreement:", error);
       toast.error("Failed to analyze agreement");
@@ -263,7 +257,7 @@ const AgreementDetailPage = () => {
       await updateAgreement.mutateAsync({
         id,
         data: {
-          status: analysisResult.recommendedStatus,
+          status: analysisResult.recommended_status,
           updated_at: new Date().toISOString(),
           last_ai_update: new Date().toISOString()
         }
@@ -275,99 +269,6 @@ const AgreementDetailPage = () => {
       console.error("Error updating agreement status:", error);
       toast.error("Failed to update agreement status");
     }
-  };
-
-  const renderAnalysisCard = () => {
-    if (!analysisResult) return null;
-    
-    const isStatusDifferent = analysisResult.recommendedStatus !== analysisResult.currentStatus;
-    const riskColor = 
-      analysisResult.riskLevel === 'high' ? 'text-red-500' : 
-      analysisResult.riskLevel === 'medium' ? 'text-amber-500' : 
-      'text-green-500';
-    
-    return (
-      <Card className="mt-6 border-dashed">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-lg">AI Status Analysis</CardTitle>
-            </div>
-            <Badge variant={isStatusDifferent ? "destructive" : "outline"}>
-              {new Date(analysisResult.analyzedAt).toLocaleString()}
-            </Badge>
-          </div>
-          <CardDescription>
-            Analyzed with {(analysisResult.confidence * 100).toFixed(0)}% confidence
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">Current Status</p>
-                <Badge variant="outline" className="mt-1">
-                  {analysisResult.currentStatus}
-                </Badge>
-              </div>
-              <div className="text-center">
-                {isStatusDifferent && (
-                  <Clock className="mx-auto h-6 w-6 text-amber-500" />
-                )}
-              </div>
-              <div className="text-right">
-                <p className="font-semibold">Recommended Status</p>
-                <Badge variant={isStatusDifferent ? "destructive" : "outline"} className="mt-1">
-                  {analysisResult.recommendedStatus}
-                </Badge>
-              </div>
-            </div>
-            
-            <div>
-              <p className="font-semibold flex items-center gap-2">
-                <span>Risk Level:</span> 
-                <span className={riskColor}>
-                  {analysisResult.riskLevel.charAt(0).toUpperCase() + analysisResult.riskLevel.slice(1)}
-                </span>
-              </p>
-            </div>
-            
-            <div>
-              <p className="font-semibold">Analysis:</p>
-              <p className="mt-1 text-sm text-muted-foreground">{analysisResult.explanation}</p>
-            </div>
-            
-            {analysisResult.actionItems.length > 0 && (
-              <div>
-                <p className="font-semibold">Recommended Actions:</p>
-                <ul className="mt-1 text-sm space-y-1">
-                  {analysisResult.actionItems.map((action, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 mt-0.5 text-green-500 flex-shrink-0" />
-                      <span>{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {isStatusDifferent && (
-              <div className="pt-2">
-                <Button 
-                  onClick={handleApplyRecommendation} 
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                >
-                  Apply Recommended Status
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
   };
 
   return (
@@ -423,7 +324,16 @@ const AgreementDetailPage = () => {
         </div>
       ) : agreement ? (
         <>
-          {renderAnalysisCard()}
+          {/* Replace with Enhanced Analysis Card */}
+          {analysisResult && (
+            <EnhancedAnalysisCard 
+              analysisResult={analysisResult}
+              modelInfo={modelInfo}
+              isLoading={isAnalyzing}
+              onApplyRecommendation={handleApplyRecommendation}
+              onRefreshAnalysis={handleAnalyzeAgreement}
+            />
+          )}
           
           <AgreementDetail 
             agreement={agreement}

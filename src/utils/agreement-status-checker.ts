@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DatabaseAgreementStatus, DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
 import { analyzeAgreementStatus } from '@/utils/translation-utils';
+import { EnhancedAnalysisResult } from '@/utils/type-utils';
 
 interface VehicleAgreement {
   id: string;
@@ -10,16 +11,6 @@ interface VehicleAgreement {
   customer_id: string;
   status: DatabaseAgreementStatus;
   created_at: string;
-}
-
-interface AgreementAnalysisResult {
-  id: string;
-  recommended_status: string;
-  confidence: number;
-  current_status: string;
-  risk_level: string;
-  analyzed_at: string;
-  explanation: string;
 }
 
 export const checkAndUpdateConflictingAgreements = async (): Promise<{
@@ -105,7 +96,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
 
     // Now perform AI analysis on all agreements with detailed information
     console.log("Starting AI analysis of agreements");
-    const analysisResults: AgreementAnalysisResult[] = [];
+    const analysisResults: EnhancedAnalysisResult[] = [];
     
     // Get all active and pending agreements with more details
     const { data: agreementsForAnalysis, error: detailError } = await supabase
@@ -124,7 +115,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       .in('status', [
         DB_AGREEMENT_STATUS.ACTIVE, 
         DB_AGREEMENT_STATUS.PENDING_PAYMENT,
-        DB_AGREEMENT_STATUS.DRAFT // Fixed: Updated to use the proper enum value
+        DB_AGREEMENT_STATUS.DRAFT 
       ]);
       
     if (detailError) {
@@ -135,20 +126,31 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
         try {
           const analysis = await analyzeAgreementStatus(agreement);
           
-          analysisResults.push({
+          // Enhanced analysis with additional factors
+          const enhancedAnalysis: EnhancedAnalysisResult = {
             id: agreement.id,
+            agreement_id: agreement.id,
             recommended_status: analysis.recommendedStatus,
             confidence: analysis.confidence,
             current_status: agreement.status,
-            risk_level: analysis.riskLevel,
+            risk_level: analysis.riskLevel as 'low' | 'medium' | 'high',
             analyzed_at: analysis.analyzedAt,
-            explanation: analysis.explanation
-          });
+            explanation: analysis.explanation,
+            action_items: analysis.actionItems || [],
+            historical_data: {}, // Will be populated in future versions
+            payment_factors: {}, // Will be populated in future versions
+            vehicle_factors: {}, // Will be populated in future versions
+            customer_factors: {}, // Will be populated in future versions
+            risk_factors: {}, // Will be populated in future versions
+            trend_analysis: {}, // Will be populated in future versions
+            model_version: '1.0' // Initial version
+          };
           
-          // Update the database with analysis results
+          analysisResults.push(enhancedAnalysis);
+          
+          // Update the database with analysis results using RPC
           try {
-            // Fixed: Using rpc with the proper function name as defined in the database
-            const { error } = await supabase.rpc("upsert_agreement_analysis", {
+            const { error } = await supabase.rpc('upsert_agreement_analysis', {
               p_agreement_id: agreement.id,
               p_recommended_status: analysis.recommendedStatus,
               p_confidence: analysis.confidence,
@@ -183,7 +185,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
             );
             
             if (validStatus) {
-              // Fixed: Added type assertion to ensure type safety
+              // Convert string to DatabaseAgreementStatus
               const statusToUpdate = analysis.recommendedStatus as DatabaseAgreementStatus;
               const { error: statusError } = await supabase
                 .from('leases')

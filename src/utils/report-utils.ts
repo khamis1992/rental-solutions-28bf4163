@@ -356,3 +356,21 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
     minimumFractionDigits: 2
   }).format(amount);
 };
+
+/**
+ * Generate a custom report based on report type, filters, date range, format, and callback
+ * @param reportType Type of report to generate
+ * @param filters Filters to apply to the report
+ * @param dateRange Date range for the report
+ * @param format Format of the report (default: 'pdf')
+ * @param callback Callback function to handle the generated report
+ */
+export const generateCustomReport = async (
+  reportType: string,
+  filters: any,
+  dateRange: { startDate: Date; endDate: Date },
+  format: string = 'pdf',
+  callback?: (report: any) => void
+) => {
+  // Implementation of generateCustomReport
+};

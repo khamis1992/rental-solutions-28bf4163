@@ -10,7 +10,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType } from '@/utils/type-utils';
+import { FlattenType, BreakTypeRecursion } from '@/utils/type-utils';
 
 interface CustomerProfile {
   id: string;
@@ -304,7 +304,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  const updateAgreementMutation = useMutation<any, Error, FlattenType<UpdateAgreementParams>>({
+  const updateAgreementMutation = useMutation<any, Error, BreakTypeRecursion<UpdateAgreementParams>>({
     mutationFn: async (params: UpdateAgreementParams) => {
       console.log("Update mutation called with:", params);
       return {};
