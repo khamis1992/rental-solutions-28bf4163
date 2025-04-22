@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,9 @@ import {
   RefreshCcw as RefreshIcon,
   DollarSign,
   Car,
-  Users
+  Users,
+  BarChart,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
