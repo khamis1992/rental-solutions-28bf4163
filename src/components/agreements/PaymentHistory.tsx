@@ -305,7 +305,11 @@ const handlehandleRecordPaymentpayment = useCallback(() => {
                     <div className="flex justify-end gap-2">
                       {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={handlehandleRecordPaymentpayment title="Record Payment">
                           <DollarSign className="h-4 w-4" />
-                        </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
+const handlehandleDeletePaymentpayment = useCallback(() => {
+  handleDeletePayment(payment)
+}, []);
+
+                        </Button> : <Button variant="ghost" size="sm" onClick={handlehandleDeletePaymentpayment title="Edit payment">
                           <Edit className="h-4 w-4" />
                         </Button>}
                       <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)} title="Delete payment">
