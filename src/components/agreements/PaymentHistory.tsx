@@ -339,10 +339,14 @@ const handlehandleDeletePaymentpayment = useCallback(() => {
               <DialogTitle>Confirm Payment Deletion</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete this payment? This action cannot be undone.
+const handlesetIsDeleteConfirmOpenfalse = useCallback(() => {
+  setIsDeleteConfirmOpen(false)
+}, []);
+
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              <Button variant="outline" onClick={handlesetIsDeleteConfirmOpenfalse>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
