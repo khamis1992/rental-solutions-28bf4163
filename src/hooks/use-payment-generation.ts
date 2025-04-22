@@ -1,196 +1,162 @@
+
 import { useState, useCallback } from 'react';
-import { Agreement } from '@/types/agreement';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { format as dateFormat } from 'date-fns';
+import { Agreement } from '@/types/agreement';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: string) => {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const refreshAgreementData = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
+  const createPaymentSchedule = useCallback(async () => {
+    if (!agreementId) {
+      toast.error('No agreement ID provided');
+      return false;
+    }
 
-  const handleSpecialAgreementPayments = async (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
+    setIsGenerating(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('generate-payment-schedule', {
+        body: { agreementId }
+      });
+
+      if (error) {
+        throw new Error(`Error generating payment schedule: ${error.message}`);
+      }
+
+      toast.success('Payment schedule generated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error in createPaymentSchedule:', error);
+      toast.error(`Failed to generate payment schedule: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return false;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [agreementId]);
+
+  const handlePayment = useCallback(async (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string
+  ) => {
+    if (!agreementId) {
+      toast.error('No agreement ID provided');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.from('unified_payments').insert({
+        lease_id: agreementId,
+        amount,
+        payment_date: paymentDate.toISOString(),
+        status: 'paid',
+        description: notes || 'Rent payment',
+        payment_method: paymentMethod || 'cash',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Payment recorded successfully');
+      return true;
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return false;
+    }
+  }, [agreementId]);
+
+  const handleSpecialAgreementPayments = useCallback(async (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
     includeLatePaymentFee?: boolean,
     isPartialPayment?: boolean
   ) => {
-    if (!agreement || !agreement.id) {
-      toast.error("Agreement details are not available");
+    if (!agreementId) {
+      toast.error('No agreement ID provided');
       return false;
     }
-    
-    setIsProcessing(true);
+
     try {
-      let existingPaymentId: string | null = null;
-      let existingPaymentAmount: number = 0;
-      let existingAmountPaid: number = 0;
-      let existingBalance: number = 0;
-      
-      const queryParams = new URLSearchParams(window.location.search);
-      const paymentId = targetPaymentId || queryParams.get('paymentId');
-      
-      if (paymentId) {
-        const { data: existingPayment, error: queryError } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('id', paymentId)
-          .single();
-          
-        if (queryError) {
-          console.error("Error fetching existing payment:", queryError);
-        } else if (existingPayment) {
-          existingPaymentId = existingPayment.id;
-          existingPaymentAmount = existingPayment.amount || 0;
-          existingAmountPaid = existingPayment.amount_paid || 0;
-          existingBalance = existingPayment.balance || 0;
-        }
-      }
-      
-      let dailyLateFee = agreement.daily_late_fee || 120;
-      
+      // First get any late fee information
       let lateFeeAmount = 0;
-      let daysLate = 0;
       
-      if (paymentDate.getDate() > 1) {
-        daysLate = paymentDate.getDate() - 1;
-        lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);
+      if (includeLatePaymentFee && agreement && agreement.daily_late_fee) {
+        // Calculate days late for the fee
+        const today = new Date();
+        const daysLate = today.getDate() - 1; // Assuming payment due on 1st
+        if (daysLate > 0) {
+          lateFeeAmount = Math.min(daysLate * agreement.daily_late_fee, 3000); // Cap at 3000
+        }
       }
       
-      if (existingPaymentId) {
-        const totalPaid = existingAmountPaid + amount;
-        const newBalance = existingPaymentAmount - totalPaid;
-        const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
-        
-        console.log("Updating existing payment:", {
-          existingPaymentId,
-          totalPaid,
-          newBalance,
-          newStatus,
-          paymentDate: paymentDate.toISOString()
-        });
-        
+      // Create the payment record
+      const { error } = await supabase.from('unified_payments').insert({
+        lease_id: agreementId,
+        amount,
+        payment_date: paymentDate.toISOString(),
+        status: 'paid',
+        description: notes || (isPartialPayment ? 'Partial rent payment' : 'Rent payment'),
+        payment_method: paymentMethod || 'cash',
+        transaction_id: referenceNumber || undefined,
+        late_fine_amount: lateFeeAmount > 0 ? lateFeeAmount : undefined,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // If this is a payment for an agreement with 'pending_payment' status, update the agreement
+      if (agreement && agreement.status === 'pending_payment' && !isPartialPayment) {
         const { error: updateError } = await supabase
-          .from('unified_payments')
+          .from('leases')
           .update({
-            amount_paid: totalPaid,
-            balance: Math.max(0, newBalance),
-            status: newStatus,
-            payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod
+            status: 'active',
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', existingPaymentId);
-          
+          .eq('id', agreementId);
+
         if (updateError) {
-          console.error("Error updating payment:", updateError);
-          toast.error("Failed to record additional payment");
-          return false;
-        }
-        
-        toast.success(newStatus === 'completed' ? 
-          "Payment completed successfully!" : 
-          "Additional payment recorded successfully");
-      } else {
-        let paymentStatus = 'completed';
-        let amountPaid = amount;
-        let balance = 0;
-        
-        if (isPartialPayment) {
-          paymentStatus = 'partially_paid';
-          const rentAmount = agreement?.rent_amount || 0;
-          balance = Math.max(0, rentAmount - amount);
-        }
-        
-        const description = `Monthly Rent for ${agreement.agreement_number || 'Unknown Agreement'} - ${paymentDate.toLocaleDateString()}`;
-        
-        const paymentRecord = {
-          lease_id: agreementId,
-          amount: agreement?.rent_amount || 0,
-          amount_paid: amountPaid,
-          balance: balance,
-          payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod,
-          reference_number: referenceNumber || null,
-          description: notes || description,
-          status: paymentStatus,
-          type: 'rent',
-          days_overdue: daysLate,
-          original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-        };
-        
-        console.log("Recording payment:", paymentRecord);
-        
-        const { data, error } = await supabase
-          .from('unified_payments')
-          .insert(paymentRecord)
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error("Payment recording error:", error);
-          toast.error("Failed to record payment");
-          return false;
-        }
-        
-        if (lateFeeAmount > 0 && includeLatePaymentFee) {
-          const lateFeeRecord = {
-            lease_id: agreementId,
-            amount: lateFeeAmount,
-            amount_paid: lateFeeAmount,
-            balance: 0,
-            payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod,
-            reference_number: referenceNumber || null,
-            description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
-            status: 'completed',
-            type: 'LATE_PAYMENT_FEE',
-            late_fine_amount: lateFeeAmount,
-            days_overdue: daysLate,
-            original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-          };
-          
-          console.log("Recording late fee:", lateFeeRecord);
-          
-          const { error: lateFeeError } = await supabase
-            .from('unified_payments')
-            .insert(lateFeeRecord);
-          
-          if (lateFeeError) {
-            console.error("Late fee recording error:", lateFeeError);
-            toast.warning("Payment recorded but failed to record late fee");
-          } else {
-            toast.success(isPartialPayment ? 
-              "Partial payment and late fee recorded successfully" : 
-              "Payment and late fee recorded successfully");
-          }
-        } else {
-          toast.success(isPartialPayment ? 
-            "Partial payment recorded successfully" : 
-            "Payment recorded successfully");
+          console.error('Error updating agreement status:', updateError);
+          // Don't block the payment though, just log it
         }
       }
+
+      // If there was a late fee, create a separate record for it
+      if (lateFeeAmount > 0) {
+        await supabase.from('unified_payments').insert({
+          lease_id: agreementId,
+          amount: lateFeeAmount,
+          payment_date: paymentDate.toISOString(),
+          status: 'paid',
+          description: 'Late payment fee',
+          payment_method: paymentMethod || 'cash',
+          transaction_id: referenceNumber ? `${referenceNumber}-latefee` : undefined,
+        });
+      }
+
+      toast.success(lateFeeAmount > 0 
+        ? `Payment recorded successfully (includes ${lateFeeAmount} QAR late fee)` 
+        : 'Payment recorded successfully');
       
-      refreshAgreementData();
       return true;
     } catch (error) {
-      console.error("Unexpected error recording payment:", error);
-      toast.error("An unexpected error occurred while recording payment");
+      console.error('Error recording payment:', error);
+      toast.error(`Failed to record payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
-    } finally {
-      setIsProcessing(false);
     }
-  };
+  }, [agreement, agreementId]);
 
   return {
-    refreshTrigger,
-    refreshAgreementData,
+    createPaymentSchedule,
+    handlePayment,
     handleSpecialAgreementPayments,
-    isProcessing
+    isGenerating
   };
 };

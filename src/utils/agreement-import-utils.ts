@@ -127,7 +127,7 @@ export const previewAgreementCSV = async (file: File): Promise<{ headers: string
 /**
  * Download a CSV file with agreement data
  */
-export const downloadCSV = (data: any[], filename: string): void => {
+export const downloadCSV = (data: any[], filename: string = "export.csv"): void => {
   // Return early if no data
   if (!data || data.length === 0) {
     console.error('No data provided for CSV download');

@@ -7,10 +7,9 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, AgreementStatus } from '@/types/agreement';
-import { DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
