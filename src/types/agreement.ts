@@ -37,4 +37,6 @@ export interface Agreement {
     vin?: string;
   };
   signature_url?: string;
+  daily_late_fee?: number;
+  rent_amount?: number;
 }
