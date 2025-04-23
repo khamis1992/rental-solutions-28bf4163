@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,6 +84,31 @@ export function PaymentHistory({
       return 'N/A';
     }
   };
+
+  // Add the missing handlePaymentSubmit function
+  const handlePaymentSubmit = useCallback(async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
+  ) => {
+    if (!onRecordPayment) return;
+    
+    const payment: Partial<Payment> = {
+      amount,
+      payment_date: paymentDate.toISOString(),
+      notes,
+      payment_method: paymentMethod,
+      reference_number: referenceNumber,
+      status: 'completed',
+      description: notes || 'Payment'
+    };
+    
+    onRecordPayment(payment);
+    setIsPaymentDialogOpen(false);
+  }, [onRecordPayment]);
 
   const columns = [
     {
