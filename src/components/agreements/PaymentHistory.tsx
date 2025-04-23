@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,7 +36,7 @@ interface PaymentHistoryProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
-  onRecordPayment?: (payment: Partial<Payment>) => void; // New prop for recording payment
+  onRecordPayment?: (payment: Partial<Payment>) => void;
 }
 
 export function PaymentHistory({
@@ -47,7 +46,7 @@ export function PaymentHistory({
   onPaymentDeleted,
   leaseStartDate,
   leaseEndDate,
-  onRecordPayment // New prop
+  onRecordPayment
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -78,18 +77,12 @@ export function PaymentHistory({
   const formatPaymentDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
-      return format(new Date(dateString), 'MMM d, yyyy');
+      return format(new Date(dateString), 'dd/MM/yyyy');
     } catch (error) {
       console.error('Invalid date format:', dateString);
-      return dateString || 'N/A';
+      return 'N/A';
     }
   };
-
-  const sortedPayments = [...payments].sort((a, b) => {
-    const dateA = a.payment_date ? new Date(a.payment_date).getTime() : 0;
-    const dateB = b.payment_date ? new Date(b.payment_date).getTime() : 0;
-    return dateB - dateA;
-  });
 
   const columns = [
     {
@@ -100,90 +93,74 @@ export function PaymentHistory({
     {
       accessorKey: 'amount',
       header: 'Amount',
-      cell: ({ row }) => `QAR ${row.original.amount.toLocaleString()}`,
-    },
-    {
-      accessorKey: 'payment_method',
-      header: 'Method',
-      cell: ({ row }) => row.original.payment_method || 'N/A',
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
       cell: ({ row }) => (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          row.original.status === 'completed' ? 'bg-green-100 text-green-800' :
-          row.original.status === 'overdue' ? 'bg-red-100 text-red-800' :
-          row.original.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {row.original.status}
+        <span className="font-medium">
+          QAR {row.original.amount?.toLocaleString()}
         </span>
       ),
     },
     {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.original.status?.toLowerCase();
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            status === 'completed' ? 'bg-green-100 text-green-800' :
+            status === 'overdue' ? 'bg-red-100 text-red-800' :
+            status === 'unpaid' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {status}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'payment_method',
+      header: 'Method',
+      cell: ({ row }) => row.original.payment_method || '-',
+    },
+    {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => row.original.description || 'N/A',
+      cell: ({ row }) => (
+        <span className="text-gray-700">
+          {row.original.description || 'N/A'}
+        </span>
+      ),
     },
     {
       id: 'actions',
       cell: ({ row }) => (
         <Button 
           variant="ghost" 
-          size="icon" 
+          size="sm"
           onClick={() => handleDelete(row.original.id)}
           disabled={isDeleting === row.original.id}
+          className="text-red-500 hover:text-red-700"
         >
-          <Trash2 className="h-4 w-4 text-destructive" />
+          Delete
         </Button>
       ),
     },
   ];
 
-  const handlePaymentSubmit = (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean
-  ) => {
-    const newPayment = {
-      amount,
-      payment_date: paymentDate.toISOString(),
-      notes,
-      payment_method: paymentMethod,
-      reference_number: referenceNumber,
-      // Add any additional logic for late payment fee
-    };
-
-    // Call the onRecordPayment prop if provided
-    if (onRecordPayment) {
-      onRecordPayment(newPayment);
-    }
-    
-    setIsPaymentDialogOpen(false);
-  };
-
   return (
-    <Card className="my-8">
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle>Payment History</CardTitle>
           <CardDescription>View all transactions for this agreement</CardDescription>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}
-            </span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground border rounded-lg px-3 py-1">
+            <CalendarIcon className="h-4 w-4" />
+            <span>Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}</span>
           </div>
           <Button 
-            variant="outline" 
-            size="sm"
             onClick={() => setIsPaymentDialogOpen(true)}
+            size="sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             Record Payment
@@ -193,10 +170,16 @@ export function PaymentHistory({
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center h-52">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : payments.length > 0 ? (
-          <DataTable columns={columns} data={sortedPayments} />
+          <div className="rounded-md border">
+            <DataTable 
+              columns={columns} 
+              data={payments} 
+              className="[&_th]:bg-muted/50 [&_th]:text-muted-foreground [&_th]:font-medium"
+            />
+          </div>
         ) : (
           <div className="text-center p-8 text-muted-foreground">
             No payment records found for this agreement.
