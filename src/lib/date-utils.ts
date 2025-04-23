@@ -1,42 +1,88 @@
 
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
 /**
- * Format a date object to YYYY-MM-DD
- * @param date The date to format
- * @returns Formatted date string
+ * Safely converts a date string or Date object to a Date object
+ * @param dateInput Date input that might be string, Date, or invalid
+ * @returns Valid Date object or null if invalid
  */
-export const formatDate = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, 'yyyy-MM-dd');
-};
-
-/**
- * Format a date object to YYYY-MM-DD HH:mm
- * @param date The date to format
- * @returns Formatted date and time string
- */
-export const formatDateTime = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, 'yyyy-MM-dd HH:mm');
-};
-
-/**
- * Convert a date-like value to a Date object
- * @param date Date, string, or undefined
- * @returns Date object or undefined
- */
-export const getDateObject = (date: Date | string | undefined): Date | undefined => {
-  if (!date) return undefined;
-  
-  if (date instanceof Date) {
-    return date;
-  }
+const safelyParseDate = (dateInput: Date | string | null | undefined): Date | null => {
+  if (!dateInput) return null;
   
   try {
-    return new Date(date);
+    // If it's already a Date object
+    if (dateInput instanceof Date) {
+      return isValid(dateInput) ? dateInput : null;
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof dateInput === 'string') {
+      // Try to handle ISO strings
+      const parsed = parseISO(dateInput);
+      if (isValid(parsed)) return parsed;
+      
+      // If ISO parsing failed, try creating date directly
+      const fallbackDate = new Date(dateInput);
+      return isValid(fallbackDate) ? fallbackDate : null;
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Invalid date format:', error);
-    return undefined;
+    console.error('Error parsing date:', error, 'Input was:', dateInput);
+    return null;
+  }
+};
+
+/**
+ * Formats a date into a readable string
+ * @param date The date to format
+ * @param formatString Optional format string (defaults to 'MMMM d, yyyy')
+ * @returns Formatted date string
+ */
+export const formatDate = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy'): string => {
+  const parsedDate = safelyParseDate(date);
+  if (!parsedDate) return 'N/A';
+  
+  try {
+    return format(parsedDate, formatString);
+  } catch (error) {
+    console.error('Error formatting date:', error, 'Input was:', date);
+    return 'Invalid date';
+  }
+};
+
+/**
+ * Formats a date with time into a readable string
+ * @param date The date to format
+ * @param formatString Optional format string (defaults to 'MMMM d, yyyy h:mm a')
+ * @returns Formatted date and time string
+ */
+export const formatDateTime = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy h:mm a'): string => {
+  return formatDate(date, formatString);
+};
+
+/**
+ * Returns a date object from a string or date input
+ * @param date Date or string to convert
+ * @returns Date object or null if invalid
+ */
+export const getDateObject = (date: Date | string | null | undefined): Date | null => {
+  return safelyParseDate(date);
+};
+
+/**
+ * Formats a date for use in form inputs (YYYY-MM-DD)
+ * @param date The date to format
+ * @returns Formatted date string for form inputs
+ */
+export const formatDateForInput = (date: Date | string | null | undefined): string => {
+  const parsedDate = safelyParseDate(date);
+  if (!parsedDate) return '';
+  
+  try {
+    return format(parsedDate, 'yyyy-MM-dd');
+  } catch (error) {
+    console.error('Error formatting date for input:', error);
+    return '';
   }
 };

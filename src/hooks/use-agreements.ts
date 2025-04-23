@@ -1,79 +1,58 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Agreement, 
-  BaseAgreement,
-  DatabaseAgreementStatus,
-  DB_AGREEMENT_STATUS,
-  AgreementStatus,
-  mapDBStatusToFrontend 
-} from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType, BreakTypeRecursion } from '@/utils/type-utils';
+import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
-interface CustomerProfile {
+// Simplified type to avoid excessive deep instantiation
+export type SimpleAgreement = {
   id: string;
-  full_name?: string;
-  email?: string;
-  phone_number?: string;
-}
-
-interface VehicleData {
-  id: string;
-  make?: string;
-  model?: string;
-  license_plate?: string;
-  image_url?: string;
-  year?: number;
-  color?: string;
-  vin?: string;
-}
-
-interface AgreementData {
-  id: string;
-  customer_id?: string;
-  vehicle_id?: string;
-  start_date: string;
-  end_date: string;
-  status: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  agreement_type?: string;
   agreement_number?: string;
+  status?: string;
   total_amount?: number;
-  deposit_amount?: number;
-  notes?: string;
+  monthly_payment?: number;
+  agreement_duration?: any;
+  customer_name?: string;
+  license_plate?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_year?: number;
   created_at?: string;
   updated_at?: string;
-  profiles?: CustomerProfile;
-  vehicles?: VehicleData;
   signature_url?: string;
-}
-
-export type SimpleAgreement = BaseAgreement & {
-  agreement_number?: string;
-  total_amount?: number;
   deposit_amount?: number;
   notes?: string;
-  created_at?: Date;
-  updated_at?: Date;
-  customers?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-    phone_number?: string;
-  };
-  vehicles?: {
-    id: string;
-    make?: string;
-    model?: string;
-    license_plate?: string;
-    image_url?: string;
-    year?: number;
-    color?: string;
-    vin?: string;
-  };
-  signature_url?: string;
-  rent_amount?: number;
-  daily_late_fee?: number;
+  customers?: any;
+  vehicles?: any;
+};
+
+// Function to convert database status to AgreementStatus enum value
+export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
+  switch(dbStatus) {
+    case 'active':
+      return AgreementStatus.ACTIVE;
+    case 'pending_payment':
+    case 'pending_deposit':
+      return AgreementStatus.PENDING;
+    case 'cancelled':
+      return AgreementStatus.CANCELLED;
+    case 'completed':
+    case 'terminated':
+      return AgreementStatus.CLOSED;
+    case 'archived':
+      return AgreementStatus.EXPIRED;
+    case 'draft':
+      return AgreementStatus.DRAFT;
+    default:
+      return AgreementStatus.DRAFT;
+  }
 };
 
 interface SearchParams {
@@ -161,17 +140,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
+      // Use the helper function to map status
+      const mappedStatus = mapDBStatusToEnum(data.status);
 
       const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
-        start_date: new Date(data.start_date),
-        end_date: new Date(data.end_date),
+        start_date: data.start_date,
+        end_date: data.end_date,
         status: mappedStatus,
-        created_at: data.created_at ? new Date(data.created_at) : undefined,
-        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
         total_amount: data.total_amount || 0,
         deposit_amount: data.deposit_amount || 0, 
         agreement_number: data.agreement_number || '',
@@ -205,22 +185,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
-            query = query.eq('status', DB_AGREEMENT_STATUS.ACTIVE);
+            query = query.eq('status', 'active');
             break;
           case AgreementStatus.PENDING:
-            query = query.eq('status', DB_AGREEMENT_STATUS.PENDING_PAYMENT);
+            query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
           case AgreementStatus.CANCELLED:
-            query = query.eq('status', DB_AGREEMENT_STATUS.CANCELLED);
+            query = query.eq('status', 'cancelled');
             break;
           case AgreementStatus.CLOSED:
-            query = query.or(`status.eq.${DB_AGREEMENT_STATUS.COMPLETED},status.eq.${DB_AGREEMENT_STATUS.TERMINATED}`);
+            query = query.or('status.eq.completed,status.eq.terminated');
             break;
           case AgreementStatus.EXPIRED:
-            query = query.eq('status', DB_AGREEMENT_STATUS.ARCHIVED);
+            query = query.eq('status', 'archived');
             break;
           case AgreementStatus.DRAFT:
-            query = query.filter('status', 'eq', DB_AGREEMENT_STATUS.DRAFT);
+            query = query.filter('status', 'eq', 'draft');
             break;
           default:
             if (typeof searchParams.status === 'string') {
@@ -240,7 +220,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
+        // First try to get any agreements where the vehicle license plate matches the query
         if (searchQuery) {
+          // Use a join pattern that ensures we don't lose the related data
           const { data: vehicleIds, error: vehicleError } = await supabase
             .from('vehicles')
             .select('id')
@@ -249,11 +231,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           if (vehicleError) {
             console.error("Error searching vehicles:", vehicleError);
           } else if (vehicleIds && vehicleIds.length > 0) {
+            // If we found matching vehicles, filter leases by those vehicle IDs
             const ids = vehicleIds.map(v => v.id);
             query = query.in('vehicle_id', ids);
             console.log("Filtering by vehicle IDs:", ids);
           } else {
-            query = query.or(`profiles.full_name.ilike.%${searchQuery}%`);
+            // If no vehicles match, try to match against customer names
+            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
           }
         }
       }
@@ -273,22 +257,28 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map((item: AgreementData) => ({
-        id: item.id,
-        customer_id: item.customer_id,
-        vehicle_id: item.vehicle_id,
-        start_date: new Date(item.start_date),
-        end_date: new Date(item.end_date),
-        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
-        agreement_number: item.agreement_number || '',
-        total_amount: item.total_amount || 0,
-        deposit_amount: item.deposit_amount || 0,
-        notes: item.notes || '',
-        customers: item.profiles,
-        vehicles: item.vehicles,
-        created_at: item.created_at ? new Date(item.created_at) : undefined,
-        updated_at: item.updated_at ? new Date(item.updated_at) : undefined
-      }));
+      const agreements: SimpleAgreement[] = data.map(item => {
+        // Use the helper function to map status
+        const mappedStatus = mapDBStatusToEnum(item.status);
+
+        return {
+          id: item.id,
+          customer_id: item.customer_id,
+          vehicle_id: item.vehicle_id,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          status: mappedStatus,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          total_amount: item.total_amount || 0,
+          deposit_amount: item.deposit_amount || 0,
+          agreement_number: item.agreement_number || '',
+          notes: item.notes || '',
+          customers: item.profiles,
+          vehicles: item.vehicles,
+          signature_url: (item as any).signature_url
+        };
+      });
 
       return agreements;
     } catch (err) {
@@ -301,14 +291,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  type UpdateAgreementParams = { 
-    id: string; 
-    data: Record<string, any> 
-  };
-
-  const updateAgreementMutation = useMutation<any, Error, {id: string; data: Record<string, any>}>({
-    mutationFn: async (params: {id: string; data: Record<string, any>}) => {
-      console.log("Update mutation called with:", params);
+  // Fix the excessive type instantiation by using a simpler type for the mutation
+  const updateAgreementMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+      console.log("Update mutation called with:", { id, data });
       return {};
     },
     onSuccess: () => {
@@ -323,6 +309,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
+        // Step 1: Delete related overdue_payments records first (foreign key constraint)
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
@@ -332,6 +319,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
         }
         
+        // Step 2: Delete related unified_payments records
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
@@ -341,6 +329,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
         }
         
+        // Step 3: Delete related import revert records
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
@@ -357,6 +346,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
+        // Step 4: Check for any other potential related records
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
@@ -373,6 +363,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
+        // Finally: Delete the agreement itself
         const { error } = await supabase
           .from('leases')
           .delete()
@@ -401,8 +392,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000,
-    gcTime: 900000,
+    staleTime: 600000, // 10 minutes (increased from 5 minutes)
+    gcTime: 900000, // 15 minutes (increased from 10 minutes)
   });
 
   return {
@@ -413,7 +404,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement: updateAgreementMutation,
+    updateAgreement,
     deleteAgreement,
   };
 };

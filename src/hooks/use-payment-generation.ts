@@ -1,146 +1,232 @@
 
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
-import { Agreement } from '@/types/agreement';
+import { format as dateFormat } from 'date-fns';
 
-interface GeneratePaymentsProps {
-  agreement: Agreement;
-  userId: string;
-}
-
-export const usePaymentGeneration = (agreement: Agreement | null = null, agreementId?: string) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const generatePaymentsMutation = useMutation({
-    mutationFn: async ({ agreement, userId }: GeneratePaymentsProps) => {
-      setIsGenerating(true);
-      try {
-        if (!agreement || !agreement.id) {
-          throw new Error("Agreement data is missing or invalid.");
-        }
+  // Function to refresh agreement data
+  const refreshAgreementData = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
-        const customerId = agreement.customer_id || agreement.customerId;
-        if (!customerId) {
-          throw new Error("Customer ID is missing from the agreement.");
-        }
-
-        const vehicleId = agreement.vehicle_id || agreement.vehicleId;
-        if (!vehicleId) {
-          throw new Error("Vehicle ID is missing from the agreement.");
-        }
-
-        const startDate = new Date(agreement.start_date);
-        const endDate = agreement.end_date ? new Date(agreement.end_date) : null;
-        const rentAmount = agreement.rent_amount || 0;
-        const totalAmount = agreement.total_amount || 0;
-        const agreementId = agreement.id;
-        const agreementInfo = `${agreement.agreement_number} - ${agreement.customers?.full_name}`;
-
-        if (!startDate || isNaN(startDate.getTime())) {
-          throw new Error("Invalid start date provided.");
-        }
-
-        if (!rentAmount || rentAmount <= 0) {
-          throw new Error("Rent amount is invalid or missing.");
-        }
-
-        const paymentSchedule = generatePaymentSchedule({
-          startDate,
-          endDate,
-          rentAmount,
-          totalAmount
-        });
-
-        if (!paymentSchedule || paymentSchedule.length === 0) {
-          throw new Error("No payment schedule could be generated.");
-        }
-
-        // Prepare payments data for database insertion
-        const paymentsData = paymentSchedule.map(payment => ({
-          agreement_id: agreementId,
-          customer_id: customerId,
-          vehicle_id: vehicleId,
-          due_date: payment.dueDate.toISOString(),
-          amount: payment.amount,
-          status: 'pending',
-          created_by: userId,
-          agreement_info: agreementInfo,
-          expected_date: payment.dueDate.toISOString()
-        }));
-
-        // Insert payments into the database
-        const { data, error } = await supabase
-          .from('payments')
-          .insert(paymentsData);
-
-        if (error) {
-          console.error("Error inserting payments:", error);
-          throw new Error(`Failed to insert payments: ${error.message}`);
-        }
-
-        return { success: true, paymentCount: paymentsData.length, data };
-      } catch (error) {
-        console.error("Payment generation failed:", error);
-        toast.error(`Payment generation failed: ${error.message}`);
-        return { success: false, error: error.message };
-      } finally {
-        setIsGenerating(false);
-      }
-    },
-    onSuccess: (result) => {
-      if (result?.success) {
-        toast.success(`Successfully generated ${result.paymentCount} payments!`);
-      } else {
-        toast.error(`Failed to generate payments: ${result?.error || 'Unknown error'}`);
-      }
-    },
-    onError: (error) => {
-      console.error("Payment generation error:", error);
-      toast.error(`Payment generation failed: ${error.message || 'Unknown error'}`);
-    }
-  });
-
-  // Add a special payment handling function
-  const handleSpecialAgreementPayments = async (
+  // Handle special agreement payments with late fee calculation
+  const handleSpecialAgreementPayments = useCallback(async (
     amount: number, 
     paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
+    notes?: string,
+    paymentMethod: string = 'cash',
+    referenceNumber?: string,
+    includeLatePaymentFee: boolean = false,
+    isPartialPayment: boolean = false,
     targetPaymentId?: string
   ) => {
-    setIsProcessing(true);
-    try {
-      // Implementation would go here
-      console.log("Recording payment:", { amount, paymentDate, notes, paymentMethod, referenceNumber });
-      
-      // Simulate processing
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.success("Payment recorded successfully");
-      setIsProcessing(false);
-      return true;
-    } catch (error) {
-      console.error("Error recording payment:", error);
-      toast.error("Failed to record payment");
-      setIsProcessing(false);
+    if (!agreement && !agreementId) {
+      toast.error("Agreement information is missing");
       return false;
     }
-  };
+    
+    setIsProcessing(true);
+    try {
+      // Check if this is an additional payment for a partially paid record
+      let existingPaymentId: string | null = null;
+      let existingPaymentAmount: number = 0;
+      let existingAmountPaid: number = 0;
+      let existingBalance: number = 0;
+      
+      // If we're updating an existing payment (either explicitly provided or from query param)
+      const queryParams = new URLSearchParams(window.location.search);
+      const paymentId = targetPaymentId || queryParams.get('paymentId');
+      
+      if (paymentId) {
+        const { data: existingPayment, error: queryError } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('id', paymentId)
+          .single();
+          
+        if (queryError) {
+          console.error("Error fetching existing payment:", queryError);
+        } else if (existingPayment) {
+          existingPaymentId = existingPayment.id;
+          existingPaymentAmount = existingPayment.amount || 0;
+          existingAmountPaid = existingPayment.amount_paid || 0;
+          existingBalance = existingPayment.balance || 0;
+        }
+      }
+      
+      // Get lease data to access daily_late_fee
+      let dailyLateFee = 120; // Default value
+      if (!agreement) {
+        // If agreement isn't passed in props, fetch it from supabase
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('daily_late_fee')
+          .eq('id', agreementId)
+          .single();
+          
+        if (leaseError) {
+          console.error("Error fetching lease data for late fee:", leaseError);
+        } else if (leaseData) {
+          dailyLateFee = leaseData.daily_late_fee || 120;
+        }
+      } else {
+        // Use the daily_late_fee from the provided agreement
+        dailyLateFee = agreement.daily_late_fee || 120;
+      }
+      
+      // Calculate if there's a late fee applicable
+      let lateFeeAmount = 0;
+      let daysLate = 0;
+      
+      // If payment is after the 1st of the month, calculate late fee
+      if (paymentDate.getDate() > 1) {
+        // Calculate days late (payment date - 1st of month)
+        daysLate = paymentDate.getDate() - 1;
+        
+        // Calculate late fee amount (capped at 3000 QAR)
+        lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);
+      }
+      
+      if (existingPaymentId) {
+        // This is an additional payment for a partially paid record
+        const totalPaid = existingAmountPaid + amount;
+        const newBalance = existingPaymentAmount - totalPaid;
+        const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
+        
+        console.log("Updating existing payment:", {
+          existingPaymentId,
+          totalPaid,
+          newBalance,
+          newStatus,
+          paymentDate: paymentDate.toISOString()
+        });
+        
+        // Update the existing payment record
+        const { error: updateError } = await supabase
+          .from('unified_payments')
+          .update({
+            amount_paid: totalPaid,
+            balance: Math.max(0, newBalance),
+            status: newStatus,
+            payment_date: paymentDate.toISOString(),
+            payment_method: paymentMethod
+          })
+          .eq('id', existingPaymentId);
+          
+        if (updateError) {
+          console.error("Error updating payment:", updateError);
+          toast.error("Failed to record additional payment");
+          return false;
+        }
+        
+        toast.success(newStatus === 'completed' ? 
+          "Payment completed successfully!" : 
+          "Additional payment recorded successfully");
+      } else {
+        // This is a new payment
+        // Handle partial payment if selected
+        let paymentStatus = 'completed';
+        let amountPaid = amount;
+        let balance = 0;
+        
+        if (isPartialPayment) {
+          paymentStatus = 'partially_paid';
+          // Safe access to rent_amount with a fallback
+          const rentAmount = agreement?.rent_amount || 0;
+          balance = Math.max(0, rentAmount - amount);
+        }
+        
+        // Form the payment record
+        const paymentRecord = {
+          lease_id: agreementId,
+          // Safe access to rent_amount with a fallback
+          amount: agreement?.rent_amount || 0,
+          amount_paid: amountPaid,
+          balance: balance,
+          payment_date: paymentDate.toISOString(),
+          payment_method: paymentMethod,
+          reference_number: referenceNumber || null,
+          description: notes || `Monthly rent payment for ${agreement?.agreement_number}`,
+          status: paymentStatus,
+          type: 'rent',
+          days_overdue: daysLate,
+          original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
+        };
+        
+        console.log("Recording payment:", paymentRecord);
+        
+        // Insert the payment record
+        const { data, error } = await supabase
+          .from('unified_payments')
+          .insert(paymentRecord)
+          .select('id')
+          .single();
+        
+        if (error) {
+          console.error("Payment recording error:", error);
+          toast.error("Failed to record payment");
+          return false;
+        }
+        
+        // If there's a late fee to apply and user opted to include it, record it as a separate transaction
+        if (lateFeeAmount > 0 && includeLatePaymentFee) {
+          const lateFeeRecord = {
+            lease_id: agreementId,
+            amount: lateFeeAmount,
+            amount_paid: lateFeeAmount,
+            balance: 0,
+            payment_date: paymentDate.toISOString(),
+            payment_method: paymentMethod,
+            reference_number: referenceNumber || null,
+            description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
+            status: 'completed',
+            type: 'LATE_PAYMENT_FEE',
+            late_fine_amount: lateFeeAmount,
+            days_overdue: daysLate,
+            original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
+          };
+          
+          console.log("Recording late fee:", lateFeeRecord);
+          
+          const { error: lateFeeError } = await supabase
+            .from('unified_payments')
+            .insert(lateFeeRecord);
+          
+          if (lateFeeError) {
+            console.error("Late fee recording error:", lateFeeError);
+            toast.warning("Payment recorded but failed to record late fee");
+          } else {
+            toast.success(isPartialPayment ? 
+              "Partial payment and late fee recorded successfully" : 
+              "Payment and late fee recorded successfully");
+          }
+        } else {
+          toast.success(isPartialPayment ? 
+            "Partial payment recorded successfully" : 
+            "Payment recorded successfully");
+        }
+      }
+      
+      refreshAgreementData();
+      return true;
+    } catch (error) {
+      console.error("Unexpected error recording payment:", error);
+      toast.error("An unexpected error occurred while recording payment");
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [agreement, agreementId, refreshAgreementData]);
 
   return {
-    generatePayments: generatePaymentsMutation.mutate,
-    isLoading: isGenerating,
-    isSuccess: generatePaymentsMutation.isSuccess,
-    isError: generatePaymentsMutation.isError,
-    error: generatePaymentsMutation.error,
-    isProcessing,
-    handleSpecialAgreementPayments
+    refreshTrigger,
+    refreshAgreementData,
+    handleSpecialAgreementPayments,
+    isProcessing
   };
 };
