@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -100,6 +99,7 @@ const FleetReport = () => {
                   <TableHead>Vehicle</TableHead>
                   <TableHead>License Plate</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Current Customer</TableHead>
                   <TableHead className="text-right">Daily Rate</TableHead>
                 </TableRow>
               </TableHeader>
@@ -110,6 +110,12 @@ const FleetReport = () => {
                     <TableCell>{vehicle.license_plate}</TableCell>
                     <TableCell>
                       <StatusBadge status={vehicle.status || 'available'} />
+                    </TableCell>
+                    <TableCell>
+                      {vehicle.status === 'rented' && vehicle.currentCustomer ? 
+                        vehicle.currentCustomer : 
+                        <span className="text-muted-foreground italic">Not assigned</span>
+                      }
                     </TableCell>
                     <TableCell className="text-right">{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
                   </TableRow>

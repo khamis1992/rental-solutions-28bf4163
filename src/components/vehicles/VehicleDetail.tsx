@@ -1,498 +1,421 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench, FileText, AlertCircle } from 'lucide-react';
-import { cn, formatCurrency } from '@/lib/utils';
-import { format, isAfter, parseISO } from 'date-fns';
+import { supabase } from '@/lib/supabase';
+import {
+  Car,
+  Calendar,
+  CreditCard,
+  MapPin,
+  Shield,
+  Clipboard,
+  Info,
+  Gauge,
+  Palette,
+  BarChart3,
+  AlertTriangle
+} from 'lucide-react';
+import { asVehicleId } from '@/utils/database-type-helpers';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CustomButton } from '@/components/ui/custom-button';
-import { useNavigate } from 'react-router-dom';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
-import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
-import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
 
-export const VehicleDetail: React.FC<VehicleDetailProps> = ({
-  vehicle
-}) => {
-  const navigate = useNavigate();
-  const {
-    useList: useMaintenanceList
-  } = useMaintenance();
-  const {
-    agreements,
-    isLoading: isLoadingAgreements,
-    setSearchParams
-  } = useAgreements({
-    vehicle_id: vehicle.id
-  });
-  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
-  const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
-  const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
-  const {
-    getByVehicleId
-  } = useMaintenance();
-  const statusColors = {
-    available: 'bg-green-100 text-green-800',
-    rented: 'bg-blue-100 text-blue-800',
-    maintenance: 'bg-amber-100 text-amber-800',
-    retired: 'bg-red-100 text-red-800'
-  };
-  const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-
-  const [multipleActiveAgreements, setMultipleActiveAgreements] = useState(false);
-
+const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+  const [financialData, setFinancialData] = useState<any>(null);
+  const [isLoadingFinancials, setIsLoadingFinancials] = useState<boolean>(false);
+  const [financialError, setFinancialError] = useState<Error | null>(null);
+  const { getByVehicleId } = useMaintenance();
+  
   useEffect(() => {
-    async function fetchVehicleImage() {
-      setImageLoading(true);
+    const fetchFinancialData = async () => {
+      if (!vehicle?.id) return;
+      
+      setIsLoadingFinancials(true);
+      setFinancialError(null);
+      
       try {
-        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
-        const modelToCheck = vehicle.model || '';
-        const matchedModelType = modelTypes.find(type => modelToCheck.toUpperCase().includes(type) || modelToCheck.toLowerCase().includes(type.toLowerCase()));
-        if (matchedModelType) {
-          console.log(`Detail view: Vehicle matched model type: ${matchedModelType}`);
-          const modelImage = await getModelSpecificImage(matchedModelType);
-          if (modelImage) {
-            console.log(`Detail view: Using ${matchedModelType} image from storage:`, modelImage);
-            setVehicleImageUrl(modelImage);
-            setImageLoading(false);
-            return;
-          }
+        console.log('Fetching financial data for vehicle:', vehicle.id);
+        
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('id, rent_amount, total_amount, status')
+          .eq('vehicle_id', asVehicleId(vehicle.id));
+        
+        if (leaseError) throw new Error(leaseError.message);
+        
+        let payments: any[] = [];
+        if (leaseData && leaseData.length > 0) {
+          const leaseIds = leaseData.map(lease => lease.id);
+          
+          const { data: paymentData, error: paymentError } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .in('lease_id', leaseIds);
+            
+          if (paymentError) throw new Error(paymentError.message);
+          payments = paymentData || [];
         }
-        if (vehicle.imageUrl || vehicle.image_url) {
-          setVehicleImageUrl(vehicle.imageUrl || vehicle.image_url);
-          setImageLoading(false);
-          return;
+        
+        let maintenanceRecords = [];
+        let totalMaintenance = 0;
+        
+        try {
+          maintenanceRecords = await getByVehicleId(asVehicleId(vehicle.id));
+          totalMaintenance = maintenanceRecords.reduce((acc, maintenance) => acc + (parseFloat(maintenance.cost) || 0), 0);
+          console.log('Maintenance records:', maintenanceRecords.length, 'Total cost:', totalMaintenance);
+        } catch (maintenanceError) {
+          console.error('Error fetching maintenance data:', maintenanceError);
+          setFinancialError(maintenanceError);
         }
-        const imageUrl = await getVehicleImageByPrefix(vehicle.id);
-        if (imageUrl) {
-          setVehicleImageUrl(imageUrl);
-          setImageLoading(false);
-          return;
-        }
-        fallbackToModelImages();
-      } catch (error) {
-        console.error('Error fetching vehicle image:', error);
-        fallbackToModelImages();
+        
+        const totalRevenue = payments.reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
+        const totalPotentialRevenue = leaseData?.reduce((acc, lease) => acc + (lease.total_amount || 0), 0) || 0;
+        const currentMonthRevenue = payments
+          .filter(payment => {
+            if (!payment.payment_date) return false;
+            const paymentDate = new Date(payment.payment_date);
+            const now = new Date();
+            return paymentDate.getMonth() === now.getMonth() && 
+                  paymentDate.getFullYear() === now.getFullYear();
+          })
+          .reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
+          
+        const fixedDailyRate = 100;
+        const monthlyRate = vehicle.rent_amount || (fixedDailyRate * 30);
+          
+        setFinancialData({
+          totalRevenue,
+          totalPotentialRevenue,
+          currentMonthRevenue,
+          totalMaintenance,
+          netProfit: totalRevenue - totalMaintenance,
+          currentCustomerPayments: payments.filter(p => p.status === 'paid').length,
+          dailyRate: fixedDailyRate,
+          monthlyRate: monthlyRate,
+          roi: totalMaintenance > 0 ? (totalRevenue / totalMaintenance * 100).toFixed(1) + '%' : 'N/A',
+          latestPayments: payments.slice(0, 5)
+        });
+      } catch (err) {
+        console.error('Error fetching financial data:', err);
+        setFinancialError(err instanceof Error ? err : new Error('Unknown error fetching financial data'));
       } finally {
-        setImageLoading(false);
-      }
-    }
-    fetchVehicleImage();
-  }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
-
-  const fallbackToModelImages = () => {
-    const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
-    const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
-    const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
-    const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-    const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
-    const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-    const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
-    try {
-      const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
-      const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
-      console.log('Vehicle detail make/model:', makeLower, modelLower);
-      if (modelLower.includes('b70') || modelLower === 'b70') {
-        setVehicleImageUrl(b70Image);
-        console.log('Using B70 fallback image in detail');
-      } else if (modelLower.includes('t33') || modelLower === 't33') {
-        setVehicleImageUrl(t33Image);
-        console.log('Using T33 fallback image in detail');
-      } else if (modelLower.includes('t77') || modelLower === 't77') {
-        setVehicleImageUrl(t77Image);
-        console.log('Using T77 fallback image in detail');
-      } else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
-        setVehicleImageUrl(gs3Image);
-        console.log('Using GAC GS3 fallback image in detail');
-      } else if (modelLower.includes('gs3') || modelLower === 'gs3') {
-        setVehicleImageUrl(gs3Image);
-        console.log('Using GS3 fallback image in detail');
-      } else if (makeLower.includes('gac')) {
-        setVehicleImageUrl(gacImage);
-        console.log('Using generic GAC fallback image in detail');
-      } else if (makeLower === 'mg' || makeLower.startsWith('mg ') || modelLower.startsWith('mg')) {
-        if (modelLower.includes('5') || modelLower.includes('mg5') || makeLower.includes('mg5') || makeLower === 'mg' && modelLower === '5') {
-          setVehicleImageUrl(mg5Image);
-          console.log('Using MG5 specific fallback image in detail:', mg5Image);
-        } else {
-          setVehicleImageUrl(mgImage);
-          console.log('Using generic MG fallback image in detail:', mgImage);
-        }
-      } else {
-        setVehicleImageUrl(defaultCarImage);
-      }
-    } catch (error) {
-      console.error('Error setting vehicle detail image:', error);
-      setVehicleImageUrl(defaultCarImage);
-    }
-  };
-
-  const hasInsurance = !!vehicle.insurance_company;
-  const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
-  const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
-
-  const getInsuranceBadgeStyle = () => {
-    if (!hasInsurance) return 'bg-red-100 text-red-800';
-    return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  };
-
-  const getInsuranceStatusText = () => {
-    if (!hasInsurance) return 'No Insurance';
-    return isInsuranceValid ? 'Valid' : 'Expired';
-  };
-
-  const handleViewMaintenance = (id: string) => {
-    navigate(`/maintenance/${id}`);
-  };
-
-  const handleAddMaintenance = () => {
-    navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
-  };
-
-  const handleViewAgreement = (id: string) => {
-    if (!id) {
-      console.error("Attempted to navigate to agreement with no ID");
-      toast.error("Unable to view agreement: Missing ID");
-      return;
-    }
-    console.log(`Navigating to agreement: /agreements/${id}`);
-    navigate(`/agreements/${id}`);
-  };
-
-  const handleCreateAgreement = () => {
-    navigate(`/agreements/add?vehicleId=${vehicle.id}`);
-  };
-
-  useEffect(() => {
-    const fetchMaintenance = async () => {
-      setIsLoadingMaintenance(true);
-      try {
-        const records = await getByVehicleId(vehicle.id);
-        setMaintenanceRecords(records);
-      } catch (error) {
-        console.error("Error fetching maintenance records:", error);
-      } finally {
-        setIsLoadingMaintenance(false);
+        setIsLoadingFinancials(false);
       }
     };
-    if (vehicle.id) {
-      fetchMaintenance();
-    }
-  }, [vehicle.id, getByVehicleId]);
 
-  const formatMaintenanceType = (type: string) => {
-    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
+    fetchFinancialData();
+  }, [vehicle?.id, getByVehicleId]);
 
-  const getMaintenanceStatusColor = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case MaintenanceStatus.COMPLETED:
+      case 'available':
         return 'bg-green-100 text-green-800';
-      case MaintenanceStatus.IN_PROGRESS:
+      case 'rented':
         return 'bg-blue-100 text-blue-800';
-      case MaintenanceStatus.SCHEDULED:
-        return 'bg-amber-100 text-amber-800';
-      case MaintenanceStatus.CANCELLED:
+      case 'maintenance':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'police_station':
+        return 'bg-purple-100 text-purple-800';
+      case 'accident':
         return 'bg-red-100 text-red-800';
+      case 'stolen':
+        return 'bg-red-200 text-red-900';
+      case 'retired':
+        return 'bg-gray-100 text-gray-800';
+      case 'reserved':
+        return 'bg-indigo-100 text-indigo-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getAgreementStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-amber-100 text-amber-800';
-      case 'expired':
-        return 'bg-red-100 text-red-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'draft':
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const formatStatus = (status: string) => {
+    return status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
   };
 
-  const formatAgreementStatus = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  useEffect(() => {
-    if (agreements && agreements.length > 0) {
-      const activeCount = agreements.filter(a => a.status === 'active').length;
-      setMultipleActiveAgreements(activeCount > 1);
-    }
-  }, [agreements]);
-
-  return <Card className="w-full overflow-hidden card-transition">
-      <div className="relative h-56 md:h-72 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <img src={vehicleImageUrl || defaultCarImage} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
-        console.log('Detail image failed to load, using fallback');
-        e.currentTarget.src = defaultCarImage;
-      }} />
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-1/3 rounded-lg overflow-hidden h-64 bg-gray-100 border border-gray-200 shadow-sm">
+          {vehicle?.image_url ? (
+            <img 
+              src={vehicle.image_url} 
+              alt={`${vehicle.make} ${vehicle.model}`} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Car size={64} className="text-gray-300" />
+              <span className="ml-2 text-gray-400">No image available</span>
+            </div>
+          )}
+        </div>
         
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">{vehicle.make} {vehicle.model}</h1>
-            <Badge className={cn(statusColors[vehicle.status])}>
-              {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+        <div className="w-full lg:w-2/3 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">{vehicle.make} {vehicle.model}</h1>
+              <p className="text-muted-foreground">{vehicle.year} • {vehicle.license_plate}</p>
+            </div>
+            <Badge className={`mt-2 md:mt-0 ${getStatusColor(vehicle.status || '')}`}>
+              {formatStatus(vehicle.status || '')}
             </Badge>
           </div>
-          <div className="flex items-center mt-2">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>{vehicle.year}</span>
-            <span className="mx-2">•</span>
-            <span className="font-medium">{vehicle.licensePlate}</span>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex items-center p-3 bg-gray-50 rounded-md border border-gray-100">
+              <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Rent Amount</p>
+                <p className="text-lg font-semibold">{formatCurrency(vehicle.rent_amount || 0)}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center p-3 bg-gray-50 rounded-md border border-gray-100">
+              <Palette className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Color</p>
+                <p className="text-lg font-semibold">{vehicle.color || 'Not specified'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center p-3 bg-gray-50 rounded-md border border-gray-100">
+              <MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Location</p>
+                <p className="text-lg font-semibold">{vehicle.location || 'Not specified'}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       
-      <CardContent className="p-6">
-        {multipleActiveAgreements && (
-          <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-            <AlertTitle className="text-amber-700">Multiple Active Agreements</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              This vehicle is assigned to multiple active agreements. This could be a temporary state during agreement transitions.
-              The system will ensure only one agreement remains active.
-            </AlertDescription>
-          </Alert>
-        )}
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance</TabsTrigger>
+          <TabsTrigger value="additional">Additional Info</TabsTrigger>
+        </TabsList>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <CardTitle className="mb-4 text-lg">Vehicle Details</CardTitle>
-            <ul className="space-y-3">
-              <li className="flex items-center text-sm">
-                <Key className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">VIN:</span>
-                <span>{vehicle.vin || 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Location:</span>
-                <span>{vehicle.location || 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Fuel Level:</span>
-                <span>{vehicle.fuelLevel !== undefined ? `${vehicle.fuelLevel}%` : 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Mileage:</span>
-                <span>
-                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}
-                </span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Color:</span>
-                <span>{vehicle.color || 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Category:</span>
-                <span className="capitalize">{vehicle.category || 'N/A'}</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <CardTitle className="mb-4 text-lg">Additional Information</CardTitle>
-            <ul className="space-y-3">
-              <li className="flex items-center text-sm">
-                <Shield className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Insurance:</span>
-                <div>
-                  <Badge className={getInsuranceBadgeStyle()}>
-                    {getInsuranceStatusText()}
-                  </Badge>
-                  {hasInsurance && <div className="mt-1">
-                      <div>{vehicle.insurance_company}</div>
-                      {insuranceExpiry && <div className="text-xs text-muted-foreground">
-                          {isInsuranceValid ? 'Expires' : 'Expired'}: {format(insuranceExpiry, 'MMM d, yyyy')}
-                        </div>}
-                    </div>}
+        <TabsContent value="details" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Info className="h-5 w-5 mr-2" />
+                Vehicle Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">VIN</span>
+                    <span className="font-medium">{vehicle.vin}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">License Plate</span>
+                    <span className="font-medium">{vehicle.license_plate}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Make</span>
+                    <span className="font-medium">{vehicle.make}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Model</span>
+                    <span className="font-medium">{vehicle.model}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Year</span>
+                    <span className="font-medium">{vehicle.year}</span>
+                  </div>
                 </div>
-              </li>
-              <li className="flex items-center text-sm">
-                <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Transmission:</span>
-                <span className="capitalize">{vehicle.transmission || 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Fuel Type:</span>
-                <span className="capitalize">{vehicle.fuelType || 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Daily Rate:</span>
-                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 'N/A'}</span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Last Serviced:</span>
-                <span>
-                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : 'N/A'}
-                </span>
-              </li>
-              <li className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Next Service:</span>
-                <span>
-                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : 'N/A'}
-                </span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        {vehicle.features && vehicle.features.length > 0 && <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">Features</CardTitle>
-            <div className="flex flex-wrap gap-2">
-              {vehicle.features.map((feature, index) => <Badge key={index} variant="secondary" className="rounded-md">
-                  {feature}
-                </Badge>)}
-            </div>
-          </div>}
-        
-        {vehicle.notes && <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">Notes</CardTitle>
-            <div className="bg-muted/50 p-3 rounded-md text-sm">
-              <div className="flex items-start">
-                <Info className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                <p>{vehicle.notes}</p>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Mileage</span>
+                    <span className="font-medium">{vehicle.mileage !== undefined ? `${vehicle.mileage}km` : 'Not Available'}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Color</span>
+                    <span className="font-medium">{vehicle.color || 'Not specified'}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="font-medium">
+                      <Badge className={getStatusColor(vehicle.status || '')}>
+                        {formatStatus(vehicle.status || '')}
+                      </Badge>
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Last Updated</span>
+                    <span className="font-medium">
+                      {vehicle.updated_at ? format(new Date(vehicle.updated_at), 'dd MMM yyyy, HH:mm') : 'Not available'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">Created On</span>
+                    <span className="font-medium">
+                      {vehicle.created_at ? format(new Date(vehicle.created_at), 'dd MMM yyyy') : 'Not available'}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>}
-        
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">Rental Agreements</CardTitle>
-            <CustomButton
-              size="sm"
-              onClick={() => handleCreateAgreement()}>
-              Add Agreement
-            </CustomButton>
-          </div>
+            </CardContent>
+          </Card>
           
-          {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
-              Loading agreements...
-            </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Agreement #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agreements.map((simpleAgreement) => {
-                    const agreement = adaptSimpleToFullAgreement(simpleAgreement);
-                    return (
-                      <TableRow key={agreement.id}>
-                        <TableCell className="font-medium">
-                          {agreement.agreement_number}
-                        </TableCell>
-                        <TableCell>
-                          {agreement.customers?.full_name || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {agreement.start_date ? format(new Date(agreement.start_date), 'MMM d, yyyy') : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {agreement.end_date ? format(new Date(agreement.end_date), 'MMM d, yyyy') : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getAgreementStatusColor(agreement.status)}>
-                            {formatAgreementStatus(agreement.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatCurrency(agreement.total_amount)}</TableCell>
-                        <TableCell className="text-right">
-                          <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
-                            View
-                          </CustomButton>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
-              No rental agreements found for this vehicle.
-            </div>}
-        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Financial Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingFinancials ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : financialError ? (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 flex items-start">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
+                  <div>
+                    <p className="font-medium text-red-700">Error loading financial data</p>
+                    <p className="text-sm text-red-600">{financialError.message}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Daily Rate</span>
+                      <span className="font-medium">{formatCurrency(financialData?.dailyRate || 100)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Monthly Rate</span>
+                      <span className="font-medium">{formatCurrency(financialData?.monthlyRate || (100 * 30))}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Total Revenue</span>
+                      <span className="font-medium text-green-600">{formatCurrency(financialData?.totalRevenue || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Current Month Revenue</span>
+                      <span className="font-medium">{formatCurrency(financialData?.currentMonthRevenue || 0)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Maintenance Costs</span>
+                      <span className="font-medium text-red-600">{formatCurrency(financialData?.totalMaintenance || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Net Profit</span>
+                      <span className={`font-medium ${(financialData?.netProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(financialData?.netProfit || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">ROI</span>
+                      <span className="font-medium">{financialData?.roi || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Current Customer</span>
+                      <span className="font-medium">{vehicle.currentCustomer || 'None'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
         
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">Maintenance History</CardTitle>
-            
-          </div>
-          
-          {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">
-              Loading maintenance records...
-            </div> : maintenanceRecords && maintenanceRecords.length > 0 ? <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maintenanceRecords.map(record => <TableRow key={record.id}>
-                      <TableCell className="font-medium">
-                        {formatMaintenanceType(record.maintenance_type)}
-                      </TableCell>
-                      <TableCell>
-                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getMaintenanceStatusColor(record.status)}>
-                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(record.cost)}</TableCell>
-                      <TableCell>{record.service_provider || 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                        <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
-                          View
-                        </CustomButton>
-                      </TableCell>
-                    </TableRow>)}
-                </TableBody>
-              </Table>
-            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
-              No maintenance records found for this vehicle.
-            </div>}
-        </div>
-      </CardContent>
-    </Card>;
+        <TabsContent value="insurance">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                Insurance Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Insurance Company</span>
+                      <span className="font-medium">{vehicle.insurance_company || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Insurance Expiry</span>
+                      <span className="font-medium">
+                        {vehicle.insurance_expiry 
+                          ? format(new Date(vehicle.insurance_expiry), 'dd/MM/yyyy') 
+                          : 'Not specified'}
+                      </span>
+                    </div>
+                    {vehicle.insurance_expiry && (
+                      <div className="flex justify-between border-b pb-2">
+                        <span className="text-muted-foreground">Days Until Expiry</span>
+                        <span className="font-medium">
+                          {Math.max(0, Math.ceil((new Date(vehicle.insurance_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="additional">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clipboard className="h-5 w-5 mr-2" />
+                Additional Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Description</h3>
+                  <p className="text-muted-foreground p-3 bg-gray-50 rounded-md">
+                    {vehicle.description || 'No description available for this vehicle.'}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Maintenance Schedule</h3>
+                  <div className="text-muted-foreground p-3 bg-gray-50 rounded-md">
+                    <p>Last serviced: Not recorded</p>
+                    <p>Next service due: Not scheduled</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Features</h3>
+                  <p className="text-muted-foreground p-3 bg-gray-50 rounded-md">
+                    {vehicle.vehicleType?.features?.length > 0 
+                      ? vehicle.vehicleType.features.join(', ') 
+                      : 'No features listed'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 };
+
+export default VehicleDetail;

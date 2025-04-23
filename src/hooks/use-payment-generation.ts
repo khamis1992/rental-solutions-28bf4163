@@ -80,7 +80,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       }
       
       // Calculate if there's a late fee applicable
-      let lateFeeAmount = 0;
+      let lateFineAmount = 0;
       let daysLate = 0;
       
       // If payment is after the 1st of the month, calculate late fee
@@ -89,7 +89,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         daysLate = paymentDate.getDate() - 1;
         
         // Calculate late fee amount (capped at 3000 QAR)
-        lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);
+        lateFineAmount = Math.min(daysLate * dailyLateFee, 3000);
       }
       
       if (existingPaymentId) {
@@ -155,6 +155,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,
+          late_fine_amount: lateFineAmount, // Using late_fine_amount instead of daily_late_fee
           original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
         };
         
@@ -174,11 +175,11 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         }
         
         // If there's a late fee to apply and user opted to include it, record it as a separate transaction
-        if (lateFeeAmount > 0 && includeLatePaymentFee) {
+        if (lateFineAmount > 0 && includeLatePaymentFee) {
           const lateFeeRecord = {
             lease_id: agreementId,
-            amount: lateFeeAmount,
-            amount_paid: lateFeeAmount,
+            amount: lateFineAmount,
+            amount_paid: lateFineAmount,
             balance: 0,
             payment_date: paymentDate.toISOString(),
             payment_method: paymentMethod,
@@ -186,7 +187,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
             status: 'completed',
             type: 'LATE_PAYMENT_FEE',
-            late_fine_amount: lateFeeAmount,
+            late_fine_amount: lateFineAmount, // Using late_fine_amount directly
             days_overdue: daysLate,
             original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
           };

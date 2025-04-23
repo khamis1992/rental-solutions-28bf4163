@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -207,6 +206,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
           notes: data.notes || null,
           days_overdue: lateFeeDetails?.daysLate || 0,
           original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
+          late_fine_amount: lateFeeDetails?.amount || 0,
         });
 
         if (paymentError) {
@@ -216,7 +216,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
       // If late fee is applicable and user opted to include it
       if (lateFeeDetails && data.includeLatePaymentFee) {
-        // Record late fee payment
+        // Record late fee payment - IMPORTANT: Using late_fine_amount instead of daily_late_fee
         const { error: lateFeeError } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
           amount: lateFeeDetails.amount,

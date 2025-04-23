@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
-import VehicleForm from '@/components/vehicles/VehicleForm';
+import { VehicleOnboardingWizard } from '@/components/vehicles/VehicleOnboardingWizard';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -46,9 +46,10 @@ const AddVehicle = () => {
       />
       
       <div className="section-transition">
-        <VehicleForm 
-          onSubmit={handleSubmit} 
-          isLoading={isPending} 
+        <VehicleOnboardingWizard
+          open={true}
+          onClose={() => navigate('/vehicles')}
+          onComplete={() => navigate('/vehicles')}
         />
       </div>
     </PageContainer>

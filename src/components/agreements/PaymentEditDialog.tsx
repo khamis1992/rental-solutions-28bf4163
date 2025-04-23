@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Payment } from "./PaymentHistory";
+import { Payment } from "./PaymentHistory.types";
 
 interface PaymentEditDialogProps {
   payment: Payment | null;
@@ -34,7 +33,6 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rentAmount, setRentAmount] = useState<number | null>(null);
 
-  // Reset form when payment changes
   useEffect(() => {
     if (payment) {
       setAmount(payment.amount);
@@ -44,7 +42,6 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
       setNotes(payment.notes || "");
       setStatus(payment.status || "pending");
       
-      // Fetch rent amount from leases table
       if (payment.lease_id) {
         fetchRentAmount(payment.lease_id);
       }
@@ -62,7 +59,7 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
       if (error) throw error;
       if (data && data.rent_amount) {
         setRentAmount(data.rent_amount);
-        setAmount(data.rent_amount); // Set the amount to the rent amount
+        setAmount(data.rent_amount);
       }
     } catch (error) {
       console.error("Error fetching rent amount:", error);
@@ -81,7 +78,6 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
     setIsSubmitting(true);
     
     try {
-      // Update the payment in the unified_payments table
       const { error } = await supabase
         .from("unified_payments")
         .update({
@@ -98,7 +94,7 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
       
       toast.success("Payment updated successfully");
       onSaved();
-      onOpenChange(false); // Use onOpenChange instead of onClose
+      onOpenChange(false);
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment");

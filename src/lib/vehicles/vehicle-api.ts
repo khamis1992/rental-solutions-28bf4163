@@ -1,23 +1,24 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
   Vehicle, 
   VehicleFormData, 
   VehicleInsertData, 
+  VehicleUpdateData, 
   VehicleType, 
-  VehicleUpdateData,
   DatabaseVehicleRecord,
   DatabaseVehicleType,
   VehicleStatus,
   DatabaseVehicleStatus
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
+import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
 
 // Helper function to convert database status to app status
-const mapDBStatusToAppStatus = (dbStatus: string | null): string | null => {
+const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null => {
+  if (!dbStatus) return null;
   if (dbStatus === 'reserve') return 'reserved';
-  return dbStatus;
+  return dbStatus as VehicleStatus;
 };
 
 // Fetch vehicles with optional filtering
@@ -26,41 +27,89 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     .select('*, vehicle_types(*)');
   
   if (filters) {
-    // Use a simple for loop with explicit string keys to avoid deep type instantiation
-    if (filters.status) {
-      if (filters.status === 'reserved') {
-        query = query.eq('status', 'reserve');
-      } else {
-        query = query.eq('status', filters.status);
-      }
+    // Support for multiple statuses
+    if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+      // Map all statuses to DB format
+      const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
+      query = query.in('status', dbStatuses);
+      console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
+    }
+    // Single status filter (backward compatibility)
+    else if (filters.status) {
+      // Convert application status to database status
+      const dbStatus = mapToDBStatus(filters.status);
+      query = query.eq('status', dbStatus);
+      console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
     
     if (filters.make) {
       query = query.eq('make', filters.make);
     }
     
-    if (filters.vehicle_type_id) {
-      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-    }
-    
-    if (filters.location) {
-      query = query.eq('location', filters.location);
+    if (filters.model) {
+      query = query.eq('model', filters.model);
     }
     
     if (filters.year) {
       query = query.eq('year', filters.year);
     }
+    
+    if (filters.location) {
+      query = query.eq('location', filters.location);
+    }
+
+    if (filters.vehicle_type_id) {
+      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+    }
+    
+    if (filters.search) {
+      query = query.or(`vin.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+    }
   }
   
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query;
   
   if (error) {
-    throw new Error(`Error fetching vehicles: ${error.message}`);
+    console.error('Error fetching vehicles:', error);
+    throw new Error('Failed to fetch vehicles');
   }
   
-  // Type assertion to tell TypeScript these are DatabaseVehicleRecord objects
-  const vehicleRecords = (data || []) as DatabaseVehicleRecord[];
-  return vehicleRecords.map(record => mapDatabaseRecordToVehicle(record));
+  return (data || []).map((record: any) => {
+    const vehicle: Vehicle = {
+      id: record.id,
+      license_plate: record.license_plate,
+      make: record.make,
+      model: record.model,
+      year: record.year,
+      color: record.color,
+      vin: record.vin,
+      mileage: record.mileage,
+      status: mapDBStatusToAppStatus(record.status),
+      description: record.description,
+      image_url: record.image_url,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+      rent_amount: record.rent_amount,
+      insurance_company: record.insurance_company,
+      insurance_expiry: record.insurance_expiry,
+      location: record.location,
+    };
+    
+    if (record.vehicle_types) {
+      vehicle.vehicleType = {
+        id: record.vehicle_types.id,
+        name: record.vehicle_types.name,
+        daily_rate: record.vehicle_types.daily_rate,
+      };
+      
+      // If the vehicle doesn't have a daily rate set directly, use the one from the vehicle type
+      if (!vehicle.dailyRate && record.vehicle_types) {
+        vehicle.dailyRate = record.vehicle_types.daily_rate;
+      }
+    }
+    
+    return vehicle;
+  });
 }
 
 // Fetch a single vehicle by ID
@@ -113,7 +162,11 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // No need to convert status here since mapToDBStatus already handles it
+  // Map the status properly for database storage
+  if (dbData.status) {
+    dbData.status = mapToDBStatus(dbData.status);
+    console.log(`API insertVehicle: Mapped status to DB format: ${dbData.status}`);
+  }
   
   const { data, error } = await supabase
     .from('vehicles')
@@ -133,20 +186,60 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // No need to convert status here
-  
-  const { data, error } = await supabase
-    .from('vehicles')
-    .update(dbData)
-    .eq('id', id)
-    .select('*, vehicle_types(*)')
-    .single();
-  
-  if (error) {
-    throw new Error(`Error updating vehicle: ${error.message}`);
+  // Ensure proper status mapping for database storage
+  if (dbData.status !== undefined) {
+    dbData.status = mapToDBStatus(dbData.status);
+    console.log(`API updateVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   
-  return data as DatabaseVehicleRecord;
+  // Ensure we have an updated_at timestamp
+  dbData.updated_at = new Date().toISOString();
+  
+  console.log(`API: Updating vehicle ${id} with data:`, dbData);
+  
+  let attempts = 0;
+  const maxAttempts = 3;
+  let lastError = null;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(dbData)
+        .eq('id', id)
+        .select('*, vehicle_types(*)')
+        .single();
+      
+      if (error) {
+        lastError = error;
+        console.error(`Update attempt ${attempts + 1} failed:`, error);
+        attempts++;
+        
+        if (attempts < maxAttempts) {
+          // Wait before retrying
+          await new Promise(r => setTimeout(r, 500 * attempts));
+          continue;
+        }
+        throw error;
+      }
+      
+      console.log(`API: Vehicle ${id} updated successfully:`, data);
+      return data as DatabaseVehicleRecord;
+    } catch (err) {
+      lastError = err;
+      console.error(`Update attempt ${attempts + 1} failed with exception:`, err);
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        // Wait before retrying
+        await new Promise(r => setTimeout(r, 500 * attempts));
+      } else {
+        break;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Failed to update vehicle after multiple attempts');
 }
 
 // Delete a vehicle

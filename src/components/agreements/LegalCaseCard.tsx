@@ -1,148 +1,170 @@
-
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { LegalCase } from '@/types/legal-case';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
+import { Loader2, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { CalendarClock, Scale, FileText } from 'lucide-react';
+import { hasData } from '@/utils/supabase-type-helpers';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-interface LegalCaseCardProps {
+export interface LegalCaseCardProps {
   agreementId: string;
 }
 
-export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
-  const [legalCases, setLegalCases] = useState<LegalCase[]>([]);
+export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [legalCase, setLegalCase] = useState<any>(null);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchLegalCases = async () => {
-      if (!agreementId) return;
-
-      try {
-        setIsLoading(true);
-        // Find customer_id first
-        const { data: leaseData, error: leaseError } = await supabase
-          .from('leases')
-          .select('customer_id')
-          .eq('id', agreementId)
-          .single();
-
-        if (leaseError) {
-          console.error('Error fetching lease data:', leaseError);
-          return;
-        }
-
-        if (!leaseData?.customer_id) {
-          console.log('No customer ID found for this agreement');
-          return;
-        }
-
-        // Fetch legal cases for the customer
-        const { data, error } = await supabase
-          .from('legal_cases')
-          .select('*')
-          .eq('customer_id', leaseData.customer_id);
-
-        if (error) {
-          console.error('Error fetching legal cases:', error);
-          return;
-        }
-
-        // Log the data to see what we're getting
-        console.log('Legal cases data:', data);
-
-        // Transform the data to match the LegalCase type
-        if (data) {
-          const transformedData: LegalCase[] = data.map(item => {
-            // Safely check if notes exists and ensure it's a string
-            let notesValue = '';
-            if ('notes' in item && item.notes !== null && item.notes !== undefined) {
-              notesValue = String(item.notes); // Convert to string to ensure type compatibility
-            }
-            
-            return {
-              id: item.id,
-              case_number: `CASE-${item.id.substring(0, 8)}`,
-              title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
-              description: item.description || '',
-              customer_id: item.customer_id,
-              customer_name: 'Customer', // Default value
-              status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
-              hearing_date: item.escalation_date || null,
-              court_location: '',
-              assigned_attorney: item.assigned_to || '',
-              opposing_party: '',
-              case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
-              documents: [],
-              amount_claimed: item.amount_owed || 0,
-              amount_settled: null,
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              notes: notesValue
-            };
-          });
-
-          setLegalCases(transformedData);
-        }
-      } catch (err) {
-        console.error('Unexpected error fetching legal cases:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLegalCases();
+    fetchLegalCase();
   }, [agreementId]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'active':
-        return <Badge className="bg-blue-500 text-white">Active</Badge>;
-      case 'closed':
-        return <Badge className="bg-green-500 text-white">Closed</Badge>;
-      case 'settled':
-        return <Badge className="bg-indigo-500 text-white">Settled</Badge>;
-      default:
-        return <Badge className="bg-gray-500 text-white">{status}</Badge>;
+  const fetchLegalCase = async () => {
+    try {
+      setIsLoading(true);
+      
+      // First get the customer ID from the agreement
+      const { data: agreementData, error: agreementError } = await supabase
+        .from('leases')
+        .select('customer_id')
+        .eq('id', agreementId)
+        .single();
+        
+      if (agreementError) {
+        console.error("Error fetching agreement:", agreementError);
+        return;
+      }
+      
+      if (!agreementData?.customer_id) {
+        console.error("No customer ID found for agreement");
+        return;
+      }
+      
+      // Get customer info
+      const { data: customerData, error: customerError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone_number')
+        .eq('id', agreementData.customer_id)
+        .single();
+        
+      if (!customerError && customerData) {
+        setCustomerInfo(customerData);
+      }
+      
+      // Get legal case for this customer
+      const { data: caseData, error: caseError } = await supabase
+        .from('legal_cases')
+        .select('*')
+        .eq('customer_id', agreementData.customer_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (caseError) {
+        console.error("Error fetching legal case:", caseError);
+        return;
+      }
+      
+      if (caseData && caseData.length > 0) {
+        setLegalCase(caseData[0]);
+      }
+    } catch (error) {
+      console.error("Error in fetchLegalCase:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleViewDetails = (caseId: string) => {
-    toast.info("Case details functionality coming soon");
-    // Navigation to case details would go here
+  const handleResolveCase = async () => {
+    if (!legalCase) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      const { error } = await supabase
+        .from('legal_cases')
+        .update({
+          status: 'resolved',
+          resolution_notes: resolutionNotes,
+          resolution_date: new Date().toISOString()
+        })
+        .eq('id', legalCase.id);
+        
+      if (error) {
+        console.error("Error resolving case:", error);
+        toast.error("Failed to resolve legal case");
+        return;
+      }
+      
+      toast.success("Legal case resolved successfully");
+      setIsResolutionDialogOpen(false);
+      fetchLegalCase();
+    } catch (error) {
+      console.error("Error in handleResolveCase:", error);
+      toast.error("An error occurred while resolving the case");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-red-500">Active</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case 'resolved':
+        return <Badge className="bg-green-500">Resolved</Badge>;
+      case 'escalated':
+        return <Badge className="bg-purple-500">Escalated</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return <Badge className="bg-red-500">High Priority</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500">Medium Priority</Badge>;
+      case 'low':
+        return <Badge className="bg-blue-500">Low Priority</Badge>;
+      default:
+        return <Badge>{priority}</Badge>;
+    }
   };
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
+          <CardTitle>Legal Case Information</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full mb-4" />
-          <Skeleton className="h-24 w-full" />
+        <CardContent className="flex justify-center py-6">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
   }
 
-  if (legalCases.length === 0) {
+  if (!legalCase) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
+          <CardTitle>Legal Case Information</CardTitle>
+          <CardDescription>No legal cases found for this agreement</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-6 text-muted-foreground">
-            <p>No legal cases associated with this agreement.</p>
+        <CardContent className="text-center py-6">
+          <div className="flex flex-col items-center justify-center">
+            <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No legal cases have been filed for this customer.</p>
           </div>
         </CardContent>
       </Card>
@@ -152,52 +174,118 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Legal Cases</CardTitle>
-        <CardDescription>Associated legal matters</CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Legal Case Information</CardTitle>
+            <CardDescription>Details about the legal case for this agreement</CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
+            {getStatusBadge(legalCase.status)}
+            {legalCase.priority && getPriorityBadge(legalCase.priority)}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {legalCases.map((legalCase) => (
-            <div 
-              key={legalCase.id} 
-              className="border rounded-md p-4 hover:border-primary/50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium">{legalCase.title}</h4>
-                  <p className="text-sm text-muted-foreground">Case #{legalCase.case_number}</p>
-                </div>
-                {getStatusBadge(legalCase.status)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Case Type</h3>
+              <p>{legalCase.case_type || 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount Owed</h3>
+              <p className="font-semibold text-red-600">
+                {legalCase.amount_owed ? `QAR ${legalCase.amount_owed.toLocaleString()}` : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Created Date</h3>
+              <p>{legalCase.created_at ? format(new Date(legalCase.created_at), 'PPP') : 'N/A'}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h3>
+              <p>{legalCase.assigned_to || 'Unassigned'}</p>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+            <p className="text-sm whitespace-pre-line">{legalCase.description || 'No description provided'}</p>
+          </div>
+          
+          {legalCase.status === 'resolved' && (
+            <div className="bg-green-50 p-3 rounded-md border border-green-200">
+              <div className="flex items-center mb-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <h3 className="text-sm font-medium text-green-800">Case Resolved</h3>
               </div>
-              
-              <p className="text-sm mb-3 line-clamp-2">{legalCase.description}</p>
-              
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                <div className="flex items-center">
-                  <CalendarClock className="h-4 w-4 mr-1" />
-                  <span>Hearing: {legalCase.hearing_date ? format(new Date(legalCase.hearing_date), 'MMM d, yyyy') : 'Not scheduled'}</span>
-                </div>
-                {legalCase.amount_claimed && (
-                  <div className="flex items-center">
-                    <Scale className="h-4 w-4 mr-1" />
-                    <span>Claim: ${legalCase.amount_claimed.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-              
+              <p className="text-sm text-green-700 whitespace-pre-line">{legalCase.resolution_notes || 'No resolution notes provided'}</p>
+              {legalCase.resolution_date && (
+                <p className="text-xs text-green-600 mt-2">
+                  Resolved on {format(new Date(legalCase.resolution_date), 'PPP')}
+                </p>
+              )}
+            </div>
+          )}
+          
+          {legalCase.status !== 'resolved' && (
+            <div className="flex justify-end">
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => handleViewDetails(legalCase.id)}
+                onClick={() => setIsResolutionDialogOpen(true)}
               >
-                <FileText className="h-4 w-4 mr-2" />
-                View Details
+                Mark as Resolved
               </Button>
             </div>
-          ))}
+          )}
         </div>
       </CardContent>
+      
+      <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resolve Legal Case</DialogTitle>
+            <DialogDescription>
+              Enter resolution details to close this legal case.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Resolution Notes</h4>
+              <Textarea
+                placeholder="Enter details about how this case was resolved..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                rows={5}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsResolutionDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleResolveCase}
+              disabled={isSubmitting || !resolutionNotes.trim()}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resolving...
+                </>
+              ) : (
+                'Resolve Case'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
