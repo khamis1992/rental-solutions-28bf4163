@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CarIcon, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
-import { CustomButton } from './custom-button';
+
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Car, MapPin, MoreHorizontal, Gauge, Edit, RefreshCw } from 'lucide-react';
 import { VehicleStatus } from '@/types/vehicle';
-import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 interface VehicleCardProps {
   id: string;
@@ -14,15 +14,67 @@ interface VehicleCardProps {
   year: number;
   licensePlate: string;
   status: VehicleStatus;
-  imageUrl: string;
+  imageUrl?: string;
   location?: string;
   fuelLevel?: number;
-  mileage?: number | null;
-  className?: string;
-  onSelect?: (id: string) => void;
+  mileage?: number;
+  currentCustomer?: string;
+  onSelect?: () => void;
+  onStatusUpdate?: () => void;
 }
 
-const VehicleCard = ({
+const getStatusColor = (status: VehicleStatus) => {
+  switch (status) {
+    case 'available': return 'bg-green-500';
+    case 'rented': return 'bg-blue-500';
+    case 'reserved': return 'bg-amber-500';
+    case 'maintenance': return 'bg-red-500';
+    case 'police_station': return 'bg-indigo-500';
+    case 'accident': return 'bg-rose-500';
+    case 'stolen': return 'bg-purple-500';
+    case 'retired': return 'bg-gray-500';
+    default: return 'bg-gray-500';
+  }
+};
+
+const getStatusLabel = (status: VehicleStatus) => {
+  switch (status) {
+    case 'available': return 'Available';
+    case 'rented': return 'Rented';
+    case 'reserved': return 'Reserved';
+    case 'maintenance': return 'Maintenance';
+    case 'police_station': return 'Police Station';
+    case 'accident': return 'Accident';
+    case 'stolen': return 'Stolen';
+    case 'retired': return 'Retired';
+    default: return 'Unknown';
+  }
+};
+
+const getStatusBadge = (status: VehicleStatus) => {
+  switch (status) {
+    case 'available':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Available</Badge>;
+    case 'rented':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Rented</Badge>;
+    case 'reserved':
+      return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">Reserved</Badge>;
+    case 'maintenance':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Maintenance</Badge>;
+    case 'stolen':
+      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Stolen</Badge>;
+    case 'police_station':
+      return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">Police Station</Badge>;
+    case 'accident':
+      return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200">Accident</Badge>;
+    case 'retired':
+      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">Retired</Badge>;
+    default:
+      return <Badge variant="outline">Unknown</Badge>;
+  }
+};
+
+export const VehicleCard = ({
   id,
   make,
   model,
@@ -30,227 +82,106 @@ const VehicleCard = ({
   licensePlate,
   status,
   imageUrl,
-  location,
+  location = 'Not specified',
   fuelLevel,
   mileage,
-  className,
+  currentCustomer,
   onSelect,
+  onStatusUpdate
 }: VehicleCardProps) => {
-  const [actualImageUrl, setActualImageUrl] = useState<string>('');
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  
-  const statusColors = {
-    available: 'bg-green-100 text-green-800',
-    rented: 'bg-blue-100 text-blue-800',
-    reserved: 'bg-purple-100 text-purple-800',
-    maintenance: 'bg-amber-100 text-amber-800',
-    police_station: 'bg-sky-100 text-sky-800',
-    accident: 'bg-red-100 text-red-800',
-    stolen: 'bg-rose-100 text-rose-800',
-    retired: 'bg-gray-100 text-gray-800'
+  const handleCardClick = () => {
+    if (onSelect) onSelect();
   };
 
-  const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-  
-  useEffect(() => {
-    async function loadVehicleImage() {
-      setIsImageLoading(true);
-      
-      try {
-        // Check model-specific images
-        const modelToCheck = model || '';
-        
-        // Models to check for specific storage images
-        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
-        
-        // Find if current vehicle matches any known model
-        const matchedModelType = modelTypes.find(type => 
-          modelToCheck.toUpperCase().includes(type) || 
-          modelToCheck.toLowerCase().includes(type.toLowerCase())
-        );
-        
-        if (matchedModelType) {
-          console.log(`Vehicle matched model type: ${matchedModelType}`);
-          const modelImage = await getModelSpecificImage(matchedModelType);
-          
-          if (modelImage) {
-            console.log(`Using ${matchedModelType} image from storage:`, modelImage);
-            setActualImageUrl(modelImage);
-            setIsImageLoading(false);
-            return;
-          }
-        }
-        
-        // Then check if we have a direct URL
-        if (imageUrl && imageUrl.startsWith('http')) {
-          setActualImageUrl(imageUrl);
-          setIsImageLoading(false);
-          return;
-        }
-        
-        // Then try to get an image by vehicle ID
-        const storageImage = await getVehicleImageByPrefix(id);
-        if (storageImage) {
-          setActualImageUrl(storageImage);
-          setIsImageLoading(false);
-          return;
-        }
-        
-        // Finally, fall back to model-specific images from public folder
-        fallbackToModelImages();
-      } catch (error) {
-        console.error('Error loading vehicle image:', error);
-        fallbackToModelImages();
-      }
-    }
-    
-    loadVehicleImage();
-  }, [id, imageUrl, make, model]);
-  
-  const fallbackToModelImages = () => {
-    const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
-    const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
-    const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
-    const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-    const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
-    const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-    const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
-    
-    try {
-      const makeLower = (make || '').toString().toLowerCase().trim();
-      const modelLower = (model || '').toString().toLowerCase().trim();
-      
-      console.log('Vehicle card make/model:', makeLower, modelLower);
-      
-      if (modelLower.includes('b70') || modelLower === 'b70') {
-        setActualImageUrl(b70Image);
-        console.log('Using B70 fallback image');
-      }
-      else if (modelLower.includes('t33') || modelLower === 't33') {
-        setActualImageUrl(t33Image);
-        console.log('Using T33 fallback image');
-      }
-      else if (modelLower.includes('t77') || modelLower === 't77') {
-        setActualImageUrl(t77Image);
-        console.log('Using T77 fallback image');
-      } 
-      else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
-        setActualImageUrl(gs3Image);
-        console.log('Using GAC GS3 fallback image');
-      }
-      else if (modelLower.includes('gs3') || modelLower === 'gs3') {
-        setActualImageUrl(gs3Image);
-        console.log('Using GS3 fallback image');
-      }
-      else if (makeLower.includes('gac')) {
-        setActualImageUrl(gacImage);
-        console.log('Using generic GAC fallback image');
-      } 
-      else if (
-        makeLower === 'mg' || 
-        makeLower.startsWith('mg ') || 
-        modelLower.startsWith('mg')
-      ) {
-        if (
-          modelLower.includes('5') || 
-          modelLower.includes('mg5') || 
-          makeLower.includes('mg5') ||
-          (makeLower === 'mg' && modelLower === '5')
-        ) {
-          setActualImageUrl(mg5Image);
-          console.log('Using MG5 specific fallback image:', mg5Image);
-        } else {
-          setActualImageUrl(mgImage);
-          console.log('Using generic MG fallback image:', mgImage);
-        }
-      } 
-      else {
-        setActualImageUrl(defaultCarImage);
-      }
-    } catch (error) {
-      console.error('Error setting vehicle image:', error);
-      setActualImageUrl(defaultCarImage);
-    } finally {
-      setIsImageLoading(false);
-    }
-  };
+  const statusColor = getStatusColor(status);
 
   return (
-    <Card className={cn(
-      "overflow-hidden border border-border/60 transition-all duration-300 hover:shadow-card", 
-      "card-transition", 
-      className
-    )}>
-      <div className="relative h-48 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
-        {isImageLoading ? (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <span className="text-muted-foreground">Loading...</span>
-          </div>
-        ) : (
+    <div 
+      className={cn(
+        "overflow-hidden rounded-lg border border-border/60 bg-card",
+        "transition-all duration-200 hover:shadow-md relative",
+        "flex flex-col h-full"
+      )}
+    >
+      <div 
+        className={`absolute top-0 left-0 w-1 h-full ${statusColor}`} 
+        title={getStatusLabel(status)}
+      />
+      
+      <div className="relative h-48 overflow-hidden bg-muted/30">
+        {imageUrl ? (
           <img 
-            src={actualImageUrl || defaultCarImage} 
-            alt={`${make} ${model}`}
-            className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
-            onError={(e) => {
-              console.log('Image failed to load, using fallback:', e.currentTarget.src);
-              e.currentTarget.src = defaultCarImage;
-            }}
+            src={imageUrl} 
+            alt={`${make} ${model}`} 
+            className="w-full h-full object-cover"
           />
-        )}
-        <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </Badge>
-      </div>
-
-      <CardContent className="p-5">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-semibold">{make} {model}</h3>
-            <div className="flex items-center mt-1 text-muted-foreground">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span className="text-sm">{year}</span>
-              <span className="mx-2 text-muted-foreground">•</span>
-              <span className="text-sm font-medium">{licensePlate}</span>
-            </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted/20">
+            <Car className="h-16 w-16 text-muted-foreground/30" />
           </div>
+        )}
+        <div className="absolute top-2 right-2">
+          {getStatusBadge(status)}
         </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {location && (
-            <div className="flex items-center text-muted-foreground text-sm">
-              <MapPin className="h-4 w-4 mr-1.5" />
-              <span className="truncate">{location}</span>
-            </div>
-          )}
-          
-          {fuelLevel !== undefined && (
-            <div className="flex items-center text-muted-foreground text-sm">
-              <Fuel className="h-4 w-4 mr-1.5" />
-              <span>{fuelLevel}%</span>
-            </div>
-          )}
-          
-          {mileage !== undefined && mileage !== null && (
-            <div className="flex items-center text-muted-foreground text-sm">
-              <Activity className="h-4 w-4 mr-1.5" />
+      </div>
+      
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold tracking-tight mb-1 hover:text-primary cursor-pointer" onClick={handleCardClick}>
+              {make} {model}
+            </h3>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleCardClick}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+                {onStatusUpdate && (
+                  <DropdownMenuItem onClick={onStatusUpdate}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Update Status
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <p className="text-sm text-muted-foreground">{year} • {licensePlate}</p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground mt-auto">
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-1.5 text-muted-foreground/70" />
+            <span className="truncate" title={location}>{location}</span>
+          </div>
+          {mileage !== undefined && (
+            <div className="flex items-center">
+              <Gauge className="h-4 w-4 mr-1.5 text-muted-foreground/70" />
               <span>{mileage.toLocaleString()} km</span>
             </div>
           )}
+          {currentCustomer && (
+            <div className="col-span-2 truncate" title={`Current Customer: ${currentCustomer}`}>
+              <span className="font-medium text-foreground/80">Customer:</span> {currentCustomer}
+            </div>
+          )}
         </div>
-      </CardContent>
-
-      <CardFooter className="px-5 pb-5 pt-0">
-        <CustomButton 
-          className="w-full" 
-          glossy={true}
-          onClick={() => onSelect && onSelect(id)}
+      </div>
+      
+      <div className="px-5 pb-5 pt-0">
+        <Button 
+          className="w-full"
+          onClick={handleCardClick}
+          variant="outline"
         >
           View Details
-        </CustomButton>
-      </CardFooter>
-    </Card>
+        </Button>
+      </div>
+    </div>
   );
 };
-
-export { VehicleCard };
