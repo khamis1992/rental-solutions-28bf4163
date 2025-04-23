@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -27,6 +27,8 @@ import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 
 const AgreementDetailPage = () => {
   const {
@@ -47,6 +49,7 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const {
     rentAmount,
     contractAmount
@@ -54,7 +57,8 @@ const AgreementDetailPage = () => {
   const {
     payments,
     isLoading: isLoadingPayments,
-    fetchPayments
+    fetchPayments,
+    addPayment
   } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
@@ -208,6 +212,38 @@ const AgreementDetailPage = () => {
         return "default";
       default:
         return "default";
+    }
+  };
+
+  const handlePaymentSubmit = async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
+  ) => {
+    if (!id) return;
+    
+    try {
+      const newPayment = {
+        amount,
+        payment_date: paymentDate.toISOString(),
+        lease_id: id,
+        payment_method: paymentMethod,
+        reference_number: referenceNumber,
+        notes,
+        status: 'completed',
+        description: notes || 'Payment'
+      };
+      
+      await addPayment(newPayment);
+      toast.success('Payment recorded successfully');
+      fetchPayments();
+      setIsPaymentDialogOpen(false);
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
     }
   };
 
@@ -373,7 +409,27 @@ const AgreementDetailPage = () => {
                   <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {agreement && <PaymentList agreementId={agreement.id} onDeletePayment={refreshAgreementData} />}
+                  {Array.isArray(payments) && 
+                    <PaymentHistory 
+                      payments={payments}
+                      isLoading={isLoadingPayments} 
+                      rentAmount={rentAmount} 
+                      onPaymentDeleted={fetchPayments}
+                      leaseStartDate={agreement.start_date}
+                      leaseEndDate={agreement.end_date}
+                      onRecordPayment={(payment) => {
+                        if (payment && id) {
+                          const fullPayment = {
+                            ...payment,
+                            lease_id: id,
+                            status: 'completed'
+                          };
+                          addPayment(fullPayment);
+                          fetchPayments();
+                        }
+                      }}
+                    />
+                  }
                 </CardContent>
               </Card>
               
@@ -532,6 +588,15 @@ const AgreementDetailPage = () => {
               <InvoiceGenerator recordType="agreement" recordId={agreement.id} onClose={() => setIsDocumentDialogOpen(false)} />
             </DialogContent>
           </Dialog>
+
+          <PaymentEntryDialog
+            open={isPaymentDialogOpen}
+            onOpenChange={setIsPaymentDialogOpen}
+            onSubmit={handlePaymentSubmit}
+            defaultAmount={rentAmount || 0}
+            title="Record Payment"
+            description="Enter payment details to record a new payment"
+          />
         </> : <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
