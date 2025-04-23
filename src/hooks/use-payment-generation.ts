@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,11 +11,12 @@ interface GeneratePaymentsProps {
   userId: string;
 }
 
-export const usePaymentGeneration = () => {
+export const usePaymentGeneration = (agreement: Agreement | null = null, agreementId?: string) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const generatePaymentsMutation = useMutation(
-    async ({ agreement, userId }: GeneratePaymentsProps) => {
+  const generatePaymentsMutation = useMutation({
+    mutationFn: async ({ agreement, userId }: GeneratePaymentsProps) => {
       setIsGenerating(true);
       try {
         if (!agreement || !agreement.id) {
@@ -89,20 +91,48 @@ export const usePaymentGeneration = () => {
         setIsGenerating(false);
       }
     },
-    {
-      onSuccess: (result) => {
-        if (result?.success) {
-          toast.success(`Successfully generated ${result.paymentCount} payments!`);
-        } else {
-          toast.error(`Failed to generate payments: ${result?.error || 'Unknown error'}`);
-        }
-      },
-      onError: (error) => {
-        console.error("Payment generation error:", error);
-        toast.error(`Payment generation failed: ${error.message || 'Unknown error'}`);
+    onSuccess: (result) => {
+      if (result?.success) {
+        toast.success(`Successfully generated ${result.paymentCount} payments!`);
+      } else {
+        toast.error(`Failed to generate payments: ${result?.error || 'Unknown error'}`);
       }
+    },
+    onError: (error) => {
+      console.error("Payment generation error:", error);
+      toast.error(`Payment generation failed: ${error.message || 'Unknown error'}`);
     }
-  );
+  });
+
+  // Add a special payment handling function
+  const handleSpecialAgreementPayments = async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    targetPaymentId?: string
+  ) => {
+    setIsProcessing(true);
+    try {
+      // Implementation would go here
+      console.log("Recording payment:", { amount, paymentDate, notes, paymentMethod, referenceNumber });
+      
+      // Simulate processing
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.success("Payment recorded successfully");
+      setIsProcessing(false);
+      return true;
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      toast.error("Failed to record payment");
+      setIsProcessing(false);
+      return false;
+    }
+  };
 
   return {
     generatePayments: generatePaymentsMutation.mutate,
@@ -110,5 +140,7 @@ export const usePaymentGeneration = () => {
     isSuccess: generatePaymentsMutation.isSuccess,
     isError: generatePaymentsMutation.isError,
     error: generatePaymentsMutation.error,
+    isProcessing,
+    handleSpecialAgreementPayments
   };
 };

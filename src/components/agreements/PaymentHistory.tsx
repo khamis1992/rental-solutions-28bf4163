@@ -8,7 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { CalendarDays, ChevronsUpDown, Copy, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
-import { Listbox } from '@headlessui/react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -24,6 +23,26 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "@/components/ui/date-picker"
 
+export interface Payment {
+  id: string;
+  lease_id?: string;
+  amount: number;
+  amount_paid?: number;
+  payment_date?: Date | string;
+  due_date?: Date | string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  payment_method?: string;
+  status?: string;
+  type?: string;
+  balance?: number;
+  reference_number?: string;
+  notes?: string;
+  original_due_date?: Date | string;
+}
+
 export function PaymentHistory({
   payments,
   isLoading,
@@ -32,7 +51,7 @@ export function PaymentHistory({
   leaseStartDate,
   leaseEndDate
 }: {
-  payments: any[];
+  payments: Payment[];
   isLoading: boolean;
   onPaymentDeleted: () => void;
   rentAmount: number | null;
@@ -216,7 +235,6 @@ export function PaymentHistory({
                 Payment Date
               </Label>
               <DatePicker
-                id="editPaymentDate"
                 value={editPaymentDate}
                 onValueChange={setEditPaymentDate}
                 className="col-span-3"
