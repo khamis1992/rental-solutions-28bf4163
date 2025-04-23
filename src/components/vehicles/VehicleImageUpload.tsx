@@ -1,106 +1,176 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { UploadCloud } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useRef } from 'react';
+import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
+import { CustomButton } from '@/components/ui/custom-button';
+import { toast } from 'sonner';
 
-export interface VehicleImageUploadProps {
-  vehicleId?: string;
-  onComplete?: (url: string) => void;
-  onUpload?: (url: string) => void;
+interface VehicleImageUploadProps {
+  onImageSelected: (file: File | null) => void;
+  initialImageUrl?: string;
+  className?: string;
 }
 
-const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ vehicleId, onComplete, onUpload }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ 
+  onImageSelected, 
+  initialImageUrl, 
+  className 
+}) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    handleFile(file);
+  };
 
-    try {
-      setIsUploading(true);
-      setError(null);
+  const handleFile = (file: File | null) => {
+    setErrorMessage(null);
+    setIsLoading(true);
+    
+    if (file) {
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setErrorMessage('Please select an image file');
+        toast.error('Invalid file type', { description: 'Please select an image file' });
+        setIsLoading(false);
+        return;
+      }
       
-      // Generate a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `vehicles/${vehicleId || 'new'}/${fileName}`;
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMessage('File size should be less than 5MB');
+        toast.error('File too large', { description: 'File size should be less than 5MB' });
+        setIsLoading(false);
+        return;
+      }
       
-      // Upload the file
-      const { data, error: uploadError } = await supabase
-        .storage
-        .from('vehicle_images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
+      try {
+        // Create preview URL
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        
+        // Pass the file back to parent component
+        onImageSelected(file);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error creating object URL:', error);
+        setErrorMessage('Failed to process image');
+        toast.error('Image processing failed', { 
+          description: error instanceof Error ? error.message : 'Unknown error occurred'
         });
-        
-      if (uploadError) {
-        throw new Error(uploadError.message);
+        setIsLoading(false);
       }
-      
-      // Get the public URL
-      const { data: urlData } = supabase
-        .storage
-        .from('vehicle_images')
-        .getPublicUrl(filePath);
-        
-      const publicUrl = urlData.publicUrl;
-      
-      if (onUpload) {
-        onUpload(publicUrl);
-      }
-      
-      if (onComplete) {
-        onComplete(publicUrl);
-      }
-      
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      setError(error.message || 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+    } else {
+      setIsLoading(false);
     }
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0] || null;
+    handleFile(file);
+  };
+
+  const handleRemoveImage = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setErrorMessage(null);
+    onImageSelected(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-center w-full">
-        <label htmlFor="vehicle-image-upload" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <UploadCloud className="w-10 h-10 mb-3 text-gray-400" />
-            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-semibold">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              JPEG, PNG or JPG (MAX. 5MB)
-            </p>
-          </div>
-          <Input
-            id="vehicle-image-upload"
-            type="file"
-            accept="image/png, image/jpeg, image/jpg"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={isUploading}
-          />
-        </label>
-      </div>
-
-      {isUploading && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-          <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-          <p className="text-sm text-center mt-1">Uploading... {uploadProgress}%</p>
+    <div 
+      className={`
+        relative border-2 border-dashed rounded-md p-4 text-center
+        ${isDragging ? 'border-primary bg-primary/5' : 'border-border'}
+        ${errorMessage ? 'border-red-400' : ''}
+        ${className}
+      `}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+      
+      {isLoading ? (
+        <div className="py-12 flex flex-col items-center">
+          <Loader2 className="h-12 w-12 text-primary animate-spin mb-3" />
+          <p className="text-sm text-muted-foreground">Processing image...</p>
         </div>
-      )}
-
-      {error && (
-        <p className="text-sm text-red-500 mt-2">{error}</p>
+      ) : previewUrl ? (
+        <div className="relative">
+          <img 
+            src={previewUrl} 
+            alt="Vehicle preview" 
+            className="mx-auto max-h-64 rounded-md object-contain"
+          />
+          <CustomButton
+            type="button"
+            size="sm"
+            variant="destructive"
+            className="absolute top-2 right-2 h-8 w-8 p-0"
+            onClick={handleRemoveImage}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Remove image</span>
+          </CustomButton>
+        </div>
+      ) : (
+        <div className="py-6 flex flex-col items-center">
+          <Image className="h-12 w-12 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground mb-2">
+            Drag & drop an image here, or click to select
+          </p>
+          <CustomButton 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={handleButtonClick}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Image
+          </CustomButton>
+          <p className="text-xs text-muted-foreground mt-3">
+            JPG, PNG or WEBP (max. 5MB)
+          </p>
+          
+          {errorMessage && (
+            <div className="mt-3 flex items-center text-red-500 text-sm">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {errorMessage}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

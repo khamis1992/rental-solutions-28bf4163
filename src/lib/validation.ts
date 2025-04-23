@@ -1,46 +1,13 @@
 
 import { z } from 'zod';
 
-// Type guards for common data types
-export const typeGuards = {
-  isString: (value: unknown): value is string => typeof value === 'string',
-  isNumber: (value: unknown): value is number => typeof value === 'number' && !isNaN(value),
-  isBoolean: (value: unknown): value is boolean => typeof value === 'boolean',
-  isDate: (value: unknown): value is Date => value instanceof Date && !isNaN(value.getTime()),
-  isObject: (value: unknown): value is Record<string, unknown> => 
-    typeof value === 'object' && value !== null && !Array.isArray(value),
-};
-
-// Common validation patterns with type checking
+// Common validation patterns
 export const validationPatterns = {
   email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
   phone: /^\+?[0-9]{10,15}$/,
   qatarPhone: /^[3-9]\d{7}$/, // 8-digit Qatar number starting with 3-9
   licensePlate: /^[A-Z0-9-]{2,10}$/,
   vinNumber: /^[A-HJ-NPR-Z0-9]{17}$/,
-};
-
-// Type-safe validation functions
-export const validateInput = {
-  string: (value: unknown, pattern?: RegExp): string | null => {
-    if (!typeGuards.isString(value)) return null;
-    if (pattern && !pattern.test(value)) return null;
-    return value;
-  },
-  number: (value: unknown, min?: number, max?: number): number | null => {
-    if (!typeGuards.isNumber(value)) return null;
-    if (min !== undefined && value < min) return null;
-    if (max !== undefined && value > max) return null;
-    return value;
-  },
-  date: (value: unknown): Date | null => {
-    if (typeGuards.isDate(value)) return value;
-    if (typeGuards.isString(value)) {
-      const date = new Date(value);
-      return typeGuards.isDate(date) ? date : null;
-    }
-    return null;
-  }
 };
 
 // Common validation schemas

@@ -1,499 +1,228 @@
-import React from 'react';
-import { Download, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
-import { toast } from 'sonner';
-import { formatDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
-import { generateStandardReport } from '@/utils/report-utils';
 
-export interface ReportDownloadOptionsProps {
+import React, { useState } from 'react';
+import { prepareReportData } from '@/utils/translation-utils';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, FileDown } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { 
+  addReportHeader, 
+  addReportFooter, 
+  downloadCSV, 
+  downloadExcel, 
+  generateStandardReport, 
+  generateTrafficFinesReport 
+} from '@/utils/report-utils';
+
+interface ReportDownloadOptionsProps {
   reportType: string;
-  getReportData: () => any[];
+  getReportData?: () => Record<string, any>[];
 }
 
-const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
-  reportType,
-  getReportData
-}) => {
-  const handleDownloadPDF = () => {
+const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportDownloadOptionsProps) => {
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: new Date(),
+    to: new Date()
+  });
+  const [fileFormat, setFileFormat] = useState('pdf');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleDownload = async () => {
     try {
-      let data = getReportData();
-      if (!data || data.length === 0) {
-        toast.error('No data to export');
+      setIsGenerating(true);
+      
+      // Get data for the report
+      let reportData = getReportData();
+      
+      if (!reportData || reportData.length === 0) {
+        toast.warning("No data available for this report");
+        setIsGenerating(false);
         return;
       }
       
-      if (reportType === 'traffic') {
-        data = data.map(fine => ({
-          violationNumber: fine.violationNumber || 'N/A',
-          licensePlate: fine.licensePlate || 'N/A',
-          violationDate: fine.violationDate ? formatDate(fine.violationDate) : 'N/A',
-          customerName: fine.customerName || 'Unassigned',
-          fineAmount: formatCurrency(fine.fineAmount || 0)
-        }));
-        
-        const doc = generateStandardReport(
-          'TRAFFIC FINES REPORT',
-          { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() },
-          (doc, startY) => {
-            let y = startY;
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const marginBottom = 30; // Space to reserve for footer
-            
-            const totalAmount = data.reduce((sum, item) => {
-              const amount = typeof item.fineAmount === 'string' ? 
-                parseFloat(item.fineAmount.replace(/[^\d.-]/g, '')) : 
-                (item.fineAmount || 0);
-              return sum + (isNaN(amount) ? 0 : amount);
-            }, 0);
-            
-            doc.setFillColor(240, 240, 240);
-            doc.rect(15, y, pageWidth - 30, 20, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.setTextColor(44, 62, 80);
-            doc.text(`Total Fines: ${data.length}`, 20, y + 12);
-            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, pageWidth - 40, y + 12, { align: 'right' });
-            
-            y += 30;
-            
-            const customerGroups: Record<string, any[]> = {};
-            data.forEach(fine => {
-              const customerName = fine.customerName || 'Unassigned';
-              if (!customerGroups[customerName]) customerGroups[customerName] = [];
-              customerGroups[customerName].push(fine);
-            });
-            
-            Object.entries(customerGroups).forEach(([customerName, customerFines], groupIndex) => {
-              // Check if we need a new page for this customer group
-              const estimatedGroupHeight = 12 + (customerFines.length * 10) + 30;
-              if (y + estimatedGroupHeight > pageHeight - marginBottom && groupIndex > 0) {
-                doc.addPage();
-                y = startY; // Reset Y position for the new page
+      // Log report data to help with debugging
+      console.log(`Generating ${reportType} report with ${reportData.length} records`);
+      
+      // Transliterate all text fields in the report data
+      try {
+        reportData = await prepareReportData(reportData);
+      } catch (error) {
+        console.error("Error in data preparation:", error);
+        // Continue with original data if transliteration fails
+      }
+      
+      // Format title based on report type
+      const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+      const filename = `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}`;
+      
+      // Generate report based on file format
+      if (fileFormat === 'pdf') {
+        try {
+          // Special case for traffic fines report
+          if (reportType === 'traffic-fines') {
+            console.log("Starting traffic fines report generation");
+            try {
+              const doc = generateTrafficFinesReport(reportData);
+              doc.save(`${filename}.pdf`);
+              console.log("Traffic fines report saved successfully");
+            } catch (trafficError) {
+              console.error("Traffic fines report generation error:", trafficError);
+              toast.error("Failed to generate traffic fines report", {
+                description: trafficError.message || "Please check console for details"
+              });
+              setIsGenerating(false);
+              return;
+            }
+          } else {
+            // Use the standardized report generator for other reports
+            const doc = generateStandardReport(
+              title,
+              dateRange,
+              (doc, startY) => {
+                // Add content based on report type
+                let yPos = startY;
+                
+                // Add summary section heading
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Report Summary:', 14, yPos);
+                yPos += 10;
+                
+                // Add content specific to each report type
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                
+                switch (reportType) {
+                  case 'fleet':
+                    doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                    doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                    doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                    doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
+                    doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
+                    break;
+                  case 'financial':
+                    doc.text('• Revenue Summary', 20, yPos); yPos += 10;
+                    doc.text('• Expense Analysis', 20, yPos); yPos += 10;
+                    doc.text('• Profit Margin', 20, yPos); yPos += 10;
+                    doc.text('• Financial Projections', 20, yPos); yPos += 10;
+                    break;
+                  case 'customers':
+                    doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                    doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                    doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
+                    doc.text('• Top Customers', 20, yPos); yPos += 10;
+                    break;
+                  case 'maintenance':
+                    doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                    doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                    doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
+                    doc.text('• Maintenance History', 20, yPos); yPos += 10;
+                    break;
+                  case 'legal':
+                    doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
+                    doc.text('• Case Status Distribution', 20, yPos); yPos += 10;
+                    doc.text('• Compliance Status', 20, yPos); yPos += 10;
+                    doc.text('• Legal Document Inventory', 20, yPos); yPos += 10;
+                    break;
+                  default:
+                    doc.text('No specific data available for this report type.', 20, yPos);
+                }
+                
+                return yPos; // Return the final y position
               }
-              
-              doc.setFillColor(52, 73, 94);
-              doc.rect(15, y - 8, pageWidth - 30, 12, 'F');
-              doc.setTextColor(255, 255, 255);
-              doc.setFontSize(12);
-              doc.text(customerName, 20, y);
-              
-              y += 12;
-              
-              const headers = ['Violation #', 'License Plate', 'Date', 'Amount'];
-              const columnWidths = [50, 50, 40, 40];
-              const tableStartX = 15;
-              
-              doc.setFillColor(240, 240, 240);
-              doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
-              
-              doc.setFont('helvetica', 'bold');
-              doc.setTextColor(44, 62, 80);
-              doc.setFontSize(10);
-              
-              let x = tableStartX + 5;
-              headers.forEach((header, i) => {
-                doc.text(header, x, y + 8);
-                x += columnWidths[i];
-              });
-              
-              y += 15;
-              
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(70, 70, 70);
-              
-              customerFines.forEach((fine, index) => {
-                // Check if we need a new page for this row
-                if (y > pageHeight - marginBottom - 10) {
-                  doc.addPage();
-                  y = startY; // Reset Y position for the new page
-                  
-                  // Redraw the headers on the new page
-                  doc.setFillColor(240, 240, 240);
-                  doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
-                  
-                  doc.setFont('helvetica', 'bold');
-                  doc.setTextColor(44, 62, 80);
-                  doc.setFontSize(10);
-                  
-                  x = tableStartX + 5;
-                  headers.forEach((header, i) => {
-                    doc.text(header, x, y + 8);
-                    x += columnWidths[i];
-                  });
-                  
-                  y += 15;
-                  doc.setFont('helvetica', 'normal');
-                  doc.setTextColor(70, 70, 70);
-                }
-                
-                x = tableStartX + 5;
-                
-                if (index % 2 === 1) {
-                  doc.setFillColor(248, 248, 248);
-                  doc.rect(tableStartX, y - 5, pageWidth - 30, 10, 'F');
-                }
-                
-                doc.text(fine.violationNumber, x, y);
-                x += columnWidths[0];
-                
-                doc.text(fine.licensePlate, x, y);
-                x += columnWidths[1];
-                
-                doc.text(fine.violationDate, x, y);
-                x += columnWidths[2];
-                
-                doc.text(fine.fineAmount, x, y);
-                
-                y += 10;
-              });
-              
-              y += 10;
-            });
+            );
             
-            return y;
+            // Save the PDF
+            doc.save(`${filename}.pdf`);
           }
-        );
-        
-        doc.save('traffic-fines-report.pdf');
-        toast.success('PDF Report downloaded successfully');
-      } else {
-        // Handle other report types with proper pagination
-        const pdf = new jsPDF();
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const marginBottom = 30;
-        
-        pdf.setFontSize(20);
-        pdf.setTextColor(44, 62, 80);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`${reportType.toUpperCase()} REPORT`, 105, 20, { align: 'center' });
-        
-        pdf.setFontSize(12);
-        pdf.setTextColor(100, 100, 100);
-        pdf.setFont('helvetica', 'normal');
-        const date = formatDate(new Date());
-        pdf.text(`Generated on: ${date}`, 105, 30, { align: 'center' });
-        
-        let y = 40;
-        
-        if (reportType === 'traffic') {
-          const totalAmount = data.reduce((sum, item) => {
-            const amount = typeof item.fineAmount === 'string' 
-              ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
-              : (item.fineAmount || 0);
-            return sum + (isNaN(amount) ? 0 : amount);
-          }, 0);
-          
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Report Summary', 20, 45);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`Total Fines: ${data.length}`, 20, 55);
-          pdf.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 62);
+        } catch (error) {
+          console.error("PDF generation error:", error);
+          toast.error("Failed to generate PDF. Please try again.", {
+            description: error.message || "Unknown error occurred"
+          });
+          setIsGenerating(false);
+          return;
         }
-        
-        if (reportType === 'traffic') {
-          const groupedData: Record<string, any[]> = {};
-          
-          data.forEach(item => {
-            let month = 'Unknown Date';
-            
-            if (item.violationDate) {
-              if (item.violationDate instanceof Date) {
-                month = item.violationDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-              } else if (typeof item.violationDate === 'string') {
-                try {
-                  const dateObj = new Date(item.violationDate);
-                  month = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
-                } catch (e) {
-                  month = 'Unknown Date';
-                }
-              }
-            }
-            
-            if (!groupedData[month]) {
-              groupedData[month] = [];
-            }
-            groupedData[month].push(item);
-          });
-          
-          const headers = ['Violation #', 'License Plate', 'Date', 'Driver/Customer', 'Amount'];
-          const columnWidths = [40, 30, 30, 50, 30];
-          
-          Object.entries(groupedData).forEach(([month, monthData]) => {
-            // Check if we need a new page for this month group
-            if (y > pageHeight - marginBottom - 40) {
-              pdf.addPage();
-              y = 20;
-            }
-            
-            pdf.setFont('helvetica', 'bold');
-            pdf.setTextColor(44, 62, 80);
-            pdf.text(month, 20, y);
-            y += 10;
-            
-            const startX = 20;
-            
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-            
-            let x = startX;
-            headers.forEach((header, i) => {
-              pdf.text(header, x, y);
-              x += columnWidths[i];
-            });
-            y += 7;
-            
-            pdf.setFont('helvetica', 'normal');
-            pdf.setTextColor(0, 0, 0);
-            
-            let monthTotal = 0;
-            
-            monthData.forEach((row, rowIndex) => {
-              if (typeof row.fineAmount === 'string') {
-                const numericValue = parseFloat(row.fineAmount.replace(/[^\d.-]/g, ''));
-                if (!isNaN(numericValue)) {
-                  monthTotal += numericValue;
-                }
-              } else if (typeof row.fineAmount === 'number') {
-                monthTotal += row.fineAmount;
-              }
-              
-              // Check if we need a new page for this row
-              if (y > pageHeight - marginBottom) {
-                pdf.addPage();
-                y = 20;
-                
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFillColor(240, 240, 240);
-                pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-                
-                x = startX;
-                headers.forEach((header, i) => {
-                  pdf.text(header, x, y);
-                  x += columnWidths[i];
-                });
-                y += 7;
-                pdf.setFont('helvetica', 'normal');
-              }
-              
-              if (rowIndex % 2 === 1) {
-                pdf.setFillColor(248, 248, 248);
-                pdf.rect(startX, y - 5, pdf.internal.pageSize.width - 40, 7, 'F');
-              }
-              
-              x = startX;
-              
-              pdf.text(String(row.violationNumber).substring(0, 15), x, y);
-              x += columnWidths[0];
-              
-              pdf.text(String(row.licensePlate).substring(0, 12), x, y);
-              x += columnWidths[1];
-              
-              pdf.text(String(row.violationDate).substring(0, 12), x, y);
-              x += columnWidths[2];
-              
-              pdf.text(String(row.customerName).substring(0, 25), x, y);
-              x += columnWidths[3];
-              
-              pdf.text(String(row.fineAmount), x, y);
-              
-              y += 7;
-            });
-            
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(`Month Total: ${formatCurrency(monthTotal)}`, pdf.internal.pageSize.width - 60, y);
-            y += 15;
-          });
-        } else {
-          const headers = Object.keys(data[0]);
-          const rows = data.map(item => Object.values(item));
-          
-          // Calculate column widths based on content
-          const columnWidths = headers.map((header, i) => {
-            const headerLength = header.length;
-            const maxContentLength = Math.max(...rows.map(row => String(row[i] || '').length));
-            const maxLength = Math.max(headerLength, maxContentLength);
-            const widthFactor = header.includes('customer') ? 3.5 : 3;
-            return Math.min(40, Math.max(10, maxLength * widthFactor));
-          });
-          
-          let y = 35;
-          
-          // Draw headers
-          let x = 20;
-          pdf.setFont('helvetica', 'bold');
-          headers.forEach((header, i) => {
-            const displayHeader = header
-              .split('_')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            
-            const width = columnWidths[i];
-            pdf.text(displayHeader, x, y);
-            x += width;
-            if (x > 190) {
-              x = 20;
-              y += 10;
-            }
-          });
-          
-          y += 8;
-          
-          // Draw rows
-          pdf.setFont('helvetica', 'normal');
-          rows.forEach((row, rowIndex) => {
-            // Check if we need a new page for this row
-            if (y > pageHeight - marginBottom) {
-              pdf.addPage();
-              y = 20;
-              
-              // Redraw headers on new page
-              x = 20;
-              pdf.setFont('helvetica', 'bold');
-              headers.forEach((header, i) => {
-                const displayHeader = header
-                  .split('_')
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(' ');
-                
-                const width = columnWidths[i];
-                pdf.text(displayHeader, x, y);
-                x += width;
-                if (x > 190) {
-                  x = 20;
-                  y += 10;
-                }
-              });
-              y += 8;
-              pdf.setFont('helvetica', 'normal');
-            }
-            
-            x = 20;
-            row.forEach((cell, i) => {
-              const width = columnWidths[i];
-              let displayValue = String(cell || '');
-              
-              if (typeof cell === 'boolean') {
-                displayValue = cell ? 'Yes' : 'No';
-              }
-              
-              if (displayValue.length > 30 && !headers[i].includes('customer')) {
-                displayValue = displayValue.substring(0, 27) + '...';
-              }
-              
-              pdf.text(displayValue, x, y);
-              x += width;
-              if (x > 190) {
-                x = 20;
-                y += 6;
-              }
-            });
-            y += 8;
-          });
-        }
-        
-        // Add page numbers and footer to each page
-        const pageCount = pdf.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-          pdf.setPage(i);
-          pdf.setFont('helvetica', 'italic');
-          pdf.setFontSize(10);
-          pdf.setTextColor(150, 150, 150);
-          pdf.text(`Page ${i} of ${pageCount}`, 105, 280, { align: 'center' });
-          pdf.text('CONFIDENTIAL - ALARAF CAR RENTAL', 105, 287, { align: 'center' });
-        }
-        
-        pdf.save(`${reportType.toLowerCase()}-report.pdf`);
-        toast.success('PDF Report downloaded successfully');
+      } else if (fileFormat === 'excel') {
+        downloadExcel(reportData, `${filename}.xlsx`);
+      } else if (fileFormat === 'csv') {
+        downloadCSV(reportData, `${filename}.csv`);
       }
+      
+      // Show success toast notification
+      toast.success("Report downloaded successfully!", {
+        description: `Your ${reportType} report has been downloaded.`
+      });
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Error generating PDF');
-    }
-  };
-
-  const handleDownloadExcel = () => {
-    try {
-      let data = getReportData();
-      if (!data || data.length === 0) {
-        toast.error('No data to export');
-        return;
-      }
-      
-      if (reportType === 'traffic') {
-        data = data.map(item => {
-          const { id, location, paymentStatus, customerId, ...keepFields } = item;
-          return keepFields;
-        });
-      }
-      
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data);
-      
-      XLSX.utils.book_append_sheet(wb, ws, reportType);
-      
-      XLSX.writeFile(wb, `${reportType.toLowerCase()}-report.xlsx`);
-      toast.success('Excel Report downloaded successfully');
-    } catch (error) {
-      console.error('Error generating Excel:', error);
-      toast.error('Error generating Excel file');
-    }
-  };
-
-  const handleDownloadCSV = () => {
-    try {
-      let data = getReportData();
-      if (!data || data.length === 0) {
-        toast.error('No data to export');
-        return;
-      }
-      
-      if (reportType === 'traffic') {
-        data = data.map(item => {
-          const { id, location, paymentStatus, customerId, ...keepFields } = item;
-          return keepFields;
-        });
-      }
-      
-      const ws = XLSX.utils.json_to_sheet(data);
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${reportType.toLowerCase()}-report.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success('CSV Report downloaded successfully');
-    } catch (error) {
-      console.error('Error generating CSV:', error);
-      toast.error('Error generating CSV file');
+      console.error('Error generating report:', error);
+      toast.error("Download failed", {
+        description: error.message || "There was a problem generating your report. Please try again."
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   return (
-    <div className="flex gap-2 mb-4">
-      <Button variant="outline" onClick={handleDownloadPDF}>
-        <Download className="mr-2 h-4 w-4" />
-        Export as PDF
-      </Button>
-      <Button variant="outline" onClick={handleDownloadExcel}>
-        <FileText className="mr-2 h-4 w-4" />
-        Export as Excel
-      </Button>
-      <Button variant="outline" onClick={handleDownloadCSV}>
-        <FileText className="mr-2 h-4 w-4" />
-        Export as CSV
-      </Button>
+    <div className="space-y-4">
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between mb-2">
+          
+        </div>
+        
+        <div className="border-t pt-1 mb-2">
+          <h3 className="text-lg font-semibold">Report Options</h3>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? dateRange.to ? <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </> : format(dateRange.from, "LLL dd, y") : <span>Pick a date range</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange as any} onSelect={range => setDateRange(range as any)} numberOfMonths={2} />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="w-40">
+          <Select value={fileFormat} onValueChange={setFileFormat}>
+            <SelectTrigger>
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pdf">PDF</SelectItem>
+              <SelectItem value="excel">Excel</SelectItem>
+              <SelectItem value="csv">CSV</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button onClick={handleDownload} disabled={isGenerating}>
+          <FileDown className="mr-2 h-4 w-4" />
+          {isGenerating ? 'Generating...' : 'Download Report'}
+        </Button>
+      </div>
+      
+      <div className="mt-6 pt-4 border-t flex flex-col items-center">
+        
+      </div>
     </div>
   );
 };
-
 export default ReportDownloadOptions;

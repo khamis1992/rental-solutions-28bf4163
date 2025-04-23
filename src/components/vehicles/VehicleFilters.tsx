@@ -1,8 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import React, { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -11,9 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { VehicleStatus } from '@/types/vehicle';
-import { Button } from '@/components/ui/button';
-import { FilterX } from 'lucide-react';
+import { useVehicles } from '@/hooks/use-vehicles';
 
 export interface VehicleFilterValues {
   status: string;
@@ -21,7 +16,6 @@ export interface VehicleFilterValues {
   location: string;
   year: string;
   category: string;
-  search?: string;
 }
 
 interface VehicleFiltersProps {
@@ -30,141 +24,137 @@ interface VehicleFiltersProps {
   className?: string;
 }
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({
-  onFilterChange,
+const VehicleFilters: React.FC<VehicleFiltersProps> = ({ 
+  onFilterChange, 
   initialValues = {
     status: 'all',
     make: 'all',
     location: 'all',
     year: 'all',
-    category: 'all',
-    search: ''
+    category: 'all'
   },
-  className
+  className 
 }) => {
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
+  const { useVehicleTypes, useList } = useVehicles();
+  
+  const { data: vehicleTypes } = useVehicleTypes();
+  const { data: vehicles } = useList();
   
   useEffect(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
+    setFilters(initialValues);
+  }, [initialValues]);
+  
+  const uniqueMakes = Array.from(
+    new Set(vehicles?.map(vehicle => vehicle.make || 'unknown') || [])
+  ).sort();
+  
+  const uniqueLocations = Array.from(
+    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location || 'unknown') || [])
+  ).sort();
+  
+  const uniqueYears = Array.from(
+    new Set(vehicles?.map(vehicle => vehicle.year?.toString() || 'unknown') || [])
+  ).sort((a, b) => {
+    if (a === 'unknown') return 1;
+    if (b === 'unknown') return -1;
+    return parseInt(b) - parseInt(a);
+  });
   
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-  
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFilters(prev => ({ ...prev, search: value }));
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
   };
   
   return (
-    <div className={cn("rounded-lg", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div className="relative md:col-span-2">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Input
-            type="search"
-            placeholder="Search by VIN..."
-            className="pl-10"
-            value={filters.search || ''}
-            onChange={handleSearchChange}
-          />
-        </div>
-        
-        <div>
-          <Select 
-            value={filters.status} 
-            onValueChange={(value) => handleFilterChange('status', value)}
-          >
-            <SelectTrigger id="status-filter">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="rented">Rented</SelectItem>
-              <SelectItem value="reserved">Reserved</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="police_station">Police Station</SelectItem>
-              <SelectItem value="accident">Accident</SelectItem>
-              <SelectItem value="stolen">Stolen</SelectItem>
-              <SelectItem value="retired">Retired</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Select 
-            value={filters.make} 
-            onValueChange={(value) => handleFilterChange('make', value)}
-          >
-            <SelectTrigger id="make-filter">
-              <SelectValue placeholder="All Makes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Makes</SelectItem>
-              <SelectItem value="Toyota">Toyota</SelectItem>
-              <SelectItem value="Honda">Honda</SelectItem>
-              <SelectItem value="Nissan">Nissan</SelectItem>
-              <SelectItem value="Ford">Ford</SelectItem>
-              <SelectItem value="Hyundai">Hyundai</SelectItem>
-              <SelectItem value="Kia">Kia</SelectItem>
-              <SelectItem value="Mazda">Mazda</SelectItem>
-              <SelectItem value="Mercedes">Mercedes</SelectItem>
-              <SelectItem value="BMW">BMW</SelectItem>
-              <SelectItem value="Audi">Audi</SelectItem>
-              <SelectItem value="Lexus">Lexus</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Select 
-            value={filters.location} 
-            onValueChange={(value) => handleFilterChange('location', value)}
-          >
-            <SelectTrigger id="location-filter">
-              <SelectValue placeholder="All Locations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Main Garage">Main Garage</SelectItem>
-              <SelectItem value="Downtown">Downtown</SelectItem>
-              <SelectItem value="Airport">Airport</SelectItem>
-              <SelectItem value="North Branch">North Branch</SelectItem>
-              <SelectItem value="South Branch">South Branch</SelectItem>
-              <SelectItem value="East Branch">East Branch</SelectItem>
-              <SelectItem value="West Branch">West Branch</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Select 
-            value={filters.year} 
-            onValueChange={(value) => handleFilterChange('year', value)}
-          >
-            <SelectTrigger id="year-filter">
-              <SelectValue placeholder="All Years" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2022">2022</SelectItem>
-              <SelectItem value="2021">2021</SelectItem>
-              <SelectItem value="2020">2020</SelectItem>
-              <SelectItem value="2019">2019</SelectItem>
-              <SelectItem value="2018">2018</SelectItem>
-              <SelectItem value="2017">2017</SelectItem>
-              <SelectItem value="2016">2016</SelectItem>
-              <SelectItem value="2015">2015</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+    <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4", className)}>
+      <Select
+        value={filters.status}
+        onValueChange={(value) => handleFilterChange('status', value)}
+      >
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="All Statuses" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="available">Available</SelectItem>
+          <SelectItem value="rented">Rented Out</SelectItem>
+          <SelectItem value="maintenance">In Maintenance</SelectItem>
+          <SelectItem value="reserved">Reserved</SelectItem>
+          <SelectItem value="police_station">At Police Station</SelectItem>
+          <SelectItem value="accident">In Accident</SelectItem>
+          <SelectItem value="stolen">Reported Stolen</SelectItem>
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={filters.make}
+        onValueChange={(value) => handleFilterChange('make', value)}
+      >
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="All Makes" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Makes</SelectItem>
+          {uniqueMakes.map(make => (
+            <SelectItem key={make} value={make}>{make}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={filters.location}
+        onValueChange={(value) => handleFilterChange('location', value)}
+      >
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="All Locations" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Locations</SelectItem>
+          {uniqueLocations.map(location => (
+            <SelectItem key={location} value={location}>{location}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={filters.year}
+        onValueChange={(value) => handleFilterChange('year', value)}
+      >
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="All Years" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Years</SelectItem>
+          {uniqueYears.map(year => (
+            <SelectItem key={year} value={year}>{year}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={filters.category}
+        onValueChange={(value) => handleFilterChange('category', value)}
+      >
+        <SelectTrigger className="bg-white">
+          <SelectValue placeholder="All Categories" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Categories</SelectItem>
+          {vehicleTypes?.map(type => (
+            type.id ? (
+              <SelectItem key={type.id} value={type.id}>
+                {type.name}
+              </SelectItem>
+            ) : (
+              <SelectItem key="unknown-type" value="unknown-type">
+                Unknown Type
+              </SelectItem>
+            )
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

@@ -1,273 +1,182 @@
 
 import React, { useState } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Check, X, Clock, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { useTrafficFinesValidation, ValidationResult } from '@/hooks/use-traffic-fines-validation';
+import { Loader2 } from 'lucide-react';
 
-const validationSchema = z.object({
-  licensePlate: z.string().min(1, 'License plate is required'),
-});
-
-type ValidationFormValues = z.infer<typeof validationSchema>;
-
-const TrafficFineValidation: React.FC = () => {
-  const [validationResult, setValidationResult] = useState<any>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [assigningFine, setAssigningFine] = useState<string | null>(null);
-  const { trafficFines, assignToCustomer } = useTrafficFines();
+const TrafficFineValidation = () => {
+  const { validationHistory, validationAttempts, validateTrafficFine, isValidating, isLoading } = useTrafficFinesValidation();
+  const [licensePlate, setLicensePlate] = useState('');
+  const [activeTab, setActiveTab] = useState('validate');
   
-  const form = useForm<ValidationFormValues>({
-    resolver: zodResolver(validationSchema),
-    defaultValues: {
-      licensePlate: '',
-    },
-  });
-
-  const onSubmit = async (data: ValidationFormValues) => {
-    setIsValidating(true);
-    setValidationResult(null);
+  const handleValidate = async () => {
+    if (!licensePlate) return;
     
     try {
-      // Find traffic fines for this license plate
-      const relevantFines = trafficFines?.filter(fine => 
-        fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
-      ) || [];
-      
-      // Calculate some stats
-      const totalAmount = relevantFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
-      const pendingAmount = relevantFines
-        .filter(fine => fine.paymentStatus === 'pending')
-        .reduce((sum, fine) => sum + fine.fineAmount, 0);
-      
-      // Create a validation record
-      const { error: validationError } = await supabase
-        .from('traffic_fine_validations')
-        .insert({
-          license_plate: data.licensePlate,
-          validation_date: new Date().toISOString(),
-          validation_source: 'manual',
-          result: {
-            fines_found: relevantFines.length,
-            total_amount: totalAmount,
-            pending_amount: pendingAmount,
-            fines: relevantFines.map(fine => ({
-              id: fine.id,
-              violation_number: fine.violationNumber,
-              violation_date: fine.violationDate,
-              amount: fine.fineAmount,
-              status: fine.paymentStatus
-            }))
-          },
-          status: 'completed'
-        });
-        
-      if (validationError) {
-        console.error('Error recording validation:', validationError);
-        toast.error('Error recording validation result');
-      }
-      
-      // Set the result for display
-      setValidationResult({
-        licensePlate: data.licensePlate,
-        finesCount: relevantFines.length,
-        totalAmount,
-        pendingAmount,
-        fines: relevantFines
-      });
-      
+      await validateTrafficFine(licensePlate);
+      setActiveTab('history');
     } catch (error) {
       console.error('Validation error:', error);
-      toast.error('Failed to validate license plate');
-    } finally {
-      setIsValidating(false);
     }
   };
-
-  // Handle assigning a fine to a customer
-  const handleAssignToCustomer = async (id: string) => {
-    if (!id) {
-      toast.error("Invalid fine ID");
-      return;
+  
+  const renderValidationStatus = (validation: ValidationResult) => {
+    if (validation.status === 'pending') {
+      return (
+        <div className="flex items-center text-amber-500">
+          <Clock className="h-4 w-4 mr-1" />
+          <span>In Progress</span>
+        </div>
+      );
     }
-
-    try {
-      setAssigningFine(id);
-      await assignToCustomer.mutateAsync({ id });
-      toast.success("Fine assigned to customer successfully");
-      
-      // Update the validation result to reflect the new assignment status
-      if (validationResult && validationResult.fines) {
-        setValidationResult({
-          ...validationResult,
-          fines: validationResult.fines.map((fine: any) => {
-            if (fine.id === id) {
-              return { ...fine, isAssigned: true };
-            }
-            return fine;
-          })
-        });
-      }
-    } catch (error) {
-      console.error("Error assigning fine to customer:", error);
-      toast.error("Failed to assign fine to customer", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
-      });
-    } finally {
-      setAssigningFine(null);
+    
+    if (validation.status === 'error') {
+      return (
+        <div className="flex items-center text-red-500">
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          <span>Error</span>
+        </div>
+      );
+    }
+    
+    if (validation.has_fine) {
+      return (
+        <div className="flex items-center text-red-500">
+          <X className="h-4 w-4 mr-1" />
+          <span>Fine Found</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center text-green-500">
+          <Check className="h-4 w-4 mr-1" />
+          <span>No Fine</span>
+        </div>
+      );
     }
   };
-
+  
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Fine Validation</CardTitle>
-          <CardDescription>
-            Check if a vehicle has any pending traffic fines
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent>
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-12 md:col-span-6">
-                  <FormField
-                    control={form.control}
-                    name="licensePlate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>License Plate</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter license plate" 
-                            {...field} 
-                            disabled={isValidating}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-12 md:col-span-6 md:flex md:items-end">
-                  <Button 
-                    type="submit" 
-                    disabled={isValidating} 
-                    className="w-full"
-                  >
-                    {isValidating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Validating...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Validate
-                      </>
-                    )}
-                  </Button>
-                </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Traffic Fine Validation</CardTitle>
+        <CardDescription>
+          Check if a vehicle has any traffic fines registered in the MOI system
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 mb-8">
+            <TabsTrigger value="validate">Validate License Plate</TabsTrigger>
+            <TabsTrigger value="history">Validation History</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="validate" className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Enter license plate to validate"
+                  value={licensePlate}
+                  onChange={(e) => setLicensePlate(e.target.value)}
+                />
               </div>
-            </CardContent>
-          </form>
-        </Form>
-        <CardFooter className="flex flex-col items-start">
-          {validationResult && (
-            <div className="w-full">
-              <Alert 
-                variant={validationResult.finesCount > 0 ? "destructive" : "default"}
-                className={validationResult.finesCount > 0 ? "mb-4" : ""}
-              >
-                {validationResult.finesCount > 0 ? (
-                  <AlertCircle className="h-4 w-4" />
+              <Button onClick={handleValidate} disabled={isValidating || !licensePlate}>
+                {isValidating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Validating...
+                  </>
                 ) : (
-                  <Check className="h-4 w-4" />
+                  'Validate'
                 )}
-                <AlertTitle>
-                  {validationResult.finesCount > 0 
-                    ? `${validationResult.finesCount} Traffic Fine(s) Found` 
-                    : 'No Traffic Fines Found'}
-                </AlertTitle>
-                <AlertDescription>
-                  {validationResult.finesCount > 0 
-                    ? `Total amount: $${validationResult.totalAmount.toFixed(2)}, Pending amount: $${validationResult.pendingAmount.toFixed(2)}`
-                    : `No traffic fines found for license plate ${validationResult.licensePlate}`}
-                </AlertDescription>
-              </Alert>
-
-              {validationResult.finesCount > 0 && (
-                <div className="mt-4 border rounded-md p-4">
-                  <h3 className="font-semibold mb-2">Fine Details</h3>
-                  <div className="space-y-2">
-                    {validationResult.fines.map((fine: any) => (
-                      <div key={fine.id} className="p-2 border rounded flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{fine.violationNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(fine.violationDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <p className="font-medium">${fine.fineAmount.toFixed(2)}</p>
-                          <p className={`text-sm ${
-                            fine.paymentStatus === 'paid' 
-                              ? 'text-green-600' 
-                              : fine.paymentStatus === 'disputed' 
-                                ? 'text-amber-600' 
-                                : 'text-red-600'
-                          }`}>
-                            {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
-                          </p>
-                        </div>
-                        <div className="ml-4">
-                          {!fine.customerId && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAssignToCustomer(fine.id)}
-                              disabled={assigningFine === fine.id}
-                              className="flex items-center"
-                            >
-                              {assigningFine === fine.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Assigning...
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-3 w-3 mr-1" />
-                                  Assign
-                                </>
-                              )}
-                            </Button>
-                          )}
-                          {fine.customerId && (
-                            <div className="text-xs text-green-600 flex items-center">
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              Assigned
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+              </Button>
+            </div>
+            
+            <div className="mt-6">
+              <h3 className="text-md font-medium mb-2">How validation works:</h3>
+              <p className="text-sm text-muted-foreground">
+                This tool checks if there are any traffic fines registered to the license plate in the Ministry of Interior system.
+                The validation is done through an automated process that securely queries the traffic database.
+              </p>
+              <div className="p-4 bg-amber-50 rounded-md mt-4">
+                <div className="flex">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-amber-800">Important Notes:</h4>
+                    <ul className="text-xs text-amber-700 list-disc ml-5 mt-1">
+                      <li>Results are updated daily and may not reflect very recent fines</li>
+                      <li>System does not detect fines registered to other GCC countries</li>
+                      <li>Each validation is logged for audit purposes</li>
+                    </ul>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
+          </TabsContent>
+          
+          <TabsContent value="history">
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-md font-medium mb-2">Validation History</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4">Date</th>
+                        <th className="text-left py-3 px-4">License Plate</th>
+                        <th className="text-left py-3 px-4">Source</th>
+                        <th className="text-left py-3 px-4">Status</th>
+                        <th className="text-left py-3 px-4">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {validationHistory && validationHistory.length > 0 ? (
+                        validationHistory.map((validation) => (
+                          <tr key={validation.id} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-4">
+                              {typeof validation.validation_date === 'string' &&
+                                format(new Date(validation.validation_date), 'dd MMM yyyy, HH:mm')}
+                            </td>
+                            <td className="py-3 px-4">{validation.license_plate}</td>
+                            <td className="py-3 px-4">{validation.validation_source}</td>
+                            <td className="py-3 px-4">
+                              {renderValidationStatus(validation)}
+                            </td>
+                            <td className="py-3 px-4">
+                              {validation.details || validation.error_message || '-'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                            No validation history found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

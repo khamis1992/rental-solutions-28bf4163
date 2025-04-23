@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -187,9 +186,9 @@ const UserList = () => {
       
       console.log("Fetched users:", data);
       setUsers(data || []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -214,9 +213,9 @@ const UserList = () => {
       
       setShowDeleteDialog(false);
       setUserToDelete(null);
-    } catch (error: any) {
-      console.error("Error deleting user:", error.message);
-      toast.error("Failed to delete user: " + error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setDeletingUser(false);
     }
@@ -252,9 +251,9 @@ const UserList = () => {
       toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
       
       setShowBulkDeleteDialog(false);
-    } catch (error: any) {
-      console.error("Error performing bulk deletion:", error.message);
-      toast.error("Failed to delete duplicate users: " + error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setBulkDeletingUsers(false);
     }
@@ -306,9 +305,9 @@ const UserList = () => {
       await fetchUsers();
       
       toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
-    } catch (error: any) {
-      console.error("Error deleting duplicate Khamis accounts:", error.message);
-      toast.error("Failed to delete users: " + error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setBulkDeletingUsers(false);
     }
@@ -346,8 +345,9 @@ const UserList = () => {
       console.log("Khamis's account has been set as admin");
       
       fetchUsers();
-    } catch (error: any) {
-      console.error("Error updating user roles:", error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     }
   };
 
@@ -370,9 +370,9 @@ const UserList = () => {
       ));
       
       toast.success(`User status updated to ${newStatus}`);
-    } catch (error: any) {
-      console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status: " + error.message);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     }
   };
 
@@ -399,9 +399,9 @@ const UserList = () => {
       setShowPermissionDialog(false);
       
       fetchUsers();
-    } catch (error: any) {
-      console.error("Error saving permissions:", error.message);
-      toast.error("Failed to save permissions");
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Failed: ${(error as { message: string }).message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

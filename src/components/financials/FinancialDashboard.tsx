@@ -1,4 +1,5 @@
-import React, { useMemo, memo } from 'react';
+
+import React, { useMemo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
 import FinancialExpensesBreakdown from './FinancialExpensesBreakdown';
@@ -14,14 +15,13 @@ const getPercentageChange = (current, previous) => {
   return ((current - previous) / previous) * 100;
 };
 
-const FinancialDashboard = memo(() => {
+const FinancialDashboard = () => {
+  // Use financial summary to display real data
   const { 
     financialSummary, 
     isLoadingSummary
   } = useFinancials();
-
-  const memoizedSummary = useMemo(() => financialSummary, [JSON.stringify(financialSummary)]);
-
+  
   const { revenue: revenueData } = useDashboardData();
 
   // Get current month name for display
@@ -37,20 +37,20 @@ const FinancialDashboard = memo(() => {
     netRevenue: financialSummary?.netRevenue || 0,
     pendingPayments: financialSummary?.pendingPayments || 0
   };
-
+  
   // Simulated trend data - could be enhanced later with real trend calculation 
-  const trendData = useMemo(() => ({
+  const trendData = {
     revenueChange: financialSummary ? getPercentageChange(financialSummary.totalIncome, financialSummary.totalIncome * 0.95) : 0,
     expenseChange: financialSummary ? getPercentageChange(financialSummary.totalExpenses, financialSummary.totalExpenses * 1.02) : 0,
     profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
-  }), [financialSummary]);
-
+  };
+  
   const prepareRevenueChartData = useMemo(() => {
     if (!revenueData || revenueData.length === 0) {
       console.log("No revenue data available for chart");
       return [];
     }
-
+    
     // Create a simplified expenses calculation that doesn't cause recalculations
     return revenueData.map(item => ({
       name: item.name,
@@ -58,11 +58,11 @@ const FinancialDashboard = memo(() => {
       expenses: item.revenue * 0.6 // Use a simple estimate instead of complex calculations
     }));
   }, [revenueData]);
-
+  
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
-
+      
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -76,7 +76,7 @@ const FinancialDashboard = memo(() => {
             </p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expenses</CardTitle>
@@ -89,7 +89,7 @@ const FinancialDashboard = memo(() => {
             </p>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Profit</CardTitle>
@@ -103,12 +103,12 @@ const FinancialDashboard = memo(() => {
           </CardContent>
         </Card>
       </div>
-
+      
       <FinancialRevenueChart 
         data={prepareRevenueChartData} 
         fullWidth={true}
       />
-
+      
       <FinancialSummary summary={{
         totalIncome: displayValues.totalIncome,
         totalExpenses: displayValues.totalExpenses,
@@ -119,10 +119,10 @@ const FinancialDashboard = memo(() => {
         currentMonthDue: financialSummary?.currentMonthDue || 0,
         overdueExpenses: financialSummary?.overdueExpenses || 0
       }} isLoading={isLoadingSummary} />
-
+      
       <FinancialExpensesBreakdown />
     </div>
   );
-});
+};
 
 export default FinancialDashboard;

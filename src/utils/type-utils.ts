@@ -61,89 +61,54 @@ export type FlattenType<T> = {
 };
 
 /**
- * Simplified mutation result type
- * Used to avoid deep type instantiation issues in mutation return types
+ * Use this to break recursive type references
+ * Particularly useful for tables, forms, and nested data structures
+ * 
+ * @template T - Type to break recursion for
  */
-export type SimpleMutationResult<T = unknown> = {
-  success: boolean;
-  data?: T;
-  error?: string;
+export type BreakTypeRecursion<T> = T extends object ? { [K in keyof T]: any } : T;
+
+/**
+ * TypeSafe helper for deeply nested objects with complex structures
+ * Useful for complex data structures like tables with nested objects
+ * 
+ * @template T - The complex nested type
+ */
+export type TypeSafeDeep<T> = {
+  [K in keyof T]: T[K] extends object ? any : T[K];
 };
 
 /**
- * Simpler type for function return values that might be complex
- * Useful for avoiding deep type instantiation errors
- * 
- * @template T The base type to simplify
+ * Utility type for AI analysis results with enhanced fields
  */
-export type SimpleReturnType<T> = T extends object ? Record<string, any> : T;
-
-/**
- * A very basic mutation result type to completely avoid TypeScript deep instantiation issues
- */
-export interface BasicMutationResult {
-  mutateAsync: (variables: any) => Promise<any>;
-  isPending: boolean;
-  isError: boolean;
-  error: Error | null;
+export interface EnhancedAnalysisResult {
+  id?: string;
+  agreement_id: string;
+  recommended_status: string;
+  confidence: number;
+  current_status: string;
+  risk_level: 'low' | 'medium' | 'high';
+  analyzed_at: string;
+  explanation: string;
+  action_items: string[];
+  historical_data?: Record<string, any>;
+  payment_factors?: Record<string, any>;
+  vehicle_factors?: Record<string, any>;
+  customer_factors?: Record<string, any>;
+  risk_factors?: Record<string, any>;
+  trend_analysis?: Record<string, any>;
+  prediction_accuracy?: number;
+  model_version?: string;
+  intervention_suggestions?: string[];
 }
 
 /**
- * Creates a static type that doesn't have reference to deeply nested generics
- * This helps with TypeScript's type instantiation depth errors
+ * Utility type for AI model parameters
  */
-export type Concrete<T> = T extends infer U ? { [K in keyof U]: Concrete<U[K]> } : never;
-
-/**
- * Represents a field that might be null or undefined
- */
-export type Maybe<T> = T | null | undefined;
-
-/**
- * Creates a wrapper type that preserves the original type but erases the 
- * complex type relationships to avoid TypeScript limits
- */
-export type Opaque<T, K extends string> = T & { __brand: K };
-
-/**
- * Creates simple typing for database IDs to avoid TypeScript errors
- * while still maintaining type safety
- */
-export type EntityId = Opaque<string, 'EntityId'>;
-
-/**
- * Type guard for checking if a property exists at runtime
- */
-export function hasProperty<T, K extends string>(obj: T, prop: K): obj is T & Record<K, unknown> {
-  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-/**
- * Safely cast a value to a specific enum type
- * @param value Value to cast
- * @param enumType Enum object
- * @param defaultValue Default value if casting fails
- */
-export function safeEnumCast<T extends Record<string, string | number>>(
-  value: unknown,
-  enumType: T,
-  defaultValue: T[keyof T]
-): T[keyof T] {
-  if (value === null || value === undefined) return defaultValue;
-  
-  const values = Object.values(enumType);
-  return values.includes(value as any) ? (value as T[keyof T]) : defaultValue;
-}
-
-/**
- * Safe type assertion that checks at runtime
- */
-export function assertType<T>(
-  value: unknown, 
-  validator: (val: unknown) => boolean, 
-  errorMsg = 'Type assertion failed'
-): asserts value is T {
-  if (!validator(value)) {
-    throw new TypeError(errorMsg);
-  }
+export interface AiModelParameters {
+  modelName: string;
+  version: string;
+  trainingAccuracy: number;
+  lastTrainedAt: string;
+  featureImportance: Record<string, number>;
 }

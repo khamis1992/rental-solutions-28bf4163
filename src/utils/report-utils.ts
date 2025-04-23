@@ -2,8 +2,23 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
-import { toast } from 'sonner';
+import { exportToPdfWithArabic } from '@/utils/pdfExport';
+
+/**
+ * Sanitizes text for CSV export, ensuring no encoding issues
+ */
+const sanitizeForCSV = (value: any): string => {
+  if (value === null || value === undefined) return '';
+  
+  // Convert to string and ensure proper encoding
+  const valueStr = String(value);
+  
+  // Escape quotes and wrap in quotes if contains comma or quote
+  if (valueStr.includes(',') || valueStr.includes('"')) {
+    return `"${valueStr.replace(/"/g, '""')}"`;
+  }
+  return valueStr;
+};
 
 /**
  * Generates a CSV string from an array of objects
@@ -22,86 +37,55 @@ export const generateCSV = (data: Record<string, any>[]): string => {
   // Add data rows
   data.forEach(item => {
     const row = headers.map(header => {
-      // Handle values that might contain commas or quotes
-      const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      
-      // Handle date objects
-      let valueStr: string;
-      if (value instanceof Date && !isNaN(value.getTime())) {
-        valueStr = format(value, 'yyyy-MM-dd');
-      } else {
-        valueStr = String(value);
-      }
-      
-      // Escape quotes and wrap in quotes if contains comma or quote
-      if (valueStr.includes(',') || valueStr.includes('"')) {
-        return `"${valueStr.replace(/"/g, '""')}"`;
-      }
-      return valueStr;
+      return sanitizeForCSV(item[header]);
     });
     
     csv += row.join(',') + '\n';
   });
   
-  return csv;
+  // Ensure proper UTF-8 encoding with BOM for Excel compatibility
+  return '\uFEFF' + csv;
 };
 
 /**
- * Downloads data as a CSV file
+ * Downloads data as a CSV file with proper encoding
  * @param data Array of objects to download as CSV
  * @param filename Name for the downloaded file
  */
 export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
-  try {
-    const csv = generateCSV(data);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Cleanup
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error downloading CSV:", error);
-    toast.error("Failed to download CSV file");
-  }
+  const csv = generateCSV(data);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 /**
- * Formats data for Excel download (uses CSV for simplicity)
+ * Downloads data as an Excel file (using CSV format with proper encoding)
  * @param data Array of objects to download as Excel
  * @param filename Name for the downloaded file
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
-  // For simplicity, we're using CSV with .xlsx extension
-  // In a production app, you might want to use a library like xlsx for true Excel files
-  downloadCSV(data, filename);
+  const csv = generateCSV(data);
+  const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
-/**
- * Safely adds an image to the PDF, with error handling
- * @param doc PDF document
- * @param imgPath Image path
- * @param x X position
- * @param y Y position
- * @param w Width
- * @param h Height
- * @returns boolean indicating success
- */
-const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: number, h: number): boolean => {
-  try {
-    doc.addImage(imgPath, 'PNG', x, y, w, h);
-    return true;
-  } catch (error) {
-    console.warn(`Failed to add image ${imgPath} to PDF:`, error);
-    return false;
-  }
-};
+const PAGE_HEIGHT = 297; // A4 height in mm
+const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
+const CONTENT_MARGIN = 14; // Left/right margin in mm
 
 /**
  * Generates a PDF report header with company logo
@@ -117,83 +101,20 @@ export const addReportHeader = (
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Set logo coordinates and dimensions
-  const logoX = 14;
-  const logoY = 10;
-  const logoWidth = 40;
-  const logoHeight = 15;
-  
-  // Try to add company logo with fallback
-  try {
-    // Use full URL path for logo to prevent issues
-    const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
-    console.log('Attempting to add logo from path:', logoPath);
-    
-    // First check if we can access the image
-    const img = new Image();
-    img.src = logoPath;
-    
-    // Add text instead of image as reliable fallback
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80); // Dark blue color
-    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
-    
-    // Try to add the image if it's available
-    if (img.complete) {
-      safelyAddImage(doc, logoPath, logoX, logoY, logoWidth, logoHeight);
-    }
-  } catch (error) {
-    console.warn('Failed to add logo to PDF header:', error);
-    // Add text instead of image as fallback
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
-  }
-  
-  // Add a separator line
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
-  doc.line(14, 30, pageWidth - 14, 30);
-  
-  // Add title with improved styling
-  doc.setFontSize(22);
+  // Add title
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(44, 62, 80);
-  doc.text(title, pageWidth / 2, 45, { align: 'center' });
+  doc.text(title, pageWidth / 2, 20, { align: 'center' });
   
-  // Add date range with updated format
+  // Add report period and generation date
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
+  const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
+  const toDate = dateRange.to ? formatDate(dateRange.to) : '';
+  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 35, { align: 'center' });
+  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 45, { align: 'center' });
   
-  // Safely format dates with error handling
-  let fromDateStr = 'N/A';
-  let toDateStr = 'N/A';
-  
-  try {
-    if (dateRange.from && dateRange.from instanceof Date && !isNaN(dateRange.from.getTime())) {
-      fromDateStr = formatDate(dateRange.from);
-    }
-  } catch (err) {
-    console.error("Error formatting from date:", err);
-  }
-  
-  try {
-    if (dateRange.to && dateRange.to instanceof Date && !isNaN(dateRange.to.getTime())) {
-      toDateStr = formatDate(dateRange.to);
-    }
-  } catch (err) {
-    console.error("Error formatting to date:", err);
-  }
-  
-  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 55, { align: 'center' });
-  
-  // Add date of generation with updated format
-  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 62, { align: 'center' });
-  
-  return 75; // Return next Y position with more space
+  return 60;
 };
 
 /**
@@ -206,25 +127,258 @@ export const addReportFooter = (doc: jsPDF): void => {
   
   // Add footer text
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 100, 100);
-  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 15, { align: 'center' });
-  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 10, { align: 'center' });
-  
-  // Add horizontal line (slightly higher to avoid overlap)
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
-  doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
-  
-  // Add page bottom elements with correct spacing/positioning
+  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 25, { align: 'center' });
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(150, 150, 150);
-  doc.text('CONFIDENTIAL', 14, pageHeight - 5);
-  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 5, { align: 'right' });
+  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 20, { align: 'center' });
+  
+  // Add page bottom elements with proper spacing
+  doc.text('CONFIDENTIAL', 14, pageHeight - 10);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 15, { align: 'right' });
+};
+
+/**
+ * Generate a complete PDF report with standard header and footer
+ * @param title Report title
+ * @param dateRange Date range for the report 
+ * @param contentGenerator Function that adds content to the document
+ * @returns PDF document
+ */
+export const generateStandardReport = (
+  title: string,
+  dateRange: { from: Date | undefined; to: Date | undefined },
+  contentGenerator: (doc: jsPDF, startY: number) => number
+): jsPDF => {
+  const doc = new jsPDF();
+  const startY = addReportHeader(doc, title, dateRange);
+  contentGenerator(doc, startY);
+  
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addReportFooter(doc);
+  }
+  
+  return doc;
+};
+
+/**
+ * Generate a Traffic Fines Report with proper font encoding
+ * @param trafficData Array of traffic fine data
+ * @returns jsPDF document
+ */
+export const generateTrafficFinesReport = (trafficData: any[]): jsPDF => {
+  try {
+    console.log("Starting traffic fines report generation with data:", 
+      Array.isArray(trafficData) ? `${trafficData.length} records` : "Invalid data format");
+
+    if (!Array.isArray(trafficData) || trafficData.length === 0) {
+      console.error("Invalid or empty traffic fine data provided");
+      throw new Error("No traffic fine data available for report generation");
+    }
+
+    const doc = new jsPDF();
+    
+    // Add font support for non-Latin characters
+    doc.addFont('helvetica', 'normal');
+    
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let currentY = 20;
+
+    // Add header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Traffic Fines Report', pageWidth / 2, currentY, { align: 'center' });
+    
+    // Add report period
+    currentY += 15;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Report Period: ${format(new Date(), 'MMMM dd, yyyy')} - ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
+    
+    currentY += 10;
+    doc.text(`Generated on: ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
+    
+    // Calculate metrics
+    const totalFines = trafficData.length;
+    const totalAmount = trafficData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+    const pendingAmount = trafficData
+      .filter(fine => fine.paymentStatus === 'pending')
+      .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+    const completedAmount = trafficData
+      .filter(fine => fine.paymentStatus === 'paid')
+      .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+    const unassignedFines = trafficData.filter(fine => !fine.customerName || fine.customerName === 'Unassigned').length;
+    const unassignedAmount = trafficData
+      .filter(fine => !fine.customerName || fine.customerName === 'Unassigned')
+      .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+    const vehicleCount = new Set(trafficData.map(fine => fine.licensePlate).filter(Boolean)).size;
+
+    // Draw metrics table
+    currentY += 20;
+    const metrics = [
+      ['Total Vehicles', vehicleCount.toString()],
+      ['Total Fines', totalFines.toString()],
+      ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
+      ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
+      ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
+      ['Unassigned Fines', unassignedFines.toString()],
+      ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
+    ];
+
+    // Draw header row with orange background
+    doc.setFillColor(255, 140, 0);
+    doc.rect(14, currentY, pageWidth - 28, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Metric', 16, currentY + 6, { align: 'left' });
+    doc.text('Value', pageWidth / 2, currentY + 6, { align: 'left' });
+
+    // Draw data rows
+    currentY += 8;
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
+    
+    metrics.forEach(([label, value]) => {
+      // Check if we need a new page
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
+        doc.addPage();
+        currentY = 20;
+        addReportFooter(doc);
+      }
+      
+      doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
+      doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
+      doc.text(label, 16, currentY + 6);
+      doc.text(value, 16 + (pageWidth - 28) / 2, currentY + 6);
+      currentY += 8;
+    });
+    
+    currentY += 20;
+
+    // Group fines by customer
+    const groupedFines: Record<string, any> = {};
+    
+    trafficData.forEach(fine => {
+      const customerKey = fine.customerName || 'Unassigned';
+      if (!groupedFines[customerKey]) {
+        groupedFines[customerKey] = {
+          fines: [],
+          totalAmount: 0,
+          vehicles: new Set()
+        };
+      }
+      groupedFines[customerKey].fines.push(fine);
+      groupedFines[customerKey].totalAmount += fine.fineAmount || 0;
+      if (fine.licensePlate) groupedFines[customerKey].vehicles.add(fine.licensePlate);
+    });
+
+    // Add customer sections
+    Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
+      // Check if we need a new page
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+        doc.addPage();
+        currentY = 20;
+        addReportFooter(doc);
+      }
+      
+      // Draw customer header with orange background
+      doc.setFillColor(255, 140, 0);
+      doc.rect(14, currentY, pageWidth - 28, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.text(customerName, 16, currentY + 6);
+      currentY += 12;
+
+      // Vehicle summary header
+      const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
+      
+      // Draw headers
+      Array.from(data.vehicles).forEach((vehicle: string) => {
+        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 20) {
+          doc.addPage();
+          currentY = 20;
+          addReportFooter(doc);
+        }
+
+        let x = 14;
+        const vehicleData = [vehicle, `${data.totalAmount} QAR`];
+        
+        vehicleData.forEach((text, i) => {
+          doc.rect(x, currentY, headerWidths[i], 8);
+          doc.setTextColor(0);
+          doc.text(String(text), x + 2, currentY + 6);
+          x += headerWidths[i];
+        });
+        currentY += 8;
+      });
+
+      currentY += 4;
+
+      // Violations table
+      if (data.fines.length > 0) {
+        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+          doc.addPage();
+          currentY = 20;
+          addReportFooter(doc);
+        }
+
+        // Headers for violations
+        const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
+        const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
+        
+        let x = 14;
+        violationHeaders.forEach((header, i) => {
+          doc.rect(x, currentY, violationWidths[i], 8);
+          doc.text(header, x + 2, currentY + 6);
+          x += violationWidths[i];
+        });
+        currentY += 8;
+
+        // Draw violations
+        data.fines.forEach((fine: any) => {
+          if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 10) {
+            doc.addPage();
+            currentY = 20;
+            addReportFooter(doc);
+          }
+
+          x = 14;
+          let date;
+          try {
+            date = fine.violationDate ? format(new Date(fine.violationDate), 'dd/MM/yyyy') : 'N/A';
+          } catch (error) {
+            console.error("Date formatting error:", error);
+            date = 'Invalid date';
+          }
+          const amount = `${fine.fineAmount || 0} QAR`;
+          
+          [fine.violationNumber || 'N/A', date, amount].forEach((text, i) => {
+            doc.rect(x, currentY, violationWidths[i], 8);
+            doc.text(String(text), x + 2, currentY + 6);
+            x += violationWidths[i];
+          });
+          currentY += 8;
+        });
+      }
+      
+      currentY += 12;
+    });
+
+    // Add footer to all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addReportFooter(doc);
+    }
+
+    console.log("Traffic fines report generation completed successfully");
+    return doc;
+  } catch (error) {
+    console.error("Error generating traffic fines report:", error);
+    throw error;
+  }
 };
 
 /**
@@ -242,82 +396,19 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
 };
 
 /**
- * Generate a complete PDF report with standard header and footer
- * @param title Report title
- * @param dateRange Date range for the report 
- * @param contentGenerator Function that adds content to the document
- * @returns PDF document
+ * Generate a custom report based on report type, filters, date range, format, and callback
+ * @param reportType Type of report to generate
+ * @param filters Filters to apply to the report
+ * @param dateRange Date range for the report
+ * @param format Format of the report (default: 'pdf')
+ * @param callback Callback function to handle the generated report
  */
-export const generateStandardReport = (
-  title: string,
-  dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number) => number
-): jsPDF => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  });
-  
-  try {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    
-    // Improved Header
-    doc.setFillColor(240, 240, 240);
-    doc.rect(0, 0, pageWidth, 25, 'F');
-    
-    // Company Logo or Name
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(44, 62, 80);
-    doc.text('ALARAF CAR RENTAL', pageWidth / 2, 15, { align: 'center' });
-    
-    // Report Title
-    doc.setFontSize(14);
-    doc.setTextColor(70, 70, 70);
-    doc.text(title, pageWidth / 2, 35, { align: 'center' });
-    
-    // Date Range
-    doc.setFontSize(10);
-    const fromDateStr = dateRange.from ? formatDate(dateRange.from) : 'N/A';
-    const toDateStr = dateRange.to ? formatDate(dateRange.to) : 'N/A';
-    doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 42, { align: 'center' });
-    
-    // Generate content
-    const startY = 50;
-    const finalY = contentGenerator(doc, startY);
-    
-    // Footer for each page
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      
-      // Footer background - ensure it's properly positioned
-      doc.setFillColor(240, 240, 240);
-      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-      
-      // Footer text
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      
-      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 6);
-      doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 6, { align: 'center' });
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 6, { align: 'right' });
-    }
-    
-    return doc;
-  } catch (error) {
-    console.error("Error generating standard report:", error);
-    
-    // Error page
-    doc.deletePage(1);
-    doc.addPage();
-    doc.setFontSize(16);
-    doc.setTextColor(255, 0, 0);
-    doc.text("Error Generating Report", 20, 20);
-    
-    return doc;
-  }
+export const generateCustomReport = async (
+  reportType: string,
+  filters: any,
+  dateRange: { startDate: Date; endDate: Date },
+  format: string = 'pdf',
+  callback?: (report: any) => void
+) => {
+  // Implementation of generateCustomReport
 };

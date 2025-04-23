@@ -14,9 +14,6 @@ export interface FinancialTransaction {
   date: Date;
   amount: number;
   description: string;
-  receiptUrl?: string;
-  receiptProcessed?: boolean;
-  vendor?: string;
   type: TransactionType;
   category: string;
   status: TransactionStatusType;
