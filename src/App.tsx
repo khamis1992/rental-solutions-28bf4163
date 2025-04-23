@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -10,7 +11,7 @@ import {
 } from '@supabase/auth-ui-shared';
 import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
-import { PageContainer } from './components/layout/PageContainer';
+import PageContainer from './components/layout/PageContainer';
 import Dashboard from './pages/Dashboard';
 import VehiclesPage from './pages/VehiclesPage';
 import VehicleDetails from './pages/VehicleDetails';
