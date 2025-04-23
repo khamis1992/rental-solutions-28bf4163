@@ -12,10 +12,10 @@ export enum AgreementStatus {
 
 export interface Customer {
   id: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
   email?: string;
   phone?: string;
+  phone_number?: string;
   driver_license?: string;
   address?: string;
 }
@@ -34,19 +34,19 @@ export interface Vehicle {
 export interface Agreement {
   id: string;
   customer_id?: string;
+  customerId?: string;
   vehicle_id?: string;
+  vehicleId?: string;
   start_date: Date;
   end_date?: Date;
   status: AgreementStatus;
   terms_accepted?: boolean;
   additional_drivers?: string[];
-  
-  // Additional properties needed by components
   customers?: Customer;
   vehicles?: Vehicle;
-  customerId?: string;
-  vehicleId?: string;
   created_at?: string | Date;
+  updated_at?: string | Date;
+  last_ai_update?: string | Date;
   agreement_number?: string;
   notes?: string;
   total_amount?: number;
@@ -55,8 +55,6 @@ export interface Agreement {
   rent_amount?: number;
   daily_late_fee?: number;
   agreement_type?: string;
-  updated_at?: string | Date;
-  last_ai_update?: string | Date;
 }
 
 export interface EnhancedAnalysisResult {

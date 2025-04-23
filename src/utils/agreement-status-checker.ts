@@ -1,6 +1,5 @@
-
 import { supabase } from '@/lib/supabase';
-import { AgreementStatus, EnhancedAnalysisResult, VehicleAgreement } from '@/types/agreement';
+import { VehicleAgreement, EnhancedAnalysisResult, AgreementStatus } from '@/types/agreement';
 import { toast } from 'sonner';
 
 export enum DB_AGREEMENT_STATUS {
