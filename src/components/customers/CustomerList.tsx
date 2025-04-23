@@ -7,19 +7,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
@@ -165,34 +157,29 @@ export function CustomerList({ searchParams }: CustomerListProps) {
       </div>
 
       {customers && customers.length > ITEMS_PER_PAGE && (
-        <Pagination className="justify-center">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <PaginationItem key={i + 1}>
-                <PaginationLink
-                  onClick={() => handlePageChange(i + 1)}
-                  isActive={currentPage === i + 1}
-                >
-                  {i + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <div className="flex justify-center items-center space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Previous
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
       )}
     </div>
   );
