@@ -9,7 +9,6 @@ import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { jsPDF } from 'jspdf';
 import { 
   addReportHeader, 
   addReportFooter, 
@@ -48,23 +47,39 @@ const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportD
         return;
       }
       
+      // Log report data to help with debugging
+      console.log(`Generating ${reportType} report with ${reportData.length} records`);
+      
       // Transliterate all text fields in the report data
       try {
         reportData = await prepareReportData(reportData);
       } catch (error) {
         console.error("Error in data preparation:", error);
+        // Continue with original data if transliteration fails
       }
       
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+      const filename = `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}`;
       
       // Generate report based on file format
       if (fileFormat === 'pdf') {
         try {
           // Special case for traffic fines report
           if (reportType === 'traffic-fines') {
-            const doc = generateTrafficFinesReport(reportData);
-            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            console.log("Starting traffic fines report generation");
+            try {
+              const doc = generateTrafficFinesReport(reportData);
+              doc.save(`${filename}.pdf`);
+              console.log("Traffic fines report saved successfully");
+            } catch (trafficError) {
+              console.error("Traffic fines report generation error:", trafficError);
+              toast.error("Failed to generate traffic fines report", {
+                description: trafficError.message || "Please check console for details"
+              });
+              setIsGenerating(false);
+              return;
+            }
           } else {
             // Use the standardized report generator for other reports
             const doc = generateStandardReport(
@@ -125,18 +140,20 @@ const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportD
             );
             
             // Save the PDF
-            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            doc.save(`${filename}.pdf`);
           }
         } catch (error) {
           console.error("PDF generation error:", error);
-          toast.error("Failed to generate PDF. Please try again.");
+          toast.error("Failed to generate PDF. Please try again.", {
+            description: error.message || "Unknown error occurred"
+          });
           setIsGenerating(false);
           return;
         }
       } else if (fileFormat === 'excel') {
-        downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        downloadExcel(reportData, `${filename}.xlsx`);
       } else if (fileFormat === 'csv') {
-        downloadCSV(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+        downloadCSV(reportData, `${filename}.csv`);
       }
       
       // Show success toast notification
@@ -146,7 +163,7 @@ const ReportDownloadOptions = ({ reportType, getReportData = () => [] }: ReportD
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error("Download failed", {
-        description: "There was a problem generating your report. Please try again."
+        description: error.message || "There was a problem generating your report. Please try again."
       });
     } finally {
       setIsGenerating(false);

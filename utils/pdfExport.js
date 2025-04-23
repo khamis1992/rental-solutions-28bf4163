@@ -4,6 +4,7 @@
  */
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import { format } from 'date-fns';
 
 // Initialize pdfMake with virtual file system for fonts
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -30,8 +31,10 @@ const addArabicFontSupport = () => {
   try {
     pdfMake.fonts = fontConfig;
     console.log('Arabic font support added successfully');
+    return true;
   } catch (error) {
     console.error('Error setting up Arabic fonts:', error);
+    return false;
   }
 };
 
@@ -39,10 +42,14 @@ const addArabicFontSupport = () => {
  * Export content with Arabic text to PDF
  * @param {Object} content - The content to be exported
  * @param {String} filename - Filename for the PDF
+ * @returns {Boolean} Success status
  */
 export const exportToPdfWithArabic = (content, filename) => {
   try {
-    addArabicFontSupport();
+    const fontSupport = addArabicFontSupport();
+    if (!fontSupport) {
+      console.error('Failed to initialize Arabic font support');
+    }
     
     // Ensure content is properly formatted
     const processedContent = Array.isArray(content) ? content : [content];
@@ -65,15 +72,15 @@ export const exportToPdfWithArabic = (content, filename) => {
       }
     };
 
-    // Create and download the PDF with error handling
-    pdfMake.createPdf(docDefinition).download(filename, (error) => {
-      if (error) {
-        console.error('Error generating PDF:', error);
-        throw new Error(`Failed to generate PDF: ${error.message}`);
-      }
-    });
-
-    return true;
+    // Create and download the PDF
+    try {
+      pdfMake.createPdf(docDefinition).download(filename);
+      console.log('PDF generation completed successfully');
+      return true;
+    } catch (downloadError) {
+      console.error('Error during PDF download:', downloadError);
+      throw new Error(`Failed to download PDF: ${downloadError.message}`);
+    }
   } catch (error) {
     console.error('Error in exportToPdfWithArabic:', error);
     return false;
@@ -103,7 +110,10 @@ export const createArabicText = (text, style = {}) => {
  */
 export const exportMixedDirectionPdf = (content, filename) => {
   try {
-    addArabicFontSupport();
+    const fontSupport = addArabicFontSupport();
+    if (!fontSupport) {
+      console.error('Failed to initialize Arabic font support for mixed direction PDF');
+    }
     
     // Create a document definition with special handling for mixed content
     const docDefinition = {
@@ -114,10 +124,42 @@ export const exportMixedDirectionPdf = (content, filename) => {
     };
 
     // Create and download the PDF
-    pdfMake.createPdf(docDefinition).download(filename);
-    return true;
+    try {
+      pdfMake.createPdf(docDefinition).download(filename);
+      console.log('Mixed direction PDF generated successfully');
+      return true;
+    } catch (downloadError) {
+      console.error('Error generating mixed direction PDF:', downloadError);
+      throw new Error(`Mixed direction PDF generation failed: ${downloadError.message}`);
+    }
   } catch (error) {
     console.error('Error in exportMixedDirectionPdf:', error);
+    return false;
+  }
+};
+
+// Simple wrapper for plain PDF export without Arabic support
+export const exportToPdf = (content, filename) => {
+  try {
+    // Create a document definition
+    const docDefinition = {
+      content: content,
+      defaultStyle: {
+        font: 'Roboto'
+      }
+    };
+
+    // Create and download the PDF
+    try {
+      pdfMake.createPdf(docDefinition).download(filename);
+      console.log('PDF generated successfully');
+      return true;
+    } catch (downloadError) {
+      console.error('Error generating PDF:', downloadError);
+      throw new Error(`PDF generation failed: ${downloadError.message}`);
+    }
+  } catch (error) {
+    console.error('Error in exportToPdf:', error);
     return false;
   }
 };
@@ -125,5 +167,6 @@ export const exportMixedDirectionPdf = (content, filename) => {
 export default {
   exportToPdfWithArabic,
   createArabicText,
-  exportMixedDirectionPdf
+  exportMixedDirectionPdf,
+  exportToPdf
 };
