@@ -1,34 +1,21 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Car } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import VehicleListView from './VehicleListView';
-import VehicleTableView from './VehicleTableView';
-
-// Define allowed view types
-export type ViewMode = 'grid' | 'list' | 'table';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
   filter?: VehicleFilterParams;
   showAdd?: boolean;
-  viewMode?: ViewMode;
-  onStatusUpdate?: (id: string) => void;
 }
 
-const VehicleGrid: React.FC<VehicleGridProps> = ({ 
-  onSelectVehicle, 
-  filter, 
-  showAdd = true,
-  viewMode = 'grid',
-  onStatusUpdate
-}) => {
+const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, showAdd = true }) => {
   const { useList } = useVehicles();
   const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
@@ -42,16 +29,8 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({
     }
   };
 
-  // Loading state - responsive for different view modes
+  // Loading state
   if (isLoading) {
-    if (viewMode === 'list') {
-      return <VehicleListView vehicles={[]} isLoading={true} onSelectVehicle={handleSelect} />;
-    }
-    
-    if (viewMode === 'table') {
-      return <VehicleTableView vehicles={[]} isLoading={true} onSelectVehicle={handleSelect} />;
-    }
-    
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -93,7 +72,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({
   if (!vehicles || vehicles.length === 0) {
     return (
       <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
-        <Car className="mx-auto h-12 w-12 text-muted-foreground/60 mb-3" />
         <h3 className="text-lg font-semibold mb-2">No Vehicles Found</h3>
         <p className="mb-4">No vehicles match your current criteria.</p>
         {showAdd && (
@@ -112,52 +90,26 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({
     );
   }
 
-  // Render the selected view mode
-  switch (viewMode) {
-    case 'list':
-      return (
-        <VehicleListView 
-          vehicles={vehicles} 
-          isLoading={false} 
-          onSelectVehicle={handleSelect} 
-          onStatusChange={onStatusUpdate}
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
+      {vehicles.map(vehicle => (
+        <VehicleCard
+          key={vehicle.id}
+          id={vehicle.id}
+          make={vehicle.make}
+          model={vehicle.model}
+          year={vehicle.year}
+          licensePlate={vehicle.license_plate}
+          status={vehicle.status || 'available'}
+          imageUrl={vehicle.image_url || ''}
+          location={vehicle.location || 'Not specified'}
+          fuelLevel={undefined}
+          mileage={vehicle.mileage || 0}
+          onSelect={() => handleSelect(vehicle.id)}
         />
-      );
-    
-    case 'table':
-      return (
-        <VehicleTableView 
-          vehicles={vehicles} 
-          isLoading={false} 
-          onSelectVehicle={handleSelect}
-        />
-      );
-    
-    case 'grid':
-    default:
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
-          {vehicles.map(vehicle => (
-            <VehicleCard
-              key={vehicle.id}
-              id={vehicle.id}
-              make={vehicle.make}
-              model={vehicle.model}
-              year={vehicle.year}
-              licensePlate={vehicle.license_plate}
-              status={vehicle.status || 'available'}
-              imageUrl={vehicle.image_url || ''}
-              location={vehicle.location || 'Not specified'}
-              fuelLevel={undefined}
-              mileage={vehicle.mileage || 0}
-              onSelect={() => handleSelect(vehicle.id)}
-              onStatusUpdate={onStatusUpdate ? () => onStatusUpdate(vehicle.id) : undefined}
-              currentCustomer={vehicle.currentCustomer}
-            />
-          ))}
-        </div>
-      );
-  }
+      ))}
+    </div>
+  );
 };
 
 export default VehicleGrid;
