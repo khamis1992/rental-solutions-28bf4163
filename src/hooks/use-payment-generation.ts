@@ -131,7 +131,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null,
-          description: notes || `Monthly rent payment for ${agreement?.agreement_number || agreement?.agreementNumber}`,
+          description: notes || `Monthly rent payment for ${agreement?.agreement_number || ''}`,
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,

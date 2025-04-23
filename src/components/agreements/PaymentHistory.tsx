@@ -245,15 +245,6 @@ export function PaymentHistory({
             <ShieldCheck className="mr-2 h-4 w-4" />
             {isFixingPayments ? "Fixing..." : "Fix Payments"}
           </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleRecordManualPayment}
-            className="h-8"
-          >
-            <DollarSign className="mr-2 h-4 w-4" />
-            Record Payment
-          </Button>
         </div>
       </CardHeader>
       <CardContent>
