@@ -1,17 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import PageContainer from '@/components/layout/PageContainer';
+import { Link } from 'react-router-dom';
+import { FileUp, AlertTriangle, UserPlus, RefreshCw } from 'lucide-react';
 import { CustomerList } from '@/components/customers/CustomerList';
 import { ImportHistoryList } from '@/components/customers/ImportHistoryList';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { Button } from '@/components/ui/button';
-import { FileUp, AlertTriangle, UserPlus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CustomerSearchBar } from '@/components/customers/CustomerSearchBar';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
+import PageContainer from '@/components/layout/PageContainer';
 
 const Customers = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
+  const [searchParams, setSearchParams] = useState({
+    query: '',
+    status: 'all',
+  });
   
   useEffect(() => {
     const checkAvailability = async () => {
@@ -25,7 +30,7 @@ const Customers = () => {
   return (
     <PageContainer 
       title="Customers" 
-      description="Manage your customer database and import customer data"
+      description="Manage your customer database and track customer information"
       actions={
         <div className="flex items-center gap-2">
           <Button 
@@ -40,7 +45,7 @@ const Customers = () => {
             <FileUp className="h-4 w-4" />
             Import CSV
           </Button>
-          <Button asChild>
+          <Button asChild className="bg-primary hover:bg-primary/90">
             <Link to="/customers/add">
               <UserPlus className="h-4 w-4 mr-2" />
               Add Customer
@@ -49,9 +54,24 @@ const Customers = () => {
         </div>
       }
     >
-      <CustomerList />
-      <div className="mt-8">
-        <ImportHistoryList />
+      <div className="space-y-6">
+        <div className="rounded-lg border bg-card p-6">
+          <CustomerSearchBar
+            searchQuery={searchParams.query}
+            status={searchParams.status}
+            onSearchChange={(query) => setSearchParams(prev => ({ ...prev, query }))}
+            onStatusChange={(status) => setSearchParams(prev => ({ ...prev, status }))}
+          />
+          
+          <div className="mt-6">
+            <CustomerList />
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6">
+          <h2 className="text-lg font-semibold mb-4">Import History</h2>
+          <ImportHistoryList />
+        </div>
       </div>
       
       <CSVImportModal 
