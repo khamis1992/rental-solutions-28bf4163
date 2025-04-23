@@ -21,24 +21,23 @@ import { ensureArray } from '@/lib/type-helpers';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
-
 const AgreementDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const navigate = useNavigate();
-  const { getAgreement, deleteAgreement } = useAgreements();
+  const {
+    getAgreement,
+    deleteAgreement
+  } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -47,41 +46,38 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  
-  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-  
-  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
-
+  const {
+    rentAmount,
+    contractAmount
+  } = useRentAmount(agreement, id);
+  const {
+    payments,
+    isLoading: isLoadingPayments,
+    fetchPayments
+  } = usePayments(id || '');
   const fetchAgreementData = async () => {
     if (!id) return;
-
     try {
       setIsLoading(true);
       const data = await getAgreement(id);
-      
       if (data) {
         const adaptedAgreement = adaptSimpleToFullAgreement(data);
-        
         if (adaptedAgreement.start_date) {
           const safeDate = getDateObject(adaptedAgreement.start_date);
           adaptedAgreement.start_date = safeDate || new Date();
         }
-        
         if (adaptedAgreement.end_date) {
           const safeDate = getDateObject(adaptedAgreement.end_date);
           adaptedAgreement.end_date = safeDate || new Date();
         }
-        
         if (adaptedAgreement.created_at) {
           const safeDate = getDateObject(adaptedAgreement.created_at);
           adaptedAgreement.created_at = safeDate;
         }
-        
         if (adaptedAgreement.updated_at) {
           const safeDate = getDateObject(adaptedAgreement.updated_at);
           adaptedAgreement.updated_at = safeDate;
         }
-        
         setAgreement(adaptedAgreement);
         fetchPayments();
       } else {
@@ -96,29 +92,22 @@ const AgreementDetailPage = () => {
       setHasAttemptedFetch(true);
     }
   };
-
   useEffect(() => {
     if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
       fetchAgreementData();
     }
   }, [id, refreshTrigger]);
-
   useEffect(() => {
     if (id && !isLoading && agreement && Array.isArray(payments) && payments.length > 0) {
-      const paymentDates = payments
-        .filter(p => p.original_due_date)
-        .map(p => {
-          const date = new Date(p.original_due_date as string);
-          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        });
-      
+      const paymentDates = payments.filter(p => p.original_due_date).map(p => {
+        const date = new Date(p.original_due_date as string);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      });
       const monthCounts = paymentDates.reduce((acc, date) => {
         acc[date] = (acc[date] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      
       const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
-      
       if (hasDuplicates) {
         console.log("Detected duplicate payments - will fix automatically");
         fixAgreementPayments(id).then(() => {
@@ -127,7 +116,6 @@ const AgreementDetailPage = () => {
       }
     }
   }, [id, isLoading, agreement, payments]);
-
   const handleDelete = async (agreementId: string) => {
     try {
       await deleteAgreement.mutateAsync(agreementId);
@@ -138,22 +126,17 @@ const AgreementDetailPage = () => {
       toast.error("Failed to delete agreement");
     }
   };
-
   const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
-
   const handleGenerateDocument = () => {
     setIsDocumentDialogOpen(true);
   };
-
   const handleGeneratePayment = async () => {
     if (!id || !agreement) return;
-    
     setIsGeneratingPayment(true);
     try {
       const result = await forceGeneratePaymentForAgreement(supabase, id);
-      
       if (result.success) {
         toast.success("Payment schedule generated successfully");
         refreshAgreementData();
@@ -167,15 +150,12 @@ const AgreementDetailPage = () => {
       setIsGeneratingPayment(false);
     }
   };
-
   const handleRunMaintenanceJob = async () => {
     if (!id) return;
-    
     setIsRunningMaintenance(true);
     try {
       toast.info("Running payment maintenance check...");
       const result = await manuallyRunPaymentMaintenance();
-      
       if (result.success) {
         toast.success(result.message || "Payment schedule maintenance completed");
         refreshAgreementData();
@@ -190,78 +170,55 @@ const AgreementDetailPage = () => {
       setIsRunningMaintenance(false);
     }
   };
-
   const calculateProgress = () => {
     if (!agreement || !agreement.start_date || !agreement.end_date) return 0;
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
     const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
     const today = new Date();
-    
     if (today < startDate) return 0;
     if (today > endDate) return 100;
-    
     const totalDuration = endDate.getTime() - startDate.getTime();
     const elapsed = today.getTime() - startDate.getTime();
-    return Math.min(Math.floor((elapsed / totalDuration) * 100), 100);
+    return Math.min(Math.floor(elapsed / totalDuration * 100), 100);
   };
-
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active': return "success";
-      case 'pending': return "warning";
-      case 'closed': return "outline";
-      case 'cancelled': return "destructive";
-      case 'expired': return "secondary";
-      case 'draft': return "default";
-      default: return "default";
+      case 'active':
+        return "success";
+      case 'pending':
+        return "warning";
+      case 'closed':
+        return "outline";
+      case 'cancelled':
+        return "destructive";
+      case 'expired':
+        return "secondary";
+      case 'draft':
+        return "default";
+      default:
+        return "default";
     }
   };
-
-  return (
-    <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
-      backLink="/agreements"
-      actions={
-        <>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGeneratePayment}
-              disabled={isGeneratingPayment}
-              className="gap-2 mr-2"
-            >
+  return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={<>
+          {agreement && agreement.status === AgreementStatus.ACTIVE && <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
               <Calendar className="h-4 w-4" />
               {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunMaintenanceJob}
-            disabled={isRunningMaintenance}
-            className="gap-2"
-          >
+            </Button>}
+          <Button variant="outline" size="sm" onClick={handleRunMaintenanceJob} disabled={isRunningMaintenance} className="gap-2">
             <RefreshCcw className="h-4 w-4" />
             {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
           </Button>
-        </>
-      }
-    >
-      {isLoading ? (
-        <div className="space-y-6">
+        </>}>
+      {isLoading ? <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-96 w-full md:col-span-2" />
           </div>
-        </div>
-      ) : agreement ? (
-        <>
+        </div> : agreement ? <>
           <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
-            <CardContent className="p-6">
+            <CardContent className="p-6 bg-zinc-100 rounded-md">
               <div className="flex flex-col md:flex-row justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
@@ -273,9 +230,7 @@ const AgreementDetailPage = () => {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {agreement.created_at && (
-                      <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>
-                    )}
+                    {agreement.created_at && <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>}
                   </p>
                 </div>
                 
@@ -283,11 +238,7 @@ const AgreementDetailPage = () => {
                   <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
                     Edit Agreement
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleGenerateDocument}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleGenerateDocument}>
                     Generate Document
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => handleDelete(agreement.id)}>
@@ -311,8 +262,7 @@ const AgreementDetailPage = () => {
                 </div>
               </div>
               
-              {agreement.start_date && agreement.end_date && (
-                <div className="mt-6">
+              {agreement.start_date && agreement.end_date && <div className="mt-6">
                   <div className="flex justify-between text-sm mb-1">
                     <span>Contract Progress</span>
                     <span>{calculateProgress()}%</span>
@@ -322,8 +272,7 @@ const AgreementDetailPage = () => {
                     <span>{format(new Date(agreement.start_date), "MMM d, yyyy")}</span>
                     <span>{format(new Date(agreement.end_date), "MMM d, yyyy")}</span>
                   </div>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
 
@@ -391,15 +340,7 @@ const AgreementDetailPage = () => {
               </Card>
               
               <div className="hidden">
-                <AgreementDetail 
-                  agreement={agreement}
-                  onDelete={handleDelete}
-                  rentAmount={rentAmount}
-                  contractAmount={contractAmount}
-                  onPaymentDeleted={refreshAgreementData}
-                  onDataRefresh={refreshAgreementData}
-                  onGenerateDocument={handleGenerateDocument}
-                />
+                <AgreementDetail agreement={agreement} onDelete={handleDelete} rentAmount={rentAmount} contractAmount={contractAmount} onPaymentDeleted={refreshAgreementData} onDataRefresh={refreshAgreementData} onGenerateDocument={handleGenerateDocument} />
               </div>
             </TabsContent>
             
@@ -410,17 +351,11 @@ const AgreementDetailPage = () => {
                   <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {agreement && (
-                    <PaymentList 
-                      agreementId={agreement.id} 
-                      onDeletePayment={refreshAgreementData} 
-                    />
-                  )}
+                  {agreement && <PaymentList agreementId={agreement.id} onDeletePayment={refreshAgreementData} />}
                 </CardContent>
               </Card>
               
-              {Array.isArray(payments) && payments.length > 0 && (
-                <Card>
+              {Array.isArray(payments) && payments.length > 0 && <Card>
                   <CardHeader>
                     <CardTitle>Payment Analytics</CardTitle>
                     <CardDescription>Financial metrics for this agreement</CardDescription>
@@ -447,8 +382,7 @@ const AgreementDetailPage = () => {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             </TabsContent>
             
             <TabsContent value="details" className="space-y-6">
@@ -557,40 +491,26 @@ const AgreementDetailPage = () => {
             </TabsContent>
             
             <TabsContent value="legal" className="space-y-6">
-              {agreement.start_date && agreement.end_date && (
-                <Card>
+              {agreement.start_date && agreement.end_date && <Card>
                   <CardHeader>
                     <CardTitle>Traffic Fines</CardTitle>
                     <CardDescription>Violations during the rental period</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <AgreementTrafficFines 
-                      agreementId={agreement.id} 
-                      startDate={new Date(agreement.start_date)} 
-                      endDate={new Date(agreement.end_date)} 
-                    />
+                    <AgreementTrafficFines agreementId={agreement.id} startDate={new Date(agreement.start_date)} endDate={new Date(agreement.end_date)} />
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
               
-              {agreement.id && (
-                <LegalCaseCard agreementId={agreement.id} />
-              )}
+              {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
             </TabsContent>
           </Tabs>
           
           <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
             <DialogContent className="max-w-4xl">
-              <InvoiceGenerator 
-                recordType="agreement" 
-                recordId={agreement.id} 
-                onClose={() => setIsDocumentDialogOpen(false)} 
-              />
+              <InvoiceGenerator recordType="agreement" recordId={agreement.id} onClose={() => setIsDocumentDialogOpen(false)} />
             </DialogContent>
           </Dialog>
-        </>
-      ) : (
-        <div className="text-center py-12">
+        </> : <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
@@ -601,10 +521,7 @@ const AgreementDetailPage = () => {
           <Button variant="outline" onClick={() => navigate("/agreements")}>
             Return to Agreements
           </Button>
-        </div>
-      )}
-    </PageContainer>
-  );
+        </div>}
+    </PageContainer>;
 };
-
 export default AgreementDetailPage;
