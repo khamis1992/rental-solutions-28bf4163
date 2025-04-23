@@ -4,7 +4,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { Loader2, Search, X, FileUp, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, X, FileUp, AlertTriangle, History } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
@@ -16,6 +16,7 @@ import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const { setSearchParams } = useAgreements();
   
@@ -89,18 +90,28 @@ const Agreements = () => {
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
       actions={
-        <Button 
-          variant="outline" 
-          onClick={() => setIsImportModalOpen(true)}
-          className="flex items-center gap-2"
-          disabled={!isEdgeFunctionAvailable}
-        >
-          {!isEdgeFunctionAvailable && (
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          )}
-          <FileUp className="h-4 w-4" />
-          Import CSV
-        </Button>
+        <>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsHistoryDialogOpen(true)}
+            className="flex items-center gap-2 mr-2"
+          >
+            <History className="h-4 w-4" />
+            Import History
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2"
+            disabled={!isEdgeFunctionAvailable}
+          >
+            {!isEdgeFunctionAvailable && (
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            )}
+            <FileUp className="h-4 w-4" />
+            Import CSV
+          </Button>
+        </>
       }
     >
       <div className="mb-6">
@@ -134,14 +145,15 @@ const Agreements = () => {
         <AgreementList searchQuery={searchQuery} />
       </Suspense>
       
-      <div className="mt-8">
-        <ImportHistoryList />
-      </div>
-      
       <CSVImportModal 
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
         onImportComplete={handleImportComplete}
+      />
+      
+      <ImportHistoryList
+        open={isHistoryDialogOpen}
+        onOpenChange={setIsHistoryDialogOpen}
       />
     </PageContainer>
   );
