@@ -27,6 +27,7 @@ import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
+
 const AgreementDetailPage = () => {
   const {
     id
@@ -55,6 +56,7 @@ const AgreementDetailPage = () => {
     isLoading: isLoadingPayments,
     fetchPayments
   } = usePayments(id || '');
+
   const fetchAgreementData = async () => {
     if (!id) return;
     try {
@@ -92,11 +94,13 @@ const AgreementDetailPage = () => {
       setHasAttemptedFetch(true);
     }
   };
+
   useEffect(() => {
     if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
       fetchAgreementData();
     }
   }, [id, refreshTrigger]);
+
   useEffect(() => {
     if (id && !isLoading && agreement && Array.isArray(payments) && payments.length > 0) {
       const paymentDates = payments.filter(p => p.original_due_date).map(p => {
@@ -116,6 +120,7 @@ const AgreementDetailPage = () => {
       }
     }
   }, [id, isLoading, agreement, payments]);
+
   const handleDelete = async (agreementId: string) => {
     try {
       await deleteAgreement.mutateAsync(agreementId);
@@ -126,12 +131,15 @@ const AgreementDetailPage = () => {
       toast.error("Failed to delete agreement");
     }
   };
+
   const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
   const handleGenerateDocument = () => {
     setIsDocumentDialogOpen(true);
   };
+
   const handleGeneratePayment = async () => {
     if (!id || !agreement) return;
     setIsGeneratingPayment(true);
@@ -150,6 +158,7 @@ const AgreementDetailPage = () => {
       setIsGeneratingPayment(false);
     }
   };
+
   const handleRunMaintenanceJob = async () => {
     if (!id) return;
     setIsRunningMaintenance(true);
@@ -170,6 +179,7 @@ const AgreementDetailPage = () => {
       setIsRunningMaintenance(false);
     }
   };
+
   const calculateProgress = () => {
     if (!agreement || !agreement.start_date || !agreement.end_date) return 0;
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
@@ -181,6 +191,7 @@ const AgreementDetailPage = () => {
     const elapsed = today.getTime() - startDate.getTime();
     return Math.min(Math.floor(elapsed / totalDuration * 100), 100);
   };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -199,6 +210,7 @@ const AgreementDetailPage = () => {
         return "default";
     }
   };
+
   return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={<>
           {agreement && agreement.status === AgreementStatus.ACTIVE && <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
               <Calendar className="h-4 w-4" />
@@ -219,6 +231,20 @@ const AgreementDetailPage = () => {
         </div> : agreement ? <>
           <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
             <CardContent className="p-6 bg-zinc-100 rounded-md">
+              <div className="space-y-6">
+                <div className="hidden">
+                  <AgreementDetail 
+                    agreement={agreement} 
+                    onDelete={handleDelete} 
+                    rentAmount={rentAmount} 
+                    contractAmount={contractAmount} 
+                    onPaymentDeleted={refreshAgreementData} 
+                    onDataRefresh={refreshAgreementData} 
+                    onGenerateDocument={handleGenerateDocument} 
+                  />
+                </div>
+              </div>
+              
               <div className="flex flex-col md:flex-row justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
@@ -338,10 +364,6 @@ const AgreementDetailPage = () => {
                   </div>
                 </CardContent>
               </Card>
-              
-              <div className="hidden">
-                <AgreementDetail agreement={agreement} onDelete={handleDelete} rentAmount={rentAmount} contractAmount={contractAmount} onPaymentDeleted={refreshAgreementData} onDataRefresh={refreshAgreementData} onGenerateDocument={handleGenerateDocument} />
-              </div>
             </TabsContent>
             
             <TabsContent value="payments" className="space-y-6">
@@ -524,4 +546,5 @@ const AgreementDetailPage = () => {
         </div>}
     </PageContainer>;
 };
+
 export default AgreementDetailPage;
