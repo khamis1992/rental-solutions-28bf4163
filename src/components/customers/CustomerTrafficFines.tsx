@@ -30,10 +30,30 @@ export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ cust
   useEffect(() => {
     const fetchTrafficFines = async () => {
       try {
+        // Instead of directly querying by customer_id which doesn't exist,
+        // First, get the lease IDs associated with this customer
+        const { data: leases, error: leaseError } = await supabase
+          .from('leases')
+          .select('id')
+          .eq('customer_id', customerId);
+
+        if (leaseError) {
+          throw leaseError;
+        }
+
+        if (!leases || leases.length === 0) {
+          // No leases found for this customer
+          setFines([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Then use these lease IDs to find related traffic fines
+        const leaseIds = leases.map(lease => lease.id);
         const { data, error } = await supabase
           .from('traffic_fines')
           .select('*')
-          .eq('customer_id', customerId);
+          .in('lease_id', leaseIds);
 
         if (error) {
           throw error;
