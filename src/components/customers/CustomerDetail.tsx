@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,32 +17,40 @@ export const CustomerDetail: React.FC = () => {
   const { getCustomer } = useCustomers();
   const [customer, setCustomer] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchCompleted, setFetchCompleted] = useState(false);
 
+  // Use a stable reference for the fetch function to prevent infinite loops
+  const loadCustomerData = useCallback(async () => {
+    if (!id) {
+      toast.error("Customer ID is missing");
+      setIsLoading(false);
+      return;
+    }
+
+    // Skip fetching if we've already completed it
+    if (fetchCompleted) return;
+
+    setIsLoading(true);
+    try {
+      const customerData = await getCustomer(id);
+      if (customerData) {
+        setCustomer(customerData);
+      } else {
+        toast.error("Customer not found");
+      }
+    } catch (error) {
+      console.error("Error loading customer:", error);
+      toast.error("Failed to load customer details");
+    } finally {
+      setIsLoading(false);
+      setFetchCompleted(true);
+    }
+  }, [id, getCustomer, fetchCompleted]);
+
+  // Only run once when component mounts
   useEffect(() => {
-    const loadCustomerData = async () => {
-      if (!id) {
-        toast.error("Customer ID is missing");
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const customerData = await getCustomer(id);
-        if (customerData) {
-          setCustomer(customerData);
-        } else {
-          toast.error("Customer not found");
-        }
-      } catch (error) {
-        console.error("Error loading customer:", error);
-        toast.error("Failed to load customer details");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadCustomerData();
-  }, [id, getCustomer]);
+  }, [loadCustomerData]);
 
   if (isLoading) {
     return (
