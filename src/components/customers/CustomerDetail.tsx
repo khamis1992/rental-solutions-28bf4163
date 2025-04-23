@@ -25,7 +25,7 @@ export const CustomerDetail: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { data: agreements, isLoading: agreementsLoading } = useAgreements(id ? { customer_id: id } : undefined);
+  const { agreements, isLoading: agreementsLoading } = useAgreements(id ? { customer_id: id } : undefined);
 
   const loadCustomerData = useCallback(async () => {
     if (!id) {
@@ -258,7 +258,7 @@ export const CustomerDetail: React.FC = () => {
                   <TableRow key={agreement.id}>
                     <TableCell>{agreement.agreement_number}</TableCell>
                     <TableCell>
-                      {agreement.vehicle && `${agreement.vehicle.make} ${agreement.vehicle.model} (${agreement.vehicle.license_plate})`}
+                      {agreement.vehicles && `${agreement.vehicles.make} ${agreement.vehicles.model} (${agreement.vehicles.license_plate})`}
                     </TableCell>
                     <TableCell>{agreement.start_date ? formatDate(new Date(agreement.start_date)) : 'N/A'}</TableCell>
                     <TableCell>{agreement.end_date ? formatDate(new Date(agreement.end_date)) : 'N/A'}</TableCell>

@@ -32,12 +32,12 @@ export interface Vehicle {
 }
 
 export interface Agreement {
-  id?: string;
+  id: string;
   customer_id?: string;
   vehicle_id?: string;
-  start_date?: Date;
+  start_date: Date;
   end_date?: Date;
-  status?: AgreementStatus;
+  status: AgreementStatus;
   terms_accepted?: boolean;
   additional_drivers?: string[];
   
@@ -114,4 +114,13 @@ export interface AgreementResponse {
   agreement: Agreement;
   customer: Customer;
   vehicle: Vehicle;
+}
+
+// Add VehicleAgreement type used in agreement-status-checker.ts
+export interface VehicleAgreement {
+  id: string;
+  vehicle_id: string;
+  created_at: string;
+  status: string;
+  [key: string]: any;
 }
