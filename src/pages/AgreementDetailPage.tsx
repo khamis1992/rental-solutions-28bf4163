@@ -27,6 +27,7 @@ import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 
 const AgreementDetailPage = () => {
   const {
@@ -56,6 +57,8 @@ const AgreementDetailPage = () => {
     isLoading: isLoadingPayments,
     fetchPayments
   } = usePayments(id || '');
+
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -209,6 +212,17 @@ const AgreementDetailPage = () => {
       default:
         return "default";
     }
+  };
+
+  const handlePaymentSubmit = (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
+  ) => {
+    setIsPaymentDialogOpen(false);
   };
 
   return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={<>
@@ -527,11 +541,51 @@ const AgreementDetailPage = () => {
             </TabsContent>
           </Tabs>
           
+          <PaymentHistory 
+            payments={Array.isArray(payments) ? payments : []} 
+            isLoading={isLoading} 
+            rentAmount={rentAmount} 
+            onPaymentDeleted={() => {
+              refreshAgreementData();
+              fetchPayments();
+            }} 
+            leaseStartDate={agreement?.start_date} 
+            leaseEndDate={agreement?.end_date}
+            onRecordPayment={() => setIsPaymentDialogOpen(true)}
+          />
+
+          {agreement.start_date && agreement.end_date && (
+            <LegalCaseCard agreementId={agreement.id} />
+          )}
+
+          {agreement.start_date && agreement.end_date && <Card>
+              <CardHeader>
+                <CardTitle>Traffic Fines</CardTitle>
+                <CardDescription>Violations during the rental period</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AgreementTrafficFines agreementId={agreement.id} startDate={new Date(agreement.start_date)} endDate={new Date(agreement.end_date)} />
+              </CardContent>
+            </Card>}
+
+          {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
+
           <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
             <DialogContent className="max-w-4xl">
               <InvoiceGenerator recordType="agreement" recordId={agreement.id} onClose={() => setIsDocumentDialogOpen(false)} />
             </DialogContent>
           </Dialog>
+
+          <PaymentEntryDialog 
+            open={isPaymentDialogOpen} 
+            onOpenChange={setIsPaymentDialogOpen} 
+            onSubmit={handlePaymentSubmit} 
+            defaultAmount={rentAmount || 0} 
+            title="Record Rent Payment" 
+            description="Record a new rental payment for this agreement." 
+            // lateFeeDetails={lateFeeDetails} //TODO
+            // selectedPayment={selectedPayment} //TODO
+          />
         </> : <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />

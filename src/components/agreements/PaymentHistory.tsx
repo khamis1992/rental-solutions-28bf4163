@@ -36,6 +36,7 @@ interface PaymentHistoryProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
+  onRecordPayment?: () => void;
 }
 
 export function PaymentHistory({
@@ -44,7 +45,8 @@ export function PaymentHistory({
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
-  leaseEndDate
+  leaseEndDate,
+  onRecordPayment
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -163,14 +165,16 @@ export function PaymentHistory({
               Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}
             </span>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setIsPaymentDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Payment
-          </Button>
+          {onRecordPayment && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onRecordPayment}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Record Payment
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
