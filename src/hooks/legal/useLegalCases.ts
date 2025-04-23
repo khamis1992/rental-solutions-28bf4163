@@ -51,7 +51,7 @@ export const useLegalCases = () => {
     return data as LegalCase;
   };
 
-  const createLegalCase = async (caseData: Omit<LegalCase, 'id' | 'created_at' | 'updated_at'>): Promise<LegalCase> => {
+  const createLegalCase = async (caseData: Omit<LegalCase, 'id' | 'created_at' | 'updated_at' | 'resolution_date' | 'resolution_notes'>): Promise<LegalCase> => {
     // Validate that customer_id exists in profiles table
     const { data: profileCheck, error: profileError } = await supabase
       .from('profiles')
@@ -73,7 +73,9 @@ export const useLegalCases = () => {
           ...caseData,
           status: caseData.status || 'active',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          resolution_date: null,
+          resolution_notes: null
         }
       ])
       .select()
@@ -195,7 +197,7 @@ export const useLegalCases = () => {
   };
 
   // Queries
-  const legalCases = useQuery({
+  const { data: legalCases, isLoading, error } = useQuery({
     queryKey: ['legalCases'],
     queryFn: fetchLegalCases
   });
@@ -218,9 +220,9 @@ export const useLegalCases = () => {
   });
 
   return {
-    legalCases: legalCases.data || [],
-    isLoading: legalCases.isLoading,
-    error: legalCases.error,
+    legalCases: legalCases || [],
+    isLoading,
+    error,
     fetchLegalCaseById,
     getLegalCasesByCustomerId,
     createLegalCase: createMutation.mutateAsync,

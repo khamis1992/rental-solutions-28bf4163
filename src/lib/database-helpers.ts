@@ -1,44 +1,11 @@
 
 /**
- * Database helpers and utilities for Supabase
+ * Converts an ID to a proper table ID format
+ * This function handles potential type conversions needed across the application
+ * when interfacing with Supabase tables
  */
-import { asTableId, asUUID } from './uuid-helpers';
-import { handleSupabaseResponse, hasData, castDbId } from '@/utils/supabase-type-helpers';
-import { Database } from '@/types/database.types';
-
-// Re-export helpers
-export {
-  asTableId,
-  asUUID,
-  handleSupabaseResponse,
-  hasData,
-  castDbId
-};
-
-// Create a common type for Database IDs
-export type DatabaseId = string;
-
-/**
- * Safe type checking function for database responses
- */
-export function isSuccessfulResponse<T>(response: any): response is { data: T, error: null } {
-  return !response.error && response.data !== null && response.data !== undefined;
+export function asTableId(tableName: string, id: string): string {
+  // In this implementation, we simply return the ID as-is
+  // But this function allows us to add any necessary transformations in the future
+  return id;
 }
-
-/**
- * Helper for ensuring all row typings match database schema 
- */
-export type TableRow<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Row'];
-
-/**
- * Helper for creating insert values
- */
-export type TableInsert<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Insert'];
-
-/**
- * Helper for creating update values
- */
-export type TableUpdate<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Update'];

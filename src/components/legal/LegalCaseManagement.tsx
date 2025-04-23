@@ -24,13 +24,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Gavel, Plus, Search, MoreVertical, FileText, AlertTriangle, Loader2 } from 'lucide-react';
+import { 
+  Gavel, 
+  Plus, 
+  Search, 
+  MoreVertical, 
+  FileText, 
+  AlertTriangle, 
+  Loader2 
+} from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
 import { CustomerObligation } from './CustomerLegalObligations';
-import { useLegalCases } from '@/hooks/use-legal-cases';
+import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { LegalCase } from '@/types/legal-case';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 const LegalCaseManagement = () => {
@@ -39,34 +46,39 @@ const LegalCaseManagement = () => {
   const navigate = useNavigate();
   
   // Fetch legal cases from Supabase
-  const { cases, loading, error } = useLegalCases();
+  const { legalCases, isLoading, error } = useLegalCases();
   
   // Filter cases based on search query
   const filteredCases = useMemo(() => {
-    if (!cases) return [];
+    if (!legalCases) return [];
     
-    return cases.filter(
-      (legalCase) =>
-        (legalCase.customer_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (legalCase.status?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (legalCase.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-        (legalCase.case_number?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+    return legalCases.filter(
+      (legalCase) => {
+        const fullName = legalCase.profiles?.full_name || '';
+        const caseType = legalCase.case_type || '';
+        const description = legalCase.description || '';
+        const searchLower = searchQuery.toLowerCase();
+        
+        return fullName.toLowerCase().includes(searchLower) ||
+          caseType.toLowerCase().includes(searchLower) ||
+          description.toLowerCase().includes(searchLower);
+      }
     );
-  }, [cases, searchQuery]);
+  }, [legalCases, searchQuery]);
 
   const handleCaseClick = (legalCase: LegalCase) => {
     // Convert the LegalCase to CustomerObligation format expected by LegalCaseDetails
     const obligation: CustomerObligation = {
       id: legalCase.id,
       customerId: legalCase.customer_id,
-      customerName: legalCase.customer_name || 'Unknown Customer',
+      customerName: legalCase.profiles?.full_name || 'Unknown Customer',
       description: legalCase.description || '',
       obligationType: 'legal_case',
-      amount: legalCase.amount_claimed || 0,
-      dueDate: legalCase.hearing_date ? new Date(legalCase.hearing_date) : new Date(legalCase.created_at),
-      urgency: getUrgencyFromCaseType(legalCase.case_type),
+      amount: legalCase.amount_owed || 0,
+      dueDate: new Date(),
+      urgency: getUrgencyFromPriority(legalCase.priority),
       status: legalCase.status || 'pending',
-      daysOverdue: calculateDaysOverdue(legalCase.created_at)
+      daysOverdue: 0
     };
     setSelectedCase(obligation);
   };
@@ -79,29 +91,19 @@ const LegalCaseManagement = () => {
     navigate('/legal/cases/new');
   };
 
-  // Helper function to determine urgency based on case type
-  const getUrgencyFromCaseType = (caseType: string): 'low' | 'medium' | 'high' | 'critical' => {
-    if (!caseType) return 'medium';
-    switch (caseType) {
-      case 'contract_dispute':
+  // Helper function to determine urgency based on priority
+  const getUrgencyFromPriority = (priority: string | null): 'low' | 'medium' | 'high' | 'critical' => {
+    if (!priority) return 'medium';
+    switch (priority) {
+      case 'high':
+        return 'critical';
+      case 'medium':
         return 'high';
-      case 'traffic_violation':
+      case 'low':
         return 'medium';
-      case 'insurance_claim':
-        return 'medium';
-      case 'customer_complaint':
-        return 'low';
       default:
         return 'medium';
     }
-  };
-
-  // Calculate days since case was created
-  const calculateDaysOverdue = (createdAt: string): number => {
-    const created = new Date(createdAt);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - created.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const getUrgencyBadge = (urgency: string) => {
@@ -128,6 +130,7 @@ const LegalCaseManagement = () => {
       case 'pending_reminder':
         return <Badge className="bg-yellow-500 hover:bg-yellow-600">Pending</Badge>;
       case 'closed':
+      case 'resolved':
       case 'settled':
         return <Badge className="bg-green-500 hover:bg-green-600">Closed</Badge>;
       case 'escalated':
@@ -138,7 +141,7 @@ const LegalCaseManagement = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -165,7 +168,7 @@ const LegalCaseManagement = () => {
         <CardContent className="flex justify-center items-center h-64">
           <div className="flex flex-col items-center">
             <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive">{error instanceof Error ? error.message : String(error)}</p>
             <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
               Retry Loading
             </Button>
@@ -180,11 +183,14 @@ const LegalCaseManagement = () => {
       {selectedCase ? (
         <LegalCaseDetails obligation={selectedCase} onClose={handleCloseCase} />
       ) : (
-        <Card>
-          <CardHeader>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <CardTitle>Legal Cases</CardTitle>
+                <CardTitle className="text-lg font-medium flex items-center">
+                  <Gavel className="h-5 w-5 mr-2 text-muted-foreground" />
+                  Legal Cases
+                </CardTitle>
                 <CardDescription>
                   Manage and track legal cases and obligations
                 </CardDescription>
@@ -199,7 +205,7 @@ const LegalCaseManagement = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search cases..."
+                  placeholder="Search cases by customer, type or description..."
                   className="pl-8"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -212,10 +218,10 @@ const LegalCaseManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
-                    <TableHead className="hidden md:table-cell">Case Number</TableHead>
+                    <TableHead className="hidden md:table-cell">Case Type</TableHead>
                     <TableHead className="hidden md:table-cell">Description</TableHead>
                     <TableHead className="hidden md:table-cell">Amount</TableHead>
-                    <TableHead className="hidden md:table-cell">Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Created</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -229,12 +235,12 @@ const LegalCaseManagement = () => {
                         className="cursor-pointer"
                         onClick={() => handleCaseClick(legalCase)}
                       >
-                        <TableCell className="font-medium">{legalCase.customer_name || "Unknown"}</TableCell>
-                        <TableCell className="hidden md:table-cell">{legalCase.case_number || `CASE-${legalCase.id.slice(0, 6)}`}</TableCell>
+                        <TableCell className="font-medium">{legalCase.profiles?.full_name || "Unknown"}</TableCell>
+                        <TableCell className="hidden md:table-cell">{legalCase.case_type || "Unknown"}</TableCell>
                         <TableCell className="hidden md:table-cell">{legalCase.description || "No description"}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {typeof legalCase.amount_claimed === 'number' ? 
-                            legalCase.amount_claimed.toLocaleString('en-US', {
+                          {legalCase.amount_owed !== undefined ? 
+                            legalCase.amount_owed.toLocaleString('en-US', {
                               style: 'currency',
                               currency: 'QAR',
                               minimumFractionDigits: 0,
@@ -244,10 +250,10 @@ const LegalCaseManagement = () => {
                           }
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {legalCase.hearing_date ? formatDate(new Date(legalCase.hearing_date)) : formatDate(new Date(legalCase.created_at))}
+                          {formatDate(new Date(legalCase.created_at))}
                         </TableCell>
-                        <TableCell>{getUrgencyBadge(getUrgencyFromCaseType(legalCase.case_type))}</TableCell>
-                        <TableCell>{getStatusBadge(legalCase.status)}</TableCell>
+                        <TableCell>{getUrgencyBadge(getUrgencyFromPriority(legalCase.priority))}</TableCell>
+                        <TableCell>{getStatusBadge(legalCase.status || '')}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

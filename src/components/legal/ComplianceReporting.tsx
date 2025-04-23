@@ -1,288 +1,257 @@
 
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
-  CardFooter
-} from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, LineChart, PieChart } from 'recharts';
 import { 
-  Bar, 
-  Line, 
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart, 
   Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  Cell 
 } from 'recharts';
 import { 
-  BarChart4, 
   FileText, 
-  Download, 
-  Share2, 
-  Printer, 
-  Calendar 
+  AlertTriangle, 
+  DownloadCloud, 
+  Calendar, 
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
-// Mock compliance metrics data
-const COMPLIANCE_METRICS = {
-  byCategory: [
-    { name: 'Vehicle Inspection', compliant: 85, nonCompliant: 15 },
-    { name: 'Driver Licenses', compliant: 92, nonCompliant: 8 },
-    { name: 'Insurance', compliant: 100, nonCompliant: 0 },
-    { name: 'Maintenance', compliant: 78, nonCompliant: 22 },
-    { name: 'Permits', compliant: 88, nonCompliant: 12 }
-  ],
-  monthlyTrend: [
-    { name: 'Jan', compliance: 82 },
-    { name: 'Feb', compliance: 84 },
-    { name: 'Mar', compliance: 86 },
-    { name: 'Apr', compliance: 88 },
-    { name: 'May', compliance: 81 },
-    { name: 'Jun', compliance: 85 },
-    { name: 'Jul', compliance: 90 },
-    { name: 'Aug', compliance: 92 },
-    { name: 'Sep', compliance: 94 },
-    { name: 'Oct', compliance: 88 },
-  ],
-  documentStatus: [
-    { name: 'Valid', value: 76 },
-    { name: 'Expiring Soon', value: 14 },
-    { name: 'Expired', value: 7 },
-    { name: 'Missing', value: 3 }
-  ]
-};
+// Sample compliance report data
+const complianceData = [
+  { name: 'Vehicle Registration', compliant: 35, nonCompliant: 2 },
+  { name: 'Driver License', compliant: 28, nonCompliant: 9 },
+  { name: 'Insurance', compliant: 31, nonCompliant: 6 },
+  { name: 'Tax Documents', compliant: 36, nonCompliant: 1 },
+  { name: 'Maintenance Logs', compliant: 25, nonCompliant: 12 },
+];
 
-const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#6366f1'];
+const statusData = [
+  { name: 'Compliant', value: 155 },
+  { name: 'Non-Compliant', value: 30 },
+  { name: 'Expiring Soon', value: 15 },
+];
+
+// Colors for charts
+const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#6366f1'];
 
 const ComplianceReporting = () => {
-  const [reportPeriod, setReportPeriod] = useState('lastQuarter');
-  
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-        <div>
-          <h2 className="text-xl font-semibold">Compliance Reports</h2>
-          <p className="text-muted-foreground">Review compliance metrics and generate reports</p>
-        </div>
-        <div className="mt-3 sm:mt-0 flex items-center space-x-2">
-          <Select value={reportPeriod} onValueChange={setReportPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="lastMonth">Last Month</SelectItem>
-              <SelectItem value="lastQuarter">Last Quarter</SelectItem>
-              <SelectItem value="lastYear">Last Year</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <Tabs defaultValue="charts">
-        <TabsList>
-          <TabsTrigger value="charts" className="flex items-center space-x-2">
-            <BarChart4 className="h-4 w-4" />
-            <span>Charts</span>
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center space-x-2">
-            <FileText className="h-4 w-4" />
-            <span>Reports</span>
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4" />
-            <span>Schedule</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="charts" className="space-y-4 pt-4">
+      {/* Compliance Status Overview */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <CardTitle className="text-lg font-semibold">Compliance Status Overview</CardTitle>
+              <CardDescription>Summary of regulatory compliance across the fleet</CardDescription>
+            </div>
+            <Button variant="outline" className="flex items-center">
+              <DownloadCloud className="mr-2 h-4 w-4" />
+              Export Report
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-green-50">
+              <div>
+                <p className="text-sm font-medium text-green-600">Compliant</p>
+                <h3 className="text-2xl font-bold text-green-700">82%</h3>
+                <p className="text-xs text-green-500">155 documents</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 rounded-lg bg-red-50">
+              <div>
+                <p className="text-sm font-medium text-red-600">Non-Compliant</p>
+                <h3 className="text-2xl font-bold text-red-700">16%</h3>
+                <p className="text-xs text-red-500">30 documents</p>
+              </div>
+              <div className="bg-red-100 p-3 rounded-full">
+                <XCircle className="h-6 w-6 text-red-500" />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 rounded-lg bg-amber-50">
+              <div>
+                <p className="text-sm font-medium text-amber-600">Expiring Soon</p>
+                <h3 className="text-2xl font-bold text-amber-700">8%</h3>
+                <p className="text-xs text-amber-500">15 documents</p>
+              </div>
+              <div className="bg-amber-100 p-3 rounded-full">
+                <Calendar className="h-6 w-6 text-amber-500" />
+              </div>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Bar Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle>Compliance by Category</CardTitle>
-                <CardDescription>
-                  Percentage of compliance across different categories
-                </CardDescription>
+              <CardHeader className="py-3">
+                <CardTitle className="text-base">Compliance by Document Type</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={COMPLIANCE_METRICS.byCategory}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      data={complianceData}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" />
+                      <YAxis dataKey="name" type="category" width={120} />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="compliant" stackId="a" fill="#22c55e" name="Compliant" />
-                      <Bar dataKey="nonCompliant" stackId="a" fill="#ef4444" name="Non-Compliant" />
+                      <Bar dataKey="compliant" name="Compliant" fill="#10b981" />
+                      <Bar dataKey="nonCompliant" name="Non-Compliant" fill="#ef4444" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
             
+            {/* Pie Chart */}
             <Card>
-              <CardHeader>
-                <CardTitle>Monthly Compliance Trend</CardTitle>
-                <CardDescription>
-                  Overall compliance percentage over time
-                </CardDescription>
+              <CardHeader className="py-3">
+                <CardTitle className="text-base">Overall Compliance Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={COMPLIANCE_METRICS.monthlyTrend}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[60, 100]} />
-                      <Tooltip />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="compliance" 
-                        stroke="#3b82f6" 
-                        activeDot={{ r: 8 }} 
-                        name="Compliance %"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Document Status Distribution</CardTitle>
-                <CardDescription>
-                  Current status of all compliance documents
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <div className="h-80 w-full max-w-md">
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={COMPLIANCE_METRICS.documentStatus}
+                        data={statusData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        outerRadius={80}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       >
-                        {COMPLIANCE_METRICS.documentStatus.map((entry, index) => (
+                        {statusData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
+                      <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
           </div>
+        </CardContent>
+      </Card>
+      
+      {/* Urgent Compliance Issues */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Urgent Compliance Issues</CardTitle>
+          <CardDescription>Items that require immediate attention</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Insurance Expiration</AlertTitle>
+            <AlertDescription>
+              3 vehicles have insurance policies expiring within the next 7 days.
+              <div className="mt-2">
+                <Button variant="outline" size="sm" className="bg-white">View Affected Vehicles</Button>
+              </div>
+            </AlertDescription>
+          </Alert>
           
-          <Card>
-            <CardFooter className="flex justify-end space-x-2 pt-6">
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <Printer className="h-4 w-4" />
-                <span>Print</span>
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <Share2 className="h-4 w-4" />
-                <span>Share</span>
-              </Button>
-              <Button size="sm" className="flex items-center space-x-2">
-                <Download className="h-4 w-4" />
-                <span>Download Report</span>
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="reports" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Reports</CardTitle>
-              <CardDescription>
-                Select a report to generate or download
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { title: 'Compliance Summary', description: 'Overview of all compliance metrics', type: 'PDF' },
-                    { title: 'Regulatory Documentation', description: 'Status of all regulatory documents', type: 'Excel' },
-                    { title: 'Driver Compliance', description: 'Driver license and certification compliance', type: 'PDF' },
-                    { title: 'Vehicle Compliance', description: 'Vehicle inspection and registration compliance', type: 'Excel' },
-                    { title: 'Non-Compliance Report', description: 'Detailed report of all non-compliant items', type: 'PDF' },
-                    { title: 'Upcoming Renewals', description: 'Documents requiring renewal in next 30 days', type: 'PDF' }
-                  ].map((report, index) => (
-                    <Card key={index} className="flex flex-col">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{report.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="py-2 flex-grow">
-                        <p className="text-sm text-muted-foreground">{report.description}</p>
-                      </CardContent>
-                      <CardFooter className="pt-2">
-                        <div className="w-full flex justify-between items-center">
-                          <Badge variant="outline">{report.type}</Badge>
-                          <Button size="sm">Generate</Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
+          <Alert variant="warning">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Registration Renewal</AlertTitle>
+            <AlertDescription>
+              5 vehicles require registration renewal within the next 14 days.
+              <div className="mt-2">
+                <Button variant="outline" size="sm" className="bg-white">View Affected Vehicles</Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+          
+          <Alert>
+            <FileText className="h-4 w-4" />
+            <AlertTitle>Document Updates Required</AlertTitle>
+            <AlertDescription>
+              12 documents need to be updated to meet current regulatory requirements.
+              <div className="mt-2">
+                <Button variant="outline" size="sm">View Document List</Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+      
+      {/* Upcoming Compliance Calendar */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Upcoming Compliance Deadlines</CardTitle>
+          <CardDescription>Calendar of upcoming regulatory deadlines</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="font-medium">Annual Tax Filing</p>
+                  <p className="text-sm text-muted-foreground">Due in 5 days</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="schedule" className="space-y-4 pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scheduled Reports</CardTitle>
-              <CardDescription>
-                Configure automatic report generation and delivery
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  Set up automated compliance reports to be delivered to specified recipients on a regular schedule.
-                </p>
-                
-                {/* Implementation of scheduled reports would go here */}
-                <div className="p-12 text-center text-muted-foreground border border-dashed rounded-md">
-                  Report scheduling functionality coming soon
+              <Badge variant="destructive">Urgent</Badge>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="font-medium">Vehicle Inspection Certification</p>
+                  <p className="text-sm text-muted-foreground">Due in 14 days</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <Badge variant="warning">Important</Badge>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="font-medium">Driver License Updates</p>
+                  <p className="text-sm text-muted-foreground">Due in 30 days</p>
+                </div>
+              </div>
+              <Badge variant="outline">Standard</Badge>
+            </div>
+          </div>
+          
+          <Button variant="outline" className="mt-4 w-full">
+            View Full Compliance Calendar
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

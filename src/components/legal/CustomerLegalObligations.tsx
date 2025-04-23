@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
-import { Search, AlertTriangle, Loader2, Plus } from 'lucide-react';
+import { Search, AlertTriangle, Loader2, Plus, Filter } from 'lucide-react';
 
 export interface CustomerObligation {
   id: string;
@@ -19,26 +19,32 @@ export interface CustomerObligation {
   dueDate: Date;
   urgency: 'low' | 'medium' | 'high' | 'critical';
   status: string;
-  daysOverdue?: number;
+  daysOverdue: number;
 }
 
 export const CustomerLegalObligations = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
-  // Empty array for obligations (removed hardcoded data)
+  // This could be replaced with actual data from a hook
   const obligations: CustomerObligation[] = [];
 
-  // Filter obligations based on search query
+  // Filter obligations based on search query and status filter
   const filteredObligations = useMemo(() => {
     return obligations.filter(
-      (obligation) =>
-        obligation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        obligation.status.toLowerCase().includes(searchQuery.toLowerCase())
+      (obligation) => {
+        const matchesSearch = obligation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          obligation.status.toLowerCase().includes(searchQuery.toLowerCase());
+          
+        const matchesStatus = filterStatus === null || obligation.status.toLowerCase() === filterStatus.toLowerCase();
+        
+        return matchesSearch && matchesStatus;
+      }
     );
-  }, [searchQuery, obligations]);
+  }, [searchQuery, obligations, filterStatus]);
 
   const handleObligationClick = (obligation: CustomerObligation) => {
     setSelectedObligation(obligation);
@@ -46,6 +52,10 @@ export const CustomerLegalObligations = () => {
 
   const handleCloseObligation = () => {
     setSelectedObligation(null);
+  };
+
+  const handleStatusFilterChange = (status: string | null) => {
+    setFilterStatus(status);
   };
 
   const getUrgencyBadge = (urgency: string) => {
@@ -86,7 +96,7 @@ export const CustomerLegalObligations = () => {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Customer Obligations</CardTitle>
           <CardDescription>Loading customer legal obligations...</CardDescription>
@@ -106,11 +116,11 @@ export const CustomerLegalObligations = () => {
       {selectedObligation ? (
         <LegalCaseDetails obligation={selectedObligation} onClose={handleCloseObligation} />
       ) : (
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <CardTitle>Customer Legal Obligations</CardTitle>
+                <CardTitle className="text-lg font-semibold">Customer Legal Obligations</CardTitle>
                 <CardDescription>
                   Manage and track customer legal obligations and requirements
                 </CardDescription>
@@ -121,7 +131,7 @@ export const CustomerLegalObligations = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -130,6 +140,41 @@ export const CustomerLegalObligations = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span className="text-sm mr-2">Status:</span>
+                <div className="flex gap-1">
+                  <Button 
+                    variant={filterStatus === null ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleStatusFilterChange(null)}
+                  >
+                    All
+                  </Button>
+                  <Button 
+                    variant={filterStatus === 'pending' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleStatusFilterChange('pending')}
+                  >
+                    Pending
+                  </Button>
+                  <Button 
+                    variant={filterStatus === 'overdue' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleStatusFilterChange('overdue')}
+                  >
+                    Overdue
+                  </Button>
+                  <Button 
+                    variant={filterStatus === 'completed' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleStatusFilterChange('completed')}
+                  >
+                    Completed
+                  </Button>
+                </div>
               </div>
             </div>
             

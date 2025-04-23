@@ -22,7 +22,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell 
 } from 'recharts';
 import { Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -32,9 +32,9 @@ import { formatDistance } from 'date-fns';
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'];
 
 const LegalReport = () => {
-  const { cases, loading, error } = useLegalCases();
+  const { legalCases, isLoading, error } = useLegalCases();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="flex flex-col items-center gap-2">
@@ -57,7 +57,7 @@ const LegalReport = () => {
           <div className="ml-3">
             <h3 className="text-sm font-medium text-red-800">Error loading legal cases</h3>
             <div className="mt-2 text-sm text-red-700">
-              <p>{error}</p>
+              <p>{error instanceof Error ? error.message : String(error)}</p>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ const LegalReport = () => {
 
   // Prepare status distribution data for chart
   const statusCounts: Record<string, number> = {};
-  cases.forEach(legalCase => {
+  legalCases.forEach(legalCase => {
     const status = legalCase.status || 'unknown';
     statusCounts[status] = (statusCounts[status] || 0) + 1;
   });
@@ -76,7 +76,7 @@ const LegalReport = () => {
   
   // Prepare case type distribution data for chart
   const typeCounts: Record<string, number> = {};
-  cases.forEach(legalCase => {
+  legalCases.forEach(legalCase => {
     const caseType = legalCase.case_type || 'unknown';
     typeCounts[caseType] = (typeCounts[caseType] || 0) + 1;
   });
@@ -84,10 +84,10 @@ const LegalReport = () => {
   const typeData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
 
   // Calculate total amount owed
-  const totalAmountOwed = cases.reduce((sum, c) => sum + (c.amount_owed || 0), 0);
+  const totalAmountOwed = legalCases.reduce((sum, c) => sum + (c.amount_owed || 0), 0);
   
   // Get recent cases
-  const recentCases = [...cases]
+  const recentCases = [...legalCases]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
