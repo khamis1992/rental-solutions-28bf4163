@@ -226,7 +226,6 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
     } else if (agreementsForAnalysis && agreementsForAnalysis.length > 0) {
       for (const agreement of agreementsForAnalysis) {
         try {
-          // Sample analysis function to be implemented
           const analysis = await analyzeAgreement(agreement);
           
           const enhancedAnalysis: EnhancedAnalysisResult = {
@@ -326,7 +325,6 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
   }
 };
 
-// Simple placeholder for the analyzeAgreement function
 const analyzeAgreement = async (agreement: any) => {
   return {
     recommendedStatus: agreement.status,

@@ -32,7 +32,7 @@ export interface Vehicle {
 }
 
 export interface Agreement {
-  id: string;
+  id: string;  // Making this required, not optional
   customer_id?: string;
   customerId?: string;
   vehicle_id?: string;

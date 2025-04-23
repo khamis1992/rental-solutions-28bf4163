@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -6,7 +5,8 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement, DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { DB_AGREEMENT_STATUS } from '@/utils/agreement-status-checker';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +22,6 @@ const EditAgreement = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Guard against multiple fetches in rapid succession
     if (hasAttemptedFetch) return;
     
     const fetchAgreement = async () => {
@@ -38,7 +37,6 @@ const EditAgreement = () => {
         const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
-          // Convert SimpleAgreement to Agreement type
           setAgreement(adaptSimpleToFullAgreement(data));
         } else {
           toast.error("Agreement not found");
@@ -63,7 +61,6 @@ const EditAgreement = () => {
     try {
       setIsSubmitting(true);
       
-      // Check if status is being changed to active
       const isChangingToActive = updatedAgreement.status === DB_AGREEMENT_STATUS.ACTIVE && 
                               agreement?.status !== DB_AGREEMENT_STATUS.ACTIVE;
                               
@@ -73,9 +70,9 @@ const EditAgreement = () => {
       
       await updateAgreementWithCheck(
         { id, data: updatedAgreement },
-        user?.id, // Pass the user ID for audit tracking
-        () => navigate(`/agreements/${id}`), // Success callback
-        (error: any) => console.error("Error updating agreement:", error) // Error callback
+        user?.id,
+        () => navigate(`/agreements/${id}`),
+        (error: any) => console.error("Error updating agreement:", error)
       );
     } catch (error) {
       console.error("Error updating agreement:", error);
