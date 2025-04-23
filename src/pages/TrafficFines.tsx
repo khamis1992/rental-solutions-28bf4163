@@ -8,9 +8,13 @@ import TrafficFinesList from "@/components/fines/TrafficFinesList";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
+import { Card, CardContent } from "@/components/ui/card";
+import ReportDownloadOptions from "@/components/reports/ReportDownloadOptions";
+import { useTrafficFines } from "@/hooks/use-traffic-fines";
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
+  const { trafficFines } = useTrafficFines();
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -18,6 +22,23 @@ const TrafficFines = () => {
   
   const handleFineSaved = () => {
     setActiveTab("list");
+  };
+
+  // Prepare formatted data for reports
+  const getReportData = () => {
+    if (!trafficFines) return [];
+    
+    return trafficFines.map(fine => ({
+      violationNumber: fine.violationNumber || 'N/A',
+      licensePlate: fine.licensePlate || 'Unknown',
+      violationDate: fine.violationDate ? new Date(fine.violationDate) : new Date(),
+      fineAmount: fine.fineAmount || 0,
+      violationCharge: fine.violationCharge || 'Unknown violation',
+      paymentStatus: fine.paymentStatus || 'pending',
+      location: fine.location || 'Unknown',
+      customerName: fine.customerName || 'Unassigned',
+      paymentDate: fine.paymentDate ? new Date(fine.paymentDate) : undefined
+    }));
   };
 
   return (
@@ -61,7 +82,23 @@ const TrafficFines = () => {
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
-          <TrafficFineAnalytics />
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-xl font-semibold mb-4">Traffic Fines Report</h3>
+                <p className="text-muted-foreground mb-6">
+                  Generate a detailed report of all traffic fines with customer and vehicle information.
+                </p>
+                
+                <ReportDownloadOptions
+                  reportType="traffic-fines"
+                  getReportData={getReportData}
+                />
+              </CardContent>
+            </Card>
+            
+            <TrafficFineAnalytics />
+          </div>
         </TabsContent>
       </Tabs>
     </PageContainer>

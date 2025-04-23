@@ -1,348 +1,171 @@
 
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCustomers } from '@/hooks/use-customers';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useCustomers } from '@/hooks/use-customers';
-import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
 
-export function CustomerDetail() {
+export const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { getCustomer } = useCustomers();
+  const [customer, setCustomer] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchCompleted, setFetchCompleted] = useState(false);
 
-  const fetchCustomer = useCallback(async () => {
-    if (!id || hasLoaded) return;
-    
-    setLoading(true);
-    setFetchError(null);
-    
+  // Use a stable reference for the fetch function to prevent infinite loops
+  const loadCustomerData = useCallback(async () => {
+    if (!id) {
+      toast.error("Customer ID is missing");
+      setIsLoading(false);
+      return;
+    }
+
+    // Skip fetching if we've already completed it
+    if (fetchCompleted) return;
+
+    setIsLoading(true);
     try {
-      const data = await getCustomer(id);
-      if (data) {
-        setCustomer(data);
-        setHasLoaded(true);
+      const customerData = await getCustomer(id);
+      if (customerData) {
+        setCustomer(customerData);
       } else {
-        setFetchError("Customer not found");
+        toast.error("Customer not found");
       }
     } catch (error) {
-      console.error("Error fetching customer:", error);
-      setFetchError("Failed to load customer details");
-      toast.error("Error loading customer details");
+      console.error("Error loading customer:", error);
+      toast.error("Failed to load customer details");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setFetchCompleted(true);
     }
-  }, [id, getCustomer, hasLoaded]);
+  }, [id, getCustomer, fetchCompleted]);
 
+  // Only run once when component mounts
   useEffect(() => {
-    fetchCustomer();
-  }, [fetchCustomer]);
+    loadCustomerData();
+  }, [loadCustomerData]);
 
-  const handleDelete = async () => {
-    if (!customer?.id || isDeleting) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteCustomer.mutateAsync(customer.id, {
-        onSuccess: () => {
-          toast.success("Customer deleted successfully");
-          navigate('/customers');
-        },
-        onError: (error) => {
-          console.error("Delete error:", error);
-          toast.error("Failed to delete customer");
-          setIsDeleting(false);
-        }
-      });
-    } catch (error) {
-      console.error("Unexpected error during delete:", error);
-      toast.error("An unexpected error occurred");
-      setIsDeleting(false);
-    }
-  };
-
-  if (loading && !hasLoaded) {
-    return <div className="flex justify-center items-center p-8">Loading customer details...</div>;
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
   }
 
-  if (fetchError || !customer) {
+  if (!customer) {
     return (
-      <Card className="mx-auto max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle>Customer Not Found</CardTitle>
-          <CardDescription>
-            {fetchError || "The customer you're looking for doesn't exist or has been removed."}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-center">
-          <Button asChild>
-            <Link to="/customers">Back to Customers</Link>
-          </Button>
-        </CardFooter>
-      </Card>
+      <div className="text-center p-8">
+        <h3 className="text-lg font-semibold mb-2">Customer Not Found</h3>
+        <p className="text-muted-foreground mb-4">The customer you're looking for doesn't exist or has been removed.</p>
+        <Button asChild>
+          <Link to="/customers">Back to Customers</Link>
+        </Button>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{customer.full_name}</h2>
-          <p className="text-muted-foreground">
-            Customer since {formatDate(customer.created_at || '')}
-          </p>
+          <h2 className="text-2xl font-bold">{customer.full_name}</h2>
+          <div className="text-muted-foreground">{customer.email}</div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button asChild variant="outline">
+        <div className="flex items-center gap-2">
+          <Badge variant={customer.status === 'active' ? 'success' : customer.status === 'blacklisted' ? 'destructive' : 'outline'}>
+            {customer.status?.toUpperCase()}
+          </Badge>
+          <Button asChild variant="outline" size="sm">
             <Link to={`/customers/edit/${customer.id}`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
+              <Pencil className="h-4 w-4 mr-2" /> Edit
             </Link>
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={isDeleting}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                {isDeleting ? "Deleting..." : "Delete"}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete the customer record for {customer.full_name}.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
-      
+
       <Separator />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <UserCog className="mr-2 h-5 w-5" />
-              Contact Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Email Address</h4>
-              <p className="text-foreground">{customer.email}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Phone Number</h4>
-              <p className="text-foreground">{customer.phone}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Address</h4>
-              <p className="text-foreground whitespace-pre-line">{customer.address || 'No address provided'}</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CalendarClock className="mr-2 h-5 w-5" />
-              Customer Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Status</h4>
-              <Badge
-                variant={
-                  customer.status === "active" ? "success" : 
-                  customer.status === "inactive" ? "outline" : 
-                  customer.status === "blacklisted" ? "destructive" :
-                  customer.status === "pending_review" ? "warning" :
-                  "secondary"
-                }
-                className="capitalize"
-              >
-                {customer.status}
-              </Badge>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Driver License</h4>
-              <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                {customer.driver_license}
-              </code>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Last Updated</h4>
-              <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                {customer.updated_at 
-                  ? formatDateTime(customer.updated_at) 
-                  : 'Never updated'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            Agreement History
-          </CardTitle>
-          <CardDescription>
-            List of rental agreements associated with this customer
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agreement Number</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Amount</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingAgreements ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={`skeleton-${i}`}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <TableCell key={`skeleton-cell-${i}-${j}`}>
-                          <Skeleton className="h-6 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : agreements && agreements.length > 0 ? (
-                  agreements.map((agreement) => (
-                    <TableRow key={agreement.id}>
-                      <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
-                      <TableCell>
-                        {agreement.vehicles ? (
-                          <span>
-                            {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
-                          </span>
-                        ) : (
-                          'Unknown vehicle'
-                        )}
-                      </TableCell>
-                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : 'N/A'}</TableCell>
-                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            agreement.status === 'ACTIVE' ? 'success' :
-                            agreement.status === 'PENDING' ? 'warning' :
-                            agreement.status === 'CANCELLED' ? 'destructive' :
-                            agreement.status === 'CLOSED' ? 'outline' :
-                            agreement.status === 'EXPIRED' ? 'secondary' :
-                            'default'
-                          }
-                          className="capitalize"
-                        >
-                          {agreement.status?.toLowerCase().replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/agreements/${agreement.id}`}>
-                            View
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No agreements found for this customer.
-                    </TableCell>
-                  </TableRow>
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="agreements">Agreements</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Phone Number</h3>
+                  <p>{customer.phone}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Nationality</h3>
+                  <p>{customer.nationality || 'Not specified'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Driver License</h3>
+                  <p>{customer.driver_license || 'Not provided'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Address</h3>
+                  <p>{customer.address || 'Not specified'}</p>
+                </div>
+                
+                {customer.notes && (
+                  <div className="col-span-1 md:col-span-2">
+                    <h3 className="font-medium text-sm text-muted-foreground mb-1">Notes</h3>
+                    <p className="whitespace-pre-wrap">{customer.notes}</p>
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertTriangle className="mr-2 h-5 w-5" />
-            Traffic Fines
-          </CardTitle>
-          <CardDescription>
-            Traffic violations associated with this customer
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {customer.id && <CustomerTrafficFines customerId={customer.id} />}
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Additional Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="prose prose-sm max-w-none">
-            {customer.notes ? (
-              <p className="whitespace-pre-line">{customer.notes}</p>
-            ) : (
-              <p className="text-muted-foreground italic">No additional notes for this customer.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="agreements">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Customer agreements will be displayed here.</p>
+              {/* This would be implemented with a filtered AgreementList component */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Customer documents will be displayed here.</p>
+              {/* This would be implemented with a DocumentList component */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Customer history will be displayed here.</p>
+              {/* This would be implemented with a CustomerHistory component */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default CustomerDetail;

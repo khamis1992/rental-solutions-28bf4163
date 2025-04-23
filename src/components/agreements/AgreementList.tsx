@@ -76,6 +76,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { FlattenType } from '@/utils/type-utils';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -235,7 +236,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<FlattenType<any>>[] = [
     {
       id: "select",
       header: ({ table }) => (

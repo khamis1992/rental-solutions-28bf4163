@@ -37,7 +37,7 @@ import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 
 interface AgreementFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: unknown) => void;
   isSubmitting: boolean;
   initialData?: any;
   standardTemplateExists?: boolean;
