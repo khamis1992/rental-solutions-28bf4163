@@ -64,7 +64,7 @@ const Customers = () => {
           />
           
           <div className="mt-6">
-            <CustomerList />
+            <CustomerList searchParams={searchParams} />
           </div>
         </div>
 

@@ -16,7 +16,14 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
 
-export function CustomerList() {
+interface CustomerListProps {
+  searchParams: {
+    query: string;
+    status: string;
+  };
+}
+
+export function CustomerList({ searchParams }: CustomerListProps) {
   const {
     customers,
     isLoading,
