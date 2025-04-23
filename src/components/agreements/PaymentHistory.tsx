@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +37,7 @@ interface PaymentHistoryProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
+  onRecordPayment?: (payment: Partial<Payment>) => void; // New prop for recording payment
 }
 
 export function PaymentHistory({
@@ -44,7 +46,8 @@ export function PaymentHistory({
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
-  leaseEndDate
+  leaseEndDate,
+  onRecordPayment // New prop
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -146,6 +149,20 @@ export function PaymentHistory({
     referenceNumber?: string,
     includeLatePaymentFee?: boolean
   ) => {
+    const newPayment = {
+      amount,
+      payment_date: paymentDate.toISOString(),
+      notes,
+      payment_method: paymentMethod,
+      reference_number: referenceNumber,
+      // Add any additional logic for late payment fee
+    };
+
+    // Call the onRecordPayment prop if provided
+    if (onRecordPayment) {
+      onRecordPayment(newPayment);
+    }
+    
     setIsPaymentDialogOpen(false);
   };
 
@@ -169,7 +186,7 @@ export function PaymentHistory({
             onClick={() => setIsPaymentDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Payment
+            Record Payment
           </Button>
         </div>
       </CardHeader>
