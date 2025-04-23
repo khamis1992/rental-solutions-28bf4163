@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -229,6 +229,26 @@ const AgreementDetailPage = () => {
             <Skeleton className="h-96 w-full md:col-span-2" />
           </div>
         </div> : agreement ? <>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-2">
+              <h2 className="text-3xl font-bold tracking-tight">
+                Agreement {agreement.agreement_number}
+              </h2>
+              <Badge variant={getStatusBadgeVariant(agreement.status)}>
+                {agreement.status.toUpperCase()}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
+                Edit
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => handleDelete(agreement.id)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+
           <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
             <CardContent className="p-6 bg-zinc-100 rounded-md">
               <div className="space-y-6">
@@ -247,29 +267,9 @@ const AgreementDetailPage = () => {
               
               <div className="flex flex-col md:flex-row justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <h2 className="text-3xl font-bold tracking-tight">
-                      Agreement {agreement.agreement_number}
-                    </h2>
-                    <Badge variant={getStatusBadgeVariant(agreement.status)}>
-                      {agreement.status.toUpperCase()}
-                    </Badge>
-                  </div>
                   <p className="text-sm text-muted-foreground">
                     {agreement.created_at && <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>}
                   </p>
-                </div>
-                
-                <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-3">
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
-                    Edit Agreement
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleGenerateDocument}>
-                    Generate Document
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(agreement.id)}>
-                    Delete
-                  </Button>
                 </div>
               </div>
               
