@@ -2,7 +2,8 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { ArabicTextService } from './arabic-text-service';
+import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 
 /**
  * Generates a CSV string from an array of objects
@@ -23,7 +24,14 @@ export const generateCSV = (data: Record<string, any>[]): string => {
     const row = headers.map(header => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      const valueStr = String(value);
+      
+      // Handle date objects
+      let valueStr: string;
+      if (value instanceof Date && !isNaN(value.getTime())) {
+        valueStr = format(value, 'yyyy-MM-dd');
+      } else {
+        valueStr = String(value);
+      }
       
       // Escape quotes and wrap in quotes if contains comma or quote
       if (valueStr.includes(',') || valueStr.includes('"')) {
@@ -44,16 +52,24 @@ export const generateCSV = (data: Record<string, any>[]): string => {
  * @param filename Name for the downloaded file
  */
 export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
-  const csv = generateCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    const csv = generateCSV(data);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Cleanup
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading CSV:", error);
+    toast.error("Failed to download CSV file");
+  }
 };
 
 /**
@@ -68,19 +84,22 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
 };
 
 /**
- * Processes text for PDF rendering, with special handling for Arabic text
- * @param text The text to process
- * @returns Promise resolving to processed text ready for PDF
+ * Safely adds an image to the PDF, with error handling
+ * @param doc PDF document
+ * @param imgPath Image path
+ * @param x X position
+ * @param y Y position
+ * @param w Width
+ * @param h Height
+ * @returns boolean indicating success
  */
-export const processPdfText = async (text: string): Promise<string> => {
-  if (!text) return '';
-  
+const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: number, h: number): boolean => {
   try {
-    // Process text with DeepSeek AI for Arabic text rendering
-    return await ArabicTextService.processText(text, 'PDF Report');
+    doc.addImage(imgPath, 'PNG', x, y, w, h);
+    return true;
   } catch (error) {
-    console.error('Error processing text for PDF:', error);
-    return text; // Return original text on error
+    console.warn(`Failed to add image ${imgPath} to PDF:`, error);
+    return false;
   }
 };
 
@@ -91,72 +110,121 @@ export const processPdfText = async (text: string): Promise<string> => {
  * @param dateRange Date range for the report
  * @returns Y position after adding header elements
  */
-export const addReportHeader = async (
+export const addReportHeader = (
   doc: jsPDF, 
   title: string, 
   dateRange: { from: Date | undefined; to: Date | undefined }
-): Promise<number> => {
+): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add company logo
-  doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+  // Set logo coordinates and dimensions
+  const logoX = 14;
+  const logoY = 10;
+  const logoWidth = 40;
+  const logoHeight = 15;
+  
+  // Try to add company logo with fallback
+  try {
+    // Use full URL path for logo to prevent issues
+    const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+    console.log('Attempting to add logo from path:', logoPath);
+    
+    // First check if we can access the image
+    const img = new Image();
+    img.src = logoPath;
+    
+    // Add text instead of image as reliable fallback
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 80); // Dark blue color
+    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
+    
+    // Try to add the image if it's available
+    if (img.complete) {
+      safelyAddImage(doc, logoPath, logoX, logoY, logoWidth, logoHeight);
+    }
+  } catch (error) {
+    console.warn('Failed to add logo to PDF header:', error);
+    // Add text instead of image as fallback
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 80);
+    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
+  }
   
   // Add a separator line
-  doc.setDrawColor(200, 200, 200);
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
   doc.line(14, 30, pageWidth - 14, 30);
   
-  // Process title for Arabic text rendering
-  const processedTitle = await processPdfText(title);
-  
-  // Add title
-  doc.setFontSize(18);
+  // Add title with improved styling
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text(processedTitle, pageWidth / 2, 40, { align: 'center' });
+  doc.setTextColor(44, 62, 80);
+  doc.text(title, pageWidth / 2, 45, { align: 'center' });
   
   // Add date range with updated format
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
-  const toDate = dateRange.to ? formatDate(dateRange.to) : '';
-  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 50, { align: 'center' });
+  doc.setTextColor(100, 100, 100);
+  
+  // Safely format dates with error handling
+  let fromDateStr = 'N/A';
+  let toDateStr = 'N/A';
+  
+  try {
+    if (dateRange.from && dateRange.from instanceof Date && !isNaN(dateRange.from.getTime())) {
+      fromDateStr = formatDate(dateRange.from);
+    }
+  } catch (err) {
+    console.error("Error formatting from date:", err);
+  }
+  
+  try {
+    if (dateRange.to && dateRange.to instanceof Date && !isNaN(dateRange.to.getTime())) {
+      toDateStr = formatDate(dateRange.to);
+    }
+  } catch (err) {
+    console.error("Error formatting to date:", err);
+  }
+  
+  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 55, { align: 'center' });
   
   // Add date of generation with updated format
-  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
+  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 62, { align: 'center' });
   
-  return 65; // Return next Y position
+  return 75; // Return next Y position with more space
 };
 
 /**
  * Adds footer to PDF report
  * @param doc jsPDF document instance
  */
-export const addReportFooter = async (doc: jsPDF): Promise<void> => {
+export const addReportFooter = (doc: jsPDF): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
-  // Process company name for Arabic text rendering
-  const companyName = await processPdfText('© 2025 ALARAF CAR RENTAL');
-  const tagline = await processPdfText('Quality Service, Premium Experience');
-  const confidential = await processPdfText('CONFIDENTIAL');
   
   // Add footer text
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(companyName, pageWidth / 2, pageHeight - 30, { align: 'center' });
-  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 15, { align: 'center' });
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(tagline, pageWidth / 2, pageHeight - 25, { align: 'center' });
+  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 10, { align: 'center' });
   
-  // Add footer logo - removed as per image example
-  // Only show the Arabic text image at the right side
-  doc.addImage('/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png', 'PNG', pageWidth - 80, pageHeight - 30, 70, 15);
+  // Add horizontal line (slightly higher to avoid overlap)
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(confidential, 14, pageHeight - 10);
-  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
+  doc.setTextColor(150, 150, 150);
+  doc.text('CONFIDENTIAL', 14, pageHeight - 5);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 5, { align: 'right' });
 };
 
 /**
@@ -180,82 +248,76 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param contentGenerator Function that adds content to the document
  * @returns PDF document
  */
-export const generateStandardReport = async (
+export const generateStandardReport = (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number) => Promise<number>
-): Promise<jsPDF> => {
-  // Process title for Arabic text handling
-  const processedTitle = await processPdfText(title);
-  
-  // Initialize the PDF document
-  const doc = new jsPDF();
-  
-  // Add Arabic font support
-  doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-regular.ttf', 'Amiri', 'normal');
-  doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-bold.ttf', 'Amiri', 'bold');
-  
-  // Add header and get the Y position to start content
-  const startY = await addReportHeader(doc, processedTitle, dateRange);
-  
-  // Add content using the provided generator function
-  await contentGenerator(doc, startY);
-  
-  // Apply footer to all pages
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    await addReportFooter(doc);
-  }
-  
-  return doc;
-};
-
-/**
- * Process text for PDF rendering with right-to-left (RTL) support
- * @param doc PDF document
- * @param text Text to render
- * @param x X position
- * @param y Y position
- * @param options Text options
- */
-export const addTextWithRtlSupport = async (
-  doc: jsPDF,
-  text: string,
-  x: number,
-  y: number,
-  options?: {
-    align?: 'left' | 'center' | 'right',
-    useArabicFont?: boolean
-  }
-): Promise<void> => {
-  const processedText = await processPdfText(text);
-  const isRtl = containsRtlCharacters(processedText);
-  
-  // Switch to Arabic font if needed
-  if (isRtl || options?.useArabicFont) {
-    doc.setFont('Amiri', doc.getFont().fontStyle);
-  }
-  
-  // Add the text
-  doc.text(processedText, x, y, { 
-    align: options?.align || 'left',
-    isInputRtl: isRtl
+  contentGenerator: (doc: jsPDF, startY: number) => number
+): jsPDF => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
   });
   
-  // Switch back to default font
-  if (isRtl || options?.useArabicFont) {
-    doc.setFont('helvetica', doc.getFont().fontStyle);
+  try {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Improved Header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(0, 0, pageWidth, 25, 'F');
+    
+    // Company Logo or Name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(44, 62, 80);
+    doc.text('ALARAF CAR RENTAL', pageWidth / 2, 15, { align: 'center' });
+    
+    // Report Title
+    doc.setFontSize(14);
+    doc.setTextColor(70, 70, 70);
+    doc.text(title, pageWidth / 2, 35, { align: 'center' });
+    
+    // Date Range
+    doc.setFontSize(10);
+    const fromDateStr = dateRange.from ? formatDate(dateRange.from) : 'N/A';
+    const toDateStr = dateRange.to ? formatDate(dateRange.to) : 'N/A';
+    doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 42, { align: 'center' });
+    
+    // Generate content
+    const startY = 50;
+    const finalY = contentGenerator(doc, startY);
+    
+    // Footer for each page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Footer background - ensure it's properly positioned
+      doc.setFillColor(240, 240, 240);
+      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+      
+      // Footer text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      
+      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 6);
+      doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 6, { align: 'center' });
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 6, { align: 'right' });
+    }
+    
+    return doc;
+  } catch (error) {
+    console.error("Error generating standard report:", error);
+    
+    // Error page
+    doc.deletePage(1);
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.setTextColor(255, 0, 0);
+    doc.text("Error Generating Report", 20, 20);
+    
+    return doc;
   }
 };
-
-/**
- * Check if text contains RTL characters
- * @param text Text to check
- * @returns True if contains RTL characters
- */
-function containsRtlCharacters(text: string): boolean {
-  // RTL characters include Arabic, Hebrew, etc.
-  const rtlRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u0590-\u05FF]/;
-  return rtlRegex.test(text);
-}

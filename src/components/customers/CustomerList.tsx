@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
@@ -67,9 +68,6 @@ export function CustomerList() {
             </Link>
           </div>;
     }
-  }, {
-    accessorKey: "email",
-    header: "Email"
   }, {
     accessorKey: "phone",
     header: "Phone"
@@ -163,6 +161,7 @@ export function CustomerList() {
           </DropdownMenu>;
     }
   }];
+  
   const table = useReactTable({
     data: customers || [],
     columns,

@@ -36,7 +36,8 @@ import {
   DollarSign,
   Users,
   AlertCircle,
-  Loader2
+  Loader2,
+  Upload
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
@@ -45,6 +46,15 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import TrafficFineImport from './TrafficFineImport';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -59,6 +69,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     valid: true, 
     issues: [] 
   });
+  const [showImportDialog, setShowImportDialog] = useState(false);
   
   // Validate the traffic fines data when it loads
   useEffect(() => {
@@ -252,6 +263,10 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     return null;
   };
 
+  const handleImportComplete = () => {
+    setShowImportDialog(false);
+  };
+
   return (
     <div className="space-y-6">
       {renderDataValidationWarning()}
@@ -308,6 +323,23 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                   </>
                 )}
               </Button>
+              <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="w-full md:w-auto">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import CSV
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[800px]">
+                  <DialogHeader>
+                    <DialogTitle>Import Traffic Fines from CSV</DialogTitle>
+                    <DialogDescription>
+                      Upload a CSV file with traffic fine data. Make sure to include license plates.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <TrafficFineImport onImportComplete={handleImportComplete} />
+                </DialogContent>
+              </Dialog>
               <Button 
                 className="w-full md:w-auto"
                 onClick={onAddFine}
@@ -363,7 +395,9 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                           {fine.violationNumber}
                         </div>
                       </TableCell>
-                      <TableCell>{fine.licensePlate}</TableCell>
+                      <TableCell className={!fine.licensePlate ? "text-red-500 font-bold" : ""}>
+                        {fine.licensePlate || "MISSING"}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {formatDate(fine.violationDate)}
                       </TableCell>

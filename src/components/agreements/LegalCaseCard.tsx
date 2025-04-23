@@ -1,203 +1,200 @@
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { LegalCase } from '@/types/legal-case';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { CalendarClock, Scale, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { DataTable } from '@/components/ui/data-table';
+import { Button } from '@/components/ui/button';
+import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
+import { UUID } from '@/types/database-types';
 
 interface LegalCaseCardProps {
   agreementId: string;
 }
 
-export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
-  const [legalCases, setLegalCases] = useState<LegalCase[]>([]);
+const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
+  const { toast } = useToast();
+  const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [customer, setCustomer] = useState<any>(null);
+  
+  // Fetch legal cases related to this agreement
   useEffect(() => {
     const fetchLegalCases = async () => {
-      if (!agreementId) return;
-
       try {
         setIsLoading(true);
-        // Find customer_id first
-        const { data: leaseData, error: leaseError } = await supabase
+        // First get the lease to find the customer_id
+        const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', agreementId)
+          .eq('id', agreementId as UUID);
+        
+        if (leaseResponse.error || !leaseResponse.data || leaseResponse.data.length === 0) {
+          console.error("Could not find lease:", leaseResponse.error);
+          return;
+        }
+        
+        const customerId = leaseResponse.data[0]?.customer_id;
+        
+        if (!customerId) {
+          console.error("No customer ID found for lease");
+          return;
+        }
+        
+        // Then fetch customer details
+        const { data: customerData, error: customerError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', customerId as UUID)
           .single();
-
-        if (leaseError) {
-          console.error('Error fetching lease data:', leaseError);
-          return;
+          
+        if (customerError) {
+          console.error("Error fetching customer:", customerError);
+        } else {
+          setCustomer(customerData);
         }
-
-        if (!leaseData?.customer_id) {
-          console.log('No customer ID found for this agreement');
-          return;
-        }
-
-        // Fetch legal cases for the customer
-        const { data, error } = await supabase
+          
+        // Get legal cases for this customer
+        const { data: casesData, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', leaseData.customer_id);
-
-        if (error) {
-          console.error('Error fetching legal cases:', error);
-          return;
-        }
-
-        // Log the data to see what we're getting
-        console.log('Legal cases data:', data);
-
-        // Transform the data to match the LegalCase type
-        if (data) {
-          const transformedData: LegalCase[] = data.map(item => {
-            // Safely check if notes exists and ensure it's a string
-            let notesValue = '';
-            if ('notes' in item && item.notes !== null && item.notes !== undefined) {
-              notesValue = String(item.notes); // Convert to string to ensure type compatibility
-            }
-            
-            return {
-              id: item.id,
-              case_number: `CASE-${item.id.substring(0, 8)}`,
-              title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
-              description: item.description || '',
-              customer_id: item.customer_id,
-              customer_name: 'Customer', // Default value
-              status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
-              hearing_date: item.escalation_date || null,
-              court_location: '',
-              assigned_attorney: item.assigned_to || '',
-              opposing_party: '',
-              case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
-              documents: [],
-              amount_claimed: item.amount_owed || 0,
-              amount_settled: null,
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              notes: notesValue
-            };
+          .eq('customer_id', customerId as UUID);
+          
+        if (casesError) {
+          console.error("Error fetching legal cases:", casesError);
+          toast({
+            title: 'Error',
+            description: 'Could not load legal cases',
+            variant: 'destructive'
           });
-
-          setLegalCases(transformedData);
+        } else {
+          setLegalCases(casesData || []);
         }
-      } catch (err) {
-        console.error('Unexpected error fetching legal cases:', err);
+      } catch (error) {
+        console.error("Error in legal cases fetch:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchLegalCases();
-  }, [agreementId]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'active':
-        return <Badge className="bg-blue-500 text-white">Active</Badge>;
-      case 'closed':
-        return <Badge className="bg-green-500 text-white">Closed</Badge>;
-      case 'settled':
-        return <Badge className="bg-indigo-500 text-white">Settled</Badge>;
-      default:
-        return <Badge className="bg-gray-500 text-white">{status}</Badge>;
+    
+    if (agreementId) {
+      fetchLegalCases();
+    }
+  }, [agreementId, toast]);
+  
+  const handleResolveCase = async (id: string) => {
+    try {
+      const updateData: any = {
+        status: 'resolved',
+        resolution_notes: 'Case closed by admin',
+        resolution_date: new Date().toISOString(),
+      };
+      
+      const { error } = await supabase
+        .from('legal_cases')
+        .update(updateData)
+        .eq('id', id as UUID);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setLegalCases(prevCases => 
+        prevCases.map(c => c.id === id ? { ...c, ...updateData } : c)
+      );
+      
+      toast({
+        title: 'Success',
+        description: 'Case has been resolved',
+      });
+    } catch (error) {
+      console.error('Error resolving case:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not resolve the case',
+        variant: 'destructive',
+      });
     }
   };
-
-  const handleViewDetails = (caseId: string) => {
-    toast.info("Case details functionality coming soon");
-    // Navigation to case details would go here
+  
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'pending_reminder':
+        return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Reminder</Badge>;
+      case 'awaiting_response':
+        return <Badge variant="warning" className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Awaiting Response</Badge>;
+      case 'escalated':
+        return <Badge variant="destructive" className="flex items-center gap-1"><Ban className="h-3 w-3" /> Escalated</Badge>;
+      case 'resolved':
+        return <Badge variant="success" className="flex items-center gap-1"><Check className="h-3 w-3" /> Resolved</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full mb-4" />
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (legalCases.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6 text-muted-foreground">
-            <p>No legal cases associated with this agreement.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
+  const columns = [
+    {
+      accessorKey: 'case_type',
+      header: 'Type',
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }: { row: any }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'amount_owed',
+      header: 'Amount Owed',
+      cell: ({ row }: { row: any }) => `QAR ${row.original.amount_owed?.toLocaleString() || '0'}`,
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Created',
+      cell: ({ row }: { row: any }) => format(new Date(row.original.created_at), 'MMM d, yyyy'),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }: { row: any }) => (
+        row.original.status !== 'resolved' ? (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleResolveCase(row.original.id)}
+          >
+            Resolve
+          </Button>
+        ) : null
+      ),
+    },
+  ];
+  
   return (
-    <Card>
+    <Card className="my-8">
       <CardHeader>
         <CardTitle>Legal Cases</CardTitle>
-        <CardDescription>Associated legal matters</CardDescription>
+        <CardDescription>
+          {customer?.full_name ? `Legal cases for ${customer.full_name}` : 'Legal cases for this agreement'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {legalCases.map((legalCase) => (
-            <div 
-              key={legalCase.id} 
-              className="border rounded-md p-4 hover:border-primary/50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium">{legalCase.title}</h4>
-                  <p className="text-sm text-muted-foreground">Case #{legalCase.case_number}</p>
-                </div>
-                {getStatusBadge(legalCase.status)}
-              </div>
-              
-              <p className="text-sm mb-3 line-clamp-2">{legalCase.description}</p>
-              
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                <div className="flex items-center">
-                  <CalendarClock className="h-4 w-4 mr-1" />
-                  <span>Hearing: {legalCase.hearing_date ? format(new Date(legalCase.hearing_date), 'MMM d, yyyy') : 'Not scheduled'}</span>
-                </div>
-                {legalCase.amount_claimed && (
-                  <div className="flex items-center">
-                    <Scale className="h-4 w-4 mr-1" />
-                    <span>Claim: ${legalCase.amount_claimed.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => handleViewDetails(legalCase.id)}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                View Details
-              </Button>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : legalCases.length > 0 ? (
+          <DataTable columns={columns} data={legalCases} />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No legal cases found for this agreement.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-}
+};
+
+export default LegalCaseCard;

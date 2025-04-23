@@ -4,7 +4,6 @@ import { LegalCase } from '@/types/legal-case';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
-import { processPdfText, addTextWithRtlSupport } from '@/utils/report-utils';
 
 // Define our styles object manually instead of using createStyles from react-to-pdf
 const legalReportStyles = {
@@ -90,31 +89,23 @@ export const generateLegalCustomerReport = async (
   // Create a new PDF document
   const doc = new jsPDF();
   
-  // Add Arabic font support
-  doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-regular.ttf', 'Amiri', 'normal');
-  doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-bold.ttf', 'Amiri', 'bold');
-  
   // Set up document
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  
-  // Process report title for Arabic support
-  const reportTitle = await processPdfText('Customer Legal Obligation Report');
-  doc.text(reportTitle, 105, 20, { align: 'center' });
+  doc.text('Customer Legal Obligation Report', 105, 20, { align: 'center' });
   
   // Add customer information
   doc.setFontSize(14);
-  await addTextWithRtlSupport(doc, `Customer: ${customerName}`, 20, 40);
-  
+  doc.text(`Customer: ${customerName}`, 20, 40);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  await addTextWithRtlSupport(doc, `Customer ID: ${customerId}`, 20, 50);
-  await addTextWithRtlSupport(doc, `Report Date: ${formatDate(new Date())}`, 20, 60);
+  doc.text(`Customer ID: ${customerId}`, 20, 50);
+  doc.text(`Report Date: ${formatDate(new Date())}`, 20, 60);
   
   // Add obligations summary
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  await addTextWithRtlSupport(doc, 'Obligations Summary', 20, 80);
+  doc.text('Obligations Summary', 20, 80);
   
   // Calculate totals
   const totalAmount = obligations.reduce((sum, obligation) => sum + obligation.amount, 0);
@@ -126,9 +117,9 @@ export const generateLegalCustomerReport = async (
   // Add summary details
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  await addTextWithRtlSupport(doc, `Total Number of Obligations: ${obligations.length}`, 20, 90);
-  await addTextWithRtlSupport(doc, `Total Amount Due: QAR ${totalAmount.toLocaleString()}`, 20, 100);
-  await addTextWithRtlSupport(doc, `Highest Urgency Level: ${highestUrgency.charAt(0).toUpperCase() + highestUrgency.slice(1)}`, 20, 110);
+  doc.text(`Total Number of Obligations: ${obligations.length}`, 20, 90);
+  doc.text(`Total Amount Due: QAR ${totalAmount.toLocaleString()}`, 20, 100);
+  doc.text(`Highest Urgency Level: ${highestUrgency.charAt(0).toUpperCase() + highestUrgency.slice(1)}`, 20, 110);
   
   // Create table headers
   const startY = 130;
@@ -149,54 +140,21 @@ export const generateLegalCustomerReport = async (
     width: 170
   };
   
-  // Process header texts
-  const processedHeaders = await Promise.all(headers.map(header => processPdfText(header)));
-  
   // Draw table header
   doc.setFillColor(240, 240, 240);
   doc.rect(margins.left, y - 10, margins.width, 10, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.text(processedHeaders[0], 25, y - 3);
-  doc.text(processedHeaders[1], 50, y - 3);
-  doc.text(processedHeaders[2], 90, y - 3);
-  doc.text(processedHeaders[3], 120, y - 3);
-  doc.text(processedHeaders[4], 145, y - 3);
-  doc.text(processedHeaders[5], 170, y - 3);
+  doc.text('Type', 25, y - 3);
+  doc.text('Description', 50, y - 3);
+  doc.text('Due Date', 90, y - 3);
+  doc.text('Amount', 120, y - 3);
+  doc.text('Urgency', 145, y - 3);
+  doc.text('Status', 170, y - 3);
   
   // Draw table rows
   doc.setFont('helvetica', 'normal');
   
-  // Process all obligation data for Arabic text
-  const processedObligations = await Promise.all(
-    obligations.map(async (obligation) => {
-      let type = '';
-      switch (obligation.obligationType) {
-        case 'payment': type = 'Payment'; break;
-        case 'traffic_fine': type = 'Traffic Fine'; break;
-        case 'legal_case': type = 'Legal Case'; break;
-        default: type = 'Other';
-      }
-      
-      // Format date
-      const dueDate = obligation.dueDate instanceof Date 
-        ? formatDate(obligation.dueDate) 
-        : 'N/A';
-      
-      return {
-        ...obligation,
-        type: await processPdfText(type),
-        description: await processPdfText(obligation.description),
-        dueDate: await processPdfText(dueDate),
-        amount: obligation.amount.toLocaleString(),
-        urgency: await processPdfText(obligation.urgency),
-        status: await processPdfText(obligation.status)
-      };
-    })
-  );
-  
-  for (let index = 0; index < processedObligations.length; index++) {
-    const obligation = processedObligations[index];
-    
+  obligations.forEach((obligation, index) => {
     // Add a new page if we're getting close to the bottom
     if (y > 250) {
       doc.addPage();
@@ -206,12 +164,12 @@ export const generateLegalCustomerReport = async (
       doc.setFillColor(240, 240, 240);
       doc.rect(margins.left, y, margins.width, 10, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.text(processedHeaders[0], 25, y + 7);
-      doc.text(processedHeaders[1], 50, y + 7);
-      doc.text(processedHeaders[2], 90, y + 7);
-      doc.text(processedHeaders[3], 120, y + 7);
-      doc.text(processedHeaders[4], 145, y + 7);
-      doc.text(processedHeaders[5], 170, y + 7);
+      doc.text('Type', 25, y + 7);
+      doc.text('Description', 50, y + 7);
+      doc.text('Due Date', 90, y + 7);
+      doc.text('Amount', 120, y + 7);
+      doc.text('Urgency', 145, y + 7);
+      doc.text('Status', 170, y + 7);
       doc.setFont('helvetica', 'normal');
       y += 15;
     }
@@ -223,7 +181,20 @@ export const generateLegalCustomerReport = async (
     }
     
     // Add row data
-    doc.text(obligation.type, 25, y + 7);
+    let type = '';
+    switch (obligation.obligationType) {
+      case 'payment': type = 'Payment'; break;
+      case 'traffic_fine': type = 'Traffic Fine'; break;
+      case 'legal_case': type = 'Legal Case'; break;
+      default: type = 'Other';
+    }
+    
+    // Format date
+    const dueDate = obligation.dueDate instanceof Date 
+      ? formatDate(obligation.dueDate) 
+      : 'N/A';
+    
+    doc.text(type, 25, y + 7);
     
     // Handle long descriptions
     const descriptionText = obligation.description.length > 25
@@ -231,18 +202,13 @@ export const generateLegalCustomerReport = async (
       : obligation.description;
     doc.text(descriptionText, 50, y + 7);
     
-    doc.text(obligation.dueDate, 90, y + 7);
-    doc.text(obligation.amount, 120, y + 7);
+    doc.text(dueDate, 90, y + 7);
+    doc.text(obligation.amount.toLocaleString(), 120, y + 7);
     doc.text(obligation.urgency, 145, y + 7);
     doc.text(obligation.status, 170, y + 7);
     
     y += 10;
-  }
-  
-  // Process footer texts
-  const confidentialText = await processPdfText('CONFIDENTIAL - For internal use only');
-  const pageText = await processPdfText('Page');
-  const ofText = await processPdfText('of');
+  });
   
   // Add footer
   const pageCount = doc.getNumberOfPages();
@@ -252,7 +218,7 @@ export const generateLegalCustomerReport = async (
     // Footer with page number
     doc.setFontSize(8);
     doc.text(
-      `${pageText} ${i} ${ofText} ${pageCount}`,
+      `Page ${i} of ${pageCount}`,
       105,
       doc.internal.pageSize.height - 10,
       { align: 'center' }
@@ -260,7 +226,7 @@ export const generateLegalCustomerReport = async (
     
     // Confidentiality statement
     doc.text(
-      confidentialText,
+      'CONFIDENTIAL - For internal use only',
       105,
       doc.internal.pageSize.height - 5,
       { align: 'center' }

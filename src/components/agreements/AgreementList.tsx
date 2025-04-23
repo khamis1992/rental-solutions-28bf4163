@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAgreements } from '@/hooks/use-agreements';
+import { castDbId } from '@/lib/supabase-types';
+import { 
+  asTableId, 
+  asAgreementIdColumn, 
+  asLeaseIdColumn, 
+  asImportIdColumn,
+  asTrafficFineIdColumn 
+} from '@/utils/database-type-helpers';
 import { 
   ColumnDef, 
   flexRender, 
@@ -25,7 +34,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  X,
   ArrowUpDown,
   Trash2
 } from 'lucide-react';
@@ -48,7 +56,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -62,7 +69,7 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,11 +84,110 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
-interface AgreementListProps {
-  searchQuery?: string;
-}
+const fetchOverduePayments = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('overdue_payments')
+      .select('*')
+      .eq('agreement_id', agreementId)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching overdue payments:", error);
+    } else {
+      console.log("Overdue payments fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching overdue payments:", err);
+  }
+};
 
-export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+const fetchPayments = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', agreementId);
+    
+    if (error) {
+      console.error("Error fetching payments:", error);
+    } else {
+      console.log("Payments fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+  }
+};
+
+const fetchImportReverts = async (importId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('agreement_import_reverts')
+      .select('*')
+      .eq('import_id', importId);
+    
+    if (error) {
+      console.error("Error fetching import reverts:", error);
+    } else {
+      console.log("Import reverts fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching import reverts:", err);
+  }
+};
+
+const getImportRevertStatus = async (importId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('agreement_import_reverts')
+      .select('*')
+      .eq('import_id', importId);
+    
+    if (error) {
+      console.error("Error fetching import revert status:", error);
+    } else {
+      console.log("Import revert status fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching import revert status:", err);
+  }
+};
+
+const fetchTrafficFines = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', agreementId);
+    
+    if (error) {
+      console.error("Error fetching traffic fines:", error);
+    } else {
+      console.log("Traffic fines fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching traffic fines:", err);
+  }
+};
+
+const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', agreementId);
+    
+    if (error) {
+      console.error("Error fetching traffic fines by agreement ID:", error);
+    } else {
+      console.log("Traffic fines by agreement ID fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching traffic fines by agreement ID:", err);
+  }
+};
+
+export const AgreementList = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -91,6 +197,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     pageSize: 10,
   });
   
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const { 
@@ -100,11 +207,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: searchQuery, status: statusFilter });
-  
-  useEffect(() => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
-  }, [searchQuery, setSearchParams]);
+  } = useAgreements({ status: statusFilter });
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -113,7 +216,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setRowSelection({});
@@ -121,7 +223,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pageIndex: 0,
       pageSize: 10,
     });
-  }, [agreements, statusFilter, searchQuery]);
+  }, [agreements, statusFilter]);
 
   const handleBulkDelete = async () => {
     if (!agreements) return;
@@ -129,7 +231,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
+      index => agreements[parseInt(index)].id
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -145,7 +247,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           .from('overdue_payments')
           .delete()
           .eq('agreement_id', id);
-          
+        
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
         } else {
@@ -156,7 +258,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           .from('unified_payments')
           .delete()
           .eq('lease_id', id);
-          
+        
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
         } else {
@@ -167,13 +269,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           .from('agreement_import_reverts')
           .select('id')
           .eq('import_id', id);
-          
+        
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
             .eq('import_id', id);
-            
+          
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
           } else {
@@ -185,7 +287,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           .from('traffic_fines')
           .select('id')
           .eq('agreement_id', id);
-          
+        
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
         } else if (trafficFines && trafficFines.length > 0) {
@@ -193,7 +295,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             .from('traffic_fines')
             .delete()
             .eq('agreement_id', id);
-            
+          
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
           } else {
@@ -204,8 +306,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', id);
-          
+          .eq('id', asTableId('leases', id));
+        
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);
           toast.error(`Failed to delete agreement: ${error.message}`);
@@ -214,8 +316,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           console.log(`Successfully deleted agreement ${id}`);
           successCount++;
         }
-      } catch (error) {
-        console.error(`Failed to delete agreement ${id}:`, error);
+      } catch (err) {
+        console.error('Error deleting:', err);
         errorCount++;
       }
     }
@@ -353,12 +455,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       },
     },
     {
-      accessorKey: "total_amount",
-      header: "Amount",
+      accessorKey: "rent_amount",
+      header: "Monthly Rent",
       cell: ({ row }) => {
         return (
           <div className="font-medium">
-            {formatCurrency(row.original.total_amount)}
+            {formatCurrency(row.original.rent_amount || 0)}
           </div>
         );
       },
@@ -392,29 +494,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             )}
             {status}
           </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "created_at",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="px-0 font-medium"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Created Date
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const createdAt = row.original.created_at;
-        return (
-          <div className="whitespace-nowrap">
-            {createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : 'N/A'}
-          </div>
         );
       },
     },
@@ -540,25 +619,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Alert>
       )}
       
-      {(searchQuery || statusFilter !== 'all') && (
-        <div className="flex items-center text-sm text-muted-foreground mb-1">
-          <span>Filtering by:</span>
-          {searchQuery && (
-            <Badge variant="outline" className="ml-2 gap-1">
-              Search: {searchQuery}
-            </Badge>
-          )}
-          {statusFilter !== 'all' && (
-            <Badge variant="outline" className="ml-2 gap-1">
-              Status: {statusFilter}
-              <button onClick={() => handleStatusFilterChange('all')}>
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-        </div>
-      )}
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -607,7 +667,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {searchParams.status && searchParams.status !== 'all' ? 
+                      {statusFilter !== 'all' ? 
                         'No agreements found with the selected status.' : 
                         'Add your first agreement using the button above.'}
                     </p>
