@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -31,7 +30,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
-import PaymentHistory from '@/components/payments/PaymentList';
+import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
@@ -51,7 +50,6 @@ const AgreementDetailPage = () => {
   
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Ensure we properly handle the payments array with type safety
   const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
@@ -193,7 +191,6 @@ const AgreementDetailPage = () => {
     }
   };
 
-  // Calculate contract duration and progress
   const calculateProgress = () => {
     if (!agreement || !agreement.start_date || !agreement.end_date) return 0;
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
@@ -263,7 +260,6 @@ const AgreementDetailPage = () => {
         </div>
       ) : agreement ? (
         <>
-          {/* Hero section with key agreement details */}
           <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row justify-between">
@@ -300,7 +296,6 @@ const AgreementDetailPage = () => {
                 </div>
               </div>
               
-              {/* Financial summary and contract progress */}
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
                   <p className="text-sm font-medium text-muted-foreground">Monthly Rent</p>
@@ -316,7 +311,6 @@ const AgreementDetailPage = () => {
                 </div>
               </div>
               
-              {/* Contract progress bar */}
               {agreement.start_date && agreement.end_date && (
                 <div className="mt-6">
                   <div className="flex justify-between text-sm mb-1">
@@ -333,7 +327,6 @@ const AgreementDetailPage = () => {
             </CardContent>
           </Card>
 
-          {/* Tabbed interface */}
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid grid-cols-4">
               <TabsTrigger value="overview" className="flex gap-2">
@@ -350,7 +343,6 @@ const AgreementDetailPage = () => {
               </TabsTrigger>
             </TabsList>
             
-            {/* Overview tab */}
             <TabsContent value="overview" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -398,7 +390,6 @@ const AgreementDetailPage = () => {
                 </CardContent>
               </Card>
               
-              {/* Original agreement detail component (hidden for now but kept for functionality) */}
               <div className="hidden">
                 <AgreementDetail 
                   agreement={agreement}
@@ -412,7 +403,6 @@ const AgreementDetailPage = () => {
               </div>
             </TabsContent>
             
-            {/* Payments tab */}
             <TabsContent value="payments" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -461,7 +451,6 @@ const AgreementDetailPage = () => {
               )}
             </TabsContent>
             
-            {/* Customer & Vehicle tab */}
             <TabsContent value="details" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
@@ -567,9 +556,7 @@ const AgreementDetailPage = () => {
               </Card>
             </TabsContent>
             
-            {/* Legal & Compliance tab */}
             <TabsContent value="legal" className="space-y-6">
-              {/* Traffic Fines Card */}
               {agreement.start_date && agreement.end_date && (
                 <Card>
                   <CardHeader>
@@ -586,14 +573,12 @@ const AgreementDetailPage = () => {
                 </Card>
               )}
               
-              {/* Legal Cases Card */}
               {agreement.id && (
                 <LegalCaseCard agreementId={agreement.id} />
               )}
             </TabsContent>
           </Tabs>
           
-          {/* Document generation dialog */}
           <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
             <DialogContent className="max-w-4xl">
               <InvoiceGenerator 
