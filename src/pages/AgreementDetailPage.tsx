@@ -28,6 +28,7 @@ import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 
 const AgreementDetailPage = () => {
   const {
