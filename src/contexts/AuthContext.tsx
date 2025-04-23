@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo } from "react";
+
+import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
