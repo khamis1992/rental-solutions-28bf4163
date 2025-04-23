@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -18,8 +19,6 @@ import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { generateTrafficFinesReport } from '@/utils/report-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -29,8 +28,7 @@ const Reports = () => {
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
   const [maintenanceData, setMaintenanceData] = useState([]);
-  const { trafficFines } = useTrafficFines();
-
+  
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -99,20 +97,8 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'legal':
+        // Legal reports data would be implemented here
         return [];
-      case 'traffic-fines':
-        if (!trafficFines) return [];
-        
-        return trafficFines.map(fine => ({
-          customerName: fine.customerName || 'Unassigned',
-          licensePlate: fine.licensePlate,
-          agreementNumber: fine.leaseId,
-          violationNumber: fine.violationNumber,
-          violationDate: fine.violationDate,
-          fineAmount: fine.fineAmount,
-          paymentStatus: fine.paymentStatus
-        }));
-        
       default:
         return [];
     }
@@ -152,13 +138,12 @@ const Reports = () => {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-6 mb-8">
+            <TabsList className="grid grid-cols-5 mb-8">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
-              <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
             </TabsList>
             
             <div className="mb-6">
@@ -186,24 +171,6 @@ const Reports = () => {
             
             <TabsContent value="legal" className="mt-0">
               <LegalReport />
-            </TabsContent>
-            
-            <TabsContent value="traffic-fines" className="mt-0">
-              <Card className="border-0 shadow-none">
-                <CardContent>
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold">Traffic Fines Report</h3>
-                    <p className="text-sm text-muted-foreground">
-                      View and analyze all traffic fines data
-                    </p>
-                  </div>
-                  
-                  <ReportDownloadOptions
-                    reportType="traffic-fines"
-                    getReportData={getReportData}
-                  />
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </CardContent>

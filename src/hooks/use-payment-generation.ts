@@ -1,5 +1,6 @@
+
 import { useState, useCallback } from 'react';
-import { Agreement } from '@/types/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
@@ -8,10 +9,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Function to refresh agreement data
   const refreshAgreementData = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
+  // Handle special agreement payments with late fee calculation
   const handleSpecialAgreementPayments = useCallback(async (
     amount: number, 
     paymentDate: Date, 
@@ -29,11 +32,13 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     
     setIsProcessing(true);
     try {
+      // Check if this is an additional payment for a partially paid record
       let existingPaymentId: string | null = null;
       let existingPaymentAmount: number = 0;
       let existingAmountPaid: number = 0;
       let existingBalance: number = 0;
       
+      // If we're updating an existing payment (either explicitly provided or from query param)
       const queryParams = new URLSearchParams(window.location.search);
       const paymentId = targetPaymentId || queryParams.get('paymentId');
       
@@ -54,8 +59,10 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         }
       }
       
-      let dailyLateFee = 120;
+      // Get lease data to access daily_late_fee
+      let dailyLateFee = 120; // Default value
       if (!agreement) {
+        // If agreement isn't passed in props, fetch it from supabase
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('daily_late_fee')
@@ -68,18 +75,25 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           dailyLateFee = leaseData.daily_late_fee || 120;
         }
       } else {
+        // Use the daily_late_fee from the provided agreement
         dailyLateFee = agreement.daily_late_fee || 120;
       }
       
+      // Calculate if there's a late fee applicable
       let lateFeeAmount = 0;
       let daysLate = 0;
       
+      // If payment is after the 1st of the month, calculate late fee
       if (paymentDate.getDate() > 1) {
+        // Calculate days late (payment date - 1st of month)
         daysLate = paymentDate.getDate() - 1;
+        
+        // Calculate late fee amount (capped at 3000 QAR)
         lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);
       }
       
       if (existingPaymentId) {
+        // This is an additional payment for a partially paid record
         const totalPaid = existingAmountPaid + amount;
         const newBalance = existingPaymentAmount - totalPaid;
         const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
@@ -92,6 +106,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           paymentDate: paymentDate.toISOString()
         });
         
+        // Update the existing payment record
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update({
@@ -113,25 +128,30 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           "Payment completed successfully!" : 
           "Additional payment recorded successfully");
       } else {
+        // This is a new payment
+        // Handle partial payment if selected
         let paymentStatus = 'completed';
         let amountPaid = amount;
         let balance = 0;
         
         if (isPartialPayment) {
           paymentStatus = 'partially_paid';
+          // Safe access to rent_amount with a fallback
           const rentAmount = agreement?.rent_amount || 0;
           balance = Math.max(0, rentAmount - amount);
         }
         
+        // Form the payment record
         const paymentRecord = {
           lease_id: agreementId,
+          // Safe access to rent_amount with a fallback
           amount: agreement?.rent_amount || 0,
           amount_paid: amountPaid,
           balance: balance,
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null,
-          description: notes || `Monthly rent payment for ${agreement?.agreement_number || agreement?.agreementNumber}`,
+          description: notes || `Monthly rent payment for ${agreement?.agreement_number}`,
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,
@@ -140,6 +160,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         
         console.log("Recording payment:", paymentRecord);
         
+        // Insert the payment record
         const { data, error } = await supabase
           .from('unified_payments')
           .insert(paymentRecord)
@@ -152,6 +173,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           return false;
         }
         
+        // If there's a late fee to apply and user opted to include it, record it as a separate transaction
         if (lateFeeAmount > 0 && includeLatePaymentFee) {
           const lateFeeRecord = {
             lease_id: agreementId,
