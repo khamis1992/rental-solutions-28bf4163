@@ -2,13 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Auth } from '@supabase/auth-ui-react';
 import { ThemeProvider } from './components/theme-provider';
-import {
-  dark,
-  ThemeSupa,
-} from '@supabase/auth-ui-shared';
 import { SiteHeader } from './components/layout/SiteHeader';
 import { SiteFooter } from './components/layout/SiteFooter';
 import PageContainer from './components/layout/PageContainer';
@@ -21,9 +15,10 @@ import VehicleStatusUpdate from './pages/VehicleStatusUpdate';
 
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const session = useSession();
-  const supabase = useSupabaseClient();
   const navigate = useNavigate();
+
+  // Temporary mock session - we'll implement real auth later
+  const session = true; // This simulates a logged-in user
 
   useEffect(() => {
     setIsLoading(false);
@@ -49,13 +44,20 @@ const App: React.FC = () => {
             element={
               !session ? (
                 <PageContainer>
-                  <Auth
-                    supabaseClient={supabase}
-                    appearance={{ theme: ThemeSupa, variables: { default: { colors: { brand: '#4ade80', brandAccent: '#52525b' } } } }}
-                    theme="dark"
-                    providers={['github', 'google']}
-                    redirectTo={`${window.location.origin}/vehicles`}
-                  />
+                  <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="p-8 border rounded-lg shadow-md w-full max-w-md">
+                      <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+                      <p className="text-center mb-4 text-muted-foreground">
+                        Supabase authentication is not yet configured.
+                      </p>
+                      <button 
+                        className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors"
+                        onClick={() => navigate('/vehicles')}
+                      >
+                        Continue as Guest
+                      </button>
+                    </div>
+                  </div>
                 </PageContainer>
               ) : (
                 <Navigate to="/vehicles" />
