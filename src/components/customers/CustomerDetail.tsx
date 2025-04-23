@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { Customer } from '@/lib/validation-schemas/customer';
-import CustomerTrafficFines from '@/components/customers/CustomerTrafficFines';
+import { CustomerTrafficFines } from '@/components/customers/CustomerTrafficFines';
 
 export const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
