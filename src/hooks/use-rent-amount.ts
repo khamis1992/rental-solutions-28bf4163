@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Agreement } from '@/types/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInMonths } from 'date-fns';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
   const hasInitiallyFetched = useRef(false);
   const errorCount = useRef(0);
 
+  // Function to fetch rent amount - memoize to prevent recreation on each render
   const fetchRentAmount = useCallback(async (agreementId: string) => {
     if (fetchInProgress.current) return null;
     fetchInProgress.current = true;
@@ -36,6 +38,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       
       if (data) {
         console.log("Fetched rent data:", data);
+        // First try to use rent_amount, if not available use total_amount
         const amount = data.rent_amount || data.total_amount;
         
         if (amount) {
@@ -63,15 +66,19 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         return;
       }
       
+      // Get the rent_amount directly from the leases table
       const leaseRentAmount = await fetchRentAmount(agreementId);
       
       if (leaseRentAmount !== null && isActive) {
+        // Set the rent amount state
         console.log("Setting rent amount to:", leaseRentAmount);
         setRentAmount(leaseRentAmount);
         hasInitiallyFetched.current = true;
         
+        // Calculate contract amount if we have agreement dates
         if (agreement?.start_date && agreement?.end_date) {
           try {
+            // Ensure we're working with JS Date objects
             const startDate = agreement.start_date instanceof Date 
               ? agreement.start_date 
               : new Date(agreement.start_date);
@@ -105,6 +112,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     };
   }, [agreementId, agreement, fetchRentAmount, rentAmount]);
 
+  // If agreement has direct total_amount but no rent amount was fetched yet
   useEffect(() => {
     if (agreement?.total_amount && !rentAmount) {
       console.log("Using agreement.total_amount as fallback:", agreement.total_amount);
@@ -112,6 +120,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       
       if (agreement.start_date && agreement.end_date) {
         try {
+          // Ensure we're working with JS Date objects
           const startDate = agreement.start_date instanceof Date 
             ? agreement.start_date 
             : new Date(agreement.start_date);
@@ -131,6 +140,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     }
   }, [agreement, rentAmount]);
 
+  // Log state changes for debugging
   useEffect(() => {
     console.log("useRentAmount state:", { 
       rentAmount, 

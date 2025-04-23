@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -254,35 +253,4 @@ export const getImportErrors = async (importId: string) => {
   }
 
   return data;
-};
-
-// Add the missing downloadCSV function
-export const downloadCSV = async (fileName: string) => {
-  try {
-    // Get the file from storage
-    const { data, error } = await supabase.storage
-      .from('agreement-imports')
-      .download(fileName);
-    
-    if (error) {
-      console.error('Error downloading CSV:', error);
-      toast.error(`Failed to download file: ${error.message}`);
-      return;
-    }
-    
-    if (data) {
-      // Create a download link for the file
-      const url = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-  } catch (err) {
-    console.error('Unexpected error downloading CSV:', err);
-    toast.error('An unexpected error occurred while downloading the file');
-  }
 };

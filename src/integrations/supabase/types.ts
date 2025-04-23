@@ -508,51 +508,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_analysis: {
-        Row: {
-          agreement_id: string | null
-          analysis_type: string
-          confidence_score: number | null
-          content: Json
-          created_at: string | null
-          id: string
-          status: string | null
-        }
-        Insert: {
-          agreement_id?: string | null
-          analysis_type: string
-          confidence_score?: number | null
-          content: Json
-          created_at?: string | null
-          id?: string
-          status?: string | null
-        }
-        Update: {
-          agreement_id?: string | null
-          analysis_type?: string
-          confidence_score?: number | null
-          content?: Json
-          created_at?: string | null
-          id?: string
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_analysis_agreement_id_fkey"
-            columns: ["agreement_id"]
-            isOneToOne: false
-            referencedRelation: "leases"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_analysis_agreement_id_fkey"
-            columns: ["agreement_id"]
-            isOneToOne: false
-            referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_analytics_insights: {
         Row: {
           action_taken: boolean | null

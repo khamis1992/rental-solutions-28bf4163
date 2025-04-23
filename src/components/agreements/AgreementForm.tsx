@@ -33,7 +33,7 @@ import { agreementSchema } from "@/lib/validation-schemas/agreement";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface AgreementFormProps {
-  onSubmit: (data: unknown) => void;
+  onSubmit: (data: any) => void;
   isSubmitting: boolean;
   initialData?: any;
   standardTemplateExists?: boolean;
