@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -71,21 +72,6 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
-  }
-
-  /* Arabic text support */
-  .rtl {
-    direction: rtl;
-    text-align: right;
-    font-family: 'Tajawal', 'Cairo', sans-serif;
-  }
-
-  .arabic-text {
-    font-family: 'Tajawal', 'Cairo', sans-serif;
-  }
-
-  html[lang="ar"] body {
-    direction: rtl;
   }
 }
 

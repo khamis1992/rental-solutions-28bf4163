@@ -1,3 +1,4 @@
+
 export enum AgreementStatus {
   PENDING_PAYMENT = 'pending_payment',
   PENDING_DEPOSIT = 'pending_deposit',
@@ -7,9 +8,6 @@ export enum AgreementStatus {
   CLOSED = 'closed',
   TERMINATED = 'terminated',
   ARCHIVED = 'archived',
-  PENDING = 'pending',
-  DRAFT = 'draft',
-  EXPIRED = 'expired'
 }
 
 export interface Customer {
@@ -39,9 +37,11 @@ export interface Agreement {
   vehicle_id?: string;
   start_date?: Date;
   end_date?: Date;
-  status?: AgreementStatus | string;
+  status?: AgreementStatus;
   terms_accepted?: boolean;
   additional_drivers?: string[];
+  
+  // Additional properties needed by components
   customers?: Customer;
   vehicles?: Vehicle;
   customerId?: string;
@@ -100,6 +100,7 @@ export interface EnhancedAnalysisResult {
   intervention_suggestions?: string[];
 }
 
+// Type for the AgreementDetailPage component's state
 export interface AgreementDetailState {
   agreement: Agreement | null;
   loading: boolean;
@@ -108,6 +109,7 @@ export interface AgreementDetailState {
   isAnalyzing: boolean;
 }
 
+// Types for various API responses
 export interface AgreementResponse {
   agreement: Agreement;
   customer: Customer;
