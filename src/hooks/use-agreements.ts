@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -10,43 +11,6 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType, BreakTypeRecursion } from '@/utils/type-utils';
-
-interface CustomerProfile {
-  id: string;
-  full_name?: string;
-  email?: string;
-  phone_number?: string;
-}
-
-interface VehicleData {
-  id: string;
-  make?: string;
-  model?: string;
-  license_plate?: string;
-  image_url?: string;
-  year?: number;
-  color?: string;
-  vin?: string;
-}
-
-interface AgreementData {
-  id: string;
-  customer_id?: string;
-  vehicle_id?: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  agreement_number?: string;
-  total_amount?: number;
-  deposit_amount?: number;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-  profiles?: CustomerProfile;
-  vehicles?: VehicleData;
-  signature_url?: string;
-}
 
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
@@ -72,8 +36,6 @@ export type SimpleAgreement = BaseAgreement & {
     vin?: string;
   };
   signature_url?: string;
-  rent_amount?: number;
-  daily_late_fee?: number;
 };
 
 interface SearchParams {
@@ -253,7 +215,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.in('vehicle_id', ids);
             console.log("Filtering by vehicle IDs:", ids);
           } else {
-            query = query.or(`profiles.full_name.ilike.%${searchQuery}%`);
+            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
           }
         }
       }
@@ -273,13 +235,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map((item: AgreementData) => ({
+      const agreements: SimpleAgreement[] = data.map(item => ({
         id: item.id,
         customer_id: item.customer_id,
         vehicle_id: item.vehicle_id,
         start_date: new Date(item.start_date),
         end_date: new Date(item.end_date),
-        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
+        status: item.status as DatabaseAgreementStatus,
         agreement_number: item.agreement_number || '',
         total_amount: item.total_amount || 0,
         deposit_amount: item.deposit_amount || 0,
@@ -306,8 +268,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  const updateAgreementMutation = useMutation<any, Error, {id: string; data: Record<string, any>}>({
-    mutationFn: async (params: {id: string; data: Record<string, any>}) => {
+  const updateAgreementMutation = useMutation({
+    mutationFn: async (params: UpdateAgreementParams) => {
       console.log("Update mutation called with:", params);
       return {};
     },
