@@ -2,23 +2,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
   },
   plugins: [
     react(),
-  ],
+    mode === 'development' && componentTagger(),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
-    // Ensure proper chunk size for better performance
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
@@ -30,14 +30,12 @@ export default defineConfig({
     }
   },
   css: {
-    postcss: {}, // Ensure PostCSS is properly configured
+    postcss: {},
     devSourcemap: true,
   },
-  // Clear cache and force dependencies optimization
   optimizeDeps: {
     force: true,
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
   },
-  // Clear the cache on startup
   cacheDir: '.vite',
-});
+}));
