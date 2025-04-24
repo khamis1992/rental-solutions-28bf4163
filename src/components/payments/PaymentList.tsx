@@ -7,7 +7,6 @@ import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { usePayments } from '@/hooks/use-payments';
 import { EmptyPaymentState } from './EmptyPaymentState';
 import { PaymentsTable } from './PaymentsTable';
-import { asLeaseIdColumn } from '@/utils/database-type-helpers';
 
 interface PaymentListProps {
   agreementId: string;
@@ -20,8 +19,7 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     payments = [],
     isLoading,
     deletePayment,
-    fetchPayments,
-    error
+    fetchPayments
   } = usePayments(agreementId);
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -54,26 +52,10 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
   const pendingPayments = calculatePendingPayments(agreementId);
   
   if (isLoading) {
     return <div className="p-4 text-center">Loading payments...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 text-center">
-        <p className="text-red-500 mb-2">Error loading payments</p>
-        <Button variant="outline" onClick={handleRefresh}>
-          <RefreshCcw className="h-4 w-4 mr-1" />
-          Try Again
-        </Button>
-      </div>
-    );
   }
 
   return (
@@ -89,7 +71,7 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRefresh}
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
           >
             <RefreshCcw className="h-4 w-4 mr-1" />
             Refresh

@@ -11,10 +11,7 @@ export const asLeaseIdColumn = (id: string): string => {
 };
 
 /**
- * Convert any string status to a properly typed status column
- * This function helps with TypeScript type safety when working with Supabase queries
- * @param table The table name
- * @param column The column name
+ * Convert any string status to a properly typed lease status column
  * @param status The status to convert
  * @returns The status with the proper type for the status column
  */
@@ -134,36 +131,3 @@ export const safelyCalculateRentAmount = (agreements: any[] | null): number => {
     return sum + parseFloat(rentAmount);
   }, 0);
 };
-
-/**
- * Safely access properties from potentially undefined objects
- * @param obj The object to access
- * @param key The key to access
- * @returns The value or undefined
- */
-export const safelyAccessProperty = <T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined => {
-  if (!obj) return undefined;
-  return obj[key];
-};
-
-/**
- * Check if a result is an error
- * @param result The result to check
- * @returns Boolean indicating if the result is an error
- */
-export const isError = (result: any): boolean => {
-  return result?.error !== undefined;
-};
-
-/**
- * Safely parse data from a Supabase query
- * @param response The Supabase response
- * @returns The parsed data or an empty array
- */
-export const safelyParseData = <T>(response: any): T[] => {
-  if (isError(response) || !response?.data) {
-    return [];
-  }
-  return response.data as T[];
-};
-

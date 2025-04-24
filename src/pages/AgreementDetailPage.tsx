@@ -5,8 +5,6 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -25,13 +23,11 @@ export function AgreementDetailPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentRefreshCounter, setPaymentRefreshCounter] = useState(0);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   const { 
     agreement, 
     deleteAgreement, 
     isLoading: isAgreementLoading,
-    error: agreementError,
     rentAmount,
     contractAmount,
     refreshAgreement
@@ -40,7 +36,6 @@ export function AgreementDetailPage() {
   const { 
     payments, 
     isLoading: isPaymentsLoading,
-    error: paymentsError,
     fetchPayments,
     addPayment
   } = usePayments(id);
@@ -49,34 +44,15 @@ export function AgreementDetailPage() {
 
   const { 
     handleSpecialAgreementPayments,
-    isProcessing: isPaymentGenerationLoading,
-    error: paymentGenerationError
+    isProcessing: isPaymentGenerationLoading
   } = usePaymentGeneration(agreement, id);
 
   useEffect(() => {
     console.log("AgreementDetailPage: Loading with agreement ID:", id);
     if (id) {
-      fetchPayments().catch(err => {
-        console.error("Error fetching payments:", err);
-        setLoadError("Failed to load payment data");
-      });
+      fetchPayments();
     }
   }, [id, fetchPayments, paymentRefreshCounter]);
-
-  useEffect(() => {
-    if (agreementError) {
-      console.error("Agreement loading error:", agreementError);
-      setLoadError(`Failed to load agreement details: ${agreementError}`);
-    } else if (paymentsError) {
-      console.error("Payments loading error:", paymentsError);
-      setLoadError(`Failed to load payment data: ${paymentsError}`);
-    } else if (paymentGenerationError) {
-      console.error("Payment generation error:", paymentGenerationError);
-      setLoadError(`Payment system error: ${paymentGenerationError}`);
-    } else {
-      setLoadError(null);
-    }
-  }, [agreementError, paymentsError, paymentGenerationError]);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -134,45 +110,8 @@ export function AgreementDetailPage() {
     setPaymentRefreshCounter(prev => prev + 1);
   }, [fetchPayments]);
 
-  const handleRetry = () => {
-    setLoadError(null);
-    refreshAgreement();
-    fetchPayments();
-  };
-
-  if (isAgreementLoading) {
-    return <div className="p-6 text-center">Loading agreement details...</div>;
-  }
-
-  if (loadError) {
-    return (
-      <div className="p-6">
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
-        <div className="flex justify-center mt-4">
-          <Button variant="outline" onClick={() => navigate('/agreements')}>Back to Agreements</Button>
-          <Button className="ml-2" onClick={handleRetry}>Retry</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!agreement) {
-    return (
-      <div className="p-6">
-        <Alert className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Agreement Not Found</AlertTitle>
-          <AlertDescription>The requested agreement could not be found or may have been deleted.</AlertDescription>
-        </Alert>
-        <div className="flex justify-center mt-4">
-          <Button variant="outline" onClick={() => navigate('/agreements')}>Back to Agreements</Button>
-        </div>
-      </div>
-    );
+  if (isAgreementLoading || !agreement) {
+    return <div>Loading...</div>;
   }
 
   return (
