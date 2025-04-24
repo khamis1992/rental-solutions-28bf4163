@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -8,18 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, ArrowRight, CheckCircle2, Info, X, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
-import { 
-  asLeaseId, 
-  asVehicleId, 
-  asLeaseIdColumn, 
-  asStatusColumn,
-  asPaymentStatusColumn,
-  safelyExtractData
-} from '@/utils/database-type-helpers';
+import { Database } from '@/types/database.types';
 
 interface AgreementSummary {
   id: string;
@@ -109,7 +101,7 @@ export function ReassignmentWizard({
           vehicle_id,
           profiles:customer_id (full_name)
         `)
-        .eq('id', asLeaseId(sourceAgreementId))
+        .eq('id', sourceAgreementId)
         .single();
         
       if (sourceError) {
@@ -117,12 +109,13 @@ export function ReassignmentWizard({
         return;
       }
       
-      const sourceDataWithCustomerName = sourceData ? {
-        ...sourceData,
-        customer_name: sourceData.profiles?.full_name
-      } : null;
-      
-      setSourceAgreement(sourceDataWithCustomerName);
+      if (sourceData) {
+        const sourceDataWithCustomerName = {
+          ...sourceData,
+          customer_name: sourceData.profiles?.full_name
+        };
+        setSourceAgreement(sourceDataWithCustomerName);
+      }
       
       // Load target agreement details
       const { data: targetData, error: targetError } = await supabase
@@ -137,7 +130,7 @@ export function ReassignmentWizard({
           vehicle_id,
           profiles:customer_id (full_name)
         `)
-        .eq('id', asLeaseId(targetAgreementId))
+        .eq('id', targetAgreementId)
         .single();
         
       if (targetError) {
@@ -145,18 +138,19 @@ export function ReassignmentWizard({
         return;
       }
       
-      const targetDataWithCustomerName = targetData ? {
-        ...targetData,
-        customer_name: targetData.profiles?.full_name
-      } : null;
-      
-      setTargetAgreement(targetDataWithCustomerName);
+      if (targetData) {
+        const targetDataWithCustomerName = {
+          ...targetData,
+          customer_name: targetData.profiles?.full_name
+        };
+        setTargetAgreement(targetDataWithCustomerName);
+      }
       
       // Load vehicle details
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('id', asVehicleId(vehicleId))
+        .eq('id', vehicleId)
         .single();
         
       if (vehicleError) {
@@ -170,11 +164,11 @@ export function ReassignmentWizard({
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('id, status, amount')
-        .eq('lease_id', asLeaseIdColumn(sourceAgreementId))
-        .in('status', [asPaymentStatusColumn('pending'), asPaymentStatusColumn('overdue')]);
+        .eq('lease_id', sourceAgreementId)
+        .in('status', ['pending', 'overdue']);
         
       if (!paymentsError && paymentsData) {
-        const payments = safelyExtractData(paymentsData) || [];
+        const payments = paymentsData || [];
         const pendingCount = Array.isArray(payments) ? 
           payments.filter(p => p.status === 'pending').length : 0;
         const overdueCount = Array.isArray(payments) ? 
@@ -220,11 +214,11 @@ export function ReassignmentWizard({
       const { error: closeError } = await supabase
         .from('leases')
         .update({ 
-          status: asStatusColumn('leases', 'status', 'closed'), 
+          status: 'closed', 
           updated_at: new Date().toISOString(),
           notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
         })
-        .eq('id', asLeaseId(sourceAgreementId));
+        .eq('id', sourceAgreementId);
         
       if (closeError) {
         console.error("Error closing source agreement:", closeError);
@@ -236,11 +230,11 @@ export function ReassignmentWizard({
       const { error: assignError } = await supabase
         .from('leases')
         .update({ 
-          vehicle_id: asVehicleId(vehicleId),
-          status: asStatusColumn('leases', 'status', 'active'),
+          vehicle_id: vehicleId,
+          status: 'active',
           updated_at: new Date().toISOString()
         })
-        .eq('id', asLeaseId(targetAgreementId));
+        .eq('id', targetAgreementId);
         
       if (assignError) {
         console.error("Error assigning vehicle to target agreement:", assignError);
