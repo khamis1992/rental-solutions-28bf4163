@@ -1,10 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Plus, RefreshCcw } from 'lucide-react';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { usePayments } from '@/hooks/use-payments';
+import { Plus, Calendar, RefreshCcw } from 'lucide-react';
+import { Payment } from '@/hooks/use-payments';
+import { supabase } from '@/lib/supabase';
+import { hasData } from '@/utils/supabase-type-helpers';
+import { asPaymentId } from '@/utils/database-type-helpers';
 import { EmptyPaymentState } from './EmptyPaymentState';
 import { PaymentsTable } from './PaymentsTable';
 
@@ -14,83 +15,148 @@ interface PaymentListProps {
   onDeletePayment?: (paymentId: string) => void;
 }
 
+interface AgreementDetails {
+  start_date: string;
+  rent_amount: number;
+}
+
 export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: PaymentListProps) {
-  const { 
-    payments = [],
-    isLoading,
-    deletePayment,
-    fetchPayments
-  } = usePayments(agreementId);
-  
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    console.log("PaymentList: Fetching payments for agreement", agreementId);
+    const fetchPayments = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get agreement details first
+        const agreementResponse = await supabase
+          .from('leases')
+          .select('start_date, rent_amount')
+          .eq('id', agreementId)
+          .single();
+          
+        if (hasData(agreementResponse)) {
+          setAgreementDetails(agreementResponse.data as AgreementDetails);
+        } else {
+          console.error("Error fetching agreement details:", agreementResponse.error);
+        }
+
+        // Then get the payment data
+        const paymentsResponse = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', agreementId)
+          .order('payment_date', { ascending: false });
+
+        if (hasData(paymentsResponse)) {
+          setPayments(paymentsResponse.data as Payment[]);
+        } else {
+          console.error("Error fetching payments:", paymentsResponse.error);
+          setPayments([]);
+        }
+      } catch (error) {
+        console.error("Error in fetchPayments:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (agreementId) {
-      fetchPayments()
-        .then(() => console.log("PaymentList: Successfully fetched payments"))
-        .catch(error => console.error("PaymentList: Error fetching payments:", error));
+      fetchPayments();
     }
-  }, [agreementId, fetchPayments, refreshTrigger]);
+  }, [agreementId, refreshTrigger]);
+
+  // Generate rent due dates starting from agreement start date
+  const generatePendingPayments = () => {
+    if (!agreementDetails?.start_date) return [];
+    
+    const startDate = new Date(agreementDetails.start_date);
+    const today = new Date();
+    const rentAmount = agreementDetails.rent_amount || 0;
+    
+    let pendingPayments = [];
+    let currentDate = new Date(startDate);
+    
+    // Assuming monthly payments
+    while (currentDate <= today) {
+      const paymentForMonth = payments.find(p => {
+        const paymentDate = p.payment_date ? new Date(p.payment_date) : null;
+        return paymentDate && 
+               paymentDate.getMonth() === currentDate.getMonth() && 
+               paymentDate.getFullYear() === currentDate.getFullYear();
+      });
+      
+      if (!paymentForMonth) {
+        pendingPayments.push({
+          due_date: new Date(currentDate),
+          amount: rentAmount
+        });
+      }
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    
+    return pendingPayments;
+  };
 
   const handleDeletePayment = async (id: string) => {
     try {
       const confirmed = window.confirm("Are you sure you want to delete this payment?");
       if (!confirmed) return;
       
-      console.log("PaymentList: Deleting payment", id);
-      await deletePayment(id);
-      
-      if (onDeletePayment) {
-        onDeletePayment(id);
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', asPaymentId(id));
+        
+      if (error) {
+        console.error("Error deleting payment:", error);
+      } else {
+        setPayments(payments.filter(payment => payment.id !== id));
+        if (onDeletePayment) onDeletePayment(id);
       }
-      
-      // Refresh payments
-      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
-      console.error("PaymentList: Error deleting payment:", error);
+      console.error("Error in handleDeletePayment:", error);
     }
   };
 
-  // Calculate pending payments using a safe approach
-  const pendingPayments = agreementId ? calculatePendingPayments(agreementId) : [];
-  
+  const refreshPayments = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const pendingPayments = generatePendingPayments();
+
   if (isLoading) {
-    return <div className="p-4 text-center">Loading payments...</div>;
+    return <div className="flex items-center justify-center p-4">Loading payments...</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium">Payments</h3>
-          <p className="text-sm text-muted-foreground">
-            {payments.length} payments recorded
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold">Payment History</h3>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setRefreshTrigger(prev => prev + 1)}
-          >
+          <Button onClick={refreshPayments} size="sm" variant="outline">
             <RefreshCcw className="h-4 w-4 mr-1" />
             Refresh
           </Button>
           {onAddPayment && (
-            <Button size="sm" onClick={onAddPayment}>
+            <Button onClick={onAddPayment} size="sm">
               <Plus className="h-4 w-4 mr-1" />
-              Record Payment
+              Add Payment
             </Button>
           )}
         </div>
       </div>
-      
+
       {payments.length === 0 && pendingPayments.length === 0 ? (
-        <EmptyPaymentState onAddPayment={onAddPayment} />
+        <EmptyPaymentState />
       ) : (
-        <PaymentsTable 
-          payments={payments} 
+        <PaymentsTable
+          payments={payments}
           pendingPayments={pendingPayments}
           onDeletePayment={handleDeletePayment}
           onAddPayment={onAddPayment}
@@ -100,8 +166,4 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
   );
 }
 
-// This is a temporary placeholder function until a proper implementation is developed
-function calculatePendingPayments(agreementId: string): Array<{ due_date: Date; amount: number }> {
-  // For now, return an empty array. This will be implemented properly in a future update.
-  return [];
-}
+export default PaymentList;

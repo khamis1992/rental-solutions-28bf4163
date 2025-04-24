@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PaymentList } from '@/components/payments/PaymentList';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { EmptyPaymentState } from '@/components/payments/EmptyPaymentState';
 
 interface AgreementPaymentsTabProps {
   payments: Payment[];
@@ -12,7 +11,6 @@ interface AgreementPaymentsTabProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
-  agreementId: string;
 }
 
 export const AgreementPaymentsTab = ({
@@ -21,19 +19,8 @@ export const AgreementPaymentsTab = ({
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
-  leaseEndDate,
-  agreementId
+  leaseEndDate
 }: AgreementPaymentsTabProps) => {
-  // Add state to force refresh of payment list
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Enhanced payment deleted handler that triggers both parent refresh and local refresh
-  const handlePaymentDeleted = (paymentId: string) => {
-    console.log("AgreementPaymentsTab: Payment deleted", paymentId);
-    onPaymentDeleted();
-    setRefreshKey(prev => prev + 1);
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -42,18 +29,15 @@ export const AgreementPaymentsTab = ({
           <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <p>Loading payments...</p>
-            </div>
-          ) : agreementId ? (
-            <PaymentList 
-              key={`payment-list-${agreementId}-${refreshKey}`}
-              agreementId={agreementId}
-              onDeletePayment={handlePaymentDeleted}
+          {Array.isArray(payments) && (
+            <PaymentHistory 
+              payments={payments}
+              isLoading={isLoading} 
+              rentAmount={rentAmount} 
+              onPaymentDeleted={onPaymentDeleted}
+              leaseStartDate={leaseStartDate}
+              leaseEndDate={leaseEndDate}
             />
-          ) : (
-            <EmptyPaymentState />
           )}
         </CardContent>
       </Card>

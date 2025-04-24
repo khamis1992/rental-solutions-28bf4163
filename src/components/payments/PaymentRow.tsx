@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Trash } from 'lucide-react';
-import { format } from 'date-fns';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { Payment } from '@/hooks/use-payments';
+import { formatCurrency } from '@/lib/utils';
 
 interface PaymentRowProps {
   payment: Payment;
@@ -13,54 +13,27 @@ interface PaymentRowProps {
 }
 
 export const PaymentRow = ({ payment, onDeletePayment }: PaymentRowProps) => {
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return 'N/A';
-    try {
-      return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (error) {
-      console.error("Error formatting date", error);
-      return 'Invalid date';
-    }
-  };
-
-  const getStatusBadge = (status?: string) => {
-    if (!status) return <Badge variant="outline">Unknown</Badge>;
-    
-    switch(status.toLowerCase()) {
-      case 'completed':
-        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-      case 'paid':
-        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">Paid</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
-      case 'partially_paid':
-        return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">Partial</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const amountToDisplay = payment.amount_paid || payment.amount || 0;
-  const displayAmount = typeof amountToDisplay === 'number' 
-    ? `QAR ${amountToDisplay.toLocaleString()}`
-    : `QAR ${amountToDisplay}`;
-
   return (
     <TableRow>
-      <TableCell>{formatDate(payment.payment_date || payment.due_date)}</TableCell>
-      <TableCell>{displayAmount}</TableCell>
-      <TableCell>{getStatusBadge(payment.status)}</TableCell>
+      <TableCell>{payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+      <TableCell>{formatCurrency(payment.amount)}</TableCell>
+      <TableCell>
+        <Badge 
+          variant={payment.status === 'completed' ? 'success' : payment.status === 'pending' ? 'outline' : 'secondary'}
+        >
+          {payment.status}
+        </Badge>
+      </TableCell>
       <TableCell>{payment.payment_method || 'N/A'}</TableCell>
-      <TableCell>{payment.description || 'N/A'}</TableCell>
+      <TableCell className="max-w-[200px] truncate">{payment.description || 'Payment'}</TableCell>
       <TableCell className="text-right">
         <Button 
           variant="ghost" 
-          size="sm"
+          size="sm" 
           onClick={() => onDeletePayment(payment.id)}
+          className="text-red-500 hover:text-red-700 hover:bg-red-50"
         >
-          <Trash className="h-4 w-4 text-red-500" />
+          Delete
         </Button>
       </TableCell>
     </TableRow>

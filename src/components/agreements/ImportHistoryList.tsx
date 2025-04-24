@@ -19,10 +19,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { safelyProcessQueryResult, awaitableQuery } from '@/utils/database-type-helpers';
 
-// Define the ImportLog type to match the database structure
-interface ImportLog {
+type ImportLog = {
   id: string;
   file_name: string;
   original_file_name: string | null;
@@ -33,7 +31,7 @@ interface ImportLog {
   error_count: number;
   row_count: number;
   created_by: string | null;
-}
+};
 
 export function ImportHistoryList() {
   const [imports, setImports] = useState<ImportLog[]>([]);
@@ -43,34 +41,16 @@ export function ImportHistoryList() {
     const fetchImports = async () => {
       setIsLoading(true);
       try {
-        const rawData = await awaitableQuery(
-          supabase
-            .from('agreement_imports')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(5)
-        );
-        
-        // Transform the data to ensure it matches ImportLog type
-        const importLogs: ImportLog[] = Array.isArray(rawData) ? 
-          rawData.map(item => ({
-            id: item.id,
-            file_name: item.file_name,
-            original_file_name: item.original_file_name,
-            status: item.status,
-            created_at: item.created_at,
-            updated_at: item.updated_at, 
-            processed_count: item.processed_count || 0,
-            error_count: item.error_count || 0,
-            row_count: item.row_count || 0,
-            created_by: item.created_by
-          })) : 
-          [];
+        const { data, error } = await supabase
+          .from('agreement_imports')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-        setImports(importLogs);
+        if (error) throw error;
+        setImports(data || []);
       } catch (error) {
         console.error('Error fetching imports:', error);
-        setImports([]);
       } finally {
         setIsLoading(false);
       }

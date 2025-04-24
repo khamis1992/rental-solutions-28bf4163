@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, ArrowRight, CheckCircle2, Info, X, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
@@ -17,11 +17,8 @@ import {
   asVehicleId, 
   asLeaseIdColumn, 
   asStatusColumn,
-  safelyExtractData,
-  safelyAccessProfiles,
-  safeAccess,
-  safeDatabaseOperation,
-  awaitableQuery
+  asPaymentStatusColumn,
+  safelyExtractData
 } from '@/utils/database-type-helpers';
 
 interface AgreementSummary {
@@ -33,9 +30,6 @@ interface AgreementSummary {
   customer_name?: string;
   vehicle_id: string;
   status: string;
-  profiles?: {
-    full_name?: string;
-  };
 }
 
 interface PaymentsSummary {
@@ -103,102 +97,90 @@ export function ReassignmentWizard({
     setIsLoading(true);
     try {
       // Load source agreement details
-      const sourceResponse = await awaitableQuery(
-        supabase
-          .from('leases')
-          .select(`
-            id, 
-            agreement_number, 
-            start_date, 
-            end_date, 
-            status, 
-            customer_id, 
-            vehicle_id,
-            profiles:customer_id (full_name)
-          `)
-          .eq('id', sourceAgreementId)
-          .single()
-      );
-      
-      if (sourceResponse) {
-        const sourceData = sourceResponse as any;
-        const customerName = sourceData.profiles?.full_name;
+      const { data: sourceData, error: sourceError } = await supabase
+        .from('leases')
+        .select(`
+          id, 
+          agreement_number, 
+          start_date, 
+          end_date, 
+          status, 
+          customer_id, 
+          vehicle_id,
+          profiles:customer_id (full_name)
+        `)
+        .eq('id', asLeaseId(sourceAgreementId))
+        .single();
         
-        const processedSourceData: AgreementSummary = {
-          id: sourceData.id || '',
-          agreement_number: sourceData.agreement_number || '',
-          start_date: sourceData.start_date || '',
-          end_date: sourceData.end_date || '',
-          status: sourceData.status || '',
-          customer_id: sourceData.customer_id || '',
-          vehicle_id: sourceData.vehicle_id || '',
-          customer_name: customerName
-        };
-        
-        setSourceAgreement(processedSourceData);
+      if (sourceError) {
+        console.error("Error loading source agreement:", sourceError);
+        return;
       }
+      
+      const sourceDataWithCustomerName = sourceData ? {
+        ...sourceData,
+        customer_name: sourceData.profiles?.full_name
+      } : null;
+      
+      setSourceAgreement(sourceDataWithCustomerName);
       
       // Load target agreement details
-      const targetResponse = await awaitableQuery(
-        supabase
-          .from('leases')
-          .select(`
-            id, 
-            agreement_number, 
-            start_date, 
-            end_date, 
-            status, 
-            customer_id, 
-            vehicle_id,
-            profiles:customer_id (full_name)
-          `)
-          .eq('id', targetAgreementId)
-          .single()
-      );
-      
-      if (targetResponse) {
-        const targetData = targetResponse as any;
-        const customerName = targetData.profiles?.full_name;
+      const { data: targetData, error: targetError } = await supabase
+        .from('leases')
+        .select(`
+          id, 
+          agreement_number, 
+          start_date, 
+          end_date, 
+          status, 
+          customer_id, 
+          vehicle_id,
+          profiles:customer_id (full_name)
+        `)
+        .eq('id', asLeaseId(targetAgreementId))
+        .single();
         
-        const processedTargetData: AgreementSummary = {
-          id: targetData.id || '',
-          agreement_number: targetData.agreement_number || '',
-          start_date: targetData.start_date || '',
-          end_date: targetData.end_date || '',
-          status: targetData.status || '',
-          customer_id: targetData.customer_id || '',
-          vehicle_id: targetData.vehicle_id || '',
-          customer_name: customerName
-        };
-        
-        setTargetAgreement(processedTargetData);
+      if (targetError) {
+        console.error("Error loading target agreement:", targetError);
+        return;
       }
       
-      // Load vehicle details
-      const vehicleResponse = await awaitableQuery(
-        supabase
-          .from('vehicles')
-          .select('*')
-          .eq('id', vehicleId)
-          .single()
-      );
+      const targetDataWithCustomerName = targetData ? {
+        ...targetData,
+        customer_name: targetData.profiles?.full_name
+      } : null;
       
-      setVehicleDetails(vehicleResponse);
+      setTargetAgreement(targetDataWithCustomerName);
+      
+      // Load vehicle details
+      const { data: vehicleData, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', asVehicleId(vehicleId))
+        .single();
+        
+      if (vehicleError) {
+        console.error("Error loading vehicle details:", vehicleError);
+        return;
+      }
+      
+      setVehicleDetails(vehicleData);
       
       // Get payment summary
-      const paymentsResponse = await awaitableQuery(
-        supabase
-          .from('unified_payments')
-          .select('id, status, amount')
-          .eq('lease_id', sourceAgreementId)
-          .in('status', ['pending', 'overdue'])
-      );
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('id, status, amount')
+        .eq('lease_id', asLeaseIdColumn(sourceAgreementId))
+        .in('status', [asPaymentStatusColumn('pending'), asPaymentStatusColumn('overdue')]);
         
-      if (paymentsResponse && Array.isArray(paymentsResponse)) {
-        const payments = paymentsResponse;
-        const pendingCount = payments.filter(p => p?.status === 'pending').length;
-        const overdueCount = payments.filter(p => p?.status === 'overdue').length;
-        const totalAmount = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+      if (!paymentsError && paymentsData) {
+        const payments = safelyExtractData(paymentsData) || [];
+        const pendingCount = Array.isArray(payments) ? 
+          payments.filter(p => p.status === 'pending').length : 0;
+        const overdueCount = Array.isArray(payments) ? 
+          payments.filter(p => p.status === 'overdue').length : 0;
+        const totalAmount = Array.isArray(payments) ? 
+          payments.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
         
         setPaymentsSummary({
           pending: pendingCount,
@@ -235,16 +217,14 @@ export function ReassignmentWizard({
     setIsProcessing(true);
     try {
       // 1. Close the source agreement
-      const closeAgreementUpdate = {
-        status: asStatusColumn('leases', 'status', 'closed'),
-        updated_at: new Date().toISOString(),
-        notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
-      };
-      
       const { error: closeError } = await supabase
         .from('leases')
-        .update(closeAgreementUpdate)
-        .eq('id', sourceAgreementId);
+        .update({ 
+          status: asStatusColumn('leases', 'status', 'closed'), 
+          updated_at: new Date().toISOString(),
+          notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
+        })
+        .eq('id', asLeaseId(sourceAgreementId));
         
       if (closeError) {
         console.error("Error closing source agreement:", closeError);
@@ -253,16 +233,14 @@ export function ReassignmentWizard({
       }
       
       // 2. Assign vehicle to target agreement
-      const assignVehicleUpdate = {
-        vehicle_id: vehicleId,
-        status: asStatusColumn('leases', 'status', 'active'),
-        updated_at: new Date().toISOString()
-      };
-      
       const { error: assignError } = await supabase
         .from('leases')
-        .update(assignVehicleUpdate)
-        .eq('id', targetAgreementId);
+        .update({ 
+          vehicle_id: asVehicleId(vehicleId),
+          status: asStatusColumn('leases', 'status', 'active'),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', asLeaseId(targetAgreementId));
         
       if (assignError) {
         console.error("Error assigning vehicle to target agreement:", assignError);
@@ -374,10 +352,7 @@ export function ReassignmentWizard({
             </div>
           ) : (
             <div className="text-sm text-red-500">Failed to load agreement</div>
- 
-
-
-        </div>
+          )}
         </div>
         
         <div className="border rounded-md p-4">
@@ -407,7 +382,7 @@ export function ReassignmentWizard({
               </div>
               <div>
                 <span className="text-slate-500">Status:</span> 
-                <span className="font-medium text-green-500 ml-1">Will be ACTIVE</span>
+                <span className="font-medium text-green-500 ml-1">Will become ACTIVE</span>
               </div>
             </div>
           ) : (
@@ -416,135 +391,150 @@ export function ReassignmentWizard({
         </div>
       </div>
       
-      <div className={`rounded-md border p-4 ${paymentsSummary.pending + paymentsSummary.overdue > 0 ? 'bg-amber-50 border-amber-200' : ''}`}>
-        <h3 className="text-sm font-medium mb-3 flex items-center">
-          <span className="mr-2 text-amber-500"><AlertCircle className="h-5 w-5" /></span>
-          Outstanding Obligations
-        </h3>
-        {isLoading ? (
-          <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
-        ) : (
-          <div className="space-y-2 text-sm">
-            {paymentsSummary.pending > 0 && (
-              <div>
-                <span className="text-slate-600">Pending Payments:</span> 
-                <span className="font-medium text-amber-600 ml-1">{paymentsSummary.pending}</span>
-              </div>
-            )}
-            {paymentsSummary.overdue > 0 && (
-              <div>
-                <span className="text-slate-600">Overdue Payments:</span> 
-                <span className="font-medium text-red-600 ml-1">{paymentsSummary.overdue}</span>
-              </div>
-            )}
-            {paymentsSummary.total_amount > 0 && (
-              <div className="pt-2 border-t mt-2">
-                <span className="text-slate-800 font-medium">Total Outstanding Amount:</span> 
-                <span className="font-bold text-red-600 ml-1">QAR {paymentsSummary.total_amount.toFixed(2)}</span>
-              </div>
-            )}
-            {paymentsSummary.pending + paymentsSummary.overdue === 0 && (
-              <div className="text-green-600">No outstanding payments</div>
-            )}
+      {/* Financial Impact */}
+      {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-medium text-amber-800">Financial Impact</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                The current agreement has {paymentsSummary.pending + paymentsSummary.overdue} pending financial obligations
+                totaling {paymentsSummary.total_amount.toFixed(2)} QAR.
+              </p>
+              <p className="text-sm text-amber-700 mt-1">
+                In the next step, you'll decide how to handle these obligations.
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
   
   const renderOptionsStep = () => (
     <div className="space-y-6">
-      <div className="border rounded-md p-4">
-        <h3 className="text-sm font-medium mb-3">Reassignment Options</h3>
-        
-        {paymentsSummary.pending + paymentsSummary.overdue > 0 && (
-          <div className="flex items-start space-x-2 mb-4 pb-4 border-b">
-            <Checkbox
-              id="transferPayments"
+      {/* Options for handling payments */}
+      {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
+        <div className="border rounded-md p-4">
+          <h3 className="text-sm font-medium mb-3">Payment Handling</h3>
+          <div className="flex items-top space-x-2 mb-4">
+            <Checkbox 
+              id="transfer-payments" 
               checked={transferPayments}
               onCheckedChange={(checked) => setTransferPayments(checked as boolean)}
             />
-            <div>
-              <Label htmlFor="transferPayments" className="font-medium">
-                Transfer Outstanding Obligations
+            <div className="grid gap-1.5 leading-none">
+              <Label htmlFor="transfer-payments">
+                Transfer {paymentsSummary.pending + paymentsSummary.overdue} payment(s) to new agreement
               </Label>
               <p className="text-sm text-muted-foreground">
-                Transfer all pending and overdue payments to the new agreement
+                All pending and overdue payments will be transferred to the new agreement.
               </p>
             </div>
           </div>
-        )}
-        
-        <div className="flex items-start space-x-2 mb-4">
-          <Checkbox
-            id="generateDocs"
+        </div>
+      )}
+      
+      {/* Document generation */}
+      <div className="border rounded-md p-4">
+        <h3 className="text-sm font-medium mb-3">Documentation</h3>
+        <div className="flex items-top space-x-2">
+          <Checkbox 
+            id="generate-docs" 
             checked={generateDocs}
             onCheckedChange={(checked) => setGenerateDocs(checked as boolean)}
           />
-          <div>
-            <Label htmlFor="generateDocs" className="font-medium">
-              Generate Documentation
+          <div className="grid gap-1.5 leading-none">
+            <Label htmlFor="generate-docs">
+              Generate transition documents
             </Label>
             <p className="text-sm text-muted-foreground">
-              Generate a PDF document recording the vehicle reassignment
+              Create formal documentation of this vehicle transfer for record keeping.
             </p>
           </div>
         </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="reason">Reason for Reassignment</Label>
-          <Textarea
-            id="reason"
-            placeholder="Enter the reason for this vehicle reassignment"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-          />
-          <p className="text-xs text-muted-foreground">
-            This will be recorded in the system and included in documentation
-          </p>
-        </div>
+      </div>
+      
+      {/* Reason field */}
+      <div className="border rounded-md p-4">
+        <h3 className="text-sm font-medium mb-3">Reason for Reassignment</h3>
+        <Textarea 
+          value={reason} 
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Provide a reason for this vehicle reassignment"
+          rows={3}
+        />
       </div>
     </div>
   );
   
   const renderConfirmStep = () => (
     <div className="space-y-6">
-      <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
-        <h3 className="text-sm font-medium mb-3 flex items-center text-amber-800">
-          <AlertTriangle className="h-5 w-5 mr-2 text-amber-600" />
-          Confirm Vehicle Reassignment
-        </h3>
-        <p className="text-sm text-amber-800">
-          You are about to reassign a vehicle from one agreement to another. This action will:
-        </p>
-        <ul className="mt-2 space-y-1 text-sm text-amber-800 list-disc pl-5">
-          <li>Close the original agreement with {sourceAgreement?.customer_name}</li>
-          <li>Assign the vehicle to a new agreement with {targetAgreement?.customer_name}</li>
-          {transferPayments && paymentsSummary.total_amount > 0 && (
-            <li>Transfer outstanding payment obligations totaling QAR {paymentsSummary.total_amount.toFixed(2)}</li>
+      {/* Summary */}
+      <div className="bg-slate-50 p-4 rounded-md">
+        <h3 className="text-sm font-medium mb-3">Reassignment Summary</h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center">
+            <div className="w-1/3 text-slate-500">Vehicle:</div>
+            <div className="w-2/3 font-medium">
+              {vehicleDetails?.make} {vehicleDetails?.model} ({vehicleDetails?.license_plate})
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="w-1/3 text-slate-500">From Agreement:</div>
+            <div className="w-2/3 font-medium">#{sourceAgreement?.agreement_number}</div>
+          </div>
+          <div className="flex items-center">
+            <div className="w-1/3 text-slate-500">To Agreement:</div>
+            <div className="w-2/3 font-medium">#{targetAgreement?.agreement_number}</div>
+          </div>
+          {transferPayments && (
+            <div className="flex items-center">
+              <div className="w-1/3 text-slate-500">Transferring:</div>
+              <div className="w-2/3">
+                {paymentsSummary.pending + paymentsSummary.overdue} payment(s) totaling {paymentsSummary.total_amount.toFixed(2)} QAR
+              </div>
+            </div>
           )}
           {generateDocs && (
-            <li>Generate documentation for the reassignment</li>
+            <div className="flex items-center">
+              <div className="w-1/3 text-slate-500">Documentation:</div>
+              <div className="w-2/3">Generating transition documents</div>
+            </div>
           )}
-        </ul>
+          <div className="flex items-start">
+            <div className="w-1/3 text-slate-500">Reason:</div>
+            <div className="w-2/3">{reason}</div>
+          </div>
+        </div>
       </div>
       
+      {/* Warning */}
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="flex items-start">
+          <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+          <div>
+            <h3 className="text-sm font-medium text-red-800">Important: This action cannot be easily undone</h3>
+            <p className="text-sm text-red-700 mt-1">
+              The current agreement will be closed and the vehicle will be assigned to the new agreement.
+              While there is a rollback feature, it is recommended to check all details carefully before proceeding.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Confirmation checkbox */}
       <div className="border rounded-md p-4">
-        <div className="flex items-start space-x-2">
-          <Checkbox
-            id="confirmation"
+        <div className="flex items-top space-x-2">
+          <Checkbox 
+            id="confirm" 
             checked={confirmation}
             onCheckedChange={(checked) => setConfirmation(checked as boolean)}
           />
-          <div>
-            <Label htmlFor="confirmation" className="font-medium">
-              I confirm this vehicle reassignment
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              I understand that this action will close one agreement and modify another
-            </p>
-          </div>
+          <Label htmlFor="confirm" className="text-sm font-medium">
+            I confirm that I want to reassign this vehicle and understand the consequences
+          </Label>
         </div>
       </div>
     </div>
@@ -552,55 +542,60 @@ export function ReassignmentWizard({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-md md:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Reassign Vehicle</DialogTitle>
+          <DialogTitle>Vehicle Reassignment</DialogTitle>
           <DialogDescription>
-            Transfer a vehicle from one agreement to another.
+            Transfer a vehicle from one agreement to another
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={currentStep} className="mt-4">
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="review" disabled={currentStep !== 'review'}>
+        <Tabs value={currentStep} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="review" disabled>
               Review
             </TabsTrigger>
-            <TabsTrigger value="options" disabled={currentStep !== 'options'}>
+            <TabsTrigger value="options" disabled>
               Options
             </TabsTrigger>
-            <TabsTrigger value="confirm" disabled={currentStep !== 'confirm'}>
+            <TabsTrigger value="confirm" disabled>
               Confirm
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="review" className="py-4">
+          
+          <TabsContent value="review" className="pt-4">
             {renderReviewStep()}
           </TabsContent>
-          <TabsContent value="options" className="py-4">
+          
+          <TabsContent value="options" className="pt-4">
             {renderOptionsStep()}
           </TabsContent>
-          <TabsContent value="confirm" className="py-4">
+          
+          <TabsContent value="confirm" className="pt-4">
             {renderConfirmStep()}
           </TabsContent>
         </Tabs>
         
-        <DialogFooter className="flex items-center justify-between">
-          {currentStep === 'review' ? (
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-          ) : (
-            <Button variant="outline" onClick={handleBack}>Back</Button>
+        <Separator />
+        
+        <DialogFooter className="gap-2 sm:gap-0">
+          {currentStep !== 'review' && (
+            <Button variant="outline" onClick={handleBack} disabled={isProcessing}>
+              Back
+            </Button>
           )}
           
-          {currentStep === 'confirm' ? (
+          {currentStep !== 'confirm' ? (
+            <Button onClick={handleContinue} disabled={isLoading}>
+              Continue
+            </Button>
+          ) : (
             <Button 
               onClick={handleSubmit} 
               disabled={!confirmation || isProcessing}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isProcessing ? 'Processing...' : 'Complete Reassignment'}
-            </Button>
-          ) : (
-            <Button onClick={handleContinue} className="flex items-center">
-              Continue <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           )}
         </DialogFooter>
