@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { useCallback } from 'react';
-import { asPaymentId } from '@/utils/database-type-helpers';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { asPaymentId } from '@/utils/database-type-helpers';
 
 export interface Payment {
   id: string;
@@ -58,7 +58,7 @@ export function PaymentHistory({
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', asPaymentId(paymentId));
+        .eq('id', paymentId);
 
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);
@@ -114,12 +114,12 @@ export function PaymentHistory({
     {
       accessorKey: 'payment_date',
       header: 'Date',
-      cell: ({ row }) => formatPaymentDate(row.original.payment_date),
+      cell: ({ row }: { row: any }) => formatPaymentDate(row.original.payment_date),
     },
     {
       accessorKey: 'amount',
       header: 'Amount',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: any }) => (
         <span className="font-medium">
           QAR {row.original.amount?.toLocaleString()}
         </span>
@@ -128,7 +128,7 @@ export function PaymentHistory({
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         const status = row.original.status?.toLowerCase();
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -145,12 +145,12 @@ export function PaymentHistory({
     {
       accessorKey: 'payment_method',
       header: 'Method',
-      cell: ({ row }) => row.original.payment_method || '-',
+      cell: ({ row }: { row: any }) => row.original.payment_method || '-',
     },
     {
       accessorKey: 'description',
       header: 'Description',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: any }) => (
         <span className="text-gray-700">
           {row.original.description || 'N/A'}
         </span>
@@ -158,7 +158,7 @@ export function PaymentHistory({
     },
     {
       id: 'actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: any }) => (
         <Button 
           variant="ghost" 
           size="sm"
@@ -202,8 +202,7 @@ export function PaymentHistory({
           <div className="rounded-md border">
             <DataTable 
               columns={columns} 
-              data={payments} 
-              className="[&_th]:bg-muted/50 [&_th]:text-muted-foreground [&_th]:font-medium"
+              data={payments}
             />
           </div>
         ) : (

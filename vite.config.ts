@@ -32,8 +32,8 @@ export default defineConfig(({ mode }) => ({
     }
   },
   css: {
-    postcss: {},
     devSourcemap: true,
+    postcss: {},
     modules: {
       scopeBehaviour: 'local'
     },
@@ -44,15 +44,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    force: true,
+    force: false,
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
-    esbuildOptions: {
-      tsconfigRaw: {
-        compilerOptions: {
-          experimentalDecorators: true,
-        },
-      },
-    },
   },
   cacheDir: '.vite',
 }));

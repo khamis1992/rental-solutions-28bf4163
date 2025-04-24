@@ -13,45 +13,47 @@ const AgreementStats = () => {
   const fetchAgreementCounts = async () => {
     try {
       // Active agreements count
-      const { count: activeCount, error: activeError } = await supabase
+      const activeCountResponse = await supabase
         .from('leases')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
+      
+      const activeCount = activeCountResponse.count || 0;
 
       // Pending payments count
-      const { count: pendingCount, error: pendingError } = await supabase
+      const pendingCountResponse = await supabase
         .from('unified_payments')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
+      
+      const pendingCount = pendingCountResponse.count || 0;
 
       // Overdue payments count
-      const { data: overdueData, error: overdueError } = await supabase
+      const { data: overdueData } = await supabase
         .from('overdue_payments')
-        .select('*', { count: 'exact' });
+        .select('*');
+        
+      const overdueCount = overdueData?.length || 0;
 
       // Total value of active agreements
-      const { data: activeAgreements, error: valueError } = await supabase
+      const { data: activeAgreements } = await supabase
         .from('leases')
         .select('rental_rate, currency')
         .eq('status', 'active');
 
-      if (activeError || pendingError || overdueError || valueError) {
-        throw new Error('Error fetching statistics');
-      }
-
       // Calculate total value
-      const totalValue = activeAgreements?.reduce((sum, agreement) => {
+      const totalValue = (activeAgreements || []).reduce((sum, agreement) => {
         const rate = parseFloat(agreement.rental_rate) || 0;
         return sum + rate;
       }, 0);
 
       return {
-        activeCount: activeCount || 0,
-        pendingCount: pendingCount || 0,
-        overdueCount: overdueData?.length || 0,
-        totalValue: totalValue || 0,
+        activeCount,
+        pendingCount,
+        overdueCount,
+        totalValue,
       };
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error fetching statistics',
         description: error.message,

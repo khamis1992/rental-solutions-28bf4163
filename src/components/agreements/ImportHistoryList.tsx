@@ -37,8 +37,11 @@ export const ImportHistoryList = () => {
       if (error) throw error;
       
       // Type the data correctly before setting state
-      const typedData: ImportLog[] = data || [];
-      setImportLogs(typedData);
+      if (data) {
+        setImportLogs(data as ImportLog[]);
+      } else {
+        setImportLogs([]);
+      }
     } catch (err) {
       console.error('Error fetching import logs:', err);
       setError('Failed to load import history');
