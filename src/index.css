@@ -78,11 +78,11 @@
 @layer components {
   /* Glass effect components */
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-glass shadow-glass border border-white/20 rounded-lg;
+    @apply bg-white/80 backdrop-blur border border-white/20 rounded-lg shadow-md;
   }
   
   .glass-card {
-    @apply bg-white/90 backdrop-blur-sm shadow-card border border-border/50 rounded-lg transition-all duration-300 hover:shadow-lg;
+    @apply bg-white/90 backdrop-blur-sm border border-border/50 rounded-lg transition-all duration-300 hover:shadow-lg;
   }
 
   /* Animated transitions */

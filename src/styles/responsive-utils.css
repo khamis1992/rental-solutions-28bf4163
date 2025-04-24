@@ -1,4 +1,6 @@
 
+@tailwind utilities;
+
 @layer utilities {
   /* Hide elements on specific screen sizes */
   .hidden-xs {

@@ -1,62 +1,32 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { 
-  ColumnDef, 
-  flexRender, 
-  getCoreRowModel, 
-  useReactTable, 
-  SortingState,
-  getSortedRowModel,
-  getPaginationRowModel,
-  ColumnFiltersState,
-  getFilteredRowModel
-} from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter, Trash2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+import { Badge } from "@/components/ui/badge";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
 } from "@/components/ui/dialog";
-import {
+import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -64,863 +34,445 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { useProfile } from "@/contexts/ProfileContext";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
-import { UserRoleManager } from "./UserRoleManager";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  MoreHorizontal, 
+  Search, 
+  UserPlus, 
+  AlertCircle,
+  Mail,
+  ShieldAlert, 
+  ShieldCheck,
+  UserX,
+  Check,
+  Ban,
+  MoreVertical
+} from "lucide-react";
+import { toast } from 'sonner';
+import { supabase } from "@/lib/supabase";
+import { formatDistanceToNow } from 'date-fns';
+import UserRoleBadge from '../badges/UserRoleBadge';
+import UserStatusBadge from '../badges/UserStatusBadge';
 
 interface UserData {
   id: string;
   full_name: string;
   email: string;
   role: string;
-  status: string;
-  created_at: string;
+  status: 'active' | 'inactive' | 'suspended' | 'pending_review' | 'blacklisted';
+  last_login?: string;
 }
-
-interface PermissionSettings {
-  view: boolean;
-  create: boolean;
-  edit: boolean;
-  delete: boolean;
-}
-
-interface UserPermissions {
-  vehicles: PermissionSettings;
-  customers: PermissionSettings;
-  agreements: PermissionSettings;
-  financials: PermissionSettings;
-  userManagement: PermissionSettings;
-}
-
-const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
-  admin: {
-    vehicles: { view: true, create: true, edit: true, delete: true },
-    customers: { view: true, create: true, edit: true, delete: true },
-    agreements: { view: true, create: true, edit: true, delete: true },
-    financials: { view: true, create: true, edit: true, delete: true },
-    userManagement: { view: true, create: true, edit: true, delete: true }
-  },
-  staff: {
-    vehicles: { view: true, create: true, edit: true, delete: false },
-    customers: { view: true, create: true, edit: true, delete: false },
-    agreements: { view: true, create: true, edit: true, delete: false },
-    financials: { view: true, create: false, edit: false, delete: false },
-    userManagement: { view: false, create: false, edit: false, delete: false }
-  }
-};
 
 const UserList = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [userStats, setUserStats] = useState({
-    total: 0,
-    active: 0,
-    pending: 0,
-    inactive: 0,
-    admins: 0,
-    staff: 0
-  });
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
-  const [deletingUser, setDeletingUser] = useState(false);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
-  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
-  const { profile } = useProfile();
-  
-  const form = useForm({
-    defaultValues: {
-      role: "",
-    }
-  });
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    if (users.length > 0) {
-      const stats = {
-        total: users.length,
-        active: users.filter(user => user.status === 'active').length,
-        pending: users.filter(user => user.status === 'pending_review').length,
-        inactive: users.filter(user => user.status === 'inactive').length,
-        admins: users.filter(user => user.role === 'admin').length,
-        staff: users.filter(user => user.role === 'staff').length
-      };
-      setUserStats(stats);
-    }
-  }, [users]);
-
-  useEffect(() => {
-    if (selectedUser) {
-      form.setValue("role", selectedUser.role);
-      
-      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
-    }
-  }, [selectedUser, form]);
+  const [newRole, setNewRole] = useState<string>('');
+  const [newStatus, setNewStatus] = useState<'active' | 'inactive' | 'suspended' | 'pending_review' | 'blacklisted'>('active');
+  const [dialogLoading, setDialogLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showUserDetails, setShowUserDetails] = useState(false);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .not('role', 'eq', 'customer');
-      
+        .from('profiles')
+        .select('id, full_name, email, role, status, last_login')
+        .order('created_at', { ascending: false });
+
       if (error) {
-        console.error("Error details:", error);
         throw error;
       }
+
+      const typedData: UserData[] = data?.map(user => ({
+        id: user.id,
+        full_name: user.full_name || 'Unnamed User',
+        email: user.email || '',
+        role: user.role || 'user',
+        status: user.status as 'active' | 'inactive' | 'suspended' | 'pending_review' | 'blacklisted',
+        last_login: user.last_login
+      })) || [];
       
-      console.log("Fetched users:", data);
-      setUsers(data || []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
+      setUsers(typedData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    try {
-      setDeletingUser(true);
-      
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      
-      if (profileError) {
-        console.error("Error deleting user profile:", profileError);
-        throw profileError;
-      }
-      
-      setUsers(users.filter(user => user.id !== userId));
-      toast.success("User deleted successfully");
-      
-      setShowDeleteDialog(false);
-      setUserToDelete(null);
-    } catch (error: any) {
-      console.error("Error deleting user:", error.message);
-      toast.error("Failed to delete user: " + error.message);
-    } finally {
-      setDeletingUser(false);
-    }
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter(user => 
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleRoleChangeClick = (user: UserData) => {
+    setSelectedUser(user);
+    setNewRole(user.role || '');
+    setShowRoleDialog(true);
   };
 
-  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
-    try {
-      setBulkDeletingUsers(true);
-      
-      const usersToDelete = users.filter(user => 
-        user.email === email && user.id !== excludeUserId
-      );
-      
-      if (usersToDelete.length === 0) {
-        toast.info("No duplicate users found with this email");
-        return;
-      }
-      
-      for (const user of usersToDelete) {
-        const { error } = await supabase
-          .from("profiles")
-          .delete()
-          .eq("id", user.id);
-        
-        if (error) {
-          console.error(`Error deleting user ${user.id}:`, error);
-          throw error;
-        }
-      }
-      
-      await fetchUsers();
-      
-      toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
-      
-      setShowBulkDeleteDialog(false);
-    } catch (error: any) {
-      console.error("Error performing bulk deletion:", error.message);
-      toast.error("Failed to delete duplicate users: " + error.message);
-    } finally {
-      setBulkDeletingUsers(false);
-    }
+  const handleStatusChangeClick = (user: UserData) => {
+    setSelectedUser(user);
+    setNewStatus(user.status);
+    setShowStatusDialog(true);
   };
 
-  const handleDeleteKhamis = async () => {
-    if (!profile) {
-      toast.error("Cannot delete users: Your profile is not loaded");
-      return;
-    }
+  const handleDeleteClick = (user: UserData) => {
+    setSelectedUser(user);
+    setConfirmDelete(true);
+  };
+
+  const handleViewDetailsClick = (user: UserData) => {
+    setSelectedUser(user);
+    setShowUserDetails(true);
+  };
+
+  const handleRoleChange = async () => {
+    if (!selectedUser) return;
     
     try {
-      setBulkDeletingUsers(true);
-      console.log("Starting deletion of duplicate Khamis accounts");
+      setDialogLoading(true);
       
-      // Find all Khamis accounts except the current user's account
-      const khamisUsers = users.filter(user => 
-        user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
-      );
-      
-      console.log(`Found ${khamisUsers.length} duplicate Khamis accounts to delete`);
-      
-      if (khamisUsers.length === 0) {
-        toast.info("No duplicate users found with this email");
-        setBulkDeletingUsers(false);
-        return;
-      }
-      
-      // Loop through and delete each duplicate account
-      const deletionPromises = khamisUsers.map(async (user) => {
-        console.log(`Attempting to delete user ${user.id}`);
+      if (newRole === 'admin' || newRole === 'staff') {
+        // Update role in profiles table
         const { error } = await supabase
-          .from("profiles")
-          .delete()
-          .eq("id", user.id);
+          .from('profiles')
+          .update({ role: newRole })
+          .eq('id', selectedUser.id);
+          
+        if (error) throw error;
         
-        if (error) {
-          console.error(`Error deleting user ${user.id}:`, error);
-          throw error;
-        }
-        console.log(`Successfully deleted user ${user.id}`);
-        return user.id;
-      });
+        toast.success(`User role updated to ${newRole}`);
+      } else {
+        // For other roles
+        const { error } = await supabase
+          .from('profiles')
+          .update({ role: newRole })
+          .eq('id', selectedUser.id);
+          
+        if (error) throw error;
+        
+        toast.success(`User role updated to ${newRole}`);
+      }
       
-      // Wait for all deletions to complete
-      await Promise.all(deletionPromises);
-      
-      // Refresh user list
-      await fetchUsers();
-      
-      toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
-    } catch (error: any) {
-      console.error("Error deleting duplicate Khamis accounts:", error.message);
-      toast.error("Failed to delete users: " + error.message);
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === selectedUser.id ? { ...user, role: newRole } : user
+        )
+      );
+      setShowRoleDialog(false);
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast.error('Failed to update user role');
     } finally {
-      setBulkDeletingUsers(false);
+      setDialogLoading(false);
     }
   };
 
-  const openDeleteDialog = (user: UserData) => {
-    setUserToDelete(user);
-    setShowDeleteDialog(true);
-  };
-
-  const updateAdminAccounts = async () => {
+  const handleStatusChange = async () => {
+    if (!selectedUser) return;
+    
     try {
-      const { error: tarekError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "tareklaribi25914@gmail.com");
-      
-      if (tarekError) {
-        console.error("Error updating Tarek's role:", tarekError);
-        throw tarekError;
-      }
-      
-      console.log("Tarek's account has been set as admin");
-      
-      const { error: khamisError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "khamis-1992@hotmail.com");
-      
-      if (khamisError) {
-        console.error("Error updating Khamis's role:", khamisError);
-        throw khamisError;
-      }
-      
-      console.log("Khamis's account has been set as admin");
-      
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error updating user roles:", error.message);
-    }
-  };
-
-  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
-    try {
-      const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
+      setDialogLoading(true);
       
       const { error } = await supabase
-        .from("profiles")
-        .update({ status: validStatus })
-        .eq("id", userId);
-      
-      if (error) {
-        console.error("Update status error details:", error);
-        throw error;
-      }
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      ));
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', selectedUser.id);
+        
+      if (error) throw error;
       
       toast.success(`User status updated to ${newStatus}`);
-    } catch (error: any) {
-      console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status: " + error.message);
-    }
-  };
-
-  const openPermissionDialog = (user: UserData) => {
-    setSelectedUser(user);
-    setShowPermissionDialog(true);
-  };
-
-  const savePermissions = async () => {
-    if (!selectedUser || !userPermissions) return;
-    
-    setSaving(true);
-    try {
-      const newRole = form.getValues("role");
       
-      if (newRole !== selectedUser.role) {
-        await supabase
-          .from("profiles")
-          .update({ role: newRole })
-          .eq("id", selectedUser.id);
-      }
-      
-      toast.success("User permissions updated successfully");
-      setShowPermissionDialog(false);
-      
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error saving permissions:", error.message);
-      toast.error("Failed to save permissions");
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === selectedUser.id ? { ...user, status: newStatus } : user
+        )
+      );
+      setShowStatusDialog(false);
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
     } finally {
-      setSaving(false);
+      setDialogLoading(false);
     }
   };
 
-  const handleRoleChange = (value: string) => {
-    form.setValue("role", value);
+  const handleDelete = async () => {
+    if (!selectedUser) return;
     
-    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
-  };
-
-  const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
-    if (!userPermissions) return;
-    
-    setUserPermissions(prev => {
-      if (!prev) return prev;
+    try {
+      setDialogLoading(true);
       
-      return {
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [action]: value
-        }
-      };
-    });
+      // Update role instead of deleting - safer approach
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: 'deleted' })
+        .eq('id', selectedUser.id);
+        
+      if (error) throw error;
+      
+      toast.success('User marked as deleted');
+      
+      // Remove from local state
+      setUsers(prevUsers => 
+        prevUsers.filter(user => user.id !== selectedUser.id)
+      );
+      setConfirmDelete(false);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    } finally {
+      setDialogLoading(false);
+    }
   };
 
-  const isCurrentUser = (userId: string) => {
-    return profile?.id === userId;
+  const renderLastLogin = (lastLogin: string | undefined) => {
+    if (!lastLogin) return 'Never';
+    try {
+      return formatDistanceToNow(new Date(lastLogin), { addSuffix: true });
+    } catch (e) {
+      return 'Invalid date';
+    }
   };
-
-  const filteredUsers = users.filter(user => {
-    if (roleFilter !== "all" && user.role !== roleFilter) return false;
-    if (statusFilter !== "all" && user.status !== statusFilter) return false;
-    return true;
-  });
-
-  const columns: ColumnDef<UserData>[] = [
-    {
-      accessorKey: "full_name",
-      header: "Name",
-      cell: ({ row }) => {
-        const value = row.getValue("full_name") as string;
-        return <div className="font-medium">{value || "N/A"}</div>;
-      },
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => {
-        return <div className="text-sm text-muted-foreground">{row.getValue("email")}</div>;
-      },
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const user = row.original;
-        const isAdmin = profile?.role === "admin";
-        const isSelf = isCurrentUser(user.id);
-        
-        return (
-          <UserRoleManager 
-            userId={user.id}
-            currentRole={user.role}
-            fullName={user.full_name}
-            disabled={!isAdmin || isSelf}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge 
-            variant={
-              status === "active" ? "success" : 
-              status === "pending_review" ? "warning" : 
-              "destructive"
-            }
-          >
-            {status === "active" ? (
-              <CheckCircle className="h-3 w-3 mr-1" />
-            ) : status === "pending_review" ? (
-              <Clock className="h-3 w-3 mr-1" />
-            ) : (
-              <XCircle className="h-3 w-3 mr-1" />
-            )}
-            <span className="capitalize">{status ? status.replace('_', ' ') : 'N/A'}</span>
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "created_at",
-      header: "Joined",
-      cell: ({ row }) => {
-        const date = row.getValue("created_at") as string;
-        return date ? new Date(date).toLocaleDateString() : 'N/A';
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const user = row.original;
-        const currentUserProfile = profile?.id === user.id;
-        const isAdmin = profile?.role === "admin";
-        
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="z-50">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => openPermissionDialog(user)}
-                disabled={!isAdmin}
-              >
-                Manage Permissions
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "active")}
-                disabled={user.status === "active" || !isAdmin || currentUserProfile}
-              >
-                Set Active
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
-                disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
-              >
-                Set Pending
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "inactive")}
-                disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
-              >
-                Set Inactive
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => openDeleteDialog(user)}
-                disabled={!isAdmin || currentUserProfile}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete User
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
-  const table = useReactTable({
-    data: filteredUsers,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      sorting,
-      columnFilters,
-    },
-  });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Total Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.total}</div>
-            <div className="mt-2">
-              <Progress value={100} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.active}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? (userStats.active / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-green-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Pending Approval</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.pending}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? (userStats.pending / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-yellow-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Admins/Staff</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.admins + userStats.staff}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? ((userStats.admins + userStats.staff) / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-blue-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              className="pl-8"
-              value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
-              onChange={(e) => table.getColumn("full_name")?.setFilterValue(e.target.value)}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center w-full max-w-sm space-x-2">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search users..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10"
             />
           </div>
         </div>
-        <div className="flex gap-2">
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="staff">Staff</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="pending_review">Pending</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading}>
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      
-      <div className="flex justify-end space-x-2">
-        <Button 
-          variant="destructive" 
-          size="sm" 
-          onClick={handleDeleteKhamis}
-          disabled={bulkDeletingUsers}
-        >
-          {bulkDeletingUsers ? (
-            <>Deleting...</>
-          ) : (
-            <>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Duplicate Khamis Accounts
-            </>
-          )}
+        <Button variant="outline" className="gap-2">
+          <UserPlus className="h-4 w-4" /> Add User
         </Button>
       </div>
       
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Login</TableHead>
+              <TableHead className="w-[80px]">Actions</TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {loading ? "Loading..." : "No users found."}
+                <TableCell colSpan={6} className="h-24 text-center">
+                  Loading users...
                 </TableCell>
               </TableRow>
+            ) : filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No users found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.full_name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell><UserRoleBadge role={user.role} /></TableCell>
+                  <TableCell><UserStatusBadge status={user.status} /></TableCell>
+                  <TableCell>{renderLastLogin(user.last_login)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleViewDetailsClick(user)}>
+                          View details
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleRoleChangeClick(user)}>
+                          Change role
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusChangeClick(user)}>
+                          Update status
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteClick(user)} className="text-destructive">
+                          Delete user
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
       
-      <div className="flex items-center justify-between py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-
+      {/* Change Role Dialog */}
       {selectedUser && (
-        <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-          <DialogContent className="sm:max-w-md">
+        <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Manage User Permissions</DialogTitle>
+              <DialogTitle>Change User Role</DialogTitle>
               <DialogDescription>
-                Configure permissions for {selectedUser.full_name}
+                Update the role for {selectedUser.full_name}
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <div className="mb-4">
-                <Label htmlFor="role-select" className="mb-2 block">User Role</Label>
-                <Select 
-                  onValueChange={handleRoleChange} 
-                  defaultValue={selectedUser.role}
-                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                >
-                  <SelectTrigger id="role-select">
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Select value={newRole} onValueChange={setNewRole}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="customer">Customer</SelectItem>
+                    <SelectItem value="driver">Driver</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-5 font-medium">
-                  <div>Feature</div>
-                  <div className="text-center">View</div>
-                  <div className="text-center">Create</div>
-                  <div className="text-center">Edit</div>
-                  <div className="text-center">Delete</div>
-                </div>
-                
-                {userPermissions && Object.entries(userPermissions).map(([key, permissions]) => {
-                  const section = key as keyof UserPermissions;
-                  const featureName = key.replace(/([A-Z])/g, ' $1').trim();
-                  
-                  return (
-                    <div key={key} className="grid grid-cols-5 items-center border-t pt-4">
-                      <div className="font-medium">{featureName}</div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.view} 
-                          onCheckedChange={(checked) => updatePermission(section, 'view', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.create} 
-                          onCheckedChange={(checked) => updatePermission(section, 'create', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.edit} 
-                          onCheckedChange={(checked) => updatePermission(section, 'edit', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.delete} 
-                          onCheckedChange={(checked) => updatePermission(section, 'delete', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {(profile?.role !== "admin" || isCurrentUser(selectedUser.id)) && (
-                <p className="mt-4 text-sm text-amber-600">
-                  {isCurrentUser(selectedUser.id) 
-                    ? "You cannot modify your own permissions." 
-                    : "Only admins can modify permissions."}
-                </p>
-              )}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowPermissionDialog(false)}>
+              <Button variant="outline" onClick={() => setShowRoleDialog(false)}>
                 Cancel
               </Button>
-              <Button 
-                type="button" 
-                variant="default" 
-                onClick={savePermissions}
-                disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
-              >
-                {saving ? "Saving..." : "Save Changes"}
+              <Button onClick={handleRoleChange} disabled={dialogLoading}>
+                {dialogLoading ? "Updating..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {userToDelete?.full_name}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingUser}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (userToDelete) deleteUser(userToDelete.id);
-              }}
-              disabled={deletingUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deletingUser ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Duplicate Users</AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="flex items-center mb-2 text-amber-600">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                <span>This will delete all duplicate users with the same email.</span>
+      
+      {/* Change Status Dialog */}
+      {selectedUser && (
+        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Change User Status</DialogTitle>
+              <DialogDescription>
+                Update the status for {selectedUser.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Select value={newStatus} onValueChange={(value) => setNewStatus(value as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="pending_review">Pending Review</SelectItem>
+                    <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <p>Are you sure you want to proceed? This action cannot be undone.</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDeletingUsers}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (profile) bulkDeleteUsersByEmail("khamis-1992@hotmail.com", profile.id);
-              }}
-              disabled={bulkDeletingUsers}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {bulkDeletingUsers ? "Deleting..." : "Delete All Duplicates"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleStatusChange} disabled={dialogLoading}>
+                {dialogLoading ? "Updating..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Confirm Delete Dialog */}
+      {selectedUser && (
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will mark the user as deleted. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={dialogLoading}>
+                {dialogLoading ? "Processing..." : "Delete User"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      
+      {/* User Details Dialog */}
+      {selectedUser && (
+        <Dialog open={showUserDetails} onOpenChange={setShowUserDetails}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+              <DialogDescription>
+                Detailed information for {selectedUser.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-sm">User ID</h3>
+                <p className="text-sm text-muted-foreground break-all">{selectedUser.id}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">Email</h3>
+                <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">Role</h3>
+                <div><UserRoleBadge role={selectedUser.role} /></div>
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">Status</h3>
+                <div><UserStatusBadge status={selectedUser.status} /></div>
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">Last Login</h3>
+                <p className="text-sm text-muted-foreground">
+                  {renderLastLogin(selectedUser.last_login)}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUserDetails(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
