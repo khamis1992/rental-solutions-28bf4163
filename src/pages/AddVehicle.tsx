@@ -17,6 +17,7 @@ const AddVehicle = () => {
   const handleSubmit = (formData: any) => {
     createVehicle(formData, {
       onSuccess: () => {
+        toast.success('Vehicle added successfully');
         navigate('/vehicles');
       },
       onError: (error) => {
@@ -49,7 +50,7 @@ const AddVehicle = () => {
         <VehicleOnboardingWizard
           open={true}
           onClose={() => navigate('/vehicles')}
-          onComplete={() => navigate('/vehicles')}
+          onComplete={handleSubmit}
         />
       </div>
     </PageContainer>
