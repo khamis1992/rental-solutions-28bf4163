@@ -81,14 +81,21 @@ export const ResponsiveGrid = ({
 }: ResponsiveGridProps) => {
   const { sm = 1, md = 2, lg = 3, xl = 4 } = columns;
   
+  const gridColsClasses = {
+    sm: `grid-cols-${sm}`,
+    md: md && `md:grid-cols-${md}`,
+    lg: lg && `lg:grid-cols-${lg}`,
+    xl: xl && `xl:grid-cols-${xl}`,
+  };
+  
   return (
     <div
       className={cn(
         'grid w-full',
-        `grid-cols-${sm}`,
-        md && `md:grid-cols-${md}`,
-        lg && `lg:grid-cols-${lg}`,
-        xl && `xl:grid-cols-${xl}`,
+        gridColsClasses.sm,
+        gridColsClasses.md,
+        gridColsClasses.lg,
+        gridColsClasses.xl,
         gapClasses[gap],
         className
       )}
@@ -97,6 +104,16 @@ export const ResponsiveGrid = ({
     </div>
   );
 };
+
+interface ResponsiveFlexProps {
+  children: React.ReactNode;
+  className?: string;
+  direction?: 'row' | 'col';
+  gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
+  items?: 'start' | 'center' | 'end' | 'baseline' | 'stretch';
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+  wrap?: boolean;
+}
 
 /**
  * A flex container that switches between row and column based on screen size
@@ -108,38 +125,24 @@ export const ResponsiveFlex = ({
   gap = 'md',
   items = 'start',
   justify = 'start',
-}: {
-  children: React.ReactNode;
-  className?: string;
-  direction?: 'row' | 'col';
-  gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
-  items?: 'start' | 'center' | 'end' | 'stretch';
-  justify?: 'start' | 'center' | 'end' | 'between' | 'around';
-}) => {
-  // Create a mapping for alignment and justification
-  const itemsClasses = {
-    'start': 'items-start',
-    'center': 'items-center',
-    'end': 'items-end',
-    'stretch': 'items-stretch',
-  };
-  
-  const justifyClasses = {
-    'start': 'justify-start',
-    'center': 'justify-center',
-    'end': 'justify-end',
-    'between': 'justify-between',
-    'around': 'justify-around',
-  };
+  wrap = false,
+}: ResponsiveFlexProps) => {
+  const flexDirectionClass = direction === 'col' 
+    ? 'flex-col md:flex-row' 
+    : 'flex-row md:flex-col';
+    
+  const alignItemsClass = `items-${items}`;
+  const justifyContentClass = `justify-${justify}`;
   
   return (
     <div
       className={cn(
         'flex',
-        direction === 'col' ? 'flex-col md:flex-row' : 'flex-row md:flex-col',
+        flexDirectionClass,
+        alignItemsClass,
+        justifyContentClass,
+        wrap && 'flex-wrap',
         gapClasses[gap],
-        itemsClasses[items],
-        justifyClasses[justify],
         className
       )}
     >

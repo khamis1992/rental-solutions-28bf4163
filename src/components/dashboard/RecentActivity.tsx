@@ -1,9 +1,19 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Car, User, CreditCard, Wrench, AlertTriangle, Clock, Filter } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -11,6 +21,7 @@ interface RecentActivityProps {
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
+  const [filter, setFilter] = useState<string | null>(null);
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -25,19 +36,66 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
     }
   };
 
+  // Apply filter to activities if filter is set
+  const filteredActivities = filter 
+    ? activities.filter(activity => activity.type === filter)
+    : activities;
+
   return (
-    <Card className="col-span-4 card-transition">
-      <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+    <Card className="col-span-4 card-transition dashboard-card">
+      <CardHeader className="pb-2 flex flex-row items-start justify-between">
+        <div>
+          <CardTitle>Recent Activity</CardTitle>
+          {filter && (
+            <Badge 
+              variant="outline" 
+              className="mt-1"
+              onClick={() => setFilter(null)}
+            >
+              Filtered by: {filter} × 
+            </Badge>
+          )}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="h-3.5 w-3.5 mr-1" />
+              Filter
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setFilter(null)}>
+              All activities
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('rental')}>
+              <Car className="h-3.5 w-3.5 mr-2" />
+              Rentals
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('payment')}>
+              <CreditCard className="h-3.5 w-3.5 mr-2" />
+              Payments
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('maintenance')}>
+              <Wrench className="h-3.5 w-3.5 mr-2" />
+              Maintenance
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('fine')}>
+              <AlertTriangle className="h-3.5 w-3.5 mr-2" />
+              Fines
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
-        {activities.length === 0 ? (
+        {filteredActivities.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            No recent activity to display
+            {filter ? `No ${filter} activity to display` : "No recent activity to display"}
           </div>
         ) : (
           <div className="space-y-5">
-            {activities.map((activity) => (
+            {filteredActivities.map((activity) => (
               <div 
                 key={activity.id} 
                 className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
@@ -52,12 +110,26 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                     <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
                   <p className="text-muted-foreground mt-1">{activity.description}</p>
+                  <div className="mt-2">
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="h-auto p-0 text-xs text-primary"
+                    >
+                      View details →
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </CardContent>
+      <CardFooter className="pt-0">
+        <Button variant="outline" className="w-full" onClick={() => navigate('/activity')}>
+          View All Activity
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

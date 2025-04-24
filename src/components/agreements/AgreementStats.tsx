@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { asTableId } from '@/lib/database-helpers';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -37,13 +38,13 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
+          .eq('status', asTableId('leases', 'active'));
           
         // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', asTableId('unified_payments', 'pending'));
           
         // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
@@ -55,10 +56,10 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', 'active');
+          .eq('status', asTableId('leases', 'active'));
           
         const activeValue = activeAgreements?.reduce((sum, agreement) => 
-          sum + (agreement.rent_amount || 0), 0) || 0;
+          sum + (agreement?.rent_amount || 0), 0) || 0;
         
         setStats({
           totalAgreements: totalCount || 0,
@@ -120,7 +121,7 @@ interface StatCardProps {
 
 function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
   return (
-    <Card className={`p-5 ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
+    <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
       <div className="flex justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

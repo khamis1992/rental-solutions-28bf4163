@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { 
@@ -12,12 +12,21 @@ import {
   ShieldX, 
   CircleDashed, 
   CircleOff, 
-  PenTool
+  PenTool,
+  Filter
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { VehicleStatus } from '@/types/vehicle';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 interface VehicleStatusChartProps {
   data?: {
@@ -111,6 +120,8 @@ const statusConfig = [
 
 const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const navigate = useNavigate();
+  const [chartType, setChartType] = useState<'pie' | 'donut'>('donut');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
   
   if (!data) return null;
   
@@ -124,6 +135,13 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   
   const chartData = statusConfig
     .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
+    .filter(status => selectedFilter === 'all' || 
+           (selectedFilter === 'issues' && 
+            ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
+           (selectedFilter === 'available' && 
+            ['available', 'reserved'].includes(status.key)) ||
+           (selectedFilter === 'rented' && 
+            status.key === 'rented'))
     .map(status => ({
       name: status.name,
       value: normalizedData[status.key as keyof typeof normalizedData],
@@ -142,10 +160,48 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
     navigate(`/vehicles?status=${data.filterValue}`);
   };
 
+  const handleFilterChange = useCallback((value: string) => {
+    setSelectedFilter(value);
+  }, []);
+
   return (
-    <Card className="col-span-full lg:col-span-4 card-transition">
+    <Card className="col-span-full lg:col-span-4 card-transition dashboard-card">
       <CardHeader className="pb-2">
-        <CardTitle>Fleet Status Overview</CardTitle>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <CardTitle>Fleet Status Overview</CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <Select value={selectedFilter} onValueChange={handleFilterChange}>
+              <SelectTrigger className="w-[140px] h-8">
+                <SelectValue placeholder="All Vehicles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Vehicles</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="rented">Rented Out</SelectItem>
+                <SelectItem value="issues">Issues</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="flex gap-1">
+              <Button 
+                variant={chartType === 'pie' ? 'default' : 'outline'} 
+                size="sm" 
+                className="h-8"
+                onClick={() => setChartType('pie')}
+              >
+                Pie
+              </Button>
+              <Button 
+                variant={chartType === 'donut' ? 'default' : 'outline'} 
+                size="sm" 
+                className="h-8"
+                onClick={() => setChartType('donut')}
+              >
+                Donut
+              </Button>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col lg:flex-row items-start justify-between h-auto lg:h-96">
@@ -156,7 +212,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={90}
+                  innerRadius={chartType === 'donut' ? 90 : 0}
                   outerRadius={130}
                   paddingAngle={4}
                   dataKey="value"
@@ -164,6 +220,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   labelLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
                   onClick={handleStatusClick}
                   cursor="pointer"
+                  animationDuration={800}
                 >
                   {chartData.map((entry, index) => (
                     <Cell 
@@ -201,6 +258,16 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
               {statusConfig.map((status) => {
                 const count = normalizedData[status.key as keyof typeof normalizedData] || 0;
                 if (count === 0) return null;
+                
+                const isVisible = selectedFilter === 'all' || 
+                  (selectedFilter === 'issues' && 
+                   ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
+                  (selectedFilter === 'available' && 
+                   ['available', 'reserved'].includes(status.key)) ||
+                  (selectedFilter === 'rented' && 
+                   status.key === 'rented');
+                
+                if (!isVisible) return null;
                 
                 const Icon = status.icon;
                 return (
