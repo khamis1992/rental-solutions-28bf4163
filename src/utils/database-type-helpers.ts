@@ -1,3 +1,30 @@
+import { Database } from '@/types/database-types';
+
+/**
+ * Convert any string ID to a properly typed lease ID column
+ * @param id The ID to convert
+ * @returns The ID with the proper type for the lease_id column
+ */
+export const asLeaseIdColumn = (id: string): string => {
+  return id;
+};
+
+// Restore other previously removed column conversion functions
+export const asAgreementIdColumn = (id: string): string => {
+  return id;
+};
+
+export const asImportIdColumn = (id: string): string => {
+  return id;
+};
+
+export const asTrafficFineIdColumn = (id: string): string => {
+  return id;
+};
+
+export const asPaymentId = (id: string): string => {
+  return id;
+};
 
 /**
  * Helper functions to convert IDs to the proper type for different tables
