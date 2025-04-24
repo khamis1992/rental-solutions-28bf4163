@@ -9,10 +9,9 @@ import { NewPaymentEntry } from './NewPaymentEntry';
 interface RecordPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentSuccess?: () => void;  // Add new callback for payment success
 }
 
-export function RecordPaymentDialog({ open, onOpenChange, onPaymentSuccess }: RecordPaymentDialogProps) {
+export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogProps) {
   const [selectedOption, setSelectedOption] = useState<'agreement' | 'new' | null>(null);
 
   const handleOptionSelect = (option: 'agreement' | 'new') => {
@@ -21,14 +20,6 @@ export function RecordPaymentDialog({ open, onOpenChange, onPaymentSuccess }: Re
 
   const handleBack = () => {
     setSelectedOption(null);
-  };
-  
-  const handleClose = () => {
-    onOpenChange(false);
-    setSelectedOption(null);
-    if (onPaymentSuccess) {
-      onPaymentSuccess();
-    }
   };
 
   return (
@@ -70,9 +61,9 @@ export function RecordPaymentDialog({ open, onOpenChange, onPaymentSuccess }: Re
         ) : (
           <div className="space-y-4">
             {selectedOption === 'agreement' ? (
-              <PaymentForAgreement onBack={handleBack} onClose={handleClose} />
+              <PaymentForAgreement onBack={handleBack} onClose={() => onOpenChange(false)} />
             ) : (
-              <NewPaymentEntry onBack={handleBack} onClose={handleClose} />
+              <NewPaymentEntry onBack={handleBack} onClose={() => onOpenChange(false)} />
             )}
           </div>
         )}

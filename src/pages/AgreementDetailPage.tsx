@@ -29,7 +29,6 @@ import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficF
 import { asDbId, AgreementId } from '@/types/database-types';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
-import { RecordPaymentDialog } from '@/components/agreements/RecordPaymentDialog';
 
 const AgreementDetailPage = () => {
   const {
@@ -98,13 +97,6 @@ const AgreementDetailPage = () => {
       setIsLoading(false);
       setHasAttemptedFetch(true);
     }
-  };
-
-  const handleRefreshPayments = () => {
-    if (fetchPayments) {
-      fetchPayments();
-    }
-    setRefreshTrigger(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -597,10 +589,13 @@ const AgreementDetailPage = () => {
             </DialogContent>
           </Dialog>
 
-          <RecordPaymentDialog 
-            open={isPaymentDialogOpen} 
-            onOpenChange={setIsPaymentDialogOpen} 
-            onPaymentSuccess={handleRefreshPayments}
+          <PaymentEntryDialog
+            open={isPaymentDialogOpen}
+            onOpenChange={setIsPaymentDialogOpen}
+            onSubmit={handlePaymentSubmit}
+            defaultAmount={rentAmount || 0}
+            title="Record Payment"
+            description="Enter payment details to record a new payment"
           />
         </> : <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
