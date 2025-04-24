@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect } from "react";
+import { QueryClient } from "@tanstack/react-query";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -67,9 +68,6 @@ import SystemSettings from "./pages/SystemSettings";
 import initializeApp from "./utils/app-initializer";
 
 function App() {
-  // Initialize QueryClient inside the component
-  const [queryClient] = useState(() => new QueryClient());
-
   useEffect(() => {
     initializeApp();
   }, []);

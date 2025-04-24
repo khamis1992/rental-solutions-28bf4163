@@ -78,7 +78,7 @@
 @layer components {
   /* Glass effect components */
   .glass-panel {
-    @apply bg-white/80 shadow-glass border border-white/20 rounded-lg;
+    @apply bg-white/80 backdrop-blur shadow-glass border border-white/20 rounded-lg;
   }
   
   .glass-card {

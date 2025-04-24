@@ -36,11 +36,23 @@ export default defineConfig(({ mode }) => ({
     devSourcemap: true,
     modules: {
       scopeBehaviour: 'local'
-    }
+    },
+    preprocessorOptions: {
+      less: {
+        math: "always",
+      },
+    },
   },
   optimizeDeps: {
     force: true,
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+    esbuildOptions: {
+      tsconfigRaw: {
+        compilerOptions: {
+          experimentalDecorators: true,
+        },
+      },
+    },
   },
   cacheDir: '.vite',
 }));
