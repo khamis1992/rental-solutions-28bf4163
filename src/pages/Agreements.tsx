@@ -13,7 +13,7 @@ import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 import { 
   FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
 } from 'lucide-react';
-import { AgreementStats } from '@/components/agreements/AgreementStats';
+import AgreementStats from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';

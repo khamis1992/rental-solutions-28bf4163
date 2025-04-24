@@ -1,13 +1,13 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 
 const AgreementStats = () => {
   const { toast } = useToast();
-  const supabase = createClient();
 
   // Fetch counts with properly typed parameters
   const fetchAgreementCounts = async () => {
