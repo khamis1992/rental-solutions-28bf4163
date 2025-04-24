@@ -24,46 +24,39 @@ export const asVehicleId = (id: string): string => {
 };
 
 /**
- * Convert any string ID to a properly typed agreement ID column
- * @param id The ID to convert
- * @returns The ID with the proper type for the agreement_id column
- */
-export const asAgreementIdColumn = (id: string): string => {
-  return id;
-};
-
-/**
- * Convert any string ID to a properly typed lease ID column
+ * Convert any string ID to a properly typed lease ID
  * @param id The ID to convert
  * @returns The ID with the proper type for the lease_id column
  */
-export const asLeaseIdColumn = (id: string): string => {
+export const asLeaseId = (id: string): string => {
   return id;
 };
 
 /**
- * Convert any string ID to a properly typed import ID column
- * @param id The ID to convert
- * @returns The ID with the proper type for the import_id column
+ * Convert status to the proper type for a specific table and column
+ * @param table The table name
+ * @param column The column name
+ * @param status The status value
+ * @returns The status with the proper type
  */
-export const asImportIdColumn = (id: string): string => {
-  return id;
+export const asStatusColumn = (table: string, column: string, status: string): string => {
+  return status;
 };
 
 /**
- * Convert any string ID to a properly typed payment ID
- * @param id The ID to convert
- * @returns The ID with the proper type for the payment_id column
+ * Safely extract data from a query result
+ * @param data The query result
+ * @returns The extracted data or null
  */
-export const asPaymentId = (id: string): string => {
-  return id;
+export const safelyExtractData = <T>(data: T | null | undefined): T | null => {
+  return data || null;
 };
 
 /**
- * Convert any string ID to a properly typed traffic fine ID column
- * @param id The ID to convert
- * @returns The ID with the proper type for the traffic_fine_id column
+ * Check if the query result has data
+ * @param result The query result
+ * @returns Boolean indicating if data exists
  */
-export const asTrafficFineIdColumn = (id: string): string => {
-  return id;
+export const hasData = <T>(result: { data: T | null; error?: any }): boolean => {
+  return !!result.data && !result.error;
 };
