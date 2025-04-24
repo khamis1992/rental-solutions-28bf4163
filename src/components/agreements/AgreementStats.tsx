@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { 
   asStatusColumn, 
   safelyExtractData,
-  safelyCalculateRentAmount 
+  safelyCalculateRentAmount,
+  safelyParseData,
+  hasData 
 } from '@/utils/database-type-helpers';
 
 interface AgreementStats {
@@ -42,13 +44,13 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
+          .eq('status', asStatusColumn('leases', 'status', 'active'));
           
         // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', asStatusColumn('unified_payments', 'status', 'pending'));
           
         // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
@@ -57,11 +59,12 @@ export function AgreementStats() {
           .gt('days_overdue', 0);
           
         // Get active agreements total value
-        const { data: activeAgreements } = await supabase
+        const activeAgreementsResponse = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', 'active');
+          .eq('status', asStatusColumn('leases', 'status', 'active'));
           
+        const activeAgreements = safelyParseData(activeAgreementsResponse);
         const activeValue = safelyCalculateRentAmount(activeAgreements);
         
         setStats({

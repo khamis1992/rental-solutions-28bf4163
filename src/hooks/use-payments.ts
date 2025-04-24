@@ -3,7 +3,12 @@ import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
+import { 
+  asLeaseIdColumn, 
+  asPaymentId, 
+  asStatusColumn,
+  safelyParseData
+} from '@/utils/database-type-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -16,7 +21,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreementId)
+        .eq('lease_id', asLeaseIdColumn(agreementId))
         .order('created_at', { ascending: false });
         
       if (!hasData(response)) {
@@ -62,7 +67,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentData)
-      .eq('id', id)
+      .eq('id', asPaymentId(id))
       .select();
 
     if (!hasData(response)) {
@@ -77,7 +82,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', paymentId);
+      .eq('id', asPaymentId(paymentId));
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);

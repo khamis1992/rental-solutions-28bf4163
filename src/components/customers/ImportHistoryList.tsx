@@ -1,14 +1,26 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { safelyParseData } from '@/utils/database-type-helpers';
+
+// Define the ImportLog interface to match the database schema
+interface ImportLog {
+  id: string;
+  file_name: string;
+  original_file_name?: string | null;
+  status: string;
+  processed_count?: number | null;
+  error_count?: number | null;
+  created_at: string;
+}
 
 export function ImportHistoryList() {
-  const [importLogs, setImportLogs] = useState<any[]>([]);
+  const [importLogs, setImportLogs] = useState<ImportLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,14 +28,17 @@ export function ImportHistoryList() {
     async function fetchImportLogs() {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
+        const response = await supabase
           .from('customer_import_logs')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (error) throw error;
-        setImportLogs(data || []);
+        if (response.error) throw response.error;
+        
+        // Safely parse the data with type assertion
+        const parsedData = safelyParseData<ImportLog>(response);
+        setImportLogs(parsedData);
       } catch (err) {
         console.error('Error fetching import logs:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch import history');
@@ -113,8 +128,8 @@ export function ImportHistoryList() {
                   <div className="font-medium">{log.original_file_name || log.file_name}</div>
                   <div className="text-sm text-muted-foreground">
                     {formatDate(log.created_at)} • 
-                    {log.processed_count > 0 && ` ${log.processed_count} processed`}
-                    {log.error_count > 0 && ` • ${log.error_count} errors`}
+                    {log.processed_count && log.processed_count > 0 && ` ${log.processed_count} processed`}
+                    {log.error_count && log.error_count > 0 && ` • ${log.error_count} errors`}
                   </div>
                 </div>
                 {getStatusBadge(log.status)}
