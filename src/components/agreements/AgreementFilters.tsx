@@ -1,173 +1,206 @@
 
-import React, { useState } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Search, X, CalendarIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/ui/date-picker';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { format } from 'date-fns';
 
 interface AgreementFiltersProps {
   onFilterChange: (filters: Record<string, any>) => void;
   currentFilters?: Record<string, any>;
 }
 
-export const AgreementFilters = ({ onFilterChange, currentFilters = {} }: AgreementFiltersProps) => {
+export function AgreementFilters({ onFilterChange, currentFilters = {} }: AgreementFiltersProps) {
   const [filters, setFilters] = useState({
-    status: currentFilters.status || '',
-    startDate: currentFilters.startDate || '',
-    endDate: currentFilters.endDate || '',
-    customerName: currentFilters.customerName || '',
-    vehicleLicensePlate: currentFilters.vehicleLicensePlate || '',
-    minAmount: currentFilters.minAmount || '',
-    maxAmount: currentFilters.maxAmount || '',
+    status: currentFilters.status || 'all',
+    startDateFrom: currentFilters.startDateFrom || '',
+    startDateTo: currentFilters.startDateTo || '',
+    endDateFrom: currentFilters.endDateFrom || '',
+    endDateTo: currentFilters.endDateTo || '',
+    minRent: currentFilters.minRent || '',
+    maxRent: currentFilters.maxRent || '',
+    vehicleId: currentFilters.vehicleId || '',
+    customerId: currentFilters.customerId || '',
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFilters({ ...filters, [field]: value });
+  useEffect(() => {
+    // Update internal state when props change
+    setFilters(prev => ({
+      ...prev,
+      ...currentFilters
+    }));
+  }, [currentFilters]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleClearFilters = () => {
-    setFilters({
-      status: '',
-      startDate: '',
-      endDate: '',
-      customerName: '',
-      vehicleLicensePlate: '',
-      minAmount: '',
-      maxAmount: '',
-    });
-    onFilterChange({});
+  const handleSelectChange = (name: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleApplyFilters = () => {
-    // Remove empty filter values
-    const appliedFilters = Object.entries(filters)
-      .filter(([_, value]) => value !== '')
-      .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+  const handleDateChange = (name: string, date: Date | null) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: date ? format(date, 'yyyy-MM-dd') : ''
+    }));
+  };
 
+  const handleFilterApply = () => {
+    // Filter out empty values
+    const appliedFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== '' && value !== 'all')
+    );
+    
     onFilterChange(appliedFilters);
+  };
+
+  const handleFilterReset = () => {
+    setFilters({
+      status: 'all',
+      startDateFrom: '',
+      startDateTo: '',
+      endDateFrom: '',
+      endDateTo: '',
+      minRent: '',
+      maxRent: '',
+      vehicleId: '',
+      customerId: '',
+    });
+    onFilterChange({ status: 'all' });
   };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Status Filter */}
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
-          <Select 
-            value={filters.status} 
-            onValueChange={(value) => handleInputChange('status', value)}
+          <Select
+            value={filters.status}
+            onValueChange={(value) => handleSelectChange('status', value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Any Status" />
+              <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Any Status</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
-              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CLOSED}>Closed</SelectItem>
               <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Customer Name Filter */}
+        {/* Date Range Filters */}
         <div className="space-y-2">
-          <Label htmlFor="customerName">Customer Name</Label>
-          <Input
-            id="customerName"
-            placeholder="Search by customer name"
-            value={filters.customerName}
-            onChange={(e) => handleInputChange('customerName', e.target.value)}
-          />
+          <Label>Start Date Range</Label>
+          <div className="flex space-x-2">
+            <DatePicker
+              date={filters.startDateFrom ? new Date(filters.startDateFrom) : undefined}
+              onDateChange={(date) => handleDateChange('startDateFrom', date)}
+              placeholder="From"
+            />
+            <DatePicker
+              date={filters.startDateTo ? new Date(filters.startDateTo) : undefined}
+              onDateChange={(date) => handleDateChange('startDateTo', date)}
+              placeholder="To"
+            />
+          </div>
         </div>
 
-        {/* License Plate Filter */}
         <div className="space-y-2">
-          <Label htmlFor="vehicleLicensePlate">License Plate</Label>
-          <Input
-            id="vehicleLicensePlate"
-            placeholder="Search by license plate"
-            value={filters.vehicleLicensePlate}
-            onChange={(e) => handleInputChange('vehicleLicensePlate', e.target.value)}
-          />
-        </div>
-
-        {/* Start Date Filter */}
-        <div className="space-y-2">
-          <Label>Start Date After</Label>
-          <DatePicker
-            value={filters.startDate ? new Date(filters.startDate) : undefined}
-            onChange={(date) => 
-              handleInputChange('startDate', date ? date.toISOString() : '')
-            }
-          />
-        </div>
-
-        {/* End Date Filter */}
-        <div className="space-y-2">
-          <Label>End Date Before</Label>
-          <DatePicker
-            value={filters.endDate ? new Date(filters.endDate) : undefined}
-            onChange={(date) => 
-              handleInputChange('endDate', date ? date.toISOString() : '')
-            }
-          />
-        </div>
-
-        {/* Min Amount Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="minAmount">Min Amount</Label>
-          <Input
-            id="minAmount"
-            type="number"
-            placeholder="Min rental amount"
-            value={filters.minAmount}
-            onChange={(e) => handleInputChange('minAmount', e.target.value)}
-          />
-        </div>
-
-        {/* Max Amount Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="maxAmount">Max Amount</Label>
-          <Input
-            id="maxAmount"
-            type="number"
-            placeholder="Max rental amount"
-            value={filters.maxAmount}
-            onChange={(e) => handleInputChange('maxAmount', e.target.value)}
-          />
+          <Label>End Date Range</Label>
+          <div className="flex space-x-2">
+            <DatePicker
+              date={filters.endDateFrom ? new Date(filters.endDateFrom) : undefined}
+              onDateChange={(date) => handleDateChange('endDateFrom', date)}
+              placeholder="From"
+            />
+            <DatePicker
+              date={filters.endDateTo ? new Date(filters.endDateTo) : undefined}
+              onDateChange={(date) => handleDateChange('endDateTo', date)}
+              placeholder="To"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Filter Actions */}
-      <div className="flex justify-end gap-2">
-        <Button 
-          variant="outline" 
-          onClick={handleClearFilters}
-          className="flex items-center"
-        >
-          <X className="h-4 w-4 mr-1" />
-          Clear Filters
-        </Button>
-        <Button 
-          onClick={handleApplyFilters}
-          className="flex items-center"
-        >
-          <Search className="h-4 w-4 mr-1" />
-          Apply Filters
-        </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Rent Amount Range */}
+        <div className="space-y-2">
+          <Label>Monthly Rent Range</Label>
+          <div className="flex space-x-2">
+            <div className="flex-1">
+              <Input
+                type="number"
+                name="minRent"
+                placeholder="Min"
+                value={filters.minRent}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="flex-1">
+              <Input
+                type="number"
+                name="maxRent"
+                placeholder="Max"
+                value={filters.maxRent}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button variant="outline" onClick={handleFilterReset}>Reset</Button>
+        <Button onClick={handleFilterApply}>Apply Filters</Button>
       </div>
     </div>
   );
-};
+}
+
+interface DatePickerProps {
+  date: Date | undefined;
+  onDateChange: (date: Date | null) => void;
+  placeholder: string;
+}
+
+function DatePicker({ date, onDateChange, placeholder }: DatePickerProps) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-start text-left font-normal"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {date ? format(date, 'PPP') : <span className="text-muted-foreground">{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={onDateChange}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
