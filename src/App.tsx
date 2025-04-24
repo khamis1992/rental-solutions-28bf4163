@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect } from "react";
 import { QueryClient } from "@tanstack/react-query";
+import "./index.css";
+import "./styles/responsive-utils.css";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";

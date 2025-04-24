@@ -46,5 +46,6 @@ export default defineConfig(({ mode }) => ({
     force: true,
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
   },
-  cacheDir: '.vite',
+  // Clear the cache directory to prevent stale dependencies
+  cacheDir: '.vite-new',
 }));

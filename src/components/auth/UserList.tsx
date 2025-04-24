@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -54,8 +53,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from "@/lib/supabase";
 import { formatDistanceToNow } from 'date-fns';
-import { UserRoleBadge } from '../badges/UserRoleBadge';
-import { UserStatusBadge } from '../badges/UserStatusBadge';
+import UserRoleBadge from '../badges/UserRoleBadge';
+import UserStatusBadge from '../badges/UserStatusBadge';
 
 interface UserData {
   id: string;
@@ -152,7 +151,7 @@ const UserList = () => {
         const { error } = await supabase
           .from('profiles')
           .update({ role: newRole })
-          .eq('email', selectedUser.email);
+          .eq('id', selectedUser.id);
           
         if (error) throw error;
         
@@ -162,7 +161,7 @@ const UserList = () => {
         const { error } = await supabase
           .from('profiles')
           .update({ role: newRole })
-          .eq('email', selectedUser.email);
+          .eq('id', selectedUser.id);
           
         if (error) throw error;
         
@@ -256,13 +255,15 @@ const UserList = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center w-full max-w-sm space-x-2">
-          <Input 
-            placeholder="Search users..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-            startIcon={<Search className="h-4 w-4" />}
-          />
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search users..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10"
+            />
+          </div>
         </div>
         <Button variant="outline" className="gap-2">
           <UserPlus className="h-4 w-4" /> Add User

@@ -62,7 +62,16 @@ const VehicleAssignmentDialog = ({ open, onClose, agreementId, onAssign }: Vehic
       if (error) throw error;
       
       if (data) {
-        setAvailableVehicles(data as VehicleInfo[]);
+        const typedData: VehicleInfo[] = data.map(vehicle => ({
+          id: vehicle.id,
+          make: vehicle.make,
+          model: vehicle.model,
+          license_plate: vehicle.license_plate,
+          year: vehicle.year,
+          color: vehicle.color
+        }));
+        
+        setAvailableVehicles(typedData);
       } else {
         setAvailableVehicles([]);
       }
@@ -87,7 +96,14 @@ const VehicleAssignmentDialog = ({ open, onClose, agreementId, onAssign }: Vehic
       if (error) throw error;
       
       if (data) {
-        setVehicleDetails(data as VehicleInfo);
+        setVehicleDetails({
+          id: data.id,
+          make: data.make,
+          model: data.model,
+          license_plate: data.license_plate,
+          year: data.year,
+          color: data.color
+        });
       }
     } catch (error) {
       console.error('Error fetching vehicle details:', error);
