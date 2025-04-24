@@ -1,3 +1,4 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
@@ -10,16 +11,20 @@ export const usePayments = (agreementId?: string) => {
     async () => {
       if (!agreementId) return [] as Payment[];
       
+      console.log("usePayments: Fetching payments for agreement", agreementId);
+      
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', asLeaseIdColumn(agreementId))
+        .order('created_at', { ascending: false });
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
         return [] as Payment[];
       }
       
+      console.log(`usePayments: Found ${response.data.length} payments`, response.data);
       return response.data as Payment[];
     },
     {
@@ -31,6 +36,7 @@ export const usePayments = (agreementId?: string) => {
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
+    console.log("usePayments: Adding new payment", newPayment);
     const response = await supabase
       .from('unified_payments')
       .insert([newPayment])
@@ -40,9 +46,12 @@ export const usePayments = (agreementId?: string) => {
       console.error("Error adding payment:", response.error);
       return null;
     }
+    
+    console.log("usePayments: Payment added successfully", response.data[0]);
     return response.data[0];
   }, {
     onSuccess: () => {
+      console.log("usePayments: Payment added successfully, refreshing");
       refetch(); // Refresh payment list after successful addition
     }
   });
@@ -64,6 +73,7 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
+    console.log("usePayments: Deleting payment", paymentId);
     const response = await supabase
       .from('unified_payments')
       .delete()
@@ -73,12 +83,17 @@ export const usePayments = (agreementId?: string) => {
       console.error("Error deleting payment:", response.error);
       return null;
     }
+    
+    console.log("usePayments: Payment deleted successfully");
     return { success: true };
   });
 
   // Add a function to fetch payments that uses refetch
-  const fetchPayments = () => {
-    return refetch();
+  const fetchPayments = async () => {
+    console.log("usePayments: Manually fetching payments");
+    const result = await refetch();
+    console.log("usePayments: Fetch result", result);
+    return result;
   };
 
   return {

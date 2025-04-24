@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -56,11 +57,15 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const pendingPayments = generatePendingPayments();
+  // Remove the incorrect generatePendingPayments() call that doesn't exist
+  // and replace with proper empty array for pending payments
+  const pendingPayments = [];
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-4">Loading payments...</div>;
   }
+
+  console.log("PaymentList: Rendering with payments:", payments);
 
   return (
     <div className="space-y-4">
@@ -80,7 +85,7 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
         </div>
       </div>
 
-      {payments.length === 0 && pendingPayments.length === 0 ? (
+      {payments.length === 0 ? (
         <EmptyPaymentState />
       ) : (
         <PaymentsTable

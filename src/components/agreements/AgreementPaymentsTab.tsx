@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentList } from '@/components/payments/PaymentList';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
@@ -12,7 +12,7 @@ interface AgreementPaymentsTabProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
-  agreementId: string; // Added this prop
+  agreementId: string;
 }
 
 export const AgreementPaymentsTab = ({
@@ -24,6 +24,16 @@ export const AgreementPaymentsTab = ({
   leaseEndDate,
   agreementId
 }: AgreementPaymentsTabProps) => {
+  // Add state to force refresh of payment list
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Enhanced payment deleted handler that triggers both parent refresh and local refresh
+  const handlePaymentDeleted = (paymentId: string) => {
+    console.log("AgreementPaymentsTab: Payment deleted", paymentId);
+    onPaymentDeleted();
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -38,8 +48,9 @@ export const AgreementPaymentsTab = ({
             </div>
           ) : agreementId ? (
             <PaymentList 
+              key={`payment-list-${agreementId}-${refreshKey}`}
               agreementId={agreementId}
-              onDeletePayment={onPaymentDeleted}
+              onDeletePayment={handlePaymentDeleted}
             />
           ) : (
             <EmptyPaymentState />

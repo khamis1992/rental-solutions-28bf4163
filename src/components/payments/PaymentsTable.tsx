@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Payment } from '@/hooks/use-payments';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { PaymentRow } from './PaymentRow';
 import { PendingPaymentRow } from './PendingPaymentRow';
 
@@ -13,6 +13,8 @@ interface PaymentsTableProps {
 }
 
 export const PaymentsTable = ({ payments, pendingPayments, onDeletePayment, onAddPayment }: PaymentsTableProps) => {
+  console.log("PaymentsTable: Rendering with", payments.length, "payments");
+  
   return (
     <Table>
       <TableHeader>
@@ -42,6 +44,14 @@ export const PaymentsTable = ({ payments, pendingPayments, onDeletePayment, onAd
             onAddPayment={onAddPayment!}
           />
         ))}
+        
+        {payments.length === 0 && pendingPayments.length === 0 && (
+          <TableRow>
+            <TableHead colSpan={6} className="h-24 text-center">
+              No payments found
+            </TableHead>
+          </TableRow>
+        )}
       </TableBody>
     </Table>
   );

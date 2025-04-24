@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ export function AgreementDetailPage() {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentRefreshCounter, setPaymentRefreshCounter] = useState(0);
 
   const { 
     agreement, 
@@ -44,6 +46,13 @@ export function AgreementDetailPage() {
     handleSpecialAgreementPayments,
     isProcessing: isPaymentGenerationLoading
   } = usePaymentGeneration(agreement, id);
+
+  useEffect(() => {
+    console.log("AgreementDetailPage: Loading with agreement ID:", id);
+    if (id) {
+      fetchPayments();
+    }
+  }, [id, fetchPayments, paymentRefreshCounter]);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -81,6 +90,8 @@ export function AgreementDetailPage() {
         setIsPaymentDialogOpen(false);
         console.log("Refreshing payments after successful submission...");
         await fetchPayments();
+        // Trigger refresh of payments in child components
+        setPaymentRefreshCounter(prev => prev + 1);
         toast.success("Payment recorded successfully");
       }
     } catch (error) {
@@ -88,6 +99,16 @@ export function AgreementDetailPage() {
       toast.error("Failed to record payment");
     }
   }, [handleSpecialAgreementPayments, fetchPayments]);
+
+  const handleOpenPaymentDialog = () => {
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handlePaymentDeleted = useCallback(() => {
+    console.log("Payment deleted, refreshing data...");
+    fetchPayments();
+    setPaymentRefreshCounter(prev => prev + 1);
+  }, [fetchPayments]);
 
   if (isAgreementLoading || !agreement) {
     return <div>Loading...</div>;
@@ -114,12 +135,19 @@ export function AgreementDetailPage() {
           payments={payments}
           isLoading={isPaymentsLoading}
           rentAmount={rentAmountFromHook}
-          onPaymentDeleted={fetchPayments}
+          onPaymentDeleted={handlePaymentDeleted}
           leaseStartDate={agreement.start_date}
           leaseEndDate={agreement.end_date}
           agreementId={agreement.id}
         />
       </div>
+
+      <Button 
+        className="fixed bottom-8 right-8 bg-green-500 hover:bg-green-600" 
+        onClick={handleOpenPaymentDialog}
+      >
+        Record Payment
+      </Button>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
