@@ -9,12 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import VehicleImageUpload from './VehicleImageUpload';
-import { useVehicles } from '@/hooks/use-vehicles';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface VehicleOnboardingWizardProps {
   open: boolean;
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: (formData: any) => void;
 }
 
 export function VehicleOnboardingWizard({
@@ -36,8 +36,7 @@ export function VehicleOnboardingWizard({
     documents_verified: false
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const { useCreate } = useVehicles();
-  const { mutate: createVehicle } = useCreate();
+  const [insuranceExpiryDate, setInsuranceExpiryDate] = useState<Date | undefined>(undefined);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -65,12 +64,16 @@ export function VehicleOnboardingWizard({
   const handleSubmit = async () => {
     setIsProcessing(true);
     try {
-      await createVehicle(formData);
-      toast.success("Vehicle successfully onboarded");
-      onComplete();
-      onClose();
+      // Format the date properly if it exists
+      const submissionData = {
+        ...formData,
+        insurance_expiry: insuranceExpiryDate ? insuranceExpiryDate.toISOString().split('T')[0] : '',
+      };
+      
+      // Pass the data to the parent component's onComplete handler
+      onComplete(submissionData);
     } catch (error) {
-      toast.error("Failed to onboard vehicle");
+      toast.error("Failed to process vehicle data");
       console.error(error);
     } finally {
       setIsProcessing(false);
@@ -124,7 +127,11 @@ export function VehicleOnboardingWizard({
       </div>
       <div className="space-y-2">
         <Label htmlFor="insurance_expiry">Insurance Expiry Date</Label>
-        <Input type="date" id="insurance_expiry" name="insurance_expiry" value={formData.insurance_expiry} onChange={handleInputChange} />
+        <DatePicker
+          date={insuranceExpiryDate}
+          setDate={setInsuranceExpiryDate}
+          placeholder="Select expiry date"
+        />
       </div>
       <VehicleImageUpload onUpload={(url) => console.log('Image uploaded:', url)} />
     </div>
@@ -162,7 +169,7 @@ export function VehicleOnboardingWizard({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500">Insurance:</span>
-            <span>{formData.insurance_company} (Expires: {formData.insurance_expiry})</span>
+            <span>{formData.insurance_company} (Expires: {insuranceExpiryDate ? new Date(insuranceExpiryDate).toLocaleDateString() : 'Not set'})</span>
           </div>
         </div>
       </div>
