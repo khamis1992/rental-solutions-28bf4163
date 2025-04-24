@@ -705,7 +705,7 @@ const AgreementFormWithVehicleCheck = ({
         open={isVehicleDialogOpen}
         onClose={() => setIsVehicleDialogOpen(false)}
         onAssign={handleVehicleConfirmation}
-        agreementId={null}
+        agreementId={form.getValues("id") || null}
       />
     </>
   );
