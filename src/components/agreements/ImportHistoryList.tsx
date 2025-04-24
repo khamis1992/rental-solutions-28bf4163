@@ -48,7 +48,9 @@ export function ImportHistoryList() {
           .limit(5);
 
         if (error) throw error;
-        setImports(data || []);
+        
+        // Use type assertion to ensure correct typing
+        setImports(data ? data as ImportLog[] : []);
       } catch (error) {
         console.error('Error fetching imports:', error);
       } finally {

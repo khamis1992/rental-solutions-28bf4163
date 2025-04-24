@@ -45,51 +45,51 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
         onDeletePayment(id);
       }
       
-      console.log("PaymentList: Payment deleted, refreshing list...");
-      await fetchPayments();
+      // Refresh payments
+      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
-      console.error("PaymentList: Error in handleDeletePayment:", error);
+      console.error("PaymentList: Error deleting payment:", error);
     }
   };
 
-  const refreshPayments = () => {
-    console.log("PaymentList: Manual refresh triggered");
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  // Remove the incorrect generatePendingPayments() call that doesn't exist
-  // and replace with proper empty array for pending payments
-  const pendingPayments = [];
-
+  const pendingPayments = calculatePendingPayments(agreementId);
+  
   if (isLoading) {
-    return <div className="flex items-center justify-center p-4">Loading payments...</div>;
+    return <div className="p-4 text-center">Loading payments...</div>;
   }
-
-  console.log("PaymentList: Rendering with payments:", payments);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Payment History</h3>
+        <div>
+          <h3 className="text-lg font-medium">Payments</h3>
+          <p className="text-sm text-muted-foreground">
+            {payments.length} payments recorded
+          </p>
+        </div>
         <div className="flex gap-2">
-          <Button onClick={refreshPayments} size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+          >
             <RefreshCcw className="h-4 w-4 mr-1" />
             Refresh
           </Button>
           {onAddPayment && (
-            <Button onClick={onAddPayment} size="sm">
+            <Button size="sm" onClick={onAddPayment}>
               <Plus className="h-4 w-4 mr-1" />
-              Add Payment
+              Record Payment
             </Button>
           )}
         </div>
       </div>
-
-      {payments.length === 0 ? (
-        <EmptyPaymentState />
+      
+      {payments.length === 0 && pendingPayments.length === 0 ? (
+        <EmptyPaymentState onAddPayment={onAddPayment} />
       ) : (
-        <PaymentsTable
-          payments={payments}
+        <PaymentsTable 
+          payments={payments} 
           pendingPayments={pendingPayments}
           onDeletePayment={handleDeletePayment}
           onAddPayment={onAddPayment}
@@ -99,4 +99,8 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
   );
 }
 
-export default PaymentList;
+// This is a temporary placeholder function until a proper implementation is developed
+function calculatePendingPayments(agreementId: string): Array<{ due_date: Date; amount: number }> {
+  // For now, return an empty array. This will be implemented properly in a future update.
+  return [];
+}

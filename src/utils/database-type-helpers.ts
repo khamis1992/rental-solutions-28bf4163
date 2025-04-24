@@ -1,3 +1,4 @@
+
 import { Database } from '@/types/database-types';
 
 /**
@@ -7,6 +8,24 @@ import { Database } from '@/types/database-types';
  */
 export const asLeaseIdColumn = (id: string): string => {
   return id;
+};
+
+/**
+ * Convert any string status to a properly typed lease status column
+ * @param status The status to convert
+ * @returns The status with the proper type for the status column
+ */
+export const asStatusColumn = (table: string, column: string, status: string): string => {
+  return status;
+};
+
+/**
+ * Convert any string status to a properly typed payment status column
+ * @param status The status to convert
+ * @returns The status with the proper type for the status column
+ */
+export const asPaymentStatusColumn = (status: string): string => {
+  return status;
 };
 
 // Restore other previously removed column conversion functions
@@ -60,17 +79,6 @@ export const asLeaseId = (id: string): string => {
 };
 
 /**
- * Convert status to the proper type for a specific table and column
- * @param table The table name
- * @param column The column name
- * @param status The status value
- * @returns The status with the proper type
- */
-export const asStatusColumn = (table: string, column: string, status: string): string => {
-  return status;
-};
-
-/**
  * Safely extract data from a query result
  * @param data The query result
  * @returns The extracted data or null
@@ -86,4 +94,40 @@ export const safelyExtractData = <T>(data: T | null | undefined): T | null => {
  */
 export const hasData = <T>(result: { data: T | null; error?: any }): boolean => {
   return !!result.data && !result.error;
+};
+
+/**
+ * Safely handles the case when a Supabase query result may include profiles data
+ * @param data The raw data from a Supabase query
+ * @returns The input data with safely accessed profiles
+ */
+export const safelyAccessProfiles = (data: any): any => {
+  if (!data) return null;
+  
+  try {
+    // Check if profiles exists and access it safely
+    const profiles = data.profiles || null;
+    return {
+      ...data,
+      customer_name: profiles?.full_name || null
+    };
+  } catch (error) {
+    console.error("Error accessing profiles data:", error);
+    return data;
+  }
+};
+
+/**
+ * Safely extract rent amount from agreements
+ * @param agreements Array of agreement data
+ * @returns Total rent amount
+ */
+export const safelyCalculateRentAmount = (agreements: any[] | null): number => {
+  if (!agreements || !Array.isArray(agreements)) return 0;
+  
+  return agreements.reduce((sum, agreement) => {
+    // Safely access the rent_amount property
+    const rentAmount = agreement?.rent_amount || 0;
+    return sum + parseFloat(rentAmount);
+  }, 0);
 };
