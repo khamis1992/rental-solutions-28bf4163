@@ -1,4 +1,3 @@
-
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
@@ -42,6 +41,10 @@ export const usePayments = (agreementId?: string) => {
       return null;
     }
     return response.data[0];
+  }, {
+    onSuccess: () => {
+      refetch(); // Refresh payment list after successful addition
+    }
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {

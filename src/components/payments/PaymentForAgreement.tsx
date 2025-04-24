@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
+import { usePayments } from '@/hooks/use-payments';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -17,19 +18,38 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { data, isLoading, error } = usePaymentDetails(carNumber);
+  const { addPayment } = usePayments(data?.agreementNumber || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Here we would normally process the payment
+      // Only proceed if we have valid data
+      if (!data?.agreementNumber) {
+        throw new Error('No valid agreement found');
+      }
+
+      const paymentData = {
+        amount: data.rentAmount,
+        payment_date: new Date().toISOString(),
+        lease_id: data.agreementNumber,
+        payment_method: 'cash',
+        description: 'Monthly rent payment',
+        status: 'completed',
+        type: 'Income',
+        late_fine_amount: data.lateFeeAmount || 0
+      };
+
+      await addPayment(paymentData);
+      
       toast({
         title: "Payment Recorded",
-        description: "The payment has been successfully recorded for the agreement.",
+        description: "The payment has been successfully recorded.",
       });
       onClose();
     } catch (error) {
+      console.error('Error recording payment:', error);
       toast({
         title: "Error",
         description: "Failed to record payment. Please try again.",
