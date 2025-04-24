@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -11,7 +12,6 @@ import { supabase } from "@/lib/supabase";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
-import { Database } from '@/types/database.types';
 
 interface AgreementSummary {
   id: string;
@@ -110,9 +110,10 @@ export function ReassignmentWizard({
       }
       
       if (sourceData) {
+        const sourceCustomerName = sourceData.profiles ? sourceData.profiles.full_name : undefined;
         const sourceDataWithCustomerName = {
           ...sourceData,
-          customer_name: sourceData.profiles?.full_name
+          customer_name: sourceCustomerName
         };
         setSourceAgreement(sourceDataWithCustomerName);
       }
@@ -139,9 +140,10 @@ export function ReassignmentWizard({
       }
       
       if (targetData) {
+        const targetCustomerName = targetData.profiles ? targetData.profiles.full_name : undefined;
         const targetDataWithCustomerName = {
           ...targetData,
-          customer_name: targetData.profiles?.full_name
+          customer_name: targetCustomerName
         };
         setTargetAgreement(targetDataWithCustomerName);
       }
@@ -558,15 +560,256 @@ export function ReassignmentWizard({
           </TabsList>
           
           <TabsContent value="review" className="pt-4">
-            {renderReviewStep()}
+            <div className="space-y-6">
+              <div className="bg-slate-50 p-4 rounded-md">
+                <h3 className="text-sm font-medium mb-3">Vehicle Information</h3>
+                {isLoading ? (
+                  <div className="h-20 animate-pulse bg-slate-200 rounded-md"></div>
+                ) : vehicleDetails ? (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-slate-500">Make & Model:</span> 
+                      <span className="font-medium ml-1">{vehicleDetails.make} {vehicleDetails.model}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Year:</span> 
+                      <span className="font-medium ml-1">{vehicleDetails.year}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">License Plate:</span> 
+                      <span className="font-medium ml-1">{vehicleDetails.license_plate}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Status:</span> 
+                      <span className="ml-1">
+                        <VehicleStatusBadge status="assigned" size="sm" />
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-red-500">Failed to load vehicle details</div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-md p-4">
+                  <h3 className="text-sm font-medium mb-3 flex items-center">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-500 text-xs mr-2">FROM</span>
+                    Current Agreement
+                  </h3>
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                    </div>
+                  ) : sourceAgreement ? (
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-slate-500">Agreement #:</span> 
+                        <span className="font-medium ml-1">{sourceAgreement.agreement_number}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Customer:</span> 
+                        <span className="font-medium ml-1">{sourceAgreement.customer_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Period:</span> 
+                        <span className="ml-1">{formatDate(sourceAgreement.start_date)} - {formatDate(sourceAgreement.end_date)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Status:</span> 
+                        <span className="font-medium text-red-500 ml-1">Will be CLOSED</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-red-500">Failed to load agreement</div>
+                  )}
+                </div>
+                
+                <div className="border rounded-md p-4">
+                  <h3 className="text-sm font-medium mb-3 flex items-center">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-500 text-xs mr-2">TO</span>
+                    New Agreement
+                  </h3>
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                      <div className="h-5 animate-pulse bg-slate-200 rounded-md"></div>
+                    </div>
+                  ) : targetAgreement ? (
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-slate-500">Agreement #:</span> 
+                        <span className="font-medium ml-1">{targetAgreement.agreement_number}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Customer:</span> 
+                        <span className="font-medium ml-1">{targetAgreement.customer_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Period:</span> 
+                        <span className="ml-1">{formatDate(targetAgreement.start_date)} - {formatDate(targetAgreement.end_date)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Status:</span> 
+                        <span className="font-medium text-green-500 ml-1">Will become ACTIVE</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-red-500">Failed to load agreement</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Financial Impact */}
+              {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-sm font-medium text-amber-800">Financial Impact</h3>
+                      <p className="text-sm text-amber-700 mt-1">
+                        The current agreement has {paymentsSummary.pending + paymentsSummary.overdue} pending financial obligations
+                        totaling {paymentsSummary.total_amount.toFixed(2)} QAR.
+                      </p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        In the next step, you'll decide how to handle these obligations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="options" className="pt-4">
-            {renderOptionsStep()}
+            <div className="space-y-6">
+              {/* Options for handling payments */}
+              {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
+                <div className="border rounded-md p-4">
+                  <h3 className="text-sm font-medium mb-3">Payment Handling</h3>
+                  <div className="flex items-top space-x-2 mb-4">
+                    <Checkbox 
+                      id="transfer-payments" 
+                      checked={transferPayments}
+                      onCheckedChange={(checked) => setTransferPayments(checked as boolean)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label htmlFor="transfer-payments">
+                        Transfer {paymentsSummary.pending + paymentsSummary.overdue} payment(s) to new agreement
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        All pending and overdue payments will be transferred to the new agreement.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Document generation */}
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm font-medium mb-3">Documentation</h3>
+                <div className="flex items-top space-x-2">
+                  <Checkbox 
+                    id="generate-docs" 
+                    checked={generateDocs}
+                    onCheckedChange={(checked) => setGenerateDocs(checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="generate-docs">
+                      Generate transition documents
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Create formal documentation of this vehicle transfer for record keeping.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Reason field */}
+              <div className="border rounded-md p-4">
+                <h3 className="text-sm font-medium mb-3">Reason for Reassignment</h3>
+                <Textarea 
+                  value={reason} 
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Provide a reason for this vehicle reassignment"
+                  rows={3}
+                />
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="confirm" className="pt-4">
-            {renderConfirmStep()}
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="bg-slate-50 p-4 rounded-md">
+                <h3 className="text-sm font-medium mb-3">Reassignment Summary</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-1/3 text-slate-500">Vehicle:</div>
+                    <div className="w-2/3 font-medium">
+                      {vehicleDetails?.make} {vehicleDetails?.model} ({vehicleDetails?.license_plate})
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-1/3 text-slate-500">From Agreement:</div>
+                    <div className="w-2/3 font-medium">#{sourceAgreement?.agreement_number}</div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-1/3 text-slate-500">To Agreement:</div>
+                    <div className="w-2/3 font-medium">#{targetAgreement?.agreement_number}</div>
+                  </div>
+                  {transferPayments && (
+                    <div className="flex items-center">
+                      <div className="w-1/3 text-slate-500">Transferring:</div>
+                      <div className="w-2/3">
+                        {paymentsSummary.pending + paymentsSummary.overdue} payment(s) totaling {paymentsSummary.total_amount.toFixed(2)} QAR
+                      </div>
+                    </div>
+                  )}
+                  {generateDocs && (
+                    <div className="flex items-center">
+                      <div className="w-1/3 text-slate-500">Documentation:</div>
+                      <div className="w-2/3">Generating transition documents</div>
+                    </div>
+                  )}
+                  <div className="flex items-start">
+                    <div className="w-1/3 text-slate-500">Reason:</div>
+                    <div className="w-2/3">{reason}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Warning */}
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex items-start">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-red-800">Important: This action cannot be easily undone</h3>
+                    <p className="text-sm text-red-700 mt-1">
+                      The current agreement will be closed and the vehicle will be assigned to the new agreement.
+                      While there is a rollback feature, it is recommended to check all details carefully before proceeding.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Confirmation checkbox */}
+              <div className="border rounded-md p-4">
+                <div className="flex items-top space-x-2">
+                  <Checkbox 
+                    id="confirm" 
+                    checked={confirmation}
+                    onCheckedChange={(checked) => setConfirmation(checked as boolean)}
+                  />
+                  <Label htmlFor="confirm" className="text-sm font-medium">
+                    I confirm that I want to reassign this vehicle and understand the consequences
+                  </Label>
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
         

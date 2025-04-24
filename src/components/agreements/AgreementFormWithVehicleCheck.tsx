@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
-import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
+import VehicleAssignmentDialog from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 
 interface AgreementFormProps {
@@ -124,7 +123,6 @@ const AgreementFormWithVehicleCheck = ({
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        // Fetch all vehicles, not just available ones, so we can show assigned vehicles too
         const { data, error } = await supabase
           .from("vehicles")
           .select("*");
@@ -163,7 +161,6 @@ const AgreementFormWithVehicleCheck = ({
   const handleVehicleChange = async (vehicleId: string) => {
     setIsCheckingVehicle(true);
     try {
-      // Check if vehicle is already assigned to an active agreement
       const availabilityResult = await checkVehicleAvailability(vehicleId);
       setVehicleAvailabilityResult(availabilityResult);
       
@@ -171,7 +168,6 @@ const AgreementFormWithVehicleCheck = ({
         setIsVehicleDialogOpen(true);
       }
       
-      // Get vehicle details regardless of availability
       const { data, error } = await supabase
         .from("vehicles")
         .select("*")
@@ -220,8 +216,6 @@ const AgreementFormWithVehicleCheck = ({
   };
 
   const handleVehicleConfirmation = () => {
-    // User has confirmed they want to proceed with the vehicle assignment
-    // This will be handled in the submission logic which will close the old agreement
     console.log("User confirmed vehicle reassignment");
   };
 
@@ -707,13 +701,11 @@ const AgreementFormWithVehicleCheck = ({
         </form>
       </Form>
 
-      {/* Vehicle Assignment Confirmation Dialog */}
       <VehicleAssignmentDialog
-        isOpen={isVehicleDialogOpen}
+        open={isVehicleDialogOpen}
         onClose={() => setIsVehicleDialogOpen(false)}
-        onConfirm={handleVehicleConfirmation}
-        vehicleId={form.getValues("vehicle_id")}
-        existingAgreement={vehicleAvailabilityResult?.existingAgreement}
+        onAssign={handleVehicleConfirmation}
+        agreementId={form.getValues("id") || null}
       />
     </>
   );

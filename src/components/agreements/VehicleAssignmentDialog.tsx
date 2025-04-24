@@ -55,13 +55,17 @@ const VehicleAssignmentDialog = ({ open, onClose, agreementId, onAssign }: Vehic
     try {
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, license_plate, year')
+        .select('id, make, model, license_plate, year, color')
         .eq('status', 'available')
         .order('make', { ascending: true });
         
       if (error) throw error;
       
-      setAvailableVehicles(data || []);
+      if (data) {
+        setAvailableVehicles(data as VehicleInfo[]);
+      } else {
+        setAvailableVehicles([]);
+      }
     } catch (error) {
       console.error('Error fetching available vehicles:', error);
       toast.error('Failed to load available vehicles');
@@ -83,14 +87,7 @@ const VehicleAssignmentDialog = ({ open, onClose, agreementId, onAssign }: Vehic
       if (error) throw error;
       
       if (data) {
-        setVehicleDetails({
-          id: data.id,
-          make: data.make,
-          model: data.model,
-          license_plate: data.license_plate,
-          year: data.year,
-          color: data.color
-        });
+        setVehicleDetails(data as VehicleInfo);
       }
     } catch (error) {
       console.error('Error fetching vehicle details:', error);
