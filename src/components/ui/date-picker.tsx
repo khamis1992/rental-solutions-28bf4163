@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DatePickerProps {
+export interface DatePickerProps {
   value?: Date;
   onChange?: (date?: Date) => void;
   disabled?: boolean;

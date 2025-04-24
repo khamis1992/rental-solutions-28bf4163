@@ -1,21 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import type { Database } from '@/types/database.types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Create a single supabase client for interacting with your database
+export const supabase = createClient<Database>(
+  'https://vqdlsidkucrownbfuouq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y'
+);
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-
-export async function runPaymentScheduleMaintenanceJob() {
-  try {
-    const { data, error } = await supabase.functions.invoke('payment-schedule-maintenance');
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error running payment schedule maintenance job:', error);
-    throw error;
-  }
-}
-
-export default supabase;
+export { supabase as default };

@@ -33,7 +33,6 @@ export default defineConfig(({ mode }) => ({
   },
   css: {
     devSourcemap: true,
-    postcss: {},
     modules: {
       scopeBehaviour: 'local'
     },
