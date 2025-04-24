@@ -24,35 +24,35 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
+    console.log("PaymentList: Fetching payments for agreement", agreementId);
     if (agreementId) {
-      fetchPayments();
+      fetchPayments()
+        .then(() => console.log("PaymentList: Successfully fetched payments"))
+        .catch(error => console.error("PaymentList: Error fetching payments:", error));
     }
   }, [agreementId, fetchPayments, refreshTrigger]);
-
-  // Generate rent due dates starting from agreement start date
-  const generatePendingPayments = () => {
-    // Implementation remains the same
-    return [];
-  };
 
   const handleDeletePayment = async (id: string) => {
     try {
       const confirmed = window.confirm("Are you sure you want to delete this payment?");
       if (!confirmed) return;
       
+      console.log("PaymentList: Deleting payment", id);
       await deletePayment(id);
       
       if (onDeletePayment) {
         onDeletePayment(id);
       }
       
-      fetchPayments();
+      console.log("PaymentList: Payment deleted, refreshing list...");
+      await fetchPayments();
     } catch (error) {
-      console.error("Error in handleDeletePayment:", error);
+      console.error("PaymentList: Error in handleDeletePayment:", error);
     }
   };
 
   const refreshPayments = () => {
+    console.log("PaymentList: Manual refresh triggered");
     setRefreshTrigger(prev => prev + 1);
   };
 

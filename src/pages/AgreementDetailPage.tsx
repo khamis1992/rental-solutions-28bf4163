@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -63,6 +62,8 @@ export function AgreementDetailPage() {
     isPartialPayment?: boolean
   ) => {
     try {
+      console.log("Starting payment submission...", { amount, paymentDate, notes });
+      
       // Use the specialized payment handler from the hook
       const success = await handleSpecialAgreementPayments(
         amount,
@@ -74,14 +75,17 @@ export function AgreementDetailPage() {
         isPartialPayment || false
       );
       
+      console.log("Payment submission result:", success);
+      
       if (success) {
         setIsPaymentDialogOpen(false);
-        // Explicitly fetch the payments again to update the UI
+        console.log("Refreshing payments after successful submission...");
         await fetchPayments();
+        toast.success("Payment recorded successfully");
       }
     } catch (error) {
-      toast.error("Failed to record payment");
       console.error("Payment submission error:", error);
+      toast.error("Failed to record payment");
     }
   }, [handleSpecialAgreementPayments, fetchPayments]);
 
@@ -113,6 +117,7 @@ export function AgreementDetailPage() {
           onPaymentDeleted={fetchPayments}
           leaseStartDate={agreement.start_date}
           leaseEndDate={agreement.end_date}
+          agreementId={agreement.id}
         />
       </div>
 

@@ -12,6 +12,7 @@ interface AgreementPaymentsTabProps {
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
+  agreementId: string; // Added this prop
 }
 
 export const AgreementPaymentsTab = ({
@@ -20,10 +21,9 @@ export const AgreementPaymentsTab = ({
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
-  leaseEndDate
+  leaseEndDate,
+  agreementId
 }: AgreementPaymentsTabProps) => {
-  const agreementId = payments.length > 0 ? payments[0].lease_id : undefined;
-
   return (
     <div className="space-y-6">
       <Card>
@@ -38,8 +38,8 @@ export const AgreementPaymentsTab = ({
             </div>
           ) : agreementId ? (
             <PaymentList 
-              agreementId={agreementId} 
-              onDeletePayment={onPaymentDeleted} 
+              agreementId={agreementId}
+              onDeletePayment={onPaymentDeleted}
             />
           ) : (
             <EmptyPaymentState />
