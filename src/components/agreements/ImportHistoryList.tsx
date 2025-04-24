@@ -22,7 +22,7 @@ import {
 import { safelyProcessQueryResult } from '@/utils/database-type-helpers';
 
 // Define the ImportLog type to match the database structure
-type ImportLog = {
+interface ImportLog {
   id: string;
   file_name: string;
   original_file_name: string | null;
@@ -33,7 +33,7 @@ type ImportLog = {
   error_count: number;
   row_count: number;
   created_by: string | null;
-};
+}
 
 export function ImportHistoryList() {
   const [imports, setImports] = useState<ImportLog[]>([]);
@@ -51,12 +51,21 @@ export function ImportHistoryList() {
 
         if (response.error) throw response.error;
         
-        // Process query result safely with proper type conversion
-        const importLogs = safelyProcessQueryResult(
-          response,
-          (data) => data as ImportLog[],
-          [] as ImportLog[]
-        );
+        // Transform the data to ensure it matches ImportLog type
+        const importLogs = response.data ? 
+          response.data.map(item => ({
+            id: item.id,
+            file_name: item.file_name,
+            original_file_name: item.original_file_name,
+            status: item.status,
+            created_at: item.created_at,
+            updated_at: item.updated_at, 
+            processed_count: item.processed_count || 0,
+            error_count: item.error_count || 0,
+            row_count: item.row_count || 0,
+            created_by: item.created_by
+          })) as ImportLog[] : 
+          [];
 
         setImports(importLogs);
       } catch (error) {

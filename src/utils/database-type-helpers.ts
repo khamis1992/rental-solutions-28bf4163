@@ -1,5 +1,5 @@
-
 import { Database } from '@/types/database-types';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
  * Convert any string ID to a properly typed lease ID column
@@ -179,36 +179,37 @@ export function isValidObject<T>(obj: unknown, requiredProps: (keyof T)[]): obj 
 /**
  * Safely handle data from database queries to prevent TypeScript errors
  */
-export function safeDatabaseOperation<T>(
-  operation: () => Promise<{ data: T | null; error: any }>, 
+export async function safeDatabaseOperation<T>(
+  operation: () => Promise<PostgrestSingleResponse<T> | PostgrestResponse<T>>, 
   errorHandler?: (error: any) => void
 ): Promise<T | null> {
-  return operation()
-    .then(result => {
-      if (result.error) {
-        console.error("Database operation error:", result.error);
-        errorHandler?.(result.error);
-        return null;
-      }
-      return result.data;
-    })
-    .catch(err => {
-      console.error("Unexpected error during database operation:", err);
-      errorHandler?.(err);
+  try {
+    const result = await operation();
+    
+    if (result.error) {
+      console.error("Database operation error:", result.error);
+      errorHandler?.(result.error);
       return null;
-    });
+    }
+    
+    return result.data;
+  } catch (err) {
+    console.error("Unexpected error during database operation:", err);
+    errorHandler?.(err);
+    return null;
+  }
 }
 
 /**
  * Safely process Supabase query results and transform to the expected type
  */
 export function safelyProcessQueryResult<T, R>(
-  result: { data: T | null; error?: any },
+  result: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
   transform: (data: T) => R,
   defaultValue: R
 ): R {
-  if (result.error || !result.data) {
-    console.error(result.error || "No data returned from query");
+  if (!result || result.error || !result.data) {
+    console.error(result?.error || "No data returned from query");
     return defaultValue;
   }
   

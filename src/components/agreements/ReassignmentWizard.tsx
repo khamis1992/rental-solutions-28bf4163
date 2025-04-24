@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, ArrowRight, CheckCircle2, Info, X, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
@@ -19,8 +20,7 @@ import {
   safelyExtractData,
   safelyAccessProfiles,
   safeAccess,
-  safeDatabaseOperation,
-  isValidObject
+  safeDatabaseOperation
 } from '@/utils/database-type-helpers';
 
 interface AgreementSummary {
@@ -119,17 +119,22 @@ export function ReassignmentWizard({
           .single()
       );
       
-      if (sourceResponse && 'profiles' in sourceResponse) {
-        const processedSourceData = {
-          ...sourceResponse,
-          customer_name: safeAccess(
-            sourceResponse.profiles,
-            profiles => profiles.full_name,
-            undefined
-          )
+      if (sourceResponse && typeof sourceResponse === 'object') {
+        const sourceData = sourceResponse as any;
+        const customerName = sourceData.profiles?.full_name;
+        
+        const processedSourceData: AgreementSummary = {
+          id: sourceData.id || '',
+          agreement_number: sourceData.agreement_number || '',
+          start_date: sourceData.start_date || '',
+          end_date: sourceData.end_date || '',
+          status: sourceData.status || '',
+          customer_id: sourceData.customer_id || '',
+          vehicle_id: sourceData.vehicle_id || '',
+          customer_name: customerName
         };
         
-        setSourceAgreement(processedSourceData as AgreementSummary);
+        setSourceAgreement(processedSourceData);
       }
       
       // Load target agreement details
@@ -150,17 +155,22 @@ export function ReassignmentWizard({
           .single()
       );
       
-      if (targetResponse && 'profiles' in targetResponse) {
-        const processedTargetData = {
-          ...targetResponse,
-          customer_name: safeAccess(
-            targetResponse.profiles,
-            profiles => profiles.full_name,
-            undefined
-          )
+      if (targetResponse && typeof targetResponse === 'object') {
+        const targetData = targetResponse as any;
+        const customerName = targetData.profiles?.full_name;
+        
+        const processedTargetData: AgreementSummary = {
+          id: targetData.id || '',
+          agreement_number: targetData.agreement_number || '',
+          start_date: targetData.start_date || '',
+          end_date: targetData.end_date || '',
+          status: targetData.status || '',
+          customer_id: targetData.customer_id || '',
+          vehicle_id: targetData.vehicle_id || '',
+          customer_name: customerName
         };
         
-        setTargetAgreement(processedTargetData as AgreementSummary);
+        setTargetAgreement(processedTargetData);
       }
       
       // Load vehicle details
@@ -225,7 +235,7 @@ export function ReassignmentWizard({
     try {
       // 1. Close the source agreement
       const closeAgreementUpdate = {
-        status: 'closed' as const,
+        status: asStatusColumn('leases', 'status', 'closed'),
         updated_at: new Date().toISOString(),
         notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
       };
@@ -244,7 +254,7 @@ export function ReassignmentWizard({
       // 2. Assign vehicle to target agreement
       const assignVehicleUpdate = {
         vehicle_id: vehicleId,
-        status: 'active' as const,
+        status: asStatusColumn('leases', 'status', 'active'),
         updated_at: new Date().toISOString()
       };
       
