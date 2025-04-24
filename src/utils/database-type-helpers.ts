@@ -15,6 +15,15 @@ export const asTableId = (table: string, id: string): string => {
 };
 
 /**
+ * Convert any string ID to a properly typed vehicle ID
+ * @param id The ID to convert
+ * @returns The ID with the proper type for the vehicle_id column
+ */
+export const asVehicleId = (id: string): string => {
+  return id;
+};
+
+/**
  * Convert any string ID to a properly typed agreement ID column
  * @param id The ID to convert
  * @returns The ID with the proper type for the agreement_id column
