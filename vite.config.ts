@@ -10,7 +10,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react({
+      plugins: []
+    }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
@@ -32,6 +34,9 @@ export default defineConfig(({ mode }) => ({
   css: {
     postcss: {},
     devSourcemap: true,
+    modules: {
+      scopeBehaviour: 'local'
+    }
   },
   optimizeDeps: {
     force: true,
