@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentList } from '@/components/payments/PaymentList';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { EmptyPaymentState } from '@/components/payments/EmptyPaymentState';
 
 interface AgreementPaymentsTabProps {
   payments: Payment[];
@@ -21,6 +22,8 @@ export const AgreementPaymentsTab = ({
   leaseStartDate,
   leaseEndDate
 }: AgreementPaymentsTabProps) => {
+  const agreementId = payments.length > 0 ? payments[0].lease_id : undefined;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -29,15 +32,17 @@ export const AgreementPaymentsTab = ({
           <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
         </CardHeader>
         <CardContent>
-          {Array.isArray(payments) && (
-            <PaymentHistory 
-              payments={payments}
-              isLoading={isLoading} 
-              rentAmount={rentAmount} 
-              onPaymentDeleted={onPaymentDeleted}
-              leaseStartDate={leaseStartDate}
-              leaseEndDate={leaseEndDate}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <p>Loading payments...</p>
+            </div>
+          ) : agreementId ? (
+            <PaymentList 
+              agreementId={agreementId} 
+              onDeletePayment={onPaymentDeleted} 
             />
+          ) : (
+            <EmptyPaymentState />
           )}
         </CardContent>
       </Card>

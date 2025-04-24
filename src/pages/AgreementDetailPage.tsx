@@ -1,6 +1,6 @@
+
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -33,17 +33,18 @@ export function AgreementDetailPage() {
   } = useAgreements(id);
 
   const { 
-    payments = [], 
+    payments, 
     isLoading: isPaymentsLoading,
-    fetchPayments
+    fetchPayments,
+    addPayment
   } = usePayments(id);
 
   const { rentAmount: rentAmountFromHook } = useRentAmount(id);
 
   const { 
-    generatePayment,
-    isLoading: isPaymentGenerationLoading
-  } = usePaymentGeneration(id);
+    handleSpecialAgreementPayments,
+    isProcessing: isPaymentGenerationLoading
+  } = usePaymentGeneration(agreement, id);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -57,18 +58,32 @@ export function AgreementDetailPage() {
     paymentDate: Date, 
     notes?: string, 
     paymentMethod?: string, 
-    referenceNumber?: string
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
   ) => {
     try {
-      // Implement payment submission logic
-      toast.success("Payment recorded successfully");
-      fetchPayments();
-      setIsPaymentDialogOpen(false);
+      // Use the specialized payment handler from the hook
+      const success = await handleSpecialAgreementPayments(
+        amount,
+        paymentDate,
+        notes,
+        paymentMethod || 'cash',
+        referenceNumber,
+        includeLatePaymentFee || false,
+        isPartialPayment || false
+      );
+      
+      if (success) {
+        setIsPaymentDialogOpen(false);
+        // Explicitly fetch the payments again to update the UI
+        await fetchPayments();
+      }
     } catch (error) {
       toast.error("Failed to record payment");
-      console.error(error);
+      console.error("Payment submission error:", error);
     }
-  }, [fetchPayments]);
+  }, [handleSpecialAgreementPayments, fetchPayments]);
 
   if (isAgreementLoading || !agreement) {
     return <div>Loading...</div>;
