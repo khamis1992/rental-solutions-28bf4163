@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
@@ -34,6 +35,41 @@ export const runPaymentScheduleMaintenanceJob = async () => {
  */
 export const manuallyRunPaymentMaintenance = async () => {
   return await runPaymentScheduleMaintenanceJob();
+};
+
+/**
+ * Checks and generates monthly payments for active agreements
+ * This function ensures all active agreements have payment schedules for each month
+ * @returns Object with success status and message
+ */
+export const checkAndGenerateMonthlyPayments = async () => {
+  try {
+    console.log("Running monthly payment check");
+    
+    // Call Supabase RPC function to generate missing payment records
+    const { data, error } = await supabase.rpc('generate_missing_payment_records');
+    
+    if (error) {
+      console.error("Error generating payment records:", error);
+      return {
+        success: false,
+        message: `Failed to generate payment records: ${error.message}`
+      };
+    }
+    
+    console.log("Monthly payment check completed successfully");
+    return {
+      success: true,
+      message: "Monthly payment check completed successfully",
+      records: data
+    };
+  } catch (error) {
+    console.error("Error in checkAndGenerateMonthlyPayments:", error);
+    return {
+      success: false,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
 };
 
 /**
