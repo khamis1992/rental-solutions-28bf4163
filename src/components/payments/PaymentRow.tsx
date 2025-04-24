@@ -4,7 +4,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Payment } from '@/hooks/use-payments';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { formatCurrency } from '@/lib/utils';
 
 interface PaymentRowProps {

@@ -4,6 +4,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 interface PendingPaymentRowProps {
   dueDate: Date;
@@ -15,7 +16,7 @@ export const PendingPaymentRow = ({ dueDate, amount, onAddPayment }: PendingPaym
   return (
     <TableRow className="bg-muted/30">
       <TableCell>{format(dueDate, 'dd/MM/yyyy')}</TableCell>
-      <TableCell>{amount}</TableCell>
+      <TableCell>{formatCurrency(amount)}</TableCell>
       <TableCell>
         <Badge variant="destructive">Unpaid</Badge>
       </TableCell>

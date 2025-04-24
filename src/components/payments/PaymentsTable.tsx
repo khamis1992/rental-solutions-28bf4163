@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Payment } from '@/hooks/use-payments';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { PaymentRow } from './PaymentRow';
 import { PendingPaymentRow } from './PendingPaymentRow';
 

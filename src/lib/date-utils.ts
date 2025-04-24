@@ -1,4 +1,3 @@
-
 import { format, parseISO, isValid } from 'date-fns';
 
 /**
@@ -86,3 +85,24 @@ export const formatDateForInput = (date: Date | string | null | undefined): stri
     return '';
   }
 };
+
+/**
+ * Generates an array of payment due dates (1st of each month) between start and end dates
+ */
+export function generateMonthlyPaymentDates(startDate: Date, endDate: Date): Date[] {
+  const dates: Date[] = [];
+  const currentDate = new Date(startDate);
+  
+  // Set to 1st of the month
+  currentDate.setDate(1);
+  
+  // Loop through each month until we reach the end date
+  while (currentDate <= endDate) {
+    dates.push(new Date(currentDate));
+    
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
+  
+  return dates;
+}
