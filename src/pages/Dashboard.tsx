@@ -5,7 +5,7 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
 import RecentActivity from '@/components/dashboard/RecentActivity';
-import { LayoutDashboard, RefreshCw, Wrench, Car, FileText, CreditCard, Calendar, ChevronDown, ChevronUp, Settings } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Wrench, UserPlus, FileText, CreditCard, Calendar, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,13 +61,13 @@ const Dashboard = () => {
     navigate(path);
   }, [navigate]);
   
-  // Quick actions for the dashboard - update the Add Vehicle path to match the route
+  // Quick actions for the dashboard - update Add Vehicle to Add Customer
   const quickActions = [
     { 
-      title: "Add Vehicle", 
-      icon: Car, 
-      color: "bg-blue-500", 
-      onClick: () => navigateTo('/vehicles/add') 
+      title: "Add Customer", 
+      icon: UserPlus, 
+      color: "bg-green-500", 
+      onClick: () => navigateTo('/customers/add') 
     },
     { 
       title: "Create Agreement", 
