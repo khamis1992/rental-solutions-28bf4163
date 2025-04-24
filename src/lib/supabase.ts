@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
@@ -91,6 +90,41 @@ export const fixAgreementPayments = async (agreementId: string): Promise<{ succe
  */
 export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolean, message: string }> => {
   return runPaymentScheduleMaintenanceJob();
+};
+
+/**
+ * Checks and generates monthly payments
+ * This function calls the Supabase RPC function to generate missing payment records
+ * 
+ * @returns A promise that resolves when the check and generation is complete
+ */
+export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: boolean, message: string }> => {
+  try {
+    console.log("Checking and generating monthly payments");
+    
+    // Call the Supabase RPC function to generate missing payment records
+    const { data, error } = await supabase.rpc('generate_missing_payment_records');
+    
+    if (error) {
+      console.error("Error generating monthly payments:", error);
+      return { 
+        success: false, 
+        message: `Failed to generate monthly payments: ${error.message}` 
+      };
+    }
+    
+    console.log("Monthly payments generation completed successfully", data);
+    return { 
+      success: true, 
+      message: "Monthly payments generated successfully" 
+    };
+  } catch (error) {
+    console.error("Exception in monthly payments generation:", error);
+    return { 
+      success: false, 
+      message: `Exception generating monthly payments: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
 };
 
 export { supabase as default };
