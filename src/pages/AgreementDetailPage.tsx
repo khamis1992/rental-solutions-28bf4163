@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -10,11 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useAgreements } from '@/hooks/use-agreements';
 import { usePayments } from '@/hooks/use-payments';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 
 import { AgreementOverviewSection } from '@/components/agreements/AgreementOverviewSection';
 import { AgreementDetailsTab } from '@/components/agreements/AgreementDetailsTab';
 import { AgreementPaymentsTab } from '@/components/agreements/AgreementPaymentsTab';
-import { AgreementOverviewTab } from '@/components/agreements/AgreementOverviewTab';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 
 export function AgreementDetailPage() {
@@ -37,6 +37,13 @@ export function AgreementDetailPage() {
     isLoading: isPaymentsLoading,
     fetchPayments
   } = usePayments(id);
+
+  const { rentAmount: rentAmountFromHook } = useRentAmount(id);
+
+  const { 
+    generatePayment,
+    isLoading: isPaymentGenerationLoading
+  } = usePaymentGeneration(id);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -71,7 +78,7 @@ export function AgreementDetailPage() {
     <div className="space-y-6 p-6">
       <AgreementOverviewSection 
         agreement={agreement}
-        rentAmount={rentAmount}
+        rentAmount={rentAmountFromHook}
         contractAmount={contractAmount}
         onDelete={() => setIsDeleteDialogOpen(true)}
         onEdit={() => navigate(`/agreements/edit/${agreement.id}`)}
@@ -80,14 +87,14 @@ export function AgreementDetailPage() {
       <div className="grid md:grid-cols-2 gap-6">
         <AgreementDetailsTab 
           agreement={agreement}
-          rentAmount={rentAmount}
+          rentAmount={rentAmountFromHook}
           contractAmount={contractAmount}
         />
         
         <AgreementPaymentsTab 
           payments={payments}
           isLoading={isPaymentsLoading}
-          rentAmount={rentAmount}
+          rentAmount={rentAmountFromHook}
           onPaymentDeleted={fetchPayments}
           leaseStartDate={agreement.start_date}
           leaseEndDate={agreement.end_date}
@@ -113,7 +120,7 @@ export function AgreementDetailPage() {
         open={isPaymentDialogOpen} 
         onOpenChange={setIsPaymentDialogOpen} 
         onSubmit={handlePaymentSubmit}
-        defaultAmount={rentAmount || 0}
+        defaultAmount={rentAmountFromHook || 0}
         title="Record Rent Payment"
         description="Enter payment details for this agreement"
       />
