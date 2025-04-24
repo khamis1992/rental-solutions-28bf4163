@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { format as dateFormat } from 'date-fns';
 import { ExtendedPayment, Payment } from './PaymentHistory.types';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { useAgreements } from '@/hooks/use-agreements';
 import { useParams } from 'react-router-dom';
-import { Switch } from '@/components/ui/switch';
+import { useAgreements } from '@/hooks/use-agreements';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { PaymentFormFields } from './payment/PaymentFormFields';
+import { PendingPaymentsSelect } from './payment/PendingPaymentsSelect';
+import { LateFeeSection } from './payment/LateFeeSection';
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -165,25 +160,6 @@ export function PaymentEntryDialog({
     }
   };
 
-  const showLateFeeOption = lateFeeDetails !== null;
-
-  const formatPaymentDescription = (payment: ExtendedPayment) => {
-    let desc = payment.description || 
-               `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
-    
-    let status = "";
-    if (payment.status === 'partially_paid') {
-      status = " (Partially Paid)";
-    } else if (payment.status === 'pending') {
-      status = " (Pending)";
-    } else if (payment.status === 'overdue') {
-      status = " (Overdue)";
-    }
-    
-    return `${desc}${status} - ${payment.amount_paid ? 
-      `Paid: ${payment.amount_paid.toLocaleString()} / ` : ''}QAR ${payment.amount?.toLocaleString() || 0}`;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -194,138 +170,42 @@ export function PaymentEntryDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {pendingPayments.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="payment-select">Record Payment For</Label>
-              <Select 
-                value={selectedPaymentId} 
-                onValueChange={handlePaymentSelect}
-              >
-                <SelectTrigger id="payment-select">
-                  <SelectValue placeholder="Select a payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pendingPayments.map((payment) => (
-                    <SelectItem key={payment.id} value={payment.id}>
-                      {formatPaymentDescription(payment)}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="manual">Record a new manual payment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <PendingPaymentsSelect
+              pendingPayments={pendingPayments}
+              selectedPaymentId={selectedPaymentId}
+              onPaymentSelect={handlePaymentSelect}
+            />
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Payment Amount (QAR)</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={handleAmountChange}
-              min="0"
-              step="0.01"
-              required
+          <PaymentFormFields
+            amount={amount}
+            paymentDate={paymentDate}
+            notes={notes}
+            paymentMethod={paymentMethod}
+            referenceNumber={referenceNumber}
+            isPartialPayment={isPartialPayment}
+            defaultAmount={defaultAmount}
+            calendarOpen={calendarOpen}
+            onAmountChange={handleAmountChange}
+            onPaymentDateSelect={(date) => {
+              if (date) {
+                setPaymentDate(date);
+                setCalendarOpen(false);
+              }
+            }}
+            onNotesChange={(e) => setNotes(e.target.value)}
+            onPaymentMethodChange={setPaymentMethod}
+            onReferenceNumberChange={(e) => setReferenceNumber(e.target.value)}
+            onPartialPaymentChange={(checked) => setIsPartialPayment(checked)}
+            setCalendarOpen={setCalendarOpen}
+          />
+
+          {lateFeeDetails && (
+            <LateFeeSection
+              lateFeeDetails={lateFeeDetails}
+              includeLatePaymentFee={includeLatePaymentFee}
+              onLatePaymentFeeChange={setIncludeLatePaymentFee}
             />
-          </div>
-
-          {defaultAmount > 0 && (
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="partial-payment" 
-                checked={isPartialPayment} 
-                onCheckedChange={(checked) => setIsPartialPayment(checked as boolean)}
-              />
-              <Label htmlFor="partial-payment" className="text-sm cursor-pointer">
-                This is a partial payment
-              </Label>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="payment-date">Payment Date</Label>
-            <div className="relative">
-              <Input
-                id="payment-date"
-                value={dateFormat(paymentDate, 'PPP')}
-                readOnly
-                onClick={() => setCalendarOpen(true)}
-                className="cursor-pointer"
-              />
-              {calendarOpen && (
-                <div className="absolute top-full mt-1 z-10 bg-white border rounded-md shadow-lg">
-                  <Calendar
-                    mode="single"
-                    selected={paymentDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setPaymentDate(date);
-                        setCalendarOpen(false);
-                      }
-                    }}
-                    initialFocus
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="payment-method">Payment Method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="cheque">Cheque</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="debit_card">Debit Card</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="reference-number">Reference Number (Optional)</Label>
-            <Input
-              id="reference-number"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              placeholder="Transaction or receipt reference"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any additional information"
-              rows={3}
-            />
-          </div>
-
-          {showLateFeeOption && lateFeeDetails && (
-            <div className="border p-3 rounded-md bg-amber-50">
-              <div className="flex items-start space-x-3">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-amber-800">Late Payment Fee</h4>
-                  <p className="text-xs text-amber-700 mt-1">
-                    {lateFeeDetails.daysLate} days late: QAR {lateFeeDetails.amount.toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="late-fee"
-                    checked={includeLatePaymentFee}
-                    onCheckedChange={setIncludeLatePaymentFee}
-                  />
-                  <Label htmlFor="late-fee" className="text-xs">Include Fee</Label>
-                </div>
-              </div>
-            </div>
           )}
 
           <div className="flex justify-end space-x-3 pt-2">
