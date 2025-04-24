@@ -131,3 +131,91 @@ export const safelyCalculateRentAmount = (agreements: any[] | null): number => {
     return sum + parseFloat(rentAmount);
   }, 0);
 };
+
+/**
+ * Generic safe data access function - ensures data exists before extracting
+ * @param data Any potentially null/undefined data with properties
+ * @param accessor Function to access properties from the data
+ * @param defaultValue Default value to return if data is null/undefined
+ * @returns The extracted value or default
+ */
+export const safeAccess = <T, R>(
+  data: T | null | undefined,
+  accessor: (data: T) => R,
+  defaultValue: R
+): R => {
+  if (data === null || data === undefined) {
+    return defaultValue;
+  }
+  
+  try {
+    return accessor(data);
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
+/**
+ * Strong typed conversion for database records
+ */
+export function asDbRecord<T>(record: unknown): T | null {
+  if (!record) {
+    return null;
+  }
+  return record as T;
+}
+
+/**
+ * Check if object is valid and has required properties
+ */
+export function isValidObject<T>(obj: unknown, requiredProps: (keyof T)[]): obj is T {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  return requiredProps.every(prop => 
+    prop in (obj as any)
+  );
+}
+
+/**
+ * Safely handle data from database queries to prevent TypeScript errors
+ */
+export function safeDatabaseOperation<T>(
+  operation: () => Promise<{ data: T | null; error: any }>, 
+  errorHandler?: (error: any) => void
+): Promise<T | null> {
+  return operation()
+    .then(result => {
+      if (result.error) {
+        console.error("Database operation error:", result.error);
+        errorHandler?.(result.error);
+        return null;
+      }
+      return result.data;
+    })
+    .catch(err => {
+      console.error("Unexpected error during database operation:", err);
+      errorHandler?.(err);
+      return null;
+    });
+}
+
+/**
+ * Safely process Supabase query results and transform to the expected type
+ */
+export function safelyProcessQueryResult<T, R>(
+  result: { data: T | null; error?: any },
+  transform: (data: T) => R,
+  defaultValue: R
+): R {
+  if (result.error || !result.data) {
+    console.error(result.error || "No data returned from query");
+    return defaultValue;
+  }
+  
+  try {
+    return transform(result.data);
+  } catch (e) {
+    console.error("Error transforming query result:", e);
+    return defaultValue;
+  }
+}

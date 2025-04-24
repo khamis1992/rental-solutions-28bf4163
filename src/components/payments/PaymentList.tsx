@@ -52,7 +52,8 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     }
   };
 
-  const pendingPayments = calculatePendingPayments(agreementId);
+  // Calculate pending payments using a safe approach
+  const pendingPayments = agreementId ? calculatePendingPayments(agreementId) : [];
   
   if (isLoading) {
     return <div className="p-4 text-center">Loading payments...</div>;

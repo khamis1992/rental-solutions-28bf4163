@@ -17,7 +17,10 @@ import {
   asLeaseIdColumn, 
   asStatusColumn,
   safelyExtractData,
-  safelyAccessProfiles
+  safelyAccessProfiles,
+  safeAccess,
+  safeDatabaseOperation,
+  isValidObject
 } from '@/utils/database-type-helpers';
 
 interface AgreementSummary {
@@ -29,6 +32,9 @@ interface AgreementSummary {
   customer_name?: string;
   vehicle_id: string;
   status: string;
+  profiles?: {
+    full_name?: string;
+  };
 }
 
 interface PaymentsSummary {
@@ -96,96 +102,92 @@ export function ReassignmentWizard({
     setIsLoading(true);
     try {
       // Load source agreement details
-      const { data: sourceData, error: sourceError } = await supabase
-        .from('leases')
-        .select(`
-          id, 
-          agreement_number, 
-          start_date, 
-          end_date, 
-          status, 
-          customer_id, 
-          vehicle_id,
-          profiles:customer_id (full_name)
-        `)
-        .eq('id', sourceAgreementId)
-        .single();
-        
-      if (sourceError) {
-        console.error("Error loading source agreement:", sourceError);
-        return;
-      }
+      const sourceResponse = await safeDatabaseOperation(() => 
+        supabase
+          .from('leases')
+          .select(`
+            id, 
+            agreement_number, 
+            start_date, 
+            end_date, 
+            status, 
+            customer_id, 
+            vehicle_id,
+            profiles:customer_id (full_name)
+          `)
+          .eq('id', sourceAgreementId)
+          .single()
+      );
       
-      if (sourceData) {
-        // Safely extract data and access profiles
+      if (sourceResponse && 'profiles' in sourceResponse) {
         const processedSourceData = {
-          ...sourceData,
-          customer_name: sourceData.profiles?.full_name
+          ...sourceResponse,
+          customer_name: safeAccess(
+            sourceResponse.profiles,
+            profiles => profiles.full_name,
+            undefined
+          )
         };
         
         setSourceAgreement(processedSourceData as AgreementSummary);
       }
       
       // Load target agreement details
-      const { data: targetData, error: targetError } = await supabase
-        .from('leases')
-        .select(`
-          id, 
-          agreement_number, 
-          start_date, 
-          end_date, 
-          status, 
-          customer_id, 
-          vehicle_id,
-          profiles:customer_id (full_name)
-        `)
-        .eq('id', targetAgreementId)
-        .single();
-        
-      if (targetError) {
-        console.error("Error loading target agreement:", targetError);
-        return;
-      }
+      const targetResponse = await safeDatabaseOperation(() => 
+        supabase
+          .from('leases')
+          .select(`
+            id, 
+            agreement_number, 
+            start_date, 
+            end_date, 
+            status, 
+            customer_id, 
+            vehicle_id,
+            profiles:customer_id (full_name)
+          `)
+          .eq('id', targetAgreementId)
+          .single()
+      );
       
-      if (targetData) {
-        // Safely extract data and access profiles
+      if (targetResponse && 'profiles' in targetResponse) {
         const processedTargetData = {
-          ...targetData,
-          customer_name: targetData.profiles?.full_name
+          ...targetResponse,
+          customer_name: safeAccess(
+            targetResponse.profiles,
+            profiles => profiles.full_name,
+            undefined
+          )
         };
         
         setTargetAgreement(processedTargetData as AgreementSummary);
       }
       
       // Load vehicle details
-      const { data: vehicleData, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', vehicleId)
-        .single();
-        
-      if (vehicleError) {
-        console.error("Error loading vehicle details:", vehicleError);
-        return;
-      }
+      const vehicleResponse = await safeDatabaseOperation(() =>
+        supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', vehicleId)
+          .single()
+      );
       
-      setVehicleDetails(vehicleData);
+      setVehicleDetails(vehicleResponse);
       
       // Get payment summary
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('id, status, amount')
-        .eq('lease_id', sourceAgreementId)
-        .in('status', ['pending', 'overdue']);
+      const paymentsResponse = await safeDatabaseOperation(() =>
+        supabase
+          .from('unified_payments')
+          .select('id, status, amount')
+          .eq('lease_id', sourceAgreementId)
+          .in('status', ['pending', 'overdue'])
+      );
         
-      if (!paymentsError && paymentsData) {
-        const payments = paymentsData || [];
-        const pendingCount = Array.isArray(payments) ? 
-          payments.filter(p => p?.status === 'pending').length : 0;
-        const overdueCount = Array.isArray(payments) ? 
-          payments.filter(p => p?.status === 'overdue').length : 0;
-        const totalAmount = Array.isArray(payments) ? 
-          payments.reduce((sum, p) => sum + (p?.amount || 0), 0) : 0;
+      if (paymentsResponse && Array.isArray(paymentsResponse)) {
+        const payments = paymentsResponse || [];
+        const pendingCount = payments.filter(p => p?.status === 'pending').length;
+        const overdueCount = payments.filter(p => p?.status === 'overdue').length;
+        const totalAmount = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
         
         setPaymentsSummary({
           pending: pendingCount,
@@ -222,13 +224,15 @@ export function ReassignmentWizard({
     setIsProcessing(true);
     try {
       // 1. Close the source agreement
+      const closeAgreementUpdate = {
+        status: 'closed' as const,
+        updated_at: new Date().toISOString(),
+        notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
+      };
+      
       const { error: closeError } = await supabase
         .from('leases')
-        .update({ 
-          status: 'closed', 
-          updated_at: new Date().toISOString(),
-          notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
-        })
+        .update(closeAgreementUpdate)
         .eq('id', sourceAgreementId);
         
       if (closeError) {
@@ -238,13 +242,15 @@ export function ReassignmentWizard({
       }
       
       // 2. Assign vehicle to target agreement
+      const assignVehicleUpdate = {
+        vehicle_id: vehicleId,
+        status: 'active' as const,
+        updated_at: new Date().toISOString()
+      };
+      
       const { error: assignError } = await supabase
         .from('leases')
-        .update({ 
-          vehicle_id: vehicleId,
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
+        .update(assignVehicleUpdate)
         .eq('id', targetAgreementId);
         
       if (assignError) {

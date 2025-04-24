@@ -16,7 +16,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreementId)
+        .eq('lease_id', asLeaseIdColumn(agreementId))
         .order('created_at', { ascending: false });
         
       if (!hasData(response)) {
@@ -62,7 +62,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentData)
-      .eq('id', id)
+      .eq('id', asPaymentId(id))
       .select();
 
     if (!hasData(response)) {
@@ -77,7 +77,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', paymentId);
+      .eq('id', asPaymentId(paymentId));
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);

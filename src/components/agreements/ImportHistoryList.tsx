@@ -19,7 +19,9 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { safelyProcessQueryResult } from '@/utils/database-type-helpers';
 
+// Define the ImportLog type to match the database structure
 type ImportLog = {
   id: string;
   file_name: string;
@@ -41,18 +43,25 @@ export function ImportHistoryList() {
     const fetchImports = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        const response = await supabase
           .from('agreement_imports')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (error) throw error;
+        if (response.error) throw response.error;
         
-        // Use type assertion to ensure correct typing
-        setImports(data ? data as ImportLog[] : []);
+        // Process query result safely with proper type conversion
+        const importLogs = safelyProcessQueryResult(
+          response,
+          (data) => data as ImportLog[],
+          [] as ImportLog[]
+        );
+
+        setImports(importLogs);
       } catch (error) {
         console.error('Error fetching imports:', error);
+        setImports([]);
       } finally {
         setIsLoading(false);
       }

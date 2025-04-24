@@ -7,7 +7,8 @@ import { formatCurrency } from '@/lib/utils';
 import { 
   asStatusColumn, 
   safelyExtractData,
-  safelyCalculateRentAmount 
+  safelyCalculateRentAmount,
+  safeDatabaseOperation 
 } from '@/utils/database-type-helpers';
 
 interface AgreementStats {
@@ -34,35 +35,47 @@ export function AgreementStats() {
         setIsLoading(true);
         
         // Get total agreements count
-        const { count: totalCount } = await supabase
-          .from('leases')
-          .select('*', { count: 'exact', head: true });
+        const totalCountResult = await safeDatabaseOperation(() => 
+          supabase.from('leases').select('*', { count: 'exact', head: true })
+        );
+        const totalCount = (totalCountResult as any)?.count || 0;
         
         // Get active agreements count
-        const { count: activeCount } = await supabase
-          .from('leases')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
+        const activeCountResult = await safeDatabaseOperation(() =>
+          supabase
+            .from('leases')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', asStatusColumn('leases', 'status', 'active'))
+        );
+        const activeCount = (activeCountResult as any)?.count || 0;
           
         // Get pending payments count
-        const { count: pendingPaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+        const pendingPaymentsResult = await safeDatabaseOperation(() =>
+          supabase
+            .from('unified_payments')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', asStatusColumn('unified_payments', 'status', 'pending'))
+        );
+        const pendingPaymentsCount = (pendingPaymentsResult as any)?.count || 0;
           
         // Get overdue payments count
-        const { count: overduePaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .gt('days_overdue', 0);
+        const overduePaymentsResult = await safeDatabaseOperation(() =>
+          supabase
+            .from('unified_payments')
+            .select('*', { count: 'exact', head: true })
+            .gt('days_overdue', 0)
+        );
+        const overduePaymentsCount = (overduePaymentsResult as any)?.count || 0;
           
         // Get active agreements total value
-        const { data: activeAgreements } = await supabase
-          .from('leases')
-          .select('rent_amount')
-          .eq('status', 'active');
-          
-        const activeValue = safelyCalculateRentAmount(activeAgreements);
+        const activeAgreementsResult = await safeDatabaseOperation(() =>
+          supabase
+            .from('leases')
+            .select('rent_amount')
+            .eq('status', asStatusColumn('leases', 'status', 'active'))
+        );
+        const activeAgreements = activeAgreementsResult || [];
+        const activeValue = safelyCalculateRentAmount(Array.isArray(activeAgreements) ? activeAgreements : []);
         
         setStats({
           totalAgreements: totalCount || 0,
