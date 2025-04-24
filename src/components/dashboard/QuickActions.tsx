@@ -5,10 +5,18 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, FileText, CreditCard, Wrench } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
+import { toast } from '@/hooks/use-toast';
 
 export const QuickActions = () => {
   const navigate = useNavigate();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  
+  const handlePaymentSuccess = () => {
+    toast({
+      title: "Payment Recorded",
+      description: "The payment has been successfully recorded and will appear in the payment history."
+    });
+  };
   
   const quickActions = [
     { 
@@ -65,7 +73,8 @@ export const QuickActions = () => {
 
       <RecordPaymentDialog 
         open={showPaymentDialog} 
-        onOpenChange={setShowPaymentDialog} 
+        onOpenChange={setShowPaymentDialog}
+        onPaymentSuccess={handlePaymentSuccess}
       />
     </>
   );

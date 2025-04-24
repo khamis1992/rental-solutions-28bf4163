@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Payment } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
+import { asPaymentId } from '@/utils/database-type-helpers';
 
 interface PaymentListProps {
   agreementId: string;
@@ -25,6 +26,8 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
+  // Add a state to track refresh triggers
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -67,7 +70,7 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     if (agreementId) {
       fetchPayments();
     }
-  }, [agreementId]);
+  }, [agreementId, refreshTrigger]); // Add refreshTrigger to the dependency array
 
   // Generate rent due dates starting from agreement start date
   const generatePendingPayments = () => {
@@ -111,7 +114,7 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', id);
+        .eq('id', asPaymentId(id));
         
       if (error) {
         console.error("Error deleting payment:", error);
@@ -124,6 +127,11 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     }
   };
 
+  // Add function to manually refresh payments
+  const refreshPayments = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const pendingPayments = generatePendingPayments();
 
   if (isLoading) {
@@ -134,12 +142,17 @@ export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: Paym
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Payment History</h3>
-        {onAddPayment && (
-          <Button onClick={onAddPayment} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Payment
+        <div className="flex gap-2">
+          <Button onClick={refreshPayments} size="sm" variant="outline">
+            Refresh
           </Button>
-        )}
+          {onAddPayment && (
+            <Button onClick={onAddPayment} size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Payment
+            </Button>
+          )}
+        </div>
       </div>
 
       {payments.length === 0 && pendingPayments.length === 0 ? (
