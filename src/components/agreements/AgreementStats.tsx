@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
@@ -7,7 +8,8 @@ import {
   asStatusColumn, 
   safelyExtractData,
   safelyCalculateRentAmount,
-  safeDatabaseOperation 
+  safeDatabaseOperation,
+  awaitableQuery
 } from '@/utils/database-type-helpers';
 
 interface AgreementStats {
@@ -34,40 +36,40 @@ export function AgreementStats() {
         setIsLoading(true);
         
         // Get total agreements count
-        const totalCountResult = await safeDatabaseOperation(() => 
+        const totalCountResult = await awaitableQuery(
           supabase.from('leases').select('*', { count: 'exact', head: true })
         );
-        const totalCount = (totalCountResult as any)?.count || 0;
+        const totalCount = totalCountResult ? (totalCountResult as any)?.count || 0 : 0;
         
         // Get active agreements count
-        const activeCountResult = await safeDatabaseOperation(() =>
+        const activeCountResult = await awaitableQuery(
           supabase
             .from('leases')
             .select('*', { count: 'exact', head: true })
             .eq('status', asStatusColumn('leases', 'status', 'active'))
         );
-        const activeCount = (activeCountResult as any)?.count || 0;
+        const activeCount = activeCountResult ? (activeCountResult as any)?.count || 0 : 0;
           
         // Get pending payments count
-        const pendingPaymentsResult = await safeDatabaseOperation(() =>
+        const pendingPaymentsResult = await awaitableQuery(
           supabase
             .from('unified_payments')
             .select('*', { count: 'exact', head: true })
             .eq('status', asStatusColumn('unified_payments', 'status', 'pending'))
         );
-        const pendingPaymentsCount = (pendingPaymentsResult as any)?.count || 0;
+        const pendingPaymentsCount = pendingPaymentsResult ? (pendingPaymentsResult as any)?.count || 0 : 0;
           
         // Get overdue payments count
-        const overduePaymentsResult = await safeDatabaseOperation(() =>
+        const overduePaymentsResult = await awaitableQuery(
           supabase
             .from('unified_payments')
             .select('*', { count: 'exact', head: true })
             .gt('days_overdue', 0)
         );
-        const overduePaymentsCount = (overduePaymentsResult as any)?.count || 0;
+        const overduePaymentsCount = overduePaymentsResult ? (overduePaymentsResult as any)?.count || 0 : 0;
           
         // Get active agreements total value
-        const activeAgreementsResult = await safeDatabaseOperation(() =>
+        const activeAgreementsResult = await awaitableQuery(
           supabase
             .from('leases')
             .select('rent_amount')

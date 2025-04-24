@@ -1,3 +1,4 @@
+
 import { Database } from '@/types/database-types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
@@ -177,10 +178,11 @@ export function isValidObject<T>(obj: unknown, requiredProps: (keyof T)[]): obj 
 }
 
 /**
- * Safely handle data from database queries to prevent TypeScript errors
+ * Enhanced safeDatabaseOperation function that properly awaits and returns results
+ * and handles typing more accurately for PostgrestFilterBuilder
  */
 export async function safeDatabaseOperation<T>(
-  operation: () => Promise<PostgrestSingleResponse<T> | PostgrestResponse<T>>, 
+  operation: () => Promise<any>,
   errorHandler?: (error: any) => void
 ): Promise<T | null> {
   try {
@@ -192,7 +194,7 @@ export async function safeDatabaseOperation<T>(
       return null;
     }
     
-    return result.data;
+    return result.data as T;
   } catch (err) {
     console.error("Unexpected error during database operation:", err);
     errorHandler?.(err);
@@ -219,4 +221,37 @@ export function safelyProcessQueryResult<T, R>(
     console.error("Error transforming query result:", e);
     return defaultValue;
   }
+}
+
+/**
+ * Helper function to safely transform Supabase response data
+ * This is especially helpful for mapping to specific interface types
+ */
+export function safelyTransformData<T, R>(data: any, transformer: (item: any) => R): R[] {
+  if (!data || !Array.isArray(data)) {
+    return [] as R[];
+  }
+
+  try {
+    return data.map(item => transformer(item));
+  } catch (error) {
+    console.error("Error transforming data:", error);
+    return [] as R[];
+  }
+}
+
+/**
+ * Convert a Supabase query promise to a proper Promise with data extraction
+ */
+export function awaitableQuery<T>(query: any): Promise<T | null> {
+  return query.then((result: any) => {
+    if (result.error) {
+      console.error("Query error:", result.error);
+      return null;
+    }
+    return result.data;
+  }).catch((error: any) => {
+    console.error("Unexpected query error:", error);
+    return null;
+  });
 }
