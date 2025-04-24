@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
@@ -39,90 +40,6 @@ export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boo
     return { 
       success: false, 
       message: `Payment schedule maintenance exception: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Fixes payment records for a specific agreement
- * This function removes duplicate payment records and ensures correct payment schedules
- * 
- * @param agreementId The ID of the agreement to fix payments for
- * @returns A promise that resolves when the fix operation is complete
- */
-export const fixAgreementPayments = async (agreementId: string): Promise<{ success: boolean, message: string }> => {
-  try {
-    console.log(`Fixing payment records for agreement: ${agreementId}`);
-    
-    // Call the database function that handles payment fixing
-    const { data, error } = await supabase.rpc('fix_duplicate_payment_records', { 
-      lease_id_param: agreementId 
-    });
-    
-    if (error) {
-      console.error("Error fixing agreement payments:", error);
-      return { 
-        success: false, 
-        message: `Failed to fix payment records: ${error.message}` 
-      };
-    }
-    
-    // Log the results
-    console.log("Payment records fixed successfully", data);
-    return { 
-      success: true, 
-      message: "Payment records fixed successfully" 
-    };
-  } catch (error) {
-    console.error("Exception fixing payment records:", error);
-    return { 
-      success: false, 
-      message: `Exception fixing payment records: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Manually run payment maintenance for all agreements
- * This is a wrapper around runPaymentScheduleMaintenanceJob for use in components
- * 
- * @returns A promise that resolves when the maintenance job is complete
- */
-export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolean, message: string }> => {
-  return runPaymentScheduleMaintenanceJob();
-};
-
-/**
- * Checks and generates monthly payments
- * This function calls the Supabase RPC function to generate missing payment records
- * 
- * @returns A promise that resolves when the check and generation is complete
- */
-export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: boolean, message: string }> => {
-  try {
-    console.log("Checking and generating monthly payments");
-    
-    // Call the Supabase RPC function to generate missing payment records
-    const { data, error } = await supabase.rpc('generate_missing_payment_records');
-    
-    if (error) {
-      console.error("Error generating monthly payments:", error);
-      return { 
-        success: false, 
-        message: `Failed to generate monthly payments: ${error.message}` 
-      };
-    }
-    
-    console.log("Monthly payments generation completed successfully", data);
-    return { 
-      success: true, 
-      message: "Monthly payments generated successfully" 
-    };
-  } catch (error) {
-    console.error("Exception in monthly payments generation:", error);
-    return { 
-      success: false, 
-      message: `Exception generating monthly payments: ${error instanceof Error ? error.message : String(error)}` 
     };
   }
 };
