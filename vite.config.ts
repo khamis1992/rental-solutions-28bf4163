@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    force: false,
+    force: true,
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
   },
   cacheDir: '.vite',
