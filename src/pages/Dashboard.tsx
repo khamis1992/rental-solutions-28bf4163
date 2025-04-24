@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -62,13 +61,13 @@ const Dashboard = () => {
     navigate(path);
   }, [navigate]);
   
-  // Quick actions for the dashboard
+  // Quick actions for the dashboard - update the Add Vehicle path to match the route
   const quickActions = [
     { 
       title: "Add Vehicle", 
       icon: Car, 
       color: "bg-blue-500", 
-      onClick: () => navigateTo('/vehicles/new') 
+      onClick: () => navigateTo('/vehicles/add') 
     },
     { 
       title: "Create Agreement", 

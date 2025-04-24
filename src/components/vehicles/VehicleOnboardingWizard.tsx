@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +31,6 @@ export function VehicleOnboardingWizard({
     color: '',
     insurance_company: '',
     insurance_policy: '',
-    insurance_expiry: '',
     documents_verified: false
   });
   const [isProcessing, setIsProcessing] = useState(false);
