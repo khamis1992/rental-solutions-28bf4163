@@ -73,7 +73,7 @@ const Dashboard = () => {
       title: "Create Agreement", 
       icon: FileText, 
       color: "bg-violet-500", 
-      onClick: () => navigateTo('/agreements/new') 
+      onClick: () => navigateTo('/agreements/add') 
     },
     { 
       title: "Record Payment", 
