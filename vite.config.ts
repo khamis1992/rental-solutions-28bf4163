@@ -17,16 +17,26 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Manually disable CSS modules to avoid potential plugin issues
-  css: {
-    modules: {
-      localsConvention: 'camelCase',
-    },
+  build: {
+    // Ensure proper chunk size for better performance
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          tanstack: ['@tanstack/react-query']
+        }
+      }
+    }
   },
-  // Force optimizeDeps to ensure dependencies are processed correctly
+  css: {
+    postcss: {}, // Ensure PostCSS is properly configured
+    devSourcemap: true,
+  },
+  // Clear cache and force dependencies optimization
   optimizeDeps: {
     force: true,
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
   },
   // Clear the cache on startup
   cacheDir: '.vite',
