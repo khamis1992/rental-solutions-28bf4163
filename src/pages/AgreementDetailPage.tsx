@@ -39,7 +39,7 @@ export function AgreementDetailPage() {
     addPayment
   } = usePayments(id);
 
-  const { rentAmount: rentAmountFromHook } = useRentAmount(id);
+  const { rentAmount: rentAmountFromHook } = useRentAmount(agreement, id);
 
   const { 
     handleSpecialAgreementPayments,

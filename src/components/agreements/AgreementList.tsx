@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -81,7 +82,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
 const fetchOverduePayments = async (agreementId: string) => {
@@ -89,7 +90,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
+      .eq('agreement_id', asAgreementIdColumn(agreementId))
       .single();
     
     if (error) {
@@ -107,7 +108,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId);
+      .eq('lease_id', asLeaseIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -124,7 +125,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', asImportIdColumn(importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -141,7 +142,7 @@ const getImportRevertStatus = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', asImportIdColumn(importId));
     
     if (error) {
       console.error("Error fetching import revert status:", error);
@@ -158,7 +159,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asTrafficFineIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -175,7 +176,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asTrafficFineIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -246,7 +247,7 @@ export const AgreementList = () => {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', id);
+          .eq('agreement_id', asAgreementIdColumn(id));
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -257,7 +258,7 @@ export const AgreementList = () => {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', id);
+          .eq('lease_id', asLeaseIdColumn(id));
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -268,13 +269,13 @@ export const AgreementList = () => {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', id);
+          .eq('import_id', asImportIdColumn(id));
         
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', id);
+            .eq('import_id', asImportIdColumn(id));
           
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -286,7 +287,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', id);
+          .eq('agreement_id', asTrafficFineIdColumn(id));
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -294,7 +295,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', id);
+            .eq('agreement_id', asTrafficFineIdColumn(id));
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);

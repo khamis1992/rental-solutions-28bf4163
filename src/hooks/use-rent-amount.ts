@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
-export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
+export const useRentAmount = (agreement: Agreement | null, agreementId?: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);

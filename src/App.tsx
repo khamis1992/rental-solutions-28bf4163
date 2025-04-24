@@ -38,7 +38,7 @@ import EditCustomer from "./pages/EditCustomer";
 
 // Agreement pages
 import Agreements from "./pages/Agreements";
-import AgreementDetailPage from "./pages/AgreementDetailPage";
+import { AgreementDetailPage } from "./pages/AgreementDetailPage";
 import AddAgreement from "./pages/AddAgreement";
 import EditAgreement from "./pages/EditAgreement";
 
@@ -174,6 +174,6 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
