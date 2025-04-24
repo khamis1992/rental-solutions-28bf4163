@@ -1,47 +1,131 @@
-
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
+import { asTableId } from '@/lib/database-helpers';
 
-// Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(
-  'https://vqdlsidkucrownbfuouq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y'
-);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
- * Runs a maintenance job to check and update payment schedules
- * This helps ensure all active agreements have proper payment schedules
- * 
- * @returns A promise that resolves when the maintenance job is complete
+ * Runs payment schedule maintenance job
+ * This function checks and creates missing payment schedules for active agreements
  */
-export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boolean, message: string }> => {
+export const runPaymentScheduleMaintenanceJob = async () => {
   try {
     console.log("Running payment schedule maintenance job");
+    const result = await checkAndCreateMissingPaymentSchedules();
     
-    // Call the database function that handles payment schedule generation
-    const { data, error } = await supabase.rpc('generate_missing_payment_records');
-    
-    if (error) {
-      console.error("Error in payment schedule maintenance:", error);
-      return { 
-        success: false, 
-        message: `Payment schedule maintenance failed: ${error.message}` 
-      };
+    if (result.success) {
+      console.log(`Payment schedule maintenance job completed: ${result.message}`);
+    } else {
+      console.error(`Payment schedule maintenance job failed: ${result.message}`);
     }
     
-    // Log the results
-    console.log("Payment schedule maintenance completed successfully", data);
-    return { 
-      success: true, 
-      message: "Payment schedule maintenance completed successfully" 
-    };
+    return result;
   } catch (error) {
-    console.error("Exception in payment schedule maintenance:", error);
-    return { 
-      success: false, 
-      message: `Payment schedule maintenance exception: ${error instanceof Error ? error.message : String(error)}` 
-    };
+    console.error("Unexpected error in runPaymentScheduleMaintenanceJob:", error);
+    throw error;
   }
 };
 
-export { supabase as default };
+/**
+ * Manually run payment maintenance job for testing purposes
+ */
+export const manuallyRunPaymentMaintenance = async () => {
+  return await runPaymentScheduleMaintenanceJob();
+};
+
+/**
+ * Fixes duplicate or problematic payment records for a specific agreement
+ * This function identifies and resolves payment inconsistencies
+ * @param agreementId The ID of the agreement to fix payments for
+ */
+export const fixAgreementPayments = async (agreementId: string) => {
+  try {
+    console.log(`Fixing payment records for agreement ${agreementId}`);
+    
+    // First, get all payments for this agreement
+    const { data: payments, error: paymentsError } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', asTableId('unified_payments', agreementId))
+      .order('original_due_date', { ascending: true });
+    
+    if (paymentsError) {
+      console.error("Error fetching payments:", paymentsError);
+      return { 
+        success: false, 
+        message: `Failed to fetch payments: ${paymentsError.message}` 
+      };
+    }
+    
+    if (!payments || payments.length === 0) {
+      return { 
+        success: true, 
+        message: "No payments found for this agreement" 
+      };
+    }
+    
+    // Group payments by month to detect duplicates
+    const paymentsByMonth: Record<string, any[]> = {};
+    
+    payments.forEach(payment => {
+      if (!payment.original_due_date) return;
+      
+      const date = new Date(payment.original_due_date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!paymentsByMonth[monthKey]) {
+        paymentsByMonth[monthKey] = [];
+      }
+      
+      paymentsByMonth[monthKey].push(payment);
+    });
+    
+    // Check for and fix duplicates
+    let fixedCount = 0;
+    
+    for (const [month, monthlyPayments] of Object.entries(paymentsByMonth)) {
+      // If there's more than one payment per month, we have duplicates
+      if (monthlyPayments.length > 1) {
+        console.log(`Found ${monthlyPayments.length} payments for month ${month}`);
+        
+        // Sort payments by creation date, keeping the oldest
+        monthlyPayments.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        
+        // Keep the first (oldest) payment and delete the rest
+        const [keepPayment, ...duplicatePayments] = monthlyPayments;
+        
+        for (const duplicate of duplicatePayments) {
+          const { error: deleteError } = await supabase
+            .from('unified_payments')
+            .delete()
+            .eq('id', duplicate.id);
+            
+          if (deleteError) {
+            console.error(`Error deleting duplicate payment ${duplicate.id}:`, deleteError);
+          } else {
+            console.log(`Successfully deleted duplicate payment ${duplicate.id}`);
+            fixedCount++;
+          }
+        }
+      }
+    }
+    
+    return { 
+      success: true, 
+      fixedCount,
+      message: `Fixed ${fixedCount} duplicate payment records` 
+    };
+    
+  } catch (error) {
+    console.error("Error in fixAgreementPayments:", error);
+    return { 
+      success: false, 
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+};

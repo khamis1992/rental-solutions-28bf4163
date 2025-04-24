@@ -1,12 +1,8 @@
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// Import CSS before the App to ensure styles are loaded first
-import './index.css';
-// Import responsive utilities if they exist
-import './styles/responsive-utils.css';
 import App from './App.tsx';
+import './index.css';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -19,10 +15,8 @@ const queryClient = new QueryClient({
   },
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
+createRoot(document.getElementById("root")!).render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
 );
