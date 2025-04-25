@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -37,18 +36,15 @@ const TrafficFineValidation: React.FC = () => {
     setValidationResult(null);
     
     try {
-      // Find traffic fines for this license plate
       const relevantFines = trafficFines?.filter(fine => 
         fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
       ) || [];
       
-      // Calculate some stats
       const totalAmount = relevantFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
       const pendingAmount = relevantFines
         .filter(fine => fine.paymentStatus === 'pending')
         .reduce((sum, fine) => sum + fine.fineAmount, 0);
       
-      // Create a validation record
       const { error: validationError } = await supabase
         .from('traffic_fine_validations')
         .insert({
@@ -75,7 +71,6 @@ const TrafficFineValidation: React.FC = () => {
         toast.error('Error recording validation result');
       }
       
-      // Set the result for display
       setValidationResult({
         licensePlate: data.licensePlate,
         finesCount: relevantFines.length,
@@ -92,7 +87,6 @@ const TrafficFineValidation: React.FC = () => {
     }
   };
 
-  // Handle assigning a fine to a customer
   const handleAssignToCustomer = async (id: string) => {
     if (!id) {
       toast.error("Invalid fine ID");
@@ -104,7 +98,6 @@ const TrafficFineValidation: React.FC = () => {
       await assignToCustomer.mutateAsync({ id });
       toast.success("Fine assigned to customer successfully");
       
-      // Update the validation result to reflect the new assignment status
       if (validationResult && validationResult.fines) {
         setValidationResult({
           ...validationResult,
@@ -200,7 +193,7 @@ const TrafficFineValidation: React.FC = () => {
                 </AlertTitle>
                 <AlertDescription>
                   {validationResult.finesCount > 0 
-                    ? `Total amount: $${validationResult.totalAmount.toFixed(2)}, Pending amount: $${validationResult.pendingAmount.toFixed(2)}`
+                    ? `Total amount: QAR ${validationResult.totalAmount.toFixed(2)}, Pending amount: QAR ${validationResult.pendingAmount.toFixed(2)}`
                     : `No traffic fines found for license plate ${validationResult.licensePlate}`}
                 </AlertDescription>
               </Alert>
@@ -218,7 +211,7 @@ const TrafficFineValidation: React.FC = () => {
                           </p>
                         </div>
                         <div className="flex flex-col items-end">
-                          <p className="font-medium">${fine.fineAmount.toFixed(2)}</p>
+                          <p className="font-medium">QAR {fine.fineAmount.toFixed(2)}</p>
                           <p className={`text-sm ${
                             fine.paymentStatus === 'paid' 
                               ? 'text-green-600' 
