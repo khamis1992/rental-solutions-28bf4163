@@ -1,9 +1,9 @@
+import { asTableId, asTableStatus } from '@/utils/type-casting';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
 import { 
-  asTableId, 
   asAgreementIdColumn, 
   asLeaseIdColumn, 
   asImportIdColumn,
@@ -89,7 +89,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
+      .eq('agreement_id', asTableId('overdue_payments', agreementId))
       .single();
     
     if (error) {
@@ -107,7 +107,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId);
+      .eq('lease_id', asTableId('unified_payments', agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -124,7 +124,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', asTableId('agreement_import_reverts', importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -136,29 +136,12 @@ const fetchImportReverts = async (importId: string) => {
   }
 };
 
-const getImportRevertStatus = async (importId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('agreement_import_reverts')
-      .select('*')
-      .eq('import_id', importId);
-    
-    if (error) {
-      console.error("Error fetching import revert status:", error);
-    } else {
-      console.log("Import revert status fetched:", data);
-    }
-  } catch (err) {
-    console.error("Error fetching import revert status:", err);
-  }
-};
-
 const fetchTrafficFines = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asTableId('traffic_fines', agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);

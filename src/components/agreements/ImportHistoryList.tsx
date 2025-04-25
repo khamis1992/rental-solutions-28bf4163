@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -20,27 +19,17 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 
-type ImportLog = {
-  id: string;
-  file_name: string;
-  original_file_name: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  processed_count: number;
-  error_count: number;
-  row_count: number;
-  created_by: string | null;
-};
+type ImportLog = Database['public']['Tables']['agreement_imports']['Row'];
 
 export function ImportHistoryList() {
-  const [imports, setImports] = useState<ImportLog[]>([]);
+  const [importLogs, setImportLogs] = useState<ImportLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchImports = async () => {
-      setIsLoading(true);
+    async function fetchImportLogs() {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('agreement_imports')
           .select('*')
@@ -48,15 +37,16 @@ export function ImportHistoryList() {
           .limit(5);
 
         if (error) throw error;
-        setImports(data || []);
-      } catch (error) {
-        console.error('Error fetching imports:', error);
+        setImportLogs(data || []);
+      } catch (err) {
+        console.error('Error fetching import logs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch import history');
       } finally {
         setIsLoading(false);
       }
-    };
+    }
 
-    fetchImports();
+    fetchImportLogs();
   }, []);
 
   const getStatusBadge = (status: string, errorCount: number) => {
@@ -112,7 +102,17 @@ export function ImportHistoryList() {
     );
   }
 
-  if (imports.length === 0) {
+  if (error) {
+    return (
+      <div className="text-center py-8 border rounded-md">
+        <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-2 text-lg font-medium">Error fetching import history</h3>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (importLogs.length === 0) {
     return (
       <div className="text-center py-8 border rounded-md">
         <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -135,7 +135,7 @@ export function ImportHistoryList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {imports.map((importLog) => (
+          {importLogs.map((importLog) => (
             <TableRow key={importLog.id}>
               <TableCell className="font-medium">
                 {importLog.original_file_name || importLog.file_name}
