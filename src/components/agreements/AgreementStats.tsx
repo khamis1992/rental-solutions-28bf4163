@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
+import { asTableStatus } from '@/utils/type-casting';
 
 export function AgreementStats() {
   const [stats, setStats] = useState({
@@ -30,7 +30,7 @@ export function AgreementStats() {
         const { count: activeCount, error: activeError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
+          .eq('status', asTableStatus('leases', 'active'));
           
         if (activeError) throw activeError;
         
@@ -38,7 +38,7 @@ export function AgreementStats() {
         const { count: pendingCount, error: pendingError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', asTableStatus('leases', 'pending'));
           
         if (pendingError) throw pendingError;
         
@@ -46,13 +46,16 @@ export function AgreementStats() {
         const { data: rentData, error: rentError } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', 'active');
+          .eq('status', asTableStatus('leases', 'active'));
           
         if (rentError) throw rentError;
         
         let avgRent = 0;
         if (rentData && rentData.length > 0) {
-          const sum = rentData.reduce((acc, lease) => acc + (lease.rent_amount || 0), 0);
+          const sum = rentData.reduce((acc, lease) => {
+            const rentAmount = lease?.rent_amount || 0;
+            return acc + rentAmount;
+          }, 0);
           avgRent = sum / rentData.length;
         }
         
@@ -60,7 +63,7 @@ export function AgreementStats() {
         const { count: overdueCount, error: overdueError } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending')
+          .eq('status', asTableStatus('unified_payments', 'pending'))
           .gt('days_overdue', 0);
           
         if (overdueError) throw overdueError;

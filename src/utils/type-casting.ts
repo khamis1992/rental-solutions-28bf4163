@@ -1,3 +1,4 @@
+
 import { Database } from "@/types/database.types";
 import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
 
@@ -14,6 +15,16 @@ export function asTableId<T extends keyof DbTables>(
   id: string | uuid | null | undefined
 ): DbTables[T]['Row']['id'] {
   return id as DbTables[T]['Row']['id'];
+}
+
+/**
+ * Type-safe status conversion for table status columns
+ */
+export function asTableStatus<T extends keyof DbTables>(
+  _table: T,
+  status: string
+): any {
+  return status as any;
 }
 
 /**

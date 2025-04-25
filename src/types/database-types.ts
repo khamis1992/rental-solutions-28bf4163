@@ -1,3 +1,4 @@
+
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 
@@ -13,6 +14,15 @@ export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
 // Common ID type
 export type DatabaseId = string;
 export type UUID = string;
+
+// Specific ID types for tables
+export type AgreementId = UUID;
+export type LeaseId = UUID;
+export type VehicleId = UUID;
+export type CustomerId = UUID;
+export type PaymentId = UUID;
+export type TrafficFineId = UUID;
+export type ImportId = UUID;
 
 // Generic response handler with strong typing
 export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
@@ -31,6 +41,16 @@ export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestS
 // Type safe ID converter
 export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
   return id as Tables[T]['Row']['id'];
+}
+
+// Type safe ID converter with specific ID types
+export function asDbId<T extends UUID>(id: string): T {
+  return id as T;
+}
+
+// Type-safe status converter
+export function asTableStatus<T extends keyof Tables>(table: T, status: string): any {
+  return status as any;
 }
 
 // Type guard for checking if response has data

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Payment {
+export interface Payment {
   id: string;
   lease_id: string;
   amount: number;
