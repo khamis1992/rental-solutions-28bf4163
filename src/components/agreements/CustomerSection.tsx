@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
 import { User, Mail, Phone, MapPin, FileText, Copy, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { CustomerInfo } from '@/types/customer';
@@ -14,7 +13,7 @@ interface CustomerSectionProps {
   onEdit?: () => void;
 }
 
-export const CustomerSection = ({ customer, onEdit }: CustomerSectionProps) => {
+const CustomerSection = ({ customer, onEdit }: CustomerSectionProps) => {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
@@ -108,3 +107,5 @@ export const CustomerSection = ({ customer, onEdit }: CustomerSectionProps) => {
     </Card>
   );
 };
+
+export default CustomerSection;
