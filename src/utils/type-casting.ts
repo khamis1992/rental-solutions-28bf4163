@@ -41,4 +41,3 @@ export function asLeaseStatus(status: string) {
 export function asPaymentStatus(status: string) {
   return asTableStatus('unified_payments', status);
 }
-
