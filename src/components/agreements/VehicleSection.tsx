@@ -11,7 +11,7 @@ interface VehicleSectionProps {
   onViewDetails?: () => void;
 }
 
-const VehicleSection = ({ vehicle, onViewDetails }: VehicleSectionProps) => {
+export const VehicleSection = ({ vehicle, onViewDetails }: VehicleSectionProps) => {
   return (
     <Card className="bg-gradient-to-br from-zinc-50 to-slate-50 border-0 shadow-md">
       <CardHeader className="pb-4">
@@ -85,5 +85,3 @@ const VehicleSection = ({ vehicle, onViewDetails }: VehicleSectionProps) => {
     </Card>
   );
 };
-
-export default VehicleSection;
