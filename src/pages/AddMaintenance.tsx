@@ -40,14 +40,19 @@ const AddMaintenance = () => {
     setError(null);
     
     try {
+      // Validate that vehicle_id is not empty
+      if (!formData.vehicle_id || formData.vehicle_id === 'no-vehicles-available') {
+        throw new Error('Please select a valid vehicle');
+      }
+
       // Prepare data for API submission
       const preparedData = {
         ...formData,
         // Ensure these fields are properly validated
         maintenance_type: validateMaintenanceType(formData.maintenance_type || MaintenanceType.REGULAR_INSPECTION),
         status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
-        // Ensure vehicle_id is never empty
-        vehicle_id: formData.vehicle_id || null,
+        // Ensure vehicle_id is sent as a valid string
+        vehicle_id: formData.vehicle_id,
         // Ensure cost is a number
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
@@ -66,6 +71,12 @@ const AddMaintenance = () => {
     } catch (err: any) {
       console.error('Error creating maintenance record:', err);
       setError(err.message || 'Failed to create maintenance record. Please try again.');
+      
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to create maintenance record',
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

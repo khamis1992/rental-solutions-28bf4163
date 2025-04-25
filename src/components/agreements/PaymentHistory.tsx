@@ -13,30 +13,8 @@ import {
 import { Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string | null;
-  description: string | null;
-  type: string;
-  created_at: string;
-  updated_at: string;
-  late_fine_amount: number;
-  days_overdue: number;
-  original_due_date: string | null;
-  transaction_id: string | null;
-  import_reference: string | null;
-  is_recurring: boolean;
-  recurring_interval: string | null;
-  next_payment_date: string | null;
-}
+import { Payment } from './PaymentHistory.types';
+import { asDbId } from '@/types/database-types';
 
 interface PaymentHistoryProps {
   agreementId: string;
@@ -58,7 +36,7 @@ export function PaymentHistory({ agreementId, payments = [], isLoading = false, 
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', paymentId);
+        .eq('id', asDbId(paymentId));
         
       if (error) throw error;
       

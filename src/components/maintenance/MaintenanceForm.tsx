@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 // Create form schema type
 type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;
@@ -91,13 +93,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;
 
+  // Add validation to ensure vehicle ID is selected
+  useEffect(() => {
+    if (!isLoadingVehicles && validVehicles.length === 0) {
+      toast.error('No vehicles available. Please add a vehicle first.');
+    }
+  }, [isLoadingVehicles, validVehicles.length]);
+
+  const handleFormSubmit = (data: MaintenanceFormSchema) => {
+    // Additional validation
+    if (!data.vehicle_id) {
+      toast.error('Please select a vehicle');
+      return;
+    }
+    
+    console.log('Submitting maintenance form with data:', data);
+    onSubmit(data);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{isEditMode ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</CardTitle>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Vehicle Selection */}
@@ -109,7 +129,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Vehicle</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value || undefined}
+                      value={field.value || undefined}
                       disabled={isLoadingVehicles}
                     >
                       <FormControl>
@@ -128,7 +148,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles-available" disabled>No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -146,7 +166,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Maintenance Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
+                      value={field.value || MaintenanceType.REGULAR_INSPECTION}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -178,7 +198,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Status</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value || MaintenanceStatus.SCHEDULED}
+                      value={field.value || MaintenanceStatus.SCHEDULED}
                     >
                       <FormControl>
                         <SelectTrigger>

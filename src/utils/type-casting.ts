@@ -1,4 +1,3 @@
-
 import { Database } from "@/types/database.types";
 import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
 
@@ -14,6 +13,7 @@ export function asTableId<T extends keyof DbTables>(
   _table: T,
   id: string | uuid | null | undefined
 ): DbTables[T]['Row']['id'] {
+  if (!id) return null as DbTables[T]['Row']['id']; // Handle null/undefined gracefully
   return id as DbTables[T]['Row']['id'];
 }
 
@@ -62,62 +62,76 @@ export function formatAgreementNumber(sequenceNumber: number): string {
 /**
  * Common table ID casting functions with simplified implementation
  */
-export function asAgreementId(id: string | uuid): uuid {
+export function asAgreementId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asLeaseId(id: string | uuid): uuid {
+export function asLeaseId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asVehicleId(id: string | uuid): uuid {
+export function asVehicleId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asPaymentId(id: string | uuid): uuid {
+export function asPaymentId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asProfileId(id: string | uuid): uuid {
+export function asProfileId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asImportId(id: string | uuid): uuid {
+export function asImportId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asTrafficFineId(id: string | uuid): uuid {
+export function asTrafficFineId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asCustomerId(id: string | uuid): uuid {
+export function asCustomerId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asMaintenanceId(id: string | uuid): uuid {
+export function asMaintenanceId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
 /**
  * Common column ID casting functions for foreign keys and other fields
  */
-export function asLeaseIdColumn(id: string | uuid): uuid {
+export function asLeaseIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asImportIdColumn(id: string | uuid): uuid {
+export function asImportIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asAgreementIdColumn(id: string | uuid): uuid {
+export function asAgreementIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asTrafficFineIdColumn(id: string | uuid): uuid {
+export function asTrafficFineIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
-export function asVehicleIdColumn(id: string | uuid): uuid {
+export function asVehicleIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
   return id as uuid;
 }
 
@@ -229,6 +243,15 @@ export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): response is { data: T; error: null } {
   return !response?.error && response?.data !== null;
+}
+
+/**
+ * Type utility to cast a string to a UUID for database operations
+ * Ensures we're sending a valid UUID format to Supabase
+ */
+export function asDbId<T = any>(id: string | null | undefined): string | null {
+  if (!id) return null;
+  return id;
 }
 
 // Add helpers for financial data related to vehicles

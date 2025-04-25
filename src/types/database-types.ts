@@ -39,12 +39,14 @@ export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestS
 }
 
 // Type safe ID converter
-export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
+export function asTableId<T extends keyof Tables>(table: T, id: string | null | undefined): Tables[T]['Row']['id'] | null {
+  if (!id) return null;
   return id as Tables[T]['Row']['id'];
 }
 
 // Type safe ID converter with specific ID types
-export function asDbId<T extends UUID>(id: string): T {
+export function asDbId<T extends UUID>(id: string | null | undefined): T | null {
+  if (!id) return null;
   return id as T;
 }
 
