@@ -33,6 +33,14 @@ export function asTrafficFineId(id: string) {
   return asTableId('traffic_fines', id);
 }
 
+export function asVehicleId(id: string) {
+  return asTableId('vehicles', id);
+}
+
+export function asMaintenanceId(id: string) {
+  return asTableId('maintenance', id);
+}
+
 // Column-specific type casting functions
 export function asLeaseStatus(status: string) {
   return asTableStatus('leases', status);
@@ -40,4 +48,8 @@ export function asLeaseStatus(status: string) {
 
 export function asPaymentStatus(status: string) {
   return asTableStatus('unified_payments', status);
+}
+
+export function asMaintenanceStatus(status: string) {
+  return asTableStatus('maintenance', status);
 }

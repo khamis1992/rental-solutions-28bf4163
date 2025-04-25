@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCrudApi } from './use-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { UseQueryResult } from '@tanstack/react-query';
+import { asTableId } from '@/utils/type-casting';
 
 // Define the Maintenance type that matches the actual database schema
 export type MaintenanceRecord = {
@@ -59,16 +60,21 @@ export function useMaintenance() {
       },
       
       create: async (maintenanceData: any) => {
-        // Ensure data format matches what Supabase expects
+        // Map UI fields to database fields before submitting
         const formattedData = {
-          ...maintenanceData,
-          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
-          completion_date: maintenanceData.completion_date?.toISOString(),
-          // Map UI fields to database fields if needed
-          performed_by: maintenanceData.service_provider,
-          // Ensure maintenance_type and status are never empty strings
+          vehicle_id: maintenanceData.vehicle_id,
           maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
           status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
+          description: maintenanceData.description || '',
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          cost: maintenanceData.cost,
+          notes: maintenanceData.notes,
+          // Map UI fields to the actual database fields
+          performed_by: maintenanceData.service_provider,
+          service_type: maintenanceData.invoice_number, // Store invoice number in service_type field
+          // Add odometer reading if available
+          ...(maintenanceData.odometer_reading ? { odometer_reading: maintenanceData.odometer_reading } : {})
         };
         
         const { data, error } = await supabase
@@ -82,16 +88,21 @@ export function useMaintenance() {
       },
       
       update: async (id: string, maintenanceData: any) => {
-        // Ensure data format matches what Supabase expects
+        // Map UI fields to database fields before submitting
         const formattedData = {
-          ...maintenanceData,
-          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
-          completion_date: maintenanceData.completion_date?.toISOString(),
-          // Map UI fields to database fields if needed
-          performed_by: maintenanceData.service_provider,
-          // Ensure maintenance_type and status are never empty strings
+          vehicle_id: maintenanceData.vehicle_id,
           maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
           status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
+          description: maintenanceData.description || '',
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          cost: maintenanceData.cost,
+          notes: maintenanceData.notes,
+          // Map UI fields to the actual database fields
+          performed_by: maintenanceData.service_provider,
+          service_type: maintenanceData.invoice_number, // Store invoice number in service_type field
+          // Add odometer reading if available
+          ...(maintenanceData.odometer_reading ? { odometer_reading: maintenanceData.odometer_reading } : {})
         };
         
         const { data, error } = await supabase
@@ -144,7 +155,7 @@ export function useMaintenance() {
     const isValidStatus = validStatuses.includes(data.status);
     const safeStatus = isValidStatus ? data.status : MaintenanceStatus.SCHEDULED;
     
-    // Ensure required properties have valid defaults to prevent errors
+    // Map database fields to UI fields
     return {
       ...data,
       id: data.id || '',
@@ -153,8 +164,9 @@ export function useMaintenance() {
       status: safeStatus,
       description: data.description || '',
       scheduled_date: data.scheduled_date || new Date().toISOString(),
-      service_provider: data.service_provider || data.performed_by || '',
-      invoice_number: data.invoice_number || '',
+      // Map database fields to UI fields
+      service_provider: data.performed_by || '',  // Map performed_by to service_provider
+      invoice_number: data.service_type || '',    // Map service_type to invoice_number
       odometer_reading: typeof data.odometer_reading === 'number' ? data.odometer_reading : 0,
       cost: typeof data.cost === 'number' ? data.cost : parseFloat(data.cost) || 0,
       created_at: data.created_at || new Date().toISOString(),
@@ -167,7 +179,7 @@ export function useMaintenance() {
     const { data, error } = await supabase
       .from('maintenance')
       .select('*')
-      .eq('vehicle_id', vehicleId)
+      .eq('vehicle_id', asTableId('vehicles', vehicleId))
       .order('scheduled_date', { ascending: false });
     
     if (error) throw error;
@@ -180,7 +192,7 @@ export function useMaintenance() {
       .select('status, count', { count: 'exact' });
     
     if (vehicleId) {
-      query = query.eq('vehicle_id', vehicleId);
+      query = query.eq('vehicle_id', asTableId('vehicles', vehicleId));
     }
     
     const { count, error } = await query;

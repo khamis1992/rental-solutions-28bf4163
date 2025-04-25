@@ -21,7 +21,7 @@ const AddMaintenance = () => {
     if (Object.values(MaintenanceType).includes(type as any)) {
       return type as keyof typeof MaintenanceType;
     }
-    return MaintenanceType.REGULAR_INSPECTION;
+    return 'REGULAR_INSPECTION';
   };
   
   // Ensure the status is a valid enum value
@@ -30,7 +30,7 @@ const AddMaintenance = () => {
     if (validStatus.includes(status)) {
       return status as "scheduled" | "in_progress" | "completed" | "cancelled";
     }
-    return MaintenanceStatus.SCHEDULED;
+    return 'scheduled';
   };
 
   const handleSubmit = async (formData: any) => {
@@ -40,10 +40,10 @@ const AddMaintenance = () => {
     setError(null);
     
     try {
-      // Convert dates to ISO strings for API and ensure valid values for enum fields
+      // Prepare data for API submission
       const preparedData = {
         ...formData,
-        // Ensure these fields are never empty strings
+        // Ensure these fields are properly validated
         maintenance_type: validateMaintenanceType(formData.maintenance_type || MaintenanceType.REGULAR_INSPECTION),
         status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
         // Ensure vehicle_id is never empty
@@ -52,7 +52,6 @@ const AddMaintenance = () => {
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       
-      // Log the data we're about to submit to help debug any issues
       console.log("Prepared data for submission:", preparedData);
       
       await create.mutateAsync(preparedData);
@@ -64,9 +63,9 @@ const AddMaintenance = () => {
       });
       
       navigate('/maintenance');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating maintenance record:', err);
-      setError('Failed to create maintenance record. Please try again.');
+      setError(err.message || 'Failed to create maintenance record. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
