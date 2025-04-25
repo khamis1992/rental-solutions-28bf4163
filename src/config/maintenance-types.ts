@@ -1,7 +1,6 @@
-
 import { MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { 
-  OilIcon,  // Use OilIcon instead of Oil
+  OilIcon,
   Wrench,
   Gauge,
   Settings,
@@ -26,7 +25,7 @@ export const maintenanceTypes: MaintenanceTypeConfig[] = [
     value: MaintenanceType.OIL_CHANGE,
     label: 'Oil Change',
     description: 'Replace engine oil and oil filter',
-    icon: OilIcon,  // Updated to use OilIcon
+    icon: OilIcon,
     recommendedInterval: '5,000 - 10,000 km'
   },
   {
