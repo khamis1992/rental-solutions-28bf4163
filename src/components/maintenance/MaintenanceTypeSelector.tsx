@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -6,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { cn } from '@/lib/utils';
 import { 
-  Tool,
-  Oil,
+  OilIcon,
   Wrench,
   Gauge,
   Settings,
@@ -32,7 +30,7 @@ const MaintenanceTypeSelector: React.FC<MaintenanceTypeSelectorProps> = ({
       value: MaintenanceType.OIL_CHANGE,
       label: 'Oil Change',
       description: 'Replace engine oil and oil filter',
-      icon: Oil,
+      icon: OilIcon,
       recommendedInterval: '5,000 - 10,000 km'
     },
     {
