@@ -18,6 +18,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Database } from '@/types/database.types';
+import { asPaymentId } from '@/utils/type-casting';
 
 type ImportLog = Database['public']['Tables']['agreement_imports']['Row'];
 

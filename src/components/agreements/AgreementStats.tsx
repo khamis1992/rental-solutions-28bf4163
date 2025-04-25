@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { asTableId, asTableStatus } from '@/utils/type-casting';
+import { asLeaseStatus, asPaymentStatus } from '@/utils/type-casting';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -37,13 +37,13 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableStatus('leases', 'active'));
+          .eq('status', asLeaseStatus('active'));
           
         // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableStatus('unified_payments', 'pending'));
+          .eq('status', asPaymentStatus('pending'));
           
         // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
@@ -55,10 +55,10 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asTableStatus('leases', 'active'));
+          .eq('status', asLeaseStatus('active'));
           
-        const activeValue = activeAgreements?.reduce((sum, agreement) => 
-          sum + (agreement?.rent_amount || 0), 0) || 0;
+        const activeValue = (activeAgreements || []).reduce((sum, agreement) => 
+          sum + (agreement?.rent_amount || 0), 0);
         
         setStats({
           totalAgreements: totalCount || 0,

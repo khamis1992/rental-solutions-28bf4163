@@ -12,3 +12,33 @@ export function asTableId<T extends TableNames>(table: T, id: string): RowType<T
 export function asTableStatus<T extends TableNames>(table: T, status: string): RowType<T>['status'] {
   return status as RowType<T>['status'];
 }
+
+export function asLeaseId(id: string) {
+  return asTableId('leases', id);
+}
+
+export function asPaymentId(id: string) {
+  return asTableId('unified_payments', id);
+}
+
+export function asAgreementId(id: string) {
+  return asTableId('leases', id);
+}
+
+export function asImportId(id: string) {
+  return asTableId('agreement_imports', id);
+}
+
+export function asTrafficFineId(id: string) {
+  return asTableId('traffic_fines', id);
+}
+
+// Column-specific type casting functions
+export function asLeaseStatus(status: string) {
+  return asTableStatus('leases', status);
+}
+
+export function asPaymentStatus(status: string) {
+  return asTableStatus('unified_payments', status);
+}
+
