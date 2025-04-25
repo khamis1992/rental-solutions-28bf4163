@@ -18,8 +18,8 @@ const CustomerSection = ({
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
   };
-  return <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-md bg-gray-50">
-      <CardHeader className="pb-4 bg-gray-50">
+  return <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-md bg-gray-50 rounded-md">
+      <CardHeader className="pb-4 bg-gray-50 rounded-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
@@ -35,7 +35,7 @@ const CustomerSection = ({
             </Button>}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 bg-gray-50">
+      <CardContent className="space-y-6 bg-gray-50 rounded-md">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground">Contact Information</h3>
