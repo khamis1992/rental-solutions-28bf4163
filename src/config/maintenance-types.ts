@@ -1,7 +1,7 @@
 
 import { MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { 
-  OilDrop,  // Change from Oil to OilDrop, which is the correct icon name
+  OilIcon,  // Changed from OilDrop to OilIcon
   Wrench,
   Gauge,
   Settings,
@@ -26,7 +26,7 @@ export const maintenanceTypes: MaintenanceTypeConfig[] = [
     value: MaintenanceType.OIL_CHANGE,
     label: 'Oil Change',
     description: 'Replace engine oil and oil filter',
-    icon: OilDrop,  // Updated to use OilDrop
+    icon: OilIcon,  // Updated to use OilIcon
     recommendedInterval: '5,000 - 10,000 km'
   },
   {
