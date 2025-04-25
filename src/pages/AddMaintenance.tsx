@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import PageContainer from '@/components/layout/PageContainer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,6 +8,9 @@ import { AlertCircle } from 'lucide-react';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
 import { asVehicleId } from '@/utils/type-casting';
+import MaintenanceWizard from '@/components/maintenance/MaintenanceWizard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const AddMaintenance = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('wizard');
   
   const validateMaintenanceType = (type: string): keyof typeof MaintenanceType => {
     if (Object.values(MaintenanceType).includes(type as any)) {
@@ -49,6 +52,8 @@ const AddMaintenance = () => {
         status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
         vehicle_id: asVehicleId(formData.vehicle_id),
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
+        odometer_reading: typeof formData.odometer_reading === 'number' ? 
+          formData.odometer_reading : parseInt(formData.odometer_reading) || 0
       };
       
       console.log("Prepared data for submission:", preparedData);
@@ -89,12 +94,37 @@ const AddMaintenance = () => {
         </Alert>
       )}
       
-      <MaintenanceForm
-        onSubmit={handleSubmit}
-        isLoading={isSubmitting}
-      />
+      <Card className="mb-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="wizard">Wizard Interface</TabsTrigger>
+            <TabsTrigger value="form">Standard Form</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="wizard" className="p-4">
+            <MaintenanceWizard 
+              onSubmit={handleSubmit} 
+              isLoading={isSubmitting}
+            />
+          </TabsContent>
+          
+          <TabsContent value="form" className="p-4">
+            <div className="text-sm text-muted-foreground mb-4">
+              Use the standard form below to add a new maintenance record.
+            </div>
+            
+            <MaintenanceForm
+              onSubmit={handleSubmit}
+              isLoading={isSubmitting}
+            />
+          </TabsContent>
+        </Tabs>
+      </Card>
     </PageContainer>
   );
 };
+
+// Importing dynamically to avoid recursive imports
+const MaintenanceForm = React.lazy(() => import('@/components/maintenance/MaintenanceForm'));
 
 export default AddMaintenance;
