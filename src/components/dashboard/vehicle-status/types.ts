@@ -1,4 +1,15 @@
 
+import { VehicleStatus } from '@/types/vehicle';
+
+export interface StatusConfig {
+  key: string;
+  name: string;
+  color: string;
+  icon: React.ComponentType;
+  description: string;
+  filterValue: VehicleStatus;
+}
+
 export interface VehicleStatusData {
   total: number;
   available: number;

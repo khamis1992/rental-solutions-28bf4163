@@ -8,7 +8,6 @@ import { VehicleStatusData } from './vehicle-status/types';
 import { StatusListItem } from './vehicle-status/StatusListItem';
 import { StatusChart } from './vehicle-status/StatusChart';
 import { ChartControls } from './vehicle-status/ChartControls';
-import { AlertTriangle } from 'lucide-react';
 
 interface VehicleStatusChartProps {
   data?: VehicleStatusData;
@@ -61,18 +60,10 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   }, []);
 
   return (
-    <Card className="overflow-hidden border-blue-100 bg-white">
-      <CardHeader className="pb-2 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-blue-100">
+    <Card className="col-span-full lg:col-span-4 card-transition dashboard-card">
+      <CardHeader className="pb-2">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <CardTitle className="text-lg font-semibold flex items-center">
-            Fleet Status Overview
-            {hasCriticalVehicles && (
-              <Badge variant="destructive" className="ml-2 flex items-center">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {criticalVehicles} Critical
-              </Badge>
-            )}
-          </CardTitle>
+          <CardTitle>Fleet Status Overview</CardTitle>
           <ChartControls 
             selectedFilter={selectedFilter}
             chartType={chartType}
@@ -81,7 +72,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
           />
         </div>
       </CardHeader>
-      <CardContent className="p-4">
+      <CardContent>
         <div className="flex flex-col lg:flex-row items-start justify-between h-auto lg:h-96">
           <div className="w-full lg:w-2/3 h-72 lg:h-full">
             <StatusChart 
@@ -103,7 +94,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
               )}
             </div>
             
-            <div className="space-y-3 flex-grow overflow-y-auto pr-2 max-h-[300px]">
+            <div className="space-y-3 flex-grow overflow-y-auto pr-2">
               {statusConfig.map((status) => {
                 const count = normalizedData[status.key as keyof typeof normalizedData] || 0;
                 if (count === 0) return null;

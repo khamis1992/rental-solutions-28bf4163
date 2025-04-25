@@ -1,7 +1,12 @@
 
-export type ChartType = 'line' | 'bar' | 'area';
+export interface RevenueData {
+  name: string;
+  revenue: number;
+}
 
 export interface RevenueChartProps {
-  data: { name: string; revenue: number }[];
+  data: RevenueData[];
   fullWidth?: boolean;
 }
+
+export type ChartType = 'area' | 'bar' | 'line';

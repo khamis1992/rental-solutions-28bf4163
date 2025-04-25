@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import DashboardStats from './DashboardStats';
@@ -8,30 +9,6 @@ import RevenueChart from './RevenueChart';
 import VehicleStatusChart from './VehicleStatusChart';
 import RecentActivity from './RecentActivity';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
-
-interface SectionHeaderProps {
-  title: string;
-  isCollapsed: boolean;
-  onToggle: () => void;
-  children?: React.ReactNode;
-}
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, isCollapsed, onToggle, children }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-xl font-semibold">{title}</h2>
-    <div className="flex items-center gap-3">
-      {children}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 px-2 hover:bg-slate-100"
-        onClick={onToggle}
-      >
-        {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-      </Button>
-    </div>
-  </div>
-);
 
 interface DashboardContentProps {
   isLoading: boolean;
@@ -56,16 +33,29 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
-          <Skeleton className="h-32 rounded-lg" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
         </div>
-        <Skeleton className="h-96 rounded-lg" />
-        <Skeleton className="h-96 rounded-lg" />
-        <Skeleton className="h-96 rounded-lg" />
+        <div className="grid grid-cols-1 gap-6">
+          <Skeleton className="h-96" />
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          <Skeleton className="h-96" />
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        Failed to load dashboard data. Please try again later.
+        {error && <p className="text-sm mt-1">{error.toString()}</p>}
       </div>
     );
   }
@@ -73,55 +63,73 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   return (
     <div className="space-y-6">
       <div className="dashboard-section">
-        <SectionHeader 
-          title="Key Performance Indicators"
-          isCollapsed={collapsedSections['kpis']} 
-          onToggle={() => onToggleSection('kpis')}
-        />
-        {!collapsedSections['kpis'] && (
-          <div className="transition-all duration-300 ease-in-out">
-            <DashboardStats stats={stats} />
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Key Performance Indicators</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('kpis')}
+          >
+            {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+        </div>
+        {!collapsedSections['kpis'] && <DashboardStats stats={stats} />}
       </div>
       
       <div className="dashboard-section">
-        <SectionHeader 
-          title="Fleet Status"
-          isCollapsed={collapsedSections['fleet']} 
-          onToggle={() => onToggleSection('fleet')}
-        />
-        {!collapsedSections['fleet'] && (
-          <div className="transition-all duration-300 ease-in-out">
-            <VehicleStatusChart data={stats?.vehicleStats} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Fleet Status</h2>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-background">
+              {stats?.vehicleStats.total || 0} Total Vehicles
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('fleet')}
+            >
+              {collapsedSections['fleet'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
           </div>
-        )}
+        </div>
+        {!collapsedSections['fleet'] && <VehicleStatusChart data={stats?.vehicleStats} />}
       </div>
       
       <div className="dashboard-section">
-        <SectionHeader 
-          title="Revenue Overview"
-          isCollapsed={collapsedSections['revenue']} 
-          onToggle={() => onToggleSection('revenue')}
-        />
-        {!collapsedSections['revenue'] && (
-          <div className="transition-all duration-300 ease-in-out">
-            <RevenueChart data={revenue} fullWidth={true} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Revenue Overview</h2>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-background">
+              Last 6 Months
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('revenue')}
+            >
+              {collapsedSections['revenue'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
           </div>
-        )}
+        </div>
+        {!collapsedSections['revenue'] && <RevenueChart data={revenue} fullWidth={true} />}
       </div>
       
       <div className="dashboard-section">
-        <SectionHeader 
-          title="Recent Activity"
-          isCollapsed={collapsedSections['activity']} 
-          onToggle={() => onToggleSection('activity')}
-        />
-        {!collapsedSections['activity'] && (
-          <div className="transition-all duration-300 ease-in-out">
-            <RecentActivity activities={activity} />
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => onToggleSection('activity')}
+          >
+            {collapsedSections['activity'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+        </div>
+        {!collapsedSections['activity'] && <RecentActivity activities={activity} />}
       </div>
     </div>
   );

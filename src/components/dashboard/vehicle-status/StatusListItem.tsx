@@ -1,46 +1,48 @@
 
 import React from 'react';
-
-interface Status {
-  key: string;
-  name: string;
-  color: string;
-  icon?: React.ElementType;
-  filterValue: string;
-}
+import { cn } from '@/lib/utils';
+import { StatusConfig } from './types';
 
 interface StatusListItemProps {
-  status: Status;
+  status: StatusConfig;
   count: number;
   onClick: () => void;
 }
 
-export const StatusListItem: React.FC<StatusListItemProps> = ({ status, count, onClick }) => {
-  const { name, color, icon: Icon } = status;
-  const isHighlight = ['critical', 'accident', 'stolen', 'attention'].includes(status.key);
+export const StatusListItem: React.FC<StatusListItemProps> = ({
+  status,
+  count,
+  onClick
+}) => {
+  const Icon = status.icon;
   
   return (
     <div 
+      key={status.key} 
+      className={cn(
+        "flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100",
+        status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
+          ? "bg-red-50 hover:bg-red-100" 
+          : "bg-slate-50 hover:bg-slate-100"
+      )}
       onClick={onClick}
-      className={`flex items-center justify-between p-2.5 rounded-md border border-transparent cursor-pointer transition-all hover:shadow-sm ${
-        isHighlight 
-          ? `bg-red-50 border-red-100 hover:bg-red-100`
-          : `hover:bg-gray-100 hover:border-gray-200`
-      }`}
     >
-      <div className="flex items-center">
-        <div className={`w-3 h-3 rounded-full mr-3 ${color}`} />
-        <span className="font-medium text-sm">{name}</span>
+      <div 
+        className="p-1.5 rounded-md" 
+        style={{ backgroundColor: `${status.color}20` }}
+      >
+        <Icon 
+          size={16} 
+          style={{ color: status.color }} 
+        />
       </div>
-      <span className={`font-bold text-sm px-2 py-0.5 rounded-full ${
-        isHighlight 
-          ? 'bg-red-100 text-red-700' 
-          : status.key === 'available' 
-            ? 'bg-green-100 text-green-700' 
-            : 'bg-gray-100 text-gray-700'
-      }`}>
-        {count}
-      </span>
+      <div className="flex-grow">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium">{status.name}</span>
+          <span className="text-sm font-semibold">{count}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">{status.description}</p>
+      </div>
     </div>
   );
 };

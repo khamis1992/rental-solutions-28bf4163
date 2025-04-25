@@ -5,13 +5,6 @@ import { formatCurrency } from '@/lib/utils';
 import ChartTypeSelector from './revenue/ChartTypeSelector';
 import RevenueChartContent from './revenue/RevenueChartContent';
 import { RevenueChartProps, ChartType } from './revenue/types';
-import { TrendingDown, TrendingUp } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
   const [chartType, setChartType] = useState<ChartType>('area');
@@ -42,36 +35,19 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
       ? 'text-red-600' 
       : 'text-gray-600';
 
-  const ChangeIcon = revenueChange >= 0 ? TrendingUp : TrendingDown;
-
   return (
-    <Card className="border-blue-100 overflow-hidden bg-white">
-      <CardHeader className="pb-0 flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gradient-to-r from-slate-50 to-gray-50 border-b border-blue-100">
+    <Card className={`card-transition dashboard-card ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
+      <CardHeader className="pb-0 flex flex-col sm:flex-row sm:justify-between sm:items-center">
         <div className="mb-3 sm:mb-0">
-          <CardTitle className="text-lg font-semibold">Revenue Overview</CardTitle>
+          <CardTitle>{`${currentMonth} Revenue Overview`}</CardTitle>
           <div className="flex items-center mt-1">
             <span className="text-lg font-semibold">{formatCurrency(currentMonthRevenue)}</span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={`text-sm ml-2 ${changeColor} flex items-center px-2 py-0.5 rounded-full bg-opacity-20 ${revenueChange >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <ChangeIcon className="h-3 w-3 mr-1" />
-                    {formattedChange}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Compared to {previousMonthData?.name || 'previous month'}: {formatCurrency(previousMonthRevenue)}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <span className={`text-sm ml-2 ${changeColor}`}>{formattedChange}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Last 6 Months</span>
-          <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
-        </div>
+        <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent>
         <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
           <RevenueChartContent data={data} chartType={chartType} />
         </div>
