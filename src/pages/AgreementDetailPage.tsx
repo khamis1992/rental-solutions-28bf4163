@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
@@ -10,6 +11,12 @@ import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { usePayments } from '@/hooks/use-payments';
+import { toast } from 'sonner';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { getDateObject } from '@/lib/date-utils';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { forceGeneratePaymentForAgreement, fixAgreementPayments, manuallyRunPaymentMaintenance } from '@/utils/payment-utils';
+import { supabase } from '@/lib/supabase';
 import AgreementHeader from '@/components/agreements/AgreementHeader';
 import AgreementSummaryCard from '@/components/agreements/AgreementSummaryCard';
 import AgreementTabs from '@/components/agreements/AgreementTabs';

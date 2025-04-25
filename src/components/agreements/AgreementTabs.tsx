@@ -2,7 +2,9 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, BarChart, User, Gavel } from 'lucide-react';
+import { FileText, BarChart, User, Gavel, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import CustomerSection from './CustomerSection';
 import VehicleSection from './VehicleSection';
 import { PaymentHistory } from './PaymentHistory';
@@ -31,6 +33,8 @@ const AgreementTabs = ({
   onPaymentDeleted,
   fetchPayments
 }: AgreementTabsProps) => {
+  const navigate = useNavigate();
+  
   return (
     <Tabs defaultValue="overview" value={activeTab} onValueChange={onTabChange} className="space-y-6">
       <TabsList className="grid grid-cols-4">
