@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
@@ -15,7 +14,7 @@ import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { getDateObject } from '@/lib/date-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { forceGeneratePaymentForAgreement, fixAgreementPayments, manuallyRunPaymentMaintenance } from '@/utils/payment-utils';
+import { forceGeneratePaymentForAgreement, fixAgreementPayments, manuallyRunPaymentMaintenance } from '@/lib/payment-utils';
 import { supabase } from '@/lib/supabase';
 import AgreementHeader from '@/components/agreements/AgreementHeader';
 import AgreementSummaryCard from '@/components/agreements/AgreementSummaryCard';
@@ -33,6 +32,7 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   const {
