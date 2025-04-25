@@ -73,7 +73,7 @@ export function asLeaseId(id: string | uuid | null | undefined): uuid | null {
 }
 
 export function asVehicleId(id: string | uuid | null | undefined): uuid | null {
-  if (!id) return null;
+  if (!id || id === '') return null;
   return id as uuid;
 }
 
@@ -257,9 +257,4 @@ export function asDbId<T = any>(id: string | null | undefined): string | null {
 // Add helpers for financial data related to vehicles
 export function asVehicleFinancialData(data: any): any {
   return data;
-}
-
-export function asVehicleId(id: string | uuid | null | undefined): uuid | null {
-  if (!id || id === '') return null;
-  return id as uuid;
 }
