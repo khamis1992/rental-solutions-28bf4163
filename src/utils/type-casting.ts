@@ -258,3 +258,8 @@ export function asDbId<T = any>(id: string | null | undefined): string | null {
 export function asVehicleFinancialData(data: any): any {
   return data;
 }
+
+export function asVehicleId(id: string | uuid | null | undefined): uuid | null {
+  if (!id || id === '') return null;
+  return id as uuid;
+}

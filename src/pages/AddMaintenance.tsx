@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import { asVehicleId } from '@/utils/type-casting';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
@@ -16,7 +17,6 @@ const AddMaintenance = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Ensure the maintenance type is a valid enum value
   const validateMaintenanceType = (type: string): keyof typeof MaintenanceType => {
     if (Object.values(MaintenanceType).includes(type as any)) {
       return type as keyof typeof MaintenanceType;
@@ -24,7 +24,6 @@ const AddMaintenance = () => {
     return 'REGULAR_INSPECTION';
   };
   
-  // Ensure the status is a valid enum value
   const validateMaintenanceStatus = (status: string): "scheduled" | "in_progress" | "completed" | "cancelled" => {
     const validStatus = ["scheduled", "in_progress", "completed", "cancelled"];
     if (validStatus.includes(status)) {
@@ -40,20 +39,15 @@ const AddMaintenance = () => {
     setError(null);
     
     try {
-      // Validate that vehicle_id is not empty
       if (!formData.vehicle_id || formData.vehicle_id === 'no-vehicles-available') {
         throw new Error('Please select a valid vehicle');
       }
 
-      // Prepare data for API submission
       const preparedData = {
         ...formData,
-        // Ensure these fields are properly validated
         maintenance_type: validateMaintenanceType(formData.maintenance_type || MaintenanceType.REGULAR_INSPECTION),
         status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
-        // Ensure vehicle_id is sent as a valid string
-        vehicle_id: formData.vehicle_id,
-        // Ensure cost is a number
+        vehicle_id: asVehicleId(formData.vehicle_id),
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { asVehicleId } from '@/utils/type-casting';
 
 // Create form schema type
 type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;
@@ -65,24 +65,14 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     },
   });
 
-  // Get vehicles for the dropdown
-  const { useList } = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = useList();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles().useList();
 
-  // Format the maintenance type value
   const formatMaintenanceType = (type: string) => {
     if (!type) return 'Unknown Type';
-    return type
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
-  // Make sure vehicles has a default value if it's undefined
-  const vehiclesList = vehicles || [];
-
-  // Filter out invalid vehicle data to prevent select errors
-  const validVehicles = vehiclesList.filter(vehicle => 
+  const validVehicles = (vehicles || []).filter(vehicle => 
     vehicle && 
     vehicle.id && 
     vehicle.make && 
@@ -90,10 +80,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     vehicle.license_plate
   );
 
-  // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;
 
-  // Add validation to ensure vehicle ID is selected
   useEffect(() => {
     if (!isLoadingVehicles && validVehicles.length === 0) {
       toast.error('No vehicles available. Please add a vehicle first.');
@@ -101,14 +89,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   }, [isLoadingVehicles, validVehicles.length]);
 
   const handleFormSubmit = (data: MaintenanceFormSchema) => {
-    // Additional validation
-    if (!data.vehicle_id) {
-      toast.error('Please select a vehicle');
+    if (!data.vehicle_id || data.vehicle_id === 'no-vehicles-available') {
+      toast.error('Please select a valid vehicle');
       return;
     }
     
-    console.log('Submitting maintenance form with data:', data);
-    onSubmit(data);
+    const formattedData = {
+      ...data,
+      vehicle_id: asVehicleId(data.vehicle_id),
+    };
+
+    console.log('Submitting maintenance form with data:', formattedData);
+    onSubmit(formattedData);
   };
 
   return (
