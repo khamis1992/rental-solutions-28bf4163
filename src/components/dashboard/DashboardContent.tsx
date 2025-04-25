@@ -31,26 +31,6 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   collapsedSections,
   onToggleSection
 }) => {
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          <Skeleton className="h-96" />
-        </div>
-        <div className="grid grid-cols-1 gap-6">
-          <Skeleton className="h-96" />
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -62,7 +42,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="dashboard-section">
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Key Performance Indicators</h2>
           <Button
@@ -74,15 +54,15 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
         </div>
-        {!collapsedSections['kpis'] && <DashboardStats stats={stats} />}
+        {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
       </div>
       
-      <div className="dashboard-section">
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Fleet Status</h2>
           <div className="flex items-center space-x-2">
             <Badge variant="outline" className="bg-background">
-              {stats?.vehicleStats.total || 0} Total Vehicles
+              {isLoading ? "Loading..." : `${stats?.vehicleStats.total || 0} Total Vehicles`}
             </Badge>
             <Button
               variant="ghost"
@@ -94,10 +74,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             </Button>
           </div>
         </div>
-        {!collapsedSections['fleet'] && <VehicleStatusChart data={stats?.vehicleStats} />}
+        {!collapsedSections['fleet'] && (
+          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
+        )}
       </div>
       
-      <div className="dashboard-section">
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Revenue Overview</h2>
           <div className="flex items-center space-x-2">
@@ -114,10 +96,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             </Button>
           </div>
         </div>
-        {!collapsedSections['revenue'] && <RevenueChart data={revenue} fullWidth={true} />}
+        {!collapsedSections['revenue'] && (
+          isLoading ? <Skeleton className="h-[350px] w-full rounded-lg" /> : <RevenueChart data={revenue} fullWidth={true} />
+        )}
       </div>
       
-      <div className="dashboard-section">
+      <div className="dashboard-section animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Recent Activity</h2>
           <Button
@@ -129,7 +113,15 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             {collapsedSections['activity'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
         </div>
-        {!collapsedSections['activity'] && <RecentActivity activities={activity} />}
+        {!collapsedSections['activity'] && (
+          isLoading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-md" />
+              ))}
+            </div>
+          ) : <RecentActivity activities={activity} />
+        )}
       </div>
     </div>
   );

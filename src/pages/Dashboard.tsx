@@ -1,11 +1,12 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { toast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { CacheManager } from '@/lib/cache-utils';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -29,6 +30,9 @@ const Dashboard = () => {
   
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
+    
+    // Clear cache when refreshing
+    CacheManager.clear();
     
     // Use a timeout to prevent rapid refreshes
     setTimeout(() => {
@@ -54,6 +58,38 @@ const Dashboard = () => {
     month: 'long',
     day: 'numeric'
   });
+
+  // Add CSS to handle animations
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideIn {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      .animate-slide-in {
+        animation: slideIn 0.5s ease-out;
+      }
+      .section-transition {
+        transition: all 0.3s ease-in-out;
+      }
+      .card-transition {
+        transition: all 0.2s ease;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <PageContainer>
