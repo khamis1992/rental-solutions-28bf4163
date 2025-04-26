@@ -16,6 +16,9 @@ export const generateAgreementReport = (
     async (doc, startY) => {
       let currentY = startY;
       
+      // Set text color to black for all sections
+      doc.setTextColor(0, 0, 0);
+      
       // Agreement Information
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
