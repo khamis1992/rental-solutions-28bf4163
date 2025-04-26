@@ -60,6 +60,7 @@ interface SearchParams {
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
+  query?: string;
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
@@ -168,6 +169,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
+      if (searchParams.query) {
+        const searchQuery = searchParams.query.trim().toLowerCase();
+        
+        query = query.or(`
+          agreement_number.ilike.%${searchQuery}%,
+          profiles.full_name.ilike.%${searchQuery}%,
+          vehicles.license_plate.ilike.%${searchQuery}%,
+          vehicles.make.ilike.%${searchQuery}%,
+          vehicles.model.ilike.%${searchQuery}%
+        `);
+      }
+
       if (searchParams.vehicle_id) {
         query = query.eq('vehicle_id', searchParams.vehicle_id);
       }
@@ -188,8 +201,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         console.log("No agreements found with the given filters");
         return [];
       }
-
-      console.log(`Found ${data.length} agreements`, data);
 
       const agreements: SimpleAgreement[] = data.map(item => {
         const mappedStatus = mapDBStatusToEnum(item.status);
