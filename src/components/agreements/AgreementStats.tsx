@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAgreementStats } from '@/hooks/use-agreement-stats';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -5,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from "@/components/ui/card";
-import { Bar, BarChart, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { asStatusColumn } from '@/utils/database-type-helpers';
 
 interface AgreementStatsCardProps {
@@ -44,7 +45,7 @@ export const AgreementStats: React.FC = () => {
     if (stats) {
       const chartData: AgreementChartData[] = Object.entries(stats.statusCounts).map(([status, count]) => ({
         status: status.replace(/_/g, ' '),
-        count: count || 0,
+        count: count as number || 0,
       }));
       setAgreementChartData(chartData);
     }
@@ -83,6 +84,10 @@ export const AgreementStats: React.FC = () => {
           ) : agreementChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={agreementChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="status" />
+                <YAxis />
+                <Tooltip />
                 <Bar dataKey="count" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>

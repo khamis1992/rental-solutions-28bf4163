@@ -102,3 +102,22 @@ export function safelyExtractData<T>(response: { data: T, error: any } | null): 
   }
   return response.data;
 }
+
+/**
+ * Type-safe helper for matching foreign keys in the database
+ * @param columnName Database column name
+ * @param id ID to match
+ */
+export function asDbColumn<T>(columnName: string, id: string): Record<string, unknown> {
+  return { [columnName]: id as unknown as T };
+}
+
+/**
+ * Safe mapper for database records
+ * @param record Database record to map
+ * @param mapper Mapping function
+ */
+export function safeMapDbRecord<T, R>(record: T | null, mapper: (record: T) => R): R | null {
+  if (!record) return null;
+  return mapper(record);
+}
