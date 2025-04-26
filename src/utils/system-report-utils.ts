@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { generateStandardReport } from './report-utils';
+// Import autoTable explicitly
 import 'jspdf-autotable';
 
 interface SystemReportOptions {
@@ -306,8 +307,6 @@ const generateFinancialSummary = async (
   });
   
   currentY = (doc as any).lastAutoTable.finalY + 20;
-  
-  // Additional metrics or charts could be added here
   
   return currentY;
 };

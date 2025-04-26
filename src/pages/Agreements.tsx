@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -62,7 +61,6 @@ const Agreements = () => {
     checkAvailability();
   }, []);
   
-  // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
@@ -74,7 +72,6 @@ const Agreements = () => {
       }
     };
     
-    // Run after a 3-second delay to allow other initial page operations to complete
     const timer = setTimeout(() => {
       runMaintenanceJob();
     }, 3000);
@@ -116,7 +113,6 @@ const Agreements = () => {
       setIsGeneratingReport(true);
       toast.info("Generating system-wide agreement report...");
       
-      // Filter agreements by status if specified
       const filteredAgreements = options.statusFilter.length > 0 
         ? agreements.filter(a => options.statusFilter.includes(a.status))
         : agreements;
@@ -127,14 +123,12 @@ const Agreements = () => {
         return;
       }
       
-      // Fetch all payments for the filtered agreements
       const agreementIds = filteredAgreements.map(a => a.id);
       
-      // Get all payments for these agreements
       const { data: payments, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .in('lease_id', agreementIds.map(id => asTableId('unified_payments', id)));
+        .in('lease_id', agreementIds);
       
       if (paymentsError) {
         console.error("Error fetching payments:", paymentsError);
@@ -143,7 +137,6 @@ const Agreements = () => {
         return;
       }
       
-      // Generate the report
       const doc = await generateSystemReport(
         filteredAgreements,
         payments || [],
@@ -153,7 +146,6 @@ const Agreements = () => {
         }
       );
       
-      // Save the PDF
       const filename = `rental-agreements-system-report-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
       
@@ -167,7 +159,6 @@ const Agreements = () => {
     }
   };
 
-  // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
@@ -176,12 +167,10 @@ const Agreements = () => {
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
     >
-      {/* Stats Overview */}
       <div className="mb-6">
         <AgreementStats />
       </div>
 
-      {/* Search and Action Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex flex-grow max-w-md relative">
           <div className="relative w-full">
@@ -242,7 +231,6 @@ const Agreements = () => {
         </div>
       </div>
 
-      {/* Active Filters */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {activeFilters.map(([key, value]) => (
@@ -280,14 +268,12 @@ const Agreements = () => {
         </div>
       )}
 
-      {/* Filter Panel */}
       {showFilters && (
         <Card className="mb-6 p-4">
           <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
         </Card>
       )}
       
-      {/* Main Content */}
       <Suspense fallback={
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
@@ -307,7 +293,6 @@ const Agreements = () => {
         <ImportHistoryList />
       </div>
       
-      {/* Modals */}
       <CSVImportModal 
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
