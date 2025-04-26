@@ -2,7 +2,7 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { generateStandardReport } from './report-utils';
-import { formatCurrency } from './utils';
+import { formatCurrency } from '@/lib/utils';
 
 export const generateAgreementReport = (
   agreement: Agreement,
