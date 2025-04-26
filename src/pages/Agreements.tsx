@@ -1,12 +1,11 @@
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
-import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
@@ -14,13 +13,10 @@ import {
   FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 const Agreements = () => {
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const { setSearchParams, searchParams } = useAgreements();
+  const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
+  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = React.useState(true);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -70,13 +66,8 @@ const Agreements = () => {
   }, []);
   
   const handleImportComplete = () => {
-    setSearchParams({ 
-      status: 'all' 
-    });
+    // Refresh the data after import
   };
-
-  const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -139,4 +130,3 @@ const Agreements = () => {
 };
 
 export default Agreements;
-
