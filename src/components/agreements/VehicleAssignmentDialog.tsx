@@ -4,18 +4,19 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { AlertCircle, AlertTriangle, CheckCircle, X, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { TrafficFine, TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from '@/lib/date-utils';
-import { hasData } from '@/utils/database-type-helpers';
-import { Payment } from "./PaymentHistory.types";
 import {
   asVehicleId,
-  asLeaseId
-} from '@/lib/database-helpers';
+  asLeaseId,
+  asLeaseIdColumn,
+  asStatusColumn,
+  hasData
+} from '@/utils/database-type-helpers';
+import { Payment } from "./PaymentHistory.types";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export function VehicleAssignmentDialog({
       const paymentsResponse = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', existingAgreement.id)
+        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
         .in('status', ['pending', 'overdue']);
         
       if (hasData(paymentsResponse)) {
@@ -110,7 +111,7 @@ export function VehicleAssignmentDialog({
       const finesResponse = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', existingAgreement.id)
+        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
         .eq('payment_status', 'pending');
         
       if (hasData(finesResponse)) {
@@ -173,15 +174,13 @@ export function VehicleAssignmentDialog({
     onClose();
   };
 
-  // Safe formatting function for dates
-  const formatDateSafely = (date: Date | string | undefined | null) => {
+  const formatDate = (date: Date | undefined) => {
     if (!date) return 'N/A';
-    try {
-      return formatDate(date);
-    } catch (error) {
-      console.error(`Error formatting date: ${error}`, date);
-      return 'Invalid date';
-    }
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }).format(date);
   };
 
   const getStatusBadge = (status: string) => {
@@ -307,7 +306,7 @@ export function VehicleAssignmentDialog({
                             <tr key={payment.id} className="border-b">
                               <td className="p-2">{payment.amount} QAR</td>
                               <td className="p-2">{getStatusBadge(payment.status)}</td>
-                              <td className="p-2">{formatDateSafely(payment.due_date)}</td>
+                              <td className="p-2">{formatDate(payment.due_date)}</td>
                             </tr>
                           ))}
                         </tbody>

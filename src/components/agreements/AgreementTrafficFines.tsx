@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
@@ -13,18 +13,14 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines, error } = useTrafficFines();
+  const { isLoading, trafficFines, refetch } = useTrafficFines();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Since refetch is not available in the hook, we'll use window.location.reload()
-      // as a temporary solution until the hook is updated with proper refetch capability
-      toast.success('Refreshing traffic fines data...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      await refetch();
+      toast.success('Traffic fines data refreshed');
     } catch (error) {
       toast.error('Failed to refresh traffic fines');
       console.error('Error refreshing traffic fines:', error);
@@ -37,18 +33,6 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-4 text-red-500">
-        <p>Error loading traffic fines</p>
-        <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2 mt-2">
-          <RefreshCw className="h-4 w-4" />
-          Try again
-        </Button>
       </div>
     );
   }

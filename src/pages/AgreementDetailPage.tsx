@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart, Trash2, Shield } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarChart, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -17,18 +17,21 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
+import { ensureArray } from '@/lib/type-helpers';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
-import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
-import { generateAgreementReport } from '@/utils/agreement-report-utils';
+import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
+import { asDbId, AgreementId } from '@/types/database-types';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
-import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
+import { generateAgreementReport } from '@/utils/agreement-report-utils';
 
 const AgreementDetailPage = () => {
   const {
@@ -382,7 +385,7 @@ const AgreementDetailPage = () => {
               <User className="h-4 w-4" /> Customer & Vehicle
             </TabsTrigger>
             <TabsTrigger value="legal" className="flex gap-2">
-              <Shield className="h-4 w-4" /> Legal & Compliance
+              <Gavel className="h-4 w-4" /> Legal & Compliance
             </TabsTrigger>
           </TabsList>
           
@@ -446,9 +449,7 @@ const AgreementDetailPage = () => {
                     payments={payments}
                     isLoading={isLoadingPayments} 
                     rentAmount={rentAmount} 
-                    contractAmount={contractAmount}
                     onPaymentDeleted={fetchPayments}
-                    onPaymentUpdated={() => {}}
                     leaseStartDate={agreement.start_date}
                     leaseEndDate={agreement.end_date}
                     onRecordPayment={(payment) => {
@@ -514,31 +515,16 @@ const AgreementDetailPage = () => {
           </TabsContent>
           
           <TabsContent value="legal" className="space-y-6">
-            {/* Traffic Fines Section - Always shown in the Legal tab */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-amber-500" />
-                  Traffic Fines
-                </CardTitle>
-                <CardDescription>Violations during the rental period</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {agreement.start_date && agreement.end_date ? (
-                  <AgreementTrafficFines 
-                    agreementId={agreement.id} 
-                    startDate={new Date(agreement.start_date)} 
-                    endDate={new Date(agreement.end_date)}
-                  />
-                ) : (
-                  <p className="text-center py-4 text-muted-foreground">
-                    Agreement date information missing. Cannot display traffic fines.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {agreement.start_date && agreement.end_date && <Card>
+                <CardHeader>
+                  <CardTitle>Traffic Fines</CardTitle>
+                  <CardDescription>Violations during the rental period</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AgreementTrafficFines agreementId={agreement.id} startDate={new Date(agreement.start_date)} endDate={new Date(agreement.end_date)} />
+                </CardContent>
+              </Card>}
             
-            {/* Legal Cases Section */}
             {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
           </TabsContent>
         </Tabs>

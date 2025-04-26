@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,9 +35,6 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
 import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
-import { Loader } from "@/components/ui/loader";
-import { VehicleSearchCommandPalette } from "@/components/ui/vehicle-search-command-palette";
-import { CustomerSearchCommandPalette } from "@/components/ui/customer-search-command-palette";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -77,8 +75,6 @@ const AgreementFormWithVehicleCheck = ({
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
   const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
   const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
-  const [isVehicleSearchOpen, setIsVehicleSearchOpen] = useState(false);
-  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
 
   const generateAgreementNumber = () => {
     const prefix = "AGR";
@@ -128,6 +124,7 @@ const AgreementFormWithVehicleCheck = ({
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
+        // Fetch all vehicles, not just available ones, so we can show assigned vehicles too
         const { data, error } = await supabase
           .from("vehicles")
           .select("*");
@@ -166,6 +163,7 @@ const AgreementFormWithVehicleCheck = ({
   const handleVehicleChange = async (vehicleId: string) => {
     setIsCheckingVehicle(true);
     try {
+      // Check if vehicle is already assigned to an active agreement
       const availabilityResult = await checkVehicleAvailability(vehicleId);
       setVehicleAvailabilityResult(availabilityResult);
       
@@ -173,6 +171,7 @@ const AgreementFormWithVehicleCheck = ({
         setIsVehicleDialogOpen(true);
       }
       
+      // Get vehicle details regardless of availability
       const { data, error } = await supabase
         .from("vehicles")
         .select("*")
@@ -221,6 +220,8 @@ const AgreementFormWithVehicleCheck = ({
   };
 
   const handleVehicleConfirmation = () => {
+    // User has confirmed they want to proceed with the vehicle assignment
+    // This will be handled in the submission logic which will close the old agreement
     console.log("User confirmed vehicle reassignment");
   };
 
@@ -393,7 +394,6 @@ const AgreementFormWithVehicleCheck = ({
                             }
                           }}
                           initialFocus
-                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -501,32 +501,27 @@ const AgreementFormWithVehicleCheck = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Customer</FormLabel>
-                    <div className="space-y-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        onClick={() => setIsCustomerSearchOpen(true)}
-                      >
-                        {selectedCustomer ? (
-                          <>
-                            {selectedCustomer.full_name} ({selectedCustomer.email})
-                          </>
-                        ) : (
-                          "Search for a customer..."
-                        )}
-                      </Button>
-                      <CustomerSearchCommandPalette
-                        isOpen={isCustomerSearchOpen}
-                        onClose={() => setIsCustomerSearchOpen(false)}
-                        customers={customers}
-                        onCustomerSelect={(customer) => {
-                          field.onChange(customer.id);
-                          handleCustomerChange(customer.id);
-                        }}
-                      />
-                      <FormMessage />
-                    </div>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleCustomerChange(value);
+                      }} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -546,36 +541,36 @@ const AgreementFormWithVehicleCheck = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle</FormLabel>
-                    <div className="space-y-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        onClick={() => setIsVehicleSearchOpen(true)}
-                        disabled={isCheckingVehicle}
-                      >
-                        {isCheckingVehicle ? (
-                          <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        ) : selectedVehicle ? (
-                          <>
-                            {selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.license_plate})
-                          </>
-                        ) : (
-                          "Search for a vehicle..."
-                        )}
-                      </Button>
-                      <VehicleSearchCommandPalette
-                        isOpen={isVehicleSearchOpen}
-                        onClose={() => setIsVehicleSearchOpen(false)}
-                        vehicles={vehicles}
-                        onVehicleSelect={(vehicle) => {
-                          field.onChange(vehicle.id);
-                          handleVehicleChange(vehicle.id);
-                        }}
-                        isLoading={isCheckingVehicle}
-                      />
-                      <FormMessage />
-                    </div>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleVehicleChange(value);
+                      }} 
+                      defaultValue={field.value}
+                      disabled={isCheckingVehicle}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isCheckingVehicle ? "Checking vehicle..." : "Select vehicle"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicles.map((vehicle) => {
+                          const isAvailable = vehicle.status === 'available';
+                          return (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id}
+                              className={!isAvailable ? "text-amber-500" : ""}
+                            >
+                              {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                              {!isAvailable && " [Assigned]"}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

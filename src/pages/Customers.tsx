@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { CustomerSearchBar } from '@/components/customers/CustomerSearchBar';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import PageContainer from '@/components/layout/PageContainer';
-import { useCustomers } from '@/hooks/use-customers';
 
 const Customers = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -18,7 +17,6 @@ const Customers = () => {
     query: '',
     status: 'all',
   });
-  const { refreshCustomers } = useCustomers();
   
   useEffect(() => {
     const checkAvailability = async () => {
@@ -27,10 +25,7 @@ const Customers = () => {
     };
     
     checkAvailability();
-    
-    // Refresh customers list when component mounts
-    refreshCustomers();
-  }, [refreshCustomers]);
+  }, []);
 
   return (
     <PageContainer 
@@ -38,14 +33,6 @@ const Customers = () => {
       description="Manage your customer database and track customer information"
       actions={
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline"
-            onClick={refreshCustomers}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
           <Button 
             variant="outline" 
             onClick={() => setIsImportModalOpen(true)}
@@ -91,8 +78,7 @@ const Customers = () => {
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
         onImportComplete={() => {
-          // Refresh the customer list after import
-          refreshCustomers();
+          // Refresh the customer list
         }}
       />
     </PageContainer>

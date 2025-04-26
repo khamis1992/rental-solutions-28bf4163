@@ -17,6 +17,7 @@ import {
   SortingState,
   getSortedRowModel,
   getPaginationRowModel,
+  ColumnFiltersState,
   getFilteredRowModel,
   RowSelectionState
 } from "@tanstack/react-table";
@@ -88,7 +89,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asLeaseIdColumn(agreementId))
+      .eq('agreement_id', asTableId('overdue_payments', agreementId))
       .single();
     
     if (error) {
@@ -106,7 +107,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asLeaseIdColumn(agreementId));
+      .eq('lease_id', asTableId('unified_payments', agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -123,7 +124,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', asImportIdColumn(importId));
+      .eq('import_id', asTableId('agreement_import_reverts', importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -140,7 +141,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asLeaseIdColumn(agreementId));
+      .eq('agreement_id', asTableId('traffic_fines', agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -157,7 +158,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asLeaseIdColumn(agreementId));
+      .eq('agreement_id', agreementId);
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -174,7 +175,10 @@ export const AgreementList = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -198,7 +202,10 @@ export const AgreementList = () => {
 
   useEffect(() => {
     setRowSelection({});
-    
+    setPagination({
+      pageIndex: 0,
+      pageSize: 10,
+    });
   }, [agreements, statusFilter]);
 
   const handleBulkDelete = async () => {
@@ -222,7 +229,7 @@ export const AgreementList = () => {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asLeaseIdColumn(id));
+          .eq('agreement_id', id);
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -233,7 +240,7 @@ export const AgreementList = () => {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', asLeaseIdColumn(id));
+          .eq('lease_id', id);
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -244,13 +251,13 @@ export const AgreementList = () => {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', asImportIdColumn(id));
+          .eq('import_id', id);
         
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', asImportIdColumn(id));
+            .eq('import_id', id);
           
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -262,7 +269,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', asLeaseIdColumn(id));
+          .eq('agreement_id', id);
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -270,7 +277,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', asLeaseIdColumn(id));
+            .eq('agreement_id', id);
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -521,18 +528,21 @@ export const AgreementList = () => {
     data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFiltersState,
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       rowSelection,
+      pagination,
     },
     manualPagination: false,
-    
+    pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
@@ -652,7 +662,53 @@ export const AgreementList = () => {
         </Table>
       </div>
       
-      
+      {agreements && agreements.length > 0 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <Button 
+                variant="outline" 
+                size="default"
+                className="gap-1 pl-2.5"
+                onClick={() => table.previousPage()} 
+                disabled={!table.getCanPreviousPage()}
+                aria-label="Go to previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Previous</span>
+              </Button>
+            </PaginationItem>
+            
+            {Array.from({ length: table.getPageCount() }).map((_, index) => (
+              <PaginationItem key={index}>
+                <PaginationLink
+                  isActive={table.getState().pagination.pageIndex === index}
+                  onClick={() => table.setPageIndex(index)}
+                >
+                  {index + 1}
+                </PaginationLink>
+              </PaginationItem>
+            )).slice(
+              Math.max(0, table.getState().pagination.pageIndex - 1),
+              Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3)
+            )}
+            
+            <PaginationItem>
+              <Button 
+                variant="outline" 
+                size="default"
+                className="gap-1 pr-2.5"
+                onClick={() => table.nextPage()} 
+                disabled={!table.getCanNextPage()}
+                aria-label="Go to next page"
+              >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
