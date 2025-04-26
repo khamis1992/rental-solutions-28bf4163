@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +35,6 @@ export function PaymentHistory({
   leaseEndDate,
   onPaymentUpdated,
   onRecordPayment,
-  contractAmount
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -48,7 +46,10 @@ export function PaymentHistory({
   });
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
-  // Calculate payment statistics
+  const handleRowClick = (paymentId: string) => {
+    setExpandedRowId(prevId => prevId === paymentId ? null : paymentId);
+  };
+
   const paymentStats = useMemo(() => {
     if (!payments.length) {
       return {
@@ -90,7 +91,6 @@ export function PaymentHistory({
     });
   }, [payments]);
   
-  // Sort payments
   const sortedPayments = useMemo(() => {
     if (!payments.length) return [];
     
@@ -119,7 +119,6 @@ export function PaymentHistory({
           valueB = b.due_date || b.original_due_date || '';
       }
       
-      // For dates, convert strings to Date objects for comparison
       if (sortBy.column === 'due_date' || sortBy.column === 'payment_date') {
         valueA = valueA ? new Date(valueA).getTime() : 0;
         valueB = valueB ? new Date(valueB).getTime() : 0;
@@ -160,7 +159,6 @@ export function PaymentHistory({
     }));
   };
 
-  // Add the handlePaymentSubmit function
   const handlePaymentSubmit = useCallback(async (
     amount: number, 
     paymentDate: Date, 
@@ -247,7 +245,14 @@ export function PaymentHistory({
       ),
       cell: ({ row }) => {
         const dueDate = row.original.due_date || row.original.original_due_date;
-        return <span>{dueDate ? formatPaymentDate(dueDate) : 'N/A'}</span>;
+        return (
+          <div 
+            className="cursor-pointer hover:text-primary"
+            onClick={() => handleRowClick(row.original.id)}
+          >
+            {dueDate ? formatPaymentDate(dueDate) : 'N/A'}
+          </div>
+        );
       },
     },
     {
@@ -407,7 +412,6 @@ export function PaymentHistory({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Payment Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
             <p className="text-sm text-muted-foreground">Total Amount</p>
@@ -427,7 +431,6 @@ export function PaymentHistory({
           </div>
         </div>
         
-        {/* Payment Timeline Progress */}
         <div className="pt-4 space-y-2 hidden md:block">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Payment Status</span>
@@ -453,7 +456,6 @@ export function PaymentHistory({
           </div>
         </div>
       
-        {/* Payment Table */}
         {isLoading ? (
           <div className="flex items-center justify-center h-52">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -465,7 +467,6 @@ export function PaymentHistory({
               data={sortedPayments} 
             />
             
-            {/* Expanded Row Details */}
             {expandedRowId && (
               <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-100">
                 {(() => {
@@ -473,10 +474,10 @@ export function PaymentHistory({
                   if (!payment) return null;
                   
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
-                        <h4 className="font-medium mb-2">Payment Details</h4>
-                        <div className="space-y-1 text-sm">
+                        <h4 className="text-base font-semibold mb-4">Payment Details</h4>
+                        <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Base Amount:</span>
                             <span>QAR {payment.amount?.toLocaleString() || '0'}</span>
@@ -487,7 +488,7 @@ export function PaymentHistory({
                               <span className="text-amber-700">QAR {payment.late_fine_amount.toLocaleString()}</span>
                             </div>
                           )}
-                          <div className="flex justify-between font-medium">
+                          <div className="flex justify-between font-medium border-t pt-2">
                             <span className="text-muted-foreground">Total:</span>
                             <span>QAR {((payment.amount || 0) + (payment.late_fine_amount || 0)).toLocaleString()}</span>
                           </div>
@@ -506,8 +507,8 @@ export function PaymentHistory({
                         </div>
                       </div>
                       <div>
-                        <h4 className="font-medium mb-2">Additional Information</h4>
-                        <div className="space-y-1 text-sm">
+                        <h4 className="text-base font-semibold mb-4">Additional Information</h4>
+                        <div className="space-y-2 text-sm">
                           {payment.days_overdue !== undefined && payment.days_overdue > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Days Overdue:</span>

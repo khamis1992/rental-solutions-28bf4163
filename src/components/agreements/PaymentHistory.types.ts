@@ -1,4 +1,5 @@
 
+import { Database } from '@/types/database.types';
 
 export interface Payment {
   id: string;
@@ -19,19 +20,9 @@ export interface Payment {
   due_date?: string;
 }
 
-// Database-specific payment type
 export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
 
-// Export common utilities
-export function isPayment(obj: any): obj is Payment {
-  return obj && typeof obj === 'object' && 'id' in obj && 'amount' in obj;
-}
-
-export function hasData<T>(response: { data: T | null; error: any }): response is { data: T; error: null } {
-  return !!response && !response.error && response.data !== null;
-}
-
-export type PaymentHistoryProps = {
+export interface PaymentHistoryProps {
   payments: Payment[];
   isLoading?: boolean;
   rentAmount?: number | null;
@@ -40,6 +31,6 @@ export type PaymentHistoryProps = {
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
   onRecordPayment?: (payment: Partial<Payment>) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => void;
-};
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
+}
 
