@@ -1,21 +1,26 @@
-import React, { Suspense } from 'react';
+
+import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Search } from 'lucide-react';
+import { 
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4
+} from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const Agreements = () => {
-  const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
-  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = React.useState(true);
-  const [vehicleSearch, setVehicleSearch] = React.useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
+  const { setSearchParams, searchParams } = useAgreements();
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -65,8 +70,13 @@ const Agreements = () => {
   }, []);
   
   const handleImportComplete = () => {
-    // Refresh the data after import
+    setSearchParams({ 
+      status: 'all' 
+    });
   };
+
+  const activeFilters = Object.entries(searchParams || {})
+    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -79,16 +89,6 @@ const Agreements = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by vehicle..."
-              value={vehicleSearch}
-              onChange={(e) => setVehicleSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
           <Button 
             variant="outline" 
             onClick={() => setIsImportModalOpen(true)}
@@ -118,7 +118,7 @@ const Agreements = () => {
           </div>
         </div>
       }>
-        <AgreementList searchTerm={vehicleSearch} />
+        <AgreementList />
       </Suspense>
       
       <div className="mt-8">
@@ -139,3 +139,4 @@ const Agreements = () => {
 };
 
 export default Agreements;
+

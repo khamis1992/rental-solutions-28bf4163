@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
@@ -53,14 +54,13 @@ export function AgreementStats() {
           .gt('days_overdue', 0);
           
         // Get active agreements total value
-        const { data: activeAgreements, error: activeError } = await supabase
+        const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
           .eq('status', asTableId('leases', 'active'));
           
         let activeValue = 0;
-        
-        if (activeAgreements && Array.isArray(activeAgreements)) {
+        if (activeAgreements) {
           activeValue = activeAgreements.reduce((sum, agreement) => {
             // Check if agreement and rent_amount exist before accessing
             if (agreement && typeof agreement.rent_amount === 'number') {

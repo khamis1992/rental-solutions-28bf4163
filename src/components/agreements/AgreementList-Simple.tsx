@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { 
@@ -62,11 +63,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
 
-interface AgreementListProps {
-  searchTerm?: string;
-}
-
-export function AgreementList({ searchTerm = '' }: AgreementListProps) {
+export function AgreementList() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,28 +78,13 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
     error,
     deleteAgreement 
   } = useAgreements();
-
-  const filteredAgreements = React.useMemo(() => {
-    if (!agreements || !searchTerm) return agreements;
-
-    return agreements.filter(agreement => {
-      const vehicle = agreement.vehicles;
-      if (!vehicle) return false;
-      
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        vehicle.make?.toLowerCase().includes(searchLower) ||
-        vehicle.model?.toLowerCase().includes(searchLower) ||
-        vehicle.license_plate?.toLowerCase().includes(searchLower)
-      );
-    });
-  }, [agreements, searchTerm]);
-
-  const totalAgreements = filteredAgreements?.length || 0;
+  
+  // Pagination logic
+  const totalAgreements = agreements?.length || 0;
   const totalPages = Math.ceil(totalAgreements / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const currentAgreements = filteredAgreements?.slice(startIndex, endIndex) || [];
+  const currentAgreements = agreements?.slice(startIndex, endIndex) || [];
 
   const handleBulkDelete = async () => {
     if (!agreements) return;
@@ -189,6 +171,7 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
     );
   }
 
+  // Responsive view for mobile
   const renderMobileView = () => {
     return (
       <div className="space-y-4">
@@ -268,9 +251,11 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
     );
   };
 
+  // Desktop view
   const renderDesktopView = () => {
     return (
       <div>
+        {/* Bulk action bar */}
         {selectedCount > 0 && (
           <div className="bg-muted/80 p-2 mb-4 rounded-md flex items-center justify-between">
             <div className="flex items-center">
@@ -441,6 +426,7 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
 
   return (
     <div className="space-y-4">
+      {/* Responsive view based on screen size */}
       <div className="md:hidden">
         {renderMobileView()}
       </div>
@@ -448,6 +434,7 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
         {renderDesktopView()}
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
         <Pagination className="mt-4">
           <PaginationContent>
@@ -469,6 +456,7 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
                 (page >= currentPage - 1 && page <= currentPage + 1)
               )
               .map((page, i, array) => {
+                // Add ellipsis if there are gaps in the page numbers
                 if (i > 0 && page > array[i - 1] + 1) {
                   return (
                     <React.Fragment key={`ellipsis-${page}`}>
@@ -521,39 +509,38 @@ export function AgreementList({ searchTerm = '' }: AgreementListProps) {
         </Pagination>
       )}
 
-      {bulkDeleteDialogOpen && (
-        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete {selectedCount} selected agreements? 
-                This action cannot be undone and will permanently remove the selected agreements from the system.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleBulkDelete();
-                }}
-                disabled={isDeleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {isDeleting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete Agreements'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedCount} selected agreements? 
+              This action cannot be undone and will permanently remove the selected agreements from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Agreements'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

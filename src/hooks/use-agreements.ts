@@ -144,11 +144,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         `);
 
       if (searchParams.query) {
-        query = query.or(
-          `vehicles.license_plate.ilike.%${searchParams.query}%,` +
-          `vehicles.make.ilike.%${searchParams.query}%,` +
-          `vehicles.model.ilike.%${searchParams.query}%`
-        );
+        // Search by vehicle license plate
+        query = query.or(`vehicles.license_plate.ilike.%${searchParams.query}%`);
       }
 
       if (searchParams.status && searchParams.status !== 'all') {
