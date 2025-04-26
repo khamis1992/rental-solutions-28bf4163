@@ -14,3 +14,28 @@ export const asLeaseIdColumn = (id: string): string => {
 export const asPaymentId = (id: string): string => {
   return id;
 };
+
+/**
+ * Helper function to handle agreement ID column
+ * Used to convert ID strings to a format accepted by Supabase
+ */
+export const asAgreementIdColumn = (id: string): string => {
+  return id;
+};
+
+/**
+ * Helper function to handle import ID column
+ * Used to convert ID strings to a format accepted by Supabase
+ */
+export const asImportIdColumn = (id: string): string => {
+  return id;
+};
+
+/**
+ * Helper function to handle traffic fine ID column
+ * Used to convert ID strings to a format accepted by Supabase
+ */
+export const asTrafficFineIdColumn = (id: string): string => {
+  return id;
+};
+

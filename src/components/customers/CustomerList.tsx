@@ -34,6 +34,8 @@ export function CustomerList({ searchParams }: CustomerListProps) {
     deleteCustomer,
   } = useCustomers();
 
+  console.log("Customer list received customers:", customers, "isLoading:", isLoading, "error:", error);
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
       active: { variant: "default", icon: CheckCircle },
@@ -96,7 +98,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                   <TableCell><Skeleton className="h-6 w-[50px]" /></TableCell>
                 </TableRow>
               ))
-            ) : currentCustomers.length ? (
+            ) : currentCustomers?.length > 0 ? (
               currentCustomers.map((customer) => (
                 <TableRow key={customer.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">

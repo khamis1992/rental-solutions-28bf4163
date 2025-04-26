@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
@@ -6,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { User, Mail, Phone, MapPin, FileText, Copy, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { CustomerInfo } from '@/types/customer';
+
 interface CustomerSectionProps {
   customer: CustomerInfo;
   onEdit?: () => void;
 }
+
 const CustomerSection = ({
   customer,
   onEdit
@@ -18,7 +21,9 @@ const CustomerSection = ({
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
   };
-  return <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-md bg-gray-50 rounded-md">
+  
+  return (
+    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-md bg-gray-50 rounded-md">
       <CardHeader className="pb-4 bg-gray-50 rounded-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -79,6 +84,8 @@ const CustomerSection = ({
           </div>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default CustomerSection;
