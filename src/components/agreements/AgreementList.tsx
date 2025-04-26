@@ -17,7 +17,6 @@ import {
   SortingState,
   getSortedRowModel,
   getPaginationRowModel,
-  ColumnFiltersState,
   getFilteredRowModel,
   RowSelectionState
 } from "@tanstack/react-table";
@@ -175,10 +174,7 @@ export const AgreementList = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -202,10 +198,7 @@ export const AgreementList = () => {
 
   useEffect(() => {
     setRowSelection({});
-    setPagination({
-      pageIndex: 0,
-      pageSize: 10,
-    });
+    
   }, [agreements, statusFilter]);
 
   const handleBulkDelete = async () => {
@@ -528,21 +521,18 @@ export const AgreementList = () => {
     data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFiltersState,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       rowSelection,
-      pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10),
+    
   });
 
   const handleStatusFilterChange = (value: string) => {
@@ -662,53 +652,7 @@ export const AgreementList = () => {
         </Table>
       </div>
       
-      {agreements && agreements.length > 0 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <Button 
-                variant="outline" 
-                size="default"
-                className="gap-1 pl-2.5"
-                onClick={() => table.previousPage()} 
-                disabled={!table.getCanPreviousPage()}
-                aria-label="Go to previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>Previous</span>
-              </Button>
-            </PaginationItem>
-            
-            {Array.from({ length: table.getPageCount() }).map((_, index) => (
-              <PaginationItem key={index}>
-                <PaginationLink
-                  isActive={table.getState().pagination.pageIndex === index}
-                  onClick={() => table.setPageIndex(index)}
-                >
-                  {index + 1}
-                </PaginationLink>
-              </PaginationItem>
-            )).slice(
-              Math.max(0, table.getState().pagination.pageIndex - 1),
-              Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3)
-            )}
-            
-            <PaginationItem>
-              <Button 
-                variant="outline" 
-                size="default"
-                className="gap-1 pr-2.5"
-                onClick={() => table.nextPage()} 
-                disabled={!table.getCanNextPage()}
-                aria-label="Go to next page"
-              >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      
 
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
