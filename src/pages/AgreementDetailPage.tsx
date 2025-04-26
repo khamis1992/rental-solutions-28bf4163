@@ -31,6 +31,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
+import { generateAgreementReport } from '@/utils/agreement-report-utils';
 
 const AgreementDetailPage = () => {
   const {
@@ -186,6 +187,19 @@ const AgreementDetailPage = () => {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!agreement) return;
+    
+    try {
+      const doc = generateAgreementReport(agreement, rentAmount, contractAmount, payments);
+      doc.save(`agreement-report-${agreement.agreement_number}.pdf`);
+      toast.success('Agreement report generated successfully');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate agreement report');
+    }
+  };
+
   const calculateProgress = () => {
     if (!agreement || !agreement.start_date || !agreement.end_date) return 0;
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
@@ -249,280 +263,299 @@ const AgreementDetailPage = () => {
     }
   };
 
-  return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={<>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
-              <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-            </Button>}
-          <Button variant="outline" size="sm" onClick={handleRunMaintenanceJob} disabled={isRunningMaintenance} className="gap-2">
-            <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-          </Button>
-        </>}>
-      {isLoading ? <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full md:col-span-2" />
+  return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={
+    <>
+      {agreement && agreement.status === AgreementStatus.ACTIVE && (
+        <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
+          <Calendar className="h-4 w-4" />
+          {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+        </Button>
+      )}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleGenerateReport} 
+        className="gap-2 mr-2"
+      >
+        <FileText className="h-4 w-4" />
+        Generate Report
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleRunMaintenanceJob} 
+        disabled={isRunningMaintenance} 
+        className="gap-2"
+      >
+        <RefreshCcw className="h-4 w-4" />
+        {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+      </Button>
+    </>
+  }>
+    {isLoading ? <div className="space-y-6">
+        <Skeleton className="h-12 w-2/3" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full md:col-span-2" />
+        </div>
+      </div> : agreement ? <>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Agreement {agreement.agreement_number}
+            </h2>
+            <Badge variant={getStatusBadgeVariant(agreement.status)}>
+              {agreement.status.toUpperCase()}
+            </Badge>
           </div>
-        </div> : agreement ? <>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-2">
-              <h2 className="text-3xl font-bold tracking-tight">
-                Agreement {agreement.agreement_number}
-              </h2>
-              <Badge variant={getStatusBadgeVariant(agreement.status)}>
-                {agreement.status.toUpperCase()}
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
-                Edit
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDelete(agreement.id)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
+              Edit
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDelete(agreement.id)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
           </div>
+        </div>
 
-          <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
-            <CardContent className="p-6 bg-zinc-100 rounded-md">
-              <div className="space-y-6">
-                <div className="hidden">
-                  <AgreementDetail 
-                    agreement={agreement} 
-                    onDelete={handleDelete} 
-                    rentAmount={rentAmount} 
-                    contractAmount={contractAmount} 
-                    onPaymentDeleted={refreshAgreementData} 
-                    onDataRefresh={refreshAgreementData} 
-                    onGenerateDocument={handleGenerateDocument} 
-                  />
-                </div>
+        <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
+          <CardContent className="p-6 bg-zinc-100 rounded-md">
+            <div className="space-y-6">
+              <div className="hidden">
+                <AgreementDetail 
+                  agreement={agreement} 
+                  onDelete={handleDelete} 
+                  rentAmount={rentAmount} 
+                  contractAmount={contractAmount} 
+                  onPaymentDeleted={refreshAgreementData} 
+                  onDataRefresh={refreshAgreementData} 
+                  onGenerateDocument={handleGenerateDocument} 
+                />
               </div>
-              
-              <div className="flex flex-col md:flex-row justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    {agreement.created_at && <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-medium text-muted-foreground">Monthly Rent</p>
-                  <p className="text-2xl font-bold">QAR {rentAmount?.toLocaleString() || 0}</p>
-                </div>
-                <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-medium text-muted-foreground">Contract Total</p>
-                  <p className="text-2xl font-bold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
-                </div>
-                <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-medium text-muted-foreground">Deposit</p>
-                  <p className="text-2xl font-bold">QAR {agreement.deposit_amount?.toLocaleString() || 0}</p>
-                </div>
-              </div>
-              
-              {agreement.start_date && agreement.end_date && <div className="mt-6">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>Contract Progress</span>
-                    <span>{calculateProgress()}%</span>
-                  </div>
-                  <Progress value={calculateProgress()} className="h-2" />
-                  <div className="flex justify-between text-xs mt-1">
-                    <span>{format(new Date(agreement.start_date), "MMM d, yyyy")}</span>
-                    <span>{format(new Date(agreement.end_date), "MMM d, yyyy")}</span>
-                  </div>
-                </div>}
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="overview" className="flex gap-2">
-                <FileText className="h-4 w-4" /> Overview
-              </TabsTrigger>
-              <TabsTrigger value="payments" className="flex gap-2">
-                <BarChart className="h-4 w-4" /> Payments
-              </TabsTrigger>
-              <TabsTrigger value="details" className="flex gap-2">
-                <User className="h-4 w-4" /> Customer & Vehicle
-              </TabsTrigger>
-              <TabsTrigger value="legal" className="flex gap-2">
-                <Gavel className="h-4 w-4" /> Legal & Compliance
-              </TabsTrigger>
-            </TabsList>
+            </div>
             
-            <TabsContent value="overview" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agreement Summary</CardTitle>
-                  <CardDescription>Key details about the rental agreement</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-medium">Customer</h3>
-                        <p className="text-sm text-muted-foreground mb-1">Name</p>
-                        <p>{agreement.customers?.full_name || 'N/A'}</p>
-                        <p className="text-sm text-muted-foreground mt-2 mb-1">Contact</p>
-                        <p>{agreement.customers?.phone_number || 'N/A'}</p>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium">Rental Period</h3>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {agreement.start_date && format(new Date(agreement.start_date), "MMMM d, yyyy")} to {agreement.end_date && format(new Date(agreement.end_date), "MMMM d, yyyy")}
-                          </span>
-                        </div>
-                      </div>
+            <div className="flex flex-col md:flex-row justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {agreement.created_at && <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>}
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground">Monthly Rent</p>
+                <p className="text-2xl font-bold">QAR {rentAmount?.toLocaleString() || 0}</p>
+              </div>
+              <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground">Contract Total</p>
+                <p className="text-2xl font-bold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
+              </div>
+              <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground">Deposit</p>
+                <p className="text-2xl font-bold">QAR {agreement.deposit_amount?.toLocaleString() || 0}</p>
+              </div>
+            </div>
+            
+            {agreement.start_date && agreement.end_date && <div className="mt-6">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Contract Progress</span>
+                  <span>{calculateProgress()}%</span>
+                </div>
+                <Progress value={calculateProgress()} className="h-2" />
+                <div className="flex justify-between text-xs mt-1">
+                  <span>{format(new Date(agreement.start_date), "MMM d, yyyy")}</span>
+                  <span>{format(new Date(agreement.end_date), "MMM d, yyyy")}</span>
+                </div>
+              </div>}
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="overview" className="flex gap-2">
+              <FileText className="h-4 w-4" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex gap-2">
+              <BarChart className="h-4 w-4" /> Payments
+            </TabsTrigger>
+            <TabsTrigger value="details" className="flex gap-2">
+              <User className="h-4 w-4" /> Customer & Vehicle
+            </TabsTrigger>
+            <TabsTrigger value="legal" className="flex gap-2">
+              <Gavel className="h-4 w-4" /> Legal & Compliance
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Agreement Summary</CardTitle>
+                <CardDescription>Key details about the rental agreement</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Customer</h3>
+                      <p className="text-sm text-muted-foreground mb-1">Name</p>
+                      <p>{agreement.customers?.full_name || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground mt-2 mb-1">Contact</p>
+                      <p>{agreement.customers?.phone_number || 'N/A'}</p>
                     </div>
                     
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-medium">Vehicle</h3>
-                        <p className="text-sm text-muted-foreground mb-1">Details</p>
-                        <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
-                        <p className="text-sm text-muted-foreground mt-2 mb-1">License Plate</p>
-                        <p>{agreement.vehicles?.license_plate || 'N/A'}</p>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium">Additional Information</h3>
-                        <p className="text-sm text-muted-foreground mb-1">Notes</p>
-                        <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
+                    <div>
+                      <h3 className="text-lg font-medium">Rental Period</h3>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {agreement.start_date && format(new Date(agreement.start_date), "MMMM d, yyyy")} to {agreement.end_date && format(new Date(agreement.end_date), "MMMM d, yyyy")}
+                        </span>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Vehicle</h3>
+                      <p className="text-sm text-muted-foreground mb-1">Details</p>
+                      <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
+                      <p className="text-sm text-muted-foreground mt-2 mb-1">License Plate</p>
+                      <p>{agreement.vehicles?.license_plate || 'N/A'}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium">Additional Information</h3>
+                      <p className="text-sm text-muted-foreground mb-1">Notes</p>
+                      <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="payments" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment History</CardTitle>
+                <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {Array.isArray(payments) && 
+                  <PaymentHistory 
+                    payments={payments}
+                    isLoading={isLoadingPayments} 
+                    rentAmount={rentAmount} 
+                    onPaymentDeleted={fetchPayments}
+                    leaseStartDate={agreement.start_date}
+                    leaseEndDate={agreement.end_date}
+                    onRecordPayment={(payment) => {
+                      if (payment && id) {
+                        const fullPayment = {
+                          ...payment,
+                          lease_id: id,
+                          status: 'completed'
+                        };
+                        addPayment(fullPayment);
+                        fetchPayments();
+                      }
+                    }}
+                  />
+                }
+              </CardContent>
+            </Card>
             
-            <TabsContent value="payments" className="space-y-6">
-              <Card>
+            {Array.isArray(payments) && payments.length > 0 && <Card>
                 <CardHeader>
-                  <CardTitle>Payment History</CardTitle>
-                  <CardDescription>Track payments and financial transactions for this agreement</CardDescription>
+                  <CardTitle>Payment Analytics</CardTitle>
+                  <CardDescription>Financial metrics for this agreement</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {Array.isArray(payments) && 
-                    <PaymentHistory 
-                      payments={payments}
-                      isLoading={isLoadingPayments} 
-                      rentAmount={rentAmount} 
-                      onPaymentDeleted={fetchPayments}
-                      leaseStartDate={agreement.start_date}
-                      leaseEndDate={agreement.end_date}
-                      onRecordPayment={(payment) => {
-                        if (payment && id) {
-                          const fullPayment = {
-                            ...payment,
-                            lease_id: id,
-                            status: 'completed'
-                          };
-                          addPayment(fullPayment);
-                          fetchPayments();
-                        }
-                      }}
-                    />
-                  }
-                </CardContent>
-              </Card>
-              
-              {Array.isArray(payments) && payments.length > 0 && <Card>
-                  <CardHeader>
-                    <CardTitle>Payment Analytics</CardTitle>
-                    <CardDescription>Financial metrics for this agreement</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
-                        <p className="text-2xl font-bold">
-                          QAR {payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Remaining Balance</p>
-                        <p className="text-2xl font-bold">
-                          QAR {((agreement?.total_amount || 0) - payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0)).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="bg-muted/30 p-4 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Late Fees</p>
-                        <p className="text-2xl font-bold">
-                          QAR {payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0).toLocaleString()}
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
+                      <p className="text-2xl font-bold">
+                        QAR {payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0).toLocaleString()}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>}
-            </TabsContent>
-            
-            <TabsContent value="details" className="space-y-6">
-              {agreement?.customers && (
-                <CustomerSection 
-                  customer={agreement.customers} 
-                  onEdit={() => navigate(`/customers/${agreement.customer_id}/edit`)}
-                />
-              )}
-              
-              {agreement?.vehicles && (
-                <VehicleSection 
-                  vehicle={agreement.vehicles}
-                  onViewDetails={() => navigate(`/vehicles/${agreement.vehicle_id}`)}
-                />
-              )}
-            </TabsContent>
-            
-            <TabsContent value="legal" className="space-y-6">
-              {agreement.start_date && agreement.end_date && <Card>
-                  <CardHeader>
-                    <CardTitle>Traffic Fines</CardTitle>
-                    <CardDescription>Violations during the rental period</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <AgreementTrafficFines agreementId={agreement.id} startDate={new Date(agreement.start_date)} endDate={new Date(agreement.end_date)} />
-                  </CardContent>
-                </Card>}
-              
-              {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
-            </TabsContent>
-          </Tabs>
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground">Remaining Balance</p>
+                      <p className="text-2xl font-bold">
+                        QAR {((agreement?.total_amount || 0) - payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0)).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <p className="text-sm font-medium text-muted-foreground">Late Fees</p>
+                      <p className="text-2xl font-bold">
+                        QAR {payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>}
+          </TabsContent>
           
-          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <InvoiceGenerator recordType="agreement" recordId={agreement.id} onClose={() => setIsDocumentDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          <TabsContent value="details" className="space-y-6">
+            {agreement?.customers && (
+              <CustomerSection 
+                customer={agreement.customers} 
+                onEdit={() => navigate(`/customers/${agreement.customer_id}/edit`)}
+              />
+            )}
+            
+            {agreement?.vehicles && (
+              <VehicleSection 
+                vehicle={agreement.vehicles}
+                onViewDetails={() => navigate(`/vehicles/${agreement.vehicle_id}`)}
+              />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="legal" className="space-y-6">
+            {agreement.start_date && agreement.end_date && <Card>
+                <CardHeader>
+                  <CardTitle>Traffic Fines</CardTitle>
+                  <CardDescription>Violations during the rental period</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AgreementTrafficFines agreementId={agreement.id} startDate={new Date(agreement.start_date)} endDate={new Date(agreement.end_date)} />
+                </CardContent>
+              </Card>}
+            
+            {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
+          </TabsContent>
+        </Tabs>
+        
+        <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <InvoiceGenerator recordType="agreement" recordId={agreement.id} onClose={() => setIsDocumentDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
 
-          <PaymentEntryDialog
-            open={isPaymentDialogOpen}
-            onOpenChange={setIsPaymentDialogOpen}
-            onSubmit={handlePaymentSubmit}
-            defaultAmount={rentAmount || 0}
-            title="Record Payment"
-            description="Enter payment details to record a new payment"
-          />
-        </> : <div className="text-center py-12">
-          <div className="flex items-center justify-center mb-4">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
-          </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
-        </div>}
-    </PageContainer>;
+        <PaymentEntryDialog
+          open={isPaymentDialogOpen}
+          onOpenChange={setIsPaymentDialogOpen}
+          onSubmit={handlePaymentSubmit}
+          defaultAmount={rentAmount || 0}
+          title="Record Payment"
+          description="Enter payment details to record a new payment"
+        />
+      </> : <div className="text-center py-12">
+        <div className="flex items-center justify-center mb-4">
+          <AlertTriangle className="h-12 w-12 text-amber-500" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
+        <p className="text-muted-foreground mb-4">
+          The agreement you're looking for doesn't exist or has been removed.
+        </p>
+        <Button variant="outline" onClick={() => navigate("/agreements")}>
+          Return to Agreements
+        </Button>
+      </div>}
+  </PageContainer>;
 };
 
 export default AgreementDetailPage;
