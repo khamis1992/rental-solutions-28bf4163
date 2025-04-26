@@ -83,6 +83,10 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { generateAgreementReport } from '@/utils/agreement-report-utils';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { usePayments } from '@/hooks/use-payments';
+import { jsPDF } from 'jspdf';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
@@ -175,6 +179,7 @@ export const AgreementList = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -318,6 +323,113 @@ export const AgreementList = () => {
     setIsDeleting(false);
     
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
+  };
+
+  const handleGenerateReport = async (agreement: Agreement) => {
+    try {
+      toast.info(`Generating report for agreement ${agreement.agreement_number}`);
+      
+      const { data: payments } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id);
+      
+      const doc = generateAgreementReport(
+        agreement, 
+        agreement.rent_amount || 0, 
+        agreement.total_amount || 0,
+        payments || []
+      );
+      
+      doc.save(`agreement-report-${agreement.agreement_number}.pdf`);
+      
+      toast.success(`Report generated for agreement ${agreement.agreement_number}`);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate agreement report');
+    }
+  };
+
+  const handleBulkGenerateReports = async () => {
+    if (!agreements) return;
+    
+    const selectedIds = Object.keys(rowSelection).map(
+      index => agreements[parseInt(index)].id
+    );
+    
+    if (selectedIds.length === 0) {
+      toast.error('Please select at least one agreement');
+      return;
+    }
+    
+    setIsGeneratingReport(true);
+    toast.info(`Generating reports for ${selectedIds.length} agreements...`);
+    
+    try {
+      const mergedPdf = new jsPDF();
+      let currentPage = 1;
+      
+      mergedPdf.setFontSize(22);
+      mergedPdf.setFont('helvetica', 'bold');
+      mergedPdf.setTextColor(0, 0, 0);
+      mergedPdf.text('AGREEMENTS SUMMARY REPORT', mergedPdf.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+      
+      mergedPdf.setFontSize(12);
+      mergedPdf.setFont('helvetica', 'normal');
+      mergedPdf.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, mergedPdf.internal.pageSize.getWidth() / 2, 45, { align: 'center' });
+      mergedPdf.text(`Total Agreements: ${selectedIds.length}`, mergedPdf.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
+      
+      mergedPdf.setFont('helvetica', 'bold');
+      mergedPdf.text('Agreements Included:', 20, 75);
+      
+      mergedPdf.setFont('helvetica', 'normal');
+      mergedPdf.setFontSize(10);
+      
+      let yPosition = 85;
+      const selectedAgreements = agreements.filter((_, index) => rowSelection[index]);
+      
+      for (let i = 0; i < selectedAgreements.length; i++) {
+        const agreement = selectedAgreements[i];
+        if (yPosition > mergedPdf.internal.pageSize.getHeight() - 20) {
+          mergedPdf.addPage();
+          yPosition = 20;
+        }
+        
+        mergedPdf.text(`${i + 1}. Agreement ${agreement.agreement_number} - ${agreement.customers?.full_name || 'N/A'}`, 25, yPosition);
+        yPosition += 8;
+      }
+      
+      for (const agreementId of selectedIds) {
+        const agreement = agreements.find(a => a.id === agreementId);
+        if (!agreement) continue;
+        
+        const { data: payments } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', agreementId);
+        
+        const doc = generateAgreementReport(
+          agreement, 
+          agreement.rent_amount || 0, 
+          agreement.total_amount || 0,
+          payments || []
+        );
+        
+        mergedPdf.addPage();
+        mergedPdf.addImage(doc.output('arraybuffer'), 'PDF', 0, 0, mergedPdf.internal.pageSize.getWidth(), mergedPdf.internal.pageSize.getHeight());
+        
+        currentPage++;
+      }
+      
+      mergedPdf.save(`agreements-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      toast.success(`Reports generated for ${selectedIds.length} agreements`);
+    } catch (error) {
+      console.error('Error generating bulk reports:', error);
+      toast.error('Failed to generate agreement reports');
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   const columns: ColumnDef<any>[] = [
@@ -506,6 +618,13 @@ export const AgreementList = () => {
                   Edit agreement
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleGenerateReport(agreement)}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Generate Report
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -576,14 +695,29 @@ export const AgreementList = () => {
         
         <div className="flex gap-2">
           {selectedCount > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={() => setBulkDeleteDialogOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete ({selectedCount})
-            </Button>
+            <>
+              <Button 
+                variant="outline"
+                onClick={handleBulkGenerateReports}
+                className="flex items-center gap-1"
+                disabled={isGeneratingReport}
+              >
+                {isGeneratingReport ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-1" />
+                )}
+                {isGeneratingReport ? "Generating..." : `Report (${selectedCount})`}
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete ({selectedCount})
+              </Button>
+            </>
           )}
           <Button asChild>
             <Link to="/agreements/add">

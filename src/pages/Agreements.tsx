@@ -2,7 +2,7 @@
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList-Simple';
+import { AgreementList } from '@/components/agreements/AgreementList';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 import { 
-  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search, FileText
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
