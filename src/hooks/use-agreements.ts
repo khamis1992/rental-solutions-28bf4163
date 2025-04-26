@@ -170,16 +170,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       }
 
       if (searchParams.query) {
-        const searchQuery = searchParams.query.trim().toLowerCase();
+        const searchQuery = searchParams.query.trim();
+        const normalizedSearchQuery = searchQuery.toLowerCase();
         
-        query = query.or(`
-          vehicles.license_plate.ilike.%${searchQuery}%,
-          vehicles.license_plate.eq.${searchQuery},
-          agreement_number.ilike.%${searchQuery}%,
-          profiles.full_name.ilike.%${searchQuery}%,
-          vehicles.make.ilike.%${searchQuery}%,
-          vehicles.model.ilike.%${searchQuery}%
-        `);
+        if (searchQuery) {
+          // First try exact match on license plate
+          query = query.or(`
+            vehicles.license_plate.eq.${searchQuery},
+            vehicles.license_plate.eq.${normalizedSearchQuery},
+            vehicles.license_plate.ilike.${searchQuery}%,
+            agreement_number.eq.${searchQuery},
+            agreement_number.ilike.${searchQuery}%,
+            profiles.full_name.ilike.%${searchQuery}%,
+            vehicles.make.ilike.%${searchQuery}%,
+            vehicles.model.ilike.%${searchQuery}%
+          `);
+        }
       }
 
       if (searchParams.vehicle_id) {
