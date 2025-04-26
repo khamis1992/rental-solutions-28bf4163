@@ -89,7 +89,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
+      .eq('agreement_id', asTableId('overdue_payments', agreementId))
       .single();
     
     if (error) {
@@ -107,7 +107,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId);
+      .eq('lease_id', asTableId('unified_payments', agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -124,7 +124,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', asTableId('agreement_import_reverts', importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -141,7 +141,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asTableId('traffic_fines', agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -289,7 +289,7 @@ export const AgreementList = () => {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', id);
+          .eq('id', asTableId('leases', id));
         
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);
@@ -345,17 +345,7 @@ export const AgreementList = () => {
     },
     {
       accessorKey: "agreement_number",
-      header: ({ column }) => {
-        return (
-          <div
-            className="flex items-center cursor-pointer"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Agreement #</span>
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </div>
-        );
-      },
+      header: "Agreement #",
       cell: ({ row }) => (
         <div className="font-medium">
           <Link 

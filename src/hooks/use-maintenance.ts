@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCrudApi } from './use-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { UseQueryResult } from '@tanstack/react-query';
-import { asTableId, asVehicleId } from '@/utils/type-casting';
+import { asTableId } from '@/utils/type-casting';
 
 // Define the Maintenance type that matches the actual database schema
 export type MaintenanceRecord = {
@@ -60,12 +60,6 @@ export function useMaintenance() {
       },
       
       create: async (maintenanceData: any) => {
-        console.log("Creating maintenance with data:", maintenanceData);
-        // Ensure vehicle_id is properly validated and not empty string
-        if (!maintenanceData.vehicle_id) {
-          throw new Error("Vehicle ID is required");
-        }
-
         // Map UI fields to database fields before submitting
         const formattedData = {
           vehicle_id: maintenanceData.vehicle_id,
@@ -83,27 +77,17 @@ export function useMaintenance() {
           ...(maintenanceData.odometer_reading ? { odometer_reading: maintenanceData.odometer_reading } : {})
         };
         
-        console.log("Formatted data for submission:", formattedData);
-        
         const { data, error } = await supabase
           .from('maintenance')
           .insert(formattedData)
           .select()
           .single();
         
-        if (error) {
-          console.error("Supabase error during maintenance creation:", error);
-          throw error;
-        }
+        if (error) throw error;
         return formatMaintenanceData(data);
       },
       
       update: async (id: string, maintenanceData: any) => {
-        // Ensure vehicle_id is properly validated and not empty string
-        if (!maintenanceData.vehicle_id) {
-          throw new Error("Vehicle ID is required");
-        }
-        
         // Map UI fields to database fields before submitting
         const formattedData = {
           vehicle_id: maintenanceData.vehicle_id,
@@ -192,17 +176,10 @@ export function useMaintenance() {
   };
 
   const getByVehicleId = async (vehicleId: string): Promise<MaintenanceRecord[]> => {
-    // Ensure we have a valid vehicle ID
-    const validVehicleId = asVehicleId(vehicleId);
-    if (!validVehicleId) {
-      console.error("Invalid vehicle ID provided to getByVehicleId:", vehicleId);
-      return [];
-    }
-    
     const { data, error } = await supabase
       .from('maintenance')
       .select('*')
-      .eq('vehicle_id', validVehicleId)
+      .eq('vehicle_id', asTableId('vehicles', vehicleId))
       .order('scheduled_date', { ascending: false });
     
     if (error) throw error;

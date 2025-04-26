@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -15,10 +14,11 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-import { PaymentHistory, Payment } from '@/components/agreements/PaymentHistory';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { UUID, LeaseId } from '@/types/database-types';
+import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
+import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -48,7 +48,6 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
 
   const {
     payments = [],
@@ -69,7 +68,7 @@ export function AgreementDetail({
 
   const handleDelete = useCallback(() => {
     if (agreement) {
-      const typedId = agreement.id as LeaseId;
+      const typedId = asDbId<LeaseId>(agreement.id);
       onDelete(typedId);
     }
   }, [agreement, onDelete]);
