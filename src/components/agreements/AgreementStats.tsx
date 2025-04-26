@@ -1,10 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { asLeaseStatus, asPaymentStatus } from '@/utils/type-casting';
-import { asDbId } from '@/types/database-types';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -58,8 +58,13 @@ export function AgreementStats() {
           .select('rent_amount')
           .eq('status', asLeaseStatus('active'));
           
-        const activeValue = activeAgreements?.reduce((sum, agreement) => 
-          sum + (agreement?.rent_amount || 0), 0) || 0;
+        const activeValue = activeAgreements?.reduce((sum, agreement) => {
+          // Check if agreement and rent_amount exist before accessing
+          if (agreement && typeof agreement.rent_amount === 'number') {
+            return sum + agreement.rent_amount;
+          }
+          return sum;
+        }, 0) || 0;
         
         setStats({
           totalAgreements: totalCount || 0,
