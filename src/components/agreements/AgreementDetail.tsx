@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -18,7 +19,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory';
+import { Payment } from './PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -52,7 +53,9 @@ export function AgreementDetail({
   const {
     payments = [],
     isLoading,
-    fetchPayments
+    fetchPayments,
+    updatePayment,
+    addPayment
   } = usePayments(agreement?.id);
   
   useEffect(() => {
@@ -377,6 +380,17 @@ export function AgreementDetail({
         contractAmount={contractAmount}
         onPaymentDeleted={onPaymentDeleted}
         onPaymentUpdated={handlePaymentUpdate}
+        onRecordPayment={(payment) => {
+          if (payment && agreement.id) {
+            const fullPayment = {
+              ...payment,
+              lease_id: agreement.id,
+              status: 'completed'
+            };
+            addPayment(fullPayment);
+            fetchPayments();
+          }
+        }}
         leaseStartDate={agreement.start_date} 
         leaseEndDate={agreement.end_date}
       />}

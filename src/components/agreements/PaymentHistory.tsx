@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Calendar, CalendarIcon, Plus, Trash2, FileText, Download, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, CalendarIcon, Plus, Trash2, FileText, Download, Filter, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Tooltip,
@@ -24,35 +25,6 @@ import { asPaymentId } from '@/utils/type-casting';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { Badge } from '@/components/ui/badge';
 import { PaymentEditDialog } from './PaymentEditDialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { asPaymentId } from '@/utils/type-casting';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
 export function PaymentHistory({
@@ -63,10 +35,13 @@ export function PaymentHistory({
   leaseStartDate,
   leaseEndDate,
   onPaymentUpdated,
+  onRecordPayment,
+  contractAmount
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [sortBy, setSortBy] = useState<{column: string, direction: 'asc' | 'desc'}>({
     column: 'due_date',
     direction: 'desc'

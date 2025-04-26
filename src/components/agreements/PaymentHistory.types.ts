@@ -1,4 +1,5 @@
 
+
 export interface Payment {
   id: string;
   amount: number;
@@ -41,3 +42,4 @@ export type PaymentHistoryProps = {
   onRecordPayment?: (payment: Partial<Payment>) => void;
   onPaymentUpdated?: (payment: Partial<Payment>) => void;
 };
+
