@@ -1,4 +1,6 @@
 
+import { Database } from '@/types/database.types';
+
 /**
  * Converts an ID to a proper table ID format
  * This function handles potential type conversions needed across the application

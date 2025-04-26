@@ -1,5 +1,5 @@
 
-import { LeaseId, PaymentId } from "@/types/database-types";
+import { UUID } from '@/lib/uuid-helpers';
 
 export interface Payment {
   id: string;
@@ -40,4 +40,8 @@ export interface PaymentUpdateParams {
 
 export interface PaymentDeleteParams {
   id: string;
+}
+
+export interface PaymentHistoryProps {
+  agreementId?: string;
 }

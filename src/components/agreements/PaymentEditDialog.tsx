@@ -16,8 +16,8 @@ import { Payment } from "./PaymentHistory.types";
 
 interface PaymentEditDialogProps {
   payment: Payment | null;
-  open: boolean; // Changed from isOpen to open for consistency
-  onOpenChange: (open: boolean) => void; // Changed from onClose to match Shadcn Dialog
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }
 
@@ -79,16 +79,16 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
     
     try {
       const { error } = await supabase
-        .from("unified_payments")
+        .from('unified_payments')
         .update({
           amount: amount,
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           transaction_id: reference,
           description: notes,
-          status: status
+          status: status as Payment['status']
         })
-        .eq("id", payment.id);
+        .eq('id', payment.id);
       
       if (error) throw error;
       
