@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +46,15 @@ type LeaseInfo = {
   agreement_number: string;
 };
 
+type CustomerInfo = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  email: string | null;
+  driver_license: string | null;
+};
+
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +62,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   const [leases, setLeases] = useState<Record<string, LeaseInfo>>({});
   const [invalidFines, setInvalidFines] = useState<TrafficFine[]>([]);
   const [showInvalidFines, setShowInvalidFines] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [activeLeaseInfo, setActiveLeaseInfo] = useState<any | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -59,10 +71,29 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
 
       try {
         setIsLoading(true);
+        
+        // Fetch customer information
+        const customerResponse = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customerId)
+          .single();
+          
+        if (hasData(customerResponse)) {
+          setCustomerInfo(customerResponse.data as CustomerInfo);
+        } else {
+          console.error('Error fetching customer:', customerResponse.error);
+        }
 
         const leaseResponse = await supabase
           .from('leases')
-          .select('id, start_date, end_date, agreement_number')
+          .select(`
+            id, 
+            start_date, 
+            end_date, 
+            agreement_number,
+            vehicles(*)
+          `)
           .eq('customer_id', customerId);
 
         if (!hasData(leaseResponse)) {
@@ -75,6 +106,12 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         if (!leaseData.length) {
           setIsLoading(false);
           return;
+        }
+        
+        // Get active lease for report
+        const activeLease = leaseData.find(lease => lease.status === 'active') || leaseData[0];
+        if (activeLease) {
+          setActiveLeaseInfo(activeLease);
         }
 
         const leaseMap: Record<string, LeaseInfo> = {};
@@ -203,26 +240,24 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0); // Keep text color black for all content
           
-          // Get customer info from supabase
-          const { data: customerData } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('id', customerId)
-            .single();
-            
-          if (customerData) {
-            const customerInfo = [
-              `Name: ${customerData.first_name} ${customerData.last_name}`,
-              `Phone: ${customerData.phone || 'N/A'}`,
-              `Email: ${customerData.email || 'N/A'}`,
-              `License: ${customerData.driver_license || 'N/A'}`
+          // Add the customer info we've loaded
+          if (customerInfo) {
+            const customerInfoText = [
+              `Name: ${customerInfo.first_name} ${customerInfo.last_name}`,
+              `Phone: ${customerInfo.phone || 'N/A'}`,
+              `Email: ${customerInfo.email || 'N/A'}`,
+              `License: ${customerInfo.driver_license || 'N/A'}`
             ];
             
-            customerInfo.forEach(info => {
+            customerInfoText.forEach(info => {
               doc.text(info, 20, currentY);
               currentY += 7;
             });
+          } else {
+            doc.text('Customer information not available', 20, currentY);
+            currentY += 7;
           }
           
           currentY += 10;
@@ -236,27 +271,24 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
           
-          // Get active lease info
-          const { data: leaseData } = await supabase
-            .from('leases')
-            .select('*, vehicles(*)')
-            .eq('customer_id', customerId)
-            .eq('status', 'active')
-            .maybeSingle();
-            
-          if (leaseData) {
+          // Add the active lease info we've loaded
+          if (activeLeaseInfo) {
+            const vehicle = activeLeaseInfo.vehicles;
             const agreementInfo = [
-              `Agreement Number: ${leaseData.agreement_number || 'N/A'}`,
-              `Vehicle: ${leaseData.vehicles?.make} ${leaseData.vehicles?.model} (${leaseData.vehicles?.year})`,
-              `License Plate: ${leaseData.vehicles?.license_plate || 'N/A'}`,
-              `Start Date: ${leaseData.start_date ? format(new Date(leaseData.start_date), 'dd/MM/yyyy') : 'N/A'}`,
-              `End Date: ${leaseData.end_date ? format(new Date(leaseData.end_date), 'dd/MM/yyyy') : 'N/A'}`
+              `Agreement Number: ${activeLeaseInfo.agreement_number || 'N/A'}`,
+              `Vehicle: ${vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.year || 'N/A'})` : 'N/A'}`,
+              `License Plate: ${vehicle ? vehicle.license_plate || 'N/A' : 'N/A'}`,
+              `Start Date: ${activeLeaseInfo.start_date ? format(new Date(activeLeaseInfo.start_date), 'dd/MM/yyyy') : 'N/A'}`,
+              `End Date: ${activeLeaseInfo.end_date ? format(new Date(activeLeaseInfo.end_date), 'dd/MM/yyyy') : 'N/A'}`
             ];
             
             agreementInfo.forEach(info => {
               doc.text(info, 20, currentY);
               currentY += 7;
             });
+          } else {
+            doc.text('No active agreement found', 20, currentY);
+            currentY += 7;
           }
           
           currentY += 15;
@@ -340,7 +372,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           // Footer with generation date
           currentY += 15;
           doc.setFontSize(8);
-          doc.setTextColor(0);
+          doc.setTextColor(0); // Ensure black color for footer text
           doc.text(`Report generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 20, currentY);
           
           return currentY;
