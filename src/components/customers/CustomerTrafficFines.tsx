@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -234,15 +233,14 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           // Customer Information section
           doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(0, 0, 0); // Set text color to black
+          doc.setTextColor(0, 0, 0);
           doc.text('CUSTOMER INFORMATION', 20, currentY);
           currentY += 15;
           
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
-          doc.setTextColor(0, 0, 0); // Keep text color black for all content
+          doc.setTextColor(0, 0, 0);
           
-          // Add the customer info we've loaded
           if (customerInfo) {
             const customerInfoText = [
               `Name: ${customerInfo.first_name} ${customerInfo.last_name}`,
@@ -271,7 +269,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
           
-          // Add the active lease info we've loaded
           if (activeLeaseInfo) {
             const vehicle = activeLeaseInfo.vehicles;
             const agreementInfo = [
@@ -328,8 +325,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           
           // Table headers
           doc.setFontSize(10);
-          const headers = ['Date', 'License Plate', 'Location', 'Violation', 'Amount', 'Status'];
-          const columnWidths = [30, 30, 40, 35, 25, 25];
+          const headers = ['Date', 'License Plate', 'Amount'];
+          const columnWidths = [40, 40, 40];
           let xPos = 20;
           
           headers.forEach((header, i) => {
@@ -351,17 +348,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             const rowData = [
               fine.violation_date ? format(new Date(fine.violation_date), 'dd/MM/yyyy') : 'N/A',
               fine.license_plate || 'N/A',
-              fine.fine_location || 'N/A',
-              fine.violation_charge || 'N/A',
-              formatCurrency(fine.fine_amount),
-              fine.payment_status.toUpperCase()
+              formatCurrency(fine.fine_amount)
             ];
 
             rowData.forEach((text, i) => {
-              const maxWidth = columnWidths[i] - 2;
-              if (doc.getStringUnitWidth(text) * doc.internal.getFontSize() > maxWidth) {
-                text = text.substring(0, 15) + '...';
-              }
               doc.text(text.toString(), xPos, currentY);
               xPos += columnWidths[i];
             });
@@ -372,7 +362,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           // Footer with generation date
           currentY += 15;
           doc.setFontSize(8);
-          doc.setTextColor(0); // Ensure black color for footer text
+          doc.setTextColor(0);
           doc.text(`Report generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 20, currentY);
           
           return currentY;
