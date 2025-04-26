@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from "@/components/ui/card";
-import { CheckCircle, Clock, AlertTriangle, FileText, BanknoteIcon } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, BanknoteIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { asTableId } from '@/utils/type-casting';
@@ -29,7 +29,7 @@ export function AgreementStats() {
         const { count: activeCount, error: activeError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('leases', AgreementStatus.ACTIVE));
+          .eq('status', AgreementStatus.ACTIVE);
           
         if (activeError) throw activeError;
         
@@ -37,7 +37,7 @@ export function AgreementStats() {
         const { count: pendingCount, error: pendingError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('leases', AgreementStatus.PENDING));
+          .eq('status', AgreementStatus.PENDING);
           
         if (pendingError) throw pendingError;
         
@@ -53,11 +53,11 @@ export function AgreementStats() {
         const { data: activeAgreements, error: revenueError } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asTableId('leases', AgreementStatus.ACTIVE));
+          .eq('status', AgreementStatus.ACTIVE);
           
         if (revenueError) throw revenueError;
         
-        const totalRevenue = activeAgreements?.reduce((sum, agreement) => sum + (agreement.rent_amount || 0), 0) || 0;
+        const totalRevenue = activeAgreements?.reduce((sum, agreement: any) => sum + (agreement.rent_amount || 0), 0) || 0;
         
         setStats({
           totalActiveAgreements: activeCount || 0,

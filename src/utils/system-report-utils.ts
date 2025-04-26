@@ -23,6 +23,8 @@ export const generateSystemReport = async (
   payments: any[] = [],
   options: SystemReportOptions = {}
 ): Promise<jsPDF> => {
+  console.log(`Generating report with ${agreements.length} agreements and ${payments.length} payments`);
+  
   // Use our standard report template with company headers
   const doc = generateStandardReport(
     'System-Wide Agreement Report',
@@ -222,32 +224,41 @@ const generateStatusSection = async (
     ];
   });
 
-  (doc as any).autoTable({
-    startY: currentY,
-    head: [['Agreement #', 'Customer', 'Vehicle', 'Period', 'Monthly Rent', 'Paid', 'Balance']],
-    body: tableData,
-    headStyles: {
-      fillColor: [52, 73, 94],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold'
-    },
-    alternateRowStyles: {
-      fillColor: [240, 244, 248]
-    },
-    columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 40 },
-      3: { cellWidth: 40 },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 25 },
-      6: { cellWidth: 25 }
-    },
-    margin: { top: 10 },
-    styles: { cellPadding: 5, fontSize: 10 }
-  });
-  
-  return (doc as any).lastAutoTable.finalY + 10;
+  // Only create table if we have data
+  if (tableData.length > 0) {
+    (doc as any).autoTable({
+      startY: currentY,
+      head: [['Agreement #', 'Customer', 'Vehicle', 'Period', 'Monthly Rent', 'Paid', 'Balance']],
+      body: tableData,
+      headStyles: {
+        fillColor: [52, 73, 94],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [240, 244, 248]
+      },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 40 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 25 }
+      },
+      margin: { top: 10 },
+      styles: { cellPadding: 5, fontSize: 10 }
+    });
+    
+    return (doc as any).lastAutoTable.finalY + 10;
+  } else {
+    // If we don't have table data but have agreements, show a message
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'italic');
+    doc.text('No detailed data available for agreements in this category.', 20, currentY);
+    return currentY + 10;
+  }
 };
 
 /**

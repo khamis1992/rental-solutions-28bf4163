@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { supabase } from '@/integrations/supabase/client';
+import { asLeaseIdColumn, asTableId } from '@/utils/type-casting';
 
 interface SystemReportDialogProps {
   open: boolean;

@@ -20,8 +20,7 @@ import {
   Search,
   FilePlus, 
   RefreshCw, 
-  BarChart4, 
-  
+  BarChart4
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
@@ -140,7 +139,7 @@ const Agreements = () => {
           const { data: paymentData, error: paymentsError } = await supabase
             .from('unified_payments')
             .select('*')
-            .eq('lease_id', asTableId('unified_payments', id as string));
+            .eq('lease_id', id);
           
           if (paymentsError) {
             console.error("Error fetching payments:", paymentsError);
@@ -155,10 +154,10 @@ const Agreements = () => {
       // Convert Date fields to proper Date objects
       const processedAgreements = filteredAgreements.map(agreement => ({
         ...agreement,
-        start_date: new Date(agreement.start_date),
-        end_date: new Date(agreement.end_date),
-        created_at: new Date(agreement.created_at),
-        updated_at: new Date(agreement.updated_at)
+        start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
+        end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
+        created_at: agreement.created_at ? new Date(agreement.created_at) : new Date(),
+        updated_at: agreement.updated_at ? new Date(agreement.updated_at) : new Date()
       }));
       
       const doc = await generateSystemReport(
@@ -246,7 +245,12 @@ const Agreements = () => {
             <FileUp className="h-4 w-4" />
             Import CSV
           </Button>
-          
+          <Button asChild className="bg-primary hover:bg-primary/90">
+            <Link to="/agreements/add">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Agreement
+            </Link>
+          </Button>
         </div>
       </div>
 
