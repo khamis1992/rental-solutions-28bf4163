@@ -88,13 +88,13 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { jsPDF } from 'jspdf';
 
+// Type-safe fetch functions
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asTableId('overdue_payments', agreementId))
-      .single();
+      .eq('agreement_id', asTableId('overdue_payments', agreementId));
     
     if (error) {
       console.error("Error fetching overdue payments:", error);
@@ -162,7 +162,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asTableId('traffic_fines', agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -200,9 +200,7 @@ export const AgreementList = () => {
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
   
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'created_at', desc: true }
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
 
   useEffect(() => {
@@ -234,7 +232,7 @@ export const AgreementList = () => {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', id);
+          .eq('agreement_id', asTableId('overdue_payments', id));
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -245,7 +243,7 @@ export const AgreementList = () => {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', id);
+          .eq('lease_id', asTableId('unified_payments', id));
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -256,13 +254,13 @@ export const AgreementList = () => {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', id);
+          .eq('import_id', asTableId('agreement_import_reverts', id));
         
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', id);
+            .eq('import_id', asTableId('agreement_import_reverts', id));
           
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -274,7 +272,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', id);
+          .eq('agreement_id', asTableId('traffic_fines', id));
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -282,7 +280,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', id);
+            .eq('agreement_id', asTableId('traffic_fines', id));
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -332,7 +330,7 @@ export const AgreementList = () => {
       const { data: payments } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreement.id);
+        .eq('lease_id', asTableId('unified_payments', agreement.id));
       
       const doc = generateAgreementReport(
         agreement, 
@@ -406,8 +404,9 @@ export const AgreementList = () => {
         const { data: payments } = await supabase
           .from('unified_payments')
           .select('*')
-          .eq('lease_id', agreementId);
+          .eq('lease_id', asTableId('unified_payments', agreementId));
         
+        // Create a separate report for this agreement
         const doc = generateAgreementReport(
           agreement, 
           agreement.rent_amount || 0, 
@@ -415,8 +414,15 @@ export const AgreementList = () => {
           payments || []
         );
         
+        // Convert the report to a string representation
+        const pdfBytes = doc.output('arraybuffer');
+        
+        // Create a new Uint8Array from the ArrayBuffer
+        const pdfUint8Array = new Uint8Array(pdfBytes);
+        
+        // Add the report to the merged PDF
         mergedPdf.addPage();
-        mergedPdf.addImage(doc.output('arraybuffer'), 'PDF', 0, 0, mergedPdf.internal.pageSize.getWidth(), mergedPdf.internal.pageSize.getHeight());
+        mergedPdf.addImage(pdfUint8Array, 'PDF', 0, 0, mergedPdf.internal.pageSize.getWidth(), mergedPdf.internal.pageSize.getHeight());
         
         currentPage++;
       }
