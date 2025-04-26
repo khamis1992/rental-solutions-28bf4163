@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -137,12 +138,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     try {
       if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
         const searchQuery = searchParams.query.trim();
-        const normalizedPlate = normalizeLicensePlate(searchQuery);
+        console.log("Searching for vehicle with license plate:", searchQuery);
         
+        // First try exact match with both original and normalized plate
         const { data: vehicleMatches, error: vehicleError } = await supabase
           .from('vehicles')
-          .select('id')
-          .eq('license_plate', normalizedPlate);
+          .select('id, license_plate')
+          .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
         
         if (vehicleError) {
           console.error("Error finding vehicles:", vehicleError);
@@ -150,13 +152,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
         
         if (!vehicleMatches || vehicleMatches.length === 0) {
-          console.log("No vehicles found with license plate:", searchQuery);
+          console.log("No exact matches found for license plate:", searchQuery);
           return [];
         }
         
-        const vehicleIds = vehicleMatches.map(v => v.id);
-        console.log(`Found ${vehicleIds.length} matching vehicles, fetching their agreements`);
+        // Log found matches
+        console.log("Found matching vehicles:", vehicleMatches);
         
+        // Get agreements for matched vehicles
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select(`
@@ -164,17 +167,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             profiles:customer_id (id, full_name, email, phone_number),
             vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
           `)
-          .in('vehicle_id', vehicleIds);
+          .in('vehicle_id', vehicleMatches.map(v => v.id));
         
         if (agreementError) {
-          console.error("Error fetching agreements by vehicle ID:", agreementError);
+          console.error("Error fetching agreements:", agreementError);
           throw new Error(`Failed to fetch agreements: ${agreementError.message}`);
         }
         
         if (!agreementData || agreementData.length === 0) {
-          console.log("No agreements found for the matching vehicles");
+          console.log("No agreements found for matching vehicles");
           return [];
         }
+
+        // Log found agreements for debugging
+        console.log(`Found ${agreementData.length} agreements for license plate ${searchQuery}`);
         
         return agreementData.map(item => ({
           id: item.id,
