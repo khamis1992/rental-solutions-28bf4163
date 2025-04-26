@@ -135,68 +135,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
-      if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
-        const searchQuery = searchParams.query.trim();
-        const normalizedPlate = normalizeLicensePlate(searchQuery);
-        
-        const { data: vehicleMatches, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('id')
-          .eq('license_plate', normalizedPlate);
-        
-        if (vehicleError) {
-          console.error("Error finding vehicles:", vehicleError);
-          throw new Error(`Failed to search vehicles: ${vehicleError.message}`);
-        }
-        
-        if (!vehicleMatches || vehicleMatches.length === 0) {
-          console.log("No vehicles found with license plate:", searchQuery);
-          return [];
-        }
-        
-        const vehicleIds = vehicleMatches.map(v => v.id);
-        console.log(`Found ${vehicleIds.length} matching vehicles, fetching their agreements`);
-        
-        const { data: agreementData, error: agreementError } = await supabase
-          .from('leases')
-          .select(`
-            *,
-            profiles:customer_id (id, full_name, email, phone_number),
-            vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
-          `)
-          .in('vehicle_id', vehicleIds);
-        
-        if (agreementError) {
-          console.error("Error fetching agreements by vehicle ID:", agreementError);
-          throw new Error(`Failed to fetch agreements: ${agreementError.message}`);
-        }
-        
-        if (!agreementData || agreementData.length === 0) {
-          console.log("No agreements found for the matching vehicles");
-          return [];
-        }
-        
-        return agreementData.map(item => ({
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          status: mapDBStatusToEnum(item.status),
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          rent_amount: item.rent_amount || 0,
-          daily_late_fee: item.daily_late_fee || 120.0,
-          agreement_number: item.agreement_number || '',
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          signature_url: item.signature_url
-        }));
-      }
-      
       let query = supabase
         .from('leases')
         .select(`
@@ -204,6 +142,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           profiles:customer_id (id, full_name, email, phone_number),
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
+
+      if (searchParams.query) {
+        // Search by vehicle license plate
+        query = query.or(`vehicles.license_plate.ilike.%${searchParams.query}%`);
+      }
 
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
@@ -232,29 +175,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      if (searchParams.query && !isLicensePlatePattern(searchParams.query)) {
-        const searchQuery = searchParams.query.trim();
-        
-        if (searchQuery) {
-          query = query.or(`
-            agreement_number.eq.${searchQuery},
-            agreement_number.ilike.${searchQuery}%,
-            profiles.full_name.ilike.%${searchQuery}%,
-            vehicles.make.ilike.%${searchQuery}%,
-            vehicles.model.ilike.%${searchQuery}%
-          `);
-        }
-      }
-
-      if (searchParams.vehicle_id) {
-        query = query.eq('vehicle_id', searchParams.vehicle_id);
-      }
-
-      if (searchParams.customer_id) {
-        query = query.eq('customer_id', searchParams.customer_id);
-      }
-
-      console.log("Executing Supabase query...");
       const { data, error } = await query;
 
       if (error) {
@@ -267,31 +187,26 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      const agreements: SimpleAgreement[] = data.map(item => {
-        const mappedStatus = mapDBStatusToEnum(item.status);
+      return data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        status: mapDBStatusToEnum(item.status),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        rent_amount: item.rent_amount || 0,
+        daily_late_fee: item.daily_late_fee || 120.0,
+        agreement_number: item.agreement_number || '',
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        signature_url: item.signature_url
+      }));
 
-        return {
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          status: mappedStatus,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          rent_amount: item.rent_amount || 0,
-          daily_late_fee: item.daily_late_fee || 120.0,
-          agreement_number: item.agreement_number || '',
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          signature_url: item.signature_url
-        };
-      });
-
-      return agreements;
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
