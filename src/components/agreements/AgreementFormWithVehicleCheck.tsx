@@ -391,6 +391,7 @@ const AgreementFormWithVehicleCheck = ({
                             }
                           }}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
