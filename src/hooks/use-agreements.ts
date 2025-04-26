@@ -154,9 +154,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
       }
 
-      // Vehicle filter - fixed to correctly use vehicle_id
+      // Vehicle filter
       if (searchParams.vehicle_id) {
-        console.log("Applying vehicle filter with ID:", searchParams.vehicle_id);
         query = query.eq('vehicle_id', searchParams.vehicle_id);
       }
       
@@ -202,7 +201,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.order('created_at', { ascending: false });
       }
 
-      console.log("Executing query with params:", searchParams);
       const { data, error } = await query;
 
       if (error) {
@@ -215,7 +213,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      console.log(`Found ${data.length} agreements matching filters`);
       return data.map(item => ({
         id: item.id,
         customer_id: item.customer_id,

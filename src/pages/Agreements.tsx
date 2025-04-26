@@ -29,7 +29,6 @@ import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { VehicleSearchCommandPalette } from '@/components/ui/vehicle-search-command-palette';
 import { Vehicle } from '@/types/vehicle';
 import { supabase } from '@/integrations/supabase/client';
-import { asVehicleIdColumn } from '@/utils/database-type-helpers';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -39,13 +38,6 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [vehiclesList, setVehiclesList] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
-  
-  // Load initial search query from searchParams if present
-  useEffect(() => {
-    if (searchParams?.query) {
-      setSearchQuery(searchParams.query);
-    }
-  }, []);
   
   // Load some initial vehicle data
   useEffect(() => {
@@ -134,9 +126,7 @@ const Agreements = () => {
     e.preventDefault();
     setSearchParams({ 
       ...searchParams, 
-      query: searchQuery,
-      // Preserve vehicle_id if it exists
-      vehicle_id: searchParams?.vehicle_id
+      query: searchQuery 
     });
   };
 
@@ -144,25 +134,17 @@ const Agreements = () => {
     setSearchParams({
       ...searchParams,
       status: value,
-      // Preserve vehicle_id if it exists
-      vehicle_id: searchParams?.vehicle_id
     });
   };
   
   const handleVehicleSelect = (vehicle: Vehicle) => {
     console.log('Vehicle selected:', vehicle);
-    // Make sure we use the correct ID format that Supabase expects
-    const vehicleId = asVehicleIdColumn(vehicle.id);
-    
     setSearchParams({
       ...searchParams,
-      vehicle_id: vehicleId,
+      vehicle_id: vehicle.id,
     });
     setSearchQuery(`Vehicle: ${vehicle.license_plate} (${vehicle.make} ${vehicle.model})`);
     toast.success(`Filtering by vehicle: ${vehicle.license_plate}`);
-    
-    // Debug to ensure we have the correct ID format
-    console.log("Setting vehicle_id filter:", vehicleId);
   };
 
   const clearFilters = () => {
