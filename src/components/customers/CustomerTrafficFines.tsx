@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +10,9 @@ import { formatCurrency } from '@/lib/utils';
 import { hasData } from '@/utils/supabase-type-helpers';
 import { ExclamationTriangleIcon } from '@/components/icons/radix-shim';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FileText, Loader2 } from 'lucide-react';
+import { generateStandardReport } from '@/utils/report-utils';
+import { toast } from 'sonner';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -58,7 +60,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setIsLoading(true);
 
-        // First, get all leases for this customer
         const leaseResponse = await supabase
           .from('leases')
           .select('id, start_date, end_date, agreement_number')
@@ -76,7 +77,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           return;
         }
 
-        // Create a lease lookup object
         const leaseMap: Record<string, LeaseInfo> = {};
         leaseData.forEach(lease => {
           if (lease && lease.id) {
@@ -90,7 +90,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         });
         setLeases(leaseMap);
 
-        // Get all traffic fines for these leases
         const leaseIds = leaseData.map(lease => lease.id);
         
         const finesResponse = await supabase
@@ -106,11 +105,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
 
         const fineData = finesResponse.data as TrafficFine[];
         
-        // Separate valid and invalid fines
         const validFines: TrafficFine[] = [];
         const invalidFines: TrafficFine[] = [];
 
-        // Verify that violation dates fall within lease periods
         fineData.forEach(fine => {
           if (!fine.lease_id || !fine.violation_date) {
             invalidFines.push(fine);
@@ -136,7 +133,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         
         console.log(`Customer ${customerId}: Found ${validFines.length} valid fines and ${invalidFines.length} invalid fines`);
 
-        // Collect unique vehicle IDs
         const vehicleIds = Array.from(
           new Set(
             [...validFines, ...invalidFines]
@@ -145,7 +141,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           )
         );
         
-        // Get vehicle info
         if (vehicleIds.length > 0) {
           const vehiclesResponse = await supabase
             .from('vehicles')
@@ -191,7 +186,81 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     return leases[leaseId].agreement_number || 'Unknown Agreement';
   };
 
-  // Calculate the fines to display based on the toggle
+  const generateTrafficFinesReport = async () => {
+    try {
+      const doc = generateStandardReport(
+        'Traffic Fines Report',
+        undefined,
+        (doc, startY) => {
+          let currentY = startY;
+          
+          const headers = ['Date', 'Location', 'Violation', 'Amount', 'Status'];
+          const columnWidths = [30, 50, 50, 30, 30];
+          
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          let currentX = 20;
+          
+          headers.forEach((header, i) => {
+            doc.text(header, currentX, currentY);
+            currentX += columnWidths[i];
+          });
+          
+          currentY += 10;
+          doc.setFont('helvetica', 'normal');
+          
+          finesToDisplay.forEach((fine) => {
+            if (currentY > doc.internal.pageSize.getHeight() - 20) {
+              doc.addPage();
+              currentY = 20;
+            }
+            
+            currentX = 20;
+            const row = [
+              fine.violation_date ? format(new Date(fine.violation_date), 'dd/MM/yyyy') : 'N/A',
+              fine.fine_location || 'N/A',
+              fine.violation_charge || 'N/A',
+              formatCurrency(fine.fine_amount),
+              fine.payment_status.toUpperCase()
+            ];
+            
+            row.forEach((cell, i) => {
+              doc.text(cell.toString(), currentX, currentY);
+              currentX += columnWidths[i];
+            });
+            
+            currentY += 8;
+          });
+          
+          currentY += 10;
+          doc.setFont('helvetica', 'bold');
+          doc.text('Summary', 20, currentY);
+          currentY += 8;
+          doc.setFont('helvetica', 'normal');
+          
+          const totalAmount = finesToDisplay.reduce((sum, fine) => sum + fine.fine_amount, 0);
+          const paidFines = finesToDisplay.filter(fine => fine.payment_status === 'paid').length;
+          
+          doc.text(`Total Fines: ${finesToDisplay.length}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Paid Fines: ${paidFines}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Pending Fines: ${finesToDisplay.length - paidFines}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, currentY);
+          
+          return currentY;
+        }
+      );
+      
+      doc.save('traffic-fines-report.pdf');
+      toast.success('Traffic fines report generated successfully');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate traffic fines report');
+    }
+  };
+
   const finesToDisplay = showInvalidFines ? [...fines, ...invalidFines] : fines;
 
   return (
@@ -202,17 +271,29 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             <CardTitle>Traffic Fines</CardTitle>
             <CardDescription>Fines associated with this customer</CardDescription>
           </div>
-          {invalidFines.length > 0 && (
-            <label className="flex items-center space-x-2">
-              <input 
-                type="checkbox"
-                className="h-4 w-4" 
-                checked={showInvalidFines}
-                onChange={(e) => setShowInvalidFines(e.target.checked)}
-              />
-              <span className="text-sm">Show all fines including invalid dates</span>
-            </label>
-          )}
+          <div className="flex items-center gap-2">
+            {finesToDisplay.length > 0 && (
+              <Button 
+                variant="outline"
+                onClick={generateTrafficFinesReport}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Generate Report
+              </Button>
+            )}
+            {invalidFines.length > 0 && (
+              <label className="flex items-center space-x-2">
+                <input 
+                  type="checkbox"
+                  className="h-4 w-4" 
+                  checked={showInvalidFines}
+                  onChange={(e) => setShowInvalidFines(e.target.checked)}
+                />
+                <span className="text-sm">Show all fines including invalid dates</span>
+              </label>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -253,10 +334,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                 </TableHeader>
                 <TableBody>
                   {finesToDisplay.map((fine) => {
-                    // Only render fines with valid data
                     if (!fine?.id) return null;
 
-                    // Check if this is a valid fine (violation date within lease period)
                     const isValid = fines.some(validFine => validFine.id === fine.id);
                     
                     return (
