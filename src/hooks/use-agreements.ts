@@ -137,35 +137,25 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     try {
       if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
         const searchQuery = searchParams.query.trim();
-        const normalizedQuery = normalizeLicensePlate(searchQuery);
-        console.log("Searching for vehicle with license plate:", searchQuery, "normalized:", normalizedQuery);
+        const normalizedPlate = normalizeLicensePlate(searchQuery);
         
-        let query = supabase
+        const { data: vehicleMatches, error: vehicleError } = await supabase
           .from('vehicles')
-          .select('id, license_plate');
-        
-        query = query.filter('license_plate', 'ilike', `%${normalizedQuery}%`);
-        
-        const { data: vehicleMatches, error: vehicleError } = await query;
+          .select('id')
+          .eq('license_plate', normalizedPlate);
         
         if (vehicleError) {
           console.error("Error finding vehicles:", vehicleError);
           throw new Error(`Failed to search vehicles: ${vehicleError.message}`);
         }
         
-        const filteredVehicles = vehicleMatches?.filter(vehicle => 
-          doesLicensePlateMatch(vehicle.license_plate, searchQuery)
-        );
-        
-        console.log("Found vehicles:", vehicleMatches);
-        console.log("Filtered vehicles:", filteredVehicles);
-        
-        if (!filteredVehicles || filteredVehicles.length === 0) {
-          console.log("No matching vehicles found for license plate:", searchQuery);
+        if (!vehicleMatches || vehicleMatches.length === 0) {
+          console.log("No vehicles found with license plate:", searchQuery);
           return [];
         }
         
-        const vehicleIds = filteredVehicles.map(v => v.id);
+        const vehicleIds = vehicleMatches.map(v => v.id);
+        console.log(`Found ${vehicleIds.length} matching vehicles, fetching their agreements`);
         
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
@@ -177,16 +167,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           .in('vehicle_id', vehicleIds);
         
         if (agreementError) {
-          console.error("Error fetching agreements:", agreementError);
+          console.error("Error fetching agreements by vehicle ID:", agreementError);
           throw new Error(`Failed to fetch agreements: ${agreementError.message}`);
         }
         
         if (!agreementData || agreementData.length === 0) {
-          console.log("No agreements found for matching vehicles with IDs:", vehicleIds);
+          console.log("No agreements found for the matching vehicles");
           return [];
         }
-
-        console.log(`Found ${agreementData.length} agreements for license plate ${searchQuery}`);
         
         return agreementData.map(item => ({
           id: item.id,
