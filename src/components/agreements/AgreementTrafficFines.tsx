@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -12,23 +13,23 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines } = useTrafficFines();
-  const [showLoader, setShowLoader] = useState(false);
-
-  useEffect(() => {
-    // Initial loading state is managed by the hook
-    setShowLoader(isLoading);
-  }, [isLoading]);
+  const { isLoading, trafficFines, refetch } = useTrafficFines();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
-    setShowLoader(true);
-    // Wait a moment for visual feedback
-    setTimeout(() => {
-      setShowLoader(false);
-    }, 1000);
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast.success('Traffic fines data refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh traffic fines');
+      console.error('Error refreshing traffic fines:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
-  if (isLoading || showLoader) {
+  if (isLoading || isRefreshing) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -36,7 +37,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     );
   }
 
-  // Filter traffic fines for this agreement if needed
+  // Filter traffic fines for this agreement
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     fine.leaseId === agreementId
   ) : [];
@@ -48,7 +49,8 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
           No traffic fines recorded for this rental period.
         </p>
         <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
             Check for new fines
           </Button>
         </div>
@@ -106,7 +108,8 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
           </p>
         </div>
         
-        <Button onClick={handleRefresh} variant="outline" size="sm">
+        <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2">
+          <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
       </div>
