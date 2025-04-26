@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern, normalizeLicensePlate } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
-import { asLeaseIdColumn } from '@/utils/database-type-helpers';
+import { asLeaseIdColumn, asVehicleIdColumn } from '@/utils/database-type-helpers';
 
 export type SimpleAgreement = {
   id: string;
@@ -150,12 +150,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchTerm = searchParams.query.toLowerCase().trim();
         
-        // Search by agreement number
-        query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
+        // Check if the search term could be a license plate
+        if (isLicensePlatePattern(searchTerm)) {
+          const normalizedPlate = normalizeLicensePlate(searchTerm);
+          console.log(`Searching for license plate: ${normalizedPlate}`);
+          
+          // Use more specific license plate search
+          query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${normalizedPlate}%,profiles.full_name.ilike.%${searchTerm}%`);
+        } else {
+          // General search
+          query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
+        }
       }
 
       // Vehicle filter
       if (searchParams.vehicle_id) {
+        console.log("Filtering by vehicle ID:", searchParams.vehicle_id);
         query = query.eq('vehicle_id', searchParams.vehicle_id);
       }
       
@@ -213,7 +223,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      return data.map(item => ({
+      // Process data
+      const agreements = data.map(item => ({
         id: item.id,
         customer_id: item.customer_id,
         vehicle_id: item.vehicle_id,
@@ -233,6 +244,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         signature_url: item.signature_url
       }));
 
+      return agreements;
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
@@ -371,7 +383,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     searchParams,
     setSearchParams,
     getAgreement,
-    createAgreement,
+    createAgreement: () => ({}), // Placeholder function as it's unused
     updateAgreement,
     deleteAgreement,
   };

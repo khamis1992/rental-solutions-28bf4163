@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -39,7 +38,12 @@ const Agreements = () => {
   const [vehiclesList, setVehiclesList] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   
-  // Load some initial vehicle data
+  useEffect(() => {
+    if (searchParams?.query) {
+      setSearchQuery(searchParams.query);
+    }
+  }, []);
+  
   useEffect(() => {
     const loadInitialVehicles = async () => {
       try {
@@ -70,22 +74,6 @@ const Agreements = () => {
   }, []);
   
   React.useEffect(() => {
-    if (typeof sessionStorage !== 'undefined') {
-      const cachedStatus = sessionStorage.getItem('edge_function_available_process-agreement-imports');
-      if (cachedStatus) {
-        try {
-          const { available, timestamp } = JSON.parse(cachedStatus);
-          const now = Date.now();
-          if (now - timestamp < 60 * 60 * 1000) {
-            setIsEdgeFunctionAvailable(available);
-            return;
-          }
-        } catch (e) {
-          console.warn('Error parsing cached edge function status:', e);
-        }
-      }
-    }
-    
     const checkAvailability = async () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
@@ -126,7 +114,8 @@ const Agreements = () => {
     e.preventDefault();
     setSearchParams({ 
       ...searchParams, 
-      query: searchQuery 
+      query: searchQuery,
+      vehicle_id: undefined
     });
   };
 
@@ -142,6 +131,7 @@ const Agreements = () => {
     setSearchParams({
       ...searchParams,
       vehicle_id: vehicle.id,
+      query: ''
     });
     setSearchQuery(`Vehicle: ${vehicle.license_plate} (${vehicle.make} ${vehicle.model})`);
     toast.success(`Filtering by vehicle: ${vehicle.license_plate}`);
@@ -150,6 +140,14 @@ const Agreements = () => {
   const clearFilters = () => {
     setSearchParams({
       status: 'all',
+    });
+    setSearchQuery('');
+  };
+
+  const clearVehicleFilter = () => {
+    setSearchParams({
+      ...searchParams,
+      vehicle_id: undefined,
     });
     setSearchQuery('');
   };
@@ -167,7 +165,6 @@ const Agreements = () => {
         <AgreementStats />
       </div>
 
-      {/* Search and Filters Section */}
       <div className="space-y-4 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <form onSubmit={handleSearch} className="flex-1 flex-grow">
@@ -198,10 +195,11 @@ const Agreements = () => {
                     className="h-8 w-8"
                     onClick={() => {
                       setSearchQuery('');
-                      if (searchParams?.query) {
+                      if (searchParams?.query || searchParams?.vehicle_id) {
                         setSearchParams({
                           ...searchParams,
                           query: '',
+                          vehicle_id: undefined
                         });
                       }
                     }}
@@ -246,7 +244,6 @@ const Agreements = () => {
           </div>
         </div>
 
-        {/* Active filters display */}
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2">
             {searchParams?.status && searchParams.status !== 'all' && (
@@ -283,18 +280,12 @@ const Agreements = () => {
             )}
             {searchParams?.vehicle_id && (
               <Badge variant="secondary" className="flex items-center gap-1">
-                Vehicle: {searchQuery.replace('Vehicle: ', '')}
+                {searchQuery.includes('Vehicle:') ? searchQuery : 'Vehicle filter'}
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-4 w-4 ml-1 p-0"
-                  onClick={() => {
-                    setSearchParams({
-                      ...searchParams,
-                      vehicle_id: undefined,
-                    });
-                    setSearchQuery('');
-                  }}
+                  onClick={clearVehicleFilter}
                 >
                   <FilterX className="h-3 w-3" />
                 </Button>

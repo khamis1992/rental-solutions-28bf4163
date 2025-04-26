@@ -56,6 +56,14 @@ export const asPaymentStatusColumn = (status: string): string => {
 };
 
 /**
+ * Helper for vehicle ID column
+ * Used to convert ID strings to a format accepted by Supabase
+ */
+export const asVehicleIdColumn = (id: string): string => {
+  return id;
+};
+
+/**
  * Safely extract data from a PostgrestResponse
  */
 export const safelyExtractData = <T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T[] | null => {
