@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -29,6 +28,7 @@ import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { generateAgreementReport } from '@/utils/agreement-report-utils';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 
 const AgreementDetailPage = () => {
   const {

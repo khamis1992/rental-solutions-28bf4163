@@ -1,36 +1,43 @@
 
-import { Database } from '@/types/database.types';
+import { LeaseId, PaymentId } from "@/types/database-types";
 
 export interface Payment {
   id: string;
-  amount: number;
-  payment_date: string | null;
-  payment_method?: string;
-  reference_number?: string | null; 
-  notes?: string;
-  type?: string;
-  status?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
   lease_id?: string;
-  original_due_date?: string | null;
+  amount?: number;
   amount_paid?: number;
   balance?: number;
+  payment_date: string | Date;
+  payment_method?: string;
+  status: 'pending' | 'completed' | 'cancelled' | 'failed' | 'partially_paid' | 'overdue';
+  type?: 'Income' | 'Expense' | 'RENT' | 'DEPOSIT' | 'LATE_PAYMENT_FEE' | 'OTHER';
   description?: string;
-  due_date?: string;
+  reference_number?: string;
+  notes?: string;
+  days_overdue?: number;
+  original_due_date?: string | Date;
+  late_fine_amount?: number;
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  processed?: boolean;
 }
 
-export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
-
-export interface PaymentHistoryProps {
-  payments: Payment[];
-  isLoading?: boolean;
-  rentAmount?: number | null;
-  contractAmount?: number | null;
-  onPaymentDeleted: () => void;
-  leaseStartDate?: string | Date | null;
-  leaseEndDate?: string | Date | null;
-  onRecordPayment?: (payment: Partial<Payment>) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
+export interface ExtendedPayment extends Payment {
+  lease?: {
+    agreement_number?: string;
+    customer_id?: string;
+  };
+  customer?: {
+    full_name?: string;
+    email?: string;
+  };
 }
 
+export interface PaymentUpdateParams {
+  id: string;
+  data: Partial<Payment>;
+}
+
+export interface PaymentDeleteParams {
+  id: string;
+}
