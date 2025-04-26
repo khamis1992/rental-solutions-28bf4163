@@ -25,6 +25,7 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { Badge } from '@/components/ui/badge';
 import { PaymentEditDialog } from './PaymentEditDialog';
 import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
+import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 
 export function PaymentHistory({
   payments = [],
@@ -229,6 +230,34 @@ export function PaymentHistory({
     } catch (error) {
       console.error('Error updating payment:', error);
       toast.error('Failed to update payment');
+    }
+  };
+
+  const handleExportHistory = () => {
+    if (payments.length === 0) return;
+
+    const paymentRows = payments.map(payment => ({
+      description: payment.description || 'Monthly Rent',
+      amount: payment.amount || 0,
+      dueDate: payment.due_date ? format(new Date(payment.due_date), 'dd/MM/yyyy') : 'N/A',
+      paymentDate: payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : null,
+      status: payment.status || 'pending',
+      lateFee: payment.late_fine_amount || 0,
+      total: (payment.amount || 0) + (payment.late_fine_amount || 0)
+    }));
+
+    const dateRange = {
+      from: leaseStartDate ? new Date(leaseStartDate) : undefined,
+      to: leaseEndDate ? new Date(leaseEndDate) : undefined
+    };
+
+    try {
+      const doc = generatePaymentHistoryPdf(paymentRows, "Payment History Report", dateRange);
+      doc.save('payment-history.pdf');
+      toast.success('Payment history exported successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to export payment history');
     }
   };
 
@@ -549,7 +578,12 @@ export function PaymentHistory({
       </CardContent>
       
       <CardFooter className="flex justify-between border-t pt-6">
-        <Button variant="outline" size="sm" disabled={payments.length === 0}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          disabled={payments.length === 0}
+          onClick={handleExportHistory}
+        >
           <Download className="h-4 w-4 mr-2" />
           Export History
         </Button>

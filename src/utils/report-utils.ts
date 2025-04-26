@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -320,4 +319,73 @@ export const generateStandardReport = (
     
     return doc;
   }
+};
+
+interface PaymentHistoryRow {
+  description: string;
+  amount: number;
+  dueDate: string;
+  paymentDate: string | null;
+  status: string;
+  lateFee: number;
+  total: number;
+}
+
+export const generatePaymentHistoryPdf = (
+  payments: PaymentHistoryRow[],
+  title: string = "Payment History",
+  dateRange: { from: Date | undefined; to: Date | undefined } = { from: undefined, to: undefined }
+): jsPDF => {
+  return generateStandardReport(title, dateRange, (doc, startY) => {
+    // Table headers
+    const headers = ["Due Date", "Description", "Amount", "Status", "Late Fee", "Total"];
+    const columnWidths = [25, 45, 30, 25, 25, 30];
+    let currentY = startY + 10;
+
+    // Style for headers
+    doc.setFillColor(240, 240, 240);
+    doc.setTextColor(70, 70, 70);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+
+    // Draw header cells
+    let currentX = 14;
+    headers.forEach((header, i) => {
+      doc.rect(currentX, currentY, columnWidths[i], 10, "F");
+      doc.text(header, currentX + 2, currentY + 7);
+      currentX += columnWidths[i];
+    });
+
+    currentY += 10;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+
+    // Add rows
+    payments.forEach((payment) => {
+      if (currentY > doc.internal.pageSize.getHeight() - 40) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      currentX = 14;
+      const row = [
+        payment.dueDate,
+        payment.description,
+        `QAR ${payment.amount.toLocaleString()}`,
+        payment.status,
+        `QAR ${payment.lateFee.toLocaleString()}`,
+        `QAR ${payment.total.toLocaleString()}`
+      ];
+
+      row.forEach((cell, i) => {
+        doc.text(String(cell), currentX + 2, currentY + 5);
+        doc.rect(currentX, currentY, columnWidths[i], 8);
+        currentX += columnWidths[i];
+      });
+
+      currentY += 8;
+    });
+
+    return currentY;
+  });
 };
