@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,10 +47,9 @@ type LeaseInfo = {
 
 type CustomerInfo = {
   id: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
+  email: string;
   phone: string | null;
-  email: string | null;
   driver_license: string | null;
 };
 
@@ -72,9 +70,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setIsLoading(true);
         
-        // Fetch customer information directly from customers table
+        // Fetch customer information from profiles table
         const { data: customer, error: customerError } = await supabase
-          .from('customers')
+          .from('profiles')
           .select('*')
           .eq('id', customerId)
           .single();
@@ -83,10 +81,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           console.log('Customer data fetched successfully:', customer);
           setCustomerInfo({
             id: customer.id,
-            first_name: customer.first_name,
-            last_name: customer.last_name,
-            phone: customer.phone,
+            full_name: customer.full_name,
             email: customer.email,
+            phone: customer.phone_number,
             driver_license: customer.driver_license
           });
         } else {
@@ -255,7 +252,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           
           if (customerInfo) {
             const customerInfoText = [
-              `Name: ${customerInfo.first_name} ${customerInfo.last_name}`,
+              `Name: ${customerInfo.full_name}`,
               `Phone: ${customerInfo.phone || 'N/A'}`,
               `Email: ${customerInfo.email || 'N/A'}`,
               `License: ${customerInfo.driver_license || 'N/A'}`
