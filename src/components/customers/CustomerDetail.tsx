@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
@@ -42,6 +41,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +54,8 @@ export function CustomerDetail() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [localNotes, setLocalNotes] = useState('');
 
   const fetchCustomer = useCallback(async () => {
     if (!id || hasLoaded) return;
@@ -81,6 +83,12 @@ export function CustomerDetail() {
   useEffect(() => {
     fetchCustomer();
   }, [fetchCustomer]);
+
+  useEffect(() => {
+    if (customer?.notes) {
+      setLocalNotes(customer.notes);
+    }
+  }, [customer?.notes]);
 
   const handleDelete = async () => {
     if (!customer?.id || isDeleting) return;
@@ -126,6 +134,22 @@ export function CustomerDetail() {
       .substring(0, 2);
   };
 
+  const handleSaveNotes = async () => {
+    if (!customer?.id) return;
+    
+    try {
+      await updateCustomer.mutateAsync({
+        id: customer.id,
+        notes: localNotes
+      });
+      setIsEditingNotes(false);
+      toast.success('Notes updated successfully');
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast.error('Failed to update notes');
+    }
+  };
+
   if (loading && !hasLoaded) {
     return (
       <div className="space-y-6">
@@ -165,7 +189,6 @@ export function CustomerDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Hero Section with Customer Overview */}
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-start p-6 pb-0 md:pb-6 gap-6">
           <Avatar className="h-24 w-24 border-4 border-background">
@@ -223,7 +246,6 @@ export function CustomerDetail() {
               </div>
             </div>
             
-            {/* Contact Quick Info */}
             <div className="flex flex-wrap gap-4 mt-2">
               <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
                 <a href={`mailto:${customer.email}`}>
@@ -244,7 +266,6 @@ export function CustomerDetail() {
           </div>
         </div>
         
-        {/* Customer Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px border-t mt-6 bg-muted">
           <div className="bg-background p-6 flex flex-col">
             <span className="text-sm font-medium text-muted-foreground">Total Agreements</span>
@@ -265,7 +286,6 @@ export function CustomerDetail() {
         </div>
       </div>
 
-      {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -334,17 +354,56 @@ export function CustomerDetail() {
             </Card>
           </div>
           
-          {/* Notes Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Additional Notes</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Additional Notes</CardTitle>
+                {!isEditingNotes ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsEditingNotes(true)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Notes
+                  </Button>
+                ) : (
+                  <div className="space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setLocalNotes(customer?.notes || '');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={handleSaveNotes}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none">
-                {customer.notes ? (
-                  <p className="whitespace-pre-line">{customer.notes}</p>
+                {isEditingNotes ? (
+                  <Textarea
+                    value={localNotes}
+                    onChange={(e) => setLocalNotes(e.target.value)}
+                    placeholder="Add notes about this customer..."
+                    className="min-h-[100px]"
+                  />
                 ) : (
-                  <p className="text-muted-foreground italic">No additional notes for this customer.</p>
+                  customer?.notes ? (
+                    <p className="whitespace-pre-line">{customer.notes}</p>
+                  ) : (
+                    <p className="text-muted-foreground italic">No additional notes for this customer.</p>
+                  )
                 )}
               </div>
             </CardContent>
@@ -475,3 +534,5 @@ export function CustomerDetail() {
     </div>
   );
 }
+
+export default CustomerDetail;
