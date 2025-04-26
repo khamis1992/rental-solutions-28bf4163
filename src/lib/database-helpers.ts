@@ -11,3 +11,46 @@ export function asTableId(tableName: string, id: string): string {
   // But this function allows us to add any necessary transformations in the future
   return id;
 }
+
+/**
+ * Helper for vehicle ID type conversion - specific wrapper around asTableId
+ * Used for consistent typing across the application
+ */
+export function asVehicleId(id: string): string {
+  return asTableId('vehicles', id);
+}
+
+/**
+ * Helper for agreement/lease ID type conversion
+ */
+export function asLeaseId(id: string): string {
+  return asTableId('leases', id);
+}
+
+/**
+ * Helper for payment ID type conversion
+ */
+export function asPaymentId(id: string): string {
+  return asTableId('unified_payments', id);
+}
+
+/**
+ * Helper for agreement import ID type conversion
+ */
+export function asImportId(id: string): string {
+  return asTableId('agreement_imports', id);
+}
+
+/**
+ * Helper for traffic fine ID type conversion
+ */
+export function asTrafficFineId(id: string): string {
+  return asTableId('traffic_fines', id);
+}
+
+/**
+ * Helper for customer/profile ID type conversion
+ */
+export function asCustomerId(id: string): string {
+  return asTableId('profiles', id);
+}

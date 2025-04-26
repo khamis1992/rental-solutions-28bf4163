@@ -39,3 +39,15 @@ export const asTrafficFineIdColumn = (id: string): string => {
   return id;
 };
 
+/**
+ * Re-export functions from database-helpers for backward compatibility
+ */
+export { 
+  asTableId, 
+  asVehicleId,
+  asLeaseId,
+  asTrafficFineId,
+  asImportId,
+  asCustomerId
+} from '@/lib/database-helpers';
+

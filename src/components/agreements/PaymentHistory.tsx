@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,13 @@ import { PaymentEditDialog } from './PaymentEditDialog';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 import { asTableId } from '@/lib/database-helpers';
-import type { PaymentHistoryProps } from './PaymentHistory.types';
+import type { PaymentHistoryProps, Payment } from './PaymentHistory.types';
 
 export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [editPayment, setEditPayment] = useState(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [editPayment, setEditPayment] = useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) =
         if (error) throw error;
         setPayments(data || []);
       } catch (error) {
-        setError(error);
+        setError(error instanceof Error ? error : new Error('Unknown error'));
         toast.error("Failed to fetch payments");
       } finally {
         setIsLoading(false);

@@ -44,4 +44,13 @@ export interface PaymentDeleteParams {
 
 export interface PaymentHistoryProps {
   agreementId?: string;
+  payments?: Payment[];
+  isLoading?: boolean;
+  rentAmount?: number;
+  contractAmount?: number;
+  onPaymentDeleted?: () => void;
+  onPaymentUpdated?: (updatedPayment: Partial<Payment>) => Promise<void>;
+  onRecordPayment?: (payment: any) => void;
+  leaseStartDate?: Date;
+  leaseEndDate?: Date;
 }
