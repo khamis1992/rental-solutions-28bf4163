@@ -191,49 +191,121 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       const doc = generateStandardReport(
         'Traffic Violations Report',
         undefined,
-        (doc, startY) => {
+        async (doc, startY) => {
           let currentY = startY;
           
-          // Customer summary section
-          doc.setFontSize(12);
+          // Customer Information section
+          doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
-          doc.text('SUMMARY', 20, currentY);
-          currentY += 10;
+          doc.setTextColor(0, 0, 0); // Set text color to black
+          doc.text('CUSTOMER INFORMATION', 20, currentY);
+          currentY += 15;
           
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
+          
+          // Get customer info from supabase
+          const { data: customerData } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('id', customerId)
+            .single();
+            
+          if (customerData) {
+            const customerInfo = [
+              `Name: ${customerData.first_name} ${customerData.last_name}`,
+              `Phone: ${customerData.phone || 'N/A'}`,
+              `Email: ${customerData.email || 'N/A'}`,
+              `License: ${customerData.driver_license || 'N/A'}`
+            ];
+            
+            customerInfo.forEach(info => {
+              doc.text(info, 20, currentY);
+              currentY += 7;
+            });
+          }
+          
+          currentY += 10;
+
+          // Agreement Information section
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('AGREEMENT INFORMATION', 20, currentY);
+          currentY += 15;
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          
+          // Get active lease info
+          const { data: leaseData } = await supabase
+            .from('leases')
+            .select('*, vehicles(*)')
+            .eq('customer_id', customerId)
+            .eq('status', 'active')
+            .maybeSingle();
+            
+          if (leaseData) {
+            const agreementInfo = [
+              `Agreement Number: ${leaseData.agreement_number || 'N/A'}`,
+              `Vehicle: ${leaseData.vehicles?.make} ${leaseData.vehicles?.model} (${leaseData.vehicles?.year})`,
+              `License Plate: ${leaseData.vehicles?.license_plate || 'N/A'}`,
+              `Start Date: ${leaseData.start_date ? format(new Date(leaseData.start_date), 'dd/MM/yyyy') : 'N/A'}`,
+              `End Date: ${leaseData.end_date ? format(new Date(leaseData.end_date), 'dd/MM/yyyy') : 'N/A'}`
+            ];
+            
+            agreementInfo.forEach(info => {
+              doc.text(info, 20, currentY);
+              currentY += 7;
+            });
+          }
+          
+          currentY += 15;
+          
+          // Summary section
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('VIOLATIONS SUMMARY', 20, currentY);
+          currentY += 15;
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          
           const totalAmount = finesToDisplay.reduce((sum, fine) => sum + fine.fine_amount, 0);
           const paidFines = finesToDisplay.filter(fine => fine.payment_status === 'paid').length;
           const pendingFines = finesToDisplay.length - paidFines;
           
-          doc.text(`Total Fines: ${finesToDisplay.length}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Paid Fines: ${paidFines}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Pending Fines: ${pendingFines}`, 20, currentY);
+          const summaryInfo = [
+            `Total Violations: ${finesToDisplay.length}`,
+            `Total Amount: ${formatCurrency(totalAmount)}`,
+            `Paid Violations: ${paidFines}`,
+            `Pending Violations: ${pendingFines}`
+          ];
+          
+          summaryInfo.forEach(info => {
+            doc.text(info, 20, currentY);
+            currentY += 7;
+          });
+          
           currentY += 15;
 
-          // Fines Detail Table
-          doc.setFontSize(12);
+          // Violations Detail Table
+          doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
           doc.text('VIOLATION DETAILS', 20, currentY);
-          currentY += 10;
+          currentY += 15;
           
-          doc.setFontSize(9);
+          // Table headers
+          doc.setFontSize(10);
           const headers = ['Date', 'License Plate', 'Location', 'Violation', 'Amount', 'Status'];
-          const columnWidths = [25, 30, 40, 35, 25, 25];
-          const startX = 20;
+          const columnWidths = [30, 30, 40, 35, 25, 25];
+          let xPos = 20;
           
-          // Table Headers
-          let xPos = startX;
           headers.forEach((header, i) => {
             doc.text(header, xPos, currentY);
             xPos += columnWidths[i];
           });
           
-          // Table Content
+          // Table content
           currentY += 8;
           doc.setFont('helvetica', 'normal');
 
@@ -243,7 +315,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
               currentY = 20;
             }
 
-            xPos = startX;
+            xPos = 20;
             const rowData = [
               fine.violation_date ? format(new Date(fine.violation_date), 'dd/MM/yyyy') : 'N/A',
               fine.license_plate || 'N/A',
@@ -254,7 +326,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             ];
 
             rowData.forEach((text, i) => {
-              // Handle text overflow
               const maxWidth = columnWidths[i] - 2;
               if (doc.getStringUnitWidth(text) * doc.internal.getFontSize() > maxWidth) {
                 text = text.substring(0, 15) + '...';
@@ -266,10 +337,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             currentY += 7;
           });
           
-          // Add generation date at the bottom
-          currentY += 10;
+          // Footer with generation date
+          currentY += 15;
           doc.setFontSize(8);
-          doc.setTextColor(128);
+          doc.setTextColor(0);
           doc.text(`Report generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 20, currentY);
           
           return currentY;
