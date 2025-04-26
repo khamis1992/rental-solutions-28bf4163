@@ -174,39 +174,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
         if (searchQuery) {
           if (isLicensePlatePattern(searchQuery)) {
-            const normalizedSearchQuery = normalizeLicensePlate(searchQuery);
+            const vehicleQuery = supabase
+              .from('vehicles')
+              .select('id')
+              .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
             
-            query = query.or(`
-              vehicles.license_plate.eq.${searchQuery}
-            `);
+            const { data: vehicleIds, error: vehicleError } = await vehicleQuery;
             
-            const { count } = await query.select('id', { count: 'exact', head: true });
-            if (!count || count === 0) {
-              query = supabase
-                .from('leases')
-                .select(`
-                  *,
-                  profiles:customer_id (id, full_name, email, phone_number),
-                  vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
-                `)
-                .eq('vehicles.license_plate', normalizedSearchQuery);
-              
-              const { count: normalizedCount } = await query.select('id', { count: 'exact', head: true });
-              
-              if (!normalizedCount || normalizedCount === 0) {
-                query = supabase
-                  .from('leases')
-                  .select(`
-                    *,
-                    profiles:customer_id (id, full_name, email, phone_number),
-                    vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
-                  `);
-                
-                query = query.or(`
-                  agreement_number.eq.${searchQuery},
-                  vehicles.license_plate.ilike.${searchQuery}%
-                `);
-              }
+            if (!vehicleError && vehicleIds && vehicleIds.length > 0) {
+              const vehicleIdArray = vehicleIds.map(v => v.id);
+              query = query.in('vehicle_id', vehicleIdArray);
+            } else {
+              return [];
             }
           } else {
             query = query.or(`
