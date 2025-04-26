@@ -19,10 +19,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <SectionHeader title="Dashboard" description={`Overview of your rental operations • ${currentDate}`} icon={LayoutDashboard} />
       </div>
       <div className="flex items-center space-x-2">
-        <Button size="sm" variant="outline" onClick={onRefresh} disabled={isRefreshing} className="h-9">
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        
         
       </div>
     </div>;
