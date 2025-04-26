@@ -9,6 +9,7 @@ interface PaymentDetails {
   lateFeeAmount: number;
   totalDue: number;
   agreementNumber: string | null;
+  leaseId: string | null;
 }
 
 export function usePaymentDetails(carNumber: string) {
@@ -30,8 +31,8 @@ export function usePaymentDetails(carNumber: string) {
       try {
         console.log("Fetching payment details for car number:", carNumber);
         
-        // Get active lease for the vehicle
-        const { data: lease, error: leaseError } = await supabase
+        // Get active lease for the vehicle, ensuring we only get one result
+        const { data: leases, error: leaseError } = await supabase
           .from('leases')
           .select(`
             id,
@@ -43,20 +44,21 @@ export function usePaymentDetails(carNumber: string) {
             vehicles!inner(license_plate)
           `)
           .eq('vehicles.license_plate', carNumber)
-          .eq('status', 'active')
-          .single();
+          .eq('status', 'active');
 
         if (leaseError) {
           console.error("Lease error:", leaseError);
           throw new Error(leaseError.message);
         }
         
-        if (!lease) {
+        if (!leases || leases.length === 0) {
           setError('No active agreement found for this vehicle');
           setIsLoading(false);
           return;
         }
-
+        
+        // Use the first lease if multiple are returned
+        const lease = leases[0];
         console.log("Found lease:", lease);
 
         // Calculate late fee if applicable
@@ -74,7 +76,8 @@ export function usePaymentDetails(carNumber: string) {
           rentAmount: lease.rent_amount || 0,
           lateFeeAmount: lateFee,
           totalDue: (lease.rent_amount || 0) + lateFee,
-          agreementNumber: lease.agreement_number
+          agreementNumber: lease.agreement_number,
+          leaseId: lease.id
         });
 
       } catch (err) {

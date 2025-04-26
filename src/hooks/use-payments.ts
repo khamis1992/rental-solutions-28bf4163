@@ -3,7 +3,7 @@ import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
+import { asLeaseId, asPaymentId } from '@/utils/type-casting';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -14,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', asLeaseId(agreementId));
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
@@ -31,14 +31,20 @@ export const usePayments = (agreementId?: string) => {
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
+    // Make sure we have a valid lease_id if it exists
+    const paymentData = {
+      ...newPayment,
+      lease_id: newPayment.lease_id ? asLeaseId(newPayment.lease_id) : newPayment.lease_id
+    };
+    
     const response = await supabase
       .from('unified_payments')
-      .insert([newPayment])
+      .insert([paymentData])
       .select();
 
     if (!hasData(response)) {
       console.error("Error adding payment:", response.error);
-      return null;
+      throw new Error(response.error.message);
     }
     return response.data[0];
   }, {
@@ -73,7 +79,7 @@ export const usePayments = (agreementId?: string) => {
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
-      return null;
+      throw new Error(response.error.message);
     }
     return { success: true };
   });
