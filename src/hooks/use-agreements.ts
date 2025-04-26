@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern, normalizeLicensePlate } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
+import { asLeaseIdColumn } from '@/utils/database-type-helpers';
 
 export type SimpleAgreement = {
   id: string;
@@ -136,11 +137,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     try {
       if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
         const searchQuery = searchParams.query.trim();
+        const normalizedPlate = normalizeLicensePlate(searchQuery);
         
         const { data: vehicleMatches, error: vehicleError } = await supabase
           .from('vehicles')
           .select('id')
-          .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
+          .eq('license_plate', normalizedPlate);
         
         if (vehicleError) {
           console.error("Error finding vehicles:", vehicleError);
@@ -155,7 +157,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         const vehicleIds = vehicleMatches.map(v => v.id);
         console.log(`Found ${vehicleIds.length} matching vehicles, fetching their agreements`);
         
-        const { data, error } = await supabase
+        const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select(`
             *,
@@ -164,39 +166,35 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           `)
           .in('vehicle_id', vehicleIds);
         
-        if (error) {
-          console.error("Error fetching agreements by vehicle ID:", error);
-          throw new Error(`Failed to fetch agreements: ${error.message}`);
+        if (agreementError) {
+          console.error("Error fetching agreements by vehicle ID:", agreementError);
+          throw new Error(`Failed to fetch agreements: ${agreementError.message}`);
         }
         
-        if (!data || data.length === 0) {
+        if (!agreementData || agreementData.length === 0) {
           console.log("No agreements found for the matching vehicles");
           return [];
         }
         
-        return data.map(item => {
-          const mappedStatus = mapDBStatusToEnum(item.status);
-          
-          return {
-            id: item.id,
-            customer_id: item.customer_id,
-            vehicle_id: item.vehicle_id,
-            start_date: item.start_date,
-            end_date: item.end_date,
-            status: mappedStatus,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            total_amount: item.total_amount || 0,
-            deposit_amount: item.deposit_amount || 0,
-            rent_amount: item.rent_amount || 0,
-            daily_late_fee: item.daily_late_fee || 120.0,
-            agreement_number: item.agreement_number || '',
-            notes: item.notes || '',
-            customers: item.profiles,
-            vehicles: item.vehicles,
-            signature_url: item.signature_url
-          };
-        });
+        return agreementData.map(item => ({
+          id: item.id,
+          customer_id: item.customer_id,
+          vehicle_id: item.vehicle_id,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          status: mapDBStatusToEnum(item.status),
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          total_amount: item.total_amount || 0,
+          deposit_amount: item.deposit_amount || 0,
+          rent_amount: item.rent_amount || 0,
+          daily_late_fee: item.daily_late_fee || 120.0,
+          agreement_number: item.agreement_number || '',
+          notes: item.notes || '',
+          customers: item.profiles,
+          vehicles: item.vehicles,
+          signature_url: item.signature_url
+        }));
       }
       
       let query = supabase
