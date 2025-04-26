@@ -36,6 +36,7 @@ import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/loader";
 import { VehicleSearchCommandPalette } from "@/components/ui/vehicle-search-command-palette";
+import { CustomerSearchCommandPalette } from "@/components/ui/customer-search-command-palette";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -77,6 +78,7 @@ const AgreementFormWithVehicleCheck = ({
   const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
   const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
   const [isVehicleSearchOpen, setIsVehicleSearchOpen] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
 
   const generateAgreementNumber = () => {
     const prefix = "AGR";
@@ -499,27 +501,32 @@ const AgreementFormWithVehicleCheck = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Customer</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleCustomerChange(value);
-                      }} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        onClick={() => setIsCustomerSearchOpen(true)}
+                      >
+                        {selectedCustomer ? (
+                          <>
+                            {selectedCustomer.full_name} ({selectedCustomer.email})
+                          </>
+                        ) : (
+                          "Search for a customer..."
+                        )}
+                      </Button>
+                      <CustomerSearchCommandPalette
+                        isOpen={isCustomerSearchOpen}
+                        onClose={() => setIsCustomerSearchOpen(false)}
+                        customers={customers}
+                        onCustomerSelect={(customer) => {
+                          field.onChange(customer.id);
+                          handleCustomerChange(customer.id);
+                        }}
+                      />
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
