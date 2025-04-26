@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
@@ -54,6 +53,14 @@ export function asTrafficFineId(id: string): string {
  */
 export function asCustomerId(id: string): string {
   return asTableId('profiles', id);
+}
+
+/**
+ * Helper for lease ID column conversion
+ * Used to convert ID strings to a format accepted by Supabase for lease-related queries
+ */
+export function asLeaseIdColumn(id: string): string {
+  return asTableId('leases', id);
 }
 
 /**
