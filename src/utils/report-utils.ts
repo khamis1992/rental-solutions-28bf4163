@@ -1,8 +1,6 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 
-// Interface for payment history row
 interface PaymentHistoryRow {
   description: string;
   amount: number;
@@ -25,10 +23,8 @@ export const generateStandardReport = (
   dateRange: { from: Date | undefined; to: Date | undefined } = { from: undefined, to: undefined },
   contentRenderer: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
-  // Initialize PDF document
   const doc = new jsPDF();
   
-  // Set document properties
   doc.setProperties({
     title: title,
     subject: 'Report',
@@ -36,15 +32,12 @@ export const generateStandardReport = (
     creator: 'Alaraf Car Rental System'
   });
   
-  // Set fonts and styling
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.setTextColor(44, 62, 80); // Dark blue text
+  doc.setTextColor(44, 62, 80);
   
-  // Add title
   doc.text(title.toUpperCase(), doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
   
-  // Add date range if provided
   let dateText = `Generated on: ${format(new Date(), 'dd/MM/yyyy')}`;
   if (dateRange.from && dateRange.to) {
     dateText = `Period: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`;
@@ -56,22 +49,18 @@ export const generateStandardReport = (
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100); // Gray text
+  doc.setTextColor(100, 100, 100);
   doc.text(dateText, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
   
-  // Add company logo or watermark
   doc.setFontSize(8);
-  doc.setTextColor(180, 180, 180); // Light gray text
+  doc.setTextColor(180, 180, 180);
   doc.text('ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, 10, { align: 'center' });
   
-  // Add horizontal line
   doc.setDrawColor(220, 220, 220);
   doc.line(20, 35, doc.internal.pageSize.getWidth() - 20, 35);
   
-  // Let the content renderer render the actual report content
   const endY = contentRenderer(doc, 45);
   
-  // Add footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -86,158 +75,147 @@ export const generateStandardReport = (
 
 export const generatePaymentHistoryPdf = (
   payments: PaymentHistoryRow[],
-  title: string = "Payment History",
+  title: string = "Invoice",
   dateRange: { from: Date | undefined; to: Date | undefined } = { from: undefined, to: undefined }
 ): jsPDF => {
-  // Create document directly in landscape orientation
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm'
   });
   
-  // Set document properties
   doc.setProperties({
     title: title,
-    subject: 'Report',
+    subject: 'Invoice',
     author: 'Alaraf Car Rental',
     creator: 'Alaraf Car Rental System'
   });
   
-  // Set fonts and styling
+  doc.setFontSize(24);
+  doc.setTextColor(44, 62, 80);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(44, 62, 80); // Dark blue text
-  
-  // Add title
-  doc.text(title.toUpperCase(), doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
-  
-  // Add date range if provided
-  let dateText = `Generated on: ${format(new Date(), 'dd/MM/yyyy')}`;
-  if (dateRange.from && dateRange.to) {
-    dateText = `Period: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`;
-  } else if (dateRange.from) {
-    dateText = `From: ${format(dateRange.from, 'dd/MM/yyyy')}`;
-  } else if (dateRange.to) {
-    dateText = `To: ${format(dateRange.to, 'dd/MM/yyyy')}`;
-  }
+  doc.text('ALARAF CAR RENTAL', 20, 20);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100); // Gray text
-  doc.text(dateText, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+  doc.setTextColor(100, 100, 100);
+  doc.text([
+    'P.O. Box 12345, Doha, Qatar',
+    'Tel: +974 4444 5555',
+    'Email: info@alarafcarrental.com',
+    'Website: www.alarafcarrental.com'
+  ], 20, 30);
   
-  // Add company logo or watermark
-  doc.setFontSize(8);
-  doc.setTextColor(180, 180, 180); // Light gray text
-  doc.text('ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, 10, { align: 'center' });
+  doc.setTextColor(44, 62, 80);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INVOICE', doc.internal.pageSize.getWidth() - 60, 20);
   
-  // Add horizontal line
+  const today = format(new Date(), 'dd/MM/yyyy');
+  doc.setFont('helvetica', 'normal');
+  doc.text([
+    `Date: ${today}`,
+    `Invoice #: INV-${Math.floor(Math.random() * 10000)}`,
+    `Due Date: ${format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'dd/MM/yyyy')}`
+  ], doc.internal.pageSize.getWidth() - 60, 30);
+  
   doc.setDrawColor(220, 220, 220);
-  doc.line(20, 35, doc.internal.pageSize.getWidth() - 20, 35);
+  doc.line(20, 50, doc.internal.pageSize.getWidth() - 20, 50);
   
-  // Start rendering content
-  let startY = 45;
-  
-  // Set document styles
-  doc.setFillColor(247, 250, 252); // Light blue-gray background
-  doc.setTextColor(44, 62, 80); // Dark blue text
-  doc.setFontSize(10);
-  
-  // Calculate totals for summary
   const totals = payments.reduce((acc, payment) => ({
     total: acc.total + payment.total,
     lateFees: acc.lateFees + payment.lateFee,
     baseAmount: acc.baseAmount + payment.amount
   }), { total: 0, lateFees: 0, baseAmount: 0 });
-
-  // Add summary section with adjusted positioning for landscape
-  doc.setFillColor(236, 239, 241); // Lighter gray for summary
-  doc.roundedRect(14, startY, doc.internal.pageSize.getWidth() - 28, 30, 2, 2, 'F');
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
   
-  const summaryY = startY + 10;
-  doc.text("Total Amount:", 20, summaryY);
-  doc.text(`QAR ${totals.total.toLocaleString()}`, 100, summaryY);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('BILLING SUMMARY', 20, 65);
   
-  doc.text("Base Amount:", 180, summaryY);
-  doc.text(`QAR ${totals.baseAmount.toLocaleString()}`, 260, summaryY);
+  const summaryY = 75;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text([
+    'Base Amount:',
+    'Late Fees:',
+    'Total Amount Due:'
+  ], 20, summaryY);
   
-  doc.text("Late Fees:", 20, summaryY + 12);
-  doc.text(`QAR ${totals.lateFees.toLocaleString()}`, 100, summaryY + 12);
-
-  // Table header with adjusted column widths for landscape
-  const tableStartY = startY + 45;
-  const headers = ["Description", "Amount", "Payment Date", "Late Fee", "Total"];
-  const columnWidths = [120, 40, 40, 40, 40]; // Increased Description column width
-  doc.setFillColor(52, 73, 94); // Dark blue header
+  doc.setFont('helvetica', 'bold');
+  doc.text([
+    `QAR ${totals.baseAmount.toLocaleString()}`,
+    `QAR ${totals.lateFees.toLocaleString()}`,
+    `QAR ${totals.total.toLocaleString()}`
+  ], 80, summaryY);
   
-  let currentX = 14;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAYMENT DETAILS', 20, 100);
+  
+  const headers = ['Description', 'Due Date', 'Amount', 'Late Fee', 'Total'];
+  const columnWidths = [120, 35, 35, 35, 35];
+  let currentY = 110;
+  
+  doc.setFillColor(247, 250, 252);
+  doc.rect(20, currentY - 5, doc.internal.pageSize.getWidth() - 40, 10, 'F');
+  
+  doc.setTextColor(44, 62, 80);
+  doc.setFontSize(10);
+  let currentX = 20;
   headers.forEach((header, i) => {
-    // Header background
-    doc.setFillColor(52, 73, 94);
-    doc.roundedRect(currentX, tableStartY, columnWidths[i], 12, 1, 1, 'F');
-    
-    // Header text
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text(header, currentX + 2, tableStartY + 8);
+    doc.text(header, currentX, currentY);
     currentX += columnWidths[i];
   });
-
-  // Table rows
-  let currentY = tableStartY + 12;
-  doc.setTextColor(44, 62, 80);
-  doc.setFont("helvetica", "normal");
-
+  
+  currentY += 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  
   payments.forEach((payment, index) => {
     if (currentY > doc.internal.pageSize.getHeight() - 40) {
       doc.addPage();
       currentY = 20;
     }
-
-    // Alternate row background
-    if (index % 2 === 0) {
-      doc.setFillColor(247, 250, 252);
-      doc.rect(14, currentY, doc.internal.pageSize.getWidth() - 28, 10, 'F');
+    
+    if (index % 2 === 1) {
+      doc.setFillColor(252, 252, 252);
+      doc.rect(20, currentY - 5, doc.internal.pageSize.getWidth() - 40, 10, 'F');
     }
-
-    currentX = 14;
+    
+    currentX = 20;
     const row = [
       payment.description,
+      payment.dueDate || '-',
       `QAR ${payment.amount.toLocaleString()}`,
-      payment.paymentDate || 'Pending',
       payment.lateFee > 0 ? `QAR ${payment.lateFee.toLocaleString()}` : '-',
       `QAR ${payment.total.toLocaleString()}`
     ];
-
+    
     row.forEach((cell, i) => {
-      const textColor = i === 3 && payment.lateFee > 0 ? '#e74c3c' : '#2c3e50';
-      doc.setTextColor(textColor);
-      doc.text(cell, currentX + 2, currentY + 7);
+      doc.text(cell, currentX, currentY);
       currentX += columnWidths[i];
     });
-
-    // Add subtle line between rows
-    doc.setDrawColor(236, 239, 241);
-    doc.line(14, currentY + 10, doc.internal.pageSize.getWidth() - 14, currentY + 10);
-
+    
     currentY += 10;
   });
-
-  // Add footer note
-  const footerY = currentY + 15;
-  doc.setFontSize(9);
-  doc.setTextColor(127, 140, 141);
-  doc.text("* All amounts are in QAR (Qatari Riyal)", 14, footerY);
   
-  // Add footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    const pageText = `Page ${i} of ${pageCount}`;
+    doc.text(pageText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    
+    if (i === pageCount) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Payment Terms:', 20, doc.internal.pageSize.getHeight() - 30);
+      doc.setFont('helvetica', 'normal');
+      doc.text([
+        '1. Payment is due within 30 days of invoice date',
+        '2. Please include invoice number in payment reference',
+        '3. Late payments are subject to additional fees'
+      ], 20, doc.internal.pageSize.getHeight() - 25);
+    }
+    
     doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
   }
   
