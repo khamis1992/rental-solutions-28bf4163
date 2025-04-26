@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { castDbId } from '@/utils/supabase-type-helpers';
 
 interface PaymentDetails {
   rentAmount: number;
@@ -27,22 +28,36 @@ export function usePaymentDetails(carNumber: string) {
       setError(null);
 
       try {
+        console.log("Fetching payment details for car number:", carNumber);
+        
         // Get active lease for the vehicle
         const { data: lease, error: leaseError } = await supabase
           .from('leases')
           .select(`
-            *,
+            id,
+            agreement_number,
+            rent_amount,
+            rent_due_day,
+            daily_late_fee,
+            status,
             vehicles!inner(license_plate)
           `)
           .eq('vehicles.license_plate', carNumber)
           .eq('status', 'active')
           .single();
 
-        if (leaseError) throw leaseError;
+        if (leaseError) {
+          console.error("Lease error:", leaseError);
+          throw new Error(leaseError.message);
+        }
+        
         if (!lease) {
           setError('No active agreement found for this vehicle');
+          setIsLoading(false);
           return;
         }
+
+        console.log("Found lease:", lease);
 
         // Calculate late fee if applicable
         let lateFee = 0;

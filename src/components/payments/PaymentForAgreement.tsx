@@ -8,6 +8,7 @@ import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
 import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
+import { asLeaseIdColumn } from '@/utils/database-type-helpers';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
