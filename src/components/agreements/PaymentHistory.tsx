@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,7 +6,36 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Calendar, CalendarIcon, Plus, Trash2, FileText, Download, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
-import { useCallback } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatCurrency } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+import { asPaymentId } from '@/utils/type-casting';
+import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { Badge } from '@/components/ui/badge';
+import { PaymentEditDialog } from './PaymentEditDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { asPaymentId } from '@/utils/type-casting';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { Badge } from '@/components/ui/badge';
@@ -25,35 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-
-export interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string | null;
-  payment_method?: string;
-  reference_number?: string | null; 
-  notes?: string;
-  type?: string;
-  status?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  lease_id?: string;
-  original_due_date?: string | null;
-  amount_paid?: number;
-  balance?: number;
-  description?: string;
-  due_date?: string;
-}
-
-interface PaymentHistoryProps {
-  payments: Payment[];
-  isLoading?: boolean;
-  rentAmount?: number | null;
-  onPaymentDeleted: () => void;
-  leaseStartDate?: string | Date | null;
-  leaseEndDate?: string | Date | null;
-  onRecordPayment?: (payment: Partial<Payment>) => void;
-}
+import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
 export function PaymentHistory({
   payments = [],
@@ -62,10 +62,11 @@ export function PaymentHistory({
   onPaymentDeleted,
   leaseStartDate,
   leaseEndDate,
-  onRecordPayment
+  onPaymentUpdated,
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sortBy, setSortBy] = useState<{column: string, direction: 'asc' | 'desc'}>({
     column: 'due_date',
     direction: 'desc'
@@ -206,7 +207,6 @@ export function PaymentHistory({
     };
     
     onRecordPayment(payment);
-    setIsPaymentDialogOpen(false);
   }, [onRecordPayment]);
 
   const formatPaymentDate = (dateString: string | null) => {
@@ -233,6 +233,30 @@ export function PaymentHistory({
       return <Badge variant="outline" className="flex items-center gap-1">Pending</Badge>;
     }
     return <Badge variant="secondary" className="flex items-center gap-1">{status || 'Unknown'}</Badge>;
+  };
+
+  const handleEdit = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePaymentUpdate = async (updatedPayment: Partial<Payment>) => {
+    if (!selectedPayment) return;
+    
+    try {
+      if (onPaymentUpdated) {
+        await onPaymentUpdated({
+          ...updatedPayment,
+          id: selectedPayment.id
+        });
+        toast.success('Payment updated successfully');
+        setIsEditDialogOpen(false);
+        setSelectedPayment(null);
+      }
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      toast.error('Failed to update payment');
+    }
   };
 
   const columns = [
@@ -354,14 +378,23 @@ export function PaymentHistory({
       header: '',
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setExpandedRowId(expandedRowId === row.original.id ? null : row.original.id)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <FileText className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleEdit(row.original)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit payment</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button 
             variant="ghost" 
             size="sm"
@@ -569,6 +602,15 @@ export function PaymentHistory({
         title="Record Payment"
         description="Enter payment details to record a payment"
       />
+      
+      {selectedPayment && (
+        <PaymentEditDialog
+          payment={selectedPayment}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSaved={handlePaymentUpdate}
+        />
+      )}
     </Card>
   );
 }

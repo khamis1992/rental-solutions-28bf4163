@@ -151,6 +151,24 @@ export function AgreementDetail({
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
+    if (!agreement?.id) return;
+    
+    try {
+      await updatePayment({
+        id: updatedPayment.id!,
+        data: updatedPayment
+      });
+      onDataRefresh();
+      fetchPayments();
+      return true;
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      toast.error("Failed to update payment");
+      return false;
+    }
+  }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
+
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1;
@@ -355,13 +373,12 @@ export function AgreementDetail({
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
-        rentAmount={rentAmount} 
-        onPaymentDeleted={() => {
-          onPaymentDeleted();
-          fetchPayments();
-        }} 
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+        onPaymentDeleted={onPaymentDeleted}
+        onPaymentUpdated={handlePaymentUpdate}
         leaseStartDate={agreement.start_date} 
-        leaseEndDate={agreement.end_date} 
+        leaseEndDate={agreement.end_date}
       />}
 
       {agreement.start_date && agreement.end_date && (
