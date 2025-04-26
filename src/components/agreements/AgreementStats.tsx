@@ -5,6 +5,7 @@ import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { asTableId, asLeaseId } from '@/lib/database-helpers';
+import { hasData } from '@/utils/database-type-helpers';
 
 interface AgreementStats {
   totalAgreements: number;

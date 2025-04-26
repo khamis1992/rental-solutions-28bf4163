@@ -1,5 +1,6 @@
 
 import { Database } from '@/types/database.types';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
  * Converts an ID to a proper table ID format
@@ -53,4 +54,13 @@ export function asTrafficFineId(id: string): string {
  */
 export function asCustomerId(id: string): string {
   return asTableId('profiles', id);
+}
+
+/**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): response is { data: NonNullable<T>; error: null } {
+  return !response.error && response.data !== null;
 }

@@ -1,4 +1,6 @@
 
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
+
 /**
  * Helper function to handle lease ID column
  * Used to convert ID strings to a format accepted by Supabase
@@ -40,6 +42,15 @@ export const asTrafficFineIdColumn = (id: string): string => {
 };
 
 /**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): response is { data: NonNullable<T>; error: null } {
+  return !response.error && response.data !== null;
+}
+
+/**
  * Re-export functions from database-helpers for backward compatibility
  */
 export { 
@@ -50,4 +61,3 @@ export {
   asImportId,
   asCustomerId
 } from '@/lib/database-helpers';
-
