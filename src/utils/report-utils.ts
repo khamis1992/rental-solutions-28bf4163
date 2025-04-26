@@ -150,7 +150,7 @@ export const generatePaymentHistoryPdf = (
   doc.setFont('helvetica', 'bold');
   doc.text('PAYMENT DETAILS', 20, 100);
   
-  const headers = ['Description', 'Due Date', 'Amount', 'Late Fee', 'Total'];
+  const headers = ['Description', 'Payment Date', 'Amount', 'Late Fee', 'Total'];
   const columnWidths = [120, 35, 35, 35, 35];
   let currentY = 110;
   
@@ -183,7 +183,7 @@ export const generatePaymentHistoryPdf = (
     currentX = 20;
     const row = [
       payment.description,
-      payment.dueDate || '-',
+      payment.paymentDate || '-',
       `QAR ${payment.amount.toLocaleString()}`,
       payment.lateFee > 0 ? `QAR ${payment.lateFee.toLocaleString()}` : '-',
       `QAR ${payment.total.toLocaleString()}`
