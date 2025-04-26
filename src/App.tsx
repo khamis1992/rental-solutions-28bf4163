@@ -1,4 +1,5 @@
 
+import React from 'react'; // Ensure React is imported first
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -77,103 +78,101 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ProfileProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* Auth Routes */}
-                <Route path="auth" element={<AuthLayout />}>
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="forgot-password" element={<ForgotPassword />} />
-                  <Route path="reset-password" element={<ResetPassword />} />
-                </Route>
-                
-                {/* Protected Routes */}
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <>
-                        <Sidebar />
-                        <Routes>
-                          <Route path="/dashboard" element={<Dashboard />} />
-                          
-                          {/* Vehicle Management Routes */}
-                          <Route path="/vehicles" element={<Vehicles />} />
-                          <Route path="/vehicles/add" element={<AddVehicle />} />
-                          <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
-                          <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
-                          
-                          {/* Customer Management Routes */}
-                          <Route path="/customers" element={<Customers />} />
-                          <Route path="/customers/add" element={<AddCustomer />} />
-                          <Route path="/customers/:id" element={<CustomerDetailPage />} />
-                          <Route path="/customers/edit/:id" element={<EditCustomer />} />
-                          
-                          {/* Agreement Management Routes */}
-                          <Route path="/agreements" element={<Agreements />} />
-                          <Route path="/agreements/add" element={<AddAgreement />} />
-                          <Route path="/agreements/edit/:id" element={<EditAgreement />} />
-                          <Route path="/agreements/:id" element={<AgreementDetailPage />} />
-                          
-                          {/* Maintenance Management Routes */}
-                          <Route path="/maintenance" element={<Maintenance />} />
-                          <Route path="/maintenance/add" element={<AddMaintenance />} />
-                          <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-                          <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
-                          
-                          {/* Legal Management Routes */}
-                          <Route path="/legal" element={<Legal />} />
-                          <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
-                          
-                          {/* Traffic Fines Management Route */}
-                          <Route path="/fines" element={<TrafficFines />} />
-                          
-                          {/* Financials Management Route */}
-                          <Route path="/financials" element={<Financials />} />
-                          
-                          {/* Reports Routes */}
-                          <Route path="/reports" element={<Reports />} />
-                          <Route path="/reports/scheduled" element={<ScheduledReports />} />
-                          
-                          {/* System Settings Route */}
-                          <Route path="/settings/system" element={<SystemSettings />} />
-                          
-                          {/* User Management Routes */}
-                          <Route path="/settings" element={<UserSettings />} />
-                          <Route 
-                            path="/user-management" 
-                            element={
-                              <ProtectedRoute roles={["admin"]}>
-                                <UserManagement />
-                              </ProtectedRoute>
-                            } 
-                          />
-                          
-                          {/* Unauthorized Route */}
-                          <Route path="/unauthorized" element={<NotFound />} />
-                          
-                          {/* Catch-all route for 404 */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </>
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </TooltipProvider>
-          </ProfileProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <ProfileProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              
+              {/* Auth Routes */}
+              <Route path="auth" element={<AuthLayout />}>
+                <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
+              </Route>
+              
+              {/* Protected Routes */}
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Sidebar />
+                      <Routes>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        
+                        {/* Vehicle Management Routes */}
+                        <Route path="/vehicles" element={<Vehicles />} />
+                        <Route path="/vehicles/add" element={<AddVehicle />} />
+                        <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+                        <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                        
+                        {/* Customer Management Routes */}
+                        <Route path="/customers" element={<Customers />} />
+                        <Route path="/customers/add" element={<AddCustomer />} />
+                        <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                        <Route path="/customers/edit/:id" element={<EditCustomer />} />
+                        
+                        {/* Agreement Management Routes */}
+                        <Route path="/agreements" element={<Agreements />} />
+                        <Route path="/agreements/add" element={<AddAgreement />} />
+                        <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                        <Route path="/agreements/:id" element={<AgreementDetailPage />} />
+                        
+                        {/* Maintenance Management Routes */}
+                        <Route path="/maintenance" element={<Maintenance />} />
+                        <Route path="/maintenance/add" element={<AddMaintenance />} />
+                        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
+                        <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+                        
+                        {/* Legal Management Routes */}
+                        <Route path="/legal" element={<Legal />} />
+                        <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
+                        
+                        {/* Traffic Fines Management Route */}
+                        <Route path="/fines" element={<TrafficFines />} />
+                        
+                        {/* Financials Management Route */}
+                        <Route path="/financials" element={<Financials />} />
+                        
+                        {/* Reports Routes */}
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/reports/scheduled" element={<ScheduledReports />} />
+                        
+                        {/* System Settings Route */}
+                        <Route path="/settings/system" element={<SystemSettings />} />
+                        
+                        {/* User Management Routes */}
+                        <Route path="/settings" element={<UserSettings />} />
+                        <Route 
+                          path="/user-management" 
+                          element={
+                            <ProtectedRoute roles={["admin"]}>
+                              <UserManagement />
+                            </ProtectedRoute>
+                          } 
+                        />
+                        
+                        {/* Unauthorized Route */}
+                        <Route path="/unauthorized" element={<NotFound />} />
+                        
+                        {/* Catch-all route for 404 */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </TooltipProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
