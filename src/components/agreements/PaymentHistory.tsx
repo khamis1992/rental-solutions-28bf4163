@@ -15,7 +15,8 @@ import { toast } from 'sonner';
 import { PaymentEditDialog } from './PaymentEditDialog';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
-import { asTableId } from '@/lib/database-helpers';
+import { asTableId, asLeaseId } from '@/lib/database-helpers';
+import { formatDate } from '@/lib/date-utils';
 import type { PaymentHistoryProps, Payment } from './PaymentHistory.types';
 
 export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
@@ -31,20 +32,29 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) =
       setError(null);
       try {
         if (!agreementId) {
+          console.log('No agreement ID provided');
           setPayments([]);
           setIsLoading(false);
           return;
         }
         
+        console.log('Fetching payments for agreement:', agreementId);
+        
         const { data, error } = await supabase
           .from('unified_payments')
           .select('*')
-          .eq('lease_id', agreementId)
+          .eq('lease_id', asLeaseId(agreementId))
           .order('payment_date', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching payments:', error);
+          throw error;
+        }
+        
+        console.log('Fetched payments:', data);
         setPayments(data || []);
       } catch (error) {
+        console.error('Error in fetchPayments:', error);
         setError(error instanceof Error ? error : new Error('Unknown error'));
         toast.error("Failed to fetch payments");
       } finally {
@@ -72,7 +82,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) =
     }
   };
 
-  const handleEdit = (payment) => {
+  const handleEdit = (payment: Payment) => {
     setEditPayment(payment);
     setIsEditDialogOpen(true);
   };
@@ -88,13 +98,14 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) =
     supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId)
+      .eq('lease_id', asLeaseId(agreementId))
       .order('payment_date', { ascending: false })
       .then(({ data, error }) => {
         if (error) {
           console.error("Error fetching payments:", error);
           toast.error("Failed to refresh payments");
         } else {
+          console.log('Updated payments:', data);
           setPayments(data || []);
         }
       });
@@ -128,10 +139,12 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) =
         <TableBody>
           {payments.map((payment) => (
             <TableRow key={payment.id}>
-              <TableCell>{format(new Date(payment.payment_date), 'MMM dd, yyyy')}</TableCell>
+              <TableCell>
+                {payment.payment_date ? formatDate(payment.payment_date) : 'N/A'}
+              </TableCell>
               <TableCell>{formatCurrency(payment.amount)}</TableCell>
-              <TableCell>{payment.payment_method}</TableCell>
-              <TableCell>{payment.transaction_id}</TableCell>
+              <TableCell>{payment.payment_method || 'N/A'}</TableCell>
+              <TableCell>{payment.transaction_id || 'N/A'}</TableCell>
               <TableCell>{payment.status}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="sm" onClick={() => handleEdit(payment)}>
