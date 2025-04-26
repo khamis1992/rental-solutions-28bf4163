@@ -173,9 +173,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
         query = query.or(`
+          vehicles.license_plate.ilike.%${searchQuery}%,
+          vehicles.license_plate.eq.${searchQuery},
           agreement_number.ilike.%${searchQuery}%,
           profiles.full_name.ilike.%${searchQuery}%,
-          vehicles.license_plate.ilike.%${searchQuery}%,
           vehicles.make.ilike.%${searchQuery}%,
           vehicles.model.ilike.%${searchQuery}%
         `);

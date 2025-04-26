@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -56,7 +55,6 @@ const Agreements = () => {
     checkAvailability();
   }, []);
   
-  // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
@@ -68,7 +66,6 @@ const Agreements = () => {
       }
     };
     
-    // Run after a 3-second delay to allow other initial page operations to complete
     const timer = setTimeout(() => {
       runMaintenanceJob();
     }, 3000);
@@ -100,7 +97,6 @@ const Agreements = () => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
 
-  // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
@@ -109,18 +105,16 @@ const Agreements = () => {
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
     >
-      {/* Stats Overview */}
       <div className="mb-6">
         <AgreementStats />
       </div>
 
-      {/* Search and Action Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex flex-grow max-w-md relative">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search agreements, customers, or vehicles..." 
+              placeholder="Search by vehicle number (e.g., ABC123)..." 
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyPress={handleKeyPress}
@@ -167,7 +161,6 @@ const Agreements = () => {
         </div>
       </div>
 
-      {/* Active Filters */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {activeFilters.map(([key, value]) => (
@@ -205,14 +198,12 @@ const Agreements = () => {
         </div>
       )}
 
-      {/* Filter Panel */}
       {showFilters && (
         <Card className="mb-6 p-4">
           <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
         </Card>
       )}
       
-      {/* Main Content */}
       <Suspense fallback={
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
