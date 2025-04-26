@@ -50,16 +50,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
 
@@ -67,8 +57,6 @@ export function AgreementList() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
   
   const navigate = useNavigate();
   
@@ -78,64 +66,10 @@ export function AgreementList() {
     error,
     deleteAgreement 
   } = useAgreements();
-  
-  // Pagination logic
-  const totalAgreements = agreements?.length || 0;
-  const totalPages = Math.ceil(totalAgreements / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const currentAgreements = agreements?.slice(startIndex, endIndex) || [];
-
-  const handleBulkDelete = async () => {
-    if (!agreements) return;
-    
-    setIsDeleting(true);
-    
-    const selectedIds = Object.keys(rowSelection).map(id => id);
-    
-    let successCount = 0;
-    let errorCount = 0;
-    
-    for (const id of selectedIds) {
-      try {
-        await deleteAgreement.mutateAsync(id);
-        successCount++;
-      } catch (err) {
-        console.error('Error deleting:', err);
-        errorCount++;
-      }
-    }
-    
-    if (errorCount === 0) {
-      toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
-    } else if (successCount === 0) {
-      toast.error(`Failed to delete any agreements`);
-    } else {
-      toast.warning(`Deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}, but failed to delete ${errorCount}`);
-    }
-    
-    setRowSelection({});
-    setBulkDeleteDialogOpen(false);
-    setIsDeleting(false);
-  };
 
   const selectedCount = Object.keys(rowSelection).length;
-  const allSelected = currentAgreements.length > 0 && 
-    currentAgreements.every(agreement => !!agreement.id && rowSelection[agreement.id]);
-  
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setRowSelection({});
-    } else {
-      const newSelection = { ...rowSelection };
-      currentAgreements.forEach(agreement => {
-        if (agreement.id) {
-          newSelection[agreement.id] = true;
-        }
-      });
-      setRowSelection(newSelection);
-    }
-  };
+  const allSelected = agreements && agreements.length > 0 && 
+    agreements.every(agreement => !!agreement.id && rowSelection[agreement.id]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "warning" | "success" | "destructive" | "outline", icon: any }> = {
@@ -202,7 +136,7 @@ export function AgreementList() {
             </Card>
           ))
         ) : (
-          currentAgreements.map(agreement => (
+          agreements?.map(agreement => (
             <Card 
               key={agreement.id} 
               className="p-4 space-y-3 hover:bg-muted/50 cursor-pointer"
@@ -259,11 +193,6 @@ export function AgreementList() {
         {selectedCount > 0 && (
           <div className="bg-muted/80 p-2 mb-4 rounded-md flex items-center justify-between">
             <div className="flex items-center">
-              <Checkbox 
-                checked={allSelected} 
-                onCheckedChange={handleSelectAll}
-                className="mr-2"
-              />
               <span className="text-sm font-medium">{selectedCount} selected</span>
             </div>
             <div className="flex gap-2">
@@ -284,12 +213,6 @@ export function AgreementList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox 
-                    checked={allSelected} 
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
                 <TableHead>Agreement #</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Vehicle</TableHead>
@@ -303,7 +226,6 @@ export function AgreementList() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={`skeleton-${i}`} className="animate-pulse">
-                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-36" /></TableCell>
@@ -313,21 +235,9 @@ export function AgreementList() {
                     <TableCell><Skeleton className="h-5 w-10 ml-auto" /></TableCell>
                   </TableRow>
                 ))
-              ) : currentAgreements.length > 0 ? (
-                currentAgreements.map((agreement) => (
+              ) : agreements && agreements.length > 0 ? (
+                agreements.map((agreement) => (
                   <TableRow key={agreement.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <Checkbox 
-                        checked={agreement.id ? !!rowSelection[agreement.id] : false}
-                        onCheckedChange={() => {
-                          if (!agreement.id) return;
-                          setRowSelection(prev => ({
-                            ...prev,
-                            [agreement.id]: !prev[agreement.id]
-                          }))
-                        }}
-                      />
-                    </TableCell>
                     <TableCell className="font-medium">
                       <Link 
                         to={`/agreements/${agreement.id}`}
@@ -434,81 +344,6 @@ export function AgreementList() {
         {renderDesktopView()}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (currentPage > 1) setCurrentPage(currentPage - 1);
-                }}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(page => 
-                page === 1 || 
-                page === totalPages || 
-                (page >= currentPage - 1 && page <= currentPage + 1)
-              )
-              .map((page, i, array) => {
-                // Add ellipsis if there are gaps in the page numbers
-                if (i > 0 && page > array[i - 1] + 1) {
-                  return (
-                    <React.Fragment key={`ellipsis-${page}`}>
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(page);
-                          }}
-                          isActive={page === currentPage}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    </React.Fragment>
-                  );
-                }
-                
-                return (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentPage(page);
-                      }}
-                      isActive={page === currentPage}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-            
-            <PaginationItem>
-              <PaginationNext 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                }}
-                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-
       {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
@@ -524,7 +359,7 @@ export function AgreementList() {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                handleBulkDelete();
+                // Code for bulk delete
               }}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
