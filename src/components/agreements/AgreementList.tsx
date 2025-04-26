@@ -1,26 +1,7 @@
-import { asTableId, asTableStatus } from '@/utils/type-casting';
+import { asTableId } from '@/utils/type-casting';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { castDbId } from '@/lib/supabase-types';
-import { 
-  asAgreementIdColumn, 
-  asLeaseIdColumn, 
-  asImportIdColumn,
-  asTrafficFineIdColumn 
-} from '@/utils/database-type-helpers';
-import { 
-  ColumnDef, 
-  flexRender, 
-  getCoreRowModel, 
-  useReactTable, 
-  SortingState,
-  getSortedRowModel,
-  getPaginationRowModel,
-  ColumnFiltersState,
-  getFilteredRowModel,
-  RowSelectionState
-} from "@tanstack/react-table";
 import { 
   MoreHorizontal, 
   FileText, 
@@ -57,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVehicles } from '@/hooks/use-vehicles';
-import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -84,11 +65,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateAgreementReport } from '@/utils/agreement-report-utils';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
 import { jsPDF } from 'jspdf';
 
-// Type-safe fetch functions
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
@@ -323,9 +301,19 @@ export const AgreementList = () => {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const handleGenerateReport = async (agreement: Agreement) => {
+  const handleGenerateReport = async (agreement: any) => {
     try {
       toast.info(`Generating report for agreement ${agreement.agreement_number}`);
+      setIsGeneratingReport(true);
+      
+      const agreementForReport: Agreement = {
+        ...agreement,
+        start_date: new Date(agreement.start_date),
+        end_date: new Date(agreement.end_date),
+        id: agreement.id,
+        status: agreement.status,
+        agreement_number: agreement.agreement_number || ''
+      };
       
       const { data: payments } = await supabase
         .from('unified_payments')
@@ -333,7 +321,7 @@ export const AgreementList = () => {
         .eq('lease_id', asTableId('unified_payments', agreement.id));
       
       const doc = generateAgreementReport(
-        agreement, 
+        agreementForReport, 
         agreement.rent_amount || 0, 
         agreement.total_amount || 0,
         payments || []
@@ -345,6 +333,8 @@ export const AgreementList = () => {
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error('Failed to generate agreement report');
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -406,21 +396,25 @@ export const AgreementList = () => {
           .select('*')
           .eq('lease_id', asTableId('unified_payments', agreementId));
         
-        // Create a separate report for this agreement
+        const agreementForReport: Agreement = {
+          ...agreement,
+          start_date: new Date(agreement.start_date),
+          end_date: new Date(agreement.end_date),
+          id: agreement.id,
+          status: agreement.status,
+          agreement_number: agreement.agreement_number || ''
+        };
+        
         const doc = generateAgreementReport(
-          agreement, 
+          agreementForReport, 
           agreement.rent_amount || 0, 
           agreement.total_amount || 0,
           payments || []
         );
         
-        // Convert the report to a string representation
         const pdfBytes = doc.output('arraybuffer');
-        
-        // Create a new Uint8Array from the ArrayBuffer
         const pdfUint8Array = new Uint8Array(pdfBytes);
         
-        // Add the report to the merged PDF
         mergedPdf.addPage();
         mergedPdf.addImage(pdfUint8Array, 'PDF', 0, 0, mergedPdf.internal.pageSize.getWidth(), mergedPdf.internal.pageSize.getHeight());
         

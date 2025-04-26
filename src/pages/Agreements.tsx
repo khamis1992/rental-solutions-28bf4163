@@ -10,6 +10,9 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { SystemReportDialog, ReportOptions } from '@/components/agreements/SystemReportDialog';
+import { generateSystemReport } from '@/utils/system-report-utils';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search, FileText
 } from 'lucide-react';
@@ -18,12 +21,15 @@ import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { asTableId } from '@/utils/type-casting';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { setSearchParams, searchParams } = useAgreements();
+  const [isSystemReportOpen, setIsSystemReportOpen] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const { agreements, setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
   
   React.useEffect(() => {
@@ -99,6 +105,67 @@ const Agreements = () => {
   const handleFilterChange = (filters: Record<string, any>) => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
+  
+  const handleGenerateSystemReport = async (options: ReportOptions) => {
+    if (!agreements || agreements.length === 0) {
+      toast.error("No agreements available to generate report");
+      return;
+    }
+
+    try {
+      setIsGeneratingReport(true);
+      toast.info("Generating system-wide agreement report...");
+      
+      // Filter agreements by status if specified
+      const filteredAgreements = options.statusFilter.length > 0 
+        ? agreements.filter(a => options.statusFilter.includes(a.status))
+        : agreements;
+        
+      if (filteredAgreements.length === 0) {
+        toast.warning("No agreements match the selected filters");
+        setIsGeneratingReport(false);
+        return;
+      }
+      
+      // Fetch all payments for the filtered agreements
+      const agreementIds = filteredAgreements.map(a => a.id);
+      
+      // Get all payments for these agreements
+      const { data: payments, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .in('lease_id', agreementIds.map(id => asTableId('unified_payments', id)));
+      
+      if (paymentsError) {
+        console.error("Error fetching payments:", paymentsError);
+        toast.error("Error fetching payment data for report");
+        setIsGeneratingReport(false);
+        return;
+      }
+      
+      // Generate the report
+      const doc = await generateSystemReport(
+        filteredAgreements,
+        payments || [],
+        { 
+          dateRange: options.dateRange,
+          statusFilter: options.statusFilter.join(',')
+        }
+      );
+      
+      // Save the PDF
+      const filename = `rental-agreements-system-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(filename);
+      
+      toast.success("System report generated successfully");
+      setIsSystemReportOpen(false);
+    } catch (error) {
+      console.error("Error generating system report:", error);
+      toast.error("Failed to generate system report: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
@@ -148,8 +215,16 @@ const Agreements = () => {
         <div className="flex items-center gap-2 w-full md:w-auto">
           <Button 
             variant="outline" 
+            onClick={() => setIsSystemReportOpen(true)}
+            className="flex items-center gap-1"
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            System Report
+          </Button>
+          <Button 
+            variant="outline" 
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1"
             disabled={!isEdgeFunctionAvailable}
           >
             {!isEdgeFunctionAvailable && (
@@ -232,10 +307,18 @@ const Agreements = () => {
         <ImportHistoryList />
       </div>
       
+      {/* Modals */}
       <CSVImportModal 
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
         onImportComplete={handleImportComplete}
+      />
+      
+      <SystemReportDialog
+        open={isSystemReportOpen}
+        onOpenChange={setIsSystemReportOpen}
+        onGenerate={handleGenerateSystemReport}
+        isGenerating={isGeneratingReport}
       />
     </PageContainer>
   );
