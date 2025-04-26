@@ -134,6 +134,71 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
+      if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
+        const searchQuery = searchParams.query.trim();
+        
+        const { data: vehicleMatches, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('id')
+          .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
+        
+        if (vehicleError) {
+          console.error("Error finding vehicles:", vehicleError);
+          throw new Error(`Failed to search vehicles: ${vehicleError.message}`);
+        }
+        
+        if (!vehicleMatches || vehicleMatches.length === 0) {
+          console.log("No vehicles found with license plate:", searchQuery);
+          return [];
+        }
+        
+        const vehicleIds = vehicleMatches.map(v => v.id);
+        console.log(`Found ${vehicleIds.length} matching vehicles, fetching their agreements`);
+        
+        const { data, error } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            profiles:customer_id (id, full_name, email, phone_number),
+            vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
+          `)
+          .in('vehicle_id', vehicleIds);
+        
+        if (error) {
+          console.error("Error fetching agreements by vehicle ID:", error);
+          throw new Error(`Failed to fetch agreements: ${error.message}`);
+        }
+        
+        if (!data || data.length === 0) {
+          console.log("No agreements found for the matching vehicles");
+          return [];
+        }
+        
+        return data.map(item => {
+          const mappedStatus = mapDBStatusToEnum(item.status);
+          
+          return {
+            id: item.id,
+            customer_id: item.customer_id,
+            vehicle_id: item.vehicle_id,
+            start_date: item.start_date,
+            end_date: item.end_date,
+            status: mappedStatus,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            total_amount: item.total_amount || 0,
+            deposit_amount: item.deposit_amount || 0,
+            rent_amount: item.rent_amount || 0,
+            daily_late_fee: item.daily_late_fee || 120.0,
+            agreement_number: item.agreement_number || '',
+            notes: item.notes || '',
+            customers: item.profiles,
+            vehicles: item.vehicles,
+            signature_url: item.signature_url
+          };
+        });
+      }
+      
       let query = supabase
         .from('leases')
         .select(`
@@ -169,33 +234,17 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      if (searchParams.query) {
+      if (searchParams.query && !isLicensePlatePattern(searchParams.query)) {
         const searchQuery = searchParams.query.trim();
         
         if (searchQuery) {
-          if (isLicensePlatePattern(searchQuery)) {
-            const vehicleQuery = supabase
-              .from('vehicles')
-              .select('id')
-              .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
-            
-            const { data: vehicleIds, error: vehicleError } = await vehicleQuery;
-            
-            if (!vehicleError && vehicleIds && vehicleIds.length > 0) {
-              const vehicleIdArray = vehicleIds.map(v => v.id);
-              query = query.in('vehicle_id', vehicleIdArray);
-            } else {
-              return [];
-            }
-          } else {
-            query = query.or(`
-              agreement_number.eq.${searchQuery},
-              agreement_number.ilike.${searchQuery}%,
-              profiles.full_name.ilike.%${searchQuery}%,
-              vehicles.make.ilike.%${searchQuery}%,
-              vehicles.model.ilike.%${searchQuery}%
-            `);
-          }
+          query = query.or(`
+            agreement_number.eq.${searchQuery},
+            agreement_number.ilike.${searchQuery}%,
+            profiles.full_name.ilike.%${searchQuery}%,
+            vehicles.make.ilike.%${searchQuery}%,
+            vehicles.model.ilike.%${searchQuery}%
+          `);
         }
       }
 

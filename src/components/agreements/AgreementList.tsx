@@ -89,7 +89,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asTableId('overdue_payments', agreementId))
+      .eq('agreement_id', asLeaseIdColumn(agreementId))
       .single();
     
     if (error) {
@@ -107,7 +107,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asTableId('unified_payments', agreementId));
+      .eq('lease_id', asLeaseIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -124,7 +124,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', asTableId('agreement_import_reverts', importId));
+      .eq('import_id', asLeaseIdColumn(importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -141,7 +141,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asTableId('traffic_fines', agreementId));
+      .eq('agreement_id', asLeaseIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -158,7 +158,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', asLeaseIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
