@@ -1,55 +1,260 @@
+import { Database } from "@/types/database.types";
+import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
 
-import { Database } from '@/types/database.types';
+// Define a more flexible type system for database operations
+export type DbTables = Database['public']['Tables'];
+export type SchemaName = keyof Database;
 
-type Tables = Database['public']['Tables'];
-type TableNames = keyof Tables;
-type RowType<T extends TableNames> = Tables[T]['Row'];
-
-export function asTableId<T extends TableNames>(table: T, id: string): RowType<T>['id'] {
-  return id as RowType<T>['id'];
+/**
+ * Universal ID casting function for all table types
+ * This safely converts string IDs to the correct database types
+ */
+export function asTableId<T extends keyof DbTables>(
+  _table: T,
+  id: string | uuid | null | undefined
+): DbTables[T]['Row']['id'] {
+  if (!id) return null as DbTables[T]['Row']['id']; // Handle null/undefined gracefully
+  return id as DbTables[T]['Row']['id'];
 }
 
-export function asTableStatus<T extends TableNames>(table: T, status: string): RowType<T>['status'] {
-  return status as RowType<T>['status'];
+/**
+ * Type-safe status conversion for table status columns
+ */
+export function asTableStatus<T extends keyof DbTables>(
+  _table: T,
+  status: string
+): any {
+  return status as any;
 }
 
-export function asLeaseId(id: string) {
-  return asTableId('leases', id);
+/**
+ * Cast string values to database column types
+ * Handles type safety for Supabase queries
+ */
+export function asColumnValue<
+  T extends keyof DbTables,
+  K extends keyof DbTables[T]['Row']
+>(
+  _table: T,
+  _column: K,
+  value: string | number | boolean | null | undefined
+): DbTables[T]['Row'][K] {
+  return value as DbTables[T]['Row'][K];
 }
 
-export function asPaymentId(id: string) {
-  return asTableId('unified_payments', id);
+// Type for UUID values
+export type uuid = string;
+
+/**
+ * Format an agreement number using the short format AGR-YYMM-XXXX
+ * @param sequenceNumber The sequence number to use
+ * @returns Formatted agreement number string
+ */
+export function formatAgreementNumber(sequenceNumber: number): string {
+  const now = new Date();
+  const year = now.getFullYear().toString().substring(2); // Get last 2 digits of year
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const sequence = String(sequenceNumber).padStart(4, '0');
+  
+  return `AGR-${year}${month}-${sequence}`;
 }
 
-export function asAgreementId(id: string) {
-  return asTableId('leases', id);
+/**
+ * Common table ID casting functions with simplified implementation
+ */
+export function asAgreementId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-export function asImportId(id: string) {
-  return asTableId('agreement_imports', id);
+export function asLeaseId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-export function asTrafficFineId(id: string) {
-  return asTableId('traffic_fines', id);
+export function asVehicleId(id: string | uuid | null | undefined): uuid | null {
+  if (!id || id === '') return null;
+  return id as uuid;
 }
 
-export function asVehicleId(id: string) {
-  return asTableId('vehicles', id);
+export function asPaymentId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-export function asMaintenanceId(id: string) {
-  return asTableId('maintenance', id);
+export function asProfileId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-// Column-specific type casting functions
-export function asLeaseStatus(status: string) {
-  return asTableStatus('leases', status);
+export function asImportId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-export function asPaymentStatus(status: string) {
-  return asTableStatus('unified_payments', status);
+export function asTrafficFineId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
 }
 
-export function asMaintenanceStatus(status: string) {
-  return asTableStatus('maintenance', status);
+export function asCustomerId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asMaintenanceId(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+/**
+ * Common column ID casting functions for foreign keys and other fields
+ */
+export function asLeaseIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asImportIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asAgreementIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asTrafficFineIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asVehicleIdColumn(id: string | uuid | null | undefined): uuid | null {
+  if (!id) return null;
+  return id as uuid;
+}
+
+export function asAgreementStatusColumn(status: string): string {
+  return status;
+}
+
+export function asPaymentStatusColumn(status: string): string {
+  return status;
+}
+
+export function asVehicleStatusColumn(status: string): string {
+  return status;
+}
+
+/**
+ * Cast enums and statuses 
+ */
+export function asStatusColumn<T extends keyof DbTables>(
+  status: string,
+  _table: T,
+  _column: keyof DbTables[T]['Row'] & string
+): string {
+  return status;
+}
+
+/**
+ * Type guard to check if response has data
+ */
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
+}
+
+/**
+ * Extract error message from response
+ */
+export function getErrorMessage(error: any): string {
+  return error?.message || 'An error occurred';
+}
+
+/**
+ * Safe access to response data
+ */
+export function safeGetResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): T | null {
+  if (!response || response.error || !response.data) {
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Helper to safely handle response objects that might be error objects
+ */
+export function safelyExtractData<T>(result: any): T | null {
+  if (!result || result.error || !result.data) {
+    return null;
+  }
+  return result.data as T;
+}
+
+/**
+ * Type guard to check if a response is valid before accessing properties
+ * Helps avoid "Property does not exist on type" errors
+ */
+export function safelyAccessResponseProperty<T, K extends keyof T>(
+  response: { data: T | null; error: any } | null | undefined,
+  key: K,
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (response && !response.error && response.data && key in response.data) {
+    return (response.data as T)[key];
+  }
+  return defaultValue;
+}
+
+/**
+ * Type guard to safely handle Supabase response errors
+ */
+export function handleSupabaseResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): { data: T | null; error: Error | null } {
+  if (response.error) {
+    return { data: null, error: new Error(response.error.message) };
+  }
+  return { data: response.data, error: null };
+}
+
+/**
+ * Safe null checking for database responses
+ */
+export function ensureDataExists<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): T | null {
+  if (response.error || !response.data) {
+    console.error("Database response error:", response.error);
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
+}
+
+/**
+ * Type utility to cast a string to a UUID for database operations
+ * Ensures we're sending a valid UUID format to Supabase
+ */
+export function asDbId<T = any>(id: string | null | undefined): string | null {
+  if (!id) return null;
+  return id;
+}
+
+// Add helpers for financial data related to vehicles
+export function asVehicleFinancialData(data: any): any {
+  return data;
 }

@@ -1,26 +1,16 @@
-
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { asLeaseStatus, asPaymentStatus } from '@/utils/type-casting';
-
-interface AgreementStats {
-  totalAgreements: number;
-  activeAgreements: number;
-  pendingPayments: number;
-  overduePayments: number;
-  activeValue: number;
-}
+import { asTableStatus } from '@/utils/type-casting';
 
 export function AgreementStats() {
-  const [stats, setStats] = useState<AgreementStats>({
+  const [stats, setStats] = useState({
     totalAgreements: 0,
     activeAgreements: 0,
-    pendingPayments: 0,
+    pendingAgreements: 0,
+    avgRent: 0,
     overduePayments: 0,
-    activeValue: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,47 +19,64 @@ export function AgreementStats() {
       try {
         setIsLoading(true);
         
-        // Get total agreements count
-        const { count: totalCount } = await supabase
+        // Total agreements count
+        const { count: totalCount, error: totalError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true });
+          
+        if (totalError) throw totalError;
         
-        // Get active agreements count
-        const { count: activeCount } = await supabase
+        // Active agreements count
+        const { count: activeCount, error: activeError } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asLeaseStatus('active'));
+          .eq('status', asTableStatus('leases', 'active'));
           
-        // Get pending payments count
-        const { count: pendingPaymentsCount } = await supabase
-          .from('unified_payments')
+        if (activeError) throw activeError;
+        
+        // Pending agreements count
+        const { count: pendingCount, error: pendingError } = await supabase
+          .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asPaymentStatus('pending'));
+          .eq('status', asTableStatus('leases', 'pending'));
           
-        // Get overdue payments count
-        const { count: overduePaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .gt('days_overdue', 0);
-          
-        // Get active agreements total value
-        const { data: activeAgreements } = await supabase
+        if (pendingError) throw pendingError;
+        
+        // Average rent amount
+        const { data: rentData, error: rentError } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asLeaseStatus('active'));
+          .eq('status', asTableStatus('leases', 'active'));
           
-        const activeValue = (activeAgreements || []).reduce((sum, agreement) => 
-          sum + (agreement?.rent_amount || 0), 0);
+        if (rentError) throw rentError;
+        
+        let avgRent = 0;
+        if (rentData && rentData.length > 0) {
+          const sum = rentData.reduce((acc, lease) => {
+            const rentAmount = lease?.rent_amount || 0;
+            return acc + rentAmount;
+          }, 0);
+          avgRent = sum / rentData.length;
+        }
+        
+        // Overdue payments count
+        const { count: overdueCount, error: overdueError } = await supabase
+          .from('unified_payments')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', asTableStatus('unified_payments', 'pending'))
+          .gt('days_overdue', 0);
+          
+        if (overdueError) throw overdueError;
         
         setStats({
           totalAgreements: totalCount || 0,
           activeAgreements: activeCount || 0,
-          pendingPayments: pendingPaymentsCount || 0,
-          overduePayments: overduePaymentsCount || 0,
-          activeValue
+          pendingAgreements: pendingCount || 0,
+          avgRent,
+          overduePayments: overdueCount || 0,
         });
       } catch (error) {
-        console.error('Error fetching agreement stats:', error);
+        console.error('Error fetching stats:', error);
       } finally {
         setIsLoading(false);
       }
@@ -79,65 +86,68 @@ export function AgreementStats() {
   }, []);
   
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard 
-        title="Total Agreements"
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <StatsCard 
+        title="Total Agreements" 
         value={stats.totalAgreements}
-        icon={<FileText className="h-5 w-5 text-blue-500" />}
         isLoading={isLoading}
       />
-      <StatCard 
-        title="Active Agreements"
-        value={stats.activeAgreements}
-        subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
-        icon={<FileCheck className="h-5 w-5 text-green-500" />}
+      <StatsCard 
+        title="Active Rentals" 
+        value={stats.activeAgreements} 
+        description={`${Math.round((stats.activeAgreements / (stats.totalAgreements || 1)) * 100)}% of total`}
         isLoading={isLoading}
+        className="bg-gradient-to-br from-green-50 to-emerald-50 border-0"
       />
-      <StatCard 
-        title="Pending Payments"
-        value={stats.pendingPayments}
-        icon={<FileClock className="h-5 w-5 text-amber-500" />}
+      <StatsCard 
+        title="Average Monthly Rent" 
+        value={formatCurrency(stats.avgRent)}
         isLoading={isLoading}
+        className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0"
       />
-      <StatCard 
-        title="Overdue Payments"
+      <StatsCard 
+        title="Overdue Payments" 
         value={stats.overduePayments}
-        icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-        highlight={stats.overduePayments > 0}
+        description={stats.overduePayments > 0 ? "Requires attention" : "All payments up to date"}
         isLoading={isLoading}
+        className={stats.overduePayments > 0 ? "bg-gradient-to-br from-amber-50 to-orange-50 border-0" : "bg-gradient-to-br from-green-50 to-emerald-50 border-0"}
       />
     </div>
   );
 }
 
-interface StatCardProps {
+interface StatsCardProps {
   title: string;
-  value: number;
-  subtitle?: string;
-  icon: React.ReactNode;
+  value: number | string;
+  description?: string;
   isLoading?: boolean;
-  highlight?: boolean;
+  className?: string;
 }
 
-function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
+function StatsCard({ title, value, description, isLoading = false, className }: StatsCardProps) {
   return (
-    <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
-      <div className="flex justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">
           {isLoading ? (
-            <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1"></div>
+            <div className="h-8 w-24 bg-muted animate-pulse rounded"></div>
           ) : (
-            <h3 className={`text-2xl font-bold ${highlight ? 'text-red-600' : ''}`}>
-              {value}
-            </h3>
+            value
           )}
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         </div>
-        <div>
-          {icon}
-        </div>
-      </div>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {isLoading ? (
+              <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+            ) : (
+              description
+            )}
+          </p>
+        )}
+      </CardContent>
     </Card>
   );
 }

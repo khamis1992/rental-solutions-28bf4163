@@ -537,3 +537,49 @@ export function adaptSimpleToFullAgreement(simpleAgreement: any): Agreement {
     terms_accepted: !!simpleAgreement.terms_accepted,
   };
 }
+
+/**
+ * Generates a shorter agreement number in the format AGR-YYMM-XXXX
+ * @returns The generated agreement number
+ */
+export const generateShortAgreementNumber = () => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of year
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `AGR-${year}${month}-${randomNum}`;
+};
+
+/**
+ * Returns true if the provided string is a valid agreement number in the format AGR-YYMM-XXXX
+ * @param agreementNumber The agreement number to validate
+ */
+export const isValidAgreementNumber = (agreementNumber: string) => {
+  // AGR-YYMM-XXXX format (YY=year, MM=month, XXXX=sequence)
+  const regex = /^AGR-\d{4}-\d{4}$/;
+  return regex.test(agreementNumber);
+};
+
+/**
+ * Extracts the year and month from an agreement number
+ * @param agreementNumber Agreement number in format AGR-YYMM-XXXX
+ * @returns An object with year and month or null if invalid
+ */
+export const extractDateFromAgreementNumber = (agreementNumber: string) => {
+  if (!isValidAgreementNumber(agreementNumber)) {
+    return null;
+  }
+  
+  const matches = agreementNumber.match(/^AGR-(\d{2})(\d{2})-\d{4}$/);
+  
+  if (matches && matches.length === 3) {
+    const year = `20${matches[1]}`; // Assumes 21st century
+    const month = matches[2];
+    return { 
+      year: parseInt(year, 10),
+      month: parseInt(month, 10) - 1 // JavaScript months are 0-based
+    };
+  }
+  
+  return null;
+};
