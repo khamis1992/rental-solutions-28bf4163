@@ -15,10 +15,11 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-import { PaymentHistory, Payment } from '@/components/agreements/PaymentHistory';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { UUID, LeaseId } from '@/types/database-types';
+import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
+import { Payment } from './PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -48,12 +49,13 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
 
   const {
     payments = [],
     isLoading,
-    fetchPayments
+    fetchPayments,
+    updatePayment,
+    addPayment
   } = usePayments(agreement?.id);
   
   useEffect(() => {
@@ -69,7 +71,7 @@ export function AgreementDetail({
 
   const handleDelete = useCallback(() => {
     if (agreement) {
-      const typedId = agreement.id as LeaseId;
+      const typedId = asDbId<LeaseId>(agreement.id);
       onDelete(typedId);
     }
   }, [agreement, onDelete]);
@@ -151,6 +153,24 @@ export function AgreementDetail({
       }
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
+
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
+    if (!agreement?.id) return;
+    
+    try {
+      await updatePayment({
+        id: updatedPayment.id!,
+        data: updatedPayment
+      });
+      onDataRefresh();
+      fetchPayments();
+      return true;
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      toast.error("Failed to update payment");
+      return false;
+    }
+  }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -356,13 +376,23 @@ export function AgreementDetail({
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
-        rentAmount={rentAmount} 
-        onPaymentDeleted={() => {
-          onPaymentDeleted();
-          fetchPayments();
-        }} 
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+        onPaymentDeleted={onPaymentDeleted}
+        onPaymentUpdated={handlePaymentUpdate}
+        onRecordPayment={(payment) => {
+          if (payment && agreement.id) {
+            const fullPayment = {
+              ...payment,
+              lease_id: agreement.id,
+              status: 'completed'
+            };
+            addPayment(fullPayment);
+            fetchPayments();
+          }
+        }}
         leaseStartDate={agreement.start_date} 
-        leaseEndDate={agreement.end_date} 
+        leaseEndDate={agreement.end_date}
       />}
 
       {agreement.start_date && agreement.end_date && (

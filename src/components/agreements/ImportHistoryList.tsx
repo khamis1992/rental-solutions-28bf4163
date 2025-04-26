@@ -1,138 +1,187 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { RefreshCcw, FilePlus, Check, XCircle, AlertTriangle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { Loader2, FileUp, CheckCircle, AlertCircle, XCircle, Download } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Database } from '@/types/database.types';
+import { asPaymentId } from '@/utils/type-casting';
+
+type ImportLog = Database['public']['Tables']['agreement_imports']['Row'];
 
 export function ImportHistoryList() {
-  const [imports, setImports] = useState<any[]>([]);
+  const [importLogs, setImportLogs] = useState<ImportLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchImports();
+    async function fetchImportLogs() {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('agreement_imports')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (error) throw error;
+        setImportLogs(data || []);
+      } catch (err) {
+        console.error('Error fetching import logs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch import history');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchImportLogs();
   }, []);
 
-  const fetchImports = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('agreement_imports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw new Error(error.message);
-      setImports(data || []);
-    } catch (error) {
-      console.error('Error fetching import history:', error);
-      toast.error('Failed to load import history');
-    } finally {
-      setIsLoading(false);
+  const getStatusBadge = (status: string, errorCount: number) => {
+    if (status === 'completed') {
+      return errorCount > 0 
+        ? <Badge variant="warning" className="flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Completed with errors
+          </Badge>
+        : <Badge variant="success" className="flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" />
+            Completed
+          </Badge>;
     }
+    if (status === 'failed') {
+      return <Badge variant="destructive" className="flex items-center gap-1">
+        <XCircle className="h-3 w-3" />
+        Failed
+      </Badge>;
+    }
+    return <Badge variant="outline" className="flex items-center gap-1">
+      <Loader2 className="h-3 w-3 animate-spin" />
+      Processing
+    </Badge>;
   };
 
-  const handleRevertImport = async (importId: string) => {
-    if (!confirm('Are you sure you want to revert this import? All imported agreements will be permanently deleted.')) {
-      return;
-    }
-    
-    setIsDeleting(true);
-    try {
-      const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
-        p_import_id: importId
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      toast.success(`Successfully reverted import. ${data?.deleted_count || 0} agreements were deleted.`);
-      fetchImports();
-    } catch (error) {
-      console.error('Error reverting import:', error);
-      toast.error('Failed to revert import');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><Check className="mr-1 h-3 w-3" /> Completed</Badge>;
-      case 'failed':
-        return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" /> Failed</Badge>;
-      case 'reverted':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200"><AlertTriangle className="mr-1 h-3 w-3" /> Reverted</Badge>;
-      default:
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200"><Clock className="mr-1 h-3 w-3" /> {status}</Badge>;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>File Name</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Records</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <TableRow key={`skeleton-${i}`}>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-10" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 border rounded-md">
+        <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-2 text-lg font-medium">Error fetching import history</h3>
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (importLogs.length === 0) {
+    return (
+      <div className="text-center py-8 border rounded-md">
+        <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-2 text-lg font-medium">No import history</h3>
+        <p className="text-muted-foreground">Upload a CSV file to import agreements</p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
             <TableHead>File Name</TableHead>
+            <TableHead>Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Records</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                <div className="flex items-center justify-center">
-                  <RefreshCcw className="h-4 w-4 animate-spin mr-2" />
-                  <span>Loading import history...</span>
-                </div>
+          {importLogs.map((importLog) => (
+            <TableRow key={importLog.id}>
+              <TableCell className="font-medium">
+                {importLog.original_file_name || importLog.file_name}
               </TableCell>
-            </TableRow>
-          ) : imports.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                <div className="flex flex-col items-center justify-center">
-                  <FilePlus className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No imports found</p>
-                </div>
+              <TableCell>
+                {format(new Date(importLog.created_at), 'MMM d, yyyy h:mm a')}
               </TableCell>
-            </TableRow>
-          ) : (
-            imports.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="whitespace-nowrap">
-                  {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
-                </TableCell>
-                <TableCell>{item.original_file_name || item.file_name}</TableCell>
-                <TableCell>{getStatusBadge(item.status)}</TableCell>
-                <TableCell>
-                  {item.processed_count}/{item.row_count || 0}{' '}
-                  {item.error_count > 0 && (
-                    <span className="text-destructive ml-2">({item.error_count} errors)</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.status === 'completed' && (
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => handleRevertImport(item.id)} 
-                      disabled={isDeleting || item.status === 'reverted'}
-                    >
-                      {isDeleting ? <RefreshCcw className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
-                      Revert Import
+              <TableCell>
+                {getStatusBadge(importLog.status, importLog.error_count)}
+              </TableCell>
+              <TableCell>
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Button variant="link" className="p-0 h-auto font-normal">
+                      {importLog.processed_count}/{importLog.row_count}
                     </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="flex justify-between">
+                      <span>Total Records:</span>
+                      <span>{importLog.row_count}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Processed:</span>
+                      <span className="text-green-600">{importLog.processed_count}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Errors:</span>
+                      <span className="text-red-600">{importLog.error_count}</span>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              </TableCell>
+              <TableCell>
+                {importLog.error_count > 0 && (
+                  <Button variant="ghost" size="sm" className="h-8">
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Errors
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

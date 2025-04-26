@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,8 +26,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { asVehicleId } from '@/utils/type-casting';
 
 // Create form schema type
 type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;
@@ -65,14 +63,24 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     },
   });
 
-  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles().useList();
+  // Get vehicles for the dropdown
+  const { useList } = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useList();
 
+  // Format the maintenance type value
   const formatMaintenanceType = (type: string) => {
     if (!type) return 'Unknown Type';
-    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return type
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
-  const validVehicles = (vehicles || []).filter(vehicle => 
+  // Make sure vehicles has a default value if it's undefined
+  const vehiclesList = vehicles || [];
+
+  // Filter out invalid vehicle data to prevent select errors
+  const validVehicles = vehiclesList.filter(vehicle => 
     vehicle && 
     vehicle.id && 
     vehicle.make && 
@@ -80,28 +88,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     vehicle.license_plate
   );
 
+  // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;
-
-  useEffect(() => {
-    if (!isLoadingVehicles && validVehicles.length === 0) {
-      toast.error('No vehicles available. Please add a vehicle first.');
-    }
-  }, [isLoadingVehicles, validVehicles.length]);
-
-  const handleFormSubmit = (data: MaintenanceFormSchema) => {
-    if (!data.vehicle_id || data.vehicle_id === 'no-vehicles-available') {
-      toast.error('Please select a valid vehicle');
-      return;
-    }
-    
-    const formattedData = {
-      ...data,
-      vehicle_id: asVehicleId(data.vehicle_id),
-    };
-
-    console.log('Submitting maintenance form with data:', formattedData);
-    onSubmit(formattedData);
-  };
 
   return (
     <Card>
@@ -109,7 +97,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         <CardTitle>{isEditMode ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</CardTitle>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Vehicle Selection */}
@@ -121,7 +109,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Vehicle</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || undefined}
+                      defaultValue={field.value || undefined}
                       disabled={isLoadingVehicles}
                     >
                       <FormControl>
@@ -140,7 +128,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles-available" disabled>No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -158,7 +146,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Maintenance Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || MaintenanceType.REGULAR_INSPECTION}
+                      defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -190,7 +178,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Status</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || MaintenanceStatus.SCHEDULED}
+                      defaultValue={field.value || MaintenanceStatus.SCHEDULED}
                     >
                       <FormControl>
                         <SelectTrigger>

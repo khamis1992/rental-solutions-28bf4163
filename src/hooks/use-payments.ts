@@ -1,3 +1,4 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
@@ -27,7 +28,6 @@ export const usePayments = (agreementId?: string) => {
     }
   );
 
-  // Ensure we always have an array of payments, even if data is null or undefined
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
@@ -43,24 +43,26 @@ export const usePayments = (agreementId?: string) => {
     return response.data[0];
   }, {
     onSuccess: () => {
-      refetch(); // Refresh payment list after successful addition
+      refetch();
     }
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const { id, data: paymentData } = paymentUpdate;
-    
     const response = await supabase
       .from('unified_payments')
-      .update(paymentData)
-      .eq('id', asPaymentId(id))
+      .update(paymentUpdate.data)
+      .eq('id', asPaymentId(paymentUpdate.id))
       .select();
 
     if (!hasData(response)) {
       console.error("Error updating payment:", response.error);
-      return null;
+      throw new Error(response.error.message);
     }
     return response.data[0];
+  }, {
+    onSuccess: () => {
+      refetch();
+    }
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
@@ -76,7 +78,6 @@ export const usePayments = (agreementId?: string) => {
     return { success: true };
   });
 
-  // Add a function to fetch payments that uses refetch
   const fetchPayments = () => {
     return refetch();
   };
