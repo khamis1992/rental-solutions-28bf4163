@@ -1,152 +1,96 @@
-
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useEffect, useState } from 'react';
+import { useAgreementStats } from '@/hooks/use-agreement-stats';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
-import { asTableId, asLeaseId } from '@/lib/database-helpers';
-import { hasData } from '@/utils/database-type-helpers';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from "@/components/ui/card";
+import { Bar, BarChart, ResponsiveContainer } from 'recharts';
+import { asStatusColumn } from '@/utils/database-type-helpers';
 
-interface AgreementStats {
-  totalAgreements: number;
-  activeAgreements: number;
-  pendingPayments: number;
-  overduePayments: number;
-  activeValue: number;
-}
-
-export function AgreementStats() {
-  const [stats, setStats] = useState<AgreementStats>({
-    totalAgreements: 0,
-    activeAgreements: 0,
-    pendingPayments: 0,
-    overduePayments: 0,
-    activeValue: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Get total agreements count
-        const { count: totalCount } = await supabase
-          .from('leases')
-          .select('*', { count: 'exact', head: true });
-        
-        // Get active agreements count
-        const { count: activeCount } = await supabase
-          .from('leases')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('leases', 'active'));
-          
-        // Get pending payments count
-        const { count: pendingPaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('unified_payments', 'pending'));
-          
-        // Get overdue payments count
-        const { count: overduePaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .gt('days_overdue', 0);
-          
-        // Get active agreements total value
-        const { data: activeAgreements } = await supabase
-          .from('leases')
-          .select('rent_amount')
-          .eq('status', asTableId('leases', 'active'));
-          
-        let activeValue = 0;
-        if (activeAgreements) {
-          activeValue = activeAgreements.reduce((sum, agreement) => {
-            // Check if agreement and rent_amount exist before accessing
-            if (agreement && typeof agreement.rent_amount === 'number') {
-              return sum + agreement.rent_amount;
-            }
-            return sum;
-          }, 0);
-        }
-        
-        setStats({
-          totalAgreements: totalCount || 0,
-          activeAgreements: activeCount || 0,
-          pendingPayments: pendingPaymentsCount || 0,
-          overduePayments: overduePaymentsCount || 0,
-          activeValue
-        });
-      } catch (error) {
-        console.error('Error fetching agreement stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchStats();
-  }, []);
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard 
-        title="Total Agreements"
-        value={stats.totalAgreements}
-        icon={<FileText className="h-5 w-5 text-blue-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Active Agreements"
-        value={stats.activeAgreements}
-        subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
-        icon={<FileCheck className="h-5 w-5 text-green-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Pending Payments"
-        value={stats.pendingPayments}
-        icon={<FileClock className="h-5 w-5 text-amber-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Overdue Payments"
-        value={stats.overduePayments}
-        icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-        highlight={stats.overduePayments > 0}
-        isLoading={isLoading}
-      />
-    </div>
-  );
-}
-
-interface StatCardProps {
+interface AgreementStatsCardProps {
   title: string;
-  value: number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  isLoading?: boolean;
-  highlight?: boolean;
+  value: string | number | null;
+  loading: boolean;
 }
 
-function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
+const AgreementStatsCard: React.FC<AgreementStatsCardProps> = ({ title, value, loading }) => {
   return (
-    <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
-      <div className="flex justify-between">
+    <Card className="shadow-sm">
+      <CardContent className="flex flex-row items-center justify-between space-x-4 p-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          {isLoading ? (
-            <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1"></div>
+          <div className="text-sm font-medium text-muted-foreground">{title}</div>
+          {loading ? (
+            <Skeleton className="h-4 w-24" />
           ) : (
-            <h3 className={`text-2xl font-bold ${highlight ? 'text-red-600' : ''}`}>
-              {value}
-            </h3>
+            <div className="text-2xl font-bold">{value}</div>
           )}
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         </div>
-        <div>
-          {icon}
-        </div>
-      </div>
+      </CardContent>
     </Card>
   );
+};
+
+interface AgreementChartData {
+  status: string;
+  count: number;
 }
+
+export const AgreementStats: React.FC = () => {
+  const { stats, isLoading } = useAgreementStats();
+  const [agreementChartData, setAgreementChartData] = useState<AgreementChartData[]>([]);
+
+  useEffect(() => {
+    if (stats) {
+      const chartData: AgreementChartData[] = Object.entries(stats.statusCounts).map(([status, count]) => ({
+        status: status.replace(/_/g, ' '),
+        count: count || 0,
+      }));
+      setAgreementChartData(chartData);
+    }
+  }, [stats]);
+
+  return (
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <AgreementStatsCard
+        title="Total Agreements"
+        value={stats?.totalAgreements}
+        loading={isLoading}
+      />
+      <AgreementStatsCard
+        title="Total Active Agreements"
+        value={stats?.activeAgreements}
+        loading={isLoading}
+      />
+      <AgreementStatsCard
+        title="Total Revenue"
+        value={stats?.totalRevenue ? formatCurrency(stats.totalRevenue) : null}
+        loading={isLoading}
+      />
+      <AgreementStatsCard
+        title="Average Monthly Revenue"
+        value={stats?.averageMonthlyRevenue ? formatCurrency(stats.averageMonthlyRevenue) : null}
+        loading={isLoading}
+      />
+
+      <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm">
+        <CardContent>
+          <h3 className="text-lg font-semibold mb-4">Agreement Status Distribution</h3>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Skeleton className="h-6 w-48" />
+            </div>
+          ) : agreementChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={agreementChartData}>
+                <Bar dataKey="count" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-muted-foreground">No agreement data available.</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -62,6 +61,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { asLeaseIdColumn } from '@/utils/database-type-helpers';
 
 export function AgreementList() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
@@ -79,7 +79,6 @@ export function AgreementList() {
     deleteAgreement 
   } = useAgreements();
   
-  // Pagination logic
   const totalAgreements = agreements?.length || 0;
   const totalPages = Math.ceil(totalAgreements / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
@@ -171,7 +170,6 @@ export function AgreementList() {
     );
   }
 
-  // Responsive view for mobile
   const renderMobileView = () => {
     return (
       <div className="space-y-4">
@@ -251,11 +249,9 @@ export function AgreementList() {
     );
   };
 
-  // Desktop view
   const renderDesktopView = () => {
     return (
       <div>
-        {/* Bulk action bar */}
         {selectedCount > 0 && (
           <div className="bg-muted/80 p-2 mb-4 rounded-md flex items-center justify-between">
             <div className="flex items-center">
@@ -426,7 +422,6 @@ export function AgreementList() {
 
   return (
     <div className="space-y-4">
-      {/* Responsive view based on screen size */}
       <div className="md:hidden">
         {renderMobileView()}
       </div>
@@ -434,7 +429,6 @@ export function AgreementList() {
         {renderDesktopView()}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <Pagination className="mt-4">
           <PaginationContent>
@@ -456,7 +450,6 @@ export function AgreementList() {
                 (page >= currentPage - 1 && page <= currentPage + 1)
               )
               .map((page, i, array) => {
-                // Add ellipsis if there are gaps in the page numbers
                 if (i > 0 && page > array[i - 1] + 1) {
                   return (
                     <React.Fragment key={`ellipsis-${page}`}>
@@ -509,7 +502,6 @@ export function AgreementList() {
         </Pagination>
       )}
 
-      {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

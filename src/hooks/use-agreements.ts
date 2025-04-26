@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -138,28 +137,36 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     try {
       if (searchParams.query && isLicensePlatePattern(searchParams.query)) {
         const searchQuery = searchParams.query.trim();
-        console.log("Searching for vehicle with license plate:", searchQuery);
+        const normalizedQuery = normalizeLicensePlate(searchQuery);
+        console.log("Searching for vehicle with license plate:", searchQuery, "normalized:", normalizedQuery);
         
-        // First try exact match with both original and normalized plate
-        const { data: vehicleMatches, error: vehicleError } = await supabase
+        let query = supabase
           .from('vehicles')
-          .select('id, license_plate')
-          .or(`license_plate.eq.${searchQuery},license_plate.eq.${normalizeLicensePlate(searchQuery)}`);
+          .select('id, license_plate');
+        
+        query = query.filter('license_plate', 'ilike', `%${normalizedQuery}%`);
+        
+        const { data: vehicleMatches, error: vehicleError } = await query;
         
         if (vehicleError) {
           console.error("Error finding vehicles:", vehicleError);
           throw new Error(`Failed to search vehicles: ${vehicleError.message}`);
         }
         
-        if (!vehicleMatches || vehicleMatches.length === 0) {
-          console.log("No exact matches found for license plate:", searchQuery);
+        const filteredVehicles = vehicleMatches?.filter(vehicle => 
+          doesLicensePlateMatch(vehicle.license_plate, searchQuery)
+        );
+        
+        console.log("Found vehicles:", vehicleMatches);
+        console.log("Filtered vehicles:", filteredVehicles);
+        
+        if (!filteredVehicles || filteredVehicles.length === 0) {
+          console.log("No matching vehicles found for license plate:", searchQuery);
           return [];
         }
         
-        // Log found matches
-        console.log("Found matching vehicles:", vehicleMatches);
+        const vehicleIds = filteredVehicles.map(v => v.id);
         
-        // Get agreements for matched vehicles
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select(`
@@ -167,7 +174,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             profiles:customer_id (id, full_name, email, phone_number),
             vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
           `)
-          .in('vehicle_id', vehicleMatches.map(v => v.id));
+          .in('vehicle_id', vehicleIds);
         
         if (agreementError) {
           console.error("Error fetching agreements:", agreementError);
@@ -175,11 +182,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
         
         if (!agreementData || agreementData.length === 0) {
-          console.log("No agreements found for matching vehicles");
+          console.log("No agreements found for matching vehicles with IDs:", vehicleIds);
           return [];
         }
 
-        // Log found agreements for debugging
         console.log(`Found ${agreementData.length} agreements for license plate ${searchQuery}`);
         
         return agreementData.map(item => ({
