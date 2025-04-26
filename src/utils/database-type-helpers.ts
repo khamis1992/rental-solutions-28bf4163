@@ -42,6 +42,14 @@ export const asTrafficFineIdColumn = (id: string): string => {
 };
 
 /**
+ * Helper function to handle vehicle ID column
+ * Used to convert ID strings to a format accepted by Supabase
+ */
+export const asVehicleIdColumn = (id: string): string => {
+  return id;
+};
+
+/**
  * Helper for status columns
  */
 export const asStatusColumn = (status: string): string => {

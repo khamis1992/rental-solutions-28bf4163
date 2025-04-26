@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Command,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Vehicle } from "@/types/vehicle";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { asVehicleIdColumn } from '@/utils/database-type-helpers';
 
 interface VehicleSearchCommandPaletteProps {
   isOpen: boolean;
