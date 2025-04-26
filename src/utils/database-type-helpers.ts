@@ -1,44 +1,45 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
+import { Database } from '@/types/database.types';
+
+type Tables = Database['public']['Tables'];
+type TableNames = keyof Tables;
+type RowType<T extends TableNames> = Tables[T]['Row'];
+type StatusType<T extends TableNames> = Tables[T]['Row']['status'];
 
 /**
  * Helper function to handle lease ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asLeaseIdColumn = (id: string): string => {
-  return id;
+export const asLeaseIdColumn = (id: string): RowType<'leases'>['id'] => {
+  return id as RowType<'leases'>['id'];
 };
 
 /**
  * Helper function to handle payment ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asPaymentId = (id: string): string => {
-  return id;
+export const asPaymentId = (id: string): RowType<'unified_payments'>['id'] => {
+  return id as RowType<'unified_payments'>['id'];
 };
 
 /**
  * Helper function to handle agreement ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asAgreementIdColumn = (id: string): string => {
-  return id;
+export const asAgreementIdColumn = (id: string): RowType<'leases'>['id'] => {
+  return id as RowType<'leases'>['id'];
 };
 
 /**
  * Helper function to handle import ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asImportIdColumn = (id: string): string => {
-  return id;
+export const asImportIdColumn = (id: string): RowType<'agreement_imports'>['id'] => {
+  return id as RowType<'agreement_imports'>['id'];
 };
 
 /**
  * Helper function to handle traffic fine ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asTrafficFineIdColumn = (id: string): string => {
-  return id;
+export const asTrafficFineIdColumn = (id: string): RowType<'traffic_fines'>['id'] => {
+  return id as RowType<'traffic_fines'>['id'];
 };
 
 /**
@@ -51,16 +52,22 @@ export const asStatusColumn = (status: string): string => {
 /**
  * Helper for payment status columns
  */
-export const asPaymentStatusColumn = (status: string): string => {
-  return status;
+export const asPaymentStatusColumn = (status: string): RowType<'unified_payments'>['status'] => {
+  return status as RowType<'unified_payments'>['status'];
 };
 
 /**
  * Helper for vehicle ID column
- * Used to convert ID strings to a format accepted by Supabase
  */
-export const asVehicleIdColumn = (id: string): string => {
-  return id;
+export const asVehicleIdColumn = (id: string): RowType<'vehicles'>['id'] => {
+  return id as RowType<'vehicles'>['id'];
+};
+
+/**
+ * Helper for vehicle ID filtering
+ */
+export const asVehicleFilter = (id: string): RowType<'leases'>['vehicle_id'] => {
+  return id as RowType<'leases'>['vehicle_id'];
 };
 
 /**
@@ -94,3 +101,4 @@ export {
   asImportId,
   asCustomerId
 } from '@/lib/database-helpers';
+

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -6,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern, normalizeLicensePlate } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
-import { asLeaseIdColumn, asVehicleIdColumn } from '@/utils/database-type-helpers';
+import { asLeaseIdColumn, asVehicleIdColumn, asStatusColumn, asVehicleFilter } from '@/utils/database-type-helpers';
 
 export type SimpleAgreement = {
   id: string;
@@ -146,27 +145,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
 
-      // Advanced search
-      if (searchParams.query && searchParams.query.trim() !== '') {
-        const searchTerm = searchParams.query.toLowerCase().trim();
-        
-        // Check if the search term could be a license plate
-        if (isLicensePlatePattern(searchTerm)) {
-          const normalizedPlate = normalizeLicensePlate(searchTerm);
-          console.log(`Searching for license plate: ${normalizedPlate}`);
-          
-          // Use more specific license plate search
-          query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${normalizedPlate}%,profiles.full_name.ilike.%${searchTerm}%`);
-        } else {
-          // General search
-          query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
-        }
-      }
-
-      // Vehicle filter
+      // Vehicle-specific filter
       if (searchParams.vehicle_id) {
         console.log("Filtering by vehicle ID:", searchParams.vehicle_id);
-        query = query.eq('vehicle_id', searchParams.vehicle_id);
+        query = query.eq('vehicle_id', asVehicleFilter(searchParams.vehicle_id));
       }
       
       // Customer filter
@@ -174,30 +156,43 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.eq('customer_id', searchParams.customer_id);
       }
 
+      // Generic search
+      if (searchParams.query && searchParams.query.trim() !== '') {
+        const searchTerm = searchParams.query.toLowerCase().trim();
+
+        if (!searchParams.vehicle_id) { // Only apply search if not already filtering by vehicle
+          query = query.or(
+            `agreement_number.ilike.%${searchTerm}%,` +
+            `profiles.full_name.ilike.%${searchTerm}%,` +
+            `vehicles.license_plate.ilike.%${searchTerm}%`
+          );
+        }
+      }
+
       // Status filter
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
-            query = query.eq('status', 'active');
+            query = query.eq('status', asStatusColumn('active'));
             break;
           case AgreementStatus.PENDING:
             query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
           case AgreementStatus.CANCELLED:
-            query = query.eq('status', 'cancelled');
+            query = query.eq('status', asStatusColumn('cancelled'));
             break;
           case AgreementStatus.CLOSED:
             query = query.or('status.eq.completed,status.eq.terminated,status.eq.closed');
             break;
           case AgreementStatus.EXPIRED:
-            query = query.eq('status', 'archived');
+            query = query.eq('status', asStatusColumn('archived'));
             break;
           case AgreementStatus.DRAFT:
-            query = query.filter('status', 'eq', 'draft');
+            query = query.eq('status', asStatusColumn('draft'));
             break;
           default:
             if (typeof searchParams.status === 'string') {
-              query = query.filter('status', 'eq', searchParams.status);
+              query = query.eq('status', asStatusColumn(searchParams.status));
             }
         }
       }
@@ -223,7 +218,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      // Process data
+      // Process data and map to SimpleAgreement type
       const agreements = data.map(item => ({
         id: item.id,
         customer_id: item.customer_id,
