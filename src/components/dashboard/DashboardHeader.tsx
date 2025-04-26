@@ -20,10 +20,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
       <div className="flex items-center space-x-2">
         
-        <Button size="sm" variant="outline" onClick={() => navigate('/settings/dashboard')} className="h-9">
-          <Settings className="h-4 w-4 mr-2" />
-          Customize
-        </Button>
+        
       </div>
     </div>;
 };
