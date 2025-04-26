@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -14,7 +13,15 @@ import { SystemReportDialog, ReportOptions } from '@/components/agreements/Syste
 import { generateSystemReport } from '@/utils/system-report-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search, FileText
+  FileUp, 
+  AlertTriangle, 
+  FileText,
+  Filter, 
+  Search,
+  FilePlus, 
+  RefreshCw, 
+  BarChart4, 
+  
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
@@ -239,12 +246,7 @@ const Agreements = () => {
             <FileUp className="h-4 w-4" />
             Import CSV
           </Button>
-          <Button asChild className="bg-primary hover:bg-primary/90">
-            <Link to="/agreements/add">
-              <FilePlus className="h-4 w-4 mr-2" />
-              New Agreement
-            </Link>
-          </Button>
+          
         </div>
       </div>
 
