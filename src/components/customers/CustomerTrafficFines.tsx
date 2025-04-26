@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,17 +72,25 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setIsLoading(true);
         
-        // Fetch customer information
-        const customerResponse = await supabase
+        // Fetch customer information directly from customers table
+        const { data: customer, error: customerError } = await supabase
           .from('customers')
           .select('*')
           .eq('id', customerId)
           .single();
           
-        if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data as CustomerInfo);
+        if (customer && !customerError) {
+          console.log('Customer data fetched successfully:', customer);
+          setCustomerInfo({
+            id: customer.id,
+            first_name: customer.first_name,
+            last_name: customer.last_name,
+            phone: customer.phone,
+            email: customer.email,
+            driver_license: customer.driver_license
+          });
         } else {
-          console.error('Error fetching customer:', customerResponse.error);
+          console.error('Error fetching customer:', customerError);
         }
 
         const leaseResponse = await supabase
@@ -224,6 +233,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
 
   const generateTrafficFinesReport = async () => {
     try {
+      console.log('Generating report with customer info:', customerInfo);
+      console.log('Active lease info:', activeLeaseInfo);
+      
       const doc = generateStandardReport(
         'Traffic Violations Report',
         undefined,
@@ -444,7 +456,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Agreement #</TableHead>
-                    <TableHead>Location</TableHead>
                     <TableHead>Validity</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -475,9 +486,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                           )}
                         </TableCell>
                         <TableCell>{getLeaseInfo(fine.lease_id)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {fine.fine_location || 'N/A'}
-                        </TableCell>
                         <TableCell>
                           {isValid ? (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
