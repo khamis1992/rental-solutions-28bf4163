@@ -83,6 +83,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { SearchBar } from '@/components/search/SearchBar';
+import { useSearch } from '@/hooks/use-search';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
@@ -551,11 +553,20 @@ export const AgreementList = () => {
   };
 
   const selectedCount = Object.keys(rowSelection).length;
+  const { 
+    searchQuery, 
+    setSearchQuery, 
+    currentMatchIndex, 
+    totalMatches,
+    nextMatch,
+    previousMatch
+  } = useSearch();
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
+          <SearchBar className="w-full sm:w-[350px]" />
           <Select
             value={statusFilter}
             onValueChange={handleStatusFilterChange}
@@ -603,7 +614,7 @@ export const AgreementList = () => {
       )}
       
       <div className="rounded-md border">
-        <Table>
+        <Table className="data-table-container">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
