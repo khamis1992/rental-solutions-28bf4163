@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -62,6 +63,8 @@ interface SearchParams {
   vehicle_id?: string;
   customer_id?: string;
   query?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
@@ -143,11 +146,25 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
 
-      if (searchParams.query) {
-        // Search by vehicle license plate
-        query = query.or(`vehicles.license_plate.ilike.%${searchParams.query}%`);
+      // Advanced search
+      if (searchParams.query && searchParams.query.trim() !== '') {
+        const searchTerm = searchParams.query.toLowerCase().trim();
+        
+        // Search by agreement number
+        query = query.or(`agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`);
       }
 
+      // Vehicle filter
+      if (searchParams.vehicle_id) {
+        query = query.eq('vehicle_id', searchParams.vehicle_id);
+      }
+      
+      // Customer filter
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+
+      // Status filter
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
@@ -160,7 +177,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.eq('status', 'cancelled');
             break;
           case AgreementStatus.CLOSED:
-            query = query.or('status.eq.completed,status.eq.terminated');
+            query = query.or('status.eq.completed,status.eq.terminated,status.eq.closed');
             break;
           case AgreementStatus.EXPIRED:
             query = query.eq('status', 'archived');
@@ -173,6 +190,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
               query = query.filter('status', 'eq', searchParams.status);
             }
         }
+      }
+
+      // Sorting
+      if (searchParams.sort_by) {
+        const sortOrder = searchParams.sort_order || 'desc';
+        query = query.order(searchParams.sort_by, { ascending: sortOrder === 'asc' });
+      } else {
+        // Default sort by created date (newest first)
+        query = query.order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;

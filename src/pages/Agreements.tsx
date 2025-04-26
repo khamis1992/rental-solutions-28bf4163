@@ -6,21 +6,42 @@ import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 import { 
-  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, 
+  Search, FilterX, SlidersHorizontal
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { VehicleSearchCommandPalette } from '@/components/ui/vehicle-search-command-palette';
+import { Vehicle } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
+  const [isVehicleSearchOpen, setIsVehicleSearchOpen] = useState(false);
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
   const { setSearchParams, searchParams } = useAgreements();
+  const [searchQuery, setSearchQuery] = useState('');
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -75,8 +96,39 @@ const Agreements = () => {
     });
   };
 
-  const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchParams({ 
+      ...searchParams, 
+      query: searchQuery 
+    });
+  };
+
+  const handleStatusChange = (value: string) => {
+    setSearchParams({
+      ...searchParams,
+      status: value,
+    });
+  };
+  
+  const handleVehicleSelect = (vehicle: Vehicle) => {
+    setSearchParams({
+      ...searchParams,
+      vehicle_id: vehicle.id,
+    });
+    setSearchQuery(`Vehicle: ${vehicle.license_plate} (${vehicle.make} ${vehicle.model})`);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({
+      status: 'all',
+    });
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = Object.entries(searchParams || {})
+    .filter(([key, value]) => key !== 'status' || value !== 'all')
+    .some(([_, value]) => value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -85,6 +137,143 @@ const Agreements = () => {
     >
       <div className="mb-6">
         <AgreementStats />
+      </div>
+
+      {/* Search and Filters Section */}
+      <div className="space-y-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex-1 flex-grow">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by agreement #, vehicle plate or customer name"
+                className="pl-10 pr-12"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="absolute right-0 flex items-center space-x-1 mr-2">
+                <Button
+                  type="button" 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setIsVehicleSearchOpen(true)}
+                  title="Search by vehicle"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+                {searchQuery && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setSearchQuery('');
+                      if (searchParams?.query) {
+                        setSearchParams({
+                          ...searchParams,
+                          query: '',
+                        });
+                      }
+                    }}
+                    title="Clear search"
+                  >
+                    <FilterX className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </form>
+
+          <div className="flex items-center space-x-2">
+            <Select
+              value={searchParams?.status || 'all'}
+              onValueChange={handleStatusChange}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
+                <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+                <SelectItem value={AgreementStatus.CLOSED}>Closed</SelectItem>
+                <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+                <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={clearFilters}
+                title="Clear all filters"
+              >
+                <FilterX className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Active filters display */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2">
+            {searchParams?.status && searchParams.status !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Status: {searchParams.status}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 p-0"
+                  onClick={() => handleStatusChange('all')}
+                >
+                  <FilterX className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+            {searchParams?.query && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Search: {searchParams.query}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 p-0"
+                  onClick={() => {
+                    setSearchParams({
+                      ...searchParams,
+                      query: '',
+                    });
+                    setSearchQuery('');
+                  }}
+                >
+                  <FilterX className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+            {searchParams?.vehicle_id && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Vehicle: {searchQuery.replace('Vehicle: ', '')}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 p-0"
+                  onClick={() => {
+                    setSearchParams({
+                      ...searchParams,
+                      vehicle_id: undefined,
+                    });
+                    setSearchQuery('');
+                  }}
+                >
+                  <FilterX className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -134,9 +323,16 @@ const Agreements = () => {
         onOpenChange={setIsImportModalOpen}
         onImportComplete={handleImportComplete}
       />
+
+      <VehicleSearchCommandPalette
+        isOpen={isVehicleSearchOpen}
+        onClose={() => setIsVehicleSearchOpen(false)}
+        onVehicleSelect={handleVehicleSelect}
+        vehicles={vehicles || []}
+        isLoading={isLoadingVehicles}
+      />
     </PageContainer>
   );
 };
 
 export default Agreements;
-
