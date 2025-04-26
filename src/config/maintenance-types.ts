@@ -1,6 +1,6 @@
 import { MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { 
-  OilDroplet,
+  Droplet,
   Wrench,
   Gauge,
   Settings,
@@ -25,7 +25,7 @@ export const maintenanceTypes: MaintenanceTypeConfig[] = [
     value: MaintenanceType.OIL_CHANGE,
     label: 'Oil Change',
     description: 'Replace engine oil and oil filter',
-    icon: OilDroplet,
+    icon: Droplet,
     recommendedInterval: '5,000 - 10,000 km'
   },
   {
