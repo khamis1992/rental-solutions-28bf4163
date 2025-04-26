@@ -189,75 +189,98 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   const generateTrafficFinesReport = async () => {
     try {
       const doc = generateStandardReport(
-        'Traffic Fines Report',
+        'Traffic Violations Report',
         undefined,
         (doc, startY) => {
           let currentY = startY;
           
-          const headers = ['Date', 'Location', 'Violation', 'Amount', 'Status'];
-          const columnWidths = [30, 50, 50, 30, 30];
-          
+          // Customer summary section
+          doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(10);
-          let currentX = 20;
+          doc.text('SUMMARY', 20, currentY);
+          currentY += 10;
           
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          const totalAmount = finesToDisplay.reduce((sum, fine) => sum + fine.fine_amount, 0);
+          const paidFines = finesToDisplay.filter(fine => fine.payment_status === 'paid').length;
+          const pendingFines = finesToDisplay.length - paidFines;
+          
+          doc.text(`Total Fines: ${finesToDisplay.length}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Paid Fines: ${paidFines}`, 20, currentY);
+          currentY += 6;
+          doc.text(`Pending Fines: ${pendingFines}`, 20, currentY);
+          currentY += 15;
+
+          // Fines Detail Table
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('VIOLATION DETAILS', 20, currentY);
+          currentY += 10;
+          
+          doc.setFontSize(9);
+          const headers = ['Date', 'License Plate', 'Location', 'Violation', 'Amount', 'Status'];
+          const columnWidths = [25, 30, 40, 35, 25, 25];
+          const startX = 20;
+          
+          // Table Headers
+          let xPos = startX;
           headers.forEach((header, i) => {
-            doc.text(header, currentX, currentY);
-            currentX += columnWidths[i];
+            doc.text(header, xPos, currentY);
+            xPos += columnWidths[i];
           });
           
-          currentY += 10;
+          // Table Content
+          currentY += 8;
           doc.setFont('helvetica', 'normal');
-          
+
           finesToDisplay.forEach((fine) => {
             if (currentY > doc.internal.pageSize.getHeight() - 20) {
               doc.addPage();
               currentY = 20;
             }
-            
-            currentX = 20;
-            const row = [
+
+            xPos = startX;
+            const rowData = [
               fine.violation_date ? format(new Date(fine.violation_date), 'dd/MM/yyyy') : 'N/A',
+              fine.license_plate || 'N/A',
               fine.fine_location || 'N/A',
               fine.violation_charge || 'N/A',
               formatCurrency(fine.fine_amount),
               fine.payment_status.toUpperCase()
             ];
-            
-            row.forEach((cell, i) => {
-              doc.text(cell.toString(), currentX, currentY);
-              currentX += columnWidths[i];
+
+            rowData.forEach((text, i) => {
+              // Handle text overflow
+              const maxWidth = columnWidths[i] - 2;
+              if (doc.getStringUnitWidth(text) * doc.internal.getFontSize() > maxWidth) {
+                text = text.substring(0, 15) + '...';
+              }
+              doc.text(text.toString(), xPos, currentY);
+              xPos += columnWidths[i];
             });
             
-            currentY += 8;
+            currentY += 7;
           });
           
+          // Add generation date at the bottom
           currentY += 10;
-          doc.setFont('helvetica', 'bold');
-          doc.text('Summary', 20, currentY);
-          currentY += 8;
-          doc.setFont('helvetica', 'normal');
-          
-          const totalAmount = finesToDisplay.reduce((sum, fine) => sum + fine.fine_amount, 0);
-          const paidFines = finesToDisplay.filter(fine => fine.payment_status === 'paid').length;
-          
-          doc.text(`Total Fines: ${finesToDisplay.length}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Paid Fines: ${paidFines}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Pending Fines: ${finesToDisplay.length - paidFines}`, 20, currentY);
-          currentY += 6;
-          doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, currentY);
+          doc.setFontSize(8);
+          doc.setTextColor(128);
+          doc.text(`Report generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 20, currentY);
           
           return currentY;
         }
       );
       
-      doc.save('traffic-fines-report.pdf');
-      toast.success('Traffic fines report generated successfully');
+      doc.save('traffic-violations-report.pdf');
+      toast.success('Traffic violations report generated successfully');
     } catch (error) {
       console.error('Error generating report:', error);
-      toast.error('Failed to generate traffic fines report');
+      toast.error('Failed to generate traffic violations report');
     }
   };
 
