@@ -19,7 +19,7 @@ import {
   BarChart3,
   AlertTriangle
 } from 'lucide-react';
-import { asVehicleId, asTableId } from '@/lib/database-helpers';
+import { asVehicleId, hasData } from '@/utils/database-type-helpers';
 import { useMaintenance } from '@/hooks/use-maintenance';
 
 interface VehicleDetailProps {
@@ -45,7 +45,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('id, rent_amount, total_amount, status')
-          .eq('vehicle_id', asTableId('vehicles', vehicle.id));
+          .eq('vehicle_id', asVehicleId(vehicle.id));
         
         if (leaseError) throw new Error(leaseError.message);
         

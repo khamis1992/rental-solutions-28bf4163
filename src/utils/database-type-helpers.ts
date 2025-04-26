@@ -121,3 +121,50 @@ export function safeMapDbRecord<T, R>(record: T | null, mapper: (record: T) => R
   if (!record) return null;
   return mapper(record);
 }
+
+/**
+ * Helper function to check if data exists in a Supabase response
+ * @param response Supabase response
+ * @returns boolean indicating if valid data exists
+ */
+export function hasData<T>(response: { data: T | null, error: any } | null): response is { data: T, error: null } {
+  return !!response && !response.error && response.data !== null;
+}
+
+// Add the missing functions that are imported in other files
+
+/**
+ * Alternative name for asLeaseIdColumn for backward compatibility
+ * @param id ID string to cast
+ * @returns The same ID with LeaseId type
+ */
+export function asLeaseId(id: string): LeaseId {
+  return asLeaseIdColumn(id);
+}
+
+/**
+ * Alternative name for asAgreementIdColumn for backward compatibility
+ * @param id ID string to cast
+ * @returns The same ID with AgreementId type
+ */
+export function asAgreementId(id: string): AgreementId {
+  return asAgreementIdColumn(id);
+}
+
+/**
+ * Alternative name for asVehicleIdColumn for backward compatibility
+ * @param id ID string to cast
+ * @returns The same ID with VehicleId type
+ */
+export function asVehicleId(id: string): VehicleId {
+  return asVehicleIdColumn(id);
+}
+
+/**
+ * Alternative name for asImportIdColumn for backward compatibility
+ * @param id ID string to cast
+ * @returns The same ID with ImportId type
+ */
+export function asImportId(id: string): ImportId {
+  return asImportIdColumn(id);
+}
