@@ -9,7 +9,6 @@ interface PaymentHistoryRow {
   status?: string;
   lateFee: number;
   total: number;
-  notes?: string;
 }
 
 /**
@@ -77,8 +76,7 @@ export const generateStandardReport = (
 export const generatePaymentHistoryPdf = (
   payments: PaymentHistoryRow[],
   title: string = "Invoice",
-  dateRange: { from: Date | undefined; to: Date | undefined } = { from: undefined, to: undefined },
-  notes?: string
+  dateRange: { from: Date | undefined; to: Date | undefined } = { from: undefined, to: undefined }
 ): jsPDF => {
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -216,13 +214,6 @@ export const generatePaymentHistoryPdf = (
         '2. Please include invoice number in payment reference',
         '3. Late payments are subject to additional fees'
       ], 20, doc.internal.pageSize.getHeight() - 25);
-      
-      if (notes) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('Additional Notes:', 20, doc.internal.pageSize.getHeight() - 45);
-        doc.setFont('helvetica', 'normal');
-        doc.text(notes, 20, doc.internal.pageSize.getHeight() - 40);
-      }
     }
     
     doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
