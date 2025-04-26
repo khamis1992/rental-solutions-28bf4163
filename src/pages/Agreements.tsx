@@ -1,7 +1,8 @@
+
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
@@ -9,33 +10,20 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { SystemReportDialog, ReportOptions } from '@/components/agreements/SystemReportDialog';
-import { generateSystemReport } from '@/utils/system-report-utils';
-import { supabase } from '@/integrations/supabase/client';
 import { 
-  FileUp, 
-  AlertTriangle, 
-  FileText,
-  Filter, 
-  Search,
-  FilePlus, 
-  RefreshCw, 
-  BarChart4
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { asTableId } from '@/utils/type-casting';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSystemReportOpen, setIsSystemReportOpen] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const { agreements, setSearchParams, searchParams } = useAgreements();
+  const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
   
   React.useEffect(() => {
@@ -68,6 +56,7 @@ const Agreements = () => {
     checkAvailability();
   }, []);
   
+  // Run payment schedule maintenance job silently on page load
   React.useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
@@ -79,6 +68,7 @@ const Agreements = () => {
       }
     };
     
+    // Run after a 3-second delay to allow other initial page operations to complete
     const timer = setTimeout(() => {
       runMaintenanceJob();
     }, 3000);
@@ -109,79 +99,8 @@ const Agreements = () => {
   const handleFilterChange = (filters: Record<string, any>) => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
-  
-  const handleGenerateSystemReport = async (options: ReportOptions) => {
-    if (!agreements || agreements.length === 0) {
-      toast.error("No agreements available to generate report");
-      return;
-    }
 
-    try {
-      setIsGeneratingReport(true);
-      toast.info("Generating system-wide agreement report...");
-      
-      const filteredAgreements = options.statusFilter.length > 0 
-        ? agreements.filter(a => options.statusFilter.includes(a.status))
-        : agreements;
-        
-      if (filteredAgreements.length === 0) {
-        toast.warning("No agreements match the selected filters");
-        setIsGeneratingReport(false);
-        return;
-      }
-      
-      const agreementIds = filteredAgreements.map(a => a.id);
-      
-      // Fetch payments for the selected agreements
-      let payments = [];
-      for (const id of agreementIds) {
-        if (id) {
-          const { data: paymentData, error: paymentsError } = await supabase
-            .from('unified_payments')
-            .select('*')
-            .eq('lease_id', id);
-          
-          if (paymentsError) {
-            console.error("Error fetching payments:", paymentsError);
-          } else if (paymentData) {
-            payments = [...payments, ...paymentData];
-          }
-        }
-      }
-      
-      console.log(`Fetched ${payments.length} payments for ${filteredAgreements.length} agreements`);
-      
-      // Convert Date fields to proper Date objects
-      const processedAgreements = filteredAgreements.map(agreement => ({
-        ...agreement,
-        start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-        end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-        created_at: agreement.created_at ? new Date(agreement.created_at) : new Date(),
-        updated_at: agreement.updated_at ? new Date(agreement.updated_at) : new Date()
-      }));
-      
-      const doc = await generateSystemReport(
-        processedAgreements,
-        payments,
-        { 
-          dateRange: options.dateRange,
-          statusFilter: options.statusFilter.join(',')
-        }
-      );
-      
-      const filename = `rental-agreements-system-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(filename);
-      
-      toast.success("System report generated successfully");
-      setIsSystemReportOpen(false);
-    } catch (error) {
-      console.error("Error generating system report:", error);
-      toast.error("Failed to generate system report: " + (error instanceof Error ? error.message : "Unknown error"));
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
-
+  // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
@@ -190,10 +109,12 @@ const Agreements = () => {
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
     >
+      {/* Stats Overview */}
       <div className="mb-6">
         <AgreementStats />
       </div>
 
+      {/* Search and Action Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex flex-grow max-w-md relative">
           <div className="relative w-full">
@@ -227,16 +148,8 @@ const Agreements = () => {
         <div className="flex items-center gap-2 w-full md:w-auto">
           <Button 
             variant="outline" 
-            onClick={() => setIsSystemReportOpen(true)}
-            className="flex items-center gap-1"
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            System Report
-          </Button>
-          <Button 
-            variant="outline" 
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2"
             disabled={!isEdgeFunctionAvailable}
           >
             {!isEdgeFunctionAvailable && (
@@ -254,6 +167,7 @@ const Agreements = () => {
         </div>
       </div>
 
+      {/* Active Filters */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {activeFilters.map(([key, value]) => (
@@ -291,12 +205,14 @@ const Agreements = () => {
         </div>
       )}
 
+      {/* Filter Panel */}
       {showFilters && (
         <Card className="mb-6 p-4">
           <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
         </Card>
       )}
       
+      {/* Main Content */}
       <Suspense fallback={
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center space-x-2">
@@ -320,13 +236,6 @@ const Agreements = () => {
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
         onImportComplete={handleImportComplete}
-      />
-      
-      <SystemReportDialog
-        open={isSystemReportOpen}
-        onOpenChange={setIsSystemReportOpen}
-        onGenerate={handleGenerateSystemReport}
-        isGenerating={isGeneratingReport}
       />
     </PageContainer>
   );

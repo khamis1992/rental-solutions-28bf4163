@@ -1,8 +1,26 @@
-
-import { asTableId } from '@/utils/type-casting';
+import { asTableId, asTableStatus } from '@/utils/type-casting';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
+import { castDbId } from '@/lib/supabase-types';
+import { 
+  asAgreementIdColumn, 
+  asLeaseIdColumn, 
+  asImportIdColumn,
+  asTrafficFineIdColumn 
+} from '@/utils/database-type-helpers';
+import { 
+  ColumnDef, 
+  flexRender, 
+  getCoreRowModel, 
+  useReactTable, 
+  SortingState,
+  getSortedRowModel,
+  getPaginationRowModel,
+  ColumnFiltersState,
+  getFilteredRowModel,
+  RowSelectionState
+} from "@tanstack/react-table";
 import { 
   MoreHorizontal, 
   FileText, 
@@ -39,7 +57,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVehicles } from '@/hooks/use-vehicles';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -65,27 +83,14 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { generateAgreementReport } from '@/utils/agreement-report-utils';
-import { jsPDF } from 'jspdf';
-import {
-  ColumnDef,
-  RowSelectionState,
-  SortingState,
-  ColumnFiltersState,
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  flexRender
-} from '@tanstack/react-table';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asTableId('overdue_payments', agreementId));
+      .eq('agreement_id', asTableId('overdue_payments', agreementId))
+      .single();
     
     if (error) {
       console.error("Error fetching overdue payments:", error);
@@ -153,7 +158,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asTableId('traffic_fines', agreementId));
+      .eq('agreement_id', agreementId);
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -170,7 +175,6 @@ export const AgreementList = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -191,7 +195,9 @@ export const AgreementList = () => {
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
   
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'created_at', desc: true }
+  ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
 
   useEffect(() => {
@@ -208,7 +214,7 @@ export const AgreementList = () => {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
+      index => agreements[parseInt(index)].id
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -223,7 +229,7 @@ export const AgreementList = () => {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asTableId('overdue_payments', id));
+          .eq('agreement_id', id);
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -234,7 +240,7 @@ export const AgreementList = () => {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', asTableId('unified_payments', id));
+          .eq('lease_id', id);
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -245,13 +251,13 @@ export const AgreementList = () => {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', asTableId('agreement_import_reverts', id));
+          .eq('import_id', id);
         
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', asTableId('agreement_import_reverts', id));
+            .eq('import_id', id);
           
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -263,7 +269,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', asTableId('traffic_fines', id));
+          .eq('agreement_id', id);
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -271,7 +277,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', asTableId('traffic_fines', id));
+            .eq('agreement_id', id);
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -312,145 +318,6 @@ export const AgreementList = () => {
     setIsDeleting(false);
     
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
-  };
-
-  const handleGenerateReport = async (agreement: any) => {
-    try {
-      toast.info(`Generating report for agreement ${agreement.agreement_number}`);
-      setIsGeneratingReport(true);
-      
-      const agreementForReport: Agreement = {
-        ...agreement,
-        start_date: new Date(agreement.start_date),
-        end_date: new Date(agreement.end_date),
-        id: agreement.id,
-        status: agreement.status as AgreementStatus,
-        agreement_number: agreement.agreement_number || '',
-        customer_id: agreement.customer_id || '',
-        vehicle_id: agreement.vehicle_id || '',
-        created_at: new Date(agreement.created_at),
-        updated_at: new Date(agreement.updated_at)
-      };
-      
-      const { data: payments } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', asTableId('unified_payments', agreementForReport.id as string));
-      
-      const doc = generateAgreementReport(
-        agreementForReport, 
-        agreement.rent_amount || 0, 
-        agreement.total_amount || 0,
-        payments || []
-      );
-      
-      doc.save(`agreement-report-${agreement.agreement_number}.pdf`);
-      
-      toast.success(`Report generated for agreement ${agreement.agreement_number}`);
-    } catch (error) {
-      console.error('Error generating report:', error);
-      toast.error('Failed to generate agreement report');
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
-
-  const handleBulkGenerateReports = async () => {
-    if (!agreements) return;
-    
-    const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
-    );
-    
-    if (selectedIds.length === 0) {
-      toast.error('Please select at least one agreement');
-      return;
-    }
-    
-    setIsGeneratingReport(true);
-    toast.info(`Generating reports for ${selectedIds.length} agreements...`);
-    
-    try {
-      const mergedPdf = new jsPDF();
-      let currentPage = 1;
-      
-      mergedPdf.setFontSize(22);
-      mergedPdf.setFont('helvetica', 'bold');
-      mergedPdf.setTextColor(0, 0, 0);
-      mergedPdf.text('AGREEMENTS SUMMARY REPORT', mergedPdf.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
-      
-      mergedPdf.setFontSize(12);
-      mergedPdf.setFont('helvetica', 'normal');
-      mergedPdf.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, mergedPdf.internal.pageSize.getWidth() / 2, 45, { align: 'center' });
-      mergedPdf.text(`Total Agreements: ${selectedIds.length}`, mergedPdf.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
-      
-      mergedPdf.setFont('helvetica', 'bold');
-      mergedPdf.text('Agreements Included:', 20, 75);
-      
-      mergedPdf.setFont('helvetica', 'normal');
-      mergedPdf.setFontSize(10);
-      
-      let yPosition = 85;
-      const selectedAgreements = agreements.filter((_, index) => rowSelection[index]);
-      
-      for (let i = 0; i < selectedAgreements.length; i++) {
-        const agreement = selectedAgreements[i];
-        if (yPosition > mergedPdf.internal.pageSize.getHeight() - 20) {
-          mergedPdf.addPage();
-          yPosition = 20;
-        }
-        
-        mergedPdf.text(`${i + 1}. Agreement ${agreement.agreement_number} - ${agreement.customers?.full_name || 'N/A'}`, 25, yPosition);
-        yPosition += 8;
-      }
-      
-      for (const agreementId of selectedIds) {
-        const agreement = agreements.find(a => a.id === agreementId);
-        if (!agreement) continue;
-        
-        const { data: payments } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', asTableId('unified_payments', agreementId));
-        
-        const agreementForReport: Agreement = {
-          ...agreement,
-          start_date: new Date(agreement.start_date),
-          end_date: new Date(agreement.end_date),
-          id: agreement.id,
-          status: agreement.status as AgreementStatus,
-          agreement_number: agreement.agreement_number || '',
-          customer_id: agreement.customer_id || '',
-          vehicle_id: agreement.vehicle_id || '',
-          created_at: new Date(agreement.created_at),
-          updated_at: new Date(agreement.updated_at)
-        };
-        
-        const doc = generateAgreementReport(
-          agreementForReport, 
-          agreement.rent_amount || 0, 
-          agreement.total_amount || 0,
-          payments || []
-        );
-        
-        const pdfBytes = doc.output('arraybuffer');
-        const pdfUint8Array = new Uint8Array(pdfBytes);
-        
-        mergedPdf.addPage();
-        mergedPdf.addImage(pdfUint8Array, 'PDF', 0, 0, mergedPdf.internal.pageSize.getWidth(), mergedPdf.internal.pageSize.getHeight());
-        
-        currentPage++;
-      }
-      
-      mergedPdf.save(`agreements-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-      
-      toast.success(`Reports generated for ${selectedIds.length} agreements`);
-    } catch (error) {
-      console.error('Error generating bulk reports:', error);
-      toast.error('Failed to generate agreement reports');
-    } finally {
-      setIsGeneratingReport(false);
-    }
   };
 
   const columns: ColumnDef<any>[] = [
@@ -639,13 +506,6 @@ export const AgreementList = () => {
                   Edit agreement
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleGenerateReport(agreement)}
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Generate Report
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -716,29 +576,14 @@ export const AgreementList = () => {
         
         <div className="flex gap-2">
           {selectedCount > 0 && (
-            <>
-              <Button 
-                variant="outline"
-                onClick={handleBulkGenerateReports}
-                className="flex items-center gap-1"
-                disabled={isGeneratingReport}
-              >
-                {isGeneratingReport ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : (
-                  <FileText className="h-4 w-4 mr-1" />
-                )}
-                {isGeneratingReport ? "Generating..." : `Report (${selectedCount})`}
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={() => setBulkDeleteDialogOpen(true)}
-                className="flex items-center gap-1"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete ({selectedCount})
-              </Button>
-            </>
+            <Button 
+              variant="destructive" 
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete ({selectedCount})
+            </Button>
           )}
           <Button asChild>
             <Link to="/agreements/add">
