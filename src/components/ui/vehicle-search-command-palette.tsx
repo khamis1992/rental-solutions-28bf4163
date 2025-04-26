@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Command,
   CommandDialog,
@@ -13,6 +12,8 @@ import { Loader } from "@/components/ui/loader";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Vehicle } from "@/types/vehicle";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface VehicleSearchCommandPaletteProps {
   isOpen: boolean;
@@ -26,10 +27,53 @@ export function VehicleSearchCommandPalette({
   isOpen,
   onClose,
   onVehicleSelect,
-  vehicles,
-  isLoading = false,
+  vehicles: initialVehicles,
+  isLoading: initialLoading = false,
 }: VehicleSearchCommandPaletteProps) {
-  const [search, setSearch] = React.useState("");
+  const [search, setSearch] = useState("");
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
+  const [isLoading, setIsLoading] = useState(initialLoading);
+
+  useEffect(() => {
+    const searchVehicles = async () => {
+      if (!search || search.length < 2) return;
+      
+      try {
+        setIsLoading(true);
+        
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .or(`license_plate.ilike.%${search}%,make.ilike.%${search}%,model.ilike.%${search}%,vin.ilike.%${search}%`)
+          .order('make', { ascending: true });
+        
+        if (error) {
+          console.error('Error searching vehicles:', error);
+          toast.error('Failed to search vehicles');
+          return;
+        }
+        
+        if (data) {
+          setVehicles(data as Vehicle[]);
+        }
+      } catch (err) {
+        console.error('Error in vehicle search:', err);
+        toast.error('An error occurred while searching vehicles');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      if (search) {
+        searchVehicles();
+      } else {
+        setVehicles(initialVehicles);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [search, initialVehicles]);
 
   const filteredVehicles = React.useMemo(() => {
     if (!search) return vehicles;

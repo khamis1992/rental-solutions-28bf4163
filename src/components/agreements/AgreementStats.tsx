@@ -39,13 +39,13 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('leases', 'active') as string);
+          .eq('status', asTableId('leases', 'status', 'active'));
           
         // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asTableId('unified_payments', 'pending') as string);
+          .eq('status', asTableId('unified_payments', 'status', 'pending'));
           
         // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
@@ -54,13 +54,13 @@ export function AgreementStats() {
           .gt('days_overdue', 0);
           
         // Get active agreements total value
-        const { data: activeAgreements } = await supabase
+        const { data: activeAgreements, error: activeAgreementsError } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asTableId('leases', 'active') as string);
+          .eq('status', asTableId('leases', 'status', 'active'));
           
         let activeValue = 0;
-        if (activeAgreements) {
+        if (!activeAgreementsError && activeAgreements) {
           activeValue = activeAgreements.reduce((sum, agreement) => {
             // Check if agreement and rent_amount exist before accessing
             if (agreement && typeof agreement.rent_amount === 'number') {

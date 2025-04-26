@@ -42,6 +42,31 @@ export const asTrafficFineIdColumn = (id: string): string => {
 };
 
 /**
+ * Helper for status columns
+ */
+export const asStatusColumn = (status: string): string => {
+  return status;
+};
+
+/**
+ * Helper for payment status columns
+ */
+export const asPaymentStatusColumn = (status: string): string => {
+  return status;
+};
+
+/**
+ * Safely extract data from a PostgrestResponse
+ */
+export const safelyExtractData = <T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T[] | null => {
+  if (response.error) {
+    console.error('Error in database response:', response.error);
+    return null;
+  }
+  return Array.isArray(response.data) ? response.data : (response.data ? [response.data] : []);
+};
+
+/**
  * Type guard to check if a response has data
  */
 export function hasData<T>(

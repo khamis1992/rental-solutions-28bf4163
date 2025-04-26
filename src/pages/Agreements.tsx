@@ -1,5 +1,5 @@
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -8,6 +8,7 @@ import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAgreements } from '@/hooks/use-agreements';
+import { useVehicles } from '@/hooks/use-vehicles';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
@@ -16,7 +17,6 @@ import {
   Search, FilterX, SlidersHorizontal
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -25,23 +25,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { VehicleSearchCommandPalette } from '@/components/ui/vehicle-search-command-palette';
 import { Vehicle } from '@/types/vehicle';
-import { useVehicles } from '@/hooks/use-vehicles';
+import { supabase } from '@/integrations/supabase/client';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [isVehicleSearchOpen, setIsVehicleSearchOpen] = useState(false);
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
   const { setSearchParams, searchParams } = useAgreements();
   const [searchQuery, setSearchQuery] = useState('');
+  const [vehiclesList, setVehiclesList] = useState<Vehicle[]>([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+  
+  // Load some initial vehicle data
+  useEffect(() => {
+    const loadInitialVehicles = async () => {
+      try {
+        setIsLoadingVehicles(true);
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(50);
+          
+        if (error) {
+          console.error("Error loading vehicles:", error);
+          toast.error("Failed to load vehicle data");
+          return;
+        }
+        
+        if (data) {
+          setVehiclesList(data as Vehicle[]);
+        }
+      } catch (err) {
+        console.error("Error fetching vehicles:", err);
+      } finally {
+        setIsLoadingVehicles(false);
+      }
+    };
+    
+    loadInitialVehicles();
+  }, []);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -112,11 +138,13 @@ const Agreements = () => {
   };
   
   const handleVehicleSelect = (vehicle: Vehicle) => {
+    console.log('Vehicle selected:', vehicle);
     setSearchParams({
       ...searchParams,
       vehicle_id: vehicle.id,
     });
     setSearchQuery(`Vehicle: ${vehicle.license_plate} (${vehicle.make} ${vehicle.model})`);
+    toast.success(`Filtering by vehicle: ${vehicle.license_plate}`);
   };
 
   const clearFilters = () => {
@@ -328,7 +356,7 @@ const Agreements = () => {
         isOpen={isVehicleSearchOpen}
         onClose={() => setIsVehicleSearchOpen(false)}
         onVehicleSelect={handleVehicleSelect}
-        vehicles={vehicles || []}
+        vehicles={vehiclesList}
         isLoading={isLoadingVehicles}
       />
     </PageContainer>
