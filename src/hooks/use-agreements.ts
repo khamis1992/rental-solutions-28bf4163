@@ -1,9 +1,10 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { doesLicensePlateMatch, isLicensePlatePattern, normalizeLicensePlate } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
@@ -171,20 +172,48 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       if (searchParams.query) {
         const searchQuery = searchParams.query.trim();
-        const normalizedSearchQuery = searchQuery.toLowerCase();
         
         if (searchQuery) {
-          // First try exact match on license plate
-          query = query.or(`
-            vehicles.license_plate.eq.${searchQuery},
-            vehicles.license_plate.eq.${normalizedSearchQuery},
-            vehicles.license_plate.ilike.${searchQuery}%,
-            agreement_number.eq.${searchQuery},
-            agreement_number.ilike.${searchQuery}%,
-            profiles.full_name.ilike.%${searchQuery}%,
-            vehicles.make.ilike.%${searchQuery}%,
-            vehicles.model.ilike.%${searchQuery}%
-          `);
+          // Create normalized version for case-insensitive comparison
+          const normalizedSearchQuery = normalizeLicensePlate(searchQuery);
+          
+          if (isLicensePlatePattern(searchQuery)) {
+            // For license plate searches, prioritize exact matches over partial matches
+            query = query.or(`
+              vehicles.license_plate.eq.${searchQuery},
+              vehicles.license_plate.eq.${normalizedSearchQuery}
+            `);
+            
+            // If no results from exact match, then we'll add partial matches in a separate query
+            const { count } = await query.select('id', { count: 'exact', head: true });
+            
+            if (!count || count === 0) {
+              // Reset the query to base and try broader search
+              query = supabase
+                .from('leases')
+                .select(`
+                  *,
+                  profiles:customer_id (id, full_name, email, phone_number),
+                  vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
+                `);
+                
+              // Add partial match for license plates that start with the search term
+              query = query.or(`
+                vehicles.license_plate.ilike.${searchQuery}%,
+                agreement_number.eq.${searchQuery},
+                agreement_number.ilike.${searchQuery}%
+              `);
+            }
+          } else {
+            // For non-license plate searches (agreement numbers, names, etc.)
+            query = query.or(`
+              agreement_number.eq.${searchQuery},
+              agreement_number.ilike.${searchQuery}%,
+              profiles.full_name.ilike.%${searchQuery}%,
+              vehicles.make.ilike.%${searchQuery}%,
+              vehicles.model.ilike.%${searchQuery}%
+            `);
+          }
         }
       }
 
