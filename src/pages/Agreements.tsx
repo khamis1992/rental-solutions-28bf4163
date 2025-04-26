@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -125,21 +126,37 @@ const Agreements = () => {
       
       const agreementIds = filteredAgreements.map(a => a.id);
       
-      const { data: payments, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .in('lease_id', agreementIds);
-      
-      if (paymentsError) {
-        console.error("Error fetching payments:", paymentsError);
-        toast.error("Error fetching payment data for report");
-        setIsGeneratingReport(false);
-        return;
+      // Fetch payments for the selected agreements
+      let payments = [];
+      for (const id of agreementIds) {
+        if (id) {
+          const { data: paymentData, error: paymentsError } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .eq('lease_id', asTableId('unified_payments', id as string));
+          
+          if (paymentsError) {
+            console.error("Error fetching payments:", paymentsError);
+          } else if (paymentData) {
+            payments = [...payments, ...paymentData];
+          }
+        }
       }
       
+      console.log(`Fetched ${payments.length} payments for ${filteredAgreements.length} agreements`);
+      
+      // Convert Date fields to proper Date objects
+      const processedAgreements = filteredAgreements.map(agreement => ({
+        ...agreement,
+        start_date: new Date(agreement.start_date),
+        end_date: new Date(agreement.end_date),
+        created_at: new Date(agreement.created_at),
+        updated_at: new Date(agreement.updated_at)
+      }));
+      
       const doc = await generateSystemReport(
-        filteredAgreements,
-        payments || [],
+        processedAgreements,
+        payments,
         { 
           dateRange: options.dateRange,
           statusFilter: options.statusFilter.join(',')

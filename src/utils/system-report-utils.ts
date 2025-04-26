@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { generateStandardReport } from './report-utils';
-// Import autoTable explicitly
+// Import autoTable explicitly for proper typing
 import 'jspdf-autotable';
 
 interface SystemReportOptions {
