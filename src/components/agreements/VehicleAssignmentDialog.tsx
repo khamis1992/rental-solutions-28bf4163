@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,8 +13,8 @@ import {
   asLeaseId,
   asLeaseIdColumn,
   asStatusColumn,
-  hasData
 } from '@/utils/database-type-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
 import { Payment } from "./PaymentHistory.types";
 
 interface VehicleAssignmentDialogProps {
@@ -330,6 +329,7 @@ export function VehicleAssignmentDialog({
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
+                      type="checkbox"
                       checked={acknowledgedPayments}
                       onChange={() => setAcknowledgedPayments(!acknowledgedPayments)}
                       className="rounded border-gray-300 text-primary focus:ring-primary"
@@ -352,6 +352,7 @@ export function VehicleAssignmentDialog({
                 <div className="mt-2">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
+                      type="checkbox"
                       type="checkbox"
                       checked={acknowledgedFines}
                       onChange={() => setAcknowledgedFines(!acknowledgedFines)}
