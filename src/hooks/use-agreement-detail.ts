@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -99,26 +98,10 @@ export const useAgreementDetail = (
     }
   }, [agreement, onGenerateDocument]);
 
-  const handlePaymentSubmit = useCallback(async ({
-    amount,
-    paymentDate,
-    notes,
-    paymentMethod,
-    referenceNumber,
-    includeLatePaymentFee,
-    isPartialPayment
-  }: PaymentSubmitParams) => {
+  const handlePaymentSubmit = useCallback(async (params: PaymentSubmitParams) => {
     if (agreement && agreement.id) {
       try {
-        const success = await handleSpecialAgreementPayments(
-          amount, 
-          paymentDate, 
-          notes, 
-          paymentMethod, 
-          referenceNumber, 
-          includeLatePaymentFee,
-          isPartialPayment
-        );
+        const success = await handleSpecialAgreementPayments(params);
         if (success) {
           setIsPaymentDialogOpen(false);
           if (onDataRefresh) onDataRefresh();
@@ -151,17 +134,6 @@ export const useAgreementDetail = (
 
   const handleAddPayment = async (params: PaymentSubmitParams) => {
     try {
-      const { 
-        amount, 
-        paymentDate, 
-        notes, 
-        paymentMethod, 
-        referenceNumber, 
-        includeLatePaymentFee, 
-        isPartialPayment,
-        targetPaymentId
-      } = params;
-      
       console.log("Adding payment:", params);
       await addPaymentFromHook(params);
       fetchPayments();
