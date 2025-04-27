@@ -1,37 +1,37 @@
 
-export interface Payment {
+export interface ExtendedPayment {
   id: string;
+  lease_id: string;
   amount: number;
+  amount_paid: number;
+  balance: number;
+  payment_date: string | null;
+  payment_method: string | null;
+  description: string | null;
   status: string;
-  description?: string | null;
-  payment_date?: Date | string | null;
-  due_date?: Date | string | null;
-  lease_id?: string;
-  payment_method?: string | null;
-  balance?: number;
-  amount_paid?: number;
-  late_fine_amount?: number;
+  created_at: string;
+  updated_at?: string;
+  original_due_date?: string;
+  due_date?: string;
+  is_recurring?: boolean;
+  type?: string;
   days_overdue?: number;
+  late_fine_amount?: number;
+  processing_fee?: number;
+  processed_by?: string;
+  reference_number?: string;
+  notes?: string;
 }
 
-export interface ExtendedPayment extends Payment {
-  // Additional properties specific to the application
-  isEditable?: boolean;
-  formattedDueDate?: string;
-  formattedPaymentDate?: string;
-  statusBadge?: string;
-  isPaid?: boolean;
-  isLate?: boolean;
-  
-  // Properties needed by PaymentEditDialog and PaymentHistory components
-  reference_number?: string | null;
-  notes?: string | null;
-  type?: string;
-  created_at?: string;
-  updated_at?: string | null;
-  original_due_date?: string | null;
-  next_payment_date?: string | null;
-  is_recurring?: boolean;
-  processing_fee?: number;
-  processed_by?: string | null;
+export interface PaymentFormValues {
+  amount?: number;
+  amount_paid?: number;
+  balance?: number;
+  payment_date?: string;
+  due_date?: string;
+  payment_method?: string;
+  description?: string;
+  status?: string;
+  reference_number?: string;
+  notes?: string;
 }

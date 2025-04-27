@@ -8,9 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   asLeaseId,
   asLeaseStatus,
-  asLeaseUpdate,
-  castRowData
+  asLeaseUpdate
 } from '@/utils/database-type-helpers';
+import { Database } from '@/types/database.types';
 
 interface AgreementFormWithVehicleCheckProps {
   children: React.ReactNode;
@@ -72,9 +72,9 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
-      // Create update object
+      // Create update object with proper typing
       const leaseUpdate = asLeaseUpdate({ 
-        status: asLeaseStatus('terminated') 
+        status: asLeaseStatus('terminated')
       });
       
       // Convert ID to the correct type

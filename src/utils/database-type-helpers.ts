@@ -166,3 +166,15 @@ export function castDatabaseResult<T>(result: any): T | null {
 export function castRowData<T>(data: any): T {
   return data as T;
 }
+
+// Helper function to properly handle Supabase's foreign table results
+export function handleForeignTableData<T>(data: any): T | null {
+  if (!data) return null;
+  return data as T;
+}
+
+// New function for proper type casting of query results with nested data
+export function processQueryResult<T>(data: any): T {
+  // For nested data from joins, this ensures proper typing
+  return data as T;
+}

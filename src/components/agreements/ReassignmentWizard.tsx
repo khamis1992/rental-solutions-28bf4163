@@ -8,7 +8,8 @@ import {
   safelyExtractFields,
   safeExtract,
   castDatabaseResult,
-  castRowData
+  castRowData,
+  processQueryResult
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
 
@@ -53,16 +54,18 @@ export function ReassignmentWizard() {
       
       // Only proceed if we have valid data
       if (data && exists(data)) {
-        const profileData = data.profiles || {};
+        // Process the data safely
+        const processedData = processQueryResult<any>(data);
+        const profileData = processedData.profiles || {};
         
         // Create a properly typed AgreementDetails object
         const details: AgreementDetails = {
-          id: data.id || '',
-          agreement_number: data.agreement_number || '',
+          id: processedData.id || '',
+          agreement_number: processedData.agreement_number || '',
           customer_name: profileData.full_name || null,
           customer_email: profileData.email || null,
           customer_phone: profileData.phone_number || null,
-          profiles: data.profiles
+          profiles: processedData.profiles
         };
         
         setAgreementDetails(details);

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -71,6 +70,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
+import { castRowData } from '@/utils/database-type-helpers';
 
 interface UserData {
   id: string;
@@ -111,6 +111,17 @@ const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
     financials: { view: true, create: false, edit: false, delete: false },
     userManagement: { view: false, create: false, edit: false, delete: false }
   }
+};
+
+const convertToUserData = (data: any[]): UserData[] => {
+  return data.map(item => ({
+    id: item.id,
+    email: item.email || '',
+    role: item.role || 'user',
+    full_name: item.full_name || '',
+    status: item.status || 'active',
+    created_at: item.created_at || '',
+  }));
 };
 
 const UserList = () => {
@@ -174,22 +185,17 @@ const UserList = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .not('role', 'eq', 'customer');
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("Fetched users:", data);
-      setUsers(data || []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
+      setUsers(convertToUserData(data || []));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -270,7 +276,6 @@ const UserList = () => {
       setBulkDeletingUsers(true);
       console.log("Starting deletion of duplicate Khamis accounts");
       
-      // Find all Khamis accounts except the current user's account
       const khamisUsers = users.filter(user => 
         user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
       );
@@ -283,7 +288,6 @@ const UserList = () => {
         return;
       }
       
-      // Loop through and delete each duplicate account
       const deletionPromises = khamisUsers.map(async (user) => {
         console.log(`Attempting to delete user ${user.id}`);
         const { error } = await supabase
@@ -299,10 +303,8 @@ const UserList = () => {
         return user.id;
       });
       
-      // Wait for all deletions to complete
       await Promise.all(deletionPromises);
       
-      // Refresh user list
       await fetchUsers();
       
       toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);

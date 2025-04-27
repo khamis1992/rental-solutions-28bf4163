@@ -1,8 +1,4 @@
-
-import React from 'react';
-import { asPaymentId } from '@/utils/database-type-helpers';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -10,109 +6,212 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Edit, Trash2 } from 'lucide-react';
+} from "@/components/ui/table"
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from 'sonner';
-import { usePayments } from '@/hooks/use-payments';
-import { ExtendedPayment } from './PaymentHistory.types';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import PaymentEditDialog from './PaymentEditDialog';
+import { ExtendedPayment } from './PaymentHistory.types';
+import { asUnifiedPaymentLeaseId } from '@/utils/database-type-helpers';
 
 interface PaymentHistoryProps {
-  payments: ExtendedPayment[] | null | undefined;
-  isLoading: boolean;
-  onPaymentDeleted: () => void;
-  onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
-  rentAmount?: number | null;
-  contractAmount?: number | null;
-  leaseStartDate?: string | null;
-  leaseEndDate?: string | null;
-  onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
-  onEdit?: (payment: ExtendedPayment) => void;
-  onDelete?: (payment: ExtendedPayment) => void;
+  agreementId: string;
 }
 
-export const PaymentHistory = ({ payments, isLoading, onPaymentDeleted, onPaymentUpdated, rentAmount, contractAmount, leaseStartDate, leaseEndDate, onRecordPayment, onEdit, onDelete }: PaymentHistoryProps) => {
-  const { deletePayment } = usePayments();
+const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
+  try {
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .update({
+        amount: updateData.amount,
+        amount_paid: updateData.amount_paid,
+        balance: updateData.balance,
+        payment_method: updateData.payment_method,
+        status: updateData.status,
+        description: updateData.description,
+        reference_number: updateData.reference_number,
+        notes: updateData.notes
+      })
+      .eq('id', paymentId)
+      .select();
 
-  const handleDelete = async (paymentId: string) => {
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    throw error;
+  }
+};
+
+const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> => {
+  try {
+    // Use the properly typed ID for the database query
+    const typedLeaseId = asUnifiedPaymentLeaseId(agreementId);
+    
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', typedLeaseId);
+      
+    if (error) {
+      throw error;
+    }
+    
+    // Map the response to our ExtendedPayment type
+    return data.map(payment => ({
+      id: payment.id,
+      lease_id: payment.lease_id,
+      amount: payment.amount,
+      amount_paid: payment.amount_paid,
+      balance: payment.balance,
+      payment_date: payment.payment_date,
+      payment_method: payment.payment_method,
+      description: payment.description,
+      status: payment.status,
+      created_at: payment.created_at,
+      updated_at: payment.updated_at,
+      original_due_date: payment.original_due_date,
+      due_date: payment.due_date,
+      is_recurring: payment.is_recurring,
+      type: payment.type,
+      days_overdue: payment.days_overdue,
+      late_fine_amount: payment.late_fine_amount,
+      reference_number: payment.reference_number,
+      notes: payment.notes
+    }));
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    return [];
+  }
+};
+
+const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
+  const [payments, setPayments] = useState<ExtendedPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<ExtendedPayment | null>(null);
+
+  useEffect(() => {
+    const loadPayments = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const paymentData = await fetchPayments(agreementId);
+        setPayments(paymentData);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load payments.');
+        toast.error(e.message || 'Failed to load payments.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPayments();
+  }, [agreementId]);
+
+  const handleEditPayment = (payment: ExtendedPayment) => {
+    setSelectedPayment(payment);
+    setEditDialogOpen(true);
+  };
+
+  const handleSavePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
     try {
-      const typedPaymentId = asPaymentId(paymentId);
-      await deletePayment(typedPaymentId);
-      onPaymentDeleted();
-      toast.success('Payment deleted successfully');
-    } catch (error) {
-      console.error('Error deleting payment:', error);
-      toast.error('Failed to delete payment');
+      await updatePayment(paymentId, updateData);
+      const updatedPayments = payments.map(payment =>
+        payment.id === paymentId ? { ...payment, ...updateData } : payment
+      );
+      setPayments(updatedPayments);
+      toast.success('Payment updated successfully!');
+    } catch (e: any) {
+      setError(e.message || 'Failed to update payment.');
+      toast.error(e.message || 'Failed to update payment.');
+    } finally {
+      setEditDialogOpen(false);
+      setSelectedPayment(null);
     }
   };
 
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4">Payment History</h3>
-      <div className="rounded-md border">
+      {error && <p className="text-red-500">{error}</p>}
+      {loading ? (
+        <p>Loading payments...</p>
+      ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Method</TableHead>
-              <TableHead>Reference</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Reference #</TableHead>
               <TableHead>Notes</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">Loading payments...</TableCell>
-              </TableRow>
-            ) : payments && payments.length > 0 ? (
-              payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell>{payment.payment_date ? format(new Date(payment.payment_date), 'MMM d, yyyy') : 'N/A'}</TableCell>
-                  <TableCell>{formatCurrency(payment.amount_paid || payment.amount || 0)}</TableCell>
-                  <TableCell>{payment.payment_method || 'N/A'}</TableCell>
-                  <TableCell>{payment.reference_number || 'N/A'}</TableCell>
-                  <TableCell>{payment.notes || 'N/A'}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => {
-                        if (onEdit) {
-                          onEdit(payment);
-                        } else {
-                          onPaymentUpdated({
-                            id: payment.id,
-                            amount_paid: payment.amount,
-                            payment_date: payment.payment_date,
-                            payment_method: payment.payment_method,
-                            reference_number: payment.reference_number,
-                            notes: payment.notes
-                          });
-                        }
-                      }}>
-                        <Edit className="h-4 w-4" />
+            {payments.map((payment) => (
+              <TableRow key={payment.id}>
+                <TableCell>{payment.payment_date}</TableCell>
+                <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                <TableCell>{payment.payment_method}</TableCell>
+                <TableCell>{payment.status}</TableCell>
+                <TableCell>{payment.reference_number}</TableCell>
+                <TableCell>{payment.notes}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => {
-                        if (onDelete) {
-                          onDelete(payment);
-                        } else {
-                          handleDelete(payment.id);
-                        }
-                      }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">No payments found.</TableCell>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleEditPayment(payment)}
+                      >
+                        Edit Payment
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
-            )}
+            ))}
           </TableBody>
         </Table>
-      </div>
+      )}
+
+      {selectedPayment && (
+        <PaymentEditDialog
+          payment={selectedPayment}
+          isOpen={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedPayment(null);
+          }}
+          onSave={(paymentId: string, updateData: Partial<ExtendedPayment>) => {
+            handleSavePayment(paymentId, updateData);
+          }}
+        />
+      )}
     </div>
   );
 };
+
+export default PaymentHistory;
