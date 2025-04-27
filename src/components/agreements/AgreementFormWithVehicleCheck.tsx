@@ -7,9 +7,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   asLeaseId,
-  asTableUpdate,
-  asTableStatus,
-  asTableId
+  asLeaseStatus,
+  asLeaseUpdate
 } from '@/utils/database-type-helpers';
 
 interface AgreementFormWithVehicleCheckProps {
@@ -72,8 +71,8 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
-      // Properly typed status update
-      const leaseUpdate = asTableUpdate('leases', { status: asTableStatus('leases', 'terminated') });
+      // Type-safe update operation using our helper
+      const leaseUpdate = asLeaseUpdate({ status: asLeaseStatus('terminated') });
       const leaseId = asLeaseId(existingAgreement.id);
       
       const { error } = await supabase

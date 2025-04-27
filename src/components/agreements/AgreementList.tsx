@@ -1,12 +1,11 @@
 import React from 'react';
 import { 
   asLeaseId, 
-  asAgreementIdField, 
+  asOverduePaymentAgreementId, 
   asTrafficFineAgreementId,
   asPaymentStatus,
   asImportId,
-  asLeaseIdField2,
-  asOverduePaymentAgreementId
+  asUnifiedPaymentLeaseId
 } from '@/utils/database-type-helpers';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -110,7 +109,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asLeaseIdField2(agreementId));
+      .eq('lease_id', asUnifiedPaymentLeaseId(agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -210,7 +209,7 @@ export function AgreementList() {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', asLeaseIdField2(id));
+          .eq('lease_id', asUnifiedPaymentLeaseId(id));
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);

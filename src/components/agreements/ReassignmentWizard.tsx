@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   asLeaseId,
-  asLeaseStatus,
-  asPaymentStatus,
+  asQueryResult,
   exists,
   hasProperties,
-  extractData
+  safelyExtractFields,
+  safeExtract
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
 
@@ -48,15 +48,14 @@ export function ReassignmentWizard() {
         throw error;
       }
       
-      // Use our type guard to safely check properties
-      if (data && hasProperties(data, 'id', 'agreement_number')) {
-        // Type-check the data exists and has proper properties
+      if (data && exists(data) && hasProperties(data, 'id', 'agreement_number')) {
+        // Safely extract the data with proper type casting
         setAgreementDetails({
           id: data.id,
           agreement_number: data.agreement_number,
-          customer_name: data.profiles?.full_name || null,
-          customer_email: data.profiles?.email || null,
-          customer_phone: data.profiles?.phone_number || null,
+          customer_name: safeExtract(data.profiles, 'full_name', null),
+          customer_email: safeExtract(data.profiles, 'email', null),
+          customer_phone: safeExtract(data.profiles, 'phone_number', null),
           profiles: data.profiles
         });
       } else {
