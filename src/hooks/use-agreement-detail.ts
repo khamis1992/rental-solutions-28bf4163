@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -149,6 +148,29 @@ export const useAgreementDetail = (
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
+  const addPayment = async (params: PaymentSubmitParams) => {
+    try {
+      const { 
+        amount, 
+        paymentDate, 
+        notes, 
+        paymentMethod, 
+        referenceNumber, 
+        includeLatePaymentFee, 
+        isPartialPayment,
+        targetPaymentId
+      } = params;
+      
+      console.log("Adding payment:", params);
+      
+      fetchPayments();
+      toast.success("Payment added successfully");
+    } catch (error) {
+      console.error("Error adding payment:", error);
+      toast.error("Failed to add payment");
+    }
+  };
+
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
@@ -171,7 +193,6 @@ export const useAgreementDetail = (
       setIsLoading(true);
       const data = await getAgreement(agreementId);
       if (data) {
-        // Safe date handling
         const parsedStartDate = data.start_date ? new Date(data.start_date) : null;
         const parsedEndDate = data.end_date ? new Date(data.end_date) : null;
         const parsedCreatedAt = data.created_at ? new Date(data.created_at) : null;
@@ -200,7 +221,6 @@ export const useAgreementDetail = (
     }
   }, [agreementId, refreshTrigger, hasAttemptedFetch, fetchAgreementData]);
 
-  // Calculate duration and financial values
   const agreementDuration = useCallback(() => {
     if (!agreement?.start_date || !agreement?.end_date) return 0;
     
@@ -242,6 +262,7 @@ export const useAgreementDetail = (
     setIsPaymentDialogOpen,
     setSelectedPayment,
     refreshData: () => setRefreshTrigger(prev => prev + 1),
-    agreementDuration
+    agreementDuration,
+    addPayment
   };
 };

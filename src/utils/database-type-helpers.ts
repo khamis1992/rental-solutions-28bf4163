@@ -1,3 +1,4 @@
+
 import { Database } from '@/types/database.types';
 import { Tables } from '@/lib/supabase-types';
 
@@ -5,24 +6,9 @@ type DbTables = Database['public']['Tables'];
 type TableNames = keyof DbTables;
 type RowType<T extends TableNames> = DbTables[T]['Row'];
 
-export function asTableId<T extends TableNames>(table: T, id: string): DbTables[T]['Row']['id'] {
-  return id as DbTables[T]['Row']['id'];
-}
-
-export function asStatus<T extends TableNames>(table: T, status: string): DbTables[T]['Row']['status'] {
-  return status as DbTables['unified_payments']['Row']['status'];
-}
-
-export function asPaymentStatus(status: string): DbTables['unified_payments']['Row']['status'] {
-  return status as DbTables['unified_payments']['Row']['status'];
-}
-
-export function safelyExtractData<T>(data: T | null): T | null {
-  if (!data) return null;
-  return data;
-}
-
-// Generic table ID casting with proper typing
+/**
+ * Generic table ID casting with proper typing - supports null/undefined
+ */
 export function asTableId<T extends TableNames>(
   table: T,
   id: string | null | undefined
@@ -30,7 +16,9 @@ export function asTableId<T extends TableNames>(
   return id as DbTables[T]['Row']['id'] | null | undefined;
 }
 
-// Generic column value casting with proper typing
+/**
+ * Generic column value casting with proper typing
+ */
 export function asColumnValue<
   T extends TableNames,
   K extends keyof DbTables[T]['Row']
@@ -42,12 +30,22 @@ export function asColumnValue<
   return value as DbTables[T]['Row'][K];
 }
 
-// Status casting with proper typing
+/**
+ * Status casting with proper typing
+ */
 export function asStatus<T extends TableNames>(
   table: T,
   status: string | null | undefined
 ): DbTables[T]['Row']['status'] | null | undefined {
   return asColumnValue(table, 'status', status);
+}
+
+/**
+ * Safely extract data from response
+ */
+export function safelyExtractData<T>(data: T | null): T | null {
+  if (!data) return null;
+  return data;
 }
 
 // Specific ID casting functions
