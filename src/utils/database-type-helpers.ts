@@ -1,9 +1,26 @@
-
 import { Database } from '@/types/database.types';
+import { Tables } from '@/lib/supabase-types';
 
 type DbTables = Database['public']['Tables'];
 type TableNames = keyof DbTables;
 type RowType<T extends TableNames> = DbTables[T]['Row'];
+
+export function asTableId<T extends TableNames>(table: T, id: string): DbTables[T]['Row']['id'] {
+  return id as DbTables[T]['Row']['id'];
+}
+
+export function asStatus<T extends TableNames>(table: T, status: string): DbTables[T]['Row']['status'] {
+  return status as DbTables['unified_payments']['Row']['status'];
+}
+
+export function asPaymentStatus(status: string): DbTables['unified_payments']['Row']['status'] {
+  return status as DbTables['unified_payments']['Row']['status'];
+}
+
+export function safelyExtractData<T>(data: T | null): T | null {
+  if (!data) return null;
+  return data;
+}
 
 // Generic table ID casting with proper typing
 export function asTableId<T extends TableNames>(

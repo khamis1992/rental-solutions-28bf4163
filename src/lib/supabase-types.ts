@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { asUUID, UUID } from '@/lib/uuid-helpers';
 import { getResponseData } from '@/utils/supabase-type-helpers';
@@ -97,6 +96,13 @@ export function createTableHelper<T extends keyof Tables>(table: T) {
       value: any
     ): Tables[T]['Row'][C] => value as Tables[T]['Row'][C]
   };
+}
+
+/**
+ * Type-safe database ID casting utility
+ */
+export function castDbId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
 }
 
 // Create helpers for common tables

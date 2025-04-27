@@ -12,8 +12,8 @@ export interface AgreementDetailProps {
   onPaymentDeleted: () => void;
 }
 
-export interface AgreementDetailRouteParams {
-  id?: string;
+export interface AgreementDetailParams {
+  id: string;
 }
 
 export interface PaymentSubmitParams {

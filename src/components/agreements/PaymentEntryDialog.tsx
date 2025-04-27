@@ -37,7 +37,6 @@ interface PaymentEntryDialogProps {
   selectedPayment?: any;
 }
 
-// Create Zod schema for payment validation
 const paymentSchema = z.object({
   amount: z.number().positive("Amount must be greater than 0"),
   paymentDate: z.date(),
@@ -59,10 +58,10 @@ export const PaymentEntryDialog = ({
   selectedPayment = null
 }: PaymentEntryDialogProps) => {
   const [isLateFeeIncluded, setIsLateFeeIncluded] = useState(false);
+  const [isPartialPayment, setIsPartialPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [referenceNumber, setReferenceNumber] = useState<string>('');
-  const [isPartialPayment, setIsPartialPayment] = useState(false);
-
+  
   const form = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -94,6 +93,14 @@ export const PaymentEntryDialog = ({
       selectedPayment?.id
     );
     onOpenChange(false);
+  };
+
+  const handleLateFeeChange = (checked: boolean) => {
+    setIsLateFeeIncluded(checked);
+  };
+
+  const handlePartialPaymentChange = (checked: boolean) => {
+    setIsPartialPayment(checked);
   };
 
   return (
@@ -238,10 +245,7 @@ export const PaymentEntryDialog = ({
                     <FormControl>
                       <Checkbox
                         checked={isLateFeeIncluded}
-                        onCheckedChange={(checked) => {
-                          setIsLateFeeIncluded(checked);
-                          field.onChange(checked);
-                        }}
+                        onCheckedChange={(checked) => handleLateFeeChange(checked)}
                       />
                     </FormControl>
                   </FormItem>
@@ -262,10 +266,7 @@ export const PaymentEntryDialog = ({
                   <FormControl>
                     <Checkbox
                       checked={isPartialPayment}
-                      onCheckedChange={(checked) => {
-                        setIsPartialPayment(checked);
-                        field.onChange(checked);
-                      }}
+                      onCheckedChange={(checked) => handlePartialPaymentChange(checked)}
                     />
                   </FormControl>
                 </FormItem>

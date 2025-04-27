@@ -1,7 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
-import { castDbId } from '@/utils/supabase-type-helpers';
+import { castDbId } from '@/lib/supabase-types';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 
 /**
