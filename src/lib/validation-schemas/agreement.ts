@@ -57,3 +57,74 @@ export enum AgreementStatus {
   ARCHIVED = 'archived',
   CLOSED = 'closed'
 }
+
+/**
+ * Force generates a payment for the specified agreement
+ * @param supabase The Supabase client
+ * @param agreementId The ID of the agreement to generate payments for
+ * @returns Result object with success status and optional message
+ */
+export async function forceGeneratePaymentForAgreement(supabase: any, agreementId: string) {
+  if (!agreementId) {
+    return { success: false, message: 'Agreement ID is required' };
+  }
+  
+  try {
+    // Fetch the agreement details
+    const { data: agreement, error: agreementError } = await supabase
+      .from('leases')
+      .select('*, profiles:customer_id(*)')
+      .eq('id', agreementId)
+      .single();
+    
+    if (agreementError || !agreement) {
+      return { 
+        success: false, 
+        message: `Failed to fetch agreement: ${agreementError?.message || 'Agreement not found'}` 
+      };
+    }
+    
+    // Calculate payment due date - default to first day of next month
+    const today = new Date();
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const dueDate = agreement.rent_due_day 
+      ? new Date(today.getFullYear(), today.getMonth() + 1, agreement.rent_due_day)
+      : nextMonth;
+    
+    // Create payment record
+    const { data: payment, error: paymentError } = await supabase
+      .from('unified_payments')
+      .insert({
+        lease_id: agreementId,
+        amount: agreement.rent_amount || 0,
+        due_date: dueDate.toISOString(),
+        original_due_date: dueDate.toISOString(),
+        status: 'pending',
+        description: `Rent payment for ${agreement.agreement_number || 'agreement'}`,
+        is_recurring: false,
+        amount_paid: 0,
+        balance: agreement.rent_amount || 0
+      })
+      .select()
+      .single();
+      
+    if (paymentError) {
+      return { 
+        success: false, 
+        message: `Failed to generate payment: ${paymentError.message}` 
+      };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Payment generated successfully',
+      payment 
+    };
+  } catch (error) {
+    console.error("Error in forceGeneratePaymentForAgreement:", error);
+    return { 
+      success: false, 
+      message: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
+  }
+}
