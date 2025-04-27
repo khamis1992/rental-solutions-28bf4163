@@ -44,6 +44,45 @@ export function adaptSimpleToFullAgreement(data: any): Agreement {
 }
 
 /**
+ * Activates an agreement and optionally assigns a vehicle to it
+ * @param agreementId The ID of the agreement to activate
+ * @param vehicleId Optional vehicle ID to assign
+ * @returns Promise with the result of the activation
+ */
+export async function activateAgreement(agreementId: string, vehicleId?: string): Promise<boolean> {
+  try {
+    // Update agreement status to active
+    const { error: updateError } = await supabase
+      .from('leases')
+      .update({ status: 'active' })
+      .eq('id', agreementId);
+      
+    if (updateError) {
+      console.error("Error activating agreement:", updateError);
+      return false;
+    }
+    
+    // If vehicle ID is provided, update the vehicle status
+    if (vehicleId) {
+      const { error: vehicleError } = await supabase
+        .from('vehicles')
+        .update({ status: 'rented' })
+        .eq('id', vehicleId);
+        
+      if (vehicleError) {
+        console.error("Error updating vehicle status:", vehicleError);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Unexpected error in activateAgreement:", error);
+    return false;
+  }
+}
+
+/**
  * Checks and creates missing payment schedules for active agreements
  * @returns Promise with status of the operation
  */
