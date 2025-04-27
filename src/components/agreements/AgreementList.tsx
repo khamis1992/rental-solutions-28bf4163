@@ -1,4 +1,4 @@
-import { asTableId, asTableStatus } from '@/utils/type-casting';
+import { asLeaseId, asPaymentStatus, asLeaseStatus } from '@/utils/database-type-helpers';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -83,13 +83,14 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { asImportId } from '@/utils/database-type-helpers';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asTableId('overdue_payments', agreementId))
+      .eq('agreement_id', asLeaseId(agreementId))
       .single();
     
     if (error) {
@@ -107,7 +108,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asTableId('unified_payments', agreementId));
+      .eq('lease_id', asLeaseId(agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -124,7 +125,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', asTableId('agreement_import_reverts', importId));
+      .eq('import_id', asImportId(importId));
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -141,7 +142,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asTableId('traffic_fines', agreementId));
+      .eq('agreement_id', asLeaseId(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -289,7 +290,7 @@ export const AgreementList = () => {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', asTableId('leases', id));
+          .eq('id', id);
         
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);
