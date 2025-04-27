@@ -88,10 +88,12 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
+    const typedAgreementId = asOverduePaymentAgreementId(agreementId);
+    
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asOverduePaymentAgreementId(agreementId))
+      .eq('agreement_id', typedAgreementId)
       .single();
     
     if (error) {
@@ -106,10 +108,12 @@ const fetchOverduePayments = async (agreementId: string) => {
 
 const fetchPayments = async (agreementId: string) => {
   try {
+    const typedLeaseId = asUnifiedPaymentLeaseId(agreementId);
+    
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asUnifiedPaymentLeaseId(agreementId));
+      .eq('lease_id', typedLeaseId);
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -123,10 +127,12 @@ const fetchPayments = async (agreementId: string) => {
 
 const fetchTrafficFines = async (agreementId: string) => {
   try {
+    const typedAgreementId = asTrafficFineAgreementId(agreementId);
+    
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asTrafficFineAgreementId(agreementId));
+      .eq('agreement_id', typedAgreementId);
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -195,10 +201,16 @@ export function AgreementList() {
       try {
         console.log(`Starting deletion process for agreement ${id}`);
         
+        const typedAgreementId = asOverduePaymentAgreementId(id);
+        const typedLeaseId = asUnifiedPaymentLeaseId(id);
+        const typedTrafficFineAgreementId = asTrafficFineAgreementId(id);
+        const typedImportId = asImportId(id);
+        const typedLeaseId2 = asLeaseId(id);
+        
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asOverduePaymentAgreementId(id));
+          .eq('agreement_id', typedAgreementId);
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -209,7 +221,7 @@ export function AgreementList() {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', asUnifiedPaymentLeaseId(id));
+          .eq('lease_id', typedLeaseId);
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -220,7 +232,7 @@ export function AgreementList() {
         const { error: revertDeleteError } = await supabase
           .from('agreement_import_reverts')
           .delete()
-          .eq('import_id', asImportId(id));
+          .eq('import_id', typedImportId);
         
         if (revertDeleteError) {
           console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -231,7 +243,7 @@ export function AgreementList() {
         const { error: finesDeleteError } = await supabase
           .from('traffic_fines')
           .delete()
-          .eq('agreement_id', asTrafficFineAgreementId(id));
+          .eq('agreement_id', typedTrafficFineAgreementId);
         
         if (finesDeleteError) {
           console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -242,7 +254,7 @@ export function AgreementList() {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', asLeaseId(id));
+          .eq('id', typedLeaseId2);
         
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);

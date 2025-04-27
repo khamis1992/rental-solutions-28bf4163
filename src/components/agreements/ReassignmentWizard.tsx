@@ -7,7 +7,8 @@ import {
   hasProperties,
   safelyExtractFields,
   safeExtract,
-  castDatabaseResult
+  castDatabaseResult,
+  castRowData
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
 
@@ -30,6 +31,8 @@ export function ReassignmentWizard() {
     
     setIsLoading(true);
     try {
+      const typedLeaseId = asLeaseId(agreementId);
+      
       const { data, error } = await supabase
         .from('leases')
         .select(`
@@ -41,7 +44,7 @@ export function ReassignmentWizard() {
             phone_number
           )
         `)
-        .eq('id', asLeaseId(agreementId))
+        .eq('id', typedLeaseId)
         .single();
       
       if (error) {
@@ -50,13 +53,15 @@ export function ReassignmentWizard() {
       
       // Only proceed if we have valid data
       if (data && exists(data)) {
+        const profileData = data.profiles || {};
+        
         // Create a properly typed AgreementDetails object
         const details: AgreementDetails = {
           id: data.id || '',
           agreement_number: data.agreement_number || '',
-          customer_name: data.profiles ? data.profiles.full_name : null,
-          customer_email: data.profiles ? data.profiles.email : null,
-          customer_phone: data.profiles ? data.profiles.phone_number : null,
+          customer_name: profileData.full_name || null,
+          customer_email: profileData.email || null,
+          customer_phone: profileData.phone_number || null,
           profiles: data.profiles
         };
         

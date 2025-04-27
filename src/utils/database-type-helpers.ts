@@ -149,7 +149,7 @@ export function createFilter<T extends TableNames, K extends keyof RowType<T>>(
   return { column, value };
 }
 
-// Adding the castDbId function
+// Adding the castDbId function with correct typing
 export function castDbId(id: string): string {
   return id;
 }
@@ -160,4 +160,9 @@ export function castDatabaseResult<T>(result: any): T | null {
     return null;
   }
   return result.data as T;
+}
+
+// Function to cast Row data safely to expected type
+export function castRowData<T>(data: any): T {
+  return data as T;
 }

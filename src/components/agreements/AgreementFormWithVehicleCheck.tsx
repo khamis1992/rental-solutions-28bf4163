@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   asLeaseId,
   asLeaseStatus,
-  asLeaseUpdate
+  asLeaseUpdate,
+  castRowData
 } from '@/utils/database-type-helpers';
 
 interface AgreementFormWithVehicleCheckProps {
@@ -71,15 +72,18 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
-      // Type-safe update operation using our helper
-      const updates = { status: asLeaseStatus('terminated') };
-      const leaseUpdate = asLeaseUpdate(updates);
-      const leaseId = asLeaseId(existingAgreement.id);
+      // Create update object
+      const leaseUpdate = asLeaseUpdate({ 
+        status: asLeaseStatus('terminated') 
+      });
+      
+      // Convert ID to the correct type
+      const typedLeaseId = asLeaseId(existingAgreement.id);
       
       const { error } = await supabase
         .from('leases')
         .update(leaseUpdate)
-        .eq('id', leaseId);
+        .eq('id', typedLeaseId);
       
       if (error) {
         throw error;
