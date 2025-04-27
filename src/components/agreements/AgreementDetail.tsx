@@ -20,7 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExtendedPayment } from './PaymentHistory.types';
 
-const AgreementDetail: React.FC<AgreementDetailProps> = ({
+export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   agreement,
   onDelete,
   onGenerateDocument,
@@ -35,7 +35,7 @@ const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const { 
     payments, 
     fetchPayments, 
-    addPayment,
+    addPayment: handleAddPayment,
     isLoading: isPaymentsLoading 
   } = useAgreementDetail(id as string);
   
@@ -89,7 +89,7 @@ const AgreementDetail: React.FC<AgreementDetailProps> = ({
 
   const handleSubmitPayment = async (params: PaymentSubmitParams) => {
     try {
-      await addPayment(params);
+      await handleAddPayment(params);
       setIsPaymentDialogOpen(false);
       onDataRefresh();
     } catch (error) {
@@ -207,6 +207,8 @@ const AgreementDetail: React.FC<AgreementDetailProps> = ({
               onPaymentUpdated={async () => {}}
               onDelete={handleDeleteClick}
               onEdit={handleEditPayment}
+              rentAmount={rentAmount}
+              contractAmount={contractAmount}
             />
           )}
         </CardContent>
@@ -250,5 +252,3 @@ const AgreementDetail: React.FC<AgreementDetailProps> = ({
     </div>
   );
 };
-
-export default AgreementDetail;
