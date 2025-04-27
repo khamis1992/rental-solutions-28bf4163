@@ -1,6 +1,5 @@
 
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { AgreementId } from '@/types/database-types';
 import { ExtendedPayment } from './PaymentHistory.types';
 
 export interface AgreementDetailProps {
@@ -13,7 +12,7 @@ export interface AgreementDetailProps {
   onPaymentDeleted: () => void;
 }
 
-export interface AgreementDetailRouteProps {
+export interface AgreementDetailRouteParams {
   id?: string;
 }
 
@@ -25,4 +24,10 @@ export interface PaymentSubmitParams {
   referenceNumber?: string;
   includeLatePaymentFee?: boolean;
   isPartialPayment?: boolean;
+  targetPaymentId?: string;
+}
+
+export interface DatabaseResponse<T> {
+  data: T | null;
+  error: Error | null;
 }

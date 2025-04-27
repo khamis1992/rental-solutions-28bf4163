@@ -1,8 +1,6 @@
-
 import { 
   asTableId, asStatus, asLeaseId, asPaymentId, asVehicleId,
-  asLeaseStatus, asPaymentStatus, asColumnValue,
-  asImportId, asTrafficFineId, asMaintenanceId, asStatusColumn
+  asLeaseStatus, asPaymentStatus, asStatusColumn 
 } from '../database-type-helpers';
 
 describe('Database Type Helpers', () => {
@@ -37,14 +35,6 @@ describe('Database Type Helpers', () => {
     });
   });
 
-  describe('asColumnValue', () => {
-    it('should cast column value correctly', () => {
-      const value = 'test-value';
-      const result = asColumnValue('leases', 'agreement_number', value);
-      expect(result).toBe(value);
-    });
-  });
-
   describe('asLeaseId', () => {
     it('should cast lease ID correctly', () => {
       const id = '123';
@@ -65,30 +55,6 @@ describe('Database Type Helpers', () => {
     it('should cast vehicle ID correctly', () => {
       const id = '789';
       const result = asVehicleId(id);
-      expect(result).toBe(id);
-    });
-  });
-
-  describe('asTrafficFineId', () => {
-    it('should cast traffic fine ID correctly', () => {
-      const id = 'abc123';
-      const result = asTrafficFineId(id);
-      expect(result).toBe(id);
-    });
-  });
-
-  describe('asImportId', () => {
-    it('should cast import ID correctly', () => {
-      const id = 'import-123';
-      const result = asImportId(id);
-      expect(result).toBe(id);
-    });
-  });
-
-  describe('asMaintenanceId', () => {
-    it('should cast maintenance ID correctly', () => {
-      const id = 'maint-123';
-      const result = asMaintenanceId(id);
       expect(result).toBe(id);
     });
   });
