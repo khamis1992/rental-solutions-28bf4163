@@ -15,12 +15,12 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { useAgreementDetail } from '@/hooks/use-agreement-detail';
-import { AgreementDetailRouteProps } from './AgreementDetail.types';
+import { AgreementDetailRouteParams } from './AgreementDetail.types';
 import { ErrorBoundary } from '@/utils/error-boundary';
 import { useDateUtils } from '@/hooks/use-date-utils';
 
 const AgreementDetail = () => {
-  const { id } = useParams<AgreementDetailRouteProps>();
+  const { id } = useParams<AgreementDetailRouteParams>();
   const { formatDate } = useDateUtils();
   
   const {
@@ -46,7 +46,8 @@ const AgreementDetail = () => {
     setIsDeleteDialogOpen,
     setIsPaymentDialogOpen,
     refreshData: onDataRefresh,
-    agreementDuration
+    agreementDuration,
+    addPayment
   } = useAgreementDetail(id);
 
   if (isLoading) {
@@ -266,7 +267,7 @@ const AgreementDetail = () => {
               onPaymentDeleted={onDataRefresh}
               onPaymentUpdated={handlePaymentUpdate}
               onRecordPayment={(payment) => {
-                if (payment && agreement.id) {
+                if (payment && agreement.id && addPayment) {
                   const fullPayment = {
                     ...payment,
                     lease_id: agreement.id,
@@ -325,7 +326,7 @@ const AgreementDetail = () => {
         <PaymentEntryDialog 
           open={isPaymentDialogOpen} 
           onOpenChange={setIsPaymentDialogOpen} 
-          onSubmit={handlePaymentSubmit} 
+          handleSubmit={handlePaymentSubmit} 
           defaultAmount={rentAmount || 0} 
           title="Record Rent Payment" 
           description="Record a new rental payment for this agreement." 
