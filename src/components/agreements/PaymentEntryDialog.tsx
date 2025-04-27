@@ -1,34 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
+import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { PaymentSubmitParams } from "./AgreementDetail.types";
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -36,55 +20,69 @@ interface PaymentEntryDialogProps {
   handleSubmit: (
     amount: number,
     paymentDate: Date,
-    notes?: string,
-    paymentMethod?: string,
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
+    notes: string,
+    paymentMethod: string,
+    referenceNumber: string,
+    includeLatePaymentFee: boolean,
+    isPartialPayment: boolean,
     targetPaymentId?: string
   ) => void;
   defaultAmount?: number;
-  lateFeeDetails?: { days: number; amount: number } | null;
-  selectedPayment?: any | null;
-  title?: string;
-  description?: string;
+  lateFeeDetails?: {
+    days: number;
+    amount: number;
+  };
+  selectedPayment?: any;
 }
 
-export const PaymentEntryDialog: React.FC<PaymentEntryDialogProps> = ({
+interface DatePickerProps {
+  selected: Date | undefined;
+  onSelect: Dispatch<SetStateAction<Date | undefined>>;
+  initialFocus?: boolean;
+}
+
+const Calendar = ({ selected, onSelect, initialFocus = true }) => {
+  return (
+    <div className="p-0">
+      <CalendarUI
+        selected={selected}
+        onSelect={onSelect}
+        initialFocus={initialFocus}
+        className="pointer-events-auto"
+      />
+    </div>
+  );
+};
+
+export function PaymentEntryDialog({
   open,
   onOpenChange,
   handleSubmit,
   defaultAmount = 0,
   lateFeeDetails,
-  selectedPayment,
-  title = "Record Payment",
-  description = "Enter payment details to record a new payment",
-}) => {
-  const [amount, setAmount] = useState(defaultAmount || 0);
-  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [referenceNumber, setReferenceNumber] = useState('');
+  selectedPayment
+}: PaymentEntryDialogProps) {
+  const [amount, setAmount] = useState(defaultAmount);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [notes, setNotes] = useState("");
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState(false);
   const [isPartialPayment, setIsPartialPayment] = useState(false);
-
+  const [targetPaymentId, setTargetPaymentId] = useState<string | undefined>(undefined);
+  
   useEffect(() => {
-    if (selectedPayment) {
-      setAmount(selectedPayment.amount || 0);
-      setPaymentDate(selectedPayment.payment_date ? new Date(selectedPayment.payment_date) : new Date());
-      setNotes(selectedPayment.notes || '');
-      setPaymentMethod(selectedPayment.payment_method || '');
-      setReferenceNumber(selectedPayment.reference_number || '');
-    } else {
-      setAmount(defaultAmount || 0);
-      setPaymentDate(new Date());
-      setNotes('');
-      setPaymentMethod('');
-      setReferenceNumber('');
+    if (defaultAmount) {
+      setAmount(defaultAmount);
     }
-  }, [selectedPayment, defaultAmount]);
+  }, [defaultAmount]);
 
   const onSubmit = () => {
+    if (!paymentDate) {
+      toast.error("Please select a payment date");
+      return;
+    }
+
     handleSubmit(
       amount,
       paymentDate,
@@ -93,132 +91,127 @@ export const PaymentEntryDialog: React.FC<PaymentEntryDialogProps> = ({
       referenceNumber,
       includeLatePaymentFee,
       isPartialPayment,
-      selectedPayment?.id
+      targetPaymentId
     );
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
-            {description}
+            Enter the payment details below.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">
-              Amount
-            </Label>
-            <Input
-              type="number"
-              id="amount"
-              value={amount}
-              onChange={(e) => setAmount(parseFloat(e.target.value))}
-              className="col-span-3"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                type="number"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PPP") : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    selected={paymentDate}
+                    onSelect={setPaymentDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="paymentDate" className="text-right">
-              Payment Date
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !paymentDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {paymentDate ? format(paymentDate, "PPP") : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
-                <DatePicker
-                  mode="single"
-                  selected={paymentDate}
-                  onSelect={setPaymentDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment-method">Payment Method</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
+                  <SelectItem value="debit_card">Debit Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="mobile_payment">Mobile Payment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reference-number">Reference #</Label>
+              <Input
+                id="reference-number"
+                placeholder="Reference number"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="paymentMethod" className="text-right">
-              Payment Method
-            </Label>
-            <Select onValueChange={setPaymentMethod}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="check">Check</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="referenceNumber" className="text-right">
-              Reference Number
-            </Label>
-            <Input
-              type="text"
-              id="referenceNumber"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="notes" className="text-right mt-2">
-              Notes
-            </Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
+              placeholder="Payment notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="col-span-3"
             />
           </div>
-          {lateFeeDetails && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="includeLateFee" className="text-right">
-                Include Late Fee
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Checkbox
-                  id="includeLateFee"
-                  checked={includeLatePaymentFee}
-                  onCheckedChange={(checked) => setIncludeLatePaymentFee(!!checked)}
-                />
-                <span>
-                  Add QAR {lateFeeDetails.amount} (
-                  {lateFeeDetails.days} days late)
-                </span>
-              </div>
+
+          {lateFeeDetails && lateFeeDetails.days > 0 && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="include-late-fee"
+                checked={includeLatePaymentFee}
+                onCheckedChange={(checked) => setIncludeLatePaymentFee(!!checked)}
+              />
+              <label
+                htmlFor="include-late-fee"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Include Late Fee (Days Late: {lateFeeDetails.days}, Amount: {lateFeeDetails.amount})
+              </label>
             </div>
           )}
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="isPartialPayment" className="text-right">
-              Partial Payment
-            </Label>
-            <div className="col-span-3 flex items-center space-x-2">
-              <Checkbox
-                id="isPartialPayment"
-                checked={isPartialPayment}
-                onCheckedChange={(checked) => setIsPartialPayment(!!checked)}
-              />
-              <span>Is this a partial payment?</span>
-            </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="is-partial-payment"
+              checked={isPartialPayment}
+              onCheckedChange={(checked) => setIsPartialPayment(!!checked)}
+            />
+            <label
+              htmlFor="is-partial-payment"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Is Partial Payment
+            </label>
           </div>
         </div>
         <DialogFooter>
@@ -230,4 +223,4 @@ export const PaymentEntryDialog: React.FC<PaymentEntryDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+}

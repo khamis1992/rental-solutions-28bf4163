@@ -1,125 +1,68 @@
 
 import { Database } from '@/types/database.types';
-import { Tables } from '@/lib/supabase-types';
 
-type DbTables = Database['public']['Tables'];
-type TableNames = keyof DbTables;
-type RowType<T extends TableNames> = DbTables[T]['Row'];
+type Tables = Database['public']['Tables'];
+type TableNames = keyof Tables;
+type RowType<T extends TableNames> = Tables[T]['Row'];
 
-/**
- * Generic table ID casting with proper typing - supports null/undefined
- */
-export function asTableId<T extends TableNames>(
-  table: T,
-  id: string | null | undefined
-): DbTables[T]['Row']['id'] | null | undefined {
-  return id as DbTables[T]['Row']['id'] | null | undefined;
+export function asTableId<T extends TableNames>(table: T, id: string): RowType<T>['id'] {
+  return id as RowType<T>['id'];
 }
 
-/**
- * Generic column value casting with proper typing
- */
-export function asColumnValue<
-  T extends TableNames,
-  K extends keyof DbTables[T]['Row']
->(
-  table: T,
-  column: K,
-  value: string | null | undefined
-): DbTables[T]['Row'][K] {
-  return value as DbTables[T]['Row'][K];
+export function asTableStatus<T extends TableNames>(table: T, status: string): RowType<T>['status'] {
+  return status as RowType<T>['status'];
 }
 
-/**
- * Status casting with proper typing
- */
-export function asStatus<T extends TableNames>(
-  table: T,
-  status: string | null | undefined
-): DbTables[T]['Row']['status'] | null | undefined {
-  return asColumnValue(table, 'status', status);
-}
-
-/**
- * Safely extract data from response
- */
-export function safelyExtractData<T>(data: T | null): T | null {
-  if (!data) return null;
-  return data;
-}
-
-// Specific ID casting functions
-export function asLeaseId(id: string): DbTables['leases']['Row']['id'] {
+export function asLeaseId(id: string) {
   return asTableId('leases', id);
 }
 
-export function asPaymentId(id: string): DbTables['unified_payments']['Row']['id'] {
+export function asPaymentId(id: string) {
   return asTableId('unified_payments', id);
 }
 
-export function asTrafficFineId(id: string): DbTables['traffic_fines']['Row']['id'] {
-  return asTableId('traffic_fines', id);
-}
-
-export function asAgreementId(id: string): DbTables['leases']['Row']['id'] {
+export function asAgreementId(id: string) {
   return asTableId('leases', id);
 }
 
-// Add type-safe column exports
-export const asAgreementIdColumn = (id: string) => asTableId('leases', id);
-export const asLeaseIdColumn = (id: string) => asTableId('leases', id);
-export const asImportIdColumn = (id: string) => asTableId('agreement_imports', id);
-export const asTrafficFineIdColumn = (id: string) => asTableId('traffic_fines', id);
-
-// New functions to handle missing exports
-export const asVehicleId = (id: string) => asTableId('vehicles', id);
-export const asImportId = (id: string) => asTableId('agreement_imports', id);
-export const asMaintenanceId = (id: string) => asTableId('maintenance', id);
-
-// Status casting functions with proper typing
-export function asLeaseStatus(status: string): DbTables['leases']['Row']['status'] {
-  return asStatus('leases', status);
+export function asImportId(id: string) {
+  return asTableId('agreement_imports', id);
 }
 
-export function asPaymentStatus(status: string): DbTables['unified_payments']['Row']['status'] {
-  return asStatus('unified_payments', status);
+export function asTrafficFineId(id: string) {
+  return asTableId('traffic_fines', id);
 }
 
-export const asStatusColumn = <T extends TableNames>(
-  table: T,
-  status: string
-): DbTables[T]['Row']['status'] => {
-  return asStatus(table, status) as DbTables[T]['Row']['status'];
-};
-
-// Type-safe column accessor function
-export function getColumnName<T extends TableNames, K extends keyof DbTables[T]['Row']>(
-  table: T,
-  column: K
-): string {
-  return column as string;
+export function asVehicleId(id: string) {
+  return asTableId('vehicles', id);
 }
 
-// Adds error handling for null/undefined values
-export function safeAsTableId<T extends TableNames>(
-  table: T,
-  id: string | null | undefined,
-  fallback: DbTables[T]['Row']['id']
-): DbTables[T]['Row']['id'] {
-  if (!id) return fallback;
-  return id as DbTables[T]['Row']['id'];
+export function asMaintenanceId(id: string) {
+  return asTableId('maintenance', id);
 }
 
-// Type guard to check if a value is a valid status for a table
-export function isValidStatus<T extends TableNames>(
-  table: T,
-  status: string
-): status is DbTables[T]['Row']['status'] {
-  // This is a type-level check only, runtime validation would require enumerating allowed values
-  return true;
+// Column-specific type casting functions
+export function asLeaseStatus(status: string) {
+  return asTableStatus('leases', status);
 }
 
-// String to database ID casting for fixed build errors
-export function castDbId(id: string): string {
-  return id;
+export function asPaymentStatus(status: string) {
+  return asTableStatus('unified_payments', status);
+}
+
+export function asMaintenanceStatus(status: string) {
+  return asTableStatus('maintenance', status);
+}
+
+// Column alias for backward compatibility
+export function asLeaseIdColumn(id: string) {
+  return asLeaseId(id);
+}
+
+export function asStatusColumn(status: string) {
+  return status;
+}
+
+export function asPaymentStatusColumn(status: string) {
+  return asPaymentStatus(status);
 }

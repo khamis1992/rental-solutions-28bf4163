@@ -19,10 +19,18 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Database } from '@/types/database.types';
 import { asPaymentId } from '@/utils/type-casting';
 
-type ImportLog = Database['public']['Tables']['agreement_imports']['Row'];
+interface ImportLog {
+  id: string;
+  file_name: string;
+  original_file_name: string | null;
+  status: string;
+  created_at: string;
+  row_count: number;
+  processed_count: number;
+  error_count: number;
+}
 
 export function ImportHistoryList() {
   const [importLogs, setImportLogs] = useState<ImportLog[]>([]);
