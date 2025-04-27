@@ -18,7 +18,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory.types';
+import { ExtendedPayment } from './PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -153,7 +153,7 @@ export function AgreementDetail({
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
-  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<void> => {
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<ExtendedPayment>): Promise<void> => {
     if (!agreement?.id) return;
     
     try {
@@ -170,8 +170,9 @@ export function AgreementDetail({
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
-  const calculateDuration = useCallback((startDateStr: string, endDateStr: string) => {
+  const calculateDuration = useCallback((startDateStr: string, endDateStr: string): number => {
     if (!startDateStr || !endDateStr) return 0;
+    
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     const months = differenceInMonths(endDate, startDate);
@@ -309,7 +310,7 @@ export function AgreementDetail({
                 <p className="font-medium">Rental Period</p>
                 <p className="flex items-center">
                   <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(new Date(startDate), "MMMM d, yyyy")} to {format(new Date(endDate), "MMMM d, yyyy")}
+                  {startDate ? format(new Date(startDate), "MMMM d, yyyy") : "N/A"} to {endDate ? format(new Date(endDate), "MMMM d, yyyy") : "N/A"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
               </div>

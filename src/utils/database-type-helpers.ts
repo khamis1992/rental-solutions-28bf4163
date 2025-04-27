@@ -42,6 +42,12 @@ export function asAgreementId(id: string): DbTables['leases']['Row']['id'] {
   return asTableId('leases', id);
 }
 
+// Add columns exports required by AgreementList.tsx
+export const asAgreementIdColumn = asAgreementId;
+export const asLeaseIdColumn = asLeaseId;
+export const asImportIdColumn = asImportId;
+export const asTrafficFineIdColumn = asTrafficFineId;
+
 // Status casting functions 
 export function asLeaseStatus(status: string): DbTables['leases']['Row']['status'] {
   return asStatus('leases', status);

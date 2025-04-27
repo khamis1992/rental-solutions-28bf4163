@@ -4,6 +4,7 @@ import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { asLeaseStatus, asPaymentStatus } from '@/utils/database-type-helpers';
+import { Database } from '@/types/database.types';
 
 interface AgreementStats {
   totalAgreements: number;

@@ -11,12 +11,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
 import { 
-  asAgreementIdColumn, 
-  asLeaseIdColumn, 
-  asImportIdColumn,
-  asTrafficFineIdColumn 
-} from '@/utils/database-type-helpers';
-import { 
   ColumnDef, 
   flexRender, 
   getCoreRowModel, 
