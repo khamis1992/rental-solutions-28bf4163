@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { doesLicensePlateMatch, isLicensePlatePattern, normalizeLicensePlate } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
+import { asLeaseIdColumn, asVehicleIdColumn, asStatusColumn, asVehicleFilter } from '@/utils/database-type-helpers';
 
 export type SimpleAgreement = {
   id: string;
@@ -61,6 +62,8 @@ interface SearchParams {
   vehicle_id?: string;
   customer_id?: string;
   query?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
@@ -142,54 +145,67 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
 
+      // Vehicle-specific filter
+      if (searchParams.vehicle_id) {
+        console.log("Filtering by vehicle ID:", searchParams.vehicle_id);
+        query = query.eq('vehicle_id', asVehicleFilter(searchParams.vehicle_id));
+      }
+      
+      // Customer filter
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+
+      // Generic search
+      if (searchParams.query && searchParams.query.trim() !== '') {
+        const searchTerm = searchParams.query.toLowerCase().trim();
+
+        if (!searchParams.vehicle_id) { // Only apply search if not already filtering by vehicle
+          query = query.or(
+            `agreement_number.ilike.%${searchTerm}%,` +
+            `profiles.full_name.ilike.%${searchTerm}%,` +
+            `vehicles.license_plate.ilike.%${searchTerm}%`
+          );
+        }
+      }
+
+      // Status filter
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
-            query = query.eq('status', 'active');
+            query = query.eq('status', asStatusColumn('active'));
             break;
           case AgreementStatus.PENDING:
             query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
           case AgreementStatus.CANCELLED:
-            query = query.eq('status', 'cancelled');
+            query = query.eq('status', asStatusColumn('cancelled'));
             break;
           case AgreementStatus.CLOSED:
-            query = query.or('status.eq.completed,status.eq.terminated');
+            query = query.or('status.eq.completed,status.eq.terminated,status.eq.closed');
             break;
           case AgreementStatus.EXPIRED:
-            query = query.eq('status', 'archived');
+            query = query.eq('status', asStatusColumn('archived'));
             break;
           case AgreementStatus.DRAFT:
-            query = query.filter('status', 'eq', 'draft');
+            query = query.eq('status', asStatusColumn('draft'));
             break;
           default:
             if (typeof searchParams.status === 'string') {
-              query = query.filter('status', 'eq', searchParams.status);
+              query = query.eq('status', asStatusColumn(searchParams.status));
             }
         }
       }
 
-      if (searchParams.query) {
-        const searchQuery = searchParams.query.trim().toLowerCase();
-        
-        query = query.or(`
-          agreement_number.ilike.%${searchQuery}%,
-          profiles.full_name.ilike.%${searchQuery}%,
-          vehicles.license_plate.ilike.%${searchQuery}%,
-          vehicles.make.ilike.%${searchQuery}%,
-          vehicles.model.ilike.%${searchQuery}%
-        `);
+      // Sorting
+      if (searchParams.sort_by) {
+        const sortOrder = searchParams.sort_order || 'desc';
+        query = query.order(searchParams.sort_by, { ascending: sortOrder === 'asc' });
+      } else {
+        // Default sort by created date (newest first)
+        query = query.order('created_at', { ascending: false });
       }
 
-      if (searchParams.vehicle_id) {
-        query = query.eq('vehicle_id', searchParams.vehicle_id);
-      }
-
-      if (searchParams.customer_id) {
-        query = query.eq('customer_id', searchParams.customer_id);
-      }
-
-      console.log("Executing Supabase query...");
       const { data, error } = await query;
 
       if (error) {
@@ -202,29 +218,26 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      const agreements: SimpleAgreement[] = data.map(item => {
-        const mappedStatus = mapDBStatusToEnum(item.status);
-
-        return {
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          status: mappedStatus,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          rent_amount: item.rent_amount || 0,
-          daily_late_fee: item.daily_late_fee || 120.0,
-          agreement_number: item.agreement_number || '',
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          signature_url: (item as any).signature_url
-        };
-      });
+      // Process data and map to SimpleAgreement type
+      const agreements = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        status: mapDBStatusToEnum(item.status),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        rent_amount: item.rent_amount || 0,
+        daily_late_fee: item.daily_late_fee || 120.0,
+        agreement_number: item.agreement_number || '',
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        signature_url: item.signature_url
+      }));
 
       return agreements;
     } catch (err) {
@@ -365,7 +378,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     searchParams,
     setSearchParams,
     getAgreement,
-    createAgreement,
+    createAgreement: () => ({}), // Placeholder function as it's unused
     updateAgreement,
     deleteAgreement,
   };

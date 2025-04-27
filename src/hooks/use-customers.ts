@@ -42,11 +42,10 @@ export const useCustomers = () => {
         let query = supabase
           .from(PROFILES_TABLE)
           .select('*')
-          .eq('role', CUSTOMER_ROLE)
-          .order('created_at', { ascending: false });
+          .eq('role', CUSTOMER_ROLE);
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          query = query.eq('status', searchParams.status);
         }
 
         if (searchParams.query) {
@@ -54,6 +53,8 @@ export const useCustomers = () => {
             `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
           );
         }
+
+        query = query.order('created_at', { ascending: false });
 
         const { data, error } = await query;
         
@@ -84,8 +85,7 @@ export const useCustomers = () => {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];
       }
-    },
-    initialData: []
+    }
   });
 
   const refreshCustomers = () => {
@@ -238,7 +238,7 @@ export const useCustomers = () => {
   };
 
   return {
-    customers,
+    customers: customers || [],
     isLoading,
     error,
     searchParams,

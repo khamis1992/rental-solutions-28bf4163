@@ -22,8 +22,13 @@ export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogP
     setSelectedOption(null);
   };
 
+  const handleClose = () => {
+    setSelectedOption(null);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
@@ -61,9 +66,9 @@ export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogP
         ) : (
           <div className="space-y-4">
             {selectedOption === 'agreement' ? (
-              <PaymentForAgreement onBack={handleBack} onClose={() => onOpenChange(false)} />
+              <PaymentForAgreement onBack={handleBack} onClose={handleClose} />
             ) : (
-              <NewPaymentEntry onBack={handleBack} onClose={() => onOpenChange(false)} />
+              <NewPaymentEntry onBack={handleBack} onClose={handleClose} />
             )}
           </div>
         )}

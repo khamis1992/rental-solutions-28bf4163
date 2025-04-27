@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
 import { usePayments } from '@/hooks/use-payments';
-import { supabase } from '@/lib/supabase';
+import { asLeaseId } from '@/utils/type-casting';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -27,31 +27,21 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
 
     try {
       // Only proceed if we have valid data
-      if (!data?.agreementNumber) {
+      if (!data?.leaseId) {
         throw new Error('No valid agreement found');
-      }
-
-      // First, we need to get the lease_id (UUID) for this agreement number
-      const { data: leaseData, error: leaseError } = await supabase
-        .from('leases')
-        .select('id')
-        .eq('agreement_number', data.agreementNumber)
-        .single();
-      
-      if (leaseError || !leaseData) {
-        console.error('Error fetching lease ID:', leaseError);
-        throw new Error('Could not find lease ID for this agreement');
       }
 
       const paymentData = {
         amount: data.rentAmount,
         payment_date: new Date().toISOString(),
-        lease_id: leaseData.id, // Use the actual UUID from the leases table
+        lease_id: data.leaseId,
         payment_method: 'cash',
         description: `Monthly rent payment for ${data.agreementNumber}`,
         status: 'completed',
         type: 'Income',
-        late_fine_amount: data.lateFeeAmount || 0
+        late_fine_amount: data.lateFeeAmount || 0,
+        amount_paid: data.totalDue,
+        balance: 0
       };
 
       await addPayment(paymentData);

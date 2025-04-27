@@ -3,8 +3,8 @@ import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { asLeaseStatus, asPaymentStatus } from '@/utils/type-casting';
-import { asDbId } from '@/types/database-types';
+import { asTableId } from '@/lib/database-helpers';
+import { hasData, asStatusColumn, asPaymentStatusColumn } from '@/utils/database-type-helpers';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -29,37 +29,39 @@ export function AgreementStats() {
       try {
         setIsLoading(true);
         
-        // Get total agreements count
         const { count: totalCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true });
         
-        // Get active agreements count
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asLeaseStatus('active'));
+          .eq('status', asStatusColumn('active'));
           
-        // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asPaymentStatus('pending'));
+          .eq('status', asPaymentStatusColumn('pending'));
           
-        // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
           .gt('days_overdue', 0);
           
-        // Get active agreements total value
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asLeaseStatus('active'));
-          
-        const activeValue = activeAgreements?.reduce((sum, agreement) => 
-          sum + (agreement?.rent_amount || 0), 0) || 0;
+          .eq('status', asStatusColumn('active'));
+
+        let activeValue = 0;
+        if (activeAgreements && Array.isArray(activeAgreements)) {
+          activeValue = activeAgreements.reduce((sum, agreement) => {
+            if (agreement && typeof agreement.rent_amount === 'number') {
+              return sum + agreement.rent_amount;
+            }
+            return sum;
+          }, 0);
+        }
         
         setStats({
           totalAgreements: totalCount || 0,
