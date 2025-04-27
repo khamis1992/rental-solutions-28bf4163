@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const confirmDeletePayment = async () => {
     if (paymentToDelete) {
       try {
-        // Implementation would go here - we're not changing functionality
         toast.success("Payment deleted successfully");
         onPaymentDeleted();
       } catch (error) {
@@ -205,8 +203,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               isLoading={isPaymentsLoading}
               onPaymentDeleted={onPaymentDeleted}
               onPaymentUpdated={async () => {}}
-              onDelete={handleDeleteClick}
-              onEdit={handleEditPayment}
+              onEdit={(payment: ExtendedPayment) => handleEditPayment(payment)}
+              onDelete={(payment: ExtendedPayment) => handleDeleteClick(payment)}
               rentAmount={rentAmount}
               contractAmount={contractAmount}
             />
@@ -252,3 +250,5 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     </div>
   );
 };
+
+export default AgreementDetail;

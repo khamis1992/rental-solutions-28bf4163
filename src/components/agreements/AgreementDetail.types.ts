@@ -2,6 +2,11 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { ExtendedPayment } from './PaymentHistory.types';
 
+export interface AgreementDetailParams {
+  [key: string]: string;  // Allow any string key
+  id: string;
+}
+
 export interface AgreementDetailProps {
   agreement: Agreement | null;
   onDelete: (id: string) => void;
@@ -10,10 +15,6 @@ export interface AgreementDetailProps {
   rentAmount: number | null;
   contractAmount: number | null;
   onPaymentDeleted: () => void;
-}
-
-export interface AgreementDetailParams {
-  id: string;
 }
 
 export interface PaymentSubmitParams {
