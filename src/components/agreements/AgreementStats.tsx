@@ -1,10 +1,13 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { asLeaseStatus, asPaymentStatus } from '@/utils/database-type-helpers';
-import { StatCard } from '@/components/ui/stat-card';
+import { StatCard as UIStatCard } from '@/components/ui/stat-card';
+import { useTypedSupabase } from '@/hooks/use-typed-supabase';
+import { ErrorBoundary } from '@/utils/error-boundary';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -23,6 +26,7 @@ export function AgreementStats() {
     activeValue: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = useTypedSupabase();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -77,65 +81,35 @@ export function AgreementStats() {
   }, []);
   
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard 
-        title="Total Agreements"
-        value={stats.totalAgreements}
-        icon={<FileText className="h-5 w-5 text-blue-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Active Agreements"
-        value={stats.activeAgreements}
-        subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
-        icon={<FileCheck className="h-5 w-5 text-green-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Pending Payments"
-        value={stats.pendingPayments}
-        icon={<FileClock className="h-5 w-5 text-amber-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Overdue Payments"
-        value={stats.overduePayments}
-        icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-        highlight={stats.overduePayments > 0}
-        isLoading={isLoading}
-      />
-    </div>
-  );
-}
-
-interface StatCardProps {
-  title: string;
-  value: number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  isLoading?: boolean;
-  highlight?: boolean;
-}
-
-export const StatCard = React.memo(function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
-  return (
-    <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
-      <div className="flex justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          {isLoading ? (
-            <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1"></div>
-          ) : (
-            <h3 className={`text-2xl font-bold ${highlight ? 'text-red-600' : ''}`}>
-              {value}
-            </h3>
-          )}
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        </div>
-        <div>
-          {icon}
-        </div>
+    <ErrorBoundary>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <UIStatCard 
+          title="Total Agreements"
+          value={stats.totalAgreements}
+          icon={<FileText className="h-5 w-5 text-blue-500" />}
+          isLoading={isLoading}
+        />
+        <UIStatCard 
+          title="Active Agreements"
+          value={stats.activeAgreements}
+          subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
+          icon={<FileCheck className="h-5 w-5 text-green-500" />}
+          isLoading={isLoading}
+        />
+        <UIStatCard 
+          title="Pending Payments"
+          value={stats.pendingPayments}
+          icon={<FileClock className="h-5 w-5 text-amber-500" />}
+          isLoading={isLoading}
+        />
+        <UIStatCard 
+          title="Overdue Payments"
+          value={stats.overduePayments}
+          icon={<AlertCircle className="h-5 w-5 text-red-500" />}
+          highlight={stats.overduePayments > 0}
+          isLoading={isLoading}
+        />
       </div>
-    </Card>
+    </ErrorBoundary>
   );
-});
+}

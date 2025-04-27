@@ -1,115 +1,112 @@
 
-import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { supabase } from '@/lib/supabase';
-import { hasData, asLeaseId } from '@/utils/supabase-type-helpers';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
+import { asLeaseId } from '@/utils/database-type-helpers';
 
-export const usePayments = (agreementId?: string) => {
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
-    ['payments', agreementId],
-    async () => {
-      if (!agreementId) return [] as Payment[];
-      
-      const response = await supabase
+export const usePayments = (leaseId?: string) => {
+  const queryClient = useQueryClient();
+  
+  const fetchPayments = useCallback(async () => {
+    if (!leaseId) return [];
+    
+    try {
+      const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(agreementId));
+        .eq('lease_id', leaseId)
+        .order('due_date', { ascending: false });
         
-      if (!hasData(response)) {
-        console.error("Error fetching payments:", response.error);
-        return [] as Payment[];
+      if (error) {
+        console.error('Error fetching payments:', error);
+        throw new Error('Failed to fetch payments');
       }
       
-      return response.data as Payment[];
-    },
-    {
-      enabled: !!agreementId,
-      onError: (error) => {
-        console.error('Error fetching payments:', error);
-        toast.error('Failed to fetch payments. Please try again.');
+      return data || [];
+    } catch (error) {
+      console.error('Error in fetchPayments:', error);
+      throw error;
+    }
+  }, [leaseId]);
+  
+  const { data: payments, isLoading, refetch } = useQuery({
+    queryKey: ['payments', leaseId],
+    queryFn: fetchPayments,
+    enabled: !!leaseId,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+  
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ExtendedPayment> }) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .update(data)
+        .eq('id', id);
+        
+      if (error) {
+        throw new Error(`Failed to update payment: ${error.message}`);
       }
-    }
-  );
-
-  const payments: Payment[] = Array.isArray(data) ? data : [];
-
-  const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    const response = await supabase
-      .from('unified_payments')
-      .insert([newPayment])
-      .select();
-
-    if (!hasData(response)) {
-      console.error("Error adding payment:", response.error);
-      toast.error('Failed to add payment. Please try again.');
-      return null;
-    }
-    return response.data[0];
-  }, {
+      
+      return { success: true };
+    },
     onSuccess: () => {
-      toast.success('Payment added successfully');
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
-      console.error('Error adding payment:', error);
-      toast.error('Failed to add payment. Please try again.');
-    }
+      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
   });
-
-  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const response = await supabase
-      .from('unified_payments')
-      .update(paymentUpdate.data)
-      .eq('id', asLeaseId(paymentUpdate.id))
-      .select();
-
-    if (!hasData(response)) {
-      console.error("Error updating payment:", response.error);
-      throw new Error(response.error.message);
-    }
-    return response.data[0];
-  }, {
+  
+  const addPaymentMutation = useMutation({
+    mutationFn: async (payment: Partial<ExtendedPayment>) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .insert(payment);
+        
+      if (error) {
+        throw new Error(`Failed to add payment: ${error.message}`);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
-      toast.success('Payment updated successfully');
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
-      console.error('Error updating payment:', error);
-      toast.error('Failed to update payment. Please try again.');
-    }
+      toast.error(`Add payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
   });
-
-  const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const response = await supabase
-      .from('unified_payments')
-      .delete()
-      .eq('id', asLeaseId(paymentId));
-
-    if (response.error) {
-      console.error("Error deleting payment:", response.error);
-      toast.error('Failed to delete payment. Please try again.');
-      return null;
-    }
-    return { success: true };
-  }, {
+  
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw new Error(`Failed to delete payment: ${error.message}`);
+      }
+      
+      return { success: true };
+    },
     onSuccess: () => {
-      toast.success('Payment deleted successfully');
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
-      console.error('Error deleting payment:', error);
-      toast.error('Failed to delete payment. Please try again.');
-    }
+      toast.error(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
   });
-
+  
   return {
     payments,
     isLoading,
-    error,
-    addPayment: addPayment.mutateAsync,
-    updatePayment: updatePayment.mutateAsync,
-    deletePayment: deletePayment.mutateAsync,
     fetchPayments: refetch,
+    updatePayment: updatePaymentMutation.mutateAsync,
+    addPayment: addPaymentMutation.mutateAsync,
+    deletePayment: deletePaymentMutation.mutateAsync
   };
 };
