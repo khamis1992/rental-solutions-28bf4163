@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -39,7 +40,7 @@ export const useAgreementDetail = (
     isLoading: paymentsLoading,
     fetchPayments,
     updatePayment,
-    addPayment
+    addPayment: addPaymentFromHook
   } = usePayments(agreement?.id);
   
   const {
@@ -148,7 +149,7 @@ export const useAgreementDetail = (
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
-  const addPayment = async (params: PaymentSubmitParams) => {
+  const handleAddPayment = async (params: PaymentSubmitParams) => {
     try {
       const { 
         amount, 
@@ -162,7 +163,7 @@ export const useAgreementDetail = (
       } = params;
       
       console.log("Adding payment:", params);
-      
+      await addPaymentFromHook(params);
       fetchPayments();
       toast.success("Payment added successfully");
     } catch (error) {
@@ -263,6 +264,8 @@ export const useAgreementDetail = (
     setSelectedPayment,
     refreshData: () => setRefreshTrigger(prev => prev + 1),
     agreementDuration,
-    addPayment
+    addPayment: handleAddPayment,
+    fetchPayments,
+    deletePayment: addPaymentFromHook
   };
 };

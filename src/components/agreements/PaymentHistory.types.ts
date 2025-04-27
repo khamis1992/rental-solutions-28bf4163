@@ -33,4 +33,6 @@ export interface PaymentHistoryProps {
   onPaymentDeleted: () => void;
   onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
   onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
+  onDelete?: (payment: ExtendedPayment) => void;
+  onEdit?: (payment: ExtendedPayment) => void;
 }
