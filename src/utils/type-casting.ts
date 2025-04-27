@@ -61,3 +61,18 @@ export function asLeaseStatus(status: string): string {
 export function asPaymentStatus(status: string): string {
   return status;
 }
+
+/**
+ * Cast a database ID for type safety with Supabase
+ * @deprecated Use castDbId from database-type-helpers.ts instead
+ */
+export function castDbId(id: string): string {
+  return id;
+}
+
+/**
+ * Type safe conversion for UUIDs
+ */
+export function asUUID(id: string): string {
+  return id;
+}

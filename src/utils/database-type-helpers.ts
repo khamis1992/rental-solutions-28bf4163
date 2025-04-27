@@ -66,3 +66,24 @@ export function asStatusColumn(status: string) {
 export function asPaymentStatusColumn(status: string) {
   return asPaymentStatus(status);
 }
+
+/**
+ * Cast a database ID for type safety with Supabase
+ * @param id The ID to cast to a database ID type
+ * @returns The same ID with proper typing for database operations
+ */
+export function castDbId(id: string): string {
+  return id;
+}
+
+// Additional helper to ensure type compatibility
+export function ensureDbId<T extends string>(id: string): T {
+  return id as T;
+}
+
+/**
+ * Type guard to check if a value exists (is not null or undefined)
+ */
+export function exists<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
