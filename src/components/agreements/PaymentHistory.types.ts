@@ -22,4 +22,16 @@ export interface ExtendedPayment extends Payment {
   statusBadge?: string;
   isPaid?: boolean;
   isLate?: boolean;
+  
+  // Properties needed by PaymentEditDialog and PaymentHistory components
+  reference_number?: string | null;
+  notes?: string | null;
+  type?: string;
+  created_at?: string;
+  updated_at?: string | null;
+  original_due_date?: string | null;
+  next_payment_date?: string | null;
+  is_recurring?: boolean;
+  processing_fee?: number;
+  processed_by?: string | null;
 }

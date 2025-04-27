@@ -149,8 +149,15 @@ export function createFilter<T extends TableNames, K extends keyof RowType<T>>(
   return { column, value };
 }
 
-// Adding the missing castDbId function
+// Adding the castDbId function
 export function castDbId(id: string): string {
   return id;
 }
 
+// Function to handle Supabase data results with explicit type casting
+export function castDatabaseResult<T>(result: any): T | null {
+  if (!result || result.error || !result.data) {
+    return null;
+  }
+  return result.data as T;
+}

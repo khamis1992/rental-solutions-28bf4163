@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   asLeaseId,
-  asQueryResult,
   exists,
   hasProperties,
   safelyExtractFields,
-  safeExtract
+  safeExtract,
+  castDatabaseResult
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
 
@@ -48,16 +48,19 @@ export function ReassignmentWizard() {
         throw error;
       }
       
-      if (data && exists(data) && hasProperties(data, 'id', 'agreement_number')) {
-        // Safely extract the data with proper type casting
-        setAgreementDetails({
-          id: data.id,
-          agreement_number: data.agreement_number,
-          customer_name: safeExtract(data.profiles, 'full_name', null),
-          customer_email: safeExtract(data.profiles, 'email', null),
-          customer_phone: safeExtract(data.profiles, 'phone_number', null),
+      // Only proceed if we have valid data
+      if (data && exists(data)) {
+        // Create a properly typed AgreementDetails object
+        const details: AgreementDetails = {
+          id: data.id || '',
+          agreement_number: data.agreement_number || '',
+          customer_name: data.profiles ? data.profiles.full_name : null,
+          customer_email: data.profiles ? data.profiles.email : null,
+          customer_phone: data.profiles ? data.profiles.phone_number : null,
           profiles: data.profiles
-        });
+        };
+        
+        setAgreementDetails(details);
       } else {
         setAgreementDetails(null);
         toast.error('Agreement not found');

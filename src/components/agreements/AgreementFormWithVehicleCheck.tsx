@@ -72,7 +72,8 @@ export function AgreementFormWithVehicleCheck({
     
     try {
       // Type-safe update operation using our helper
-      const leaseUpdate = asLeaseUpdate({ status: asLeaseStatus('terminated') });
+      const updates = { status: asLeaseStatus('terminated') };
+      const leaseUpdate = asLeaseUpdate(updates);
       const leaseId = asLeaseId(existingAgreement.id);
       
       const { error } = await supabase
