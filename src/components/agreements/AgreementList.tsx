@@ -5,11 +5,10 @@ import {
   asTrafficFineId,
   asPaymentStatus,
   asImportId
-} from '@/utils/type-casting';
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+} from '@/utils/database-type-helpers';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { castDbId } from '@/lib/supabase-types';
 import { 
   ColumnDef, 
   flexRender, 

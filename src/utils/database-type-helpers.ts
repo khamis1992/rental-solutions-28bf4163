@@ -14,44 +14,44 @@ export function asTableStatus<T extends TableNames>(table: T, status: string): R
 }
 
 export function asLeaseId(id: string) {
-  return asTableId('leases', id);
+  return id as Tables['leases']['Row']['id'];
 }
 
 export function asPaymentId(id: string) {
-  return asTableId('unified_payments', id);
+  return id as Tables['unified_payments']['Row']['id'];
 }
 
 export function asAgreementId(id: string) {
-  return asTableId('leases', id);
+  return id as Tables['leases']['Row']['id'];
 }
 
 export function asImportId(id: string) {
-  return asTableId('agreement_imports', id);
+  return id as Tables['agreement_imports']['Row']['id'];
 }
 
 export function asTrafficFineId(id: string) {
-  return asTableId('traffic_fines', id);
+  return id as Tables['traffic_fines']['Row']['id'];
 }
 
 export function asVehicleId(id: string) {
-  return asTableId('vehicles', id);
+  return id as Tables['vehicles']['Row']['id'];
 }
 
 export function asMaintenanceId(id: string) {
-  return asTableId('maintenance', id);
+  return id as Tables['maintenance']['Row']['id'];
 }
 
 // Column-specific type casting functions
 export function asLeaseStatus(status: string) {
-  return asTableStatus('leases', status);
+  return status as Tables['leases']['Row']['status'];
 }
 
 export function asPaymentStatus(status: string) {
-  return asTableStatus('unified_payments', status);
+  return status as Tables['unified_payments']['Row']['status'];
 }
 
 export function asMaintenanceStatus(status: string) {
-  return asTableStatus('maintenance', status);
+  return status as Tables['maintenance']['Row']['status'];
 }
 
 // Column alias for backward compatibility

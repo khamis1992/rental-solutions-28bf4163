@@ -13,6 +13,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PaymentSubmitParams } from "./AgreementDetail.types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PaymentEntryDialogProps {
   open: boolean;

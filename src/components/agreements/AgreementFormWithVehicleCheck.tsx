@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { checkVehicleAvailability } from '@/utils/agreement-utils';
@@ -23,7 +22,6 @@ export function AgreementFormWithVehicleCheck({
   const [isChecking, setIsChecking] = useState(false);
   
   const checkAvailability = async () => {
-    // Return early if we don't have enough data
     if (!formData.vehicle_id || !formData.start_date || !formData.end_date) {
       return;
     }
@@ -31,7 +29,6 @@ export function AgreementFormWithVehicleCheck({
     setIsChecking(true);
     
     try {
-      // Check if vehicle is available for the selected period
       const result = await checkVehicleAvailability(
         formData.vehicle_id,
         new Date(formData.start_date),
@@ -40,19 +37,15 @@ export function AgreementFormWithVehicleCheck({
       );
       
       if (result.available) {
-        // Vehicle is available, let parent component know validation passed
         onValidationComplete(true);
       } else if (result.conflictingAgreements && result.conflictingAgreements.length > 0) {
-        // Vehicle is not available, show dialog with existing agreement
         const conflictingAgreement = result.conflictingAgreements[0];
         setExistingAgreement({
           id: conflictingAgreement.id,
           agreement_number: conflictingAgreement.agreement_number
         });
         setIsDialogOpen(true);
-        // Don't call onValidationComplete yet - wait for user decision
       } else {
-        // Generic error, let parent component know validation failed
         toast.error(result.message || "Vehicle is not available for selected dates");
         onValidationComplete(false);
       }
@@ -73,7 +66,6 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
-      // Update existing agreement to terminated status
       const { error } = await supabase
         .from('leases')
         .update({ status: asLeaseStatus('terminated') })
@@ -114,5 +106,4 @@ export function AgreementFormWithVehicleCheck({
   );
 }
 
-// Add default export to fix the import issue
 export default AgreementFormWithVehicleCheck;

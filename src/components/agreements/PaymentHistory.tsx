@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { asPaymentId } from '@/utils/database-type-helpers';
 import { format } from 'date-fns';
@@ -26,9 +27,11 @@ interface PaymentHistoryProps {
   leaseStartDate?: string | null;
   leaseEndDate?: string | null;
   onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
+  onEdit?: (payment: ExtendedPayment) => void;
+  onDelete?: (payment: ExtendedPayment) => void;
 }
 
-export const PaymentHistory = ({ payments, isLoading, onPaymentDeleted, onPaymentUpdated, rentAmount, contractAmount, leaseStartDate, leaseEndDate, onRecordPayment }: PaymentHistoryProps) => {
+export const PaymentHistory = ({ payments, isLoading, onPaymentDeleted, onPaymentUpdated, rentAmount, contractAmount, leaseStartDate, leaseEndDate, onRecordPayment, onEdit, onDelete }: PaymentHistoryProps) => {
   const { deletePayment } = usePayments();
 
   const handleDelete = async (paymentId: string) => {
@@ -73,17 +76,29 @@ export const PaymentHistory = ({ payments, isLoading, onPaymentDeleted, onPaymen
                   <TableCell>{payment.notes || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => onPaymentUpdated({
-                        id: payment.id,
-                        amount_paid: payment.amount,
-                        payment_date: payment.payment_date,
-                        payment_method: payment.payment_method,
-                        reference_number: payment.reference_number,
-                        notes: payment.notes
-                      })}>
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        if (onEdit) {
+                          onEdit(payment);
+                        } else {
+                          onPaymentUpdated({
+                            id: payment.id,
+                            amount_paid: payment.amount,
+                            payment_date: payment.payment_date,
+                            payment_method: payment.payment_method,
+                            reference_number: payment.reference_number,
+                            notes: payment.notes
+                          });
+                        }
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(payment.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => {
+                        if (onDelete) {
+                          onDelete(payment);
+                        } else {
+                          handleDelete(payment.id);
+                        }
+                      }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

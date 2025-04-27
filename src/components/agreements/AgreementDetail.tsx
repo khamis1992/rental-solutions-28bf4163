@@ -203,8 +203,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               isLoading={isPaymentsLoading}
               onPaymentDeleted={onPaymentDeleted}
               onPaymentUpdated={async () => {}}
-              onEdit={(payment: ExtendedPayment) => handleEditPayment(payment)}
-              onDelete={(payment: ExtendedPayment) => handleDeleteClick(payment)}
+              onEdit={handleEditPayment}
+              onDelete={handleDeleteClick}
               rentAmount={rentAmount}
               contractAmount={contractAmount}
             />
