@@ -6,7 +6,7 @@ import {
   asLeaseStatus,
   asImportId
 } from '@/utils/database-type-helpers';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
@@ -22,6 +22,7 @@ import {
   getFilteredRowModel,
   RowSelectionState
 } from "@tanstack/react-table";
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { 
   MoreHorizontal, 
   FileText, 
@@ -147,6 +148,7 @@ export function AgreementList() {
     pageSize: 10,
   });
   
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -271,7 +273,14 @@ export function AgreementList() {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   }, [agreements, rowSelection, deleteAgreement, queryClient]);
 
-  const columns: ColumnDef<any>[] = [
+  const rowVirtualizer = useVirtualizer({
+    count: agreements?.length || 0,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 56,
+    overscan: 10,
+  });
+  
+  const columns: ColumnDef<any>[] = useMemo(() => [
     {
       id: "select",
       header: ({ table }) => (
@@ -473,7 +482,7 @@ export function AgreementList() {
         );
       },
     },
-  ];
+  ], [deleteAgreement]);
 
   const table = useReactTable({
     data: agreements || [],
@@ -496,10 +505,10 @@ export function AgreementList() {
     pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
-  const handleStatusFilterChange = (value: string) => {
+  const handleStatusFilterChange = useCallback((value: string) => {
     setStatusFilter(value);
     setSearchParams(prev => ({ ...prev, status: value }));
-  };
+  }, [setSearchParams]);
 
   const selectedCount = Object.keys(rowSelection).length;
 
@@ -583,18 +592,42 @@ export function AgreementList() {
                 </TableRow>
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+              <div 
+                ref={tableContainerRef} 
+                style={{ height: '600px', overflow: 'auto' }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+                  {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                    const row = table.getRowModel().rows[virtualRow.index];
+                    return (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                        style={{
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                        }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">

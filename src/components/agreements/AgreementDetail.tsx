@@ -17,7 +17,7 @@ import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { ExtendedPayment } from './PaymentHistory.types';
 
 interface AgreementDetailProps {
@@ -30,7 +30,7 @@ interface AgreementDetailProps {
   onGenerateDocument?: () => void;
 }
 
-export function AgreementDetail({
+export const AgreementDetail = React.memo(function AgreementDetail({
   agreement,
   onDelete,
   rentAmount,
@@ -441,4 +441,6 @@ export function AgreementDetail({
         selectedPayment={selectedPayment}
       />
     </div>;
-}
+});
+
+export default AgreementDetail;

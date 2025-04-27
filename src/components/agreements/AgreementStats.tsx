@@ -117,7 +117,7 @@ interface StatCardProps {
   highlight?: boolean;
 }
 
-function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
+const StatCard = React.memo(function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
   return (
     <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
       <div className="flex justify-between">
@@ -138,4 +138,4 @@ function StatCard({ title, value, subtitle, icon, isLoading = false, highlight =
       </div>
     </Card>
   );
-}
+});

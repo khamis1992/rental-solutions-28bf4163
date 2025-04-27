@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -15,6 +15,7 @@ import {
 import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface CustomerListProps {
   searchParams: {
@@ -34,7 +35,18 @@ export function CustomerList({ searchParams }: CustomerListProps) {
     deleteCustomer,
   } = useCustomers();
 
-  const getStatusBadge = (status: string) => {
+  // Create a ref for the table body to use with the virtualizer
+  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+
+  // Virtual rows implementation
+  const rowVirtualizer = useVirtualizer({
+    count: customers?.length || 0,
+    getScrollElement: () => tableBodyRef.current,
+    estimateSize: () => 56, // Estimated height of each table row
+    overscan: 10,
+  });
+
+  const getStatusBadge = useCallback((status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
       active: { variant: "default", icon: CheckCircle },
       inactive: { variant: "secondary", icon: XCircle },
@@ -51,7 +63,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
         {status.replace('_', ' ')}
       </Badge>
     );
-  };
+  }, []);
 
   // Calculate pagination
   const totalPages = Math.ceil((customers?.length || 0) / ITEMS_PER_PAGE);
@@ -59,9 +71,9 @@ export function CustomerList({ searchParams }: CustomerListProps) {
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentCustomers = customers?.slice(startIndex, endIndex) || [];
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
 
   if (error) {
     return (
@@ -85,7 +97,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody ref={tableBodyRef} className="relative" style={{ height: '500px', overflow: 'auto' }}>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
@@ -96,53 +108,71 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                   <TableCell><Skeleton className="h-6 w-[50px]" /></TableCell>
                 </TableRow>
               ))
-            ) : currentCustomers.length ? (
-              currentCustomers.map((customer) => (
-                <TableRow key={customer.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <Link 
-                      to={`/customers/${customer.id}`}
-                      className="text-primary hover:underline"
+            ) : customers && customers.length > 0 ? (
+              <div 
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const customer = customers[virtualRow.index];
+                  return (
+                    <TableRow 
+                      key={customer.id} 
+                      className="hover:bg-muted/50 absolute w-full"
+                      style={{
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
                     >
-                      {customer.full_name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[160px]">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to={`/customers/${customer.id}`}>View details</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/customers/edit/${customer.id}`}>Edit customer</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                              deleteCustomer.mutate(customer.id);
-                            }
-                          }}
+                      <TableCell className="font-medium">
+                        <Link 
+                          to={`/customers/${customer.id}`}
+                          className="text-primary hover:underline"
                         >
-                          Delete customer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                          {customer.full_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-[160px]">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link to={`/customers/${customer.id}`}>View details</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link to={`/customers/edit/${customer.id}`}>Edit customer</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
+                                  deleteCustomer.mutate(customer.id);
+                                }
+                              }}
+                            >
+                              Delete customer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </div>
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
