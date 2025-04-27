@@ -1,5 +1,11 @@
 import React from 'react';
 import { 
+  castLeaseId, 
+  castOverduePaymentAgreementId, 
+  castTrafficFineAgreementId,
+  castUnifiedPaymentLeaseId
+} from '@/utils/database-operations';
+import { 
   asLeaseId, 
   asOverduePaymentAgreementId, 
   asTrafficFineAgreementId,
@@ -88,7 +94,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
-    const typedAgreementId = asOverduePaymentAgreementId(agreementId);
+    const typedAgreementId = castOverduePaymentAgreementId(agreementId);
     
     const { data, error } = await supabase
       .from('overdue_payments')
@@ -108,7 +114,7 @@ const fetchOverduePayments = async (agreementId: string) => {
 
 const fetchPayments = async (agreementId: string) => {
   try {
-    const typedLeaseId = asUnifiedPaymentLeaseId(agreementId);
+    const typedLeaseId = castUnifiedPaymentLeaseId(agreementId);
     
     const { data, error } = await supabase
       .from('unified_payments')
@@ -127,7 +133,7 @@ const fetchPayments = async (agreementId: string) => {
 
 const fetchTrafficFines = async (agreementId: string) => {
   try {
-    const typedAgreementId = asTrafficFineAgreementId(agreementId);
+    const typedAgreementId = castTrafficFineAgreementId(agreementId);
     
     const { data, error } = await supabase
       .from('traffic_fines')
@@ -201,11 +207,10 @@ export function AgreementList() {
       try {
         console.log(`Starting deletion process for agreement ${id}`);
         
-        const typedAgreementId = asOverduePaymentAgreementId(id);
-        const typedLeaseId = asUnifiedPaymentLeaseId(id);
-        const typedTrafficFineAgreementId = asTrafficFineAgreementId(id);
-        const typedImportId = asImportId(id);
-        const typedLeaseId2 = asLeaseId(id);
+        const typedAgreementId = castOverduePaymentAgreementId(id);
+        const typedLeaseId = castUnifiedPaymentLeaseId(id);
+        const typedTrafficFineAgreementId = castTrafficFineAgreementId(id);
+        const typedLeaseId2 = castLeaseId(id);
         
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
@@ -232,7 +237,7 @@ export function AgreementList() {
         const { error: revertDeleteError } = await supabase
           .from('agreement_import_reverts')
           .delete()
-          .eq('import_id', typedImportId);
+          .eq('import_id', id);
         
         if (revertDeleteError) {
           console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);

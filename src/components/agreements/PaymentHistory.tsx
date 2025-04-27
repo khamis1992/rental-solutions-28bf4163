@@ -23,7 +23,7 @@ import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
 import { ExtendedPayment } from './PaymentHistory.types';
 import { asUnifiedPaymentLeaseId } from '@/utils/database-type-helpers';
-import { castLeaseId, castDatabaseId, castPaymentUpdate } from '@/utils/database-operations';
+import { castUnifiedPaymentLeaseId, castDatabaseId, castPaymentUpdate, hasData } from '@/utils/database-operations';
 
 interface PaymentHistoryProps {
   agreementId: string;
@@ -56,14 +56,16 @@ const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPaym
 
 const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> => {
   try {
-    const { data, error } = await supabase
+    const response = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', castLeaseId(agreementId));
+      .eq('lease_id', castUnifiedPaymentLeaseId(agreementId));
       
-    if (error) throw error;
+    if (!hasData(response)) {
+      throw new Error(response.error?.message || 'Failed to fetch payments');
+    }
     
-    return data.map(payment => ({
+    return response.data.map(payment => ({
       id: payment.id,
       lease_id: payment.lease_id,
       amount: payment.amount,

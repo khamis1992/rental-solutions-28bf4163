@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { format, subDays } from 'date-fns';
 import { useAgreementDetail } from '@/hooks/use-agreement-detail';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { PaymentHistory } from './PaymentHistory';
+import PaymentHistory from './PaymentHistory';
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog';
 import { calculateLateFee } from '@/utils/agreement-utils';
 import { Badge } from '@/components/ui/badge';

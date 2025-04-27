@@ -10,6 +10,7 @@ import {
   asLeaseStatus,
   asLeaseUpdate
 } from '@/utils/database-type-helpers';
+import { castLeaseStatus, castLeaseUpdate, castLeaseId } from '@/utils/database-operations';
 import { Database } from '@/types/database.types';
 
 interface AgreementFormWithVehicleCheckProps {
@@ -73,12 +74,12 @@ export function AgreementFormWithVehicleCheck({
     
     try {
       // Create update object with proper typing
-      const leaseUpdate = asLeaseUpdate({ 
-        status: asLeaseStatus('terminated')
+      const leaseUpdate = castLeaseUpdate({ 
+        status: castLeaseStatus('terminated')
       });
       
       // Convert ID to the correct type
-      const typedLeaseId = asLeaseId(existingAgreement.id);
+      const typedLeaseId = castLeaseId(existingAgreement.id);
       
       const { error } = await supabase
         .from('leases')
