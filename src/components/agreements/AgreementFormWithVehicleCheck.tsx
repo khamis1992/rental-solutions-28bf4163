@@ -5,7 +5,7 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId } from '@/utils/type-casting';
+import { asLeaseId, asLeaseStatus } from '@/utils/database-type-helpers';
 
 interface AgreementFormWithVehicleCheckProps {
   children: React.ReactNode;
@@ -76,9 +76,7 @@ export function AgreementFormWithVehicleCheck({
       // Update existing agreement to terminated status
       const { error } = await supabase
         .from('leases')
-        .update({ 
-          status: 'terminated' 
-        })
+        .update({ status: asLeaseStatus('terminated') })
         .eq('id', asLeaseId(existingAgreement.id));
       
       if (error) {
@@ -115,3 +113,6 @@ export function AgreementFormWithVehicleCheck({
     </>
   );
 }
+
+// Add default export to fix the import issue
+export default AgreementFormWithVehicleCheck;

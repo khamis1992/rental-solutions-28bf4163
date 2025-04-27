@@ -28,3 +28,11 @@ export function castToUUID(id: string): string {
 export function asDbId(id: string): string {
   return id;
 }
+
+/**
+ * Cast a database ID for type safety with Supabase
+ * @deprecated Use castDbId from database-type-helpers.ts instead
+ */
+export function castDbId(id: string): string {
+  return id;
+}

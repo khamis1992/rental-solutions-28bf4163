@@ -5,8 +5,9 @@ import {
   asLeaseId,
   asLeaseStatus,
   asPaymentStatus,
-} from '@/utils/type-casting';
+} from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
+import { exists } from '@/utils/database-type-helpers';
 
 interface AgreementDetails {
   id: string;
@@ -14,7 +15,7 @@ interface AgreementDetails {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
-  profiles: any | null;
+  profiles?: any | null;
 }
 
 export function ReassignmentWizard() {
@@ -35,7 +36,7 @@ export function ReassignmentWizard() {
     }
     
     // Safe access to ensure profiles exists
-    if (data && data.profiles) {
+    if (data) {
       return {
         id: data.id,
         agreement_number: data.agreement_number,
