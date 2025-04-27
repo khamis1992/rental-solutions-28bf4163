@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { asPaymentId } from '@/utils/type-casting';
+import { asPaymentId } from '@/utils/database-type-helpers';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { Badge } from '@/components/ui/badge';
 import { PaymentEditDialog } from './PaymentEditDialog';
@@ -32,10 +32,9 @@ export function PaymentHistory({
   isLoading = false,
   rentAmount,
   onPaymentDeleted,
+  onPaymentUpdated,
   leaseStartDate,
   leaseEndDate,
-  onPaymentUpdated,
-  onRecordPayment,
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);

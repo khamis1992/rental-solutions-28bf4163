@@ -49,20 +49,8 @@ export function asImportId(id: string): DbTables['agreement_imports']['Row']['id
 }
 
 // Column casting functions
-export function asLeaseIdColumn(id: string): DbTables['leases']['Row']['id'] {
+export function asAgreementId(id: string): DbTables['leases']['Row']['id'] {
   return asTableId('leases', id);
-}
-
-export function asAgreementIdColumn(id: string): DbTables['leases']['Row']['id'] {
-  return asTableId('leases', id);
-}
-
-export function asImportIdColumn(id: string): DbTables['agreement_imports']['Row']['id'] {
-  return asTableId('agreement_imports', id);
-}
-
-export function asTrafficFineIdColumn(id: string): DbTables['traffic_fines']['Row']['id'] {
-  return asTableId('traffic_fines', id);
 }
 
 // Status casting functions

@@ -153,7 +153,7 @@ export function AgreementDetail({
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
-  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<void> => {
     if (!agreement?.id) return;
     
     try {
@@ -163,11 +163,10 @@ export function AgreementDetail({
       });
       onDataRefresh();
       fetchPayments();
-      return true;
+      toast.success("Payment updated successfully");
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment");
-      return false;
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 

@@ -15,6 +15,7 @@ import { useParams } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { asPaymentStatus } from '@/utils/database-type-helpers';
 
 interface PaymentEntryDialogProps {
   open: boolean;

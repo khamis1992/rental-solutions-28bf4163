@@ -47,13 +47,14 @@ export function AgreementStats() {
           .select('*', { count: 'exact', head: true })
           .gt('days_overdue', 0);
           
-        const { data: activeAgreements } = await supabase
+        const { data: activeAgreements, error } = await supabase
           .from('leases')
           .select('rent_amount')
           .eq('status', asLeaseStatus('active'));
 
-        const activeValue = activeAgreements?.reduce((sum, agreement) => 
-          sum + (agreement?.rent_amount || 0), 0) || 0;
+        const activeValue = !error && activeAgreements 
+          ? activeAgreements.reduce((sum, agreement) => sum + (agreement?.rent_amount || 0), 0)
+          : 0;
         
         setStats({
           totalAgreements: totalCount || 0,
