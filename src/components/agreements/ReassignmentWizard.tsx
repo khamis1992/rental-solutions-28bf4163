@@ -1,11 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   asLeaseId,
   asLeaseStatus,
   asPaymentStatus,
-} from '@/utils/database-type-helpers';
-import { hasData } from '@/utils/supabase-type-helpers';
+} from '@/utils/type-casting';
 import { toast } from 'sonner';
 
 interface AgreementDetails {
@@ -14,7 +14,7 @@ interface AgreementDetails {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
-  profiles: any[];
+  profiles: any | null;
 }
 
 export function ReassignmentWizard() {
@@ -39,10 +39,10 @@ export function ReassignmentWizard() {
       return {
         id: data.id,
         agreement_number: data.agreement_number,
-        customer_name: data.profiles.full_name,
-        customer_email: data.profiles.email,
-        customer_phone: data.profiles.phone_number,
-        profiles: [data.profiles]
+        customer_name: data.profiles?.full_name,
+        customer_email: data.profiles?.email,
+        customer_phone: data.profiles?.phone_number,
+        profiles: data.profiles
       };
     }
     

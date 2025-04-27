@@ -5,6 +5,7 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { asLeaseId } from '@/utils/type-casting';
 
 interface AgreementFormWithVehicleCheckProps {
   children: React.ReactNode;
@@ -75,8 +76,10 @@ export function AgreementFormWithVehicleCheck({
       // Update existing agreement to terminated status
       const { error } = await supabase
         .from('leases')
-        .update({ status: 'terminated' })
-        .eq('id', existingAgreement.id);
+        .update({ 
+          status: 'terminated' 
+        })
+        .eq('id', asLeaseId(existingAgreement.id));
       
       if (error) {
         throw error;

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -19,7 +18,6 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { asPaymentId } from '@/utils/type-casting';
 
 interface ImportLog {
   id: string;
@@ -48,7 +46,9 @@ export function ImportHistoryList() {
           .limit(5);
 
         if (error) throw error;
-        setImportLogs(data || []);
+        
+        const typedData = data as ImportLog[];
+        setImportLogs(typedData || []);
       } catch (err) {
         console.error('Error fetching import logs:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch import history');
@@ -146,50 +146,70 @@ export function ImportHistoryList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {importLogs.map((importLog) => (
-            <TableRow key={importLog.id}>
-              <TableCell className="font-medium">
-                {importLog.original_file_name || importLog.file_name}
-              </TableCell>
-              <TableCell>
-                {format(new Date(importLog.created_at), 'MMM d, yyyy h:mm a')}
-              </TableCell>
-              <TableCell>
-                {getStatusBadge(importLog.status, importLog.error_count)}
-              </TableCell>
-              <TableCell>
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <Button variant="link" className="p-0 h-auto font-normal">
-                      {importLog.processed_count}/{importLog.row_count}
-                    </Button>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="flex justify-between">
-                      <span>Total Records:</span>
-                      <span>{importLog.row_count}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Processed:</span>
-                      <span className="text-green-600">{importLog.processed_count}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Errors:</span>
-                      <span className="text-red-600">{importLog.error_count}</span>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </TableCell>
-              <TableCell>
-                {importLog.error_count > 0 && (
-                  <Button variant="ghost" size="sm" className="h-8">
-                    <Download className="h-3.5 w-3.5 mr-1" />
-                    Errors
-                  </Button>
-                )}
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <TableRow key={`skeleton-${i}`}>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-10" /></TableCell>
+              </TableRow>
+            ))
+          ) : importLogs.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-8">
+                <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-lg font-medium">No import history</h3>
+                <p className="text-muted-foreground">Upload a CSV file to import agreements</p>
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            importLogs.map((importLog) => (
+              <TableRow key={importLog.id}>
+                <TableCell className="font-medium">
+                  {importLog.original_file_name || importLog.file_name}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(importLog.created_at), 'MMM d, yyyy h:mm a')}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(importLog.status, importLog.error_count)}
+                </TableCell>
+                <TableCell>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Button variant="link" className="p-0 h-auto font-normal">
+                        {importLog.processed_count}/{importLog.row_count}
+                      </Button>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="flex justify-between">
+                        <span>Total Records:</span>
+                        <span>{importLog.row_count}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Processed:</span>
+                        <span className="text-green-600">{importLog.processed_count}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Errors:</span>
+                        <span className="text-red-600">{importLog.error_count}</span>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </TableCell>
+                <TableCell>
+                  {importLog.error_count > 0 && (
+                    <Button variant="ghost" size="sm" className="h-8">
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Errors
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

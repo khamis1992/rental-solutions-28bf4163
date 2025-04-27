@@ -22,6 +22,7 @@ export const agreementSchema = z.object({
   updated_at: z.date().optional(),
   last_payment_date: z.date().optional().nullable(),
   terms_accepted: z.boolean().optional().default(false),
+  total_amount: z.number().optional(),
   
   // Related entities
   customer_name: z.string().optional(),

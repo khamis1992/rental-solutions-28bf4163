@@ -1,11 +1,11 @@
+import React from 'react';
 import { 
   asLeaseId, 
   asAgreementId, 
   asTrafficFineId,
   asPaymentStatus,
-  asLeaseStatus,
   asImportId
-} from '@/utils/database-type-helpers';
+} from '@/utils/type-casting';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
