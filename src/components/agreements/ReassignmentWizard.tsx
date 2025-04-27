@@ -1,16 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  asLeaseId,
-  exists,
-  hasProperties,
-  safelyExtractFields,
-  safeExtract,
-  castDatabaseResult,
-  castRowData,
-  processQueryResult
-} from '@/utils/database-type-helpers';
+import { castLeaseId } from '@/utils/database-operations';
 import { toast } from 'sonner';
 
 interface AgreementDetails {
@@ -19,7 +9,11 @@ interface AgreementDetails {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
-  profiles?: any | null;
+  customer: {
+    full_name: string | null;
+    email: string | null;
+    phone_number: string | null;
+  } | null;
 }
 
 export function ReassignmentWizard() {
@@ -32,40 +26,30 @@ export function ReassignmentWizard() {
     
     setIsLoading(true);
     try {
-      const typedLeaseId = asLeaseId(agreementId);
-      
       const { data, error } = await supabase
         .from('leases')
         .select(`
           id,
           agreement_number,
-          profiles:customer_id (
+          customer:customer_id (
             full_name,
             email,
             phone_number
           )
         `)
-        .eq('id', typedLeaseId)
+        .eq('id', castLeaseId(agreementId))
         .single();
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      // Only proceed if we have valid data
-      if (data && exists(data)) {
-        // Process the data safely
-        const processedData = processQueryResult<any>(data);
-        const profileData = processedData.profiles || {};
-        
-        // Create a properly typed AgreementDetails object
+      if (data) {
         const details: AgreementDetails = {
-          id: processedData.id || '',
-          agreement_number: processedData.agreement_number || '',
-          customer_name: profileData.full_name || null,
-          customer_email: profileData.email || null,
-          customer_phone: profileData.phone_number || null,
-          profiles: processedData.profiles
+          id: data.id,
+          agreement_number: data.agreement_number,
+          customer_name: data.customer?.full_name || null,
+          customer_email: data.customer?.email || null,
+          customer_phone: data.customer?.phone_number || null,
+          customer: data.customer
         };
         
         setAgreementDetails(details);
@@ -80,7 +64,7 @@ export function ReassignmentWizard() {
       setIsLoading(false);
     }
   };
-  
+
   const handleSearch = async () => {
     setIsLoading(true);
     try {

@@ -23,6 +23,7 @@ import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
 import { ExtendedPayment } from './PaymentHistory.types';
 import { asUnifiedPaymentLeaseId } from '@/utils/database-type-helpers';
+import { castLeaseId, castDatabaseId, castPaymentUpdate } from '@/utils/database-operations';
 
 interface PaymentHistoryProps {
   agreementId: string;
@@ -32,7 +33,7 @@ const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPaym
   try {
     const { data, error } = await supabase
       .from('unified_payments')
-      .update({
+      .update(castPaymentUpdate({
         amount: updateData.amount,
         amount_paid: updateData.amount_paid,
         balance: updateData.balance,
@@ -41,14 +42,11 @@ const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPaym
         description: updateData.description,
         reference_number: updateData.reference_number,
         notes: updateData.notes
-      })
-      .eq('id', paymentId)
+      }))
+      .eq('id', castDatabaseId<'unified_payments'>(paymentId))
       .select();
 
-    if (error) {
-      throw error;
-    }
-
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error('Error updating payment:', error);
@@ -58,19 +56,13 @@ const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPaym
 
 const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> => {
   try {
-    // Use the properly typed ID for the database query
-    const typedLeaseId = asUnifiedPaymentLeaseId(agreementId);
-    
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', typedLeaseId);
+      .eq('lease_id', castLeaseId(agreementId));
       
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
     
-    // Map the response to our ExtendedPayment type
     return data.map(payment => ({
       id: payment.id,
       lease_id: payment.lease_id,
