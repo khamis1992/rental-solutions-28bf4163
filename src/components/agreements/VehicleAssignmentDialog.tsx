@@ -12,7 +12,10 @@ import {
   asVehicleId,
   asLeaseId,
   asLeaseIdColumn,
+  asLeaseIdField2,
   asStatusColumn,
+  extractData,
+  hasProperties
 } from '@/utils/database-type-helpers';
 import { hasData } from '@/utils/supabase-type-helpers';
 import { Payment } from "./PaymentHistory.types";
@@ -80,8 +83,15 @@ export function VehicleAssignmentDialog({
           .eq('id', asVehicleId(vehicleId))
           .single();
           
-        if (hasData(vehicleResponse)) {
-          setVehicleInfo(vehicleResponse.data);
+        if (hasData(vehicleResponse) && hasProperties(vehicleResponse.data, 'id', 'make', 'model', 'license_plate')) {
+          setVehicleInfo({
+            id: vehicleResponse.data.id,
+            make: vehicleResponse.data.make,
+            model: vehicleResponse.data.model,
+            license_plate: vehicleResponse.data.license_plate,
+            year: vehicleResponse.data.year,
+            color: vehicleResponse.data.color
+          });
         }
       }
       
@@ -89,11 +99,11 @@ export function VehicleAssignmentDialog({
       const paymentsResponse = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', asLeaseIdField2(existingAgreement.id))
         .in('status', ['pending', 'overdue']);
         
-      if (hasData(paymentsResponse)) {
-        const formattedPayments = paymentsResponse.data.map(payment => ({
+      if (hasData(paymentsResponse) && Array.isArray(paymentsResponse.data)) {
+        const formattedPayments: Payment[] = paymentsResponse.data.map(payment => ({
           id: payment.id,
           amount: payment.amount,
           status: payment.status,
@@ -113,7 +123,7 @@ export function VehicleAssignmentDialog({
         .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
         .eq('payment_status', 'pending');
         
-      if (hasData(finesResponse)) {
+      if (hasData(finesResponse) && Array.isArray(finesResponse.data)) {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
         const transformedFines: TrafficFine[] = finesResponse.data.map(fine => ({
           id: fine.id,
@@ -147,8 +157,13 @@ export function VehicleAssignmentDialog({
           .eq('id', agreementResponse.data.customer_id)
           .single();
           
-        if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data);
+        if (hasData(customerResponse) && hasProperties(customerResponse.data, 'id', 'full_name')) {
+          setCustomerInfo({
+            id: customerResponse.data.id,
+            full_name: customerResponse.data.full_name,
+            email: customerResponse.data.email,
+            phone_number: customerResponse.data.phone_number
+          });
         }
       }
     } catch (error) {

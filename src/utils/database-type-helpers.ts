@@ -4,6 +4,7 @@ import { Database } from '@/types/database.types';
 type Tables = Database['public']['Tables'];
 type TableNames = keyof Tables;
 type RowType<T extends TableNames> = Tables[T]['Row'];
+type UpdateType<T extends TableNames> = Tables[T]['Update'];
 
 /**
  * Cast a string to a specific table's ID type
@@ -23,6 +24,16 @@ export function asTableId<T extends TableNames>(table: T, id: string): RowType<T
  */
 export function asTableStatus<T extends TableNames>(table: T, status: string): RowType<T>['status'] {
   return status as RowType<T>['status'];
+}
+
+/**
+ * Create an update object for a specific table with the correct types
+ * @param table Table name from the database schema
+ * @param updates Object with updates to apply
+ * @returns The update object with the correct types for the table
+ */
+export function asTableUpdate<T extends TableNames>(table: T, updates: Partial<UpdateType<T>>): UpdateType<T> {
+  return updates as UpdateType<T>;
 }
 
 // Specialized helpers for commonly used IDs
@@ -80,6 +91,14 @@ export function asTrafficFineAgreementId(id: string) {
   return id as Tables['traffic_fines']['Row']['agreement_id'];
 }
 
+export function asAgreementIdField(id: string) {
+  return id as Tables['overdue_payments']['Row']['agreement_id'];
+}
+
+export function asLeaseIdField2(id: string) {
+  return id as Tables['unified_payments']['Row']['lease_id'];
+}
+
 export function asOverduePaymentAgreementId(id: string) {
   return id as Tables['overdue_payments']['Row']['agreement_id'];
 }
@@ -131,4 +150,15 @@ export function hasProperties<T extends object, K extends keyof T>(
 ): obj is T {
   if (!obj) return false;
   return keys.every(key => key in obj);
+}
+
+/**
+ * Safely extract properties from a database result object
+ * Helps with nested join results
+ */
+export function extractData<T>(result: any, fallback: T): T {
+  if (!result) return fallback;
+  if (result.error) return fallback;
+  if (!result.data) return fallback;
+  return result.data as T;
 }

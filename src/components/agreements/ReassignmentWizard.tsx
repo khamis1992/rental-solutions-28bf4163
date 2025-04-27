@@ -6,7 +6,8 @@ import {
   asLeaseStatus,
   asPaymentStatus,
   exists,
-  hasProperties
+  hasProperties,
+  extractData
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
 
@@ -47,6 +48,7 @@ export function ReassignmentWizard() {
         throw error;
       }
       
+      // Use our type guard to safely check properties
       if (data && hasProperties(data, 'id', 'agreement_number')) {
         // Type-check the data exists and has proper properties
         setAgreementDetails({

@@ -1,38 +1,28 @@
 
-export interface ExtendedPayment {
+export interface Payment {
   id: string;
-  lease_id: string;
   amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string;
-  payment_method?: string;
-  reference_number?: string;
-  notes?: string;
-  description?: string;
   status: string;
-  created_at: string;
-  updated_at?: string;
-  original_due_date?: string;
-  due_date?: string;
-  is_recurring?: boolean;
-  type?: string;
-  days_overdue?: number;
+  description?: string | null;
+  payment_date?: Date | string | null;
+  due_date?: Date | string | null;
+  lease_id?: string;
+  payment_method?: string | null;
+  balance?: number;
+  amount_paid?: number;
   late_fine_amount?: number;
-  processing_fee?: number;
-  processed_by?: string;
+  days_overdue?: number;
 }
 
-export interface PaymentHistoryProps {
-  payments: ExtendedPayment[] | null | undefined;
-  isLoading: boolean;
-  rentAmount?: number | null;
-  contractAmount?: number | null;
-  leaseStartDate?: string | null;
-  leaseEndDate?: string | null;
-  onPaymentDeleted: () => void;
-  onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
-  onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
-  onEdit?: (payment: ExtendedPayment) => void;
-  onDelete?: (payment: ExtendedPayment) => void;
+export interface ExtendedPayment extends Payment {
+  reference_number?: string | null;
+  notes?: string | null;
+  type?: string;
+  created_at?: string;
+  updated_at?: string | null;
+  original_due_date?: string | null;
+  next_payment_date?: string | null;
+  is_recurring?: boolean;
+  processing_fee?: number;
+  processed_by?: string | null;
 }

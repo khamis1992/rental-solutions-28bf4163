@@ -1,10 +1,12 @@
 import React from 'react';
 import { 
   asLeaseId, 
-  asAgreementId, 
-  asTrafficFineId,
+  asAgreementIdField, 
+  asTrafficFineAgreementId,
   asPaymentStatus,
-  asImportId
+  asImportId,
+  asLeaseIdField2,
+  asOverduePaymentAgreementId
 } from '@/utils/database-type-helpers';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -90,7 +92,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asAgreementId(agreementId))
+      .eq('agreement_id', asOverduePaymentAgreementId(agreementId))
       .single();
     
     if (error) {
@@ -108,7 +110,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', asLeaseId(agreementId));
+      .eq('lease_id', asLeaseIdField2(agreementId));
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -125,7 +127,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asAgreementId(agreementId));
+      .eq('agreement_id', asTrafficFineAgreementId(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -197,7 +199,7 @@ export function AgreementList() {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asAgreementId(id));
+          .eq('agreement_id', asOverduePaymentAgreementId(id));
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -208,7 +210,7 @@ export function AgreementList() {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', asLeaseId(id));
+          .eq('lease_id', asLeaseIdField2(id));
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -230,7 +232,7 @@ export function AgreementList() {
         const { error: finesDeleteError } = await supabase
           .from('traffic_fines')
           .delete()
-          .eq('agreement_id', asAgreementId(id));
+          .eq('agreement_id', asTrafficFineAgreementId(id));
         
         if (finesDeleteError) {
           console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
