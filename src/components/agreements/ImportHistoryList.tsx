@@ -1,11 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Loader2, RefreshCw, FileX } from 'lucide-react';
+import { Loader2, RefreshCw, FileX, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { useAgreementImports } from '@/hooks/use-agreement-imports';
+import { Badge } from '@/components/ui/badge';
+import { 
+  HoverCard, 
+  HoverCardTrigger, 
+  HoverCardContent 
+} from '@/components/ui/hover-card';
 
 export interface ImportLog {
   id: string;

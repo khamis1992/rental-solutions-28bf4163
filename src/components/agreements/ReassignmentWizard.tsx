@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   asLeaseId,
   asLeaseStatus,
   asPaymentStatus,
+  exists,
+  hasProperties
 } from '@/utils/database-type-helpers';
 import { toast } from 'sonner';
-import { exists } from '@/utils/database-type-helpers';
 
 interface AgreementDetails {
   id: string;
@@ -45,7 +47,8 @@ export function ReassignmentWizard() {
         throw error;
       }
       
-      if (data && exists(data)) {
+      if (data && hasProperties(data, 'id', 'agreement_number')) {
+        // Type-check the data exists and has proper properties
         setAgreementDetails({
           id: data.id,
           agreement_number: data.agreement_number,
@@ -69,10 +72,7 @@ export function ReassignmentWizard() {
   const handleSearch = async () => {
     setIsLoading(true);
     try {
-      const details = await fetchAgreementDetails();
-      if (details) {
-        setAgreementDetails(details);
-      }
+      await fetchAgreementDetails();
     } catch (error) {
       console.error("Error during agreement search:", error);
       toast.error('Failed to fetch agreement details');
