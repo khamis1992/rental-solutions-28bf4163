@@ -48,3 +48,12 @@ export function asPaymentStatus(status: string): DbTables['unified_payments']['R
   return asStatus('unified_payments', status);
 }
 
+// Add the missing vehicle ID casting function
+export function asVehicleId(id: string): DbTables['vehicles']['Row']['id'] {
+  return asTableId('vehicles', id);
+}
+
+// Add maintenance ID casting for completeness
+export function asMaintenanceId(id: string): DbTables['maintenance']['Row']['id'] {
+  return asTableId('maintenance', id);
+}
