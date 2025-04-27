@@ -11,14 +11,23 @@ export function asTableId<T extends TableNames>(
   return id as DbTables[T]['Row']['id'];
 }
 
+export function asColumnValue<T extends TableNames, K extends keyof DbTables[T]['Row']>(
+  table: T,
+  column: K,
+  value: string
+): DbTables[T]['Row'][K] {
+  return value as DbTables[T]['Row'][K];
+}
+
+// Status casting function
 export function asStatus<T extends TableNames>(
   table: T,
   status: string
 ): DbTables[T]['Row']['status'] {
-  return status as DbTables[T]['Row']['status'];
+  return asColumnValue(table, 'status', status);
 }
 
-// Commonly used table-specific ID casting functions
+// ID casting functions
 export function asLeaseId(id: string): DbTables['leases']['Row']['id'] {
   return asTableId('leases', id);
 }
@@ -39,6 +48,23 @@ export function asImportId(id: string): DbTables['agreement_imports']['Row']['id
   return asTableId('agreement_imports', id);
 }
 
+// Column casting functions
+export function asLeaseIdColumn(id: string): DbTables['leases']['Row']['id'] {
+  return asTableId('leases', id);
+}
+
+export function asAgreementIdColumn(id: string): DbTables['leases']['Row']['id'] {
+  return asTableId('leases', id);
+}
+
+export function asImportIdColumn(id: string): DbTables['agreement_imports']['Row']['id'] {
+  return asTableId('agreement_imports', id);
+}
+
+export function asTrafficFineIdColumn(id: string): DbTables['traffic_fines']['Row']['id'] {
+  return asTableId('traffic_fines', id);
+}
+
 // Status casting functions
 export function asLeaseStatus(status: string): DbTables['leases']['Row']['status'] {
   return asStatus('leases', status);
@@ -48,12 +74,12 @@ export function asPaymentStatus(status: string): DbTables['unified_payments']['R
   return asStatus('unified_payments', status);
 }
 
-// Add the missing vehicle ID casting function
+// Vehicle ID casting
 export function asVehicleId(id: string): DbTables['vehicles']['Row']['id'] {
   return asTableId('vehicles', id);
 }
 
-// Add maintenance ID casting for completeness
+// Maintenance ID casting
 export function asMaintenanceId(id: string): DbTables['maintenance']['Row']['id'] {
   return asTableId('maintenance', id);
 }

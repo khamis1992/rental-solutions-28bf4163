@@ -169,14 +169,14 @@ export function PaymentEntryDialog({
 
   const formatPaymentDescription = (payment: ExtendedPayment) => {
     let desc = payment.description || 
-               `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
+             `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     
     let status = "";
-    if (payment.status === 'partially_paid') {
+    if (payment.status === asPaymentStatus('partially_paid')) {
       status = " (Partially Paid)";
-    } else if (payment.status === 'pending') {
+    } else if (payment.status === asPaymentStatus('pending')) {
       status = " (Pending)";
-    } else if (payment.status === 'overdue') {
+    } else if (payment.status === asPaymentStatus('overdue')) {
       status = " (Overdue)";
     }
     
