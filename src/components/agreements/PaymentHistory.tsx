@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { asPaymentId } from '@/utils/database-type-helpers';
+import { asPaymentId, asPaymentStatus } from '@/utils/database-type-helpers';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { Badge } from '@/components/ui/badge';
 import { PaymentEditDialog } from './PaymentEditDialog';
@@ -167,7 +167,7 @@ export function PaymentHistory({
     referenceNumber?: string,
     includeLatePaymentFee?: boolean
   ) => {
-    if (!onRecordPayment) return;
+    if (!onPaymentUpdated) return;
     
     const payment: Partial<Payment> = {
       amount,
@@ -175,12 +175,18 @@ export function PaymentHistory({
       notes,
       payment_method: paymentMethod,
       reference_number: referenceNumber,
-      status: 'completed',
+      status: asPaymentStatus('completed'),
       description: notes || 'Payment'
     };
     
-    onRecordPayment(payment);
-  }, [onRecordPayment]);
+    try {
+      await onPaymentUpdated(payment);
+      toast.success('Payment recorded successfully');
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast.error('Failed to record payment');
+    }
+  }, [onPaymentUpdated]);
 
   const formatPaymentDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';

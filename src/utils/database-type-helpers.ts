@@ -67,7 +67,3 @@ export function asVehicleId(id: string): DbTables['vehicles']['Row']['id'] {
   return asTableId('vehicles', id);
 }
 
-// Maintenance ID casting
-export function asMaintenanceId(id: string): DbTables['maintenance']['Row']['id'] {
-  return asTableId('maintenance', id);
-}
