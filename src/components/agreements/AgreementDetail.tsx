@@ -387,6 +387,7 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
+        agreementId={agreement.id}
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount}
