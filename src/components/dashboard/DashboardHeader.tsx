@@ -21,30 +21,31 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
       <div>
-        <SectionHeader 
-          title="Dashboard" 
-          description={`Overview of your rental operations • ${currentDate}`} 
-          icon={LayoutDashboard} 
+        <SectionHeader
+          title="Dashboard"
+          description={`Overview of your rental operations • ${currentDate}`}
+          icon={LayoutDashboard}
         />
       </div>
       <div className="flex items-center space-x-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onRefresh} 
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRefresh}
           disabled={isRefreshing}
+          className="h-9"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
-        
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate('/system-settings')}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => navigate('/settings/dashboard')}
+          className="h-9"
         >
           <Settings className="h-4 w-4 mr-2" />
-          Settings
+          Customize
         </Button>
       </div>
     </div>

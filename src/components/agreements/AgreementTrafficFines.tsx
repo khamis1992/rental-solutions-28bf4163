@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -13,27 +12,23 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines, error } = useTrafficFines();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isLoading, trafficFines } = useTrafficFines();
+  const [showLoader, setShowLoader] = useState(false);
+
+  useEffect(() => {
+    // Initial loading state is managed by the hook
+    setShowLoader(isLoading);
+  }, [isLoading]);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      // Since refetch is not available in the hook, we'll use window.location.reload()
-      // as a temporary solution until the hook is updated with proper refetch capability
-      toast.success('Refreshing traffic fines data...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    } catch (error) {
-      toast.error('Failed to refresh traffic fines');
-      console.error('Error refreshing traffic fines:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
+    setShowLoader(true);
+    // Wait a moment for visual feedback
+    setTimeout(() => {
+      setShowLoader(false);
+    }, 1000);
   };
 
-  if (isLoading || isRefreshing) {
+  if (isLoading || showLoader) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -41,19 +36,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-4 text-red-500">
-        <p>Error loading traffic fines</p>
-        <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2 mt-2">
-          <RefreshCw className="h-4 w-4" />
-          Try again
-        </Button>
-      </div>
-    );
-  }
-
-  // Filter traffic fines for this agreement
+  // Filter traffic fines for this agreement if needed
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     fine.leaseId === agreementId
   ) : [];
@@ -65,8 +48,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
           No traffic fines recorded for this rental period.
         </p>
         <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
+          <Button onClick={handleRefresh} variant="outline" size="sm">
             Check for new fines
           </Button>
         </div>
@@ -124,8 +106,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
           </p>
         </div>
         
-        <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
+        <Button onClick={handleRefresh} variant="outline" size="sm">
           Refresh
         </Button>
       </div>

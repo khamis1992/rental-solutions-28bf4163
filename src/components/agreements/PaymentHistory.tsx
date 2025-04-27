@@ -1,286 +1,608 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { PaymentEditDialog } from './PaymentEditDialog';
-import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Calendar, CalendarIcon, Plus, Trash2, FileText, Download, Filter, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatCurrency } from '@/lib/utils';
-import { asTableId, asLeaseId } from '@/utils/type-casting';
-import { formatDate } from '@/lib/date-utils';
-import type { PaymentHistoryProps, Payment } from './PaymentHistory.types';
+import { Progress } from '@/components/ui/progress';
+import { asPaymentId } from '@/utils/type-casting';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { Badge } from '@/components/ui/badge';
+import { PaymentEditDialog } from './PaymentEditDialog';
+import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
+import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 
-export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ 
-  agreementId,
+export function PaymentHistory({
   payments = [],
   isLoading = false,
   rentAmount,
-  contractAmount,
   onPaymentDeleted,
+  leaseStartDate,
+  leaseEndDate,
   onPaymentUpdated,
   onRecordPayment,
-  leaseStartDate,
-  leaseEndDate
-}) => {
-  const [localPayments, setLocalPayments] = useState<Payment[]>([]);
-  const [localIsLoading, setLocalIsLoading] = useState(true);
-  const [editPayment, setEditPayment] = useState<Payment | null>(null);
+}: PaymentHistoryProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<{column: string, direction: 'asc' | 'desc'}>({
+    column: 'due_date',
+    direction: 'desc'
+  });
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (Array.isArray(payments)) {
-      setLocalPayments(payments);
-      setLocalIsLoading(isLoading);
-    } else {
-      const fetchPayments = async () => {
-        setLocalIsLoading(true);
-        try {
-          if (!agreementId) {
-            console.log('No agreement ID provided');
-            setLocalPayments([]);
-            setLocalIsLoading(false);
-            return;
-          }
-          
-          console.log('Fetching payments for agreement:', agreementId);
-          
-          const { data, error } = await supabase
-            .from('unified_payments')
-            .select('*')
-            .eq('lease_id', asLeaseId(agreementId))
-            .order('payment_date', { ascending: false });
+  const handleRowClick = (paymentId: string) => {
+    setExpandedRowId(prevId => prevId === paymentId ? null : paymentId);
+  };
 
-          if (error) {
-            console.error('Error fetching payments:', error);
-            throw error;
-          }
-          
-          console.log('Fetched payments:', data);
-          setLocalPayments(data || []);
-        } catch (error) {
-          console.error('Error in fetchPayments:', error);
-          toast.error("Failed to fetch payments");
-        } finally {
-          setLocalIsLoading(false);
-        }
+  const paymentStats = useMemo(() => {
+    if (!payments.length) {
+      return {
+        totalAmount: 0,
+        totalPaid: 0,
+        totalBalance: 0,
+        totalLateFees: 0,
+        paidOnTime: 0,
+        paidLate: 0,
+        unpaid: 0
       };
-
-      fetchPayments();
     }
-  }, [agreementId, payments, isLoading]);
+    
+    return payments.reduce((stats, payment) => {
+      const totalAmount = payment.amount || 0;
+      const lateFee = payment.late_fine_amount || 0;
+      const amountPaid = payment.amount_paid || 0;
+      const balance = payment.balance || (totalAmount + lateFee - amountPaid);
+      const isPaid = payment.status === 'completed';
+      const isLate = (payment.days_overdue || 0) > 0;
 
-  const handleDelete = async (paymentId: string) => {
-    try {
-      if (onPaymentDeleted) {
-        await supabase
-          .from('unified_payments')
-          .delete()
-          .eq('id', asTableId('unified_payments', paymentId));
-        
-        onPaymentDeleted();
-        toast.success("Payment deleted successfully");
-      } else {
-        const { error } = await supabase
-          .from('unified_payments')
-          .delete()
-          .eq('id', asTableId('unified_payments', paymentId));
-
-        if (error) throw error;
-        
-        setLocalPayments(payments => payments.filter(payment => payment.id !== paymentId));
-        toast.success("Payment deleted successfully");
+      return {
+        totalAmount: stats.totalAmount + totalAmount,
+        totalPaid: stats.totalPaid + amountPaid,
+        totalBalance: stats.totalBalance + balance,
+        totalLateFees: stats.totalLateFees + lateFee,
+        paidOnTime: stats.paidOnTime + (isPaid && !isLate ? 1 : 0),
+        paidLate: stats.paidLate + (isPaid && isLate ? 1 : 0),
+        unpaid: stats.unpaid + (!isPaid ? 1 : 0)
+      };
+    }, {
+      totalAmount: 0,
+      totalPaid: 0,
+      totalBalance: 0,
+      totalLateFees: 0,
+      paidOnTime: 0,
+      paidLate: 0,
+      unpaid: 0
+    });
+  }, [payments]);
+  
+  const sortedPayments = useMemo(() => {
+    if (!payments.length) return [];
+    
+    return [...payments].sort((a, b) => {
+      let valueA, valueB;
+      
+      switch (sortBy.column) {
+        case 'due_date':
+          valueA = a.due_date || a.original_due_date || '';
+          valueB = b.due_date || b.original_due_date || '';
+          break;
+        case 'payment_date':
+          valueA = a.payment_date || '';
+          valueB = b.payment_date || '';
+          break;
+        case 'amount':
+          valueA = a.amount || 0;
+          valueB = b.amount || 0;
+          break;
+        case 'status':
+          valueA = a.status || '';
+          valueB = b.status || '';
+          break;
+        default:
+          valueA = a.due_date || a.original_due_date || '';
+          valueB = b.due_date || b.original_due_date || '';
       }
-    } catch (error) {
-      console.error("Error deleting payment:", error);
-      toast.error("Failed to delete payment");
-    }
-  };
+      
+      if (sortBy.column === 'due_date' || sortBy.column === 'payment_date') {
+        valueA = valueA ? new Date(valueA).getTime() : 0;
+        valueB = valueB ? new Date(valueB).getTime() : 0;
+      }
+      
+      const direction = sortBy.direction === 'asc' ? 1 : -1;
+      return (valueA > valueB ? 1 : -1) * direction;
+    });
+  }, [payments, sortBy]);
 
-  const handleEdit = (payment: Payment) => {
-    setEditPayment(payment);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDialogClose = () => {
-    setIsEditDialogOpen(false);
-    setEditPayment(null);
-  };
-
-  const handlePaymentSaved = async (updatedPayment: Partial<Payment>) => {
-    handleDialogClose();
-
+  const handleDelete = useCallback(async (paymentId: string) => {
     try {
-      if (onPaymentUpdated && updatedPayment.id) {
-        await onPaymentUpdated(updatedPayment);
-      } else {
-        const { error } = await supabase
-          .from('unified_payments')
-          .update(updatedPayment)
-          .eq('id', updatedPayment.id!);
-        
-        if (error) throw error;
-        
-        const { data, error: fetchError } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', asLeaseId(agreementId))
-          .order('payment_date', { ascending: false });
-        
-        if (fetchError) throw fetchError;
-        
-        setLocalPayments(data || []);
+      setIsDeleting(paymentId);
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', asPaymentId(paymentId));
+
+      if (error) {
+        toast.error(`Failed to delete payment: ${error.message}`);
+        return;
       }
 
-      toast.success("Payment updated successfully");
-    } catch (error) {
-      console.error("Error updating payment:", error);
-      toast.error("Failed to update payment");
+      toast.success('Payment deleted successfully');
+      onPaymentDeleted();
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsDeleting(null);
     }
+  }, [onPaymentDeleted]);
+
+  const handleSort = (column: string) => {
+    setSortBy(prev => ({
+      column,
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
   };
 
-  const handleAddPayment = () => {
-    setIsPaymentDialogOpen(true);
-  };
-
-  const handlePaymentDialogClose = () => {
-    setIsPaymentDialogOpen(false);
-  };
-
-  const handlePaymentSubmit = async (
+  const handlePaymentSubmit = useCallback(async (
     amount: number, 
     paymentDate: Date, 
     notes?: string, 
     paymentMethod?: string, 
-    referenceNumber?: string
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
   ) => {
+    if (!onRecordPayment) return;
+    
+    const payment: Partial<Payment> = {
+      amount,
+      payment_date: paymentDate.toISOString(),
+      notes,
+      payment_method: paymentMethod,
+      reference_number: referenceNumber,
+      status: 'completed',
+      description: notes || 'Payment'
+    };
+    
+    onRecordPayment(payment);
+  }, [onRecordPayment]);
+
+  const formatPaymentDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
     try {
-      if (onRecordPayment) {
-        onRecordPayment({
-          lease_id: agreementId,
-          amount,
-          payment_date: paymentDate.toISOString(),
-          status: 'completed',
-          payment_method: paymentMethod,
-          transaction_id: referenceNumber,
-          notes
-        });
-      } else {
-        const newPayment = {
-          lease_id: agreementId,
-          amount,
-          payment_date: paymentDate.toISOString(),
-          status: 'completed',
-          payment_method: paymentMethod,
-          transaction_id: referenceNumber,
-          notes
-        };
-        
-        const { data, error } = await supabase
-          .from('unified_payments')
-          .insert([newPayment])
-          .select();
-        
-        if (error) throw error;
-        
-        setLocalPayments(prev => [data[0], ...prev]);
-      }
-      
-      handlePaymentDialogClose();
-      toast.success("Payment recorded successfully");
+      return format(new Date(dateString), 'dd/MM/yyyy');
     } catch (error) {
-      console.error("Error recording payment:", error);
-      toast.error("Failed to record payment");
+      console.error('Invalid date format:', dateString);
+      return 'N/A';
     }
   };
 
-  if (localIsLoading) {
-    return <div className="text-center py-4">Loading payments...</div>;
-  }
+  const getStatusBadge = (status?: string, daysOverdue = 0) => {
+    const statusLower = status?.toLowerCase();
+    if (statusLower === 'completed') {
+      return daysOverdue > 0 
+        ? <Badge variant="warning" className="flex items-center gap-1">Paid Late</Badge>
+        : <Badge variant="success" className="flex items-center gap-1">Paid</Badge>;
+    } 
+    if (statusLower === 'overdue' || daysOverdue > 0) {
+      return <Badge variant="destructive" className="flex items-center gap-1">Overdue</Badge>;
+    }
+    if (statusLower === 'pending') {
+      return <Badge variant="outline" className="flex items-center gap-1">Pending</Badge>;
+    }
+    return <Badge variant="secondary" className="flex items-center gap-1">{status || 'Unknown'}</Badge>;
+  };
 
-  if (!localPayments || localPayments.length === 0) {
-    return (
-      <div>
-        <div className="flex justify-end mb-4">
-          <Button onClick={handleAddPayment}>
+  const handleEdit = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePaymentUpdate = async (updatedPayment: Partial<Payment>) => {
+    if (!selectedPayment) return;
+    
+    try {
+      if (onPaymentUpdated) {
+        await onPaymentUpdated({
+          ...updatedPayment,
+          id: selectedPayment.id
+        });
+        toast.success('Payment updated successfully');
+        setIsEditDialogOpen(false);
+        setSelectedPayment(null);
+      }
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      toast.error('Failed to update payment');
+    }
+  };
+
+  const handleExportHistory = () => {
+    if (payments.length === 0) return;
+
+    const paymentRows = payments.map(payment => ({
+      description: payment.description || 'Monthly Rent',
+      amount: payment.amount || 0,
+      dueDate: payment.due_date ? format(new Date(payment.due_date), 'dd/MM/yyyy') : 'N/A',
+      paymentDate: payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : null,
+      status: payment.status || 'pending',
+      lateFee: payment.late_fine_amount || 0,
+      total: (payment.amount || 0) + (payment.late_fine_amount || 0)
+    }));
+
+    const dateRange = {
+      from: leaseStartDate ? new Date(leaseStartDate) : undefined,
+      to: leaseEndDate ? new Date(leaseEndDate) : undefined
+    };
+
+    try {
+      const doc = generatePaymentHistoryPdf(paymentRows, "Payment History Report", dateRange);
+      doc.save('payment-history.pdf');
+      toast.success('Payment history exported successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to export payment history');
+    }
+  };
+
+  const columns = [
+    {
+      accessorKey: 'due_date',
+      header: () => (
+        <div className="flex items-center cursor-pointer" onClick={() => handleSort('due_date')}>
+          Due Date
+          {sortBy.column === 'due_date' && (
+            sortBy.direction === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+          )}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const dueDate = row.original.due_date || row.original.original_due_date;
+        return (
+          <div 
+            className="cursor-pointer hover:text-primary"
+            onClick={() => handleRowClick(row.original.id)}
+          >
+            {dueDate ? formatPaymentDate(dueDate) : 'N/A'}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => (
+        <span className="text-gray-700">
+          {row.original.description || 'Monthly Rent'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'amount',
+      header: () => (
+        <div className="flex items-center cursor-pointer" onClick={() => handleSort('amount')}>
+          Amount
+          {sortBy.column === 'amount' && (
+            sortBy.direction === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+          )}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const amount = row.original.amount || 0;
+        const lateFee = row.original.late_fine_amount || 0;
+        const total = amount + lateFee;
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={`font-medium ${lateFee > 0 ? 'text-amber-700' : ''}`}>
+                  QAR {total.toLocaleString()}
+                </span>
+              </TooltipTrigger>
+              {lateFee > 0 && (
+                <TooltipContent>
+                  <p>Base: QAR {amount.toLocaleString()}</p>
+                  <p>Late Fee: QAR {lateFee.toLocaleString()}</p>
+                  <p>Total: QAR {total.toLocaleString()}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        );
+      },
+    },
+    {
+      accessorKey: 'payment_date',
+      header: () => (
+        <div className="flex items-center cursor-pointer" onClick={() => handleSort('payment_date')}>
+          Payment Date
+          {sortBy.column === 'payment_date' && (
+            sortBy.direction === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+          )}
+        </div>
+      ),
+      cell: ({ row }) => formatPaymentDate(row.original.payment_date),
+    },
+    {
+      accessorKey: 'status',
+      header: () => (
+        <div className="flex items-center cursor-pointer" onClick={() => handleSort('status')}>
+          Status
+          {sortBy.column === 'status' && (
+            sortBy.direction === 'asc' ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
+          )}
+        </div>
+      ),
+      cell: ({ row }) => {
+        const daysOverdue = row.original.days_overdue || 0;
+        return getStatusBadge(row.original.status, daysOverdue);
+      },
+    },
+    {
+      id: 'lateFee',
+      header: 'Late Fee',
+      cell: ({ row }) => {
+        const lateFee = row.original.late_fine_amount || 0;
+        const daysOverdue = row.original.days_overdue || 0;
+        
+        return (
+          <div>
+            {lateFee > 0 ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-amber-700 font-medium">
+                      QAR {lateFee.toLocaleString()}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{daysOverdue} days overdue</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : <span>-</span>}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleEdit(row.original)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit payment</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleDelete(row.original.id)}
+            disabled={isDeleting === row.original.id}
+            className="text-red-500 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <div>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>Track all financial transactions for this agreement</CardDescription>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground border rounded-lg px-3 py-1">
+            <CalendarIcon className="h-4 w-4" />
+            <span>Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}</span>
+          </div>
+          <Button 
+            onClick={() => setIsPaymentDialogOpen(true)}
+            size="sm"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Record Payment
           </Button>
         </div>
-        <div className="text-center py-4 border rounded-lg bg-gray-50">No payments found for this agreement.</div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <p className="text-sm text-muted-foreground">Total Amount</p>
+            <p className="text-xl font-semibold">QAR {paymentStats.totalAmount.toLocaleString()}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <p className="text-sm text-muted-foreground">Amount Paid</p>
+            <p className="text-xl font-semibold text-green-600">QAR {paymentStats.totalPaid.toLocaleString()}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <p className="text-sm text-muted-foreground">Balance</p>
+            <p className="text-xl font-semibold text-amber-600">QAR {paymentStats.totalBalance.toLocaleString()}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <p className="text-sm text-muted-foreground">Late Fees</p>
+            <p className="text-xl font-semibold text-red-600">QAR {paymentStats.totalLateFees.toLocaleString()}</p>
+          </div>
+        </div>
         
-        <PaymentEntryDialog
-          open={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={handlePaymentSubmit}
-          defaultAmount={rentAmount || 0}
-          title="Record Payment"
-          description="Enter payment details to record a new payment"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleAddPayment}>
-          <Plus className="h-4 w-4 mr-2" />
-          Record Payment
+        <div className="pt-4 space-y-2 hidden md:block">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Payment Status</span>
+          </div>
+          <div className="flex gap-1">
+            <div style={{ width: `${paymentStats.paidOnTime / payments.length * 100}%` }} className="bg-green-500 h-2 rounded-l-full"></div>
+            <div style={{ width: `${paymentStats.paidLate / payments.length * 100}%` }} className="bg-amber-500 h-2"></div>
+            <div style={{ width: `${paymentStats.unpaid / payments.length * 100}%` }} className="bg-red-500 h-2 rounded-r-full"></div>
+          </div>
+          <div className="flex justify-between text-xs">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+              <span>Paid on Time: {paymentStats.paidOnTime}</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-amber-500 mr-1"></div>
+              <span>Paid Late: {paymentStats.paidLate}</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-1"></div>
+              <span>Unpaid: {paymentStats.unpaid}</span>
+            </div>
+          </div>
+        </div>
+      
+        {isLoading ? (
+          <div className="flex items-center justify-center h-52">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : payments.length > 0 ? (
+          <div>
+            <DataTable 
+              columns={columns} 
+              data={sortedPayments} 
+            />
+            
+            {expandedRowId && (
+              <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                {(() => {
+                  const payment = payments.find(p => p.id === expandedRowId);
+                  if (!payment) return null;
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <h4 className="text-base font-semibold mb-4">Payment Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Base Amount:</span>
+                            <span>QAR {payment.amount?.toLocaleString() || '0'}</span>
+                          </div>
+                          {(payment.late_fine_amount && payment.late_fine_amount > 0) && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Late Fee:</span>
+                              <span className="text-amber-700">QAR {payment.late_fine_amount.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-medium border-t pt-2">
+                            <span className="text-muted-foreground">Total:</span>
+                            <span>QAR {((payment.amount || 0) + (payment.late_fine_amount || 0)).toLocaleString()}</span>
+                          </div>
+                          {payment.amount_paid !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Amount Paid:</span>
+                              <span className="text-green-700">QAR {payment.amount_paid?.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {payment.balance !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Remaining Balance:</span>
+                              <span>QAR {payment.balance?.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-base font-semibold mb-4">Additional Information</h4>
+                        <div className="space-y-2 text-sm">
+                          {payment.days_overdue !== undefined && payment.days_overdue > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Days Overdue:</span>
+                              <span className="text-red-600">{payment.days_overdue} days</span>
+                            </div>
+                          )}
+                          {payment.payment_method && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Payment Method:</span>
+                              <span>{payment.payment_method}</span>
+                            </div>
+                          )}
+                          {payment.reference_number && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Reference:</span>
+                              <span>{payment.reference_number}</span>
+                            </div>
+                          )}
+                          {payment.notes && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Notes:</span>
+                              <span>{payment.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center p-8 text-muted-foreground">
+            No payment records found for this agreement.
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="flex justify-between border-t pt-6">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          disabled={payments.length === 0}
+          onClick={handleExportHistory}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export History
         </Button>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Reference</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {localPayments.map((payment) => (
-            <TableRow key={payment.id}>
-              <TableCell>
-                {payment.payment_date ? formatDate(payment.payment_date) : 'N/A'}
-              </TableCell>
-              <TableCell>{formatCurrency(payment.amount)}</TableCell>
-              <TableCell>{payment.payment_method || 'N/A'}</TableCell>
-              <TableCell>{payment.transaction_id || 'N/A'}</TableCell>
-              <TableCell>{payment.status}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="sm" onClick={() => handleEdit(payment)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(payment.id)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <PaymentEditDialog
-        payment={editPayment}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSaved={handlePaymentSaved}
-      />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>All Payments</DropdownMenuItem>
+            <DropdownMenuItem>Completed</DropdownMenuItem>
+            <DropdownMenuItem>Pending</DropdownMenuItem>
+            <DropdownMenuItem>Overdue</DropdownMenuItem>
+            <DropdownMenuItem>With Late Fees</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardFooter>
 
       <PaymentEntryDialog
         open={isPaymentDialogOpen}
@@ -288,8 +610,17 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         onSubmit={handlePaymentSubmit}
         defaultAmount={rentAmount || 0}
         title="Record Payment"
-        description="Enter payment details to record a new payment"
+        description="Enter payment details to record a payment"
       />
-    </div>
+      
+      {selectedPayment && (
+        <PaymentEditDialog
+          payment={selectedPayment}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSaved={handlePaymentUpdate}
+        />
+      )}
+    </Card>
   );
-};
+}

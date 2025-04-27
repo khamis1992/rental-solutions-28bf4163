@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -163,9 +164,11 @@ export function AgreementDetail({
       });
       onDataRefresh();
       fetchPayments();
+      return true;
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment");
+      return false;
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
@@ -291,22 +294,6 @@ export function AgreementDetail({
         </Card>
       </div>
 
-      {agreement.start_date && agreement.end_date && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgreementTrafficFines 
-              agreementId={agreement.id} 
-              startDate={new Date(agreement.start_date)} 
-              endDate={new Date(agreement.end_date)} 
-            />
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Agreement Details</CardTitle>
@@ -387,7 +374,6 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
-        agreementId={agreement.id}
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount}
@@ -412,6 +398,18 @@ export function AgreementDetail({
       {agreement.start_date && agreement.end_date && (
         <LegalCaseCard agreementId={agreement.id} />
       )}
+
+      {agreement.start_date && agreement.end_date && <Card>
+          <CardHeader>
+            <CardTitle>Traffic Fines</CardTitle>
+            <CardDescription>Violations during the rental period</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
+          </CardContent>
+        </Card>}
+
+      {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>

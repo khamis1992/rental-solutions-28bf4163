@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -66,6 +67,8 @@ export function AgreementList() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   
   const navigate = useNavigate();
   
@@ -75,8 +78,13 @@ export function AgreementList() {
     error,
     deleteAgreement 
   } = useAgreements();
-
-  const currentAgreements = agreements || [];
+  
+  // Pagination logic
+  const totalAgreements = agreements?.length || 0;
+  const totalPages = Math.ceil(totalAgreements / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentAgreements = agreements?.slice(startIndex, endIndex) || [];
 
   const handleBulkDelete = async () => {
     if (!agreements) return;
@@ -163,6 +171,7 @@ export function AgreementList() {
     );
   }
 
+  // Responsive view for mobile
   const renderMobileView = () => {
     return (
       <div className="space-y-4">
@@ -242,6 +251,7 @@ export function AgreementList() {
     );
   };
 
+  // Desktop view
   const renderDesktopView = () => {
     return (
       <div>
@@ -423,6 +433,81 @@ export function AgreementList() {
       <div className="hidden md:block">
         {renderDesktopView()}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage > 1) setCurrentPage(currentPage - 1);
+                }}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => 
+                page === 1 || 
+                page === totalPages || 
+                (page >= currentPage - 1 && page <= currentPage + 1)
+              )
+              .map((page, i, array) => {
+                // Add ellipsis if there are gaps in the page numbers
+                if (i > 0 && page > array[i - 1] + 1) {
+                  return (
+                    <React.Fragment key={`ellipsis-${page}`}>
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                          isActive={page === currentPage}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </React.Fragment>
+                  );
+                }
+                
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(page);
+                      }}
+                      isActive={page === currentPage}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+            
+            <PaginationItem>
+              <PaginationNext 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                }}
+                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
