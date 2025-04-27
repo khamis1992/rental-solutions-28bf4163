@@ -2,6 +2,7 @@
 import { useCallback } from 'react';
 import { useErrorStore, ErrorEvent } from '@/store/useErrorStore';
 import { logError } from '@/utils/error-tracking';
+import { toast } from 'sonner';
 
 export function useErrorTracking() {
   const { errors, lastError, addError, markErrorAsHandled, clearErrors } = useErrorStore();
@@ -26,7 +27,8 @@ export function useErrorTracking() {
         return [result, null];
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        logError(err, { ...context, args }, componentName);
+        trackError(err, { ...context, args }, componentName);
+        toast.error(err.message);
         return [null, err];
       }
     };

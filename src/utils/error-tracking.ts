@@ -1,5 +1,7 @@
 
-import { useErrorStore, ErrorEvent } from '@/store/useErrorStore';
+import { ErrorEvent } from '@/store/useErrorStore';
+import { useErrorStore } from '@/store/useErrorStore';
+import { toast } from 'sonner';
 
 /**
  * Error logging utility function
@@ -14,10 +16,10 @@ export function logError(
   const errorMessage = typeof error === 'string' ? error : error.message;
   const errorStack = typeof error === 'string' ? undefined : error.stack;
   
-  // Log to console first
+  // Log to console first with full context
   console.error(`[${componentName || 'App'}] ${errorMessage}`, context);
   
-  // Add to centralized error store
+  // Add to centralized error store with metadata
   useErrorStore.getState().addError({
     message: errorMessage,
     stack: errorStack,
@@ -27,38 +29,39 @@ export function logError(
     handled: false
   });
   
-  // This could be extended to send errors to a monitoring service
-  // like Sentry in the future
+  // Show user-facing notification for critical errors
+  if (severity === 'error') {
+    toast.error(errorMessage);
+  }
 }
 
 /**
  * Handle rejected promises from async operations
  * Can be used in try/catch blocks to standardize error handling
  */
-export function handleRejection<T>(
+export async function handleRejection<T>(
   promise: Promise<T>,
   componentName?: string,
   context?: Record<string, any>
 ): Promise<[T | null, Error | null]> {
-  return promise
-    .then((data) => [data, null])
-    .catch((error) => {
-      logError(error, context, componentName);
-      return [null, error];
-    });
+  try {
+    const data = await promise;
+    return [data, null];
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logError(err, context, componentName);
+    return [null, err];
+  }
 }
 
 /**
- * Error boundary HOC wrapper for component-level error handling
+ * Type-safe error boundary wrapper for components
  */
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  fallback?: React.ReactNode,
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void
-) {
-  const displayName = Component.displayName || Component.name || 'Component';
-  
-  class WithErrorBoundary extends React.Component<P, { hasError: boolean; error: Error | null }> {
+  componentName?: string
+): React.ComponentType<P> {
+  return class ErrorBoundaryWrapper extends React.Component<P, { hasError: boolean; error: Error | null }> {
     constructor(props: P) {
       super(props);
       this.state = { hasError: false, error: null };
@@ -69,21 +72,14 @@ export function withErrorBoundary<P extends object>(
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-      // Log the error
-      logError(error, { errorInfo }, displayName);
-      
-      // Call the optional error handler
-      if (onError) {
-        onError(error, errorInfo);
-      }
+      logError(error, { errorInfo }, componentName || Component.displayName || 'Unknown');
     }
 
     render() {
       if (this.state.hasError) {
-        // Either use the provided fallback or a default error message
-        return fallback || (
+        return (
           <div className="p-4 border rounded-md bg-destructive/10">
-            <h3 className="font-semibold mb-2">Something went wrong in {displayName}</h3>
+            <h3 className="font-semibold mb-2">Something went wrong</h3>
             <p className="text-sm text-muted-foreground mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
@@ -99,10 +95,7 @@ export function withErrorBoundary<P extends object>(
 
       return <Component {...this.props} />;
     }
-  }
-
-  WithErrorBoundary.displayName = `WithErrorBoundary(${displayName})`;
-  return WithErrorBoundary;
+  };
 }
 
 /**
@@ -127,3 +120,4 @@ export async function safeFetch<T>(
     return null;
   }
 }
+
