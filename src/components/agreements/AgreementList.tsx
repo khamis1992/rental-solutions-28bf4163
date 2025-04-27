@@ -1,5 +1,11 @@
-import { asLeaseId, asPaymentStatus, asLeaseStatus, asImportId, asTrafficFineId } from '@/utils/database-type-helpers';
-import React, { useState, useEffect } from 'react';
+import { 
+  asLeaseId, 
+  asAgreementId, 
+  asTrafficFineId,
+  asPaymentStatus,
+  asLeaseStatus 
+} from '@/utils/database-type-helpers';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
@@ -137,7 +143,7 @@ const fetchTrafficFines = async (agreementId: string) => {
   }
 };
 
-export const AgreementList = () => {
+export function AgreementList() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -175,7 +181,7 @@ export const AgreementList = () => {
     });
   }, [agreements, statusFilter]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (!agreements) return;
     
     setIsDeleting(true);
@@ -269,7 +275,7 @@ export const AgreementList = () => {
     setIsDeleting(false);
     
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
-  };
+  }, [agreements, rowSelection, deleteAgreement]);
 
   const columns: ColumnDef<any>[] = [
     {

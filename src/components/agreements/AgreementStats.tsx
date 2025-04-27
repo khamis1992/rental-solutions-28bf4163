@@ -62,7 +62,7 @@ export function AgreementStats() {
           activeAgreements: activeCount || 0,
           pendingPayments: pendingPaymentsCount || 0,
           overduePayments: overduePaymentsCount || 0,
-          activeValue
+          activeValue: activeValue || 0
         });
       } catch (error) {
         console.error('Error fetching agreement stats:', error);

@@ -196,8 +196,8 @@ export function AgreementDetail({
       </Alert>;
   }
 
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+  const startDate = agreement?.start_date ? new Date(agreement.start_date).toISOString() : '';
+  const endDate = agreement?.end_date ? new Date(agreement.end_date).toISOString() : '';
   const duration = calculateDuration(startDate, endDate);
 
   const formattedStatus = (status: string) => {
