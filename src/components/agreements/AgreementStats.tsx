@@ -52,10 +52,11 @@ export function AgreementStats() {
           .select('rent_amount')
           .eq('status', asLeaseStatus('active'));
 
-        const activeValue = !error && activeAgreements 
-          ? activeAgreements.reduce((sum, agreement) => 
-              sum + (agreement?.rent_amount || 0), 0)
-          : 0;
+        let activeValue = 0;
+        if (!error && activeAgreements) {
+          activeValue = activeAgreements.reduce((sum, agreement) => 
+            sum + (agreement?.rent_amount || 0), 0);
+        }
         
         setStats({
           totalAgreements: totalCount || 0,

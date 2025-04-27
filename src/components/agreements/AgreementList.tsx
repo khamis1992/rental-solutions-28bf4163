@@ -3,7 +3,8 @@ import {
   asAgreementId, 
   asTrafficFineId,
   asPaymentStatus,
-  asLeaseStatus 
+  asLeaseStatus,
+  asImportId
 } from '@/utils/database-type-helpers';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -89,14 +90,13 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { asImportId } from '@/utils/database-type-helpers';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', asLeaseId(agreementId))
+      .eq('agreement_id', asAgreementId(agreementId))
       .single();
     
     if (error) {
@@ -131,7 +131,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asLeaseId(agreementId));
+      .eq('agreement_id', asAgreementId(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -202,7 +202,7 @@ export function AgreementList() {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asLeaseId(id));
+          .eq('agreement_id', asAgreementId(id));
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -235,7 +235,7 @@ export function AgreementList() {
         const { error: finesDeleteError } = await supabase
           .from('traffic_fines')
           .delete()
-          .eq('agreement_id', asTrafficFineId(id));
+          .eq('agreement_id', asAgreementId(id));
         
         if (finesDeleteError) {
           console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -275,7 +275,7 @@ export function AgreementList() {
     setIsDeleting(false);
     
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
-  }, [agreements, rowSelection, deleteAgreement]);
+  }, [agreements, rowSelection, deleteAgreement, queryClient]);
 
   const columns: ColumnDef<any>[] = [
     {

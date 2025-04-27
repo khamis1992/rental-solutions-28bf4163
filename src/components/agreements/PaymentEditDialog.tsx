@@ -12,12 +12,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Payment } from "./PaymentHistory.types";
+import { ExtendedPayment } from "./PaymentHistory.types";
 
 interface PaymentEditDialogProps {
-  payment: Payment | null;
-  open: boolean; // Changed from isOpen to open for consistency
-  onOpenChange: (open: boolean) => void; // Changed from onClose to match Shadcn Dialog
+  payment: ExtendedPayment | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }
 

@@ -170,7 +170,10 @@ export function AgreementDetail({
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
-  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
+  const calculateDuration = useCallback((startDateStr: string, endDateStr: string) => {
+    if (!startDateStr || !endDateStr) return 0;
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1;
   }, []);
@@ -196,8 +199,8 @@ export function AgreementDetail({
       </Alert>;
   }
 
-  const startDate = agreement?.start_date ? new Date(agreement.start_date).toISOString() : '';
-  const endDate = agreement?.end_date ? new Date(agreement.end_date).toISOString() : '';
+  const startDate = agreement?.start_date ? agreement.start_date : '';
+  const endDate = agreement?.end_date ? agreement.end_date : '';
   const duration = calculateDuration(startDate, endDate);
 
   const formattedStatus = (status: string) => {
@@ -219,7 +222,9 @@ export function AgreementDetail({
     }
   };
 
-  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
+  const createdDate = agreement.created_at instanceof Date ? 
+    agreement.created_at : 
+    new Date(agreement.created_at || new Date());
 
   return <div className="space-y-8">
       <div className="space-y-2">
@@ -304,7 +309,7 @@ export function AgreementDetail({
                 <p className="font-medium">Rental Period</p>
                 <p className="flex items-center">
                   <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
+                  {format(new Date(startDate), "MMMM d, yyyy")} to {format(new Date(endDate), "MMMM d, yyyy")}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
               </div>

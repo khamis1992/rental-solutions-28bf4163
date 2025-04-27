@@ -55,3 +55,8 @@ export function asPaymentStatus(status: string): DbTables['unified_payments']['R
 export function asVehicleId(id: string): DbTables['vehicles']['Row']['id'] {
   return asTableId('vehicles', id);
 }
+
+// Add missing import ID function
+export function asImportId(id: string): string {
+  return id; // Simple string casting since imports might have different ID structures
+}

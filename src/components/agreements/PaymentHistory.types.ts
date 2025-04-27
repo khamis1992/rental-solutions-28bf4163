@@ -12,8 +12,10 @@ export interface PaymentHistoryProps {
   payments?: Payment[];
   isLoading?: boolean;
   rentAmount?: number;
+  contractAmount?: number;
   onPaymentDeleted: () => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<void>;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
   leaseStartDate?: string;
   leaseEndDate?: string;
 }
