@@ -15,14 +15,11 @@ export interface Payment {
 }
 
 export interface ExtendedPayment extends Payment {
-  reference_number?: string | null;
-  notes?: string | null;
-  type?: string;
-  created_at?: string;
-  updated_at?: string | null;
-  original_due_date?: string | null;
-  next_payment_date?: string | null;
-  is_recurring?: boolean;
-  processing_fee?: number;
-  processed_by?: string | null;
+  // Additional properties specific to the application
+  isEditable?: boolean;
+  formattedDueDate?: string;
+  formattedPaymentDate?: string;
+  statusBadge?: string;
+  isPaid?: boolean;
+  isLate?: boolean;
 }

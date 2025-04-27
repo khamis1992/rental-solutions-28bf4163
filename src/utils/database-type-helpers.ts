@@ -148,3 +148,9 @@ export function createFilter<T extends TableNames, K extends keyof RowType<T>>(
 ): { column: K, value: RowType<T>[K] } {
   return { column, value };
 }
+
+// Adding the missing castDbId function
+export function castDbId(id: string): string {
+  return id;
+}
+
