@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 
 type DbTables = Database['public']['Tables'];
@@ -43,10 +42,10 @@ export function asAgreementId(id: string): DbTables['leases']['Row']['id'] {
 }
 
 // Add columns exports required by AgreementList.tsx
-export const asAgreementIdColumn = asAgreementId;
-export const asLeaseIdColumn = asLeaseId;
-export const asImportIdColumn = asImportId;
-export const asTrafficFineIdColumn = asTrafficFineId;
+export const asAgreementIdColumn = (id: string) => asTableId('leases', id);
+export const asLeaseIdColumn = (id: string) => asTableId('leases', id);
+export const asImportIdColumn = (id: string) => asTableId('agreement_imports', id);
+export const asTrafficFineIdColumn = (id: string) => asTableId('traffic_fines', id);
 
 // Status casting functions 
 export function asLeaseStatus(status: string): DbTables['leases']['Row']['status'] {

@@ -1,6 +1,6 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,16 +30,14 @@ interface AgreementDetailProps {
   onGenerateDocument?: () => void;
 }
 
-export const AgreementDetail = React.memo(function AgreementDetail({
-  agreement,
-  onDelete,
-  rentAmount,
-  contractAmount,
-  onPaymentDeleted,
-  onDataRefresh,
-  onGenerateDocument
-}: AgreementDetailProps) {
+const AgreementDetail = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { getAgreement, updateAgreement } = useAgreements();
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -51,7 +49,7 @@ export const AgreementDetail = React.memo(function AgreementDetail({
 
   const {
     payments = [],
-    isLoading,
+    isLoading: paymentsLoading,
     fetchPayments,
     updatePayment,
     addPayment
@@ -193,6 +191,41 @@ export const AgreementDetail = React.memo(function AgreementDetail({
       setLateFeeDetails(null);
     }
   }, []);
+
+  const fetchAgreementData = async () => {
+    if (!id) return;
+    try {
+      setIsLoading(true);
+      const data = await getAgreement(id);
+      if (data) {
+        // Safely handle date conversions
+        const parsedStartDate = data.start_date ? new Date(data.start_date) : null;
+        const parsedEndDate = data.end_date ? new Date(data.end_date) : null;
+        const parsedCreatedAt = data.created_at ? new Date(data.created_at) : null;
+        
+        setAgreement({
+          ...data,
+          start_date: parsedStartDate,
+          end_date: parsedEndDate,
+          created_at: parsedCreatedAt
+        });
+        
+        fetchPayments();
+      }
+    } catch (error) {
+      console.error('Error fetching agreement:', error);
+      toast.error('Failed to load agreement details');
+    } finally {
+      setIsLoading(false);
+      setHasAttemptedFetch(true);
+    }
+  };
+
+  useEffect(() => {
+    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
+      fetchAgreementData();
+    }
+  }, [id, refreshTrigger]);
 
   if (!agreement) {
     return <Alert>
@@ -379,10 +412,10 @@ export const AgreementDetail = React.memo(function AgreementDetail({
 
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 
-        isLoading={isLoading} 
+        isLoading={paymentsLoading} 
         rentAmount={rentAmount}
         contractAmount={contractAmount}
-        onPaymentDeleted={onPaymentDeleted}
+        onPaymentDeleted={onDataRefresh}
         onPaymentUpdated={handlePaymentUpdate}
         onRecordPayment={(payment) => {
           if (payment && agreement.id) {
@@ -441,6 +474,6 @@ export const AgreementDetail = React.memo(function AgreementDetail({
         selectedPayment={selectedPayment}
       />
     </div>;
-});
+};
 
 export default AgreementDetail;

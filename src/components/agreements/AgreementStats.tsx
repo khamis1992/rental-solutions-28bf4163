@@ -4,7 +4,7 @@ import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { asLeaseStatus, asPaymentStatus } from '@/utils/database-type-helpers';
-import { Database } from '@/types/database.types';
+import { StatCard } from '@/components/ui/stat-card';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -48,13 +48,13 @@ export function AgreementStats() {
           .select('*', { count: 'exact', head: true })
           .gt('days_overdue', 0);
           
-        const { data: activeAgreements, error } = await supabase
+        const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
           .eq('status', asLeaseStatus('active'));
 
         let activeValue = 0;
-        if (!error && activeAgreements) {
+        if (activeAgreements) {
           activeValue = activeAgreements.reduce((sum, agreement) => 
             sum + (agreement?.rent_amount || 0), 0);
         }
@@ -117,7 +117,7 @@ interface StatCardProps {
   highlight?: boolean;
 }
 
-const StatCard = React.memo(function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
+export const StatCard = React.memo(function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
   return (
     <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
       <div className="flex justify-between">
