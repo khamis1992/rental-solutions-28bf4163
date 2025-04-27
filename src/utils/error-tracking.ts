@@ -2,6 +2,7 @@
 import { ErrorEvent } from '@/store/useErrorStore';
 import { useErrorStore } from '@/store/useErrorStore';
 import { toast } from 'sonner';
+import React from 'react';
 
 /**
  * Error logging utility function
