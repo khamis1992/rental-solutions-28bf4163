@@ -1,85 +1,115 @@
 
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
+import { useErrorStore } from '@/store/useErrorStore';
+
 /**
- * Check if a value exists (not null or undefined)
- * 
- * @param value Any value to check
- * @returns True if the value is not null or undefined
+ * Type guard to check if a value is not null or undefined
  */
 export function exists<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
 /**
- * Maps response objects to a specified type
- * 
- * @template T The type to map to
- * @template R The raw response type
- * @param responseData The raw response data to map
- * @param mapper A function to transform the response data
- * @returns Mapped data or null if input is null
+ * Type guard for checking if Supabase response has data
  */
-export function mapResponseData<T, R>(
-  responseData: R | null | undefined,
-  mapper: (data: R) => T
-): T | null {
-  if (!exists(responseData)) {
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: NonNullable<T>; error: null } {
+  return Boolean(response && !response.error && response.data);
+}
+
+/**
+ * Maps Supabase payment records to ExtendedPayment interface
+ */
+export function mapToExtendedPayment(
+  data: Record<string, any> | null | undefined
+): ExtendedPayment | null {
+  if (!data) return null;
+  
+  return {
+    id: data.id || '',
+    lease_id: data.lease_id || '',
+    amount: Number(data.amount) || 0,
+    amount_paid: Number(data.amount_paid) || 0,
+    balance: Number(data.balance) || 0,
+    payment_date: data.payment_date || '',
+    payment_method: data.payment_method,
+    reference_number: data.reference_number,
+    notes: data.notes,
+    description: data.description,
+    status: data.status || 'pending',
+    created_at: data.created_at || new Date().toISOString(),
+    updated_at: data.updated_at,
+    original_due_date: data.original_due_date,
+    due_date: data.due_date,
+    is_recurring: Boolean(data.is_recurring),
+    type: data.type,
+    days_overdue: Number(data.days_overdue) || 0,
+    late_fine_amount: Number(data.late_fine_amount) || 0,
+    processing_fee: Number(data.processing_fee) || 0,
+    processed_by: data.processed_by
+  };
+}
+
+/**
+ * Maps an array of Supabase payment records to ExtendedPayment[] array
+ */
+export function mapToExtendedPayments(
+  data: Record<string, any>[] | null | undefined
+): ExtendedPayment[] {
+  if (!data || !Array.isArray(data)) return [];
+  
+  return data.map(item => mapToExtendedPayment(item)).filter(exists);
+}
+
+/**
+ * Safely process a Supabase response with error logging
+ */
+export function processResponse<T, R>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  mapper: (data: T) => R | null,
+  context?: Record<string, any>
+): R | null {
+  if (!response) {
+    logResponseError('Empty response received', undefined, context);
     return null;
   }
-  return mapper(responseData);
-}
-
-/**
- * Maps an array of response objects to a specified type
- * 
- * @template T The type to map to
- * @template R The raw response type
- * @param responseData The raw response data array to map
- * @param mapper A function to transform each response item
- * @returns Array of mapped data or empty array if input is null
- */
-export function mapResponseArray<T, R>(
-  responseData: R[] | null | undefined,
-  mapper: (data: R) => T
-): T[] {
-  if (!exists(responseData)) {
-    return [];
-  }
-  return responseData.map(mapper);
-}
-
-/**
- * Safely extracts value from a potentially undefined object
- * 
- * @template T Object type
- * @template K Key type
- * @param obj The object to extract from
- * @param key The key to extract
- * @param defaultValue Optional default value if key doesn't exist
- * @returns The value at the key or the default value
- */
-export function safeExtract<T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined {
-  if (!exists(obj)) return defaultValue;
-  return obj[key] ?? defaultValue;
-}
-
-/**
- * Safely navigates nested objects with proper type checking
- * @param obj The root object to navigate
- * @param path Array of keys to traverse
- * @param defaultValue Optional default value if path not found
- */
-export function safeNavigate<T, D = undefined>(
-  obj: any,
-  path: string[],
-  defaultValue?: D
-): T | D | undefined {
-  const result = path.reduce((prev, key) => 
-    prev && (typeof prev === 'object') && key in prev ? prev[key] : undefined, 
-  obj as any);
   
-  return (result === undefined) ? defaultValue : result as T;
+  if (response.error) {
+    logResponseError('Supabase query error', response.error, context);
+    return null;
+  }
+  
+  if (!response.data) {
+    logResponseError('No data in response', undefined, context);
+    return null;
+  }
+  
+  try {
+    return mapper(response.data);
+  } catch (error) {
+    logResponseError('Error mapping response data', error, context);
+    return null;
+  }
+}
+
+/**
+ * Helper to log response errors to the error store
+ */
+function logResponseError(
+  message: string, 
+  error?: any,
+  context?: Record<string, any>
+): void {
+  console.error(`[Database Error] ${message}`, error, context);
+  
+  // Log to the central error store
+  useErrorStore.getState().addError({
+    message: `${message}: ${error?.message || 'Unknown error'}`,
+    stack: error?.stack,
+    context,
+    severity: 'error',
+    handled: false,
+  });
 }

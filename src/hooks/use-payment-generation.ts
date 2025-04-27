@@ -3,18 +3,25 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { useErrorTracking } from './use-error-tracking';
+import { PaymentSubmitParams } from '@/components/agreements/AgreementDetail.types';
+import { castDbId } from '@/utils/database-type-helpers';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: string) => {
+  const { trackError } = useErrorTracking();
+  
   const handleSpecialAgreementPayments = useCallback(
-    async (
-      amount: number,
-      paymentDate: Date,
-      notes?: string,
-      paymentMethod?: string,
-      referenceNumber?: string,
-      includeLatePaymentFee?: boolean,
-      isPartialPayment?: boolean
-    ): Promise<boolean> => {
+    async (params: PaymentSubmitParams): Promise<boolean> => {
+      const { 
+        amount, 
+        paymentDate, 
+        notes, 
+        paymentMethod, 
+        referenceNumber, 
+        includeLatePaymentFee, 
+        isPartialPayment 
+      } = params;
+      
       if (!agreement || !agreementId) {
         toast.error('Cannot process payment: Agreement details are missing');
         return false;
@@ -42,7 +49,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: 
           .insert(paymentData);
 
         if (error) {
-          console.error('Error recording payment:', error);
+          trackError(error, { paymentData }, 'handleSpecialAgreementPayments');
           toast.error(`Failed to record payment: ${error.message}`);
           return false;
         }
@@ -54,7 +61,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: 
             last_payment_date: paymentDate.toISOString(),
             updated_at: new Date().toISOString()
           })
-          .eq('id', agreementId);
+          .eq('id', castDbId(agreementId));
 
         if (updateError) {
           console.error('Error updating lease payment date:', updateError);
@@ -63,12 +70,13 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId?: 
 
         return true;
       } catch (error) {
-        console.error('Error in handleSpecialAgreementPayments:', error);
+        trackError(error instanceof Error ? error : new Error('Unknown payment error'), 
+          { agreementId, amount, paymentDate }, 'handleSpecialAgreementPayments');
         toast.error('An unexpected error occurred while recording payment');
         return false;
       }
     },
-    [agreement, agreementId]
+    [agreement, agreementId, trackError]
   );
 
   return {

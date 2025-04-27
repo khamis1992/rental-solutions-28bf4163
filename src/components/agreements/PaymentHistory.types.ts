@@ -1,21 +1,36 @@
 
-import { Database } from '@/types/database.types';
-
-export type Payment = Database['public']['Tables']['unified_payments']['Row'];
-
-export interface ExtendedPayment extends Payment {
+export interface ExtendedPayment {
+  id: string;
+  lease_id: string;
+  amount: number;
+  amount_paid: number;
+  balance: number;
+  payment_date: string;
+  payment_method?: string;
   reference_number?: string;
   notes?: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+  original_due_date?: string;
+  due_date?: string;
+  is_recurring?: boolean;
+  type?: string;
+  days_overdue?: number;
+  late_fine_amount?: number;
+  processing_fee?: number;
+  processed_by?: string;
 }
 
 export interface PaymentHistoryProps {
-  payments?: Payment[];
-  isLoading?: boolean;
-  rentAmount?: number;
-  contractAmount?: number;
+  payments: ExtendedPayment[] | null | undefined;
+  isLoading: boolean;
   onPaymentDeleted: () => void;
   onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  leaseStartDate?: string | null;
+  leaseEndDate?: string | null;
   onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
-  leaseStartDate?: string;
-  leaseEndDate?: string;
 }

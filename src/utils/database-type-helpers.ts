@@ -9,8 +9,8 @@ type RowType<T extends TableNames> = DbTables[T]['Row'];
 export function asTableId<T extends TableNames>(
   table: T,
   id: string | null | undefined
-): DbTables[T]['Row']['id'] {
-  return id as DbTables[T]['Row']['id'];
+): DbTables[T]['Row']['id'] | null | undefined {
+  return id as DbTables[T]['Row']['id'] | null | undefined;
 }
 
 // Generic column value casting with proper typing
@@ -29,7 +29,7 @@ export function asColumnValue<
 export function asStatus<T extends TableNames>(
   table: T,
   status: string | null | undefined
-): DbTables[T]['Row']['status'] {
+): DbTables[T]['Row']['status'] | null | undefined {
   return asColumnValue(table, 'status', status);
 }
 
@@ -74,7 +74,7 @@ export const asStatusColumn = <T extends TableNames>(
   table: T,
   status: string
 ): DbTables[T]['Row']['status'] => {
-  return asStatus(table, status);
+  return asStatus(table, status) as DbTables[T]['Row']['status'];
 };
 
 // Type-safe column accessor function
@@ -102,4 +102,9 @@ export function isValidStatus<T extends TableNames>(
 ): status is DbTables[T]['Row']['status'] {
   // This is a type-level check only, runtime validation would require enumerating allowed values
   return true;
+}
+
+// String to database ID casting for fixed build errors
+export function castDbId(id: string): string {
+  return id;
 }

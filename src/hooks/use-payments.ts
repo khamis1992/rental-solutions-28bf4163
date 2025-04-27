@@ -4,32 +4,36 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseId } from '@/utils/database-type-helpers';
+import { castDbId } from '@/utils/database-type-helpers';
+import { mapToExtendedPayments } from '@/utils/response-mapper';
+import { useErrorTracking } from './use-error-tracking';
 
 export const usePayments = (leaseId?: string) => {
   const queryClient = useQueryClient();
+  const { trackError } = useErrorTracking();
   
   const fetchPayments = useCallback(async () => {
-    if (!leaseId) return [];
+    if (!leaseId) return [] as ExtendedPayment[];
     
     try {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', leaseId)
+        .eq('lease_id', castDbId(leaseId))
         .order('due_date', { ascending: false });
         
       if (error) {
-        console.error('Error fetching payments:', error);
+        trackError(error, { leaseId }, 'fetchPayments');
         throw new Error('Failed to fetch payments');
       }
       
-      return data || [];
+      return mapToExtendedPayments(data) || [];
     } catch (error) {
-      console.error('Error in fetchPayments:', error);
+      trackError(error instanceof Error ? error : new Error('Unknown payment error'), 
+        { leaseId }, 'fetchPayments');
       throw error;
     }
-  }, [leaseId]);
+  }, [leaseId, trackError]);
   
   const { data: payments, isLoading, refetch } = useQuery({
     queryKey: ['payments', leaseId],
@@ -44,7 +48,7 @@ export const usePayments = (leaseId?: string) => {
       const { error } = await supabase
         .from('unified_payments')
         .update(data)
-        .eq('id', id);
+        .eq('id', castDbId(id));
         
       if (error) {
         throw new Error(`Failed to update payment: ${error.message}`);
@@ -56,6 +60,7 @@ export const usePayments = (leaseId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
+      trackError(error, { leaseId }, 'updatePayment');
       toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
@@ -76,6 +81,7 @@ export const usePayments = (leaseId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
+      trackError(error, { leaseId }, 'addPayment');
       toast.error(`Add payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
@@ -85,7 +91,7 @@ export const usePayments = (leaseId?: string) => {
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', id);
+        .eq('id', castDbId(id));
         
       if (error) {
         throw new Error(`Failed to delete payment: ${error.message}`);
@@ -97,12 +103,13 @@ export const usePayments = (leaseId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     },
     onError: (error) => {
+      trackError(error, { leaseId }, 'deletePayment');
       toast.error(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
   
   return {
-    payments,
+    payments: payments || [],
     isLoading,
     fetchPayments: refetch,
     updatePayment: updatePaymentMutation.mutateAsync,

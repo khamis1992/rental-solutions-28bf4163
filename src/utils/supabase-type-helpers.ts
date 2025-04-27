@@ -26,3 +26,29 @@ export function handleSupabaseResponse<T>(
   }
   return response.data || null;
 }
+
+// Safe type casting function for database IDs
+export function castToUUID(id: string): string {
+  return id;
+}
+
+// Handle casting for string-to-Date conversions safely
+export function toDate(dateString: string | Date | null): Date | null {
+  if (!dateString) return null;
+  if (dateString instanceof Date) return dateString;
+  
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (e) {
+    console.error('Error parsing date string:', e);
+    return null;
+  }
+}
+
+// Additional helper for payment record type conversion
+export function toPaymentRecord<T extends Record<string, any>>(data: T[]): T[] {
+  // This function converts database payment records to the expected format
+  // In a real scenario, you would apply transformations here
+  return data;
+}
