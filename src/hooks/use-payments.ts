@@ -1,9 +1,9 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasData, asLeaseId } from '@/utils/supabase-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
+import { toast } from 'sonner';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -14,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', asLeaseId(agreementId));
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
@@ -25,6 +25,10 @@ export const usePayments = (agreementId?: string) => {
     },
     {
       enabled: !!agreementId,
+      onError: (error) => {
+        console.error('Error fetching payments:', error);
+        toast.error('Failed to fetch payments. Please try again.');
+      }
     }
   );
 
@@ -38,12 +42,18 @@ export const usePayments = (agreementId?: string) => {
 
     if (!hasData(response)) {
       console.error("Error adding payment:", response.error);
+      toast.error('Failed to add payment. Please try again.');
       return null;
     }
     return response.data[0];
   }, {
     onSuccess: () => {
+      toast.success('Payment added successfully');
       refetch();
+    },
+    onError: (error) => {
+      console.error('Error adding payment:', error);
+      toast.error('Failed to add payment. Please try again.');
     }
   });
 
@@ -51,7 +61,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentUpdate.data)
-      .eq('id', asPaymentId(paymentUpdate.id))
+      .eq('id', asLeaseId(paymentUpdate.id))
       .select();
 
     if (!hasData(response)) {
@@ -61,7 +71,12 @@ export const usePayments = (agreementId?: string) => {
     return response.data[0];
   }, {
     onSuccess: () => {
+      toast.success('Payment updated successfully');
       refetch();
+    },
+    onError: (error) => {
+      console.error('Error updating payment:', error);
+      toast.error('Failed to update payment. Please try again.');
     }
   });
 
@@ -69,18 +84,24 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', asPaymentId(paymentId));
+      .eq('id', asLeaseId(paymentId));
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
+      toast.error('Failed to delete payment. Please try again.');
       return null;
     }
     return { success: true };
+  }, {
+    onSuccess: () => {
+      toast.success('Payment deleted successfully');
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Error deleting payment:', error);
+      toast.error('Failed to delete payment. Please try again.');
+    }
   });
-
-  const fetchPayments = () => {
-    return refetch();
-  };
 
   return {
     payments,
@@ -89,6 +110,6 @@ export const usePayments = (agreementId?: string) => {
     addPayment: addPayment.mutateAsync,
     updatePayment: updatePayment.mutateAsync,
     deletePayment: deletePayment.mutateAsync,
-    fetchPayments,
+    fetchPayments: refetch,
   };
 };

@@ -34,3 +34,10 @@ export interface PaymentHistoryProps {
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
 }
 
+// Export additional types for extended payment functionality
+export interface ExtendedPayment extends Payment {
+  lease_id: string;
+  original_due_date: string | null;
+  payment_method: string;
+  status: 'pending' | 'completed' | 'cancelled' | 'failed';
+}

@@ -1,4 +1,3 @@
-
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
@@ -129,4 +128,28 @@ export function handleArrayResponse<T>(response: PostgrestResponse<T[]>): T[] {
     return [];
   }
   return response.data;
+}
+
+// Type-safe lease ID casting
+export function asLeaseId(id: string): UUID {
+  return id as UUID;
+}
+
+// Type-safe table ID casting
+export function asTableId(tableName: string, id: string): UUID {
+  return id as UUID;
+}
+
+// Generic error handler for database operations
+export async function handleDatabaseOperation<T>(
+  operation: () => Promise<T>,
+  errorContext?: string
+): Promise<T | null> {
+  try {
+    const result = await operation();
+    return result;
+  } catch (error) {
+    console.error(`Database error ${errorContext ? `(${errorContext})` : ''}:`, error);
+    return null;
+  }
 }
