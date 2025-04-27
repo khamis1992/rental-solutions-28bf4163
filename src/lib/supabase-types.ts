@@ -114,3 +114,10 @@ export const Tables = {
   unified_payments: createTableHelper('unified_payments'),
   traffic_fines: createTableHelper('traffic_fines'),
 };
+
+export type TableName = keyof Database['public']['Tables'];
+export type TableRow<T extends TableName> = Database['public']['Tables'][T]['Row'];
+
+export function asTableId<T extends TableName>(table: T, id: string) {
+  return id as unknown as TableRow<T>['id'];
+}

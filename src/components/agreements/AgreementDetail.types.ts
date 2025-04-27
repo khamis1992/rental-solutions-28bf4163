@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { ExtendedPayment } from './PaymentHistory.types';
 
@@ -13,6 +12,7 @@ export interface AgreementDetailProps {
 }
 
 export interface AgreementDetailParams {
+  [key: string]: string;
   id: string;
 }
 

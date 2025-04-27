@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
@@ -537,4 +536,14 @@ export function adaptSimpleToFullAgreement(simpleAgreement: any): Agreement {
     additional_drivers: simpleAgreement.additional_drivers || [],
     terms_accepted: !!simpleAgreement.terms_accepted,
   };
+}
+
+/**
+ * Calculates the late fee based on rent amount and days late
+ */
+export function calculateLateFee(rentAmount: number, daysLate: number): number {
+  const dailyLateFee = 120; // Default daily late fee
+  const maxLateFee = 3000; // Maximum late fee cap
+  const calculatedFee = daysLate * dailyLateFee;
+  return Math.min(calculatedFee, maxLateFee);
 }

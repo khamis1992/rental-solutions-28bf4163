@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -43,32 +42,34 @@ export const PaymentStatus = {
 // Agreement interface
 export interface Agreement {
   id: string;
+  agreement_number: string;
   customer_id: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
   vehicle_id: string;
   start_date: Date;
   end_date: Date;
-  agreement_type?: string;
-  agreement_number?: string;
-  status: typeof AgreementStatus[keyof typeof AgreementStatus];
-  total_amount?: number;
-  monthly_payment?: number;
-  agreement_duration?: any;
-  customer_name?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
+  status: string;
+  rent_amount: number;
+  total_amount: number;
+  contract_amount?: number;
+  deposit_amount?: number;
+  due_date?: Date;
   created_at?: Date;
   updated_at?: Date;
-  signature_url?: string;
-  deposit_amount?: number;
   notes?: string;
-  customers?: any;
-  vehicles?: any;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  rent_amount?: number;
-  daily_late_fee?: number;
+  vehicles?: {
+    make: string;
+    model: string;
+    license_plate: string;
+    year?: number;
+  };
+  customers?: {
+    full_name: string;
+    phone_number?: string;
+    email?: string;
+  };
 }
 
 // Function to force generate payment for a specific agreement

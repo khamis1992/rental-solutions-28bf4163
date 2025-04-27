@@ -26,11 +26,11 @@ export interface ExtendedPayment {
 export interface PaymentHistoryProps {
   payments: ExtendedPayment[] | null | undefined;
   isLoading: boolean;
-  onPaymentDeleted: () => void;
-  onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
   rentAmount?: number | null;
   contractAmount?: number | null;
   leaseStartDate?: string | null;
   leaseEndDate?: string | null;
+  onPaymentDeleted: () => void;
+  onPaymentUpdated: (payment: Partial<ExtendedPayment>) => Promise<void>;
   onRecordPayment?: (payment: Partial<ExtendedPayment>) => void;
 }
