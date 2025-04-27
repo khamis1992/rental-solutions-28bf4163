@@ -86,26 +86,30 @@ export function AgreementStats() {
         <UIStatCard 
           title="Total Agreements"
           value={stats.totalAgreements}
-          icon={<FileText className="h-5 w-5 text-blue-500" />}
+          icon={FileText}
+          iconColor="text-blue-500"
           isLoading={isLoading}
         />
         <UIStatCard 
           title="Active Agreements"
           value={stats.activeAgreements}
           subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
-          icon={<FileCheck className="h-5 w-5 text-green-500" />}
+          icon={FileCheck}
+          iconColor="text-green-500"
           isLoading={isLoading}
         />
         <UIStatCard 
           title="Pending Payments"
           value={stats.pendingPayments}
-          icon={<FileClock className="h-5 w-5 text-amber-500" />}
+          icon={FileClock}
+          iconColor="text-amber-500"
           isLoading={isLoading}
         />
         <UIStatCard 
           title="Overdue Payments"
           value={stats.overduePayments}
-          icon={<AlertCircle className="h-5 w-5 text-red-500" />}
+          icon={AlertCircle}
+          iconColor="text-red-500"
           highlight={stats.overduePayments > 0}
           isLoading={isLoading}
         />

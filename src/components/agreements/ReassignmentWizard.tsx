@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -22,43 +21,57 @@ export function ReassignmentWizard() {
   const [agreementId, setAgreementId] = useState('');
   const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const fetchAgreementDetails = async (agreementId: string) => {
-    const { data, error } = await supabase
-      .from('leases')
-      .select('*, profiles(*)')
-      .eq('id', asLeaseId(agreementId))
-      .single();
+  
+  const fetchAgreementDetails = async () => {
+    if (!agreementId.trim()) return;
     
-    if (error) {
-      console.error("Error fetching agreement details:", error);
-      return null;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          id,
+          agreement_number,
+          profiles:customer_id (
+            full_name,
+            email,
+            phone_number
+          )
+        `)
+        .eq('id', asLeaseId(agreementId))
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && exists(data)) {
+        setAgreementDetails({
+          id: data.id,
+          agreement_number: data.agreement_number,
+          customer_name: data.profiles?.full_name || null,
+          customer_email: data.profiles?.email || null,
+          customer_phone: data.profiles?.phone_number || null,
+          profiles: data.profiles
+        });
+      } else {
+        setAgreementDetails(null);
+        toast.error('Agreement not found');
+      }
+    } catch (error) {
+      console.error('Error fetching agreement details:', error);
+      toast.error('Failed to fetch agreement details');
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Safe access to ensure profiles exists
-    if (data) {
-      return {
-        id: data.id,
-        agreement_number: data.agreement_number,
-        customer_name: data.profiles?.full_name,
-        customer_email: data.profiles?.email,
-        customer_phone: data.profiles?.phone_number,
-        profiles: data.profiles
-      };
-    }
-    
-    return data;
   };
-
+  
   const handleSearch = async () => {
     setIsLoading(true);
     try {
-      const details = await fetchAgreementDetails(agreementId);
+      const details = await fetchAgreementDetails();
       if (details) {
         setAgreementDetails(details);
-      } else {
-        toast.error('Agreement not found');
-        setAgreementDetails(null);
       }
     } catch (error) {
       console.error("Error during agreement search:", error);
@@ -95,3 +108,5 @@ export function ReassignmentWizard() {
     </div>
   );
 }
+
+export default ReassignmentWizard;

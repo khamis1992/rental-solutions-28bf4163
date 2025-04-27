@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { checkVehicleAvailability } from '@/utils/agreement-utils';
@@ -66,10 +67,13 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
+      const leaseId = asLeaseId(existingAgreement.id);
+      const status = asLeaseStatus("terminated");
+      
       const { error } = await supabase
         .from('leases')
-        .update({ status: asLeaseStatus('terminated') })
-        .eq('id', asLeaseId(existingAgreement.id));
+        .update({ status })
+        .eq('id', leaseId);
       
       if (error) {
         throw error;

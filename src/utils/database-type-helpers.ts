@@ -13,6 +13,7 @@ export function asTableStatus<T extends TableNames>(table: T, status: string): R
   return status as RowType<T>['status'];
 }
 
+// Specialized helpers for commonly used IDs
 export function asLeaseId(id: string) {
   return id as Tables['leases']['Row']['id'];
 }
@@ -60,7 +61,7 @@ export function asLeaseIdColumn(id: string) {
 }
 
 export function asStatusColumn(status: string) {
-  return status;
+  return status as string;
 }
 
 export function asPaymentStatusColumn(status: string) {
