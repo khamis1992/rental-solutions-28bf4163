@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -6,21 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-
-// Define the structure for a payment
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  payment_date: Date | string | null;
-  payment_method: string | null;
-  transaction_id: string | null;
-  description: string | null;
-  status: string;
-  created_at?: string;
-  updated_at?: string;
-  [key: string]: any;
-}
+import { Payment } from './PaymentHistory.types';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -30,8 +17,8 @@ interface PaymentHistoryProps {
   onPaymentDeleted: () => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment: (payment: Partial<Payment>) => void;
-  leaseStartDate: string | null;
-  leaseEndDate: string | null;
+  leaseStartDate: string | Date | null;
+  leaseEndDate: string | Date | null;
 }
 
 export function PaymentHistory({
@@ -71,7 +58,6 @@ export function PaymentHistory({
     }
   }, [onRecordPayment]);
 
-  // Fix the PaymentEntryDialog props
   return (
     <div>
       <Card>
@@ -100,8 +86,8 @@ export function PaymentHistory({
                     <TableCell>{payment.payment_date ? format(new Date(payment.payment_date), 'MM/dd/yyyy') : 'N/A'}</TableCell>
                     <TableCell>QAR {payment.amount}</TableCell>
                     <TableCell>{payment.payment_method || 'N/A'}</TableCell>
-                    <TableCell>{payment.transaction_id || 'N/A'}</TableCell>
-                    <TableCell>{payment.description || 'N/A'}</TableCell>
+                    <TableCell>{payment.transaction_id || payment.reference_number || 'N/A'}</TableCell>
+                    <TableCell>{payment.description || payment.notes || 'N/A'}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -133,13 +119,12 @@ export function PaymentHistory({
         open={isPaymentDialogOpen}
         onOpenChange={setIsPaymentDialogOpen}
         onSubmit={(amount, date, notes, method, reference, includeLatePaymentFee, isPartial) => {
-          onPaymentCreated({
+          handlePaymentCreated({
             amount,
-            payment_date: date,
+            payment_date: date.toISOString(),
             description: notes,
             payment_method: method,
             transaction_id: reference,
-            // Add other fields if needed
           });
           return Promise.resolve();
         }}
@@ -148,6 +133,7 @@ export function PaymentHistory({
         defaultAmount={rentAmount}
         leaseId={payments[0]?.lease_id || ''}
         rentAmount={rentAmount}
+        selectedPayment={null}
       />
     </div>
   );

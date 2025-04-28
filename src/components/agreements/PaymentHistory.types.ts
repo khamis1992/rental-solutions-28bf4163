@@ -8,7 +8,7 @@ export interface Payment {
   payment_date: string | null;
   payment_method?: string;
   reference_number?: string | null;
-  transaction_id?: string | null; // Added to fix compatibility issues
+  transaction_id?: string | null;
   notes?: string;
   type?: string;
   status?: PaymentStatus;
@@ -20,6 +20,8 @@ export interface Payment {
   balance?: number;
   description?: string;
   due_date?: string;
+  include_late_fee?: boolean;
+  is_partial?: boolean;
 }
 
 export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
@@ -30,10 +32,10 @@ export interface PaymentHistoryProps {
   rentAmount?: number | null;
   contractAmount?: number | null;
   onPaymentDeleted?: () => void;
-  onPaymentCreated?: () => void; // Added to fix missing reference
+  onPaymentCreated?: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
   onRecordPayment?: (payment: Partial<Payment>) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
   leaseId?: DbId;
 }

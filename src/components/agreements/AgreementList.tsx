@@ -2,10 +2,7 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { AgreementStatus } from '@/types/database-common';
-
-// Define the props that AgreementTable expects
-type AgreementTableProps = React.ComponentProps<typeof AgreementTable>;
+import { LeaseStatus } from '@/types/lease-types';
 
 const AgreementList: React.FC = () => {
   const {
@@ -29,7 +26,7 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const handleStatusChange = (agreementId: string, status: AgreementStatus) => {
+  const handleStatusChange = (agreementId: string, status: LeaseStatus) => {
     updateAgreement(agreementId, { status });
   };
 
@@ -38,16 +35,11 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={agreements}
         isLoading={isLoading}
-        pagination={pagination || {
-          pageIndex: 0,
-          pageSize: 10,
-        }}
-        setPagination={setPagination}
-        sorting={sorting || []}
-        setSorting={setSorting}
-        globalFilter={globalFilter || ''}
-        setGlobalFilter={setGlobalFilter}
         onStatusChange={handleStatusChange}
+        // Pass optional pagination props only if they exist
+        {...(pagination && { pagination, setPagination })}
+        {...(sorting && { sorting, setSorting })}
+        {...(globalFilter !== undefined && { globalFilter, setGlobalFilter })}
       />
     </div>
   );

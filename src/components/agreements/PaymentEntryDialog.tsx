@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
-import type { Payment } from '@/types/agreement-types';
+import { Payment } from './PaymentHistory.types';
 
 export interface PaymentEntryDialogProps {
   open: boolean;
@@ -18,11 +18,15 @@ export interface PaymentEntryDialogProps {
     includeLatePaymentFee?: boolean,
     isPartialPayment?: boolean
   ) => Promise<void>;
-  defaultAmount?: number;
-  onPaymentCreated?: (payment: any) => Promise<void>;
+  defaultAmount?: number | null;
   leaseId?: string;
-  rentAmount?: number;
+  rentAmount?: number | null;
   title?: string;
+  description?: string;
+  lateFeeDetails?: {
+    amount: number;
+    daysLate: number;
+  } | null;
 }
 
 export function PaymentEntryDialog({
@@ -31,15 +35,17 @@ export function PaymentEntryDialog({
   selectedPayment,
   onSubmit,
   defaultAmount,
-  title = "Enter Payment Details"
+  title = "Enter Payment Details",
+  description = "Provide the necessary information to record the payment.",
+  lateFeeDetails = null
 }: PaymentEntryDialogProps) {
   const [amount, setAmount] = React.useState<number>(selectedPayment?.amount || defaultAmount || 0);
   const [paymentDate, setPaymentDate] = React.useState<Date>(selectedPayment?.payment_date ? new Date(selectedPayment.payment_date) : new Date());
-  const [notes, setNotes] = React.useState<string>(selectedPayment?.notes || '');
+  const [notes, setNotes] = React.useState<string>(selectedPayment?.notes || selectedPayment?.description || '');
   const [paymentMethod, setPaymentMethod] = React.useState<string>(selectedPayment?.payment_method || 'cash');
-  const [referenceNumber, setReferenceNumber] = React.useState<string>(selectedPayment?.reference_number || '');
-  const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(selectedPayment?.include_late_fee || false);
-  const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(selectedPayment?.is_partial || false);
+  const [referenceNumber, setReferenceNumber] = React.useState<string>(selectedPayment?.reference_number || selectedPayment?.transaction_id || '');
+  const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(false);
+  const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(false);
 
   const handleSubmit = async () => {
     await onSubmit(
@@ -57,7 +63,7 @@ export function PaymentEntryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <FormSection title={title} description="Provide the necessary information to record the payment.">
+        <FormSection title={title} description={description}>
           <FormGroup>
             <FormRow>
               <FormField label="Amount" htmlFor="amount">
@@ -120,17 +126,19 @@ export function PaymentEntryDialog({
             </FormRow>
           </FormGroup>
           <FormGroup>
-            <FormRow>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={includeLatePaymentFee}
-                  onChange={(e) => setIncludeLatePaymentFee(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <span>Include Late Payment Fee</span>
-              </label>
-            </FormRow>
+            {lateFeeDetails && lateFeeDetails.amount > 0 && (
+              <FormRow>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={includeLatePaymentFee}
+                    onChange={(e) => setIncludeLatePaymentFee(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <span>Include Late Payment Fee (QAR {lateFeeDetails.amount} for {lateFeeDetails.daysLate} days)</span>
+                </label>
+              </FormRow>
+            )}
             <FormRow>
               <label className="flex items-center space-x-2">
                 <input
