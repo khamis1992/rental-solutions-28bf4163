@@ -24,6 +24,18 @@ export interface ExtendedPayment {
 }
 
 export interface PaymentHistoryProps {
-  leaseId: string;
+  leaseId?: string;
+  agreementId?: string;
   agreementNumber?: string;
+  payments?: ExtendedPayment[];
+  isLoading?: boolean;
+  onPaymentDeleted?: () => void;
+  onPaymentUpdated?: () => Promise<void>;
+  onEdit?: (payment: ExtendedPayment) => void;
+  onDelete?: (payment: ExtendedPayment) => void;
+  rentAmount?: number;
+  contractAmount?: number;
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  onRecordPayment?: () => void;
 }

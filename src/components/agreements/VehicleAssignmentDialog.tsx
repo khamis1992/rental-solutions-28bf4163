@@ -34,37 +34,44 @@ export function VehicleAssignmentDialog({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchVehicleInfo() {
-      try {
-        if (!vehicleId) {
-          setVehicleInfo('Vehicle information not available');
-          setLoading(false);
-          return;
-        }
-        
-        const vehicleIdTyped = asVehicleId(vehicleId);
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('make, model, license_plate')
-          .eq('id', vehicleIdTyped)
-          .single();
-
-        if (error) throw error;
-
-        if (isValidResponse({ data, error }) && data) {
-          setVehicleInfo(`${data.make} ${data.model} (${data.license_plate})`);
-        }
-      } catch (error) {
-        console.error("Error fetching vehicle info:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
+    // Only fetch vehicle info when dialog is open and we have a vehicle ID
     if (isOpen && vehicleId) {
       fetchVehicleInfo();
     }
   }, [isOpen, vehicleId]);
+
+  /**
+   * Fetch vehicle information from the database
+   */
+  async function fetchVehicleInfo() {
+    try {
+      if (!vehicleId) {
+        setVehicleInfo('Vehicle information not available');
+        setLoading(false);
+        return;
+      }
+      
+      const vehicleIdTyped = asVehicleId(vehicleId);
+      const response = await supabase
+        .from('vehicles')
+        .select('make, model, license_plate')
+        .eq('id', vehicleIdTyped)
+        .single();
+
+      if (response.error) throw response.error;
+
+      if (isValidResponse(response)) {
+        setVehicleInfo(`${response.data.make} ${response.data.model} (${response.data.license_plate})`);
+      } else {
+        setVehicleInfo('Vehicle information not available');
+      }
+    } catch (error) {
+      console.error("Error fetching vehicle info:", error);
+      setVehicleInfo('Error loading vehicle information');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

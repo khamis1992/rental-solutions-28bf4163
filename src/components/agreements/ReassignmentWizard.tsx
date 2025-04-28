@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,56 +12,63 @@ export interface ReassignmentWizardProps {
   onCancel: () => void;
 }
 
+interface AgreementDetails {
+  id: string;
+  agreementNumber: string;
+  customerName: string;
+  customerPhone: string;
+}
+
 export function ReassignmentWizard({ agreementId, onComplete, onCancel }: ReassignmentWizardProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [agreement, setAgreement] = useState<any>(null);
+  const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
 
-  // Fetch agreement details
+  // Fetch agreement details on component mount
   useEffect(() => {
-    async function fetchAgreementDetails() {
-      try {
-        setIsLoading(true);
-        
-        // Use asLeaseId for type safety
-        const typedLeaseId = asLeaseId(agreementId);
-        
-        const { data, error } = await supabase
-          .from('leases')
-          .select(`
-            id,
-            agreement_number,
-            customer:customer_id (
-              id,
-              full_name,
-              phone_number
-            )
-          `)
-          .eq('id', typedLeaseId)
-          .single();
-        
-        if (error) throw error;
-        
-        if (isValidResponse({ data, error })) {
-          setAgreement(data);
-        }
-      } catch (error) {
-        console.error('Error fetching agreement details:', error);
-        toast.error('Could not load agreement details');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
     fetchAgreementDetails();
   }, [agreementId]);
   
-  // If agreement data is available, safely access the properties
-  const agreementDetails = agreement ? {
-    id: agreement.id,
-    agreementNumber: agreement.agreement_number,
-    customerName: agreement.customer?.full_name || 'N/A',
-    customerPhone: agreement.customer?.phone_number || 'N/A'
-  } : null;
+  /**
+   * Fetch agreement details from the database
+   */
+  async function fetchAgreementDetails() {
+    try {
+      setIsLoading(true);
+      
+      // Use asLeaseId for type safety
+      const typedLeaseId = asLeaseId(agreementId);
+      
+      const response = await supabase
+        .from('leases')
+        .select(`
+          id,
+          agreement_number,
+          customer:customer_id (
+            id,
+            full_name,
+            phone_number
+          )
+        `)
+        .eq('id', typedLeaseId)
+        .single();
+      
+      if (response.error) throw response.error;
+      
+      if (isValidResponse(response)) {
+        setAgreementDetails({
+          id: response.data.id,
+          agreementNumber: response.data.agreement_number,
+          customerName: response.data.customer?.full_name || 'N/A',
+          customerPhone: response.data.customer?.phone_number || 'N/A'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching agreement details:', error);
+      toast.error('Could not load agreement details');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <Card>

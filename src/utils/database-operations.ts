@@ -1,32 +1,20 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/types/database.types';
 import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import { 
+  asLeaseId, 
+  asPaymentId, 
+  isValidResponse, 
+  castPaymentUpdate 
+} from '@/utils/database-type-helpers';
 
-// Type-safe database helpers
-type Tables = Database['public']['Tables'];
-type LeaseId = Tables['leases']['Row']['id'];
-type PaymentId = Tables['unified_payments']['Row']['id'];
-type LeaseStatus = Tables['leases']['Row']['status'];
-type PaymentUpdate = Tables['unified_payments']['Update'];
-
-// Type casting functions
-export function asLeaseId(id: string): LeaseId {
-  return id as LeaseId;
-}
-
-export function asPaymentId(id: string): PaymentId {
-  return id as PaymentId;
-}
-
-export function asLeaseStatus(status: string): LeaseStatus {
-  return status as LeaseStatus;
-}
-
-// Function to safely create a payment update object
-export function createPaymentUpdate(data: Partial<ExtendedPayment>): PaymentUpdate {
-  const update: PaymentUpdate = {};
+/**
+ * Function to safely create a payment update object
+ * @param data Partial payment data
+ * @returns Typed payment update object
+ */
+export function createPaymentUpdate(data: Partial<ExtendedPayment>) {
+  const update = castPaymentUpdate({});
   
   // Only include properties that exist in PaymentUpdate
   if (data.amount !== undefined) update.amount = data.amount;
@@ -47,7 +35,12 @@ export function createPaymentUpdate(data: Partial<ExtendedPayment>): PaymentUpda
   return update;
 }
 
-// Function to update a payment with proper typing
+/**
+ * Update a unified payment with proper typing
+ * @param paymentId Payment ID
+ * @param updateData Payment data to update
+ * @returns Promise with success status and data
+ */
 export const updateUnifiedPayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
   try {
     const { data, error } = await supabase
@@ -64,12 +57,11 @@ export const updateUnifiedPayment = async (paymentId: string, updateData: Partia
   }
 };
 
-// Type guard to check if response has data
-export function hasData<T>(response: PostgrestSingleResponse<T>): response is PostgrestSingleResponse<T> & { data: T } {
-  return response && response.data !== null && !response.error;
-}
-
-// Function to fetch payments with proper typing and error handling
+/**
+ * Fetch unified payments for a lease
+ * @param leaseId Lease ID
+ * @returns Promise with array of extended payments
+ */
 export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPayment[]> => {
   try {
     const response = await supabase
@@ -113,8 +105,13 @@ export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPay
   }
 };
 
-// Create a safe function to handle lease updates
-export async function updateLease(leaseId: string, updateData: Partial<Tables['leases']['Update']>) {
+/**
+ * Update lease data with proper typing
+ * @param leaseId Lease ID
+ * @param updateData Lease data to update
+ * @returns Promise with success status and data
+ */
+export const updateLease = async (leaseId: string, updateData: any) => {
   try {
     const { data, error } = await supabase
       .from('leases')
@@ -128,4 +125,4 @@ export async function updateLease(leaseId: string, updateData: Partial<Tables['l
     console.error('Error updating lease:', error);
     throw error;
   }
-}
+};

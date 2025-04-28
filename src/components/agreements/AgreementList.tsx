@@ -46,6 +46,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { ImportRevertDialog } from "./ImportRevertDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Type for the database lease status to ensure type safety
+type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
+
 const AgreementList = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -68,6 +71,9 @@ const AgreementList = () => {
     fetchImports();
   }, [currentPage, statusFilter, searchTerm, refreshTrigger]);
 
+  /**
+   * Fetch agreement data with pagination and filters
+   */
   const fetchAgreements = async () => {
     setLoading(true);
     try {
@@ -92,11 +98,14 @@ const AgreementList = () => {
         .order("created_at", { ascending: false })
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
+      // Apply status filter if selected
       if (statusFilter) {
-        // Use asLeaseStatus to properly type the status
-        query = query.eq("status", asLeaseStatus(statusFilter));
+        // Use asLeaseStatus for proper typing
+        const typedStatus = asLeaseStatus(statusFilter as LeaseStatus);
+        query = query.eq("status", typedStatus);
       }
 
+      // Apply search term if provided
       if (searchTerm) {
         query = query.or(
           `agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,customer.full_name.ilike.%${searchTerm}%,customer.phone_number.ilike.%${searchTerm}%`
@@ -120,6 +129,9 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Fetch recent import data
+   */
   const fetchImports = async () => {
     try {
       const { data, error } = await supabase
@@ -135,11 +147,17 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Handle delete button click
+   */
   const handleDeleteClick = (id: string) => {
     setAgreementToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
+  /**
+   * Handle deleting an import
+   */
   const handleDeleteImport = async (importId: string) => {
     try {
       const { data, error } = await supabase
@@ -163,6 +181,9 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Handle agreement deletion confirmation
+   */
   const handleDeleteAgreement = async () => {
     if (!agreementToDelete) return;
 
@@ -186,11 +207,17 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Handle revert import button click
+   */
   const handleRevertImport = (importId: string) => {
     setImportToRevert(importId);
     setIsImportRevertDialogOpen(true);
   };
 
+  /**
+   * Confirm import reversion with reason
+   */
   const confirmRevertImport = async (reason: string) => {
     if (!importToRevert) return;
 
@@ -220,6 +247,9 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Generate document for an agreement
+   */
   const handleGenerateDocument = async (agreementId: string) => {
     try {
       const { data, error } = await supabase
@@ -245,6 +275,9 @@ const AgreementList = () => {
     }
   };
 
+  /**
+   * Get badge variant based on agreement status
+   */
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "active":
@@ -264,6 +297,7 @@ const AgreementList = () => {
 
   return (
     <div className="space-y-4">
+      {/* Header with title and new agreement button */}
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Agreements</h2>
         <Button onClick={() => navigate("/agreements/new")}>
@@ -271,6 +305,7 @@ const AgreementList = () => {
         </Button>
       </div>
 
+      {/* Filters card */}
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
@@ -321,6 +356,7 @@ const AgreementList = () => {
         </CardContent>
       </Card>
 
+      {/* Agreement list card */}
       <Card>
         <CardHeader>
           <CardTitle>Agreement List</CardTitle>
@@ -438,6 +474,7 @@ const AgreementList = () => {
         </CardContent>
       </Card>
 
+      {/* Recent imports card */}
       {imports.length > 0 && (
         <Card>
           <CardHeader>
@@ -508,6 +545,7 @@ const AgreementList = () => {
         </Card>
       )}
 
+      {/* Confirmation dialogs */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => {

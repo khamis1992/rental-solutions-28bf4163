@@ -1,10 +1,11 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
-import { useErrorStore } from '@/store/useErrorStore';
 
 /**
  * Type guard to check if a value is not null or undefined
+ * @param value Any value to check
+ * @returns Type guard for non-null values
  */
 export function exists<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
@@ -12,6 +13,8 @@ export function exists<T>(value: T | null | undefined): value is T {
 
 /**
  * Type guard for checking if Supabase response has data
+ * @param response Supabase response
+ * @returns Type guard for valid response with data
  */
 export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
@@ -21,6 +24,8 @@ export function hasResponseData<T>(
 
 /**
  * Maps Supabase payment records to ExtendedPayment interface
+ * @param data Raw payment data
+ * @returns Typed ExtendedPayment or null
  */
 export function mapToExtendedPayment(
   data: Record<string, any> | null | undefined
@@ -54,6 +59,8 @@ export function mapToExtendedPayment(
 
 /**
  * Maps an array of Supabase payment records to ExtendedPayment[] array
+ * @param data Array of payment data
+ * @returns Array of typed ExtendedPayment objects
  */
 export function mapToExtendedPayments(
   data: Record<string, any>[] | null | undefined
@@ -65,6 +72,10 @@ export function mapToExtendedPayments(
 
 /**
  * Safely process a Supabase response with error logging
+ * @param response Supabase response
+ * @param mapper Function to map data to desired type
+ * @param context Optional context for error logging
+ * @returns Mapped data or null on error
  */
 export function processResponse<T, R>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
@@ -95,7 +106,10 @@ export function processResponse<T, R>(
 }
 
 /**
- * Helper to log response errors to the error store
+ * Helper to log response errors to console
+ * @param message Error message
+ * @param error Error object
+ * @param context Additional context
  */
 function logResponseError(
   message: string, 
@@ -103,19 +117,4 @@ function logResponseError(
   context?: Record<string, any>
 ): void {
   console.error(`[Database Error] ${message}`, error, context);
-  
-  // Log to the central error store if it exists
-  if (useErrorStore && useErrorStore.getState) {
-    try {
-      useErrorStore.getState().addError({
-        message: `${message}: ${error?.message || 'Unknown error'}`,
-        stack: error?.stack,
-        context,
-        severity: 'error',
-        handled: false,
-      });
-    } catch (storeError) {
-      console.error('Error using error store:', storeError);
-    }
-  }
 }
