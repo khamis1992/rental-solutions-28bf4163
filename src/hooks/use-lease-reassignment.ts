@@ -1,3 +1,8 @@
+/**
+ * Custom hook for managing vehicle reassignment operations in lease agreements.
+ * Handles the complex business logic of transferring a vehicle from one agreement to another
+ * while maintaining data consistency and business rules.
+ */
 
 import { useState, useEffect } from 'react';
 import { useVehicle } from '@/hooks/use-vehicle';
@@ -6,6 +11,11 @@ import { toast } from 'sonner';
 import { LeaseDetails, VehicleDetails } from '@/types/reassignment.types';
 import { asVehicleId, asLeaseId } from '@/types/database-common';
 
+/**
+ * Hook for managing the lease reassignment workflow
+ * @param leaseId - The ID of the lease being modified
+ * @returns Object containing lease details, available vehicles, and reassignment functions
+ */
 export function useLeaseReassignment(leaseId: string) {
   const [lease, setLease] = useState<LeaseDetails>({
     id: null,
@@ -33,6 +43,10 @@ export function useLeaseReassignment(leaseId: string) {
     fetchCurrentVehicle();
   }, [leaseId]);
 
+  /**
+   * Fetches the complete lease details including customer information
+   * Validates the lease exists and is eligible for reassignment
+   */
   const fetchLeaseDetails = async () => {
     try {
       const { data, error } = await supabase
@@ -63,13 +77,17 @@ export function useLeaseReassignment(leaseId: string) {
     }
   };
 
+  /**
+   * Retrieves current vehicle information
+   * Ensures the vehicle data is available for comparison and display
+   */
   const fetchCurrentVehicle = async () => {
     if (!lease.vehicle_id) return;
     try {
       const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate')
-        .eq('id', lease.vehicle_id)
+        .eq('id', asVehicleId(lease.vehicle_id))
         .single();
 
       if (error) {
@@ -92,8 +110,13 @@ export function useLeaseReassignment(leaseId: string) {
     }
   };
 
-  const handleConfirmReassignment = async () => {
-    if (!selectedVehicleId) return;
+  /**
+   * Executes the vehicle reassignment process
+   * Handles the database update and ensures data consistency
+   * @returns Promise<boolean> indicating success or failure
+   */
+  const handleConfirmReassignment = async (): Promise<boolean> => {
+    if (!selectedVehicleId) return false;
     
     try {
       const updates = {
@@ -108,7 +131,7 @@ export function useLeaseReassignment(leaseId: string) {
       if (updateError) {
         console.error('Error updating lease with new vehicle:', updateError);
         toast.error('Failed to update lease with new vehicle');
-        return;
+        return false;
       }
 
       toast.success('Vehicle reassigned successfully!');

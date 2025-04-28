@@ -1,4 +1,10 @@
 
+/**
+ * Component that manages the vehicle reassignment workflow.
+ * Provides a step-by-step interface for safely transferring vehicles
+ * between agreements while maintaining business rules and data integrity.
+ */
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +15,12 @@ import { useLeaseReassignment } from '@/hooks/use-lease-reassignment';
 import { ReassignmentDetails } from './reassignment/ReassignmentDetails';
 import type { ReassignmentWizardProps } from '@/types/reassignment.types';
 
+/**
+ * ReassignmentWizard component handles the UI and workflow for vehicle reassignment
+ * @param leaseId - ID of the lease being modified
+ * @param onComplete - Optional callback function executed on successful reassignment
+ * @param onCancel - Optional callback function executed when reassignment is cancelled
+ */
 const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({ 
   leaseId, 
   onComplete, 

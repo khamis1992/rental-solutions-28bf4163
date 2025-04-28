@@ -1,14 +1,11 @@
-
 import { profileRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
 import { asProfileStatus } from '@/lib/database/utils';
 import { supabase } from '@/lib/supabase';
 
-// Define customer type for readability
 export type Customer = TableRow<'profiles'>;
 
-// Define types for customer filters
 export interface CustomerFilters {
   status?: string;
   searchTerm?: string;
@@ -16,7 +13,8 @@ export interface CustomerFilters {
 }
 
 /**
- * Customer service responsible for all operations related to customers
+ * Service layer responsible for managing customer-related operations.
+ * Handles all customer data interactions, validation, and business rules.
  */
 export class CustomerService extends BaseService<'profiles'> {
   constructor() {
@@ -24,7 +22,9 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 
   /**
-   * Find customers with optional filtering
+   * Retrieves customers based on specified filters
+   * @param filters - Optional filtering criteria for customer search
+   * @returns Promise with filtered customer records
    */
   async findCustomers(filters?: CustomerFilters): Promise<ServiceResult<Customer[]>> {
     return handleServiceOperation(async () => {
@@ -57,7 +57,9 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 
   /**
-   * Get customer details with rental history
+   * Fetches detailed customer information including rental history
+   * @param id - Customer ID to retrieve details for
+   * @returns Promise with customer details and associated agreements
    */
   async getCustomerDetails(id: string): Promise<ServiceResult<Customer & { agreements: any[] }>> {
     return handleServiceOperation(async () => {
@@ -87,7 +89,10 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 
   /**
-   * Update customer status
+   * Updates customer status while maintaining audit trail
+   * @param id - Customer ID to update
+   * @param status - New status to apply
+   * @returns Promise with updated customer record
    */
   async updateStatus(id: string, status: string): Promise<ServiceResult<Customer>> {
     return handleServiceOperation(async () => {
@@ -106,7 +111,10 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 
   /**
-   * Check for document expiration
+   * Validates customer document expiration status
+   * Implements business rules for document validation and notification
+   * @param customerId - Customer ID to check documents for
+   * @returns Promise with document validation results and warnings
    */
   async checkDocumentExpiration(customerId: string): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
@@ -174,7 +182,9 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 
   /**
-   * Get payment history for a customer
+   * Retrieves customer payment history across all agreements
+   * @param customerId - Customer ID to fetch payment history for
+   * @returns Promise with detailed payment history
    */
   async getPaymentHistory(customerId: string): Promise<ServiceResult<any[]>> {
     return handleServiceOperation(async () => {
@@ -209,5 +219,4 @@ export class CustomerService extends BaseService<'profiles'> {
   }
 }
 
-// Create singleton instance
 export const customerService = new CustomerService();
