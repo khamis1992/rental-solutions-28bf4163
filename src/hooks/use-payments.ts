@@ -1,119 +1,131 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
-import { castDbId } from '@/utils/database-type-helpers';
-import { mapToExtendedPayments } from '@/utils/response-mapper';
-import { useErrorTracking } from './use-error-tracking';
+import { PaymentService, PaymentData, PaymentFilterOptions } from '@/services/payments/payments-service';
 
-export const usePayments = (leaseId?: string) => {
+export type { PaymentData } from '@/services/payments/payments-service';
+
+export const usePayments = (initialFilters: PaymentFilterOptions = {}) => {
+  const [filterParams, setFilterParams] = useState<PaymentFilterOptions>(initialFilters);
   const queryClient = useQueryClient();
-  const { trackError } = useErrorTracking();
-  
-  const fetchPayments = useCallback(async () => {
-    if (!leaseId) return [] as ExtendedPayment[];
-    
-    try {
-      const { data, error } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', castDbId(leaseId))
-        .order('due_date', { ascending: false });
-        
-      if (error) {
-        trackError(error, { leaseId }, 'fetchPayments');
-        throw new Error('Failed to fetch payments');
+
+  // Query for fetching payments with filters
+  const {
+    data: payments,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['payments', filterParams],
+    queryFn: () => PaymentService.fetchPayments(filterParams),
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000,    // 10 minutes
+  });
+
+  // Query for fetching a single payment
+  const fetchPayment = async (id: string): Promise<PaymentData | null> => {
+    return await PaymentService.getPayment(id);
+  };
+
+  // Mutation for recording a new payment
+  const recordPaymentMutation = useMutation({
+    mutationFn: async (paymentData: any) => {
+      const newPayment = await PaymentService.recordPayment(paymentData);
+      if (!newPayment) {
+        throw new Error('Failed to record payment');
       }
-      
-      return mapToExtendedPayments(data) || [];
-    } catch (error) {
-      trackError(error instanceof Error ? error : new Error('Unknown payment error'), 
-        { leaseId }, 'fetchPayments');
-      throw error;
+      return newPayment;
+    },
+    onSuccess: () => {
+      toast.success('Payment recorded successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to record payment: ${error.message || 'Unknown error'}`);
     }
-  }, [leaseId, trackError]);
-  
-  const { data: payments, isLoading, refetch } = useQuery({
-    queryKey: ['payments', leaseId],
-    queryFn: fetchPayments,
-    enabled: !!leaseId,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
   });
-  
+
+  // Mutation for updating a payment
   const updatePaymentMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<ExtendedPayment> }) => {
-      const { error } = await supabase
-        .from('unified_payments')
-        .update(data)
-        .eq('id', castDbId(id));
-        
-      if (error) {
-        throw new Error(`Failed to update payment: ${error.message}`);
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const updatedPayment = await PaymentService.updatePayment(id, data);
+      if (!updatedPayment) {
+        throw new Error('Failed to update payment');
       }
-      
-      return { success: true };
+      return updatedPayment;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      toast.success('Payment updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
-    onError: (error) => {
-      trackError(error, { leaseId }, 'updatePayment');
-      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
+    onError: (error: any) => {
+      toast.error(`Failed to update payment: ${error.message || 'Unknown error'}`);
+    }
   });
-  
-  const addPaymentMutation = useMutation({
-    mutationFn: async (payment: Partial<ExtendedPayment>) => {
-      const { error } = await supabase
-        .from('unified_payments')
-        .insert(payment);
-        
-      if (error) {
-        throw new Error(`Failed to add payment: ${error.message}`);
-      }
-      
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
-    },
-    onError: (error) => {
-      trackError(error, { leaseId }, 'addPayment');
-      toast.error(`Add payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
-  });
-  
+
+  // Mutation for deleting a payment
   const deletePaymentMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('unified_payments')
-        .delete()
-        .eq('id', castDbId(id));
-        
-      if (error) {
-        throw new Error(`Failed to delete payment: ${error.message}`);
+      const success = await PaymentService.deletePayment(id);
+      if (!success) {
+        throw new Error('Failed to delete payment');
       }
-      
-      return { success: true };
+      return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      toast.success('Payment deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
-    onError: (error) => {
-      trackError(error, { leaseId }, 'deletePayment');
-      toast.error(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete payment: ${error.message || 'Unknown error'}`);
+    }
   });
-  
+
+  // Advanced function to record payment with late fee calculation
+  const recordPaymentWithLateFee = async (
+    leaseId: string, 
+    amount: number,
+    amountPaid: number,
+    paymentMethod: string,
+    paymentDate: Date,
+    dueDate: Date,
+    description?: string
+  ): Promise<PaymentData | null> => {
+    const payment = await PaymentService.recordPaymentWithLateFee(
+      leaseId, 
+      amount, 
+      amountPaid, 
+      paymentMethod, 
+      paymentDate, 
+      dueDate, 
+      description
+    );
+    
+    if (payment) {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    }
+    
+    return payment;
+  };
+
+  // Get payment statistics for a lease
+  const getPaymentStats = async (leaseId: string) => {
+    return await PaymentService.getPaymentStats(leaseId);
+  };
+
   return {
-    payments: payments || [],
+    payments,
     isLoading,
-    fetchPayments: refetch,
+    error,
+    filterParams,
+    setFilterParams,
+    fetchPayment,
+    recordPayment: recordPaymentMutation.mutateAsync,
     updatePayment: updatePaymentMutation.mutateAsync,
-    addPayment: addPaymentMutation.mutateAsync,
-    deletePayment: deletePaymentMutation.mutateAsync
+    deletePayment: deletePaymentMutation.mutateAsync,
+    recordPaymentWithLateFee,
+    getPaymentStats,
+    refetchPayments: refetch
   };
 };

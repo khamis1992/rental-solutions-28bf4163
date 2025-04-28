@@ -1,16 +1,9 @@
+
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { createTableQuery, asDbStatus, executeQuery } from '@/services/core/database-utils';
-import type { LeaseRow } from '@/services/core/database-types';
-import { 
-  asImportId, 
-  asLeaseId,
-  castDeleteAgreementsResult,
-  castRevertAgreementImportResult,
-  castGenerateAgreementDocumentResult
-} from '@/utils/database-type-helpers';
+import { AgreementService } from '@/services/agreements/agreements-service';
+import { asImportId, castDeleteAgreementsResult, castRevertAgreementImportResult, castGenerateAgreementDocumentResult } from '@/utils/database-type-helpers';
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -45,11 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { ImportRevertDialog } from "./ImportRevertDialog";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Type for the database lease status to ensure type safety
-type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
-
-const leaseQuery = createTableQuery('leases');
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AgreementList() {
   const navigate = useNavigate();
@@ -95,8 +84,7 @@ export default function AgreementList() {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        const typedStatus = asDbStatus('leases', statusFilter);
-        query = query.eq('status', typedStatus);
+        query = query.eq('status', statusFilter);
       }
 
       if (searchTerm) {
@@ -105,10 +93,13 @@ export default function AgreementList() {
         );
       }
 
-      const result = await executeQuery(() => query, 'Failed to fetch agreements');
+      const { data, error } = await query;
       
-      if (result) {
-        setAgreements(result);
+      if (error) {
+        toast.error('Failed to fetch agreements');
+        console.error('Error fetching agreements:', error);
+      } else {
+        setAgreements(data || []);
       }
     } finally {
       setLoading(false);
@@ -161,10 +152,9 @@ export default function AgreementList() {
   const handleDeleteAgreement = async () => {
     if (!agreementToDelete) return;
     
-    const result = await leaseQuery.delete(agreementToDelete);
+    const success = await AgreementService.deleteAgreement(agreementToDelete);
     
-    if (result) {
-      toast.success('Agreement deleted successfully');
+    if (success) {
       setRefreshTrigger((prev) => prev + 1);
     }
     
@@ -514,4 +504,4 @@ export default function AgreementList() {
       />
     </div>
   );
-};
+}

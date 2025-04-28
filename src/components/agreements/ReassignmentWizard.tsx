@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
-import { createTableQuery } from '@/services/core/database-utils';
-import type { LeaseRow } from '@/services/core/database-types';
+import { AgreementService } from '@/services/agreements/agreements-service';
 
 export interface ReassignmentWizardProps {
   agreementId: string;
@@ -18,8 +18,6 @@ interface AgreementDetails {
   customerPhone: string;
 }
 
-const leaseQuery = createTableQuery('leases');
-
 export function ReassignmentWizard({ agreementId, onComplete, onCancel }: ReassignmentWizardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
@@ -31,12 +29,12 @@ export function ReassignmentWizard({ agreementId, onComplete, onCancel }: Reassi
   async function fetchAgreementDetails() {
     setIsLoading(true);
     
-    const response = await leaseQuery.findById(agreementId);
+    const response = await AgreementService.getAgreement(agreementId);
     
     if (response) {
       setAgreementDetails({
         id: response.id,
-        agreementNumber: response.agreement_number,
+        agreementNumber: response.agreement_number || 'N/A',
         customerName: response.customer?.full_name || 'N/A',
         customerPhone: response.customer?.phone_number || 'N/A'
       });

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { createTableQuery } from '@/services/core/database-utils';
+import { VehicleService } from '@/services/vehicles/vehicles-service';
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -20,8 +21,6 @@ interface VehicleAssignmentDialogProps {
     agreement_number: string;
   };
 }
-
-const vehicleQuery = createTableQuery('vehicles');
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -46,7 +45,7 @@ export function VehicleAssignmentDialog({
       return;
     }
     
-    const vehicle = await vehicleQuery.findById(vehicleId);
+    const vehicle = await VehicleService.getVehicle(vehicleId);
     
     if (vehicle) {
       setVehicleInfo(`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`);

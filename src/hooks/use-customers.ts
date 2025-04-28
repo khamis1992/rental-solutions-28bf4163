@@ -1,252 +1,109 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { CustomerService, Customer, CustomerFilterOptions } from '@/services/customers/customers-service';
 
-const PROFILES_TABLE = 'profiles';
-const CUSTOMER_ROLE = 'customer';
+export type { Customer } from '@/services/customers/customers-service';
 
-const formatQatarPhoneNumber = (phone: string): string => {
-  const cleanPhone = phone.replace(/^\+974/, '').trim();
-  
-  if (/^[3-9]\d{7}$/.test(cleanPhone)) {
-    return `+974${cleanPhone}`;
-  }
-  
-  return phone;
-};
-
-const stripCountryCode = (phone: string): string => {
-  return phone.replace(/^\+974/, '').trim();
-};
-
-export const useCustomers = () => {
+export const useCustomers = (initialFilters: CustomerFilterOptions = {}) => {
+  const [filterParams, setFilterParams] = useState<CustomerFilterOptions>(initialFilters);
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useState({
-    query: '',
-    status: 'all',
-  });
 
-  const { 
-    data: customers, 
-    isLoading, 
+  // Query for fetching customers with filters
+  const {
+    data: customers,
+    isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['customers', searchParams],
-    queryFn: async () => {
-      console.log('Fetching customers with params:', searchParams);
-      
-      try {
-        let query = supabase
-          .from(PROFILES_TABLE)
-          .select('*')
-          .eq('role', CUSTOMER_ROLE)
-          .order('created_at', { ascending: false });
-
-        if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
-        }
-
-        if (searchParams.query) {
-          query = query.or(
-            `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
-          );
-        }
-
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Supabase query error:', error);
-          throw new Error(error.message);
-        }
-        
-        console.log('Raw customer data from profiles table:', data);
-        
-        const processedCustomers = (data || []).map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || '',
-          email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''),
-          driver_license: profile.driver_license || '',
-          nationality: profile.nationality || '',
-          address: profile.address || '',
-          notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-        }));
-        
-        console.log('Processed customers from profiles:', processedCustomers);
-        return processedCustomers as Customer[];
-      } catch (catchError) {
-        console.error('Unexpected error in customer fetch:', catchError);
-        return [];
-      }
-    },
-    initialData: []
+    queryKey: ['customers', filterParams],
+    queryFn: () => CustomerService.fetchCustomers(filterParams),
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000,    // 10 minutes
   });
 
-  const refreshCustomers = () => {
-    return refetch();
+  // Query for fetching a single customer
+  const fetchCustomer = async (id: string): Promise<Customer | null> => {
+    return await CustomerService.getCustomer(id);
   };
 
-  const createCustomer = useMutation({
-    mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
-      console.log('Creating new customer with data:', newCustomer);
-      
-      const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
-      console.log('Formatted phone number:', formattedPhone);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .insert([{ 
-          full_name: newCustomer.full_name,
-          email: newCustomer.email,
-          phone_number: formattedPhone,
-          address: newCustomer.address,
-          driver_license: newCustomer.driver_license,
-          nationality: newCustomer.nationality,
-          notes: newCustomer.notes,
-          status: newCustomer.status || 'active',
-          role: CUSTOMER_ROLE,
-          created_at: new Date().toISOString() 
-        }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating customer:', error);
-        throw new Error(error.message);
+  // Mutation for creating a new customer
+  const createCustomerMutation = useMutation({
+    mutationFn: async (customerData: any) => {
+      const newCustomer = await CustomerService.createCustomer(customerData);
+      if (!newCustomer) {
+        throw new Error('Failed to create customer');
       }
-      
-      console.log('Created customer:', data);
-      return {
-        ...data,
-        phone: stripCountryCode(data.phone_number || '')
-      } as Customer;
+      return newCustomer;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer created successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: (error) => {
-      toast.error('Failed to create customer', { description: error.message });
-    },
+    onError: (error: any) => {
+      toast.error(`Failed to create customer: ${error.message || 'Unknown error'}`);
+    }
   });
 
-  const updateCustomer = useMutation({
-    mutationFn: async (customer: Customer) => {
-      const formattedPhone = formatQatarPhoneNumber(customer.phone);
-      console.log('Updating customer with formatted phone:', formattedPhone);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .update({ 
-          full_name: customer.full_name,
-          email: customer.email,
-          phone_number: formattedPhone,
-          address: customer.address,
-          driver_license: customer.driver_license,
-          nationality: customer.nationality,
-          notes: customer.notes,
-          status: customer.status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', customer.id)
-        .select();
-
-      if (error) throw new Error(error.message);
-      
-      return {
-        ...data[0],
-        phone: stripCountryCode(data[0].phone_number || '')
-      } as Customer;
+  // Mutation for updating a customer
+  const updateCustomerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const updatedCustomer = await CustomerService.updateCustomer(id, data);
+      if (!updatedCustomer) {
+        throw new Error('Failed to update customer');
+      }
+      return updatedCustomer;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: (error) => {
-      toast.error('Failed to update customer', { description: error.message });
-    },
+    onError: (error: any) => {
+      toast.error(`Failed to update customer: ${error.message || 'Unknown error'}`);
+    }
   });
 
-  const deleteCustomer = useMutation({
+  // Mutation for deleting a customer
+  const deleteCustomerMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from(PROFILES_TABLE)
-        .delete()
-        .eq('id', id);
-
-      if (error) throw new Error(error.message);
+      const success = await CustomerService.deleteCustomer(id);
+      if (!success) {
+        throw new Error('Failed to delete customer');
+      }
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-    onError: (error) => {
-      toast.error('Failed to delete customer', { description: error.message });
-    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete customer: ${error.message || 'Unknown error'}`);
+    }
   });
 
-  const getCustomer = async (id: string): Promise<Customer | null> => {
-    try {
-      console.log('Fetching customer with ID:', id);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+  // Function to search for customers
+  const searchCustomers = async (query: string): Promise<Customer[]> => {
+    return await CustomerService.searchCustomers(query);
+  };
 
-      if (error) {
-        console.error('Error fetching customer by ID:', error);
-        toast.error('Failed to fetch customer', { description: error.message });
-        return null;
-      }
-
-      if (!data) {
-        console.log('No customer found with ID:', id);
-        return null;
-      }
-
-      console.log('Raw customer data from profiles:', data);
-
-      const customerData: Customer = {
-        id: data.id,
-        full_name: data.full_name || '',
-        email: data.email || '',
-        phone: stripCountryCode(data.phone_number || ''),
-        driver_license: data.driver_license || '',
-        nationality: data.nationality || '',
-        address: data.address || '',
-        notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-      };
-      
-      return customerData;
-    } catch (error) {
-      console.error('Unexpected error fetching customer:', error);
-      toast.error('Failed to fetch customer');
-      return null;
-    }
+  // Function to get a customer's agreements
+  const getCustomerAgreements = async (customerId: string): Promise<any[]> => {
+    return await CustomerService.getCustomerAgreements(customerId);
   };
 
   return {
     customers,
     isLoading,
     error,
-    searchParams,
-    setSearchParams,
-    createCustomer,
-    updateCustomer,
-    deleteCustomer,
-    getCustomer,
-    refreshCustomers,
+    filterParams,
+    setFilterParams,
+    fetchCustomer,
+    createCustomer: createCustomerMutation.mutateAsync,
+    updateCustomer: updateCustomerMutation.mutateAsync,
+    deleteCustomer: deleteCustomerMutation.mutateAsync,
+    searchCustomers,
+    getCustomerAgreements,
+    refetchCustomers: refetch
   };
 };
