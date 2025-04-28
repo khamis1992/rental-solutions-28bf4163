@@ -96,3 +96,4 @@ export function DataCardSkeleton() {
     </Card>
   );
 }
+

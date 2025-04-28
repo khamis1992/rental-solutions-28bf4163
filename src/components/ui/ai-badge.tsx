@@ -18,3 +18,4 @@ export function AIBadge({ className }: AIBadgeProps) {
     </div>
   );
 }
+
