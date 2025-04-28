@@ -1,8 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { castImportId, castLeaseId } from '@/utils/database-operations';
+import { 
+  castImportId, 
+  castLeaseId,
+  castDeleteAgreementsResult,
+  castRevertAgreementImportResult,
+  castGenerateAgreementDocumentResult
+} from '@/utils/database-operations';
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -38,6 +45,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { ImportRevertDialog } from "./ImportRevertDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasData } from "@/utils/database-operations";
+import { Database } from '@/types/database.types';
 
 const AgreementList = () => {
   const navigate = useNavigate();
@@ -86,6 +94,7 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
+        // Use direct string without casting for filtering as it's not directly passed to the DB parameter
         query = query.eq("status", statusFilter);
       }
 
@@ -142,11 +151,14 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      if (data && data.success) {
-        toast.success(`Successfully deleted ${data.deleted_count} agreements`);
+      // Cast the result to our known type that includes success and deleted_count
+      const typedResult = castDeleteAgreementsResult(data);
+      
+      if (typedResult && typedResult.success) {
+        toast.success(`Successfully deleted ${typedResult.deleted_count} agreements`);
         setRefreshTrigger((prev) => prev + 1);
       } else {
-        toast.error(data?.message || 'Failed to delete import');
+        toast.error(typedResult?.message || 'Failed to delete import');
       }
     } catch (err: any) {
       console.error("Error deleting import:", err);
@@ -159,6 +171,7 @@ const AgreementList = () => {
 
     try {
       const typedLeaseId = castLeaseId(agreementToDelete);
+      
       const { error } = await supabase
         .from('leases')
         .delete()
@@ -193,11 +206,14 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      if (data && data.success) {
-        toast.success(`Successfully reverted import. ${data.deleted_count} agreements deleted.`);
+      // Cast the result to our known type that includes success and deleted_count
+      const typedResult = castRevertAgreementImportResult(data);
+
+      if (typedResult && typedResult.success) {
+        toast.success(`Successfully reverted import. ${typedResult.deleted_count} agreements deleted.`);
         setRefreshTrigger((prev) => prev + 1);
       } else {
-        toast.error(data?.message || "Failed to revert import");
+        toast.error(typedResult?.message || "Failed to revert import");
       }
     } catch (err: any) {
       console.error("Error reverting import:", err);
@@ -217,14 +233,17 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      if (data && data.success) {
+      // Cast the result to our known type that includes success and document_url
+      const typedResult = castGenerateAgreementDocumentResult(data);
+
+      if (typedResult && typedResult.success) {
         toast.success("Document generated successfully");
         // Optionally open the document in a new tab or download it
-        if (data.document_url) {
-          window.open(data.document_url, "_blank");
+        if (typedResult.document_url) {
+          window.open(typedResult.document_url, "_blank");
         }
       } else {
-        toast.error(data?.message || "Failed to generate document");
+        toast.error(typedResult?.message || "Failed to generate document");
       }
     } catch (err: any) {
       console.error("Error generating document:", err);

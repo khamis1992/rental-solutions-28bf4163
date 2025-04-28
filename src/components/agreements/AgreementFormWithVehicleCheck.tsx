@@ -73,9 +73,8 @@ export function AgreementFormWithVehicleCheck({
         status: castLeaseStatus('terminated')
       });
       
-      // Convert ID to the correct type using a type assertion
-      // This is a safe approach since we know the ID is valid
-      const typedLeaseId = existingAgreement.id as Database['public']['Tables']['leases']['Row']['id'];
+      // Convert ID to the correct type for querying
+      const typedLeaseId = castLeaseId(existingAgreement.id);
       
       const { error } = await supabase
         .from('leases')

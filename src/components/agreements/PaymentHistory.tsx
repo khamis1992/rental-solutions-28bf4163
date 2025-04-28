@@ -64,25 +64,27 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
     const safeData = response.data || [];
     
     return safeData.map(payment => ({
-      id: payment.id,
-      lease_id: payment.lease_id,
-      amount: payment.amount,
-      amount_paid: payment.amount_paid,
-      balance: payment.balance,
-      payment_date: payment.payment_date,
-      payment_method: payment.payment_method,
-      description: payment.description,
-      status: payment.status,
-      created_at: payment.created_at,
-      updated_at: payment.updated_at,
-      original_due_date: payment.original_due_date,
-      due_date: payment.due_date,
-      is_recurring: payment.is_recurring,
-      type: payment.type,
-      days_overdue: payment.days_overdue,
-      late_fine_amount: payment.late_fine_amount,
-      reference_number: payment.reference_number,
-      notes: payment.notes
+      id: payment.id || '',
+      lease_id: payment.lease_id || '',
+      amount: payment.amount || 0,
+      amount_paid: payment.amount_paid || 0,
+      balance: payment.balance || 0,
+      payment_date: payment.payment_date || null,
+      payment_method: payment.payment_method || null,
+      description: payment.description || null,
+      status: payment.status || '',
+      created_at: payment.created_at || '',
+      updated_at: payment.updated_at || '',
+      original_due_date: payment.original_due_date || '',
+      due_date: payment.due_date || '',
+      is_recurring: payment.is_recurring || false,
+      type: payment.type || '',
+      days_overdue: payment.days_overdue || 0,
+      late_fine_amount: payment.late_fine_amount || 0,
+      processing_fee: payment.processing_fee || 0,
+      processed_by: payment.processed_by || '',
+      reference_number: payment.reference_number || '',
+      notes: payment.notes || ''
     }));
   } catch (error) {
     console.error('Error fetching payments:', error);
@@ -99,7 +101,10 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   onEdit,
   onDelete,
   rentAmount,
-  contractAmount
+  contractAmount,
+  leaseStartDate,
+  leaseEndDate,
+  onRecordPayment
 }) => {
   const [localPayments, setLocalPayments] = useState<ExtendedPayment[]>(payments);
   const [loading, setLoading] = useState(isLoading);

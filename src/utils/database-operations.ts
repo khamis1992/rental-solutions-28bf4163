@@ -63,3 +63,35 @@ export function castImportId(id: string): string {
 export function hasData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): response is { data: T; error: null } {
   return response.data !== null && response.error === null;
 }
+
+// Helper functions for RPC function returns
+export interface DeleteAgreementsByImportIdResult {
+  success: boolean;
+  deleted_count: number;
+  message?: string;
+}
+
+export interface RevertAgreementImportResult {
+  success: boolean;
+  deleted_count: number;
+  message?: string;
+}
+
+export interface GenerateAgreementDocumentResult {
+  success: boolean;
+  document_url?: string;
+  message?: string;
+}
+
+// Type-safe casting functions for RPC results
+export function castDeleteAgreementsResult(result: unknown): DeleteAgreementsByImportIdResult {
+  return result as DeleteAgreementsByImportIdResult;
+}
+
+export function castRevertAgreementImportResult(result: unknown): RevertAgreementImportResult {
+  return result as RevertAgreementImportResult;
+}
+
+export function castGenerateAgreementDocumentResult(result: unknown): GenerateAgreementDocumentResult {
+  return result as GenerateAgreementDocumentResult;
+}

@@ -26,7 +26,6 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
     const fetchAgreementData = async () => {
       setIsLoading(true);
       try {
-        // Using type assertion for ID when querying
         const typedLeaseId = agreementId as Database['public']['Tables']['leases']['Row']['id'];
         
         const { data, error } = await supabase
@@ -41,7 +40,7 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
             )
           `)
           .eq('id', typedLeaseId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         
