@@ -2,14 +2,13 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { LeaseStatus } from '@/types/lease-types';
+import { mapDbToAgreement } from '@/utils/type-adapters';
 
 const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
     error,
-    updateAgreement,
     pagination,
     setPagination,
     sorting,
@@ -26,10 +25,12 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
+  const mappedAgreements = agreements?.map(mapDbToAgreement) || [];
+
   return (
     <div>
       <AgreementTable
-        agreements={agreements}
+        agreements={mappedAgreements}
         isLoading={isLoading}
         pagination={pagination}
         setPagination={setPagination}

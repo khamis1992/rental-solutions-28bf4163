@@ -1,19 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { ImportHistoryItem } from '@/types/import-types';
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table"
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { supabase } from '@/lib/supabase';
+import { mapDbToImportHistory } from '@/utils/type-adapters';
 
-export function ImportHistoryList() {
+export const ImportHistoryList: React.FC = () => {
   const { data: imports, isLoading } = useQuery({
     queryKey: ['agreement-imports'],
     queryFn: async () => {
@@ -23,7 +13,7 @@ export function ImportHistoryList() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as ImportHistoryItem[];
+      return data?.map(mapDbToImportHistory) || [];
     }
   });
 
