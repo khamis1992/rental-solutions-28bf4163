@@ -12,6 +12,7 @@ export function useAgreementTable() {
     isLoading,
     error,
     updateAgreement: updateAgreementService,
+    deleteAgreements,
     searchParams,
     setSearchParams,
   } = useAgreementService();
@@ -23,6 +24,8 @@ export function useAgreementTable() {
   });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [rowSelection, setRowSelection] = useState({});
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Update agreement
   const updateAgreement = async (id: string, data: Record<string, any>) => {
@@ -33,6 +36,23 @@ export function useAgreementTable() {
     } catch (err: any) {
       toast.error(`Failed to update agreement: ${err.message || 'Unknown error'}`);
       return false;
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (Object.keys(rowSelection).length === 0) return;
+    
+    try {
+      setIsDeleting(true);
+      const selectedIds = Object.keys(rowSelection);
+      await deleteAgreements(selectedIds);
+      setRowSelection({});
+      toast.success('Selected agreements deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    } catch (err: any) {
+      toast.error(`Failed to delete agreements: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -53,5 +73,9 @@ export function useAgreementTable() {
     setGlobalFilter,
     searchParams,
     handleFilterChange,
+    rowSelection,
+    setRowSelection,
+    isDeleting,
+    handleBulkDelete,
   };
 }

@@ -22,6 +22,7 @@ export interface PaymentEntryDialogProps {
   onPaymentCreated?: (payment: any) => Promise<void>;
   leaseId?: string;
   rentAmount?: number;
+  title?: string;
 }
 
 export function PaymentEntryDialog({
@@ -29,7 +30,8 @@ export function PaymentEntryDialog({
   onOpenChange,
   selectedPayment,
   onSubmit,
-  defaultAmount
+  defaultAmount,
+  title = "Enter Payment Details"
 }: PaymentEntryDialogProps) {
   const [amount, setAmount] = React.useState<number>(selectedPayment?.amount || defaultAmount || 0);
   const [paymentDate, setPaymentDate] = React.useState<Date>(selectedPayment?.payment_date ? new Date(selectedPayment.payment_date) : new Date());
@@ -55,7 +57,7 @@ export function PaymentEntryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <FormSection title="Enter Payment Details" description="Provide the necessary information to record the payment.">
+        <FormSection title={title} description="Provide the necessary information to record the payment.">
           <FormGroup>
             <FormRow>
               <FormField label="Amount" htmlFor="amount">
