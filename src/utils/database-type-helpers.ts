@@ -52,7 +52,7 @@ export function asImportId(id: string): string {
   return id as string;
 }
 
-// Add the missing castDbId function
+// Add the castDbId function for backward compatibility
 export function castDbId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
   return id as Tables[T]['Row']['id'];
 }

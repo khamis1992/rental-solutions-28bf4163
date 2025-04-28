@@ -62,8 +62,10 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
       throw new Error(response.error.message || 'Failed to fetch payments');
     }
     
+    // Ensure we're working with an array of data
     const safeData = response.data || [];
     
+    // Map the data to ensure all fields are safely handled
     return safeData.map(payment => ({
       id: payment.id || '',
       lease_id: payment.lease_id || '',
@@ -233,5 +235,4 @@ export function PaymentHistory({
   );
 }
 
-// Export both as named export and as default
 export default PaymentHistory;

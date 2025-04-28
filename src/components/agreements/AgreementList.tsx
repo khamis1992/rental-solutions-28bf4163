@@ -5,13 +5,11 @@ import { toast } from 'sonner';
 import { 
   asImportId, 
   asLeaseId,
-  asLeaseStatus
+  asLeaseStatus,
+  castDeleteAgreementsResult,
+  castRevertAgreementImportResult,
+  castGenerateAgreementDocumentResult
 } from '@/utils/database-type-helpers';
-import {
-  DeleteAgreementsByImportIdResult,
-  RevertAgreementImportResult,
-  GenerateAgreementDocumentResult
-} from '@/utils/database-operations';
 import { useNavigate } from "react-router-dom";
 import {
   Table,
