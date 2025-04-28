@@ -1,4 +1,3 @@
-
 export interface Database {
   public: {
     Tables: {
@@ -16,7 +15,7 @@ export interface Database {
           deposit_amount: number | null;
           daily_late_fee: number | null;
           agreement_type: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
-          agreement_duration: unknown; // interval type in PostgreSQL
+          agreement_duration: unknown;
           rent_due_day: number | null;
           notes: string | null;
           created_at: string;
@@ -81,7 +80,7 @@ export interface Database {
           transaction_id: string | null;
           import_reference: string | null;
           is_recurring: boolean;
-          recurring_interval: unknown | null; // interval type
+          recurring_interval: unknown | null;
           next_payment_date: string | null;
         };
         Insert: {

@@ -19,6 +19,10 @@ import LegalCaseCard from './LegalCaseCard';
 import { DbId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
 import { Payment } from './PaymentHistory.types';
+import { CustomerInformationCard } from './details/CustomerInformationCard';
+import { VehicleInformationCard } from './details/VehicleInformationCard';
+import { AgreementDetailsCard } from './details/AgreementDetailsCard';
+import { AgreementActionButtons } from './details/AgreementActionButtons';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -234,143 +238,24 @@ export function AgreementDetail({
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Details about the customer</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Email</p>
-                <p>{agreement.customers?.email || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Address</p>
-                <p>{agreement.customers?.address || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Driver License</p>
-                <p>{agreement.customers?.driver_license || 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
-            <CardDescription>Details about the rented vehicle</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
-              </div>
-              <div>
-                <p className="font-medium">License Plate</p>
-                <p>{agreement.vehicles?.license_plate}</p>
-              </div>
-              <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">VIN</p>
-                <p>{agreement.vehicles?.vin || 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <CustomerInformationCard agreement={agreement} />
+        <VehicleInformationCard agreement={agreement} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Agreement Details</CardTitle>
-          <CardDescription>Rental terms and payment information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Rental Period</p>
-                <p className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Additional Drivers</p>
-                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Notes</p>
-                <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Monthly Rent Amount</p>
-                <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Total Contract Amount</p>
-                <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Deposit Amount</p>
-                <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Terms Accepted</p>
-                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Signature</p>
-                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <AgreementDetailsCard 
+        agreement={agreement}
+        duration={duration}
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+      />
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
-        <Button variant="outline" onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
-        
-        <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
-          <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
-        </Button>
-        <Button variant="outline" onClick={handleGenerateDocument}>
-          <FilePlus className="mr-2 h-4 w-4" />
-          Generate Document
-        </Button>
-        <div className="flex-grow"></div>
-        <Button variant="destructive" onClick={handleDelete} className="ml-auto">
-          Delete
-        </Button>
-      </div>
+      <AgreementActionButtons 
+        onEdit={handleEdit}
+        onDownloadPdf={handleDownloadPdf}
+        onGenerateDocument={handleGenerateDocument}
+        onDelete={handleDelete}
+        isGeneratingPdf={isGeneratingPdf}
+      />
 
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 
