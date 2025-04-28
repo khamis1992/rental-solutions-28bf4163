@@ -1,33 +1,30 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Card, CardContent } from '@/components/ui/card';
 import { asLeaseId, isValidResponse } from '@/utils/database-type-helpers';
 
-interface ReassignmentWizardProps {
+export interface ReassignmentWizardProps {
+  agreementId: string;
   onComplete: () => void;
-  agreementId: string; 
-  vehicleId: string;
+  onCancel: () => void;
 }
 
-export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
-  onComplete,
-  agreementId,
-  vehicleId
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreementData, setAgreementData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+export function ReassignmentWizard({ agreementId, onComplete, onCancel }: ReassignmentWizardProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [agreement, setAgreement] = useState<any>(null);
 
+  // Fetch agreement details
   useEffect(() => {
-    const fetchAgreementData = async () => {
-      setIsLoading(true);
+    async function fetchAgreementDetails() {
       try {
+        setIsLoading(true);
+        
+        // Use asLeaseId for type safety
         const typedLeaseId = asLeaseId(agreementId);
         
-        const response = await supabase
+        const { data, error } = await supabase
           .from('leases')
           .select(`
             id,
@@ -39,103 +36,60 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
             )
           `)
           .eq('id', typedLeaseId)
-          .maybeSingle();
-
-        if (response.error) throw response.error;
+          .single();
         
-        if (isValidResponse(response) && response.data) {
-          setAgreementData({
-            id: response.data.id,
-            agreement_number: response.data.agreement_number,
-            customer: response.data.customer && Array.isArray(response.data.customer) 
-              ? response.data.customer[0] 
-              : response.data.customer
-          });
+        if (error) throw error;
+        
+        if (isValidResponse({ data, error })) {
+          setAgreement(data);
         }
-      } catch (error: any) {
-        console.error("Error fetching agreement data:", error);
-        setError(error.message);
-        toast.error("Failed to load agreement information");
+      } catch (error) {
+        console.error('Error fetching agreement details:', error);
+        toast.error('Could not load agreement details');
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchAgreementData();
-  }, [agreementId]);
-
-  const handleReassign = async () => {
-    setIsLoading(true);
-    try {
-      // Instead of implementing the reassignment logic here,
-      // we'll just simulate completion
-      setTimeout(() => {
-        toast.success("Vehicle reassigned successfully!");
-        onComplete();
-      }, 1000);
-    } catch (error: any) {
-      console.error("Error reassigning vehicle:", error);
-      toast.error("Failed to reassign vehicle");
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Error</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>{error}</p>
-          <Button onClick={onComplete} className="mt-4">Cancel</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading || !agreementData) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading...</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Loading agreement information...</p>
-        </CardContent>
-      </Card>
-    );
-  }
+    
+    fetchAgreementDetails();
+  }, [agreementId]);
+  
+  // If agreement data is available, safely access the properties
+  const agreementDetails = agreement ? {
+    id: agreement.id,
+    agreementNumber: agreement.agreement_number,
+    customerName: agreement.customer?.full_name || 'N/A',
+    customerPhone: agreement.customer?.phone_number || 'N/A'
+  } : null;
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Reassign Vehicle</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="font-medium">Agreement:</p>
-          <p>{agreementData.agreement_number}</p>
-        </div>
-        
-        <div>
-          <p className="font-medium">Customer:</p>
-          <p>{agreementData.customer?.full_name || 'Unknown'}</p>
-          <p>{agreementData.customer?.phone_number || 'No phone number'}</p>
-        </div>
-        
-        <div className="flex space-x-2">
-          <Button onClick={handleReassign} disabled={isLoading}>
-            {isLoading ? 'Processing...' : 'Confirm Reassignment'}
-          </Button>
-          <Button onClick={onComplete} variant="outline" disabled={isLoading}>
-            Cancel
-          </Button>
-        </div>
+      <CardContent className="pt-6">
+        {isLoading ? (
+          <div>Loading agreement details...</div>
+        ) : agreementDetails ? (
+          <div>
+            <h3 className="font-medium mb-4">Reassignment for Agreement #{agreementDetails.agreementNumber}</h3>
+            <div className="mb-6">
+              <p>Current Customer: {agreementDetails.customerName}</p>
+              <p>Phone: {agreementDetails.customerPhone}</p>
+            </div>
+            
+            {/* Rest of the reassignment wizard would go here */}
+            
+            <div className="flex justify-end space-x-2 mt-4">
+              <Button variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={onComplete}>
+                Complete Reassignment
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>Agreement not found</div>
+        )}
       </CardContent>
     </Card>
   );
-};
-
-export default ReassignmentWizard;
+}

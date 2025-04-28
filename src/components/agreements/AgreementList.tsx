@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -92,8 +93,8 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        const typedStatus = asLeaseStatus(statusFilter);
-        query = query.eq("status", typedStatus);
+        // Use asLeaseStatus to properly type the status
+        query = query.eq("status", asLeaseStatus(statusFilter));
       }
 
       if (searchTerm) {

@@ -42,10 +42,11 @@ export function VehicleAssignmentDialog({
           return;
         }
         
+        const vehicleIdTyped = asVehicleId(vehicleId);
         const { data, error } = await supabase
           .from('vehicles')
           .select('make, model, license_plate')
-          .eq('id', asVehicleId(vehicleId))
+          .eq('id', vehicleIdTyped)
           .single();
 
         if (error) throw error;

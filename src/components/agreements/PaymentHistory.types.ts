@@ -22,3 +22,8 @@ export interface ExtendedPayment {
   processing_fee: number;
   processed_by: string;
 }
+
+export interface PaymentHistoryProps {
+  leaseId: string;
+  agreementNumber?: string;
+}

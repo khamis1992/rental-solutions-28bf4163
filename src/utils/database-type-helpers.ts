@@ -142,3 +142,8 @@ export function isValidResponse<T>(response: PostgrestSingleResponse<T>): respon
 export function castUnifiedPaymentLeaseId(id: string): Tables['unified_payments']['Row']['lease_id'] {
   return id as Tables['unified_payments']['Row']['lease_id'];
 }
+
+// Add the missing castDbId function that's being imported in use-payments.ts
+export function castDbId(id: string): string {
+  return id;
+}

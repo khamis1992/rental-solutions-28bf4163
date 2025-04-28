@@ -73,7 +73,8 @@ export function AgreementFormWithVehicleCheck({
         status: 'terminated'
       });
       
-      await updateLease(existingAgreement.id, updateData);
+      const leaseId = asLeaseId(existingAgreement.id);
+      await updateLease(leaseId, updateData);
       
       toast.success(`Agreement ${existingAgreement.agreement_number} has been terminated`);
       onValidationComplete(true);
