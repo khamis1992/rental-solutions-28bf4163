@@ -92,7 +92,7 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        // Use typed status value
+        // Use typed status value with proper casting
         query = query.eq("status", asLeaseStatus(statusFilter));
       }
 

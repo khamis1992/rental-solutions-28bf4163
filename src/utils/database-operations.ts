@@ -1,32 +1,56 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  castDatabaseId, 
-  asLeaseId, 
-  asPaymentId, 
-  castPaymentUpdate
-} from './database-type-helpers';
 import { Database } from '@/types/database.types';
 import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
 
+// Type-safe database helpers
 type Tables = Database['public']['Tables'];
+type LeaseId = Tables['leases']['Row']['id'];
+type PaymentId = Tables['unified_payments']['Row']['id'];
+type LeaseStatus = Tables['leases']['Row']['status'];
+type PaymentUpdate = Tables['unified_payments']['Update'];
 
-// Unified payment functions
+// Type casting functions
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
+}
+
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
+}
+
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
+
+// Function to safely create a payment update object
+export function createPaymentUpdate(data: Partial<ExtendedPayment>): PaymentUpdate {
+  const update: PaymentUpdate = {};
+  
+  // Only include properties that exist in PaymentUpdate
+  if (data.amount !== undefined) update.amount = data.amount;
+  if (data.amount_paid !== undefined) update.amount_paid = data.amount_paid;
+  if (data.balance !== undefined) update.balance = data.balance;
+  if (data.payment_method !== undefined) update.payment_method = data.payment_method;
+  if (data.status !== undefined) update.status = data.status;
+  if (data.description !== undefined) update.description = data.description;
+  if (data.notes !== undefined) update.notes = data.notes;
+  
+  // Handle reference_number (check if it exists in your database schema)
+  if ('reference_number' in (supabase.from('unified_payments').select()) && data.reference_number !== undefined) {
+    (update as any).reference_number = data.reference_number;
+  }
+  
+  return update;
+}
+
+// Function to update a payment with proper typing
 export const updateUnifiedPayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
   try {
     const { data, error } = await supabase
       .from('unified_payments')
-      .update(castPaymentUpdate({
-        amount: updateData.amount,
-        amount_paid: updateData.amount_paid,
-        balance: updateData.balance,
-        payment_method: updateData.payment_method,
-        status: updateData.status,
-        description: updateData.description,
-        reference_number: updateData.reference_number,
-        notes: updateData.notes
-      }))
-      .eq('id', castDatabaseId<'unified_payments'>(paymentId))
+      .update(createPaymentUpdate(updateData))
+      .eq('id', asPaymentId(paymentId))
       .select();
 
     if (error) throw error;
@@ -37,13 +61,13 @@ export const updateUnifiedPayment = async (paymentId: string, updateData: Partia
   }
 };
 
-// Fetch payments with proper typing
+// Function to fetch payments with proper typing and error handling
 export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPayment[]> => {
   try {
     const response = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', castDatabaseId<'leases'>(leaseId));
+      .eq('lease_id', asLeaseId(leaseId));
       
     if (response.error) {
       throw new Error(response.error.message || 'Failed to fetch payments');
