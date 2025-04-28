@@ -2,6 +2,13 @@
 import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
 
+// TEMP FIX: Dummy export for mapDbResponse to resolve missing export error
+// TODO: Replace with actual implementation as needed
+export function mapDbResponse(response: any): any {
+  return response;
+}
+
+
 // Define table-specific ID types
 export type LeaseId = Database['public']['Tables']['leases']['Row']['id'];
 export type VehicleId = Database['public']['Tables']['vehicles']['Row']['id'];

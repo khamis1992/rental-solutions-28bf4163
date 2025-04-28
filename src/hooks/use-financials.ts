@@ -1,45 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
-import { useApiMutation, useApiQuery } from './use-api';
+import { useApiQuery, useApiMutation } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
+import { fetchFinancialTransactions } from './financials-utils';
+import { FinancialTransaction, FinancialSummary } from './financials-types';
 
+// Utility to get the current system date
 const getSystemDate = () => new Date();
-
-export type TransactionType = 'income' | 'expense';
-export type TransactionStatusType = 'completed' | 'pending' | 'failed';
-
-export interface FinancialTransaction {
-  id: string;
-  date: Date;
-  amount: number;
-  description: string;
-  receiptUrl?: string;
-  receiptProcessed?: boolean;
-  vendor?: string;
-  type: TransactionType;
-  category: string;
-  status: TransactionStatusType;
-  reference?: string;
-  paymentMethod?: string;
-  vehicleId?: string;
-  customerId?: string;
-  attachmentUrl?: string;
-  isRecurring?: boolean;
-  recurringInterval?: string;
-  nextPaymentDate?: Date;
-}
-
-export interface FinancialSummary {
-  totalIncome: number;
-  totalExpenses: number;
-  netRevenue: number;
-  pendingPayments: number;
-  unpaidInvoices: number;
-  installmentsPending: number;
-  currentMonthDue: number;
-  overdueExpenses: number;
-}
 
 export function useFinancials() {
   const { toast } = useToast();
@@ -76,90 +43,23 @@ export function useFinancials() {
     }
   }, []);
 
+  // Fetch transactions using the new utility function and improved error handling
   const { 
     data: transactions = [], 
     isLoading: isLoadingTransactions, 
+    error: transactionsError,
     refetch: refetchTransactions 
   } = useApiQuery<FinancialTransaction[]>(
     ['financialTransactions', JSON.stringify(filters)],
     async () => {
       try {
-        const { data: paymentData, error: paymentError } = await supabase
-          .from('unified_payments')
-          .select('*');
-
-        if (paymentError) {
-          console.error('Error fetching payment data:', paymentError);
-          throw paymentError;
-        }
-
-        const { data: installmentData, error: installmentError } = await supabase
-          .from('car_installments')
-          .select('*');
-
-        if (installmentError) {
-          console.error('Error fetching installment data:', installmentError);
-          throw installmentError;
-        }
-
-        const formattedTransactions: FinancialTransaction[] = [
-          ...(paymentData || []).map(payment => ({
-            id: payment.id,
-            date: new Date(payment.payment_date),
-            amount: payment.amount || 0,
-            description: payment.description || 'Rental Payment',
-            type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
-            category: payment.type === 'Expense' ? 'Operational' : 'Rental',
-            status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
-            reference: payment.reference || '',
-            paymentMethod: payment.payment_method || 'Unknown',
-            vehicleId: payment.vehicle_id || '',
-            customerId: payment.customer_id || ''
-          })),
-          
-          ...(installmentData || []).map(installment => ({
-            id: `inst-${installment.id}`,
-            date: new Date(installment.payment_date || getSystemDate()),
-            amount: installment.payment_amount || 0,
-            description: `Car Installment - ${installment.vehicle_description || 'Vehicle'}`,
-            type: 'expense' as TransactionType,
-            category: 'Installment',
-            status: installment.payment_status?.toLowerCase() as TransactionStatusType || 'completed',
-            reference: installment.reference || '',
-            paymentMethod: installment.payment_method || 'Bank Transfer',
-            vehicleId: installment.vehicle_id || ''
-          }))
-        ];
-
-        let filtered = formattedTransactions;
-        
-        if (filters.transactionType && filters.transactionType !== 'all_types') {
-          filtered = filtered.filter(t => t.type === filters.transactionType);
-        }
-        
-        if (filters.category && filters.category !== 'all_categories') {
-          filtered = filtered.filter(t => t.category === filters.category);
-        }
-        
-        if (filters.dateFrom) {
-          filtered = filtered.filter(t => t.date >= new Date(filters.dateFrom));
-        }
-        
-        if (filters.dateTo) {
-          filtered = filtered.filter(t => t.date <= new Date(filters.dateTo));
-        }
-        
-        if (filters.searchQuery) {
-          const query = filters.searchQuery.toLowerCase();
-          filtered = filtered.filter(t => 
-            t.description.toLowerCase().includes(query) ||
-            t.category.toLowerCase().includes(query)
-          );
-        }
-        
-        return filtered;
-      } catch (error) {
-        console.error('Error fetching financial transactions:', error);
+        return await fetchFinancialTransactions(filters);
+      } catch (error: any) {
+        toast({
+          title: 'Error fetching transactions',
+          description: error?.message || 'An unknown error occurred.',
+          variant: 'destructive',
+        });
         return [];
       }
     }
