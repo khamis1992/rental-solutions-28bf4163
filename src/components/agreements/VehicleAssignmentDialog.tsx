@@ -2,48 +2,18 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, CheckCircle, X, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { TrafficFine, TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
-import {
-  asVehicleId,
-  asLeaseId,
-  asLeaseIdColumn,
-  asStatusColumn,
-  hasData
-} from '@/utils/database-type-helpers';
-import { Payment } from "./PaymentHistory.types";
-
-interface VehicleAssignmentDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  vehicleId: string;
-  existingAgreement?: {
-    id: string;
-    agreement_number: string;
-  };
-}
-
-interface CustomerInfo {
-  id: string;
-  full_name: string;
-  email?: string;
-  phone_number?: string;
-}
-
-interface VehicleInfo {
-  id: string;
-  make: string;
-  model: string;
-  license_plate: string;
-  year?: number;
-  color?: string;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Payment } from '@/types/payment-history.types';
+import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps } from '@/types/vehicle-assignment.types';
+import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
+import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
+import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
+import { TrafficFine } from "@/hooks/use-traffic-fines";
+import { asLeaseId } from "@/lib/database";
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -74,82 +44,54 @@ export function VehicleAssignmentDialog({
     setIsLoading(true);
     try {
       // Fetch vehicle information
-      if (vehicleId) {
-        const vehicleResponse = await supabase
-          .from('vehicles')
-          .select('id, make, model, license_plate, year, color')
-          .eq('id', asVehicleId(vehicleId))
-          .single();
-          
-        if (hasData(vehicleResponse)) {
-          setVehicleInfo(vehicleResponse.data);
-        }
+      const { data: vehicleData } = await supabase
+        .from('vehicles')
+        .select('id, make, model, license_plate, year, color')
+        .eq('id', vehicleId)
+        .single();
+      
+      if (vehicleData) {
+        setVehicleInfo(vehicleData as VehicleInfo);
       }
       
       // Fetch pending payments
-      const paymentsResponse = await supabase
+      const { data: paymentsData } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', asLeaseId(existingAgreement.id))
         .in('status', ['pending', 'overdue']);
         
-      if (hasData(paymentsResponse)) {
-        const formattedPayments = paymentsResponse.data.map(payment => ({
-          id: payment.id,
-          amount: payment.amount,
-          status: payment.status,
-          description: payment.description,
-          payment_date: payment.payment_date,
-          due_date: payment.due_date
-        }));
-        setPendingPayments(formattedPayments);
-      } else {
-        console.error("Error fetching pending payments:", paymentsResponse.error);
+      if (paymentsData) {
+        setPendingPayments(paymentsData as Payment[]);
       }
       
       // Fetch traffic fines
-      const finesResponse = await supabase
+      const { data: finesData } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', asLeaseId(existingAgreement.id))
         .eq('payment_status', 'pending');
         
-      if (hasData(finesResponse)) {
-        // Transform the data to ensure payment_status is a proper TrafficFineStatusType
-        const transformedFines: TrafficFine[] = finesResponse.data.map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violation_number || "",
-          licensePlate: fine.license_plate || "",
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine.fine_amount || 0,
-          violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status as TrafficFineStatusType,
-          location: fine.fine_location,
-          vehicleId: fine.vehicle_id,
-          leaseId: fine.lease_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
-        }));
-        setTrafficFines(transformedFines);
-      } else {
-        console.error("Error fetching traffic fines:", finesResponse.error);
+      if (finesData) {
+        setTrafficFines(finesData as TrafficFine[]);
       }
       
-      // Fetch customer information
-      const agreementResponse = await supabase
+      // Fetch customer information through lease
+      const { data: leaseData } = await supabase
         .from('leases')
         .select('customer_id')
         .eq('id', asLeaseId(existingAgreement.id))
         .single();
         
-      if (hasData(agreementResponse) && agreementResponse.data?.customer_id) {
-        const customerResponse = await supabase
+      if (leaseData?.customer_id) {
+        const { data: customerData } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')
-          .eq('id', agreementResponse.data.customer_id)
+          .eq('id', leaseData.customer_id)
           .single();
           
-        if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data);
+        if (customerData) {
+          setCustomerInfo(customerData as CustomerInfo);
         }
       }
     } catch (error) {
@@ -159,7 +101,16 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  // Check if we need acknowledgments for payments or fines
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'N/A';
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
+  // Check if we need acknowledgments
   const needsPaymentAcknowledgment = pendingPayments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
@@ -172,28 +123,6 @@ export function VehicleAssignmentDialog({
   const handleConfirm = () => {
     onConfirm();
     onClose();
-  };
-
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }).format(date);
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
-      case 'pending':
-        return <Badge className="bg-amber-500">Pending</Badge>;
-      default:
-        return <Badge className="bg-slate-500">{status}</Badge>;
-    }
   };
 
   return (
@@ -221,7 +150,7 @@ export function VehicleAssignmentDialog({
           </div>
         ) : (
           <>
-            {/* Collapsible Section for Vehicle Information */}
+            {/* Vehicle and Customer Information Section */}
             {vehicleInfo && (
               <Collapsible
                 open={isDetailsOpen}
@@ -243,33 +172,14 @@ export function VehicleAssignmentDialog({
                 </div>
                 <CollapsibleContent className="p-3 bg-white">
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Vehicle Information</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="font-medium">Make:</span> {vehicleInfo.make}</div>
-                        <div><span className="font-medium">Model:</span> {vehicleInfo.model}</div>
-                        <div><span className="font-medium">License Plate:</span> {vehicleInfo.license_plate}</div>
-                        {vehicleInfo.year && <div><span className="font-medium">Year:</span> {vehicleInfo.year}</div>}
-                        {vehicleInfo.color && <div><span className="font-medium">Color:</span> {vehicleInfo.color}</div>}
-                      </div>
-                    </div>
-                    
-                    {customerInfo && (
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Current Customer</h4>
-                        <div className="grid grid-cols-1 gap-1 text-sm">
-                          <div><span className="font-medium">Name:</span> {customerInfo.full_name}</div>
-                          {customerInfo.email && <div><span className="font-medium">Email:</span> {customerInfo.email}</div>}
-                          {customerInfo.phone_number && <div><span className="font-medium">Phone:</span> {customerInfo.phone_number}</div>}
-                        </div>
-                      </div>
-                    )}
+                    <VehicleDetailsSection vehicleInfo={vehicleInfo} isDetailsOpen={isDetailsOpen} />
+                    <CustomerDetailsSection customerInfo={customerInfo} isDetailsOpen={isDetailsOpen} />
                   </div>
                 </CollapsibleContent>
               </Collapsible>
             )}
 
-            {/* Collapsible Section for Payment History */}
+            {/* Payment History Section */}
             {pendingPayments.length > 0 && (
               <Collapsible
                 open={isPaymentHistoryOpen}
@@ -290,54 +200,15 @@ export function VehicleAssignmentDialog({
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent className="p-3 bg-white">
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Payments</h4>
-                    <div className="max-h-48 overflow-y-auto">
-                      <table className="w-full text-xs">
-                        <thead className="bg-slate-100">
-                          <tr>
-                            <th className="p-2 text-left">Amount</th>
-                            <th className="p-2 text-left">Status</th>
-                            <th className="p-2 text-left">Due Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pendingPayments.map((payment) => (
-                            <tr key={payment.id} className="border-b">
-                              <td className="p-2">{payment.amount} QAR</td>
-                              <td className="p-2">{getStatusBadge(payment.status)}</td>
-                              <td className="p-2">{formatDate(payment.due_date)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  <PaymentWarningSection
+                    pendingPayments={pendingPayments}
+                    acknowledgedPayments={acknowledgedPayments}
+                    onAcknowledgePayments={setAcknowledgedPayments}
+                    isPaymentHistoryOpen={isPaymentHistoryOpen}
+                    formatDate={formatDate}
+                  />
                 </CollapsibleContent>
               </Collapsible>
-            )}
-
-            {pendingPayments.length > 0 && (
-              <div className="mt-2 border rounded-md p-3 bg-amber-50">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-medium">Pending Payments</h3>
-                </div>
-                <p className="text-sm mt-1 text-gray-600">
-                  There {pendingPayments.length === 1 ? 'is' : 'are'} {pendingPayments.length} pending {pendingPayments.length === 1 ? 'payment' : 'payments'} associated with this agreement.
-                </p>
-                <div className="mt-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={acknowledgedPayments}
-                      onChange={() => setAcknowledgedPayments(!acknowledgedPayments)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">I acknowledge the pending payments</span>
-                  </label>
-                </div>
-              </div>
             )}
 
             {trafficFines.length > 0 && (
@@ -354,7 +225,7 @@ export function VehicleAssignmentDialog({
                     <input
                       type="checkbox"
                       checked={acknowledgedFines}
-                      onChange={() => setAcknowledgedFines(!acknowledgedFines)}
+                      onChange={(e) => setAcknowledgedFines(e.target.checked)}
                       className="rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <span className="text-sm">I acknowledge the outstanding traffic fines</span>
@@ -388,3 +259,4 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
+
