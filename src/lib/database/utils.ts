@@ -1,107 +1,89 @@
 
-import { Tables, TableRow, isSuccessResponse, DbResponse, DbListResponse, DbSingleResponse, exists } from './types';
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { Database } from '@/types/database.types';
 
-/**
- * Type-safe ID casting for database tables
- */
-export function asTableId<T extends keyof Tables>(
-  _table: T,
-  id: string | null | undefined
-): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+// Define table-specific ID types
+export type LeaseId = Database['public']['Tables']['leases']['Row']['id'];
+export type VehicleId = Database['public']['Tables']['vehicles']['Row']['id'];
+export type ProfileId = Database['public']['Tables']['profiles']['Row']['id'];
+export type PaymentId = Database['public']['Tables']['unified_payments']['Row']['id'];
+export type TrafficFineId = Database['public']['Tables']['traffic_fines']['Row']['id'];
+export type MaintenanceId = Database['public']['Tables']['maintenance']['Row']['id'];
+
+// Define table-specific status types
+export type LeaseStatus = Database['public']['Tables']['leases']['Row']['status'];
+export type VehicleStatus = Database['public']['Tables']['vehicles']['Row']['status'];
+export type PaymentStatus = string; // Using string since it could be different types
+export type ProfileStatus = Database['public']['Tables']['profiles']['Row']['status'];
+export type MaintenanceStatus = Database['public']['Tables']['maintenance']['Row']['status'];
+
+// Type-safe ID conversion functions
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
 }
 
-/**
- * Common table ID casting functions
- */
-export function asLeaseId(id: string): string {
-  return asTableId('leases', id);
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
 }
 
-export function asVehicleId(id: string): string {
-  return asTableId('vehicles', id);
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
 }
 
-export function asProfileId(id: string): string {
-  return asTableId('profiles', id);
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
 }
 
-export function asPaymentId(id: string): string {
-  return asTableId('unified_payments', id);
+export function asTrafficFineId(id: string): TrafficFineId {
+  return id as TrafficFineId;
 }
 
-export function asTrafficFineId(id: string): string {
-  return asTableId('traffic_fines', id);
+export function asMaintenanceId(id: string): MaintenanceId {
+  return id as MaintenanceId;
 }
 
-export function asMaintenanceId(id: string): string {
-  return asTableId('maintenance', id);
+// Type-safe status conversion functions
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
 }
 
-/**
- * Cast a value to a table's column type
- */
-export function asTableColumn<T extends keyof Tables, K extends keyof TableRow<T>>(
-  _table: T,
-  _column: K,
-  value: unknown
-): TableRow<T>[K] {
-  return value as TableRow<T>[K];
+export function asVehicleStatus(status: string): VehicleStatus {
+  return status as VehicleStatus;
 }
 
-/**
- * Common status casting functions
- */
-export function asLeaseStatus(status: string): Tables['leases']['Row']['status'] {
-  return status as Tables['leases']['Row']['status'];
+export function asPaymentStatus(status: string): PaymentStatus {
+  return status as PaymentStatus;
 }
 
-export function asPaymentStatus(status: string): string {
-  return status;
+export function asProfileStatus(status: string): ProfileStatus {
+  return status as ProfileStatus;
 }
 
-export function asVehicleStatus(status: string): Tables['vehicles']['Row']['status'] {
-  return status as Tables['vehicles']['Row']['status'];
+export function asMaintenanceStatus(status: string): MaintenanceStatus {
+  return status as MaintenanceStatus;
 }
 
-export function asProfileStatus(status: string): Tables['profiles']['Row']['status'] {
-  return status as Tables['profiles']['Row']['status'];
+// Type-safe column value conversion
+export function asTableColumn<
+  T extends keyof Database['public']['Tables'],
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(
+  tableName: T,
+  columnName: C,
+  value: any
+): Database['public']['Tables'][T]['Row'][C] {
+  return value as Database['public']['Tables'][T]['Row'][C];
 }
 
-export function asMaintenanceStatus(status: string): Tables['maintenance']['Row']['status'] {
-  return status as Tables['maintenance']['Row']['status'];
-}
-
-/**
- * Convert a raw response to a standardized database response
- */
-export function mapDbResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): DbResponse<T> {
-  if (isSuccessResponse(response)) {
-    return {
-      data: response.data,
-      error: null,
-      status: 'success'
-    };
+// Response data extraction with type safety
+export function safelyExtractData<T>(response: any): T | null {
+  if (response?.error) {
+    console.error("Error in response:", response.error);
+    return null;
   }
-  
-  return {
-    data: null,
-    error: new Error(response.error?.message || 'Unknown database error'),
-    status: 'error',
-    message: response.error?.message
-  };
+  return response?.data || null;
 }
 
-/**
- * Safely handle database row access with proper typecasting
- */
-export function safelyGetValue<T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined {
-  if (!exists(obj)) return defaultValue;
-  return obj[key] ?? defaultValue;
+// Type guard for checking if a response has data
+export function hasResponseData<T>(response: any): response is { data: T } {
+  return !response?.error && response?.data !== null && response?.data !== undefined;
 }
