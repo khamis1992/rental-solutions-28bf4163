@@ -1,41 +1,36 @@
 
-export interface ExtendedPayment {
+import { Database } from '@/types/database.types';
+
+export interface Payment {
   id: string;
-  lease_id: string;
   amount: number;
-  amount_paid: number;
-  balance: number;
   payment_date: string | null;
-  payment_method: string | null;
-  reference_number: string;
-  notes: string;
-  description: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  original_due_date: string | null;
-  due_date: string | null;
-  is_recurring: boolean;
-  type: string;
-  days_overdue: number;
-  late_fine_amount: number;
-  processing_fee: number;
-  processed_by: string;
+  payment_method?: string;
+  reference_number?: string | null; 
+  notes?: string;
+  type?: string;
+  status?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  lease_id?: string;
+  original_due_date?: string | null;
+  amount_paid?: number;
+  balance?: number;
+  description?: string;
+  due_date?: string;
 }
 
+export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
+
 export interface PaymentHistoryProps {
-  leaseId?: string;
-  agreementId?: string;
-  agreementNumber?: string;
-  payments?: ExtendedPayment[];
+  payments: Payment[];
   isLoading?: boolean;
-  onPaymentDeleted?: () => void;
-  onPaymentUpdated?: () => Promise<void>;
-  onEdit?: (payment: ExtendedPayment) => void;
-  onDelete?: (payment: ExtendedPayment) => void;
-  rentAmount?: number;
-  contractAmount?: number;
-  leaseStartDate?: string;
-  leaseEndDate?: string;
-  onRecordPayment?: () => void;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  onPaymentDeleted: () => void;
+  leaseStartDate?: string | Date | null;
+  leaseEndDate?: string | Date | null;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
 }
+

@@ -1,78 +1,55 @@
 
-/**
- * Utility for casting string IDs to the correct database ID types
- * This helps bridge the gap between our application's string IDs and Supabase's type system
- */
-
 import { Database } from '@/types/database.types';
 
-/**
- * Cast a string ID to a specific table's ID type
- */
-export function asTableId(id: string): string {
-  return id;
+type Tables = Database['public']['Tables'];
+type TableNames = keyof Tables;
+type RowType<T extends TableNames> = Tables[T]['Row'];
+
+export function asTableId<T extends TableNames>(table: T, id: string): RowType<T>['id'] {
+  return id as RowType<T>['id'];
 }
 
-/**
- * Cast a string ID to agreement_id type
- */
-export function asAgreementId(id: string): string {
-  return id;
+export function asTableStatus<T extends TableNames>(table: T, status: string): RowType<T>['status'] {
+  return status as RowType<T>['status'];
 }
 
-/**
- * Cast a string ID to lease_id type
- */
-export function asLeaseId(id: string): string {
-  return id;
+export function asLeaseId(id: string) {
+  return asTableId('leases', id);
 }
 
-/**
- * Cast a string ID to import_id type
- */
-export function asImportId(id: string): string {
-  return id;
+export function asPaymentId(id: string) {
+  return asTableId('unified_payments', id);
 }
 
-/**
- * Cast a string ID to payment_id type
- */
-export function asPaymentId(id: string): string {
-  return id;
+export function asAgreementId(id: string) {
+  return asTableId('leases', id);
 }
 
-/**
- * Cast a string ID to traffic_fine_id type
- */
-export function asTrafficFineId(id: string): string {
-  return id;
+export function asImportId(id: string) {
+  return asTableId('agreement_imports', id);
 }
 
-/**
- * Cast a status string to a specific status type
- */
-export function asLeaseStatus(status: string): string {
-  return status;
+export function asTrafficFineId(id: string) {
+  return asTableId('traffic_fines', id);
 }
 
-/**
- * Cast a status string to payment status type
- */
-export function asPaymentStatus(status: string): string {
-  return status;
+export function asVehicleId(id: string) {
+  return asTableId('vehicles', id);
 }
 
-/**
- * Cast a database ID for type safety with Supabase
- * @deprecated Use castDbId from database-type-helpers.ts instead
- */
-export function castDbId(id: string): string {
-  return id;
+export function asMaintenanceId(id: string) {
+  return asTableId('maintenance', id);
 }
 
-/**
- * Type safe conversion for UUIDs
- */
-export function asUUID(id: string): string {
-  return id;
+// Column-specific type casting functions
+export function asLeaseStatus(status: string) {
+  return asTableStatus('leases', status);
+}
+
+export function asPaymentStatus(status: string) {
+  return asTableStatus('unified_payments', status);
+}
+
+export function asMaintenanceStatus(status: string) {
+  return asTableStatus('maintenance', status);
 }

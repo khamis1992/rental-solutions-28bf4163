@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for enhanced search capabilities
  */
@@ -32,6 +31,17 @@ export const normalizeLicensePlate = (licensePlate: string): string => {
   
   // Remove all non-alphanumeric characters and convert to uppercase
   return licensePlate.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+};
+
+/**
+ * Normalizes an agreement number for searching
+ * Makes agreement number searches more reliable by removing spaces and standardizing format
+ */
+export const normalizeAgreementNumber = (agreementNumber: string): string => {
+  if (!agreementNumber) return '';
+  
+  // Remove spaces and special characters, keep letters and numbers
+  return agreementNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 };
 
 /**
@@ -87,6 +97,22 @@ export const doesLicensePlateMatch = (
 };
 
 /**
+ * Checks if a string might be an agreement number based on patterns
+ * @param query The string to check
+ * @returns boolean indicating if the string matches agreement number patterns
+ */
+export const isAgreementNumberPattern = (query: string): boolean => {
+  if (!query || query.length < 3) return false;
+  
+  // Common agreement number patterns include:
+  // - Often starts with letters followed by numbers (e.g., LTO2024313)
+  // - May contain special characters or spaces
+  
+  // Check if it starts with 2-3 letters followed by numbers
+  return /^[A-Za-z]{2,3}\d+/.test(query.replace(/[^A-Za-z0-9]/g, ''));
+};
+
+/**
  * Checks if a string might be a license plate based on patterns
  * @param query The string to check
  * @returns boolean indicating if the string matches license plate patterns
@@ -125,6 +151,14 @@ export const getSearchStrategies = (query: string): string[] => {
     if (/^\d+$/.test(query) && query.length >= 4) {
       strategies.push(query.substring(query.length - 4));
       strategies.push(query.substring(query.length - 3));
+    }
+    
+    // For potential agreement numbers, extract number part
+    if (isAgreementNumberPattern(query)) {
+      const numberPart = query.replace(/[^0-9]/g, '');
+      if (numberPart.length > 0) {
+        strategies.push(numberPart);
+      }
     }
   }
   

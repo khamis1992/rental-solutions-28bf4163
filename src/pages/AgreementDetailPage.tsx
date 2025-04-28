@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -28,7 +27,7 @@ import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { asDbId, AgreementId } from '@/types/database-types';
-import PaymentHistory from '@/components/agreements/PaymentHistory';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';

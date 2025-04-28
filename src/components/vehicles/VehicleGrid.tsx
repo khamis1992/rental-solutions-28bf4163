@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
@@ -16,30 +15,19 @@ interface VehicleGridProps {
   showAdd?: boolean;
 }
 
-const VehicleGrid: React.FC<VehicleGridProps> = React.memo(({ onSelectVehicle, filter, showAdd = true }) => {
+const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, showAdd = true }) => {
   const { useList } = useVehicles();
-  const { data: vehicles = [], isLoading, error } = useList(filter);
+  const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
   
-  // Create a parent ref that we can use with the virtualizer
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  
   // Handle navigation to vehicle details
-  const handleSelect = useCallback((id: string) => {
+  const handleSelect = (id: string) => {
     if (onSelectVehicle) {
       onSelectVehicle(id);
     } else {
       navigate(`/vehicles/${id}`);
     }
-  }, [onSelectVehicle, navigate]);
-
-  // Virtual rows implementation
-  const rowVirtualizer = useVirtualizer({
-    count: isLoading ? 6 : vehicles.length || 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 300, // Estimated height of each card
-    overscan: 5,
-  });
+  };
 
   // Loading state
   if (isLoading) {
@@ -103,47 +91,25 @@ const VehicleGrid: React.FC<VehicleGridProps> = React.memo(({ onSelectVehicle, f
   }
 
   return (
-    <div 
-      ref={parentRef} 
-      className="relative h-[600px] overflow-auto"
-    >
-      {/* Set the total size of the virtualizer */}
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        <div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 absolute top-0 left-0 right-0"
-          style={{
-            transform: `translateY(${rowVirtualizer.getVirtualItems()[0]?.start || 0}px)`,
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-            const vehicle = vehicles[virtualItem.index];
-            return (
-              <VehicleCard
-                key={vehicle.id}
-                id={vehicle.id}
-                make={vehicle.make}
-                model={vehicle.model}
-                year={vehicle.year}
-                licensePlate={vehicle.license_plate}
-                status={vehicle.status || 'available'}
-                imageUrl={vehicle.image_url || ''}
-                location={vehicle.location || 'Not specified'}
-                fuelLevel={undefined}
-                mileage={vehicle.mileage || 0}
-                onSelect={handleSelect}
-              />
-            );
-          })}
-        </div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
+      {vehicles.map(vehicle => (
+        <VehicleCard
+          key={vehicle.id}
+          id={vehicle.id}
+          make={vehicle.make}
+          model={vehicle.model}
+          year={vehicle.year}
+          licensePlate={vehicle.license_plate}
+          status={vehicle.status || 'available'}
+          imageUrl={vehicle.image_url || ''}
+          location={vehicle.location || 'Not specified'}
+          fuelLevel={undefined}
+          mileage={vehicle.mileage || 0}
+          onSelect={() => handleSelect(vehicle.id)}
+        />
+      ))}
     </div>
   );
-});
+};
 
 export default VehicleGrid;
