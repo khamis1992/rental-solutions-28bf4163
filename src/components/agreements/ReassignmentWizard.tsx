@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -15,11 +14,9 @@ import { toast } from 'sonner';
 import { 
   asLeaseId, 
   asVehicleId, 
-  asLeaseIdColumn, 
-  asStatusColumn,
-  asPaymentStatusColumn,
-  safelyExtractData
-} from '@/utils/database-type-helpers';
+  castAgreementStatus, 
+  castPaymentStatus
+} from '@/lib/database';
 
 interface AgreementSummary {
   id: string;
@@ -109,7 +106,7 @@ export function ReassignmentWizard({
           vehicle_id,
           profiles:customer_id (full_name)
         `)
-        .eq('id', asLeaseId(sourceAgreementId))
+        .eq('id', sourceAgreementId)
         .single();
         
       if (sourceError) {
@@ -117,10 +114,13 @@ export function ReassignmentWizard({
         return;
       }
       
-      const sourceDataWithCustomerName = sourceData ? {
-        ...sourceData,
-        customer_name: sourceData.profiles?.full_name
-      } : null;
+      let sourceDataWithCustomerName = null;
+      if (sourceData) {
+        sourceDataWithCustomerName = {
+          ...sourceData,
+          customer_name: sourceData?.profiles?.full_name
+        };
+      }
       
       setSourceAgreement(sourceDataWithCustomerName);
       
@@ -137,7 +137,7 @@ export function ReassignmentWizard({
           vehicle_id,
           profiles:customer_id (full_name)
         `)
-        .eq('id', asLeaseId(targetAgreementId))
+        .eq('id', targetAgreementId)
         .single();
         
       if (targetError) {
@@ -145,10 +145,13 @@ export function ReassignmentWizard({
         return;
       }
       
-      const targetDataWithCustomerName = targetData ? {
-        ...targetData,
-        customer_name: targetData.profiles?.full_name
-      } : null;
+      let targetDataWithCustomerName = null;
+      if (targetData) {
+        targetDataWithCustomerName = {
+          ...targetData,
+          customer_name: targetData?.profiles?.full_name
+        };
+      }
       
       setTargetAgreement(targetDataWithCustomerName);
       
@@ -156,7 +159,7 @@ export function ReassignmentWizard({
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('id', asVehicleId(vehicleId))
+        .eq('id', vehicleId)
         .single();
         
       if (vehicleError) {
@@ -170,11 +173,11 @@ export function ReassignmentWizard({
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('id, status, amount')
-        .eq('lease_id', asLeaseIdColumn(sourceAgreementId))
-        .in('status', [asPaymentStatusColumn('pending'), asPaymentStatusColumn('overdue')]);
+        .eq('lease_id', sourceAgreementId)
+        .in('status', ['pending', 'overdue']);
         
       if (!paymentsError && paymentsData) {
-        const payments = safelyExtractData(paymentsData) || [];
+        const payments = paymentsData || [];
         const pendingCount = Array.isArray(payments) ? 
           payments.filter(p => p.status === 'pending').length : 0;
         const overdueCount = Array.isArray(payments) ? 
@@ -220,11 +223,11 @@ export function ReassignmentWizard({
       const { error: closeError } = await supabase
         .from('leases')
         .update({ 
-          status: asStatusColumn('leases', 'status', 'closed'), 
+          status: castAgreementStatus('closed'), 
           updated_at: new Date().toISOString(),
           notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
         })
-        .eq('id', asLeaseId(sourceAgreementId));
+        .eq('id', sourceAgreementId);
         
       if (closeError) {
         console.error("Error closing source agreement:", closeError);
@@ -236,11 +239,11 @@ export function ReassignmentWizard({
       const { error: assignError } = await supabase
         .from('leases')
         .update({ 
-          vehicle_id: asVehicleId(vehicleId),
-          status: asStatusColumn('leases', 'status', 'active'),
+          vehicle_id: vehicleId,
+          status: castAgreementStatus('active'),
           updated_at: new Date().toISOString()
         })
-        .eq('id', asLeaseId(targetAgreementId));
+        .eq('id', targetAgreementId);
         
       if (assignError) {
         console.error("Error assigning vehicle to target agreement:", assignError);

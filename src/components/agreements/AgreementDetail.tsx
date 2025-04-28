@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -17,7 +16,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
+import { DbId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
 import { Payment } from './PaymentHistory.types';
 
@@ -71,8 +70,7 @@ export function AgreementDetail({
 
   const handleDelete = useCallback(() => {
     if (agreement) {
-      const typedId = asDbId<LeaseId>(agreement.id);
-      onDelete(typedId);
+      onDelete(agreement.id);
     }
   }, [agreement, onDelete]);
 
@@ -155,11 +153,11 @@ export function AgreementDetail({
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
   const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
-    if (!agreement?.id) return;
+    if (!agreement?.id || !updatedPayment.id) return Promise.resolve(false);
     
     try {
       await updatePayment({
-        id: updatedPayment.id!,
+        id: updatedPayment.id,
         data: updatedPayment
       });
       onDataRefresh();
@@ -223,7 +221,8 @@ export function AgreementDetail({
 
   const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
 
-  return <div className="space-y-8">
+  return (
+    <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
           Agreement {agreement.agreement_number}
@@ -436,5 +435,6 @@ export function AgreementDetail({
         lateFeeDetails={lateFeeDetails} 
         selectedPayment={selectedPayment}
       />
-    </div>;
+    </div>
+  );
 }

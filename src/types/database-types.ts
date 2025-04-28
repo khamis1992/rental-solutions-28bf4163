@@ -8,6 +8,20 @@ type Tables = Database['public']['Tables'];
 // Helper type for database IDs that enforces UUID format
 export type DbId = UUID;
 
+// Helper function to cast IDs to the correct type
+export function asDbId<T extends DbId>(id: string): T {
+  return asUUID(id) as T;
+}
+
+// Type aliases for specific entity IDs
+export type LeaseId = Tables['leases']['Row']['id'];
+export type VehicleId = Tables['vehicles']['Row']['id'];
+export type ProfileId = Tables['profiles']['Row']['id'];
+export type PaymentId = Tables['unified_payments']['Row']['id'];
+export type TrafficFineId = Tables['traffic_fines']['Row']['id'];
+export type LegalCaseId = Tables['legal_cases']['Row']['id'];
+export type AgreementId = LeaseId; // Alias for backward compatibility
+
 // Helper type for payment status that matches the database enum
 export type PaymentStatus = Tables['unified_payments']['Row']['status'];
 
@@ -19,9 +33,6 @@ export type VehicleStatus = Tables['vehicles']['Row']['status'];
 
 // Helper type for agreement status that matches the database enum
 export type AgreementStatus = Tables['leases']['Row']['status'];
-
-// Helper function to cast IDs to the correct type
-export const castDbId = (id: string): DbId => asUUID(id);
 
 // Helper function to cast payment status to the correct type
 export const castPaymentStatus = (status: string): PaymentStatus => status as PaymentStatus;

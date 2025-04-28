@@ -5,6 +5,9 @@ import { AgreementTable } from './table/AgreementTable';
 import { asStatusColumn } from '@/types/agreement-types';
 import type { AgreementStatus } from '@/types/agreement-types';
 
+// Define the props that AgreementTable expects
+type AgreementTableProps = React.ComponentProps<typeof AgreementTable>;
+
 const AgreementList: React.FC = () => {
   const {
     agreements,
@@ -36,13 +39,16 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={agreements}
         isLoading={isLoading}
-        pagination={pagination}
-        setPagination={setPagination}
-        sorting={sorting}
-        setSorting={setSorting}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
         onStatusChange={handleStatusChange}
+        pagination={pagination || {
+          pageIndex: 0,
+          pageSize: 10,
+        }}
+        setPagination={setPagination}
+        sorting={sorting || []}
+        setSorting={setSorting}
+        globalFilter={globalFilter || ''}
+        setGlobalFilter={setGlobalFilter}
       />
     </div>
   );

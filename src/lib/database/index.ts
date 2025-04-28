@@ -22,7 +22,8 @@ import {
   asPaymentStatus,
   asVehicleStatus,
   asProfileStatus,
-  asMaintenanceStatus
+  asMaintenanceStatus,
+  asStatusColumn
 } from './utils';
 
 // Export with legacy names for backward compatibility
@@ -37,7 +38,8 @@ export {
   asPaymentStatus,
   asVehicleStatus,
   asProfileStatus,
-  asMaintenanceStatus
+  asMaintenanceStatus,
+  asStatusColumn
 };
 
 // Fix common ID column errors by providing direct casting functions

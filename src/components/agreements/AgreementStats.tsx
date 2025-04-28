@@ -1,9 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { asLeaseStatus, asPaymentStatus } from '@/lib/database';
+import { castAgreementStatus, castPaymentStatus } from '@/types/database-types';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -37,13 +38,13 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
+          .eq('status', castAgreementStatus('active'));
           
         // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', castPaymentStatus('pending'));
           
         // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
@@ -55,7 +56,7 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', 'active');
+          .eq('status', castAgreementStatus('active'));
           
         const activeValue = activeAgreements 
           ? activeAgreements.reduce((sum, agreement) => sum + (agreement?.rent_amount || 0), 0)
@@ -69,7 +70,7 @@ export function AgreementStats() {
           activeValue
         });
       } catch (error) {
-        console.error('Error fetching agreement stats:', error);
+        console.error("Error fetching agreement stats:", error);
       } finally {
         setIsLoading(false);
       }
@@ -79,65 +80,54 @@ export function AgreementStats() {
   }, []);
   
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard 
-        title="Total Agreements"
-        value={stats.totalAgreements}
-        icon={<FileText className="h-5 w-5 text-blue-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Active Agreements"
-        value={stats.activeAgreements}
-        subtitle={`Value: ${formatCurrency(stats.activeValue)}`}
-        icon={<FileCheck className="h-5 w-5 text-green-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Pending Payments"
-        value={stats.pendingPayments}
-        icon={<FileClock className="h-5 w-5 text-amber-500" />}
-        isLoading={isLoading}
-      />
-      <StatCard 
-        title="Overdue Payments"
-        value={stats.overduePayments}
-        icon={<AlertCircle className="h-5 w-5 text-red-500" />}
-        highlight={stats.overduePayments > 0}
-        isLoading={isLoading}
-      />
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-blue-100 p-3 rounded-lg">
+          <FileText className="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Total Agreements</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.totalAgreements}
+          </h3>
+        </div>
+      </Card>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-green-100 p-3 rounded-lg">
+          <FileCheck className="h-6 w-6 text-green-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Active Agreements</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.activeAgreements}
+          </h3>
+        </div>
+      </Card>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-yellow-100 p-3 rounded-lg">
+          <FileClock className="h-6 w-6 text-yellow-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Pending Payments</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.pendingPayments}
+          </h3>
+        </div>
+      </Card>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-red-100 p-3 rounded-lg">
+          <AlertCircle className="h-6 w-6 text-red-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Monthly Revenue</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : formatCurrency(stats.activeValue)}
+          </h3>
+        </div>
+      </Card>
     </div>
-  );
-}
-
-interface StatCardProps {
-  title: string;
-  value: number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  isLoading?: boolean;
-  highlight?: boolean;
-}
-
-function StatCard({ title, value, subtitle, icon, isLoading = false, highlight = false }: StatCardProps) {
-  return (
-    <Card className={`p-5 dashboard-card ${highlight ? 'border-red-200 bg-red-50' : ''}`}>
-      <div className="flex justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          {isLoading ? (
-            <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1"></div>
-          ) : (
-            <h3 className={`text-2xl font-bold ${highlight ? 'text-red-600' : ''}`}>
-              {value}
-            </h3>
-          )}
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        </div>
-        <div>
-          {icon}
-        </div>
-      </div>
-    </Card>
   );
 }

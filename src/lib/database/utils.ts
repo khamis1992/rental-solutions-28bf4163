@@ -1,4 +1,5 @@
 
+import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
 
 // Define table-specific ID types
@@ -60,6 +61,15 @@ export function asProfileStatus(status: string): ProfileStatus {
 
 export function asMaintenanceStatus(status: string): MaintenanceStatus {
   return status as MaintenanceStatus;
+}
+
+// Add the function that was referenced but missing
+export function asStatusColumn<T extends keyof Database['public']['Tables']>(
+  status: string,
+  _table?: T,
+  _column?: string
+): string {
+  return status;
 }
 
 // Type-safe column value conversion
