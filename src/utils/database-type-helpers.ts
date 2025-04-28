@@ -52,6 +52,16 @@ export function asImportId(id: string): string {
   return id as string;
 }
 
+// Add the missing castDbId function
+export function castDbId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
+
+// Generic function to cast a string ID to any database table ID type
+export function castDatabaseId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
+
 // Type-safe status helpers
 export function asLeaseStatus(status: string): Tables['leases']['Row']['status'] {
   return status as Tables['leases']['Row']['status'];
