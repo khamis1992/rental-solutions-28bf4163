@@ -20,3 +20,9 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </QueryClientProvider>
 );
+
+import { reportWebVitals } from '../web-vitals';
+reportWebVitals((metric) => {
+  // You can send these metrics to an analytics endpoint instead
+  console.log('Web Vitals metric:', metric);
+});

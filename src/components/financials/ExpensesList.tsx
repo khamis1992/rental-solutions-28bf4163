@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
+// TODO: Ensure react-window is installed
+import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import { 
   Table, 
   TableBody, 
@@ -77,7 +79,7 @@ interface ExpensesListProps {
   }>>;
 }
 
-const ExpensesList: React.FC<ExpensesListProps> = ({
+const ExpensesList: React.FC<ExpensesListProps> = React.memo(({
   expenses,
   isLoading,
   onAddExpense,
@@ -86,34 +88,50 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
   filters,
   setFilters
 }) => {
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Memoize filtered expenses
+  const memoizedExpenses = useMemo(() => {
+    return expenses.filter(exp => {
+      if (filters.category && filters.category !== 'all_categories' && exp.category !== filters.category) return false;
+      if (filters.recurringOnly && !exp.is_recurring) return false;
+      if (filters.dateFrom && new Date(exp.date) < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && new Date(exp.date) > new Date(filters.dateTo)) return false;
+      if (filters.searchQuery && !(
+        exp.description?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        exp.category?.toLowerCase().includes(filters.searchQuery.toLowerCase())
+      )) return false;
+      return true;
+    });
+  }, [expenses, filters]);
+
+  // Memoize callbacks
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters(prev => ({ ...prev, searchQuery: e.target.value }));
-  };
+  }, [setFilters]);
 
-  const handleCategoryChange = (value: string) => {
+  const handleCategoryChange = useCallback((value: string) => {
     setFilters(prev => ({ ...prev, category: value }));
-  };
+  }, [setFilters]);
 
-  const handleDateFromChange = (date: Date | undefined) => {
+  const handleDateFromChange = useCallback((date: Date | undefined) => {
     setFilters(prev => ({ 
       ...prev, 
       dateFrom: date ? format(date, 'yyyy-MM-dd') : '' 
     }));
-  };
+  }, [setFilters]);
 
-  const handleDateToChange = (date: Date | undefined) => {
+  const handleDateToChange = useCallback((date: Date | undefined) => {
     setFilters(prev => ({ 
       ...prev, 
       dateTo: date ? format(date, 'yyyy-MM-dd') : '' 
     }));
-  };
+  }, [setFilters]);
 
-  const handleRecurringOnlyChange = (value: string) => {
+  const handleRecurringOnlyChange = useCallback((value: string) => {
     setFilters(prev => ({
       ...prev,
       recurringOnly: value === 'recurring'
     }));
-  };
+  }, [setFilters]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -134,6 +152,121 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     }
     return null;
   };
+
+  // Virtualized row renderer
+  const Row = useCallback(({ index, style }: ListChildComponentProps) => {
+    const expense = memoizedExpenses[index];
+    return (
+      <TableRow style={style} key={expense.id}>
+        <TableCell>{expense.date ? format(new Date(expense.date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+        <TableCell className="max-w-[200px] truncate">{expense.description || '-'}</TableCell>
+        <TableCell>{expense.category || '-'}</TableCell>
+        <TableCell>{expense.amount?.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}</TableCell>
+        <TableCell>{getStatusBadge(expense.status)}</TableCell>
+        <TableCell>{getRecurringBadge(expense.is_recurring)}</TableCell>
+        <TableCell className="text-right">
+          {onEditExpense && (
+            <Button variant="ghost" size="sm" onClick={() => onEditExpense(expense.id)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {onDeleteExpense && (
+            <Button variant="ghost" size="sm" onClick={() => onDeleteExpense(expense.id)}>
+              <Trash className="h-4 w-4" />
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  }, [memoizedExpenses, onEditExpense, onDeleteExpense]);
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters(prev => ({ ...prev, searchQuery: e.target.value }));
+  }, [setFilters]);
+
+  const handleCategoryChange = useCallback((value: string) => {
+    setFilters(prev => ({ ...prev, category: value }));
+  }, [setFilters]);
+
+  const handleDateFromChange = useCallback((date: Date | undefined) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      dateFrom: date ? format(date, 'yyyy-MM-dd') : '' 
+    }));
+  }, [setFilters]);
+
+  const handleDateToChange = useCallback((date: Date | undefined) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      dateTo: date ? format(date, 'yyyy-MM-dd') : '' 
+    }));
+  }, [setFilters]);
+
+  const handleRecurringOnlyChange = useCallback((value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      recurringOnly: value === 'recurring'
+    }));
+  }, [setFilters]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800"><Check className="h-3 w-3 mr-1" /> Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-100 text-red-800"><X className="h-3 w-3 mr-1" /> Failed</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getRecurringBadge = (isRecurring: boolean) => {
+    if (isRecurring) {
+      return <Badge className="bg-blue-100 text-blue-800"><RefreshCw className="h-3 w-3 mr-1" /> Recurring</Badge>;
+    }
+    return null;
+  };
+
+  const memoizedExpenses = useMemo(() => {
+    return expenses.filter(exp => {
+      if (filters.category && filters.category !== 'all_categories' && exp.category !== filters.category) return false;
+      if (filters.recurringOnly && !exp.is_recurring) return false;
+      if (filters.dateFrom && new Date(exp.date) < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && new Date(exp.date) > new Date(filters.dateTo)) return false;
+      if (filters.searchQuery && !(
+        exp.description?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        exp.category?.toLowerCase().includes(filters.searchQuery.toLowerCase())
+      )) return false;
+      return true;
+    });
+  }, [expenses, filters]);
+
+  const Row = useCallback(({ index, style }: ListChildComponentProps) => {
+    const expense = memoizedExpenses[index];
+    return (
+      <TableRow style={style} key={expense.id}>
+        <TableCell>{expense.date ? format(new Date(expense.date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+        <TableCell className="max-w-[200px] truncate">{expense.description || '-'}</TableCell>
+        <TableCell>{expense.category || '-'}</TableCell>
+        <TableCell>{expense.amount?.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}</TableCell>
+        <TableCell>{getStatusBadge(expense.status)}</TableCell>
+        <TableCell>{getRecurringBadge(expense.is_recurring)}</TableCell>
+        <TableCell className="text-right">
+          {onEditExpense && (
+            <Button variant="ghost" size="sm" onClick={() => onEditExpense(expense.id)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {onDeleteExpense && (
+            <Button variant="ghost" size="sm" onClick={() => onDeleteExpense(expense.id)}>
+              <Trash className="h-4 w-4" />
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  }, [memoizedExpenses, onEditExpense, onDeleteExpense]);
 
   if (isLoading) {
     return (
@@ -278,54 +411,27 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No expenses found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  expenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>
-                        {format(new Date(expense.date), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell>{expense.description}</TableCell>
-                      <TableCell>{expense.category}</TableCell>
-                      <TableCell className="font-medium text-red-600">
-                        -${expense.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(expense.status)}</TableCell>
-                      <TableCell>
-                        {getRecurringBadge(expense.isRecurring || false)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEditExpense?.(expense.id)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => onDeleteExpense?.(expense.id)}
-                              className="text-red-600"
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
+  {memoizedExpenses.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={7} className="h-24 text-center">
+        No expenses found.
+      </TableCell>
+    </TableRow>
+  ) : (
+    <TableRow>
+      <TableCell colSpan={7} style={{ padding: 0, border: 0 }}>
+        <List
+          height={400}
+          itemCount={memoizedExpenses.length}
+          itemSize={56}
+          width={"100%"}
+        >
+          {Row}
+        </List>
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
             </Table>
           </div>
         </div>
@@ -335,3 +441,4 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
 };
 
 export default ExpensesList;
+
