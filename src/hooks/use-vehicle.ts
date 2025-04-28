@@ -1,12 +1,12 @@
-
 /**
  * Custom hook for managing vehicle operations and state
  * Provides vehicle data access, filtering, and mutation capabilities
  */
 import { useVehicleService } from './services/useVehicleService';
 import { useQuery } from '@tanstack/react-query';
-import type { VehicleFilterParams } from '@/services/VehicleService';
+import { VehicleFilterParams } from '@/services/vehicles';
 import { useState } from 'react';
+import { handleApiError } from '@/lib/api/error-handlers';
 
 /**
  * Hook for vehicle management operations
@@ -27,6 +27,7 @@ export function useVehicle(vehicleId?: string) {
     updateStatus,
     deleteVehicle,
     calculateUtilization,
+    getMaintenanceRecords
   } = useVehicleService();
 
   const [searchParams, setSearchParams] = useState<VehicleFilterParams>({});
@@ -37,6 +38,15 @@ export function useVehicle(vehicleId?: string) {
   const { data: vehicleDetails } = useQuery({
     queryKey: ['vehicle', vehicleId],
     queryFn: () => getVehicleDetails(vehicleId!),
+    enabled: !!vehicleId,
+  });
+
+  /**
+   * Query for fetching maintenance records
+   */
+  const { data: maintenanceRecords } = useQuery({
+    queryKey: ['vehicleMaintenance', vehicleId],
+    queryFn: () => getMaintenanceRecords(vehicleId!),
     enabled: !!vehicleId,
   });
 
@@ -58,6 +68,7 @@ export function useVehicle(vehicleId?: string) {
     vehicleTypes,
     availableVehicles,
     vehicleDetails,
+    maintenanceRecords,
     updateVehicle,
     updateStatus,
     deleteVehicle,

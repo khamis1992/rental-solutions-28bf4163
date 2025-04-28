@@ -1,7 +1,18 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { mapDbToImportHistory } from '@/utils/type-adapters';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 export const ImportHistoryList: React.FC = () => {
   const { data: imports, isLoading } = useQuery({
@@ -39,13 +50,13 @@ export const ImportHistoryList: React.FC = () => {
             <TableRow key={item.id}>
               <TableCell>{item.file_name}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'completed' ? 'success' : item.status === 'failed' ? 'unpaid' : 'default'}>
+                <Badge variant={item.status === 'completed' ? 'success' : item.status === 'failed' ? 'destructive' : 'default'}>
                   {item.status}
                 </Badge>
               </TableCell>
-              <TableCell>{item.total_records ?? 'N/A'}</TableCell>
-              <TableCell>{item.processed_records ?? 'N/A'}</TableCell>
-              <TableCell>{item.failed_records ?? 'N/A'}</TableCell>
+              <TableCell>{item.row_count ?? 'N/A'}</TableCell>
+              <TableCell>{item.processed_count ?? 'N/A'}</TableCell>
+              <TableCell>{item.error_count ?? 'N/A'}</TableCell>
               <TableCell>{format(new Date(item.created_at), 'MM/dd/yyyy HH:mm')}</TableCell>
             </TableRow>
           ))}

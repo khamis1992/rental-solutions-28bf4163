@@ -1,3 +1,4 @@
+
 import React, { useMemo, memo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
@@ -7,20 +8,17 @@ import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
-
-// Helper function to calculate percentage change - DEFINED BEFORE USAGE
-const getPercentageChange = (current, previous) => {
-  if (previous === 0) return current > 0 ? 100 : 0;
-  return ((current - previous) / previous) * 100;
-};
+import { 
+  calculateTrendData, 
+  prepareRevenueChartData, 
+  prepareFinancialDisplayValues 
+} from '@/services/financial/calculations';
 
 const FinancialDashboard = memo(() => {
   const { 
     financialSummary, 
     isLoadingSummary
   } = useFinancials();
-
-  const memoizedSummary = useMemo(() => financialSummary, [JSON.stringify(financialSummary)]);
 
   const { revenue: revenueData } = useDashboardData();
 
@@ -30,34 +28,10 @@ const FinancialDashboard = memo(() => {
     return date.toLocaleString('default', { month: 'long' });
   }, []);
 
-  // Initialize values to zero - these will be replaced with real data when available
-  const displayValues = {
-    totalIncome: financialSummary?.totalIncome || 0,
-    totalExpenses: financialSummary?.totalExpenses || 0,
-    netRevenue: financialSummary?.netRevenue || 0,
-    pendingPayments: financialSummary?.pendingPayments || 0
-  };
-
-  // Simulated trend data - could be enhanced later with real trend calculation 
-  const trendData = useMemo(() => ({
-    revenueChange: financialSummary ? getPercentageChange(financialSummary.totalIncome, financialSummary.totalIncome * 0.95) : 0,
-    expenseChange: financialSummary ? getPercentageChange(financialSummary.totalExpenses, financialSummary.totalExpenses * 1.02) : 0,
-    profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
-  }), [financialSummary]);
-
-  const prepareRevenueChartData = useMemo(() => {
-    if (!revenueData || revenueData.length === 0) {
-      console.log("No revenue data available for chart");
-      return [];
-    }
-
-    // Create a simplified expenses calculation that doesn't cause recalculations
-    return revenueData.map(item => ({
-      name: item.name,
-      revenue: item.revenue,
-      expenses: item.revenue * 0.6 // Use a simple estimate instead of complex calculations
-    }));
-  }, [revenueData]);
+  // Use the extracted calculation services
+  const displayValues = prepareFinancialDisplayValues(financialSummary);
+  const trendData = calculateTrendData(financialSummary);
+  const chartData = prepareRevenueChartData(revenueData);
 
   return (
     <div className="space-y-6">
@@ -105,7 +79,7 @@ const FinancialDashboard = memo(() => {
       </div>
 
       <FinancialRevenueChart 
-        data={prepareRevenueChartData} 
+        data={chartData} 
         fullWidth={true}
       />
 
@@ -116,8 +90,8 @@ const FinancialDashboard = memo(() => {
         pendingPayments: displayValues.pendingPayments,
         unpaidInvoices: displayValues.pendingPayments,
         installmentsPending: displayValues.totalExpenses,
-        currentMonthDue: financialSummary?.currentMonthDue || 0,
-        overdueExpenses: financialSummary?.overdueExpenses || 0
+        currentMonthDue: displayValues.currentMonthDue,
+        overdueExpenses: displayValues.overdueExpenses
       }} isLoading={isLoadingSummary} />
 
       <FinancialExpensesBreakdown />

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { asLeaseStatus, asPaymentStatus } from '@/types/database-common';
@@ -31,10 +32,10 @@ export const AgreementStats = () => {
       // Get total revenue
       const { data: revenueData } = await supabase
         .from('unified_payments')
-        .select('rent_amount')
-        .eq('status', 'completed');
+        .select('amount_paid')
+        .eq('status', asPaymentStatus('completed'));
 
-      const totalRevenue = revenueData?.reduce((sum, payment) => sum + (payment.rent_amount || 0), 0) || 0;
+      const totalRevenue = revenueData?.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0) || 0;
 
       setActiveAgreements(activeCount || 0);
       setPendingPayments(pendingPayments || 0);
@@ -61,7 +62,7 @@ export const AgreementStats = () => {
       </div>
       <div className="bg-white shadow-md rounded-md p-4">
         <h3 className="text-lg font-semibold">Total Revenue</h3>
-        <p className="text-2xl">${totalRevenue}</p>
+        <p className="text-2xl">${totalRevenue.toFixed(2)}</p>
       </div>
     </div>
   );

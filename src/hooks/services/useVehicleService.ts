@@ -1,11 +1,16 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { vehicleService, VehicleFilterParams } from '@/services/VehicleService';
+import { 
+  vehicleInventoryService, 
+  vehicleAnalyticsService, 
+  vehicleMaintenanceService,
+  VehicleFilterParams
+} from '@/services/vehicles';
 import { toast } from 'sonner';
 
 /**
- * Hook for working with the Vehicle Service
+ * Hook for working with the Vehicle Services
  */
 export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   const [filters, setFilters] = useState<VehicleFilterParams>(initialFilters);
@@ -20,7 +25,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicles', filters],
     queryFn: async () => {
-      const result = await vehicleService.findVehicles(filters);
+      const result = await vehicleInventoryService.findVehicles(filters);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch vehicles');
       }
@@ -37,7 +42,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicleTypes'],
     queryFn: async () => {
-      const result = await vehicleService.getVehicleTypes();
+      const result = await vehicleInventoryService.getVehicleTypes();
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch vehicle types');
       }
@@ -49,7 +54,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for getting vehicle details
   const getVehicleDetails = useMutation({
     mutationFn: async (id: string) => {
-      const result = await vehicleService.getVehicleDetails(id);
+      const result = await vehicleInventoryService.getVehicleDetails(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch vehicle details');
       }
@@ -65,7 +70,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicles', 'available'],
     queryFn: async () => {
-      const result = await vehicleService.findAvailableVehicles();
+      const result = await vehicleInventoryService.findAvailableVehicles();
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch available vehicles');
       }
@@ -77,7 +82,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for updating a vehicle
   const updateVehicle = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const result = await vehicleService.update(id, data);
+      const result = await vehicleInventoryService.update(id, data);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update vehicle');
       }
@@ -95,7 +100,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for updating vehicle status
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const result = await vehicleService.updateStatus(id, status);
+      const result = await vehicleInventoryService.updateStatus(id, status);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update vehicle status');
       }
@@ -113,7 +118,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for deleting a vehicle
   const deleteVehicle = useMutation({
     mutationFn: async (id: string) => {
-      const result = await vehicleService.delete(id);
+      const result = await vehicleInventoryService.delete(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to delete vehicle');
       }
@@ -139,9 +144,20 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
       startDate: Date; 
       endDate: Date 
     }) => {
-      const result = await vehicleService.calculateUtilizationMetrics(id, startDate, endDate);
+      const result = await vehicleAnalyticsService.calculateUtilizationMetrics(id, startDate, endDate);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to calculate utilization');
+      }
+      return result.data;
+    }
+  });
+
+  // Get vehicle maintenance records
+  const getMaintenanceRecords = useMutation({
+    mutationFn: async (vehicleId: string) => {
+      const result = await vehicleMaintenanceService.getMaintenanceRecords(vehicleId);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch maintenance records');
       }
       return result.data;
     }
@@ -164,6 +180,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
     updateStatus: updateStatus.mutateAsync,
     deleteVehicle: deleteVehicle.mutateAsync,
     calculateUtilization: calculateUtilization.mutateAsync,
+    getMaintenanceRecords: getMaintenanceRecords.mutateAsync,
     // Expose isPending states for UI loading indicators
     isPending: {
       getVehicleDetails: getVehicleDetails.isPending,
@@ -171,6 +188,7 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
       updateStatus: updateStatus.isPending,
       deleteVehicle: deleteVehicle.isPending,
       calculateUtilization: calculateUtilization.isPending,
+      getMaintenanceRecords: getMaintenanceRecords.isPending,
     }
   };
 };

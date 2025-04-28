@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { useApiMutation, useApiQuery } from './use-api';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { handleApiError } from '@/lib/api/error-handlers';
+import { useApiMutation, useApiQuery } from './api';
+import { CarInstallment, CarInstallmentContract } from '@/types/car-installment';
+
 import { 
   CarInstallmentContract, 
   CarInstallmentPayment,

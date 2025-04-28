@@ -2,19 +2,20 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { mapDbToAgreement } from '@/utils/type-adapters';
+import { mapDbToAgreement } from '@/services/agreement/transformations';
 
 const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
     error,
-    pagination,
-    setPagination,
     sorting,
     setSorting,
     globalFilter,
     setGlobalFilter,
+    rowSelection,
+    setRowSelection,
+    handleBulkDelete
   } = useAgreementTable();
 
   if (isLoading) {
@@ -25,19 +26,17 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const mappedAgreements = agreements?.map(mapDbToAgreement) || [];
+  // Map database agreements to proper Agreement type including required fields
+  const mappedAgreements = agreements?.map(agreement => mapDbToAgreement(agreement)) || [];
 
   return (
     <div>
       <AgreementTable
         agreements={mappedAgreements}
         isLoading={isLoading}
-        pagination={pagination}
-        setPagination={setPagination}
-        sorting={sorting}
-        setSorting={setSorting}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
+        deleteAgreement={handleBulkDelete}
       />
     </div>
   );

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
-import { VehicleStatus } from '@/types/vehicle';
-import { CacheManager, useCachedData } from '@/lib/cache-utils';
+import { handleApiError } from '@/lib/api/error-handlers';
+import { CacheManager } from '@/lib/cache-utils';
+import { getTimeAgo, parseTimeAgo, processActivityData } from '@/services/dashboard/analytics';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -47,7 +47,7 @@ interface MaintenanceWithRelations {
   created_at: string;
   vehicle_id: string;
   maintenance_type: string;
-  vehicles: { make: string; model: string; license_plate: string } | null;
+  vehicles: { make: string; model: license_plate: string } | null;
 }
 
 export interface RecentActivity {
@@ -350,11 +350,7 @@ export function useDashboardData() {
           });
         });
         
-        const result = activities.sort((a, b) => {
-          const timeA = parseTimeAgo(a.time);
-          const timeB = parseTimeAgo(b.time);
-          return timeA - timeB;
-        }).slice(0, 5);
+        const result = processActivityData(activities);
         
         CacheManager.set('dashboardActivity', result, 3 * 60 * 1000);
         return result;
@@ -374,34 +370,4 @@ export function useDashboardData() {
     isError: statsQuery.isError || revenueQuery.isError || activityQuery.isError,
     error: statsQuery.error || revenueQuery.error || activityQuery.error
   };
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} minutes ago`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours} hours ago`;
-  } else {
-    return `${diffInDays} days ago`;
-  }
-}
-
-function parseTimeAgo(timeAgo: string): number {
-  const match = timeAgo.match(/(\d+)\s+(\w+)/);
-  if (!match) return 9999;
-  
-  const [_, value, unit] = match;
-  const numValue = parseInt(value);
-  
-  if (unit.includes('minute')) return numValue;
-  if (unit.includes('hour')) return numValue * 60;
-  if (unit.includes('day')) return numValue * 60 * 24;
-  
-  return 9999;
 }
