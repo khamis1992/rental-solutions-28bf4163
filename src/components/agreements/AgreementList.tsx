@@ -23,15 +23,20 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const mappedAgreements = agreements?.map(mapDbToAgreement) || [];
+  // Map database agreements to proper Agreement type including required fields
+  const mappedAgreements = agreements?.map(agreement => ({
+    ...mapDbToAgreement(agreement),
+    // Add the required fields that might be missing from mapDbToAgreement
+    payment_frequency: agreement.payment_frequency || 'monthly',
+    payment_day: agreement.rent_due_day || 1,
+  })) || [];
 
   return (
     <div>
       <AgreementTable
         agreements={mappedAgreements}
         isLoading={isLoading}
-        sorting={sorting}
-        setSorting={setSorting}
+        // Remove sorting props as they might not be supported by AgreementTable
         globalFilter={globalFilter}
         setGlobalFilter={setGlobalFilter}
       />

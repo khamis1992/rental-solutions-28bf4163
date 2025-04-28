@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
-import { VehicleStatus } from '@/types/vehicle';
-import { CacheManager, useCachedData } from '@/lib/cache-utils';
+import { handleApiError } from '@/lib/api/error-handlers';
+import { CacheManager } from '@/lib/cache-utils';
 
 export interface DashboardStats {
   vehicleStats: {

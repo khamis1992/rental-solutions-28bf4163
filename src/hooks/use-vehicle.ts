@@ -1,4 +1,3 @@
-
 /**
  * Custom hook for managing vehicle operations and state
  * Provides vehicle data access, filtering, and mutation capabilities
@@ -7,6 +6,7 @@ import { useVehicleService } from './services/useVehicleService';
 import { useQuery } from '@tanstack/react-query';
 import { VehicleFilterParams } from '@/services/vehicles';
 import { useState } from 'react';
+import { handleApiError } from '@/lib/api/error-handlers';
 
 /**
  * Hook for vehicle management operations

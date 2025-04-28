@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSect
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
 import { TrafficFine } from "@/hooks/use-traffic-fines";
-import { asLeaseId } from "@/lib/database";
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -47,7 +45,7 @@ export function VehicleAssignmentDialog({
       const { data: vehicleData } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleId)
+        .eq('id', vehicleId as string)
         .single();
       
       if (vehicleData) {
@@ -58,29 +56,29 @@ export function VehicleAssignmentDialog({
       const { data: paymentsData } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .in('status', ['pending', 'overdue']);
         
       if (paymentsData) {
-        setPendingPayments(paymentsData as Payment[]);
+        setPendingPayments(paymentsData as unknown as Payment[]);
       }
       
       // Fetch traffic fines
       const { data: finesData } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .eq('payment_status', 'pending');
         
       if (finesData) {
-        setTrafficFines(finesData as TrafficFine[]);
+        setTrafficFines(finesData as unknown as TrafficFine[]);
       }
       
       // Fetch customer information through lease
       const { data: leaseData } = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
+        .eq('id', existingAgreement.id)
         .single();
         
       if (leaseData?.customer_id) {
@@ -259,4 +257,3 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
-
