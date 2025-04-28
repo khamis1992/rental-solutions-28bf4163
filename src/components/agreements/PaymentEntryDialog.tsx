@@ -1,348 +1,288 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { format as dateFormat } from 'date-fns';
-import { ExtendedPayment, Payment } from './PaymentHistory.types';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { useAgreements } from '@/hooks/use-agreements';
-import { useParams } from 'react-router-dom';
+import { Payment } from './PaymentHistory.types';
+import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
+import { z } from 'zod';
 
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    targetPaymentId?: string
-  ) => void;
-  defaultAmount?: number;
-  title?: string;
-  description?: string;
-  lateFeeDetails?: {
-    amount: number;
-    daysLate: number;
-  } | null;
-  selectedPayment?: Payment | null;
+  onPaymentCreated: (payment: Partial<Payment>) => Promise<void>;
+  leaseId?: string;
+  rentAmount?: number | null;
 }
 
-export function PaymentEntryDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-  defaultAmount = 0,
-  title = "Record Payment",
-  description = "Enter payment details to record a payment",
-  lateFeeDetails,
-  selectedPayment
-}: PaymentEntryDialogProps) {
-  const { id: agreementId } = useParams();
-  const { getAgreement } = useAgreements();
-  const { handleSpecialAgreementPayments, isProcessing } = usePaymentGeneration(null, agreementId);
-  
-  const [amount, setAmount] = useState<number>(selectedPayment?.balance || defaultAmount);
-  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  const [referenceNumber, setReferenceNumber] = useState<string>('');
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
-  const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
-  const [pendingPayments, setPendingPayments] = useState<ExtendedPayment[]>([]);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | undefined>(
-    selectedPayment?.id
-  );
-  
-  useEffect(() => {
-    if (open) {
-      setAmount(selectedPayment?.balance || defaultAmount);
-      setPaymentDate(new Date());
-      setNotes('');
-      setPaymentMethod('cash');
-      setReferenceNumber('');
-      setIncludeLatePaymentFee(false);
-      setIsPartialPayment(false);
-      setSelectedPaymentId(selectedPayment?.id);
-      
-      if (agreementId) {
-        fetchPendingPayments(agreementId);
-      }
-    }
-  }, [open, defaultAmount, selectedPayment, agreementId]);
+// Payment schema for validation
+const paymentSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+  payment_date: z.date(),
+  payment_method: z.string().min(1, 'Payment method is required'),
+  description: z.string().optional(),
+  reference_number: z.string().optional().nullable(),
+  lease_id: z.string().uuid('Invalid lease ID')
+});
 
-  const fetchPendingPayments = async (agreementId: string) => {
+export const PaymentEntryDialog = ({ 
+  open, 
+  onOpenChange, 
+  onPaymentCreated,
+  leaseId,
+  rentAmount = 0
+}: PaymentEntryDialogProps) => {
+  const [amount, setAmount] = useState(rentAmount || 0);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [description, setDescription] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [isPartialPayment, setIsPartialPayment] = useState(false);
+  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate late fee if any
+  const calculateLateFee = () => {
+    const currentDate = paymentDate || new Date();
+    const dayOfMonth = currentDate.getDate();
+    
+    if (dayOfMonth > 1) {
+      const daysLate = dayOfMonth - 1;
+      const dailyLateFee = 120; // Default daily late fee (QAR)
+      const lateFee = Math.min(daysLate * dailyLateFee, 3000); // Cap at 3000 QAR
+      return { daysLate, lateFee };
+    }
+    
+    return { daysLate: 0, lateFee: 0 };
+  };
+
+  const { daysLate, lateFee } = calculateLateFee();
+  const totalAmount = amount + (includeLatePaymentFee ? lateFee : 0);
+
+  const handleSubmit = async () => {
     try {
-      const { data, error } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreementId)
-        .in('status', ['pending', 'partially_paid', 'overdue'])
-        .order('created_at', { ascending: false });
+      setIsSubmitting(true);
+      setErrors({});
       
-      if (error) {
-        console.error("Error fetching pending payments:", error);
+      // Validate the data
+      if (!leaseId) {
+        setErrors(prev => ({ ...prev, lease_id: 'Lease ID is missing' }));
         return;
       }
       
-      if (data && data.length > 0) {
-        setPendingPayments(data as ExtendedPayment[]);
-        console.log("Found payments for dialog:", data);
-      } else {
-        console.log("No pending/overdue payments found");
-        setPendingPayments([]);
+      // Construct payment data
+      const paymentData = {
+        lease_id: leaseId,
+        amount: isPartialPayment ? rentAmount : amount,
+        amount_paid: amount,
+        balance: isPartialPayment ? (rentAmount || 0) - amount : 0,
+        payment_date: paymentDate.toISOString(),
+        payment_method: paymentMethod,
+        reference_number: referenceNumber || null,
+        description: description || `Rent payment`,
+        status: isPartialPayment ? 'partially_paid' : 'completed',
+        type: 'rent'
+      };
+      
+      // Validate with Zod
+      try {
+        paymentSchema.parse({
+          ...paymentData,
+          amount: Number(paymentData.amount),
+        });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          const fieldErrors: Record<string, string> = {};
+          validationError.errors.forEach(err => {
+            fieldErrors[err.path[0]] = err.message;
+          });
+          setErrors(fieldErrors);
+          return;
+        }
       }
-    } catch (err) {
-      console.error("Unexpected error fetching pending payments:", err);
+      
+      // Create payment
+      await onPaymentCreated({
+        ...paymentData,
+        // Additional options for special payment handling
+        options: {
+          isPartialPayment,
+          includeLatePaymentFee,
+        }
+      });
+      
+      // Reset form
+      resetForm();
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      setErrors({ submit: 'Failed to create payment. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("Please enter a valid amount greater than zero");
-      return;
-    }
-    
-    const paymentResult = await handleSpecialAgreementPayments(
-      amount,
-      paymentDate,
-      notes,
-      paymentMethod,
-      referenceNumber,
-      includeLatePaymentFee,
-      isPartialPayment,
-      selectedPaymentId
-    );
-    
-    if (paymentResult) {
-      onSubmit(
-        amount, 
-        paymentDate, 
-        notes, 
-        paymentMethod, 
-        referenceNumber, 
-        includeLatePaymentFee,
-        isPartialPayment,
-        selectedPaymentId
-      );
-    }
-  };
-
-  const handlePaymentSelect = (paymentId: string) => {
-    setSelectedPaymentId(paymentId);
-    
-    const payment = pendingPayments.find(p => p.id === paymentId);
-    if (payment) {
-      setAmount(payment.balance || payment.amount || 0);
-      setIsPartialPayment(false);
-    }
-  };
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    setAmount(isNaN(value) ? 0 : value);
-    
-    if (!isNaN(value) && defaultAmount > 0 && value < defaultAmount) {
-      setIsPartialPayment(true);
-    } else if (selectedPayment && !isNaN(value) && value < (selectedPayment.balance || 0)) {
-      setIsPartialPayment(true);
-    } else {
-      setIsPartialPayment(false);
-    }
-  };
-
-  const showLateFeeOption = lateFeeDetails !== null;
-
-  const formatPaymentDescription = (payment: ExtendedPayment) => {
-    let desc = payment.description || 
-               `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
-    
-    let status = "";
-    if (payment.status === 'partially_paid') {
-      status = " (Partially Paid)";
-    } else if (payment.status === 'pending') {
-      status = " (Pending)";
-    } else if (payment.status === 'overdue') {
-      status = " (Overdue)";
-    }
-    
-    return `${desc}${status} - ${payment.amount_paid ? 
-      `Paid: ${payment.amount_paid.toLocaleString()} / ` : ''}QAR ${payment.amount?.toLocaleString() || 0}`;
+  const resetForm = () => {
+    setAmount(rentAmount || 0);
+    setPaymentDate(new Date());
+    setPaymentMethod('cash');
+    setDescription('');
+    setReferenceNumber('');
+    setIsPartialPayment(false);
+    setIncludeLatePaymentFee(false);
+    setErrors({});
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(value) => {
+      if (!value) resetForm();
+      onOpenChange(value);
+    }}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>Record New Payment</DialogTitle>
+          <DialogDescription>
+            Enter the payment details for this agreement.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {pendingPayments.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="payment-select">Record Payment For</Label>
-              <Select 
-                value={selectedPaymentId} 
-                onValueChange={handlePaymentSelect}
-              >
-                <SelectTrigger id="payment-select">
-                  <SelectValue placeholder="Select a payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pendingPayments.map((payment) => (
-                    <SelectItem key={payment.id} value={payment.id}>
-                      {formatPaymentDescription(payment)}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="manual">Record a new manual payment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="amount">Payment Amount (QAR)</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={handleAmountChange}
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
-
-          {defaultAmount > 0 && (
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="partial-payment" 
-                checked={isPartialPayment} 
-                onCheckedChange={(checked) => setIsPartialPayment(checked as boolean)}
-              />
-              <Label htmlFor="partial-payment" className="text-sm cursor-pointer">
-                This is a partial payment
-              </Label>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="payment-date">Payment Date</Label>
-            <div className="relative">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="amount" className="text-right">
+              Amount
+            </Label>
+            <div className="col-span-3 relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                QAR
+              </span>
               <Input
-                id="payment-date"
-                value={dateFormat(paymentDate, 'PPP')}
-                readOnly
-                onClick={() => setCalendarOpen(true)}
-                className="cursor-pointer"
+                id="amount"
+                type="number"
+                className="pl-12"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
               />
-              {calendarOpen && (
-                <div className="absolute top-full mt-1 z-10 bg-white border rounded-md shadow-lg">
-                  <Calendar
-                    mode="single"
-                    selected={paymentDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setPaymentDate(date);
-                        setCalendarOpen(false);
-                      }
-                    }}
-                    initialFocus
-                  />
-                </div>
-              )}
+              {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="payment-method">Payment Method</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="paymentDate" className="text-right">
+              Payment Date
+            </Label>
+            <div className="col-span-3">
+              <DatePicker
+                date={paymentDate}
+                setDate={setPaymentDate}
+              />
+              {errors.payment_date && <p className="text-red-500 text-xs mt-1">{errors.payment_date}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="method" className="text-right">
+              Payment Method
+            </Label>
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
+              <SelectTrigger id="method" className="col-span-3">
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="cheque">Cheque</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
                 <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="debit_card">Debit Card</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="reference-number">Reference Number (Optional)</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="reference" className="text-right">
+              Reference #
+            </Label>
             <Input
-              id="reference-number"
+              id="reference"
+              className="col-span-3"
+              placeholder="Optional reference number"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
-              placeholder="Transaction or receipt reference"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Description
+            </Label>
             <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any additional information"
-              rows={3}
+              id="description"
+              className="col-span-3"
+              placeholder="Optional payment notes"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
-          {showLateFeeOption && lateFeeDetails && (
-            <div className="border p-3 rounded-md bg-amber-50">
-              <div className="flex items-start space-x-3">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-amber-800">Late Payment Fee</h4>
-                  <p className="text-xs text-amber-700 mt-1">
-                    {lateFeeDetails.daysLate} days late: QAR {lateFeeDetails.amount.toLocaleString()}
-                  </p>
+          {daysLate > 0 && (
+            <Card className="bg-amber-50 border-amber-200">
+              <CardContent className="p-4">
+                <div className="flex justify-between mb-2">
+                  <span className="text-amber-800">Late Payment Detected</span>
+                  <span className="text-amber-800 font-medium">{daysLate} days late</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <p className="text-amber-700 text-sm mb-3">
+                  This payment is being made after the 1st of the month. A late fee may apply.
+                </p>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="includeFee" className="cursor-pointer text-sm text-amber-800">
+                    Include late fee ({formatCurrency(lateFee)})
+                  </Label>
                   <Switch
-                    id="late-fee"
+                    id="includeFee"
                     checked={includeLatePaymentFee}
                     onCheckedChange={setIncludeLatePaymentFee}
                   />
-                  <Label htmlFor="late-fee" className="text-xs">Include Fee</Label>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
-          <div className="flex justify-end space-x-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isProcessing}>
-              {isProcessing ? "Processing..." : "Record Payment"}
-            </Button>
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id="partialPayment"
+              checked={isPartialPayment}
+              onCheckedChange={setIsPartialPayment}
+            />
+            <Label htmlFor="partialPayment" className="cursor-pointer">
+              This is a partial payment
+            </Label>
           </div>
-        </form>
+        </div>
+
+        {errors.submit && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-3">
+            {errors.submit}
+          </div>
+        )}
+
+        <DialogFooter className="flex justify-between">
+          <div className="font-medium">
+            Total: {formatCurrency(totalAmount)}
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Processing..." : "Record Payment"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};

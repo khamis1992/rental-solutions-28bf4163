@@ -23,14 +23,14 @@ export interface Payment {
 export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
 
 export interface PaymentHistoryProps {
-  payments: Payment[];
+  payments?: Payment[];
   isLoading?: boolean;
   rentAmount?: number | null;
   contractAmount?: number | null;
-  onPaymentDeleted: () => void;
+  onPaymentDeleted?: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
   onRecordPayment?: (payment: Partial<Payment>) => void;
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
+  leaseId?: string;
 }
-

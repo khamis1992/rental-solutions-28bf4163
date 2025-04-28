@@ -1,103 +1,95 @@
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Payment } from "./PaymentHistory.types";
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Textarea } from '@/components/ui/textarea';
+import { Payment } from './PaymentHistory.types';
+import { z } from 'zod';
 
 interface PaymentEditDialogProps {
-  payment: Payment | null;
-  open: boolean; // Changed from isOpen to open for consistency
-  onOpenChange: (open: boolean) => void; // Changed from onClose to match Shadcn Dialog
-  onSaved: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  payment: Payment;
+  onPaymentUpdated: (payment: Payment) => Promise<void>;
 }
 
-export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: PaymentEditDialogProps) {
-  const [amount, setAmount] = useState(payment?.amount || 0);
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(
-    payment?.payment_date ? new Date(payment.payment_date) : undefined
-  );
-  const [paymentMethod, setPaymentMethod] = useState(payment?.payment_method || "cash");
-  const [reference, setReference] = useState(payment?.reference_number || "");
-  const [notes, setNotes] = useState(payment?.notes || "");
-  const [status, setStatus] = useState(payment?.status || "pending");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rentAmount, setRentAmount] = useState<number | null>(null);
+// Payment schema for validation
+const paymentSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+  payment_date: z.date().optional().nullable(),
+  payment_method: z.string().min(1, 'Payment method is required'),
+  description: z.string().optional(),
+  reference_number: z.string().optional().nullable(),
+});
 
+export const PaymentEditDialog = ({ 
+  open, 
+  onOpenChange, 
+  payment,
+  onPaymentUpdated
+}: PaymentEditDialogProps) => {
+  const [amount, setAmount] = useState(payment?.amount || 0);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(payment?.payment_date ? new Date(payment.payment_date) : new Date());
+  const [paymentMethod, setPaymentMethod] = useState(payment?.payment_method || 'cash');
+  const [description, setDescription] = useState(payment?.description || '');
+  const [referenceNumber, setReferenceNumber] = useState(payment?.reference_number || '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form when payment changes
   useEffect(() => {
     if (payment) {
-      setAmount(payment.amount);
-      setPaymentDate(payment.payment_date ? new Date(payment.payment_date) : undefined);
-      setPaymentMethod(payment.payment_method || "cash");
-      setReference(payment.reference_number || "");
-      setNotes(payment.notes || "");
-      setStatus(payment.status || "pending");
-      
-      if (payment.lease_id) {
-        fetchRentAmount(payment.lease_id);
-      }
+      setAmount(payment.amount || 0);
+      setPaymentDate(payment.payment_date ? new Date(payment.payment_date) : new Date());
+      setPaymentMethod(payment.payment_method || 'cash');
+      setDescription(payment.description || '');
+      setReferenceNumber(payment.reference_number || '');
     }
   }, [payment]);
 
-  const fetchRentAmount = async (leaseId: string) => {
+  const handleSubmit = async () => {
     try {
-      const { data, error } = await supabase
-        .from("leases")
-        .select("rent_amount")
-        .eq("id", leaseId)
-        .single();
+      setIsSubmitting(true);
+      setErrors({});
       
-      if (error) throw error;
-      if (data && data.rent_amount) {
-        setRentAmount(data.rent_amount);
-        setAmount(data.rent_amount);
+      // Construct payment data
+      const updatedPayment = {
+        ...payment,
+        amount,
+        payment_date: paymentDate ? paymentDate.toISOString() : null,
+        payment_method: paymentMethod,
+        description,
+        reference_number: referenceNumber || null,
+      };
+      
+      // Validate with Zod
+      try {
+        paymentSchema.parse({
+          ...updatedPayment,
+          amount: Number(updatedPayment.amount),
+        });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          const fieldErrors: Record<string, string> = {};
+          validationError.errors.forEach(err => {
+            fieldErrors[err.path[0]] = err.message;
+          });
+          setErrors(fieldErrors);
+          return;
+        }
       }
-    } catch (error) {
-      console.error("Error fetching rent amount:", error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!payment) return;
-    if (!paymentDate) {
-      toast.error("Please select a payment date");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const { error } = await supabase
-        .from("unified_payments")
-        .update({
-          amount: amount,
-          payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod,
-          transaction_id: reference,
-          description: notes,
-          status: status
-        })
-        .eq("id", payment.id);
       
-      if (error) throw error;
+      // Update payment
+      await onPaymentUpdated(updatedPayment);
       
-      toast.success("Payment updated successfully");
-      onSaved();
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating payment:", error);
-      toast.error("Failed to update payment");
+      setErrors({ submit: 'Failed to update payment. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -105,125 +97,112 @@ export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: Paym
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Payment</DialogTitle>
           <DialogDescription>
-            Update the payment details
+            Edit the details for this payment record.
           </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                  required
-                />
-                {rentAmount !== null && rentAmount !== amount && (
-                  <p className="text-xs text-muted-foreground">
-                    Rent amount from lease: ${rentAmount}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Payment Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !paymentDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {paymentDate ? format(paymentDate, "PPP") : <span>Select a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={paymentDate}
-                    onSelect={setPaymentDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="debit_card">Debit Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="mobile_payment">Mobile Payment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="reference">Reference Number</Label>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="amount" className="text-right">
+              Amount
+            </Label>
+            <div className="col-span-3 relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                QAR
+              </span>
               <Input
-                id="reference"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                placeholder="Transaction reference (optional)"
+                id="amount"
+                type="number"
+                className="pl-12"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Payment notes (optional)"
-              />
+              {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </form>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="paymentDate" className="text-right">
+              Payment Date
+            </Label>
+            <div className="col-span-3">
+              <DatePicker
+                date={paymentDate}
+                setDate={setPaymentDate}
+              />
+              {errors.payment_date && <p className="text-red-500 text-xs mt-1">{errors.payment_date}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="method" className="text-right">
+              Payment Method
+            </Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger id="method" className="col-span-3">
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="reference" className="text-right">
+              Reference #
+            </Label>
+            <Input
+              id="reference"
+              className="col-span-3"
+              placeholder="Optional reference number"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Description
+            </Label>
+            <Textarea
+              id="description"
+              className="col-span-3"
+              placeholder="Optional payment notes"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {errors.submit && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-3">
+            {errors.submit}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Updating..." : "Update Payment"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};
