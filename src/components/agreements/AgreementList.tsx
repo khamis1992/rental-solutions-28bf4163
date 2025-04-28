@@ -26,20 +26,17 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const handleStatusChange = (agreementId: string, status: LeaseStatus) => {
-    updateAgreement(agreementId, { status });
-  };
-
   return (
     <div>
       <AgreementTable
         agreements={agreements}
         isLoading={isLoading}
-        onStatusChange={handleStatusChange}
-        // Pass optional pagination props only if they exist
-        {...(pagination && { pagination, setPagination })}
-        {...(sorting && { sorting, setSorting })}
-        {...(globalFilter !== undefined && { globalFilter, setGlobalFilter })}
+        pagination={pagination}
+        setPagination={setPagination}
+        sorting={sorting}
+        setSorting={setSorting}
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
@@ -30,38 +29,32 @@ export function AgreementStats() {
       try {
         setIsLoading(true);
         
-        // Get total agreements count
         const { count: totalCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true });
         
-        // Get active agreements count
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', LEASE_STATUSES.ACTIVE);
+          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
           
-        // Get pending payments count
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', asPaymentStatus('pending'));
           
-        // Get overdue payments count
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
           .gt('days_overdue', 0);
           
-        // Get active agreements total value
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', LEASE_STATUSES.ACTIVE);
-          
-        const activeValue = activeAgreements 
-          ? activeAgreements.reduce((sum, agreement) => sum + (agreement?.rent_amount || 0), 0)
-          : 0;
+          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
+
+        const activeValue = activeAgreements?.reduce((sum, agreement) => 
+          sum + (Number(agreement?.rent_amount) || 0), 0) || 0;
         
         setStats({
           totalAgreements: totalCount || 0,
@@ -79,7 +72,7 @@ export function AgreementStats() {
     
     fetchStats();
   }, []);
-  
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card className="p-4 flex items-center space-x-4">
