@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { castLeaseId, hasData } from '@/utils/database-operations';
+import { hasData } from '@/utils/database-operations';
+import { Database } from '@/types/database.types';
 
 interface ReassignmentWizardProps {
   onComplete: () => void;
@@ -25,7 +26,8 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
     const fetchAgreementData = async () => {
       setIsLoading(true);
       try {
-        const typedLeaseId = castLeaseId(agreementId);
+        // Using type assertion for ID when querying
+        const typedLeaseId = agreementId as Database['public']['Tables']['leases']['Row']['id'];
         
         const { data, error } = await supabase
           .from('leases')

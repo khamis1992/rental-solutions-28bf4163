@@ -22,20 +22,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
-import { ExtendedPayment } from './PaymentHistory.types';
+import { ExtendedPayment, PaymentHistoryProps } from './PaymentHistory.types';
 import { castUnifiedPaymentLeaseId, castDatabaseId, castPaymentUpdate, hasData } from '@/utils/database-operations';
-
-interface PaymentHistoryProps {
-  agreementId: string;
-  isLoading?: boolean;
-  onPaymentDeleted: () => void;
-  onPaymentUpdated: () => Promise<void>;
-  onEdit: (payment: ExtendedPayment) => void;
-  onDelete: (payment: ExtendedPayment) => void;
-  rentAmount?: number | null;
-  contractAmount?: number | null;
-  payments?: ExtendedPayment[];
-}
 
 const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
   try {
@@ -73,7 +61,9 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
       throw new Error(response.error?.message || 'Failed to fetch payments');
     }
     
-    return response.data.map(payment => ({
+    const safeData = response.data || [];
+    
+    return safeData.map(payment => ({
       id: payment.id,
       lease_id: payment.lease_id,
       amount: payment.amount,
@@ -100,7 +90,7 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
   }
 };
 
-const PaymentHistory: React.FC<PaymentHistoryProps> = ({ 
+export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ 
   agreementId,
   payments = [],
   isLoading = false,
@@ -237,4 +227,5 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   );
 };
 
+// Export both as named export and as default
 export default PaymentHistory;

@@ -46,4 +46,7 @@ export interface PaymentHistoryProps {
   rentAmount?: number | null;
   contractAmount?: number | null;
   payments?: ExtendedPayment[];
+  leaseStartDate?: Date | string;
+  leaseEndDate?: Date | string;
+  onRecordPayment?: (payment: any) => void;
 }
