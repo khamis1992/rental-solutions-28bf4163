@@ -3,16 +3,36 @@ import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
-import type { PaymentEntryDialogProps, Payment } from '@/types/agreement-types';
+import type { Payment } from '@/types/agreement-types';
+
+export interface PaymentEntryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedPayment?: Partial<Payment> | null;
+  onSubmit: (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
+  ) => Promise<void>;
+  defaultAmount?: number;
+  onPaymentCreated?: (payment: any) => Promise<void>;
+  leaseId?: string;
+  rentAmount?: number;
+}
 
 export function PaymentEntryDialog({
   open,
   onOpenChange,
   selectedPayment,
-  onSubmit
+  onSubmit,
+  defaultAmount
 }: PaymentEntryDialogProps) {
-  const [amount, setAmount] = React.useState<number>(selectedPayment?.amount || 0);
-  const [paymentDate, setPaymentDate] = React.useState<Date>(selectedPayment?.payment_date || new Date());
+  const [amount, setAmount] = React.useState<number>(selectedPayment?.amount || defaultAmount || 0);
+  const [paymentDate, setPaymentDate] = React.useState<Date>(selectedPayment?.payment_date ? new Date(selectedPayment.payment_date) : new Date());
   const [notes, setNotes] = React.useState<string>(selectedPayment?.notes || '');
   const [paymentMethod, setPaymentMethod] = React.useState<string>(selectedPayment?.payment_method || 'cash');
   const [referenceNumber, setReferenceNumber] = React.useState<string>(selectedPayment?.reference_number || '');

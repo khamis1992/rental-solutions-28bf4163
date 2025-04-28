@@ -33,13 +33,18 @@ export function usePayment(agreementId?: string) {
   ) => {
     if (!agreementId) return;
 
-    await handleSpecialPayment(agreementId, amount, paymentDate, {
-      notes,
-      paymentMethod,
-      referenceNumber,
-      includeLatePaymentFee,
-      isPartialPayment,
-    });
+    await handleSpecialPayment(
+      agreementId, 
+      amount, 
+      paymentDate, 
+      {
+        notes,
+        paymentMethod,
+        referenceNumber,
+        includeLatePaymentFee,
+        isPartialPayment,
+      }
+    );
   };
 
   return {

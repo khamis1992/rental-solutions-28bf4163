@@ -1,57 +1,42 @@
 
 import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAgreementService } from './services/useAgreementService';
-import type { Agreement, TableFilters } from '@/types/agreement';
-import { supabase } from '@/lib/supabase';
+import { SortingState } from '@tanstack/react-table';
 import { toast } from 'sonner';
-import { asTableId } from '@/lib/database';
 
 export function useAgreementTable() {
-  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
+  const {
+    agreements,
+    isLoading,
+    error,
+    updateAgreement: updateAgreementService,
+    searchParams,
+    setSearchParams,
+  } = useAgreementService();
 
-  const { agreements, isLoading, error, deleteAgreement, setSearchParams } = useAgreementService();
-  
-  const handleBulkDelete = async () => {
-    if (!agreements) return;
-    
-    setIsDeleting(true);
-    const selectedIds = Object.keys(rowSelection).map(index => agreements[parseInt(index)].id);
-    
-    let successCount = 0;
-    let errorCount = 0;
-    
-    for (const id of selectedIds) {
-      try {
-        // Delete related records first
-        await Promise.all([
-          supabase.from('overdue_payments').delete().eq('agreement_id', asTableId('overdue_payments', id)),
-          supabase.from('unified_payments').delete().eq('lease_id', asTableId('unified_payments', id)),
-          supabase.from('traffic_fines').delete().eq('agreement_id', asTableId('traffic_fines', id))
-        ]);
+  // Table states
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
 
-        await deleteAgreement(id);
-        successCount++;
-      } catch (err) {
-        console.error('Error deleting:', err);
-        errorCount++;
-      }
+  // Update agreement
+  const updateAgreement = async (id: string, data: Record<string, any>) => {
+    try {
+      await updateAgreementService({ id, data });
+      toast.success('Agreement updated successfully');
+      return true;
+    } catch (err: any) {
+      toast.error(`Failed to update agreement: ${err.message || 'Unknown error'}`);
+      return false;
     }
-    
-    if (errorCount === 0) {
-      toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
-    } else if (successCount === 0) {
-      toast.error(`Failed to delete any agreements`);
-    } else {
-      toast.warning(`Deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}, but failed to delete ${errorCount}`);
-    }
-    
-    setRowSelection({});
-    setIsDeleting(false);
   };
 
-  const handleFilterChange = (filters: TableFilters) => {
+  const handleFilterChange = (filters: any) => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
 
@@ -59,12 +44,14 @@ export function useAgreementTable() {
     agreements,
     isLoading,
     error,
-    rowSelection,
-    setRowSelection,
+    updateAgreement,
     pagination,
     setPagination,
-    isDeleting,
-    handleBulkDelete,
+    sorting,
+    setSorting,
+    globalFilter,
+    setGlobalFilter,
+    searchParams,
     handleFilterChange,
   };
 }
