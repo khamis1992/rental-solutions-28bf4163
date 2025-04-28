@@ -101,28 +101,6 @@ export function handleDatabaseResponse<T>(response: any): T | null {
   return response.data as T;
 }
 
-// Type safe conversion for database query results
-export function asQueryResult<T>(data: any): T {
-  return data as T;
-}
-
-// Function to safely extract fields from Supabase query results
-export function safelyExtractFields<T>(
-  data: any, 
-  fallback: T,
-  requiredFields: string[] = []
-): T {
-  if (!data) return fallback;
-  
-  // Check if required fields exist
-  if (requiredFields.length > 0) {
-    const hasAllFields = requiredFields.every(field => field in data);
-    if (!hasAllFields) return fallback;
-  }
-  
-  return data as T;
-}
-
 // Cast functions for Update operations
 export function asLeaseUpdate(updates: Partial<Tables['leases']['Update']>): Tables['leases']['Update'] {
   return updates as Tables['leases']['Update'];
@@ -132,49 +110,42 @@ export function asVehicleUpdate(updates: Partial<Tables['vehicles']['Update']>):
   return updates as Tables['vehicles']['Update'];
 }
 
-// Helper for safely checking and extracting properties from database responses
-export function safeExtract<T, K extends keyof T>(obj: any, key: K, fallback: T[K]): T[K] {
-  if (!obj || typeof obj !== 'object' || !(key in obj)) {
-    return fallback;
-  }
-  return obj[key] as T[K];
+export function castLeaseStatus(status: string): Tables['leases']['Row']['status'] {
+  return status as Tables['leases']['Row']['status']; 
 }
 
-// Create a type-safe wrapper for Supabase filter operations
-export function createFilter<T extends TableNames, K extends keyof RowType<T>>(
-  table: T,
-  column: K,
-  value: RowType<T>[K]
-): { column: K, value: RowType<T>[K] } {
-  return { column, value };
+export function castLeaseUpdate(updates: Partial<Tables['leases']['Update']>): Tables['leases']['Update'] {
+  return updates as Tables['leases']['Update'];
 }
 
-// Adding the castDbId function with correct typing
-export function castDbId(id: string): string {
-  return id;
+// RPC function return types
+export interface DeleteAgreementsByImportIdResult {
+  success: boolean;
+  deleted_count: number;
+  message?: string;
 }
 
-// Function to handle Supabase data results with explicit type casting
-export function castDatabaseResult<T>(result: any): T | null {
-  if (!result || result.error || !result.data) {
-    return null;
-  }
-  return result.data as T;
+export interface RevertAgreementImportResult {
+  success: boolean;
+  deleted_count: number;
+  message?: string;
 }
 
-// Function to cast Row data safely to expected type
-export function castRowData<T>(data: any): T {
-  return data as T;
+export interface GenerateAgreementDocumentResult {
+  success: boolean;
+  document_url?: string;
+  message?: string;
 }
 
-// Helper function to properly handle Supabase's foreign table results
-export function handleForeignTableData<T>(data: any): T | null {
-  if (!data) return null;
-  return data as T;
+// Type-safe casting functions for RPC results
+export function castDeleteAgreementsResult(result: unknown): DeleteAgreementsByImportIdResult {
+  return result as DeleteAgreementsByImportIdResult;
 }
 
-// New function for proper type casting of query results with nested data
-export function processQueryResult<T>(data: any): T {
-  // For nested data from joins, this ensures proper typing
-  return data as T;
+export function castRevertAgreementImportResult(result: unknown): RevertAgreementImportResult {
+  return result as RevertAgreementImportResult;
+}
+
+export function castGenerateAgreementDocumentResult(result: unknown): GenerateAgreementDocumentResult {
+  return result as GenerateAgreementDocumentResult;
 }

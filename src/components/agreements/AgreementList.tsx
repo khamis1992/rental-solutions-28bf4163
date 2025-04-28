@@ -1,14 +1,16 @@
-
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { 
-  castImportId, 
-  castLeaseId,
-  castDeleteAgreementsResult,
-  castRevertAgreementImportResult,
-  castGenerateAgreementDocumentResult
+  asImportId, 
+  asLeaseId,
+  asLeaseStatus
+} from '@/utils/database-type-helpers';
+import {
+  DeleteAgreementsByImportIdResult,
+  RevertAgreementImportResult,
+  GenerateAgreementDocumentResult
 } from '@/utils/database-operations';
 import { useNavigate } from "react-router-dom";
 import {
@@ -44,8 +46,6 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { ImportRevertDialog } from "./ImportRevertDialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasData } from "@/utils/database-operations";
-import { Database } from '@/types/database.types';
 
 const AgreementList = () => {
   const navigate = useNavigate();
@@ -94,8 +94,8 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        // Use direct string without casting for filtering as it's not directly passed to the DB parameter
-        query = query.eq("status", statusFilter);
+        // Use typed status value
+        query = query.eq("status", asLeaseStatus(statusFilter));
       }
 
       if (searchTerm) {
@@ -143,16 +143,15 @@ const AgreementList = () => {
 
   const handleDeleteImport = async (importId: string) => {
     try {
-      // Using the castImportId helper for proper type safety
       const { data, error } = await supabase
         .rpc('delete_agreements_by_import_id', {
-          p_import_id: castImportId(importId)
+          p_import_id: asImportId(importId)
         });
 
       if (error) throw error;
 
-      // Cast the result to our known type that includes success and deleted_count
-      const typedResult = castDeleteAgreementsResult(data);
+      // Cast the result to our known type
+      const typedResult = data as DeleteAgreementsByImportIdResult;
       
       if (typedResult && typedResult.success) {
         toast.success(`Successfully deleted ${typedResult.deleted_count} agreements`);
@@ -170,12 +169,10 @@ const AgreementList = () => {
     if (!agreementToDelete) return;
 
     try {
-      const typedLeaseId = castLeaseId(agreementToDelete);
-      
       const { error } = await supabase
         .from('leases')
         .delete()
-        .eq('id', typedLeaseId);
+        .eq('id', asLeaseId(agreementToDelete));
 
       if (error) throw error;
       toast.success('Agreement deleted successfully');
@@ -206,8 +203,8 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      // Cast the result to our known type that includes success and deleted_count
-      const typedResult = castRevertAgreementImportResult(data);
+      // Cast the result to our known type
+      const typedResult = data as RevertAgreementImportResult;
 
       if (typedResult && typedResult.success) {
         toast.success(`Successfully reverted import. ${typedResult.deleted_count} agreements deleted.`);
@@ -233,8 +230,8 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      // Cast the result to our known type that includes success and document_url
-      const typedResult = castGenerateAgreementDocumentResult(data);
+      // Cast the result to our known type
+      const typedResult = data as GenerateAgreementDocumentResult;
 
       if (typedResult && typedResult.success) {
         toast.success("Document generated successfully");

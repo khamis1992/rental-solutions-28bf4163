@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-interface PaginationProps {
+export interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -112,5 +112,95 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
     </div>
   );
 }
+
+// Extended Pagination Components for the Simple List
+export const PaginationContent = ({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLUListElement>) => {
+  return (
+    <ul className={`flex flex-row items-center gap-1 ${className}`} {...props}>
+      {children}
+    </ul>
+  );
+};
+
+export const PaginationItem = ({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLLIElement>) => {
+  return <li className={className} {...props}>{children}</li>;
+};
+
+export const PaginationLink = ({
+  className,
+  isActive,
+  children,
+  ...props
+}: React.ComponentProps<typeof Button> & {
+  isActive?: boolean;
+}) => {
+  return (
+    <Button
+      aria-current={isActive ? "page" : undefined}
+      variant={isActive ? "default" : "outline"}
+      size="sm"
+      className={className}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+};
+
+export const PaginationPrevious = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) => {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={`gap-1 pl-2.5 ${className}`}
+      {...props}
+    >
+      <ChevronLeft className="h-4 w-4" />
+      <span>Previous</span>
+    </Button>
+  );
+};
+
+export const PaginationNext = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) => {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={`gap-1 pr-2.5 ${className}`}
+      {...props}
+    >
+      <span>Next</span>
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  );
+};
+
+export const PaginationEllipsis = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement>) => {
+  return (
+    <span
+      className={`flex h-9 w-9 items-center justify-center ${className}`}
+      {...props}
+    >
+      <span className="text-muted-foreground">...</span>
+    </span>
+  );
+};
 
 export default Pagination;

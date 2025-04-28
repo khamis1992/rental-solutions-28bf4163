@@ -5,7 +5,7 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { castLeaseStatus, castLeaseUpdate, castLeaseId } from '@/utils/database-operations';
+import { castLeaseStatus, castLeaseUpdate, asLeaseId } from '@/utils/database-type-helpers';
 import { Database } from '@/types/database.types';
 
 interface AgreementFormWithVehicleCheckProps {
@@ -74,7 +74,7 @@ export function AgreementFormWithVehicleCheck({
       });
       
       // Convert ID to the correct type for querying
-      const typedLeaseId = castLeaseId(existingAgreement.id);
+      const typedLeaseId = asLeaseId(existingAgreement.id);
       
       const { error } = await supabase
         .from('leases')
