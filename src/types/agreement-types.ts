@@ -1,9 +1,9 @@
 
-import { Database } from "@/lib/database-types";
+import { Database } from "@/types/database.types";
+import { DbId, LeaseStatus, PaymentStatus } from '@/types/database-common';
 import { GenericSchema } from "@supabase/supabase-js";
 
-export type AgreementStatus = "active" | "pending" | "completed" | "cancelled" | 
-  "pending_payment" | "pending_deposit" | "draft" | "terminated" | "archived" | "closed";
+export type AgreementStatus = LeaseStatus;
 
 export type DatabaseStatusColumn<T extends keyof Database['public']['Tables']> = 
   keyof Database['public']['Tables'][T]['Row'] extends 'status' 
@@ -11,21 +11,27 @@ export type DatabaseStatusColumn<T extends keyof Database['public']['Tables']> =
     : never;
 
 export type Payment = {
-  id: string;
+  id: DbId;
   amount: number;
   payment_date: Date;
   notes?: string;
   payment_method?: string;
   reference_number?: string;
+  transaction_id?: string; // Added for compatibility
   include_late_fee?: boolean;
   is_partial?: boolean;
-  status: 'pending' | 'completed' | 'failed';
+  status: PaymentStatus;
 };
 
 export type PaymentEntryDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedPayment?: Payment;
+  title?: string; // Added to fix compatibility errors
+  description?: string; // Added to fix compatibility errors
+  defaultAmount?: number; // Added to fix compatibility errors
+  rentAmount?: number; // Added to fix compatibility errors
+  lateFeeDetails?: { amount: number; daysLate: number } | null; // Added to fix compatibility errors
+  selectedPayment?: Payment | null;
   onSubmit: (
     amount: number,
     paymentDate: Date,
@@ -38,7 +44,7 @@ export type PaymentEntryDialogProps = {
 };
 
 export type AgreementImport = {
-  id: string;
+  id: DbId;
   status: 'pending' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
@@ -48,10 +54,10 @@ export type AgreementImport = {
   failed_records: number;
 };
 
-// Helper functions for type casting
+// Helper functions for type casting with standardized naming
 export const asStatusColumn = <T extends keyof Database['public']['Tables']>(
   status: string
 ): DatabaseStatusColumn<T> => status as DatabaseStatusColumn<T>;
 
-export const asAgreementIdColumn = (id: string) => id as string;
-export const asImportIdColumn = (id: string) => id as string;
+export const asAgreementIdColumn = (id: string) => id as DbId;
+export const asImportIdColumn = (id: string) => id as DbId;

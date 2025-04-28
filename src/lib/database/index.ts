@@ -3,6 +3,7 @@
 export * from './types';
 export * from './utils';
 export * from './repository';
+export * from '@/types/database-common';
 
 // Export repositories
 export { leaseRepository } from './repositories/lease-repository';
@@ -23,8 +24,8 @@ import {
   asVehicleStatus,
   asProfileStatus,
   asMaintenanceStatus,
-  asStatusColumn
-} from './utils';
+  asEntityStatus
+} from '@/types/database-common';
 
 // Export with legacy names for backward compatibility
 export {
@@ -38,8 +39,7 @@ export {
   asPaymentStatus,
   asVehicleStatus,
   asProfileStatus,
-  asMaintenanceStatus,
-  asStatusColumn
+  asMaintenanceStatus
 };
 
 // Fix common ID column errors by providing direct casting functions
@@ -49,6 +49,9 @@ export const asProfileIdColumn = asProfileId;
 export const asPaymentIdColumn = asPaymentId;
 export const asTrafficFineIdColumn = asTrafficFineId;
 export const asMaintenanceIdColumn = asMaintenanceId;
+
+// Alias for legacy code
+export const asStatusColumn = asEntityStatus;
 
 // Special function to handle type errors in legacy code
 export function castLeaseUpdate(data: any): any {

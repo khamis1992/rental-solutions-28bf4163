@@ -2,8 +2,7 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { asStatusColumn } from '@/types/agreement-types';
-import type { AgreementStatus } from '@/types/agreement-types';
+import { AgreementStatus } from '@/types/database-common';
 
 // Define the props that AgreementTable expects
 type AgreementTableProps = React.ComponentProps<typeof AgreementTable>;
@@ -31,7 +30,7 @@ const AgreementList: React.FC = () => {
   }
 
   const handleStatusChange = (agreementId: string, status: AgreementStatus) => {
-    updateAgreement(agreementId, { status: asStatusColumn(status) });
+    updateAgreement(agreementId, { status });
   };
 
   return (
@@ -39,7 +38,6 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={agreements}
         isLoading={isLoading}
-        onStatusChange={handleStatusChange}
         pagination={pagination || {
           pageIndex: 0,
           pageSize: 10,
@@ -49,6 +47,7 @@ const AgreementList: React.FC = () => {
         setSorting={setSorting}
         globalFilter={globalFilter || ''}
         setGlobalFilter={setGlobalFilter}
+        onStatusChange={handleStatusChange}
       />
     </div>
   );

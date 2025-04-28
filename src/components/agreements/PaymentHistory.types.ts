@@ -1,18 +1,20 @@
 
 import { Database } from '@/types/database.types';
+import { DbId, PaymentStatus } from '@/types/database-common';
 
 export interface Payment {
-  id: string;
+  id: DbId;
   amount: number;
   payment_date: string | null;
   payment_method?: string;
-  reference_number?: string | null; 
+  reference_number?: string | null;
+  transaction_id?: string | null; // Added to fix compatibility issues
   notes?: string;
   type?: string;
-  status?: string;
+  status?: PaymentStatus;
   late_fine_amount?: number;
   days_overdue?: number;
-  lease_id?: string;
+  lease_id?: DbId;
   original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
@@ -28,9 +30,10 @@ export interface PaymentHistoryProps {
   rentAmount?: number | null;
   contractAmount?: number | null;
   onPaymentDeleted?: () => void;
+  onPaymentCreated?: () => void; // Added to fix missing reference
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
   onRecordPayment?: (payment: Partial<Payment>) => void;
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<void>;
-  leaseId?: string;
+  leaseId?: DbId;
 }
