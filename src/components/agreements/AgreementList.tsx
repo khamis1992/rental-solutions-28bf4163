@@ -92,7 +92,8 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        query = query.eq("status", asLeaseStatus(statusFilter));
+        const typedStatus = asLeaseStatus(statusFilter);
+        query = query.eq("status", typedStatus);
       }
 
       if (searchTerm) {
@@ -165,10 +166,12 @@ const AgreementList = () => {
     if (!agreementToDelete) return;
 
     try {
+      const typedLeaseId = asLeaseId(agreementToDelete);
+      
       const { error } = await supabase
         .from('leases')
         .delete()
-        .eq('id', asLeaseId(agreementToDelete));
+        .eq('id', typedLeaseId);
 
       if (error) throw error;
       toast.success('Agreement deleted successfully');

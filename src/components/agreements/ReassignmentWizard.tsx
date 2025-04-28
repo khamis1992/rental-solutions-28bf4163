@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { asLeaseId, hasData } from '@/utils/database-type-helpers';
+import { asLeaseId, isValidResponse } from '@/utils/database-type-helpers';
 
 interface ReassignmentWizardProps {
   onComplete: () => void;
@@ -43,7 +43,7 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
 
         if (response.error) throw response.error;
         
-        if (hasData(response) && response.data) {
+        if (isValidResponse(response) && response.data) {
           setAgreementData({
             id: response.data.id,
             agreement_number: response.data.agreement_number,

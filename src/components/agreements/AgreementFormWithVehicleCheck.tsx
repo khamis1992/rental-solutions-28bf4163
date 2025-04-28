@@ -5,7 +5,7 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId } from '@/utils/database-type-helpers';
+import { asLeaseId, castLeaseUpdate } from '@/utils/database-type-helpers';
 import { updateLease } from '@/utils/database-operations';
 
 interface AgreementFormWithVehicleCheckProps {
@@ -68,9 +68,12 @@ export function AgreementFormWithVehicleCheck({
     if (!existingAgreement) return;
     
     try {
-      await updateLease(existingAgreement.id, {
+      // Use the castLeaseUpdate to create a properly typed update object
+      const updateData = castLeaseUpdate({
         status: 'terminated'
       });
+      
+      await updateLease(existingAgreement.id, updateData);
       
       toast.success(`Agreement ${existingAgreement.agreement_number} has been terminated`);
       onValidationComplete(true);

@@ -1,5 +1,6 @@
 
 import { Database } from '@/types/database.types';
+import { PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Define useful types for database operations
 type Tables = Database['public']['Tables'];
@@ -61,16 +62,6 @@ export function castRowData<T>(data: any): T {
   return data as T;
 }
 
-// Generic function to cast a string ID to any database table ID type
-export function castDbId<T extends keyof Tables>(id: string, table?: T): Tables[T extends keyof Tables ? T : 'leases']['Row']['id'] {
-  return id as any;
-}
-
-// Generic function to cast a string ID to any database table ID type
-export function castDatabaseId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
-}
-
 // Type-safe status helpers
 export function asLeaseStatus(status: string): Tables['leases']['Row']['status'] {
   return status as Tables['leases']['Row']['status'];
@@ -80,7 +71,7 @@ export function asPaymentStatus(status: string): Tables['unified_payments']['Row
   return status as Tables['unified_payments']['Row']['status'];
 }
 
-// Type-safe update helpers - converts partial objects into properly typed update objects
+// Type-safe update helpers
 export function castLeaseStatus(status: string): Tables['leases']['Row']['status'] {
   return status as Tables['leases']['Row']['status']; 
 }
@@ -89,12 +80,12 @@ export function castLeaseUpdate(updates: Partial<Tables['leases']['Update']>): T
   return updates as Tables['leases']['Update'];
 }
 
-export function castPaymentUpdate(updates: Partial<Tables['unified_payments']['Update']>): Tables['unified_payments']['Update'] {
-  return updates as Tables['unified_payments']['Update'];
-}
-
 export function castProfileUpdate(updates: Partial<Tables['profiles']['Update']>): Tables['profiles']['Update'] {
   return updates as Tables['profiles']['Update'];
+}
+
+export function castPaymentUpdate(updates: Partial<Tables['unified_payments']['Update']>): Tables['unified_payments']['Update'] {
+  return updates as Tables['unified_payments']['Update'];
 }
 
 // Type guard for checking Supabase response validity
@@ -140,6 +131,11 @@ export function castRevertAgreementImportResult(result: unknown): RevertAgreemen
 
 export function castGenerateAgreementDocumentResult(result: unknown): GenerateAgreementDocumentResult {
   return result as GenerateAgreementDocumentResult;
+}
+
+// Type guard to check if a response has valid data
+export function isValidResponse<T>(response: PostgrestSingleResponse<T>): response is PostgrestSingleResponse<T> & { data: T } {
+  return Boolean(response && !response.error && response.data !== null && response.data !== undefined);
 }
 
 // Utility to help with database operations that need unified payment lease ID

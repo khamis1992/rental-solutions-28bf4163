@@ -7,8 +7,8 @@ export interface ExtendedPayment {
   balance: number;
   payment_date: string | null;
   payment_method: string | null;
-  reference_number?: string;
-  notes?: string;
+  reference_number: string;
+  notes: string;
   description: string | null;
   status: string;
   created_at: string;
@@ -21,19 +21,4 @@ export interface ExtendedPayment {
   late_fine_amount: number;
   processing_fee: number;
   processed_by: string;
-}
-
-export interface PaymentHistoryProps {
-  agreementId: string;
-  payments?: ExtendedPayment[];
-  isLoading?: boolean;
-  onPaymentDeleted?: (payment: ExtendedPayment) => void;
-  onPaymentUpdated?: () => Promise<void>;
-  onEdit?: (payment: ExtendedPayment) => void;
-  onDelete: (payment: ExtendedPayment) => void;
-  rentAmount?: number;
-  contractAmount?: number;
-  leaseStartDate?: string;
-  leaseEndDate?: string;
-  onRecordPayment?: () => void;
 }

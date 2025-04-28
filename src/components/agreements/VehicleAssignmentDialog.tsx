@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
-import { asVehicleId } from "@/utils/database-type-helpers";
+import { asVehicleId, isValidResponse } from "@/utils/database-type-helpers";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -50,7 +50,7 @@ export function VehicleAssignmentDialog({
 
         if (error) throw error;
 
-        if (data) {
+        if (isValidResponse({ data, error }) && data) {
           setVehicleInfo(`${data.make} ${data.model} (${data.license_plate})`);
         }
       } catch (error) {
