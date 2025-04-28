@@ -151,7 +151,7 @@ const AgreementList = () => {
       if (error) throw error;
 
       // Cast the result to our known type
-      const typedResult = data as DeleteAgreementsByImportIdResult;
+      const typedResult = castDeleteAgreementsResult(data);
       
       if (typedResult && typedResult.success) {
         toast.success(`Successfully deleted ${typedResult.deleted_count} agreements`);
@@ -204,7 +204,7 @@ const AgreementList = () => {
       if (error) throw error;
 
       // Cast the result to our known type
-      const typedResult = data as RevertAgreementImportResult;
+      const typedResult = castRevertAgreementImportResult(data);
 
       if (typedResult && typedResult.success) {
         toast.success(`Successfully reverted import. ${typedResult.deleted_count} agreements deleted.`);
@@ -231,7 +231,7 @@ const AgreementList = () => {
       if (error) throw error;
 
       // Cast the result to our known type
-      const typedResult = data as GenerateAgreementDocumentResult;
+      const typedResult = castGenerateAgreementDocumentResult(data);
 
       if (typedResult && typedResult.success) {
         toast.success("Document generated successfully");

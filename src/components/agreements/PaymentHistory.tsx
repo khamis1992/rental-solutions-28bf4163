@@ -24,6 +24,7 @@ import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
 import { ExtendedPayment, PaymentHistoryProps } from './PaymentHistory.types';
 import { castUnifiedPaymentLeaseId, castDatabaseId, castPaymentUpdate } from '@/utils/database-operations';
+import { hasData, isValidData } from '@/utils/database-helpers';
 
 const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
   try {

@@ -137,10 +137,12 @@ export const PaginationItem = ({
 export const PaginationLink = ({
   className,
   isActive,
+  onClick,
   children,
   ...props
 }: React.ComponentProps<typeof Button> & {
   isActive?: boolean;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) => {
   return (
     <Button
@@ -148,6 +150,7 @@ export const PaginationLink = ({
       variant={isActive ? "default" : "outline"}
       size="sm"
       className={className}
+      onClick={onClick}
       {...props}
     >
       {children}
@@ -157,12 +160,16 @@ export const PaginationLink = ({
 
 export const PaginationPrevious = ({
   className,
+  onClick,
   ...props
-}: React.ComponentProps<typeof Button>) => {
+}: React.ComponentProps<typeof Button> & {
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+}) => {
   return (
     <Button
       variant="outline"
       size="sm"
+      onClick={onClick}
       className={`gap-1 pl-2.5 ${className}`}
       {...props}
     >
@@ -174,12 +181,16 @@ export const PaginationPrevious = ({
 
 export const PaginationNext = ({
   className,
+  onClick,
   ...props
-}: React.ComponentProps<typeof Button>) => {
+}: React.ComponentProps<typeof Button> & {
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+}) => {
   return (
     <Button
       variant="outline"
       size="sm"
+      onClick={onClick}
       className={`gap-1 pr-2.5 ${className}`}
       {...props}
     >

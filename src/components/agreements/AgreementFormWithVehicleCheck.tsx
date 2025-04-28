@@ -5,8 +5,7 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { castLeaseStatus, castLeaseUpdate, asLeaseId } from '@/utils/database-type-helpers';
-import { Database } from '@/types/database.types';
+import { asLeaseId, asLeaseStatus, asLeaseUpdate } from '@/utils/database-helpers';
 
 interface AgreementFormWithVehicleCheckProps {
   children: React.ReactNode;
@@ -69,8 +68,8 @@ export function AgreementFormWithVehicleCheck({
     
     try {
       // Create update object with proper typing
-      const leaseUpdate = castLeaseUpdate({ 
-        status: castLeaseStatus('terminated')
+      const leaseUpdate = asLeaseUpdate({ 
+        status: asLeaseStatus('terminated')
       });
       
       // Convert ID to the correct type for querying
