@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
 import { ExtendedPayment, PaymentHistoryProps } from './PaymentHistory.types';
-import { castUnifiedPaymentLeaseId, castDatabaseId, castPaymentUpdate } from '@/utils/database-operations';
+import { castPaymentUpdate, castDatabaseId } from '@/utils/database-type-helpers';
 import { hasData, isValidData } from '@/utils/database-helpers';
 
 const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
@@ -56,7 +56,7 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
     const response = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', castUnifiedPaymentLeaseId(agreementId));
+      .eq('lease_id', castDatabaseId<'leases'>(agreementId));
       
     if (response.error) {
       throw new Error(response.error.message || 'Failed to fetch payments');

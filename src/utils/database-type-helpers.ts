@@ -80,6 +80,10 @@ export function castLeaseUpdate(updates: Partial<Tables['leases']['Update']>): T
   return updates as Tables['leases']['Update'];
 }
 
+export function castPaymentUpdate(updates: Partial<Tables['unified_payments']['Update']>): Tables['unified_payments']['Update'] {
+  return updates as Tables['unified_payments']['Update'];
+}
+
 // RPC function return types
 export interface DeleteAgreementsByImportIdResult {
   success: boolean;
@@ -110,4 +114,9 @@ export function castRevertAgreementImportResult(result: unknown): RevertAgreemen
 
 export function castGenerateAgreementDocumentResult(result: unknown): GenerateAgreementDocumentResult {
   return result as GenerateAgreementDocumentResult;
+}
+
+// Utility to help with database operations that need unified payment lease ID
+export function castUnifiedPaymentLeaseId(id: string): Tables['unified_payments']['Row']['lease_id'] {
+  return id as Tables['unified_payments']['Row']['lease_id'];
 }

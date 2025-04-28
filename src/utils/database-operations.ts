@@ -1,97 +1,82 @@
 
-import { Database } from '@/types/database.types';
+import { supabase } from '@/integrations/supabase/client';
 import { 
-  Tables,
-  UUID,
-  LeaseId,
-  PaymentId,
-  AgreementId 
-} from '@/types/database-types';
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+  castDatabaseId, 
+  asLeaseId, 
+  asPaymentId, 
+  castPaymentUpdate
+} from './database-type-helpers';
+import { Database } from '@/types/database.types';
+import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
 
-// Typed helper for cast lease ID
-export function castLeaseId(id: string): LeaseId {
-  return id as LeaseId;
-}
+type Tables = Database['public']['Tables'];
 
-// Typed helper for cast agreement ID
-export function castAgreementId(id: string): AgreementId {
-  return id as AgreementId;
-}
+// Unified payment functions
+export const updateUnifiedPayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
+  try {
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .update(castPaymentUpdate({
+        amount: updateData.amount,
+        amount_paid: updateData.amount_paid,
+        balance: updateData.balance,
+        payment_method: updateData.payment_method,
+        status: updateData.status,
+        description: updateData.description,
+        reference_number: updateData.reference_number,
+        notes: updateData.notes
+      }))
+      .eq('id', castDatabaseId<'unified_payments'>(paymentId))
+      .select();
 
-// Generic helper for database IDs 
-export function castDatabaseId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
-}
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    throw error;
+  }
+};
 
-// Type-safe helper for payment operations
-export function castPaymentUpdate(update: Partial<Tables['unified_payments']['Update']>): Tables['unified_payments']['Update'] {
-  return update as Tables['unified_payments']['Update'];
-}
-
-// Type-safe helper for overdue payments ID
-export function castOverduePaymentAgreementId(id: string): Tables['overdue_payments']['Row']['agreement_id'] {
-  return id as Tables['overdue_payments']['Row']['agreement_id'];
-}
-
-// Type-safe helper for unified payments lease ID
-export function castUnifiedPaymentLeaseId(id: string): Tables['unified_payments']['Row']['lease_id'] {
-  return id as Tables['unified_payments']['Row']['lease_id'];
-}
-
-// Type-safe helper for traffic fines agreement ID
-export function castTrafficFineAgreementId(id: string): Tables['traffic_fines']['Row']['agreement_id'] {
-  return id as Tables['traffic_fines']['Row']['agreement_id'];
-}
-
-// Type-safe helper for lease status
-export function castLeaseStatus(status: string): Tables['leases']['Row']['status'] {
-  return status as Tables['leases']['Row']['status'];
-}
-
-// Type-safe helper for lease update
-export function castLeaseUpdate(update: Partial<Tables['leases']['Update']>): Tables['leases']['Update'] {
-  return update as Tables['leases']['Update'];
-}
-
-// Type-safe helper for import ID
-export function castImportId(id: string): string {
-  return id as string;
-}
-
-// Utility function to check if response has data
-export function hasData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): response is { data: T; error: null } {
-  return response.data !== null && response.error === null;
-}
-
-// Helper functions for RPC function returns
-export interface DeleteAgreementsByImportIdResult {
-  success: boolean;
-  deleted_count: number;
-  message?: string;
-}
-
-export interface RevertAgreementImportResult {
-  success: boolean;
-  deleted_count: number;
-  message?: string;
-}
-
-export interface GenerateAgreementDocumentResult {
-  success: boolean;
-  document_url?: string;
-  message?: string;
-}
-
-// Type-safe casting functions for RPC results
-export function castDeleteAgreementsResult(result: unknown): DeleteAgreementsByImportIdResult {
-  return result as DeleteAgreementsByImportIdResult;
-}
-
-export function castRevertAgreementImportResult(result: unknown): RevertAgreementImportResult {
-  return result as RevertAgreementImportResult;
-}
-
-export function castGenerateAgreementDocumentResult(result: unknown): GenerateAgreementDocumentResult {
-  return result as GenerateAgreementDocumentResult;
-}
+// Fetch payments with proper typing
+export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPayment[]> => {
+  try {
+    const response = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', castDatabaseId<'leases'>(leaseId));
+      
+    if (response.error) {
+      throw new Error(response.error.message || 'Failed to fetch payments');
+    }
+    
+    const safeData = response.data || [];
+    
+    // Map to ensure all fields have valid defaults
+    return safeData.map(payment => ({
+      id: payment.id || '',
+      lease_id: payment.lease_id || '',
+      amount: payment.amount || 0,
+      amount_paid: payment.amount_paid || 0,
+      balance: payment.balance || 0,
+      payment_date: payment.payment_date || null,
+      payment_method: payment.payment_method || null,
+      description: payment.description || null,
+      status: payment.status || '',
+      created_at: payment.created_at || '',
+      updated_at: payment.updated_at || '',
+      original_due_date: payment.original_due_date || '',
+      due_date: payment.due_date || '',
+      is_recurring: payment.is_recurring || false,
+      type: payment.type || '',
+      days_overdue: payment.days_overdue || 0,
+      late_fine_amount: payment.late_fine_amount || 0,
+      processing_fee: payment.processing_fee || 0,
+      processed_by: payment.processed_by || '',
+      reference_number: payment.reference_number || '',
+      notes: payment.notes || ''
+    }));
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    return [];
+  }
+};
