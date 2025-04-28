@@ -70,7 +70,9 @@ export function AgreementFormWithVehicleCheck({
       // Use properly typed update
       const { error } = await supabase
         .from('leases')
-        .update({ status: asLeaseStatus('terminated') })
+        .update({ 
+          status: asLeaseStatus('terminated') 
+        })
         .eq('id', asLeaseId(existingAgreement.id));
       
       if (error) {
@@ -85,7 +87,7 @@ export function AgreementFormWithVehicleCheck({
       onValidationComplete(false);
     } finally {
       setIsDialogOpen(false);
-      setAgreementToDelete(null);
+      setExistingAgreement(null);
     }
   };
 

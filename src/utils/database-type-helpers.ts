@@ -48,8 +48,17 @@ export function asPaymentId(id: string): Tables['unified_payments']['Row']['id']
   return id as Tables['unified_payments']['Row']['id'];
 }
 
+export function asProfileId(id: string): Tables['profiles']['Row']['id'] {
+  return id as Tables['profiles']['Row']['id'];
+}
+
 export function asImportId(id: string): string {
   return id as string;
+}
+
+// Add the castRowData function for backward compatibility
+export function castRowData<T>(data: any): T {
+  return data as T;
 }
 
 // Add the castDbId function for backward compatibility
@@ -82,6 +91,10 @@ export function castLeaseUpdate(updates: Partial<Tables['leases']['Update']>): T
 
 export function castPaymentUpdate(updates: Partial<Tables['unified_payments']['Update']>): Tables['unified_payments']['Update'] {
   return updates as Tables['unified_payments']['Update'];
+}
+
+export function castProfileUpdate(updates: Partial<Tables['profiles']['Update']>): Tables['profiles']['Update'] {
+  return updates as Tables['profiles']['Update'];
 }
 
 // RPC function return types

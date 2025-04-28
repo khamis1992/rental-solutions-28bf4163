@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/types/database.types';
 import { ExtendedPayment } from '@/components/agreements/PaymentHistory.types';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
 // Type-safe database helpers
 type Tables = Database['public']['Tables'];
@@ -60,6 +61,11 @@ export const updateUnifiedPayment = async (paymentId: string, updateData: Partia
     throw error;
   }
 };
+
+// Type guard to check if response has data
+export function hasData<T>(response: PostgrestSingleResponse<T>): response is PostgrestSingleResponse<T> & { data: T } {
+  return response && response.data !== null && !response.error;
+}
 
 // Function to fetch payments with proper typing and error handling
 export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPayment[]> => {

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { hasData } from '@/utils/database-operations';
 import { Database } from '@/types/database.types';
+import { asLeaseId } from '@/utils/database-operations';
 
 interface ReassignmentWizardProps {
   onComplete: () => void;
@@ -26,9 +27,9 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
     const fetchAgreementData = async () => {
       setIsLoading(true);
       try {
-        const typedLeaseId = agreementId as Database['public']['Tables']['leases']['Row']['id'];
+        const typedLeaseId = asLeaseId(agreementId);
         
-        const { data, error } = await supabase
+        const response = await supabase
           .from('leases')
           .select(`
             id,
@@ -42,13 +43,15 @@ export const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({
           .eq('id', typedLeaseId)
           .maybeSingle();
 
-        if (error) throw error;
+        if (response.error) throw response.error;
         
-        if (data) {
+        if (response.data) {
           setAgreementData({
-            id: data.id,
-            agreement_number: data.agreement_number,
-            customer: data.customer && Array.isArray(data.customer) ? data.customer[0] : data.customer
+            id: response.data.id,
+            agreement_number: response.data.agreement_number,
+            customer: response.data.customer && Array.isArray(response.data.customer) 
+              ? response.data.customer[0] 
+              : response.data.customer
           });
         }
       } catch (error: any) {

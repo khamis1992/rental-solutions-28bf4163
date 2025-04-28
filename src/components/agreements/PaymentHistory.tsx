@@ -74,6 +74,7 @@ export function PaymentHistory({
     if (onEdit) onEdit(payment);
   };
 
+  // Updated to match the correct function signature for PaymentEditDialog
   const handleSavePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
     try {
       await updateUnifiedPayment(paymentId, updateData);
