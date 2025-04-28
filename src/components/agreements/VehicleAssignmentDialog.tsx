@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -9,8 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from '@/integrations/supabase/client';
-import { asVehicleId, isValidResponse } from "@/utils/database-type-helpers";
+import { createTableQuery } from '@/services/core/database-utils';
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -23,6 +21,8 @@ interface VehicleAssignmentDialogProps {
   };
 }
 
+const vehicleQuery = createTableQuery('vehicles');
+
 export function VehicleAssignmentDialog({
   isOpen,
   onClose,
@@ -34,43 +34,27 @@ export function VehicleAssignmentDialog({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch vehicle info when dialog is open and we have a vehicle ID
     if (isOpen && vehicleId) {
       fetchVehicleInfo();
     }
   }, [isOpen, vehicleId]);
 
-  /**
-   * Fetch vehicle information from the database
-   */
   async function fetchVehicleInfo() {
-    try {
-      if (!vehicleId) {
-        setVehicleInfo('Vehicle information not available');
-        setLoading(false);
-        return;
-      }
-      
-      const vehicleIdTyped = asVehicleId(vehicleId);
-      const response = await supabase
-        .from('vehicles')
-        .select('make, model, license_plate')
-        .eq('id', vehicleIdTyped)
-        .single();
-
-      if (response.error) throw response.error;
-
-      if (isValidResponse(response)) {
-        setVehicleInfo(`${response.data.make} ${response.data.model} (${response.data.license_plate})`);
-      } else {
-        setVehicleInfo('Vehicle information not available');
-      }
-    } catch (error) {
-      console.error("Error fetching vehicle info:", error);
-      setVehicleInfo('Error loading vehicle information');
-    } finally {
+    if (!vehicleId) {
+      setVehicleInfo('Vehicle information not available');
       setLoading(false);
+      return;
     }
+    
+    const vehicle = await vehicleQuery.findById(vehicleId);
+    
+    if (vehicle) {
+      setVehicleInfo(`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`);
+    } else {
+      setVehicleInfo('Vehicle information not available');
+    }
+    
+    setLoading(false);
   }
 
   return (

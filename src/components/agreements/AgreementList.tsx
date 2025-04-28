@@ -1,12 +1,12 @@
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { createTableQuery, asDbStatus, executeQuery } from '@/services/core/database-utils';
+import type { LeaseRow } from '@/services/core/database-types';
 import { 
   asImportId, 
   asLeaseId,
-  asLeaseStatus,
   castDeleteAgreementsResult,
   castRevertAgreementImportResult,
   castGenerateAgreementDocumentResult
@@ -49,7 +49,9 @@ import { useAuth } from "@/contexts/AuthContext";
 // Type for the database lease status to ensure type safety
 type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
 
-const AgreementList = () => {
+const leaseQuery = createTableQuery('leases');
+
+export default function AgreementList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [agreements, setAgreements] = useState<any[]>([]);
@@ -71,16 +73,12 @@ const AgreementList = () => {
     fetchImports();
   }, [currentPage, statusFilter, searchTerm, refreshTrigger]);
 
-  /**
-   * Fetch agreement data with pagination and filters
-   */
-  const fetchAgreements = async () => {
+  async function fetchAgreements() {
     setLoading(true);
     try {
       let query = supabase
-        .from("leases")
-        .select(
-          `
+        .from('leases')
+        .select(`
           *,
           vehicles:vehicle_id (
             make,
@@ -92,46 +90,31 @@ const AgreementList = () => {
             phone_number,
             email
           )
-        `,
-          { count: "exact" }
-        )
-        .order("created_at", { ascending: false })
+        `)
+        .order('created_at', { ascending: false })
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
-      // Apply status filter if selected
       if (statusFilter) {
-        // Use asLeaseStatus for proper typing
-        const typedStatus = asLeaseStatus(statusFilter as LeaseStatus);
-        query = query.eq("status", typedStatus);
+        const typedStatus = asDbStatus('leases', statusFilter);
+        query = query.eq('status', typedStatus);
       }
 
-      // Apply search term if provided
       if (searchTerm) {
         query = query.or(
           `agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,customer.full_name.ilike.%${searchTerm}%,customer.phone_number.ilike.%${searchTerm}%`
         );
       }
 
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      if (count !== null) {
-        setTotalPages(Math.ceil(count / pageSize));
+      const result = await executeQuery(() => query, 'Failed to fetch agreements');
+      
+      if (result) {
+        setAgreements(result);
       }
-
-      setAgreements(data || []);
-    } catch (error) {
-      console.error("Error fetching agreements:", error);
-      toast.error("Failed to load agreements");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  /**
-   * Fetch recent import data
-   */
   const fetchImports = async () => {
     try {
       const { data, error } = await supabase
@@ -147,17 +130,11 @@ const AgreementList = () => {
     }
   };
 
-  /**
-   * Handle delete button click
-   */
   const handleDeleteClick = (id: string) => {
     setAgreementToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
-  /**
-   * Handle deleting an import
-   */
   const handleDeleteImport = async (importId: string) => {
     try {
       const { data, error } = await supabase
@@ -181,43 +158,25 @@ const AgreementList = () => {
     }
   };
 
-  /**
-   * Handle agreement deletion confirmation
-   */
   const handleDeleteAgreement = async () => {
     if (!agreementToDelete) return;
-
-    try {
-      const typedLeaseId = asLeaseId(agreementToDelete);
-      
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', typedLeaseId);
-
-      if (error) throw error;
+    
+    const result = await leaseQuery.delete(agreementToDelete);
+    
+    if (result) {
       toast.success('Agreement deleted successfully');
       setRefreshTrigger((prev) => prev + 1);
-    } catch (err: any) {
-      console.error("Error deleting agreement:", err);
-      toast.error(err.message || 'An error occurred while deleting the agreement');
-    } finally {
-      setIsDeleteDialogOpen(false);
-      setAgreementToDelete(null);
     }
+    
+    setIsDeleteDialogOpen(false);
+    setAgreementToDelete(null);
   };
 
-  /**
-   * Handle revert import button click
-   */
   const handleRevertImport = (importId: string) => {
     setImportToRevert(importId);
     setIsImportRevertDialogOpen(true);
   };
 
-  /**
-   * Confirm import reversion with reason
-   */
   const confirmRevertImport = async (reason: string) => {
     if (!importToRevert) return;
 
@@ -247,9 +206,6 @@ const AgreementList = () => {
     }
   };
 
-  /**
-   * Generate document for an agreement
-   */
   const handleGenerateDocument = async (agreementId: string) => {
     try {
       const { data, error } = await supabase
@@ -275,9 +231,6 @@ const AgreementList = () => {
     }
   };
 
-  /**
-   * Get badge variant based on agreement status
-   */
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "active":
@@ -297,7 +250,6 @@ const AgreementList = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header with title and new agreement button */}
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Agreements</h2>
         <Button onClick={() => navigate("/agreements/new")}>
@@ -305,7 +257,6 @@ const AgreementList = () => {
         </Button>
       </div>
 
-      {/* Filters card */}
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
@@ -356,7 +307,6 @@ const AgreementList = () => {
         </CardContent>
       </Card>
 
-      {/* Agreement list card */}
       <Card>
         <CardHeader>
           <CardTitle>Agreement List</CardTitle>
@@ -474,7 +424,6 @@ const AgreementList = () => {
         </CardContent>
       </Card>
 
-      {/* Recent imports card */}
       {imports.length > 0 && (
         <Card>
           <CardHeader>
@@ -545,7 +494,6 @@ const AgreementList = () => {
         </Card>
       )}
 
-      {/* Confirmation dialogs */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => {
@@ -567,5 +515,3 @@ const AgreementList = () => {
     </div>
   );
 };
-
-export default AgreementList;

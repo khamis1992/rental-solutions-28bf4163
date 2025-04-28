@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
-import { asLeaseId, isValidResponse } from '@/utils/database-type-helpers';
+import { createTableQuery } from '@/services/core/database-utils';
+import type { LeaseRow } from '@/services/core/database-types';
 
 export interface ReassignmentWizardProps {
   agreementId: string;
@@ -19,55 +18,31 @@ interface AgreementDetails {
   customerPhone: string;
 }
 
+const leaseQuery = createTableQuery('leases');
+
 export function ReassignmentWizard({ agreementId, onComplete, onCancel }: ReassignmentWizardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
 
-  // Fetch agreement details on component mount
   useEffect(() => {
     fetchAgreementDetails();
   }, [agreementId]);
   
-  /**
-   * Fetch agreement details from the database
-   */
   async function fetchAgreementDetails() {
-    try {
-      setIsLoading(true);
-      
-      // Use asLeaseId for type safety
-      const typedLeaseId = asLeaseId(agreementId);
-      
-      const response = await supabase
-        .from('leases')
-        .select(`
-          id,
-          agreement_number,
-          customer:customer_id (
-            id,
-            full_name,
-            phone_number
-          )
-        `)
-        .eq('id', typedLeaseId)
-        .single();
-      
-      if (response.error) throw response.error;
-      
-      if (isValidResponse(response)) {
-        setAgreementDetails({
-          id: response.data.id,
-          agreementNumber: response.data.agreement_number,
-          customerName: response.data.customer?.full_name || 'N/A',
-          customerPhone: response.data.customer?.phone_number || 'N/A'
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching agreement details:', error);
-      toast.error('Could not load agreement details');
-    } finally {
-      setIsLoading(false);
+    setIsLoading(true);
+    
+    const response = await leaseQuery.findById(agreementId);
+    
+    if (response) {
+      setAgreementDetails({
+        id: response.id,
+        agreementNumber: response.agreement_number,
+        customerName: response.customer?.full_name || 'N/A',
+        customerPhone: response.customer?.phone_number || 'N/A'
+      });
     }
+    
+    setIsLoading(false);
   }
 
   return (
@@ -82,8 +57,6 @@ export function ReassignmentWizard({ agreementId, onComplete, onCancel }: Reassi
               <p>Current Customer: {agreementDetails.customerName}</p>
               <p>Phone: {agreementDetails.customerPhone}</p>
             </div>
-            
-            {/* Rest of the reassignment wizard would go here */}
             
             <div className="flex justify-end space-x-2 mt-4">
               <Button variant="outline" onClick={onCancel}>
