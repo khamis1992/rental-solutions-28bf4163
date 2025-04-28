@@ -26,6 +26,29 @@ export interface Agreement extends BaseEntity {
   payment_day: number;
   notes: string | null;
   last_payment_date: string | null;
+  
+  // Add fields for the ImportHistoryItem component
+  row_count?: number;
+  processed_count?: number;
+  failed_records?: number;
+  total_records?: number;
+  
+  // Add fields for nested objects often populated from database joins
+  customers?: {
+    id: DbId;
+    full_name: string;
+    email?: string;
+    phone_number?: string;
+  };
+  vehicles?: {
+    id: DbId;
+    make: string;
+    model: string;
+    license_plate: string;
+    image_url?: string;
+    year?: number;
+    color?: string;
+  };
 }
 
 export type AgreementStatus = 
@@ -54,6 +77,7 @@ export interface Payment extends BaseEntity {
   days_overdue?: number;
   original_due_date?: string | null;
   transaction_id?: string | null;
+  reference_number?: string | null;
 }
 
 export interface ImportHistoryItem extends BaseEntity {
@@ -62,5 +86,7 @@ export interface ImportHistoryItem extends BaseEntity {
   error_count?: number;
   processed_count?: number;
   row_count?: number;
+  total_records?: number;
+  processed_records?: number;
+  failed_records?: number;
 }
-

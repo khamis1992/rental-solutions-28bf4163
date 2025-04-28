@@ -9,8 +9,6 @@ const AgreementList: React.FC = () => {
     agreements,
     isLoading,
     error,
-    pagination,
-    setPagination,
     sorting,
     setSorting,
     globalFilter,
@@ -32,8 +30,6 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={mappedAgreements}
         isLoading={isLoading}
-        pagination={pagination}
-        setPagination={setPagination}
         sorting={sorting}
         setSorting={setSorting}
         globalFilter={globalFilter}
