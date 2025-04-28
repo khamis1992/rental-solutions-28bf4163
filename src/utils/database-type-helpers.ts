@@ -1,3 +1,7 @@
+/**
+ * Database type helper utilities
+ * Provides type conversion and validation functions for database operations
+ */
 
 // Re-export everything from the new database layer
 export * from '@/lib/database';
@@ -17,22 +21,40 @@ import {
 // Define a UUID type for backward compatibility
 export type uuid = string;
 
-// Function to properly handle AgreementForm requirements
+/**
+ * Validates and converts agreement status to database-compatible format
+ * @param status - Agreement status string
+ * @returns Validated agreement status
+ */
 export function asAgreementStatusColumn(status: string): string {
   return asLeaseStatus(status);
 }
 
-// Function to properly handle Vehicle status
+/**
+ * Validates and converts vehicle status to database-compatible format
+ * @param status - Vehicle status string
+ * @returns Validated vehicle status
+ */
 export function asVehicleStatusColumn(status: string): string {
   return asVehicleStatus(status);
 }
 
-// Function to properly handle Payment status
+/**
+ * Validates and converts payment status to database-compatible format
+ * @param status - Payment status string
+ * @returns Validated payment status
+ */
 export function asPaymentStatusColumn(status: string): string {
   return asPaymentStatus(status);
 }
 
-// Legacy functions with corrected implementations
+/**
+ * Generic status column converter for database entities
+ * @param status - Entity status string
+ * @param _table - Optional table name
+ * @param _column - Optional column name
+ * @returns Validated status string
+ */
 export function asStatusColumn<T extends keyof Database['public']['Tables']>(
   status: string,
   _table?: T,
@@ -41,7 +63,11 @@ export function asStatusColumn<T extends keyof Database['public']['Tables']>(
   return asEntityStatus(status);
 }
 
-// Add helpers for backward compatibility
+/**
+ * Type guard for checking if database response contains data
+ * @param response - Database query response
+ * @returns Type predicate indicating if response has data
+ */
 export function hasData<T>(
   response: any
 ): response is { data: T; error: null } {

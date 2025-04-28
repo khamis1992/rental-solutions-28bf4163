@@ -1,14 +1,11 @@
-
 import { vehicleRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
 import { asVehicleStatus } from '@/lib/database/utils';
 import { supabase } from '@/lib/supabase';
 
-// Define vehicle type for readability
 export type Vehicle = TableRow<'vehicles'>;
 
-// Define types for vehicle filters
 export interface VehicleFilterParams {
   status?: string;
   statuses?: string[];
@@ -26,7 +23,8 @@ export interface VehicleFilterParams {
 }
 
 /**
- * Vehicle service responsible for all operations related to vehicles
+ * Service responsible for managing vehicle operations in the fleet management system.
+ * Handles vehicle data management, status updates, and fleet analytics.
  */
 export class VehicleService extends BaseService<'vehicles'> {
   constructor() {
@@ -34,7 +32,10 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Find vehicles with optional filtering
+   * Finds vehicles based on specified filtering criteria
+   * @param filters - Optional filtering parameters for vehicle search
+   * @returns Promise with filtered vehicle records
+   * @throws Error if database operation fails
    */
   async findVehicles(filters?: VehicleFilterParams): Promise<ServiceResult<Vehicle[]>> {
     return handleServiceOperation(async () => {
@@ -42,15 +43,10 @@ export class VehicleService extends BaseService<'vehicles'> {
         .select('*, vehicle_types(*)');
       
       if (filters) {
-        // Support for multiple statuses
         if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
-          // Map all statuses to DB format using our utility function
           const dbStatuses = filters.statuses.map(status => asVehicleStatus(status));
           query = query.in('status', dbStatuses);
-        }
-        // Single status filter (backward compatibility)
-        else if (filters.status) {
-          // Convert application status to database status
+        } else if (filters.status) {
           const dbStatus = asVehicleStatus(filters.status);
           query = query.eq('status', dbStatus);
         }
@@ -89,7 +85,6 @@ export class VehicleService extends BaseService<'vehicles'> {
           );
         }
         
-        // Handle sorting
         if (filters.sortBy) {
           const direction = filters.sortDirection || 'asc';
           query = query.order(filters.sortBy, { ascending: direction === 'asc' });
@@ -107,7 +102,9 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Find available vehicles for assignment
+   * Retrieves available vehicles ready for assignment
+   * Filters vehicles with 'available' status for rental assignments
+   * @returns Promise with list of available vehicles
    */
   async findAvailableVehicles(): Promise<ServiceResult<Vehicle[]>> {
     return handleServiceOperation(async () => {
@@ -122,7 +119,9 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Get vehicle details with maintenance history
+   * Retrieves detailed vehicle information including maintenance history
+   * @param id - Vehicle identifier
+   * @returns Promise with vehicle details and associated maintenance records
    */
   async getVehicleDetails(id: string): Promise<ServiceResult<Vehicle & { maintenance: any[] }>> {
     return handleServiceOperation(async () => {
@@ -137,7 +136,10 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Update vehicle status
+   * Updates vehicle operational status
+   * @param id - Vehicle identifier
+   * @param status - New vehicle status
+   * @returns Promise with updated vehicle record
    */
   async updateStatus(id: string, status: string): Promise<ServiceResult<Vehicle>> {
     return handleServiceOperation(async () => {
@@ -153,7 +155,8 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Get vehicle types
+   * Gets vehicle types and categories
+   * @returns Promise with list of vehicle types
    */
   async getVehicleTypes(): Promise<ServiceResult<any[]>> {
     return handleServiceOperation(async () => {
@@ -172,11 +175,18 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Calculate utilization metrics
+   * Calculates vehicle utilization metrics for a specified period
+   * @param vehicleId - Vehicle identifier
+   * @param startDate - Beginning of analysis period
+   * @param endDate - End of analysis period
+   * @returns Promise with utilization metrics including revenue and occupancy rate
    */
-  async calculateUtilizationMetrics(vehicleId: string, startDate: Date, endDate: Date): Promise<ServiceResult<any>> {
+  async calculateUtilizationMetrics(
+    vehicleId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
-      // Get lease data for this vehicle in the given period
       const { data: leases, error } = await supabase
         .from('leases')
         .select('*')
@@ -188,25 +198,20 @@ export class VehicleService extends BaseService<'vehicles'> {
         throw new Error(`Failed to calculate vehicle utilization: ${error.message}`);
       }
       
-      // Calculate total days in period
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Calculate days the vehicle was rented
       let daysRented = 0;
       leases?.forEach(lease => {
         const leaseStart = new Date(lease.start_date || startDate);
         const leaseEnd = new Date(lease.end_date || endDate);
         
-        // Adjust dates to be within our calculation period
         const effectiveStart = leaseStart < startDate ? startDate : leaseStart;
         const effectiveEnd = leaseEnd > endDate ? endDate : leaseEnd;
         
-        // Calculate days for this lease and add to total
         const leaseDays = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24));
         daysRented += Math.max(0, leaseDays);
       });
       
-      // Calculate utilization rate
       const utilizationRate = totalDays > 0 ? (daysRented / totalDays) * 100 : 0;
       
       return {
@@ -219,5 +224,4 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 }
 
-// Create singleton instance
 export const vehicleService = new VehicleService();
