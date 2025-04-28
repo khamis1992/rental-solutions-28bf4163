@@ -92,7 +92,6 @@ const AgreementList = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (statusFilter) {
-        // Use typed status value with proper casting
         query = query.eq("status", asLeaseStatus(statusFilter));
       }
 
@@ -148,7 +147,6 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      // Cast the result to our known type
       const typedResult = castDeleteAgreementsResult(data);
       
       if (typedResult && typedResult.success) {
@@ -201,7 +199,6 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      // Cast the result to our known type
       const typedResult = castRevertAgreementImportResult(data);
 
       if (typedResult && typedResult.success) {
@@ -228,12 +225,10 @@ const AgreementList = () => {
 
       if (error) throw error;
 
-      // Cast the result to our known type
       const typedResult = castGenerateAgreementDocumentResult(data);
 
       if (typedResult && typedResult.success) {
         toast.success("Document generated successfully");
-        // Optionally open the document in a new tab or download it
         if (typedResult.document_url) {
           window.open(typedResult.document_url, "_blank");
         }

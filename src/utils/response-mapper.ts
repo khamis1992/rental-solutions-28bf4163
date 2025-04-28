@@ -16,7 +16,7 @@ export function exists<T>(value: T | null | undefined): value is T {
 export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): response is { data: NonNullable<T>; error: null } {
-  return Boolean(response && !response.error && response.data);
+  return Boolean(response && !response.error && exists(response.data));
 }
 
 /**
@@ -34,21 +34,21 @@ export function mapToExtendedPayment(
     amount_paid: Number(data.amount_paid) || 0,
     balance: Number(data.balance) || 0,
     payment_date: data.payment_date || '',
-    payment_method: data.payment_method,
-    reference_number: data.reference_number,
-    notes: data.notes,
-    description: data.description,
+    payment_method: data.payment_method || null,
+    reference_number: data.reference_number || '',
+    notes: data.notes || '',
+    description: data.description || null,
     status: data.status || 'pending',
     created_at: data.created_at || new Date().toISOString(),
-    updated_at: data.updated_at,
-    original_due_date: data.original_due_date,
-    due_date: data.due_date,
+    updated_at: data.updated_at || new Date().toISOString(),
+    original_due_date: data.original_due_date || null,
+    due_date: data.due_date || null,
     is_recurring: Boolean(data.is_recurring),
-    type: data.type,
+    type: data.type || '',
     days_overdue: Number(data.days_overdue) || 0,
     late_fine_amount: Number(data.late_fine_amount) || 0,
     processing_fee: Number(data.processing_fee) || 0,
-    processed_by: data.processed_by
+    processed_by: data.processed_by || ''
   };
 }
 
@@ -104,12 +104,18 @@ function logResponseError(
 ): void {
   console.error(`[Database Error] ${message}`, error, context);
   
-  // Log to the central error store
-  useErrorStore.getState().addError({
-    message: `${message}: ${error?.message || 'Unknown error'}`,
-    stack: error?.stack,
-    context,
-    severity: 'error',
-    handled: false,
-  });
+  // Log to the central error store if it exists
+  if (useErrorStore && useErrorStore.getState) {
+    try {
+      useErrorStore.getState().addError({
+        message: `${message}: ${error?.message || 'Unknown error'}`,
+        stack: error?.stack,
+        context,
+        severity: 'error',
+        handled: false,
+      });
+    } catch (storeError) {
+      console.error('Error using error store:', storeError);
+    }
+  }
 }

@@ -36,6 +36,12 @@ export function VehicleAssignmentDialog({
   useEffect(() => {
     async function fetchVehicleInfo() {
       try {
+        if (!vehicleId) {
+          setVehicleInfo('Vehicle information not available');
+          setLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('vehicles')
           .select('make, model, license_plate')

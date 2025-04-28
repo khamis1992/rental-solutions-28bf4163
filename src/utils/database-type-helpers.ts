@@ -56,14 +56,14 @@ export function asImportId(id: string): string {
   return id as string;
 }
 
-// Add the castRowData function for backward compatibility
+// Cast row data safely with proper typing
 export function castRowData<T>(data: any): T {
   return data as T;
 }
 
-// Add the castDbId function for backward compatibility
-export function castDbId<T extends keyof Tables>(id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+// Generic function to cast a string ID to any database table ID type
+export function castDbId<T extends keyof Tables>(id: string, table?: T): Tables[T extends keyof Tables ? T : 'leases']['Row']['id'] {
+  return id as any;
 }
 
 // Generic function to cast a string ID to any database table ID type
@@ -80,7 +80,7 @@ export function asPaymentStatus(status: string): Tables['unified_payments']['Row
   return status as Tables['unified_payments']['Row']['status'];
 }
 
-// Type-safe update helpers
+// Type-safe update helpers - converts partial objects into properly typed update objects
 export function castLeaseStatus(status: string): Tables['leases']['Row']['status'] {
   return status as Tables['leases']['Row']['status']; 
 }
@@ -95,6 +95,19 @@ export function castPaymentUpdate(updates: Partial<Tables['unified_payments']['U
 
 export function castProfileUpdate(updates: Partial<Tables['profiles']['Update']>): Tables['profiles']['Update'] {
   return updates as Tables['profiles']['Update'];
+}
+
+// Type guard for checking Supabase response validity
+export function hasData<T>(response: { data: T | null, error: any }): response is { data: T, error: null } {
+  return response !== null && response.error === null && response.data !== null;
+}
+
+// Function to safely handle Supabase responses
+export function safelyGetData<T>(response: { data: T | null, error: any }): T | null {
+  if (!response || response.error || !response.data) {
+    return null;
+  }
+  return response.data;
 }
 
 // RPC function return types

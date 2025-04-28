@@ -36,11 +36,13 @@ export function createPaymentUpdate(data: Partial<ExtendedPayment>): PaymentUpda
   if (data.status !== undefined) update.status = data.status;
   if (data.description !== undefined) update.description = data.description;
   if (data.notes !== undefined) update.notes = data.notes;
-  
-  // Handle reference_number (check if it exists in your database schema)
-  if ('reference_number' in (supabase.from('unified_payments').select()) && data.reference_number !== undefined) {
-    (update as any).reference_number = data.reference_number;
-  }
+  if (data.due_date !== undefined) update.due_date = data.due_date;
+  if (data.payment_date !== undefined) update.payment_date = data.payment_date;
+  if (data.original_due_date !== undefined) update.original_due_date = data.original_due_date;
+  if (data.late_fine_amount !== undefined) update.late_fine_amount = data.late_fine_amount;
+  if (data.days_overdue !== undefined) update.days_overdue = data.days_overdue;
+  if (data.is_recurring !== undefined) update.is_recurring = data.is_recurring;
+  if (data.type !== undefined) update.type = data.type;
   
   return update;
 }
@@ -94,8 +96,8 @@ export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPay
       status: payment.status || '',
       created_at: payment.created_at || '',
       updated_at: payment.updated_at || '',
-      original_due_date: payment.original_due_date || '',
-      due_date: payment.due_date || '',
+      original_due_date: payment.original_due_date || null,
+      due_date: payment.due_date || null,
       is_recurring: payment.is_recurring || false,
       type: payment.type || '',
       days_overdue: payment.days_overdue || 0,
@@ -110,3 +112,20 @@ export const fetchUnifiedPayments = async (leaseId: string): Promise<ExtendedPay
     return [];
   }
 };
+
+// Create a safe function to handle lease updates
+export async function updateLease(leaseId: string, updateData: Partial<Tables['leases']['Update']>) {
+  try {
+    const { data, error } = await supabase
+      .from('leases')
+      .update(updateData)
+      .eq('id', asLeaseId(leaseId))
+      .select();
+      
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error updating lease:', error);
+    throw error;
+  }
+}
