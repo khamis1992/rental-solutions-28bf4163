@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -19,8 +20,23 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <SectionHeader title="Dashboard" description={`Overview of your rental operations • ${currentDate}`} icon={LayoutDashboard} />
       </div>
       <div className="flex items-center space-x-2">
-        
-        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/system-settings')}
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </Button>
       </div>
     </div>;
 };

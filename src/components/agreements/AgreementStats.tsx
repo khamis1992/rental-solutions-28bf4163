@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { asLeaseStatus, asPaymentStatus } from '@/utils/type-casting';
+import { asLeaseStatus, asPaymentStatus } from '@/lib/database';
 
 interface AgreementStats {
   totalAgreements: number;
