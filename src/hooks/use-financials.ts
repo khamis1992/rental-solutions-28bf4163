@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
-import { useToast } from './use-toast';
-import { useApiMutation, useApiQuery } from './api/use-api';
-import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
+import { useApiMutation, useApiQuery } from './api';
+import { supabase } from '@/lib/supabase';
 
 const getSystemDate = () => new Date();
 
