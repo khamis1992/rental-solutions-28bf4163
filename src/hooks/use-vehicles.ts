@@ -1,15 +1,13 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';
-import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
+import { checkSupabaseHealth, checkConnectionWithRetry } from '@/integrations/supabase/client';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { handleApiError } from '@/hooks/use-api';
+import { handleApiError } from '@/lib/api/error-handlers';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
-import { safelyGetRecordFromResponse, safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
+import { safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -491,13 +489,9 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (updatedVehicle, variables) => {
-          // Completely invalidate the cache for this vehicle
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
-
-          // Update the cache directly with the new data to avoid flickering
           queryClient.setQueryData(['vehicles', variables.id], updatedVehicle);
-          
           console.log(`Cache invalidated and updated for vehicle ID: ${variables.id}`);
           console.log('Updated vehicle data in cache:', updatedVehicle);
         },

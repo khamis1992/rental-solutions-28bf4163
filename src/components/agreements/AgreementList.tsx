@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { mapDbToAgreement } from '@/utils/type-adapters';
+import { mapDbToAgreement } from '@/services/agreement/transformations';
 
 const AgreementList: React.FC = () => {
   const {
@@ -13,6 +13,9 @@ const AgreementList: React.FC = () => {
     setSorting,
     globalFilter,
     setGlobalFilter,
+    rowSelection,
+    setRowSelection,
+    handleBulkDelete
   } = useAgreementTable();
 
   if (isLoading) {
@@ -24,21 +27,16 @@ const AgreementList: React.FC = () => {
   }
 
   // Map database agreements to proper Agreement type including required fields
-  const mappedAgreements = agreements?.map(agreement => ({
-    ...mapDbToAgreement(agreement),
-    // Add the required fields that might be missing from mapDbToAgreement
-    payment_frequency: agreement.payment_frequency || 'monthly',
-    payment_day: agreement.rent_due_day || 1,
-  })) || [];
+  const mappedAgreements = agreements?.map(agreement => mapDbToAgreement(agreement)) || [];
 
   return (
     <div>
       <AgreementTable
         agreements={mappedAgreements}
         isLoading={isLoading}
-        // Remove sorting props as they might not be supported by AgreementTable
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
+        deleteAgreement={handleBulkDelete}
       />
     </div>
   );

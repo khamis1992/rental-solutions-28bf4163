@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/lib/api/error-handlers';
 import { CacheManager } from '@/lib/cache-utils';
+import { getTimeAgo, parseTimeAgo, processActivityData } from '@/services/dashboard/analytics';
 
 export interface DashboardStats {
   vehicleStats: {

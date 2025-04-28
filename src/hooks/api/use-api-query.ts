@@ -1,43 +1,32 @@
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/api/error-handlers';
+import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { createQueryConfig } from '@/lib/api/query-config';
+import { handleApiError } from '@/lib/api/error-handlers';
 
-export function useApiQuery<TData>(
+/**
+ * Custom hook for API queries with standardized configuration and error handling
+ * 
+ * @param queryKey - The React Query key for caching
+ * @param queryFn - The function that fetches data
+ * @param options - Additional React Query options
+ * @returns The result from useQuery with proper error handling
+ */
+export function useApiQuery<TData, TError = Error>(
   queryKey: unknown[],
   queryFn: () => Promise<TData>,
-  options?: {
-    enabled?: boolean;
-    refetchOnMount?: boolean;
-    refetchOnWindowFocus?: boolean;
-    refetchOnReconnect?: boolean;
-    retry?: boolean | number;
-  }
-): UseQueryResult<TData | null, Error> {
+  options?: Omit<UseQueryOptions<TData, TError, TData>, 'queryKey' | 'queryFn'>
+) {
   return useQuery({
     queryKey,
     queryFn: async () => {
       try {
-        const response = await queryFn();
-        
-        if (response === null || response === undefined) {
-          throw new Error('No data received from the server');
-        }
-        
-        if (typeof response === 'object' && 'error' in response) {
-          const supabaseResponse = response as { error: any; data: TData };
-          if (supabaseResponse.error) {
-            throw supabaseResponse.error;
-          }
-          return supabaseResponse.data;
-        }
-        
-        return response;
+        return await queryFn();
       } catch (error) {
-        handleApiError(error, `Error fetching ${queryKey[0]}`);
+        handleApiError(error);
         throw error;
       }
     },
-    ...createQueryConfig(options)
+    ...createQueryConfig(options),
+    ...options
   });
 }
