@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { FormField, FormGroup, FormRow } from '@/components/ui/form-components';
+import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
+import { Input } from "@/components/ui/input";
 import type { PaymentEntryDialogProps, Payment } from '@/types/agreement-types';
 
 export function PaymentEntryDialog({
@@ -17,9 +19,7 @@ export function PaymentEntryDialog({
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(selectedPayment?.include_late_fee || false);
   const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(selectedPayment?.is_partial || false);
 
-  const handleSubmit = async (payment: Partial<Payment>) => {
-    // Remove options field as it's not part of the Payment type
-    const { options, ...paymentData } = payment as any;
+  const handleSubmit = async () => {
     await onSubmit(
       amount,
       paymentDate,
@@ -65,6 +65,7 @@ export function PaymentEntryDialog({
                   id="paymentMethod"
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
                 >
                   <option value="cash">Cash</option>
                   <option value="credit_card">Credit Card</option>
@@ -91,35 +92,41 @@ export function PaymentEntryDialog({
                   id="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
                 />
               </FormField>
             </FormRow>
           </FormGroup>
           <FormGroup>
             <FormRow>
-              <label htmlFor="includeLatePaymentFee">
-                Include Late Payment Fee
+              <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="includeLatePaymentFee"
                   checked={includeLatePaymentFee}
                   onChange={(e) => setIncludeLatePaymentFee(e.target.checked)}
+                  className="rounded border-gray-300"
                 />
+                <span>Include Late Payment Fee</span>
               </label>
             </FormRow>
             <FormRow>
-              <label htmlFor="isPartialPayment">
-                Is Partial Payment
+              <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="isPartialPayment"
                   checked={isPartialPayment}
                   onChange={(e) => setIsPartialPayment(e.target.checked)}
+                  className="rounded border-gray-300"
                 />
+                <span>Is Partial Payment</span>
               </label>
             </FormRow>
           </FormGroup>
-          <button onClick={() => handleSubmit({})}>Submit Payment</button>
+          <button
+            onClick={handleSubmit}
+            className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
+          >
+            Submit Payment
+          </button>
         </FormSection>
       </DialogContent>
     </Dialog>

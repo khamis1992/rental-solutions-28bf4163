@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
@@ -6,9 +7,8 @@ import type { AgreementStatus } from '@/types/agreement-types';
 
 const AgreementList: React.FC = () => {
   const {
-    data: agreements,
+    agreements,
     isLoading,
-    isError,
     error,
     updateAgreement,
     pagination,
@@ -23,7 +23,7 @@ const AgreementList: React.FC = () => {
     return <div>Loading agreements...</div>;
   }
 
-  if (isError) {
+  if (error) {
     return <div>Error: {error.message}</div>;
   }
 
@@ -34,7 +34,7 @@ const AgreementList: React.FC = () => {
   return (
     <div>
       <AgreementTable
-        data={agreements}
+        agreements={agreements}
         isLoading={isLoading}
         pagination={pagination}
         setPagination={setPagination}
