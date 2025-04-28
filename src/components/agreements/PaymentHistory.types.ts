@@ -35,3 +35,15 @@ export interface PaymentFormValues {
   reference_number?: string;
   notes?: string;
 }
+
+export interface PaymentHistoryProps {
+  agreementId: string;
+  isLoading?: boolean;
+  onPaymentDeleted: () => void;
+  onPaymentUpdated: () => Promise<void>;
+  onEdit: (payment: ExtendedPayment) => void;
+  onDelete: (payment: ExtendedPayment) => void;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  payments?: ExtendedPayment[];
+}

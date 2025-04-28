@@ -7,6 +7,7 @@ import {
   PaymentId,
   AgreementId 
 } from '@/types/database-types';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
 // Typed helper for cast lease ID
 export function castLeaseId(id: string): LeaseId {
@@ -53,7 +54,12 @@ export function castLeaseUpdate(update: Partial<Tables['leases']['Update']>): Ta
   return update as Tables['leases']['Update'];
 }
 
+// Type-safe helper for import ID
+export function castImportId(id: string): string {
+  return id as string;
+}
+
 // Utility function to check if response has data
-export function hasData<T>(response: { data: T | null; error: any }): response is { data: T; error: null } {
+export function hasData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): response is { data: T; error: null } {
   return response.data !== null && response.error === null;
 }

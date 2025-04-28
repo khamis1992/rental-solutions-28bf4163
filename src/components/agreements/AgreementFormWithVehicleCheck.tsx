@@ -5,11 +5,6 @@ import { checkVehicleAvailability } from '@/utils/agreement-utils';
 import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  asLeaseId,
-  asLeaseStatus,
-  asLeaseUpdate
-} from '@/utils/database-type-helpers';
 import { castLeaseStatus, castLeaseUpdate, castLeaseId } from '@/utils/database-operations';
 import { Database } from '@/types/database.types';
 

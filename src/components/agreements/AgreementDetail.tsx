@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -199,6 +200,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
             </div>
           ) : (
             <PaymentHistory
+              agreementId={id as string}
               payments={payments}
               isLoading={isPaymentsLoading}
               onPaymentDeleted={onPaymentDeleted}

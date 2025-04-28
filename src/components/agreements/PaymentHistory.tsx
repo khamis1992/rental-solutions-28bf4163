@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -6,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import {
@@ -16,17 +17,24 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import PaymentEditDialog from './PaymentEditDialog';
 import { ExtendedPayment } from './PaymentHistory.types';
-import { asUnifiedPaymentLeaseId } from '@/utils/database-type-helpers';
 import { castUnifiedPaymentLeaseId, castDatabaseId, castPaymentUpdate, hasData } from '@/utils/database-operations';
 
 interface PaymentHistoryProps {
   agreementId: string;
+  isLoading?: boolean;
+  onPaymentDeleted: () => void;
+  onPaymentUpdated: () => Promise<void>;
+  onEdit: (payment: ExtendedPayment) => void;
+  onDelete: (payment: ExtendedPayment) => void;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  payments?: ExtendedPayment[];
 }
 
 const updatePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
@@ -92,43 +100,61 @@ const fetchPayments = async (agreementId: string): Promise<ExtendedPayment[]> =>
   }
 };
 
-const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
-  const [payments, setPayments] = useState<ExtendedPayment[]>([]);
-  const [loading, setLoading] = useState(true);
+const PaymentHistory: React.FC<PaymentHistoryProps> = ({ 
+  agreementId,
+  payments = [],
+  isLoading = false,
+  onPaymentDeleted,
+  onPaymentUpdated,
+  onEdit,
+  onDelete,
+  rentAmount,
+  contractAmount
+}) => {
+  const [localPayments, setLocalPayments] = useState<ExtendedPayment[]>(payments);
+  const [loading, setLoading] = useState(isLoading);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<ExtendedPayment | null>(null);
 
   useEffect(() => {
-    const loadPayments = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const paymentData = await fetchPayments(agreementId);
-        setPayments(paymentData);
-      } catch (e: any) {
-        setError(e.message || 'Failed to load payments.');
-        toast.error(e.message || 'Failed to load payments.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLocalPayments(payments);
+  }, [payments]);
 
-    loadPayments();
-  }, [agreementId]);
+  useEffect(() => {
+    if (payments.length === 0 && !isLoading) {
+      const loadPayments = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const paymentData = await fetchPayments(agreementId);
+          setLocalPayments(paymentData);
+        } catch (e: any) {
+          setError(e.message || 'Failed to load payments.');
+          toast.error(e.message || 'Failed to load payments.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadPayments();
+    }
+  }, [agreementId, isLoading, payments]);
 
   const handleEditPayment = (payment: ExtendedPayment) => {
     setSelectedPayment(payment);
     setEditDialogOpen(true);
+    if (onEdit) onEdit(payment);
   };
 
   const handleSavePayment = async (paymentId: string, updateData: Partial<ExtendedPayment>) => {
     try {
       await updatePayment(paymentId, updateData);
-      const updatedPayments = payments.map(payment =>
+      const updatedPayments = localPayments.map(payment =>
         payment.id === paymentId ? { ...payment, ...updateData } : payment
       );
-      setPayments(updatedPayments);
+      setLocalPayments(updatedPayments);
+      if (onPaymentUpdated) await onPaymentUpdated();
       toast.success('Payment updated successfully!');
     } catch (e: any) {
       setError(e.message || 'Failed to update payment.');
@@ -158,7 +184,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {payments.map((payment) => (
+            {localPayments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>{payment.payment_date}</TableCell>
                 <TableCell>{formatCurrency(payment.amount)}</TableCell>
@@ -182,6 +208,11 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
                       >
                         Edit Payment
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onDelete(payment)}
+                      >
+                        Delete Payment
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -199,9 +230,7 @@ const PaymentHistory: React.FC<PaymentHistoryProps> = ({ agreementId }) => {
             setEditDialogOpen(false);
             setSelectedPayment(null);
           }}
-          onSave={(paymentId: string, updateData: Partial<ExtendedPayment>) => {
-            handleSavePayment(paymentId, updateData);
-          }}
+          onSave={handleSavePayment}
         />
       )}
     </div>
