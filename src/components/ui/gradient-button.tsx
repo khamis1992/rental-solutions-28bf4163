@@ -1,50 +1,47 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Button, ButtonProps } from '@/components/ui/button';
+import { type ButtonProps } from '@/components/ui/button';
 
 interface GradientButtonProps extends ButtonProps {
-  gradientFrom?: string;
-  gradientTo?: string;
-  hoverGradientFrom?: string;
-  hoverGradientTo?: string;
-  glow?: boolean;
+  gradient?: 'primary' | 'success' | 'warning' | 'danger';
+  isLoading?: boolean;
 }
 
-const GradientButton = React.forwardRef<HTMLButtonElement, GradientButtonProps>(
-  ({ 
-    className, 
-    variant = "default", 
-    size, 
-    gradientFrom = "from-primary", 
-    gradientTo = "to-blue-500",
-    hoverGradientFrom = "hover:from-blue-600",
-    hoverGradientTo = "hover:to-primary",
-    glow = false,
-    ...props 
-  }, ref) => {
-    return (
-      <Button
-        className={cn(
-          "bg-gradient-to-r transition-all duration-300",
-          gradientFrom,
-          gradientTo,
-          hoverGradientFrom,
-          hoverGradientTo,
-          glow && "shadow-[0_0_20px_rgba(59,130,246,0.5)]",
-          "transform hover:scale-[1.02] active:scale-[0.98]",
-          "hover:shadow-lg",
-          className
-        )}
-        variant={variant}
-        size={size}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
+export function GradientButton({
+  gradient = 'primary',
+  isLoading,
+  className,
+  children,
+  ...props
+}: GradientButtonProps) {
+  const gradientStyles = {
+    primary: 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+    success: 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600',
+    warning: 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600',
+    danger: 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600',
+  };
 
-GradientButton.displayName = 'GradientButton';
-
-export { GradientButton };
+  return (
+    <Button
+      className={cn(
+        gradientStyles[gradient],
+        "text-white transition-all duration-200 shadow-lg hover:shadow-xl",
+        isLoading && "opacity-80 cursor-not-allowed",
+        className
+      )}
+      disabled={isLoading}
+      {...props}
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span>Loading...</span>
+        </div>
+      ) : (
+        children
+      )}
+    </Button>
+  );
+}
