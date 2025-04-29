@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FileUp, AlertTriangle, UserPlus, RefreshCw } from 'lucide-react';
-import { CustomerList } from '@/components/customers/CustomerList';
+import CustomerList from '@/components/customers/CustomerList';
 import { ImportHistoryList } from '@/components/customers/ImportHistoryList';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { Button } from '@/components/ui/button';
