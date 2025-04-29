@@ -1,8 +1,5 @@
-import { vehicleRepository } from '@/lib/database';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
+import { ApiClient } from './ApiClient';
 import { TableRow } from '@/lib/database/types';
-import { asVehicleStatus } from '@/lib/database/utils';
-import { supabase } from '@/lib/supabase';
 
 export type Vehicle = TableRow<'vehicles'>;
 
@@ -23,240 +20,121 @@ export interface VehicleFilterParams {
 }
 
 /**
- * Service responsible for managing vehicle operations in the fleet management system.
- * Handles vehicle data management, status updates, and fleet analytics.
+ * VehicleService provides methods to interact with vehicle-related API endpoints
+ * using the centralized ApiClient. All methods are fully typed and documented.
  */
-export class VehicleService extends BaseService<'vehicles'> {
-  constructor() {
-    super(vehicleRepository);
+export class VehicleService {
+  private api: ApiClient;
+
+  constructor(apiClient?: ApiClient) {
+    this.api = apiClient || new ApiClient({
+      baseURL: '/api',
+      getAuthToken: () => localStorage.getItem('token') || '',
+    });
   }
 
   /**
    * Finds vehicles based on specified filtering criteria
    * @param filters - Optional filtering parameters for vehicle search
-   * @returns Promise with filtered vehicle records
-   * @throws Error if database operation fails
+   * @param pagination - Pagination options
+   * @returns Promise with filtered vehicle records and count
    */
-  async findVehicles(filters?: VehicleFilterParams, pagination?: { page: number; pageSize: number }): Promise<ServiceResult<{ data: Vehicle[]; count: number }>> {
-    return handleServiceOperation(async () => {
-      let query = supabase.from('vehicles')
-        .select('id, make, model, year, license_plate, status, vehicle_type_id, location, created_at, updated_at, vehicle_types(id, name)', { count: 'exact' });
-      
-      if (filters) {
-        if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
-          const dbStatuses = filters.statuses.map(status => asVehicleStatus(status));
-          query = query.in('status', dbStatuses);
-        } else if (filters.status) {
-          const dbStatus = asVehicleStatus(filters.status);
-          query = query.eq('status', dbStatus);
-        }
-        
-        if (filters.make) {
-          query = query.eq('make', filters.make);
-        }
-        
-        if (filters.model) {
-          query = query.eq('model', filters.model);
-        }
-        
-        if (filters.year) {
-          query = query.eq('year', filters.year);
-        }
-        
-        if (filters.minYear && filters.maxYear) {
-          query = query.gte('year', filters.minYear).lte('year', filters.maxYear);
-        } else if (filters.minYear) {
-          query = query.gte('year', filters.minYear);
-        } else if (filters.maxYear) {
-          query = query.lte('year', filters.maxYear);
-        }
-        
-        if (filters.location) {
-          query = query.eq('location', filters.location);
-        }
-
-        if (filters.vehicle_type_id) {
-          query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-        }
-        
-        if (filters.searchTerm) {
-          query = query.or(
-            `license_plate.ilike.%${filters.searchTerm}%,make.ilike.%${filters.searchTerm}%,model.ilike.%${filters.searchTerm}%,vin.ilike.%${filters.searchTerm}%`
-          );
-        }
-        
-        if (filters.sortBy) {
-          const direction = filters.sortDirection || 'asc';
-          query = query.order(filters.sortBy, { ascending: direction === 'asc' });
-        }
-      }
-      
-      // Pagination
-      if (pagination) {
-        const { page, pageSize } = pagination;
-        const start = (page - 1) * pageSize;
-        query = query.range(start, start + pageSize - 1);
-      }
-
-      const { data, error, count } = await query;
-      
-      if (error) {
-        throw new Error(`Failed to fetch vehicles: ${error.message}`);
-      }
-      
-      return { data: data || [], count: count || 0 };
-    });
+  async findVehicles(filters?: VehicleFilterParams, pagination?: { page: number; pageSize: number }): Promise<{ data: Vehicle[]; count: number }> {
+    const params: any = { ...filters };
+    if (pagination) {
+      params.page = pagination.page;
+      params.pageSize = pagination.pageSize;
+    }
+    // GET /vehicles?status=...&searchTerm=...&page=...&pageSize=...
+    return this.api.get<{ data: Vehicle[]; count: number }>('/vehicles', params, true);
   }
 
   /**
    * Batch update vehicles by IDs
+   * @param ids - Array of vehicle IDs
+   * @param updates - Partial vehicle object with updated fields
+   * @returns Number of updated records
    */
-  async batchUpdate(ids: string[], updates: Partial<Vehicle>): Promise<ServiceResult<number>> {
-    return handleServiceOperation(async () => {
-      const { error, count } = await supabase
-        .from('vehicles')
-        .update(updates)
-        .in('id', ids);
-      if (error) throw new Error(error.message);
-      return count || 0;
-    });
+  async batchUpdate(ids: string[], updates: Partial<Vehicle>): Promise<number> {
+    // PUT /vehicles/batch-update
+    const result = await this.api.put<{ count: number }>('/vehicles/batch-update', { ids, updates });
+    return result.count;
   }
 
   /**
    * Batch delete vehicles by IDs
+   * @param ids - Array of vehicle IDs
+   * @returns Number of deleted records
    */
-  async batchDelete(ids: string[]): Promise<ServiceResult<number>> {
-    return handleServiceOperation(async () => {
-      const { error, count } = await supabase
-        .from('vehicles')
-        .delete()
-        .in('id', ids);
-      if (error) throw new Error(error.message);
-      return count || 0;
-    });
+  async batchDelete(ids: string[]): Promise<number> {
+    // DELETE /vehicles/batch-delete
+    const result = await this.api.delete<{ count: number }>('/vehicles/batch-delete', { ids });
+    return result.count;
   }
 
   /**
    * Retrieves available vehicles ready for assignment
-   * Filters vehicles with 'available' status for rental assignments
-   * @returns Promise with list of available vehicles
+   * @returns List of available vehicles
    */
-  async findAvailableVehicles(): Promise<ServiceResult<Vehicle[]>> {
-    return handleServiceOperation(async () => {
-      const response = await this.repository.findByStatus(asVehicleStatus('available'));
-      
-      if (response.error) {
-        throw new Error(`Failed to fetch available vehicles: ${response.error.message}`);
-      }
-      
-      return response.data;
-    });
+  async findAvailableVehicles(): Promise<Vehicle[]> {
+    // GET /vehicles/available
+    return this.api.get<Vehicle[]>('/vehicles/available');
   }
 
   /**
    * Retrieves detailed vehicle information including maintenance history
    * @param id - Vehicle identifier
-   * @returns Promise with vehicle details and associated maintenance records
+   * @returns Vehicle details and associated maintenance records
    */
-  async getVehicleDetails(id: string): Promise<ServiceResult<Vehicle & { maintenance: any[] }>> {
-    return handleServiceOperation(async () => {
-      const response = await this.repository.findWithDetails(id);
-      
-      if (response.error) {
-        throw new Error(`Failed to fetch vehicle details: ${response.error.message}`);
-      }
-      
-      return response.data;
-    });
+  async getVehicleDetails(id: string): Promise<Vehicle & { maintenance: any[] }> {
+    // GET /vehicles/:id/details
+    return this.api.get<Vehicle & { maintenance: any[] }>(`/vehicles/${id}/details`);
+  }
+
+  /**
+   * Updates a single vehicle by ID
+   * @param id - Vehicle identifier
+   * @param updates - Partial vehicle object with updated fields
+   * @returns The updated vehicle
+   */
+  async updateVehicle(id: string, updates: Partial<Vehicle>): Promise<Vehicle> {
+    // PATCH /vehicles/:id
+    return this.api.patch<Vehicle>(`/vehicles/${id}`, updates);
   }
 
   /**
    * Updates vehicle operational status
    * @param id - Vehicle identifier
    * @param status - New vehicle status
-   * @returns Promise with updated vehicle record
+   * @returns Updated vehicle record
    */
-  async updateStatus(id: string, status: string): Promise<ServiceResult<Vehicle>> {
-    return handleServiceOperation(async () => {
-      const dbStatus = asVehicleStatus(status);
-      const response = await this.repository.updateStatus(id, dbStatus);
-      
-      if (response.error) {
-        throw new Error(`Failed to update vehicle status: ${response.error.message}`);
-      }
-      
-      return response.data;
-    });
+  async updateStatus(id: string, status: string): Promise<Vehicle> {
+    // PATCH /vehicles/:id/status
+    return this.api.patch<Vehicle>(`/vehicles/${id}/status`, { status });
   }
 
   /**
    * Gets vehicle types and categories
-   * @returns Promise with list of vehicle types
+   * @returns List of vehicle types
    */
-  async getVehicleTypes(): Promise<ServiceResult<any[]>> {
-    return handleServiceOperation(async () => {
-      const { data, error } = await supabase
-        .from('vehicle_types')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (error) {
-        throw new Error(`Failed to fetch vehicle types: ${error.message}`);
-      }
-      
-      return data || [];
-    });
+  async getVehicleTypes(): Promise<any[]> {
+    // GET /vehicle-types
+    return this.api.get<any[]>('/vehicle-types');
   }
+}
 
-  /**
-   * Calculates vehicle utilization metrics for a specified period
-   * @param vehicleId - Vehicle identifier
-   * @param startDate - Beginning of analysis period
-   * @param endDate - End of analysis period
-   * @returns Promise with utilization metrics including revenue and occupancy rate
-   */
-  async calculateUtilizationMetrics(
-    vehicleId: string, 
-    startDate: Date, 
-    endDate: Date
-  ): Promise<ServiceResult<any>> {
-    return handleServiceOperation(async () => {
-      const { data: leases, error } = await supabase
-        .from('leases')
-        .select('*')
-        .eq('vehicle_id', vehicleId)
-        .gte('start_date', startDate.toISOString())
-        .lte('end_date', endDate.toISOString());
-        
-      if (error) {
-        throw new Error(`Failed to calculate vehicle utilization: ${error.message}`);
-      }
-      
-      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      let daysRented = 0;
-      leases?.forEach(lease => {
-        const leaseStart = new Date(lease.start_date || startDate);
-        const leaseEnd = new Date(lease.end_date || endDate);
-        
-        const effectiveStart = leaseStart < startDate ? startDate : leaseStart;
-        const effectiveEnd = leaseEnd > endDate ? endDate : leaseEnd;
-        
-        const leaseDays = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24));
-        daysRented += Math.max(0, leaseDays);
-      });
-      
-      const utilizationRate = totalDays > 0 ? (daysRented / totalDays) * 100 : 0;
-      
-      return {
-        totalDays,
-        daysRented,
-        utilizationRate: Math.round(utilizationRate * 100) / 100,
-        leasesCount: leases?.length || 0
-      };
-    });
+// Add PATCH support to ApiClient prototype if not present
+declare module './ApiClient' {
+  interface ApiClient {
+    patch<T>(url: string, data?: any): Promise<T>;
   }
+}
+
+if (!ApiClient.prototype.patch) {
+  ApiClient.prototype.patch = function<T>(url: string, data?: any) {
+    // @ts-ignore
+    return this.request<T>({ method: 'PATCH', url, data });
+  };
 }
 
 export const vehicleService = new VehicleService();

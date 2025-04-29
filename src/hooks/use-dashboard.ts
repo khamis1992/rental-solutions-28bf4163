@@ -47,7 +47,7 @@ interface MaintenanceWithRelations {
   created_at: string;
   vehicle_id: string;
   maintenance_type: string;
-  vehicles: { make: string; model: license_plate: string } | null;
+  vehicles: { make: string; model: string; license_plate: string } | null;
 }
 
 export interface RecentActivity {
