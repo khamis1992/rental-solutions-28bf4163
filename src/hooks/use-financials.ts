@@ -22,18 +22,6 @@ export function useFinancials() {
   const { addTransaction, updateTransaction, deleteTransaction } = useFinancialMutations(refetchTransactions, refetchSummary);
   const { addExpense, updateExpense, deleteExpense } = useExpenseMutations(refetchTransactions, refetchSummary);
 
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const lastCheck = localStorage.getItem('lastPaymentCheck');
-    if (!lastCheck || lastCheck !== today) {
-      localStorage.setItem('lastPaymentCheck', today);
-      if (typeof checkAndGenerateMonthlyPayments === 'function') {
-        checkAndGenerateMonthlyPayments().then((result) => {
-          console.log("Daily payment check completed:", result);
-        });
-      }
-    }
-  }, []);
 
   return {
     transactions,
