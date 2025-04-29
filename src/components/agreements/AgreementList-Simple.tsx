@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FilePlus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
-import { AgreementTable } from './table/AgreementTable';
+import VirtualizedAgreementTable from './table/VirtualizedAgreementTable';
 import { mapDbToAgreement } from '@/services/agreement/transformations';
 import {
   AlertDialog,
@@ -58,7 +58,7 @@ export function AgreementList() {
         </Button>
       </div>
 
-      <AgreementTable
+      <VirtualizedAgreementTable
         agreements={mappedAgreements}
         isLoading={isLoading}
         rowSelection={rowSelection}

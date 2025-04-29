@@ -1,35 +1,39 @@
-
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { getAgreementColumns } from './AgreementTableColumns';
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
 import AgreementRow from './AgreementRow';
 import { Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useReactTable, flexRender, getCoreRowModel } from '@tanstack/react-table';
+import { FixedSizeList as List } from 'react-window';
 
-interface AgreementTableProps {
+interface VirtualizedAgreementTableProps {
   agreements: Agreement[];
   isLoading: boolean;
   rowSelection: Record<string, boolean>;
   setRowSelection: (selection: Record<string, boolean>) => void;
   deleteAgreement: (id: string) => void;
+  height?: number;
+  rowHeight?: number;
 }
 
-export function AgreementTable({ 
-  agreements, 
+export function VirtualizedAgreementTable({
+  agreements,
   isLoading,
   rowSelection,
   setRowSelection,
-  deleteAgreement
-}: AgreementTableProps) {
+  deleteAgreement,
+  height = 400,
+  rowHeight = 56,
+}: VirtualizedAgreementTableProps) {
   const columns = React.useMemo(
     () => getAgreementColumns(deleteAgreement),
     [deleteAgreement]
@@ -37,9 +41,9 @@ export function AgreementTable({
 
   const handleRowSelect = React.useCallback(
     (id: string, checked: boolean) => {
-      setRowSelection(prev => ({ ...prev, [id]: checked }));
+      setRowSelection({ ...rowSelection, [id]: checked });
     },
-    [setRowSelection]
+    [setRowSelection, rowSelection]
   );
 
   const table = useReactTable({
@@ -49,9 +53,6 @@ export function AgreementTable({
     state: { rowSelection },
     onRowSelectionChange: setRowSelection,
   });
-
-  // For large datasets, consider virtualization here using react-window
-  // See optimization notes in codebase audit
 
   if (isLoading) {
     return (
@@ -101,6 +102,7 @@ export function AgreementTable({
     );
   }
 
+  // Virtualized list rendering
   return (
     <div className="rounded-md border">
       <Table>
@@ -109,7 +111,7 @@ export function AgreementTable({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : 
+                  {header.isPlaceholder ? null :
                     flexRender(header.column.columnDef.header, header.getContext())
                   }
                 </TableHead>
@@ -118,18 +120,30 @@ export function AgreementTable({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <AgreementRow
-              key={row.id}
-              agreement={row.original}
-              onDelete={deleteAgreement}
-              isSelected={row.getIsSelected()}
-              onSelect={handleRowSelect}
-            />
-          ))}
+          <List
+            height={height}
+            itemCount={table.getRowModel().rows.length}
+            itemSize={rowHeight}
+            width={"100%"}
+          >
+            {({ index, style }) => {
+              const row = table.getRowModel().rows[index];
+              return (
+                <div style={style} key={row.id}>
+                  <AgreementRow
+                    agreement={row.original}
+                    onDelete={deleteAgreement}
+                    isSelected={row.getIsSelected()}
+                    onSelect={handleRowSelect}
+                  />
+                </div>
+              );
+            }}
+          </List>
         </TableBody>
       </Table>
     </div>
   );
 }
 
+export default VirtualizedAgreementTable;

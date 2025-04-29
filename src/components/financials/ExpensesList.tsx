@@ -1,5 +1,8 @@
 
 import React, { useMemo, useCallback } from 'react';
+import { useDebounce } from '@/hooks/use-debounce';
+// Using public asset as demonstration
+const heroImg = '/og-image.png';
 // TODO: Ensure react-window is installed
 import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import { 
@@ -17,7 +20,8 @@ import {
   CardTitle, 
   CardDescription 
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import ExpenseRow from './ExpenseRow';
+import ExpenseStatusBadge from './ExpenseStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -289,6 +293,7 @@ const ExpensesList: React.FC<ExpensesListProps> = React.memo(({
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+        <img src={heroImg} alt="Expenses" style={{maxWidth: 200, marginBottom: 16}} />
         <div>
           <CardTitle>Expenses</CardTitle>
           <CardDescription>Manage your business expenses</CardDescription>
@@ -418,18 +423,9 @@ const ExpensesList: React.FC<ExpensesListProps> = React.memo(({
       </TableCell>
     </TableRow>
   ) : (
-    <TableRow>
-      <TableCell colSpan={7} style={{ padding: 0, border: 0 }}>
-        <List
-          height={400}
-          itemCount={memoizedExpenses.length}
-          itemSize={56}
-          width={"100%"}
-        >
-          {Row}
-        </List>
-      </TableCell>
-    </TableRow>
+    memoizedExpenses.map((expense) => (
+      <ExpenseRow expense={expense} key={expense.id} />
+    ))
   )}
 </TableBody>
             </Table>

@@ -15,7 +15,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import TrafficFineRow from './TrafficFineRow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -234,61 +234,14 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                   </TableRow>
                 ) : filteredFines.length > 0 ? (
                   filteredFines.map((fine) => (
-                    <TableRow key={fine.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
-                          {fine.violationNumber}
-                        </div>
-                      </TableCell>
-                      <TableCell>{fine.licensePlate}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {formatDate(fine.violationDate)}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
-                      <TableCell>
-                        {getStatusBadge(fine.paymentStatus)}
-                      </TableCell>
-                      <TableCell>
-                        {getCustomerAssignmentStatus(fine)}
-                        {fine.customerName && (
-                          <div className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">
-                            {fine.customerName}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={() => handlePayFine(fine.id)}
-                              disabled={fine.paymentStatus === 'paid'}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDisputeFine(fine.id)}
-                              disabled={fine.paymentStatus === 'disputed'}
-                            >
-                              <X className="mr-2 h-4 w-4" /> Dispute Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
-                              disabled={!!fine.customerId}
-                            >
-                              <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+  <TrafficFineRow
+    key={fine.id}
+    fine={fine}
+    onPay={handlePayFine}
+    onDispute={handleDisputeFine}
+    onAssign={(id) => assignToCustomer.mutate({ id })}
+  />
+))
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
