@@ -8,6 +8,8 @@ import { FinancialTransaction, FinancialSummary } from './financials-types';
 
 const getSystemDate = () => new Date();
 
+import { useEffect } from 'react';
+
 export function useFinancials() {
   // Modular hooks for filters, transactions, summary, and recurring payment checks
   const { filters, setFilters, expenseFilters, setExpenseFilters } = useFinancialFilters();
@@ -19,6 +21,19 @@ export function useFinancials() {
   // Mutations
   const { addTransaction, updateTransaction, deleteTransaction } = useFinancialMutations(refetchTransactions, refetchSummary);
   const { addExpense, updateExpense, deleteExpense } = useExpenseMutations(refetchTransactions, refetchSummary);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const lastCheck = localStorage.getItem('lastPaymentCheck');
+    if (!lastCheck || lastCheck !== today) {
+      localStorage.setItem('lastPaymentCheck', today);
+      if (typeof checkAndGenerateMonthlyPayments === 'function') {
+        checkAndGenerateMonthlyPayments().then((result) => {
+          console.log("Daily payment check completed:", result);
+        });
+      }
+    }
+  }, []);
 
   return {
     transactions,
@@ -38,6 +53,7 @@ export function useFinancials() {
     systemDate: getSystemDate(),
   };
 }
+
     if (!lastCheck || lastCheck !== today) {
       localStorage.setItem('lastPaymentCheck', today);
       
