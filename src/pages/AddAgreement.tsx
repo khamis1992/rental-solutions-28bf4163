@@ -152,6 +152,12 @@ const AddAgreement = () => {
     setIsSubmitting(true);
     try {
       const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
+      if (!leaseData.vehicle_id || leaseData.vehicle_id.trim() === "") {
+        toast.error("Vehicle is required to create an agreement.");
+        setIsSubmitting(false);
+        return;
+      }
+      const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
       
       if (leaseData.vehicle_id && leaseData.status === 'active') {
         const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);

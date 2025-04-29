@@ -161,6 +161,11 @@ const AgreementFormWithVehicleCheck = ({
   };
 
   const handleVehicleChange = async (vehicleId: string) => {
+    if (!vehicleId || vehicleId.trim() === "") {
+      toast.error("Please select a valid vehicle.");
+      setIsCheckingVehicle(false);
+      return;
+    }
     setIsCheckingVehicle(true);
     try {
       // Check if vehicle is already assigned to an active agreement
