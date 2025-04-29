@@ -26,11 +26,11 @@ export class CustomerService extends BaseService<'profiles'> {
    * @param filters - Optional filtering criteria for customer search
    * @returns Promise with filtered customer records
    */
-  async findCustomers(filters?: CustomerFilters): Promise<ServiceResult<Customer[]>> {
+  async findCustomers(filters?: CustomerFilters, pagination?: { page: number; pageSize: number }): Promise<ServiceResult<{ data: Customer[]; count: number }>> {
     return handleServiceOperation(async () => {
       let query = supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, email, phone_number, status, driver_license, created_at, updated_at', { count: 'exact' })
         .eq('role', 'customer');
       
       if (filters) {
@@ -46,13 +46,48 @@ export class CustomerService extends BaseService<'profiles'> {
         }
       }
       
-      const { data, error } = await query;
+      // Pagination
+      if (pagination) {
+        const { page, pageSize } = pagination;
+        const start = (page - 1) * pageSize;
+        query = query.range(start, start + pageSize - 1);
+      }
+
+      const { data, error, count } = await query;
       
       if (error) {
         throw new Error(`Failed to fetch customers: ${error.message}`);
       }
       
-      return data || [];
+      return { data: data || [], count: count || 0 };
+    });
+  }
+
+  /**
+   * Batch update customers by IDs
+   */
+  async batchUpdate(ids: string[], updates: Partial<Customer>): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('profiles')
+        .update(updates)
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
+    });
+  }
+
+  /**
+   * Batch delete customers by IDs
+   */
+  async batchDelete(ids: string[]): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('profiles')
+        .delete()
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
     });
   }
 

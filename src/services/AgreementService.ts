@@ -30,16 +30,16 @@ export class AgreementService extends BaseService<'leases'> {
   /**
    * Find agreements with optional filtering
    */
-  async findAgreements(filters?: AgreementFilters): Promise<ServiceResult<Agreement[]>> {
+  async findAgreements(filters?: AgreementFilters, pagination?: { page: number; pageSize: number }): Promise<ServiceResult<{ data: Agreement[]; count: number }>> {
     return handleServiceOperation(async () => {
       // Basic query builder
       let query = supabase
         .from('leases')
         .select(`
-          *,
+          id, agreement_number, status, start_date, end_date, customer_id, vehicle_id, total_amount, deposit_amount, created_at, updated_at,
           profiles:customer_id (id, full_name, email, phone_number),
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
-        `);
+        `, { count: 'exact' });
 
       // Apply filters if provided
       if (filters) {
@@ -94,14 +94,49 @@ export class AgreementService extends BaseService<'leases'> {
         }
       }
 
-      const { data, error } = await query;
+      // Pagination
+      if (pagination) {
+        const { page, pageSize } = pagination;
+        const start = (page - 1) * pageSize;
+        query = query.range(start, start + pageSize - 1);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) {
         console.error("Error fetching agreements:", error);
         throw new Error(`Failed to fetch agreements: ${error.message}`);
       }
 
-      return data || [];
+      return { data: data || [], count: count || 0 };
+    });
+  }
+
+  /**
+   * Batch update agreements by IDs
+   */
+  async batchUpdate(ids: string[], updates: Partial<Agreement>): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('leases')
+        .update(updates)
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
+    });
+  }
+
+  /**
+   * Batch delete agreements by IDs
+   */
+  async batchDelete(ids: string[]): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('leases')
+        .delete()
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
     });
   }
 

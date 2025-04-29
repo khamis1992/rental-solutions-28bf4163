@@ -13,7 +13,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   // Query for fetching agreements with filters
   const {
-    data: agreements = [],
+    data: agreementsResult = { data: [], count: 0 },
     isLoading,
     error,
     refetch
@@ -27,13 +27,16 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       return result.data;
     },
     staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    gcTime: 900000, // 15 minutes,
   });
+
+  const agreements = agreementsResult?.data || [];
+  const agreementsCount = agreementsResult?.count || 0;
 
   // Mutation for getting agreement details
   const getAgreement = useMutation({
     mutationFn: async (id: string) => {
-      const result = await agreementService.getAgreementDetails(id);
+      const result: ServiceResult = await agreementService.getAgreementDetails(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
       }
@@ -44,7 +47,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Mutation for updating an agreement
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const result = await agreementService.update(id, data);
+      const result: ServiceResult = await agreementService.update(id, data);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement');
       }
@@ -59,9 +62,46 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     }
   });
 
+  // Batch update agreements
+  const batchUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Record<string, any> }) => {
+      const result: ServiceResult = await agreementService.batchUpdate(ids, updates);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Batch update failed');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Agreements updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Batch update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Batch delete agreements
+  const batchDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const result: ServiceResult = await agreementService.batchDelete(ids);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Batch delete failed');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Agreements deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Batch delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
   // Mutation for changing agreement status
   const changeStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const result: ServiceResult = await agreementService.changeStatus(id, status);
       const result = await agreementService.changeStatus(id, status);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement status');
@@ -108,6 +148,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   return {
     agreements,
+    agreementsCount,
     isLoading,
     error,
     searchParams,
@@ -118,6 +159,8 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
+    batchUpdate: batchUpdateMutation.mutateAsync,
+    batchDelete: batchDeleteMutation.mutateAsync,
     // Expose isPending states for UI loading indicators
     isPending: {
       getAgreement: getAgreement.isPending,
@@ -125,6 +168,8 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       changeStatus: changeStatus.isPending,
       deleteAgreement: deleteAgreement.isPending,
       calculateRemainingAmount: calculateRemainingAmount.isPending,
+      batchUpdate: batchUpdateMutation.isPending,
+      batchDelete: batchDeleteMutation.isPending,
     }
   };
 };

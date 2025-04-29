@@ -37,10 +37,10 @@ export class VehicleService extends BaseService<'vehicles'> {
    * @returns Promise with filtered vehicle records
    * @throws Error if database operation fails
    */
-  async findVehicles(filters?: VehicleFilterParams): Promise<ServiceResult<Vehicle[]>> {
+  async findVehicles(filters?: VehicleFilterParams, pagination?: { page: number; pageSize: number }): Promise<ServiceResult<{ data: Vehicle[]; count: number }>> {
     return handleServiceOperation(async () => {
       let query = supabase.from('vehicles')
-        .select('*, vehicle_types(*)');
+        .select('id, make, model, year, license_plate, status, vehicle_type_id, location, created_at, updated_at, vehicle_types(id, name)', { count: 'exact' });
       
       if (filters) {
         if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
@@ -91,13 +91,48 @@ export class VehicleService extends BaseService<'vehicles'> {
         }
       }
       
-      const { data, error } = await query;
+      // Pagination
+      if (pagination) {
+        const { page, pageSize } = pagination;
+        const start = (page - 1) * pageSize;
+        query = query.range(start, start + pageSize - 1);
+      }
+
+      const { data, error, count } = await query;
       
       if (error) {
         throw new Error(`Failed to fetch vehicles: ${error.message}`);
       }
       
-      return data || [];
+      return { data: data || [], count: count || 0 };
+    });
+  }
+
+  /**
+   * Batch update vehicles by IDs
+   */
+  async batchUpdate(ids: string[], updates: Partial<Vehicle>): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('vehicles')
+        .update(updates)
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
+    });
+  }
+
+  /**
+   * Batch delete vehicles by IDs
+   */
+  async batchDelete(ids: string[]): Promise<ServiceResult<number>> {
+    return handleServiceOperation(async () => {
+      const { error, count } = await supabase
+        .from('vehicles')
+        .delete()
+        .in('id', ids);
+      if (error) throw new Error(error.message);
+      return count || 0;
     });
   }
 

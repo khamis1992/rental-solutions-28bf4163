@@ -13,7 +13,7 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
 
   // Query for fetching customers with filters
   const {
-    data: customers = [],
+    data: customersResult = { data: [], count: 0 },
     isLoading,
     error,
     refetch
@@ -27,7 +27,46 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
       return result.data;
     },
     staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    gcTime: 900000, // 15 minutes,
+  });
+
+  const customers = customersResult?.data || [];
+  const customersCount = customersResult?.count || 0;
+
+  // Batch update customers
+  const batchUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Record<string, any> }) => {
+      const result = await customerService.batchUpdate(ids, updates);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Batch update failed');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Customers updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (error) => {
+      toast.error(`Batch update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Batch delete customers
+  const batchDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const result = await customerService.batchDelete(ids);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Batch delete failed');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Customers deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (error) => {
+      toast.error(`Batch delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   });
 
   // Mutation for getting customer details
@@ -119,6 +158,7 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
 
   return {
     customers,
+    customersCount,
     isLoading,
     error,
     filters,
@@ -130,6 +170,8 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
     deleteCustomer: deleteCustomer.mutateAsync,
     checkDocumentExpiration: checkDocumentExpiration.mutateAsync,
     getPaymentHistory: getPaymentHistory.mutateAsync,
+    batchUpdate: batchUpdateMutation.mutateAsync,
+    batchDelete: batchDeleteMutation.mutateAsync,
     // Expose isPending states for UI loading indicators
     isPending: {
       getCustomerDetails: getCustomerDetails.isPending,
@@ -138,6 +180,8 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
       deleteCustomer: deleteCustomer.isPending,
       checkDocumentExpiration: checkDocumentExpiration.isPending,
       getPaymentHistory: getPaymentHistory.isPending,
+      batchUpdate: batchUpdateMutation.isPending,
+      batchDelete: batchDeleteMutation.isPending,
     }
   };
 };
