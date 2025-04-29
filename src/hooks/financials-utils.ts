@@ -18,31 +18,35 @@ export async function fetchFinancialTransactions(filters: any): Promise<Financia
     if (installmentError) throw installmentError;
 
     const formatted: FinancialTransaction[] = [
-      ...(paymentData || []).map(payment => ({
-        id: payment.id,
-        date: new Date(payment.payment_date),
-        amount: payment.amount || 0,
-        description: payment.description || 'Rental Payment',
-        type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
-        category: payment.type === 'Expense' ? 'Operational' : 'Rental',
-        status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
-        reference: payment.reference || '',
-        paymentMethod: payment.payment_method || 'Unknown',
-        vehicleId: payment.vehicle_id || '',
-        customerId: payment.customer_id || ''
-      })),
-      ...(installmentData || []).map(installment => ({
-        id: `inst-${installment.id}`,
-        date: new Date(installment.payment_date || new Date()),
-        amount: installment.payment_amount || 0,
-        description: `Car Installment - ${installment.vehicle_description || 'Vehicle'}`,
-        type: 'expense' as TransactionType,
-        category: 'Installment',
-        status: installment.payment_status?.toLowerCase() as TransactionStatusType || 'completed',
-        reference: installment.reference || '',
-        paymentMethod: installment.payment_method || 'Bank Transfer',
-        vehicleId: installment.vehicle_id || ''
-      }))
+      ...(paymentData || [])
+        .filter(Boolean)
+        .map(payment => ({
+          id: payment?.id,
+          date: new Date(payment?.payment_date),
+          amount: payment?.amount || 0,
+          description: payment?.description || 'Rental Payment',
+          type: payment?.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
+          category: payment?.type === 'Expense' ? 'Operational' : 'Rental',
+          status: payment?.status?.toLowerCase() as TransactionStatusType || 'completed',
+          reference: payment?.reference || '',
+          paymentMethod: payment?.payment_method || 'Unknown',
+          vehicleId: payment?.vehicle_id || '',
+          customerId: payment?.customer_id || ''
+        })),
+      ...(installmentData || [])
+        .filter(Boolean)
+        .map(installment => ({
+          id: `inst-${installment?.id}`,
+          date: new Date(installment?.payment_date || new Date()),
+          amount: installment?.payment_amount || 0,
+          description: `Car Installment - ${installment?.vehicle_description || 'Vehicle'}`,
+          type: 'expense' as TransactionType,
+          category: 'Installment',
+          status: installment?.payment_status?.toLowerCase() as TransactionStatusType || 'completed',
+          reference: installment?.reference || '',
+          paymentMethod: installment?.payment_method || 'Bank Transfer',
+          vehicleId: installment?.vehicle_id || ''
+        }))
     ];
 
     // Filter transactions in-memory (can optimize by moving to DB query)
