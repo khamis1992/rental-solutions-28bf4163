@@ -36,7 +36,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Mutation for getting agreement details
   const getAgreement = useMutation({
     mutationFn: async (id: string) => {
-      const result: ServiceResult = await agreementService.getAgreementDetails(id);
+      const result = await agreementService.getAgreementDetails(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
       }
@@ -47,7 +47,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Mutation for updating an agreement
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const result: ServiceResult = await agreementService.update(id, data);
+      const result = await agreementService.update(id, data);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement');
       }
@@ -65,7 +65,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Batch update agreements
   const batchUpdateMutation = useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Record<string, any> }) => {
-      const result: ServiceResult = await agreementService.batchUpdate(ids, updates);
+      const result = await agreementService.batchUpdate(ids, updates);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Batch update failed');
       }
@@ -83,7 +83,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Batch delete agreements
   const batchDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const result: ServiceResult = await agreementService.batchDelete(ids);
+      const result = await agreementService.batchDelete(ids);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Batch delete failed');
       }
@@ -101,7 +101,6 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Mutation for changing agreement status
   const changeStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const result: ServiceResult = await agreementService.changeStatus(id, status);
       const result = await agreementService.changeStatus(id, status);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement status');
