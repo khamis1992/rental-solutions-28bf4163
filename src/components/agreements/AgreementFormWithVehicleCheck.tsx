@@ -33,7 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
-import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
+import VehicleAssignmentDialog from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 
 interface AgreementFormProps {

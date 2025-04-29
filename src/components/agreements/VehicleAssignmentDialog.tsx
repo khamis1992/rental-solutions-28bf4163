@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { asDbId } from '@/types/database-common';
-import { asVehicleId, asLeaseId, castPaymentStatus } from '@/types/database-types';
+import { DbId } from '@/types/database-common';
+import { VehicleId, LeaseId, castPaymentStatus } from '@/types/database-types';
 import {
   Dialog,
   DialogContent,
@@ -53,8 +54,8 @@ const VehicleAssignmentDialog: React.FC<VehicleAssignmentDialogProps> = ({
       // Update the lease with the new vehicle ID
       const { data: updatedLease, error: leaseUpdateError } = await supabase
         .from('leases')
-        .update({ vehicle_id: asVehicleId(vehicleId) })
-        .eq('id', asLeaseId(agreementId))
+        .update({ vehicle_id: vehicleId as VehicleId })
+        .eq('id', agreementId as LeaseId)
         .select();
 
       if (leaseUpdateError) {
@@ -70,7 +71,7 @@ const VehicleAssignmentDialog: React.FC<VehicleAssignmentDialogProps> = ({
       const { error: updateVehicleError } = await supabase
         .from('vehicles')
         .update({ status: 'rented' })
-        .eq('id', asVehicleId(vehicleId));
+        .eq('id', vehicleId as VehicleId);
 
       if (updateVehicleError) {
         throw new Error(`Failed to update vehicle status: ${updateVehicleError.message}`);
@@ -81,15 +82,15 @@ const VehicleAssignmentDialog: React.FC<VehicleAssignmentDialogProps> = ({
         // When updating payment status
         const { error: paymentUpdateError } = await supabase
           .from('unified_payments')
-          .update({ lease_id: asLeaseId(agreementId) })
-          .eq('lease_id', asLeaseId(oldVehicleId));
+          .update({ lease_id: agreementId as LeaseId })
+          .eq('lease_id', oldVehicleId as LeaseId);
 
         if (paymentUpdateError) {
           console.error('Failed to update payments:', paymentUpdateError);
           toast({
             title: 'Warning',
             description: 'Failed to transfer payments. Please update manually.',
-            variant: 'warning',
+            variant: 'default',
           });
         }
 
@@ -97,17 +98,17 @@ const VehicleAssignmentDialog: React.FC<VehicleAssignmentDialogProps> = ({
         const { error: trafficFineError } = await supabase
           .from('traffic_fines')
           .update({ 
-            lease_id: asLeaseId(agreementId),
+            lease_id: agreementId as LeaseId,
             payment_status: castPaymentStatus('pending') 
           })
-          .eq('lease_id', asLeaseId(oldVehicleId));
+          .eq('lease_id', oldVehicleId as LeaseId);
 
         if (trafficFineError) {
           console.error('Failed to update traffic fines:', trafficFineError);
           toast({
             title: 'Warning',
             description: 'Failed to transfer traffic fines. Please update manually.',
-            variant: 'warning',
+            variant: 'default',
           });
         }
       }
@@ -155,12 +156,18 @@ const VehicleAssignmentDialog: React.FC<VehicleAssignmentDialogProps> = ({
               className="col-span-3"
             />
           </div>
-          <PaymentWarningSection agreementId={agreementId} currentVehicleId={currentVehicleId} />
+          {currentVehicleId && (
+            <div className="px-2 py-3 bg-amber-50 text-amber-800 rounded-md border border-amber-200">
+              <p className="text-sm">
+                This will reassign any existing payments and traffic fines associated with this agreement.
+              </p>
+            </div>
+          )}
           <div className="flex items-center space-x-2">
             <Checkbox
               id="transfer"
               checked={isTransferringPayments}
-              onCheckedChange={(checked) => setIsTransferringPayments(checked || false)}
+              onCheckedChange={(checked) => setIsTransferringPayments(!!checked)}
             />
             <Label htmlFor="transfer">Transfer Payments</Label>
           </div>
