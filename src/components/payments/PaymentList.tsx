@@ -18,22 +18,20 @@ interface PaymentListProps {
 const PaymentList: React.FC<PaymentListProps> = ({ payments, onDeletePayment }) => {
   const memoizedPayments = useMemo(() => payments, [payments]);
 
-
-
   return (
     <>
       <img src={heroImg} alt="Payments" style={{maxWidth: 200, marginBottom: 16}} />
       <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Method</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Method</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
         <TableBody>
           {memoizedPayments.length === 0 ? (
             <TableRow>

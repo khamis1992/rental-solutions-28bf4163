@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { 
@@ -159,7 +158,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = React.memo((
   }, [transactions]);
 
   // Row renderer for react-window
-  const Row = useCallback(({ index, style }) => {
+  const Row = useCallback(({ index, style }: { index: number, style: React.CSSProperties }) => {
     const transaction = memoizedTransactions[index];
     return (
       <TableRow key={transaction.id} style={style}>
@@ -194,7 +193,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = React.memo((
     <Card>
       <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
         <div>
-          <CardTitle>Transactions</CardTitle>
+          <CardTitle className="text-lg font-medium">Transactions</CardTitle>
           <CardDescription>Manage your financial transactions</CardDescription>
         </div>
         <div className="flex space-x-2">

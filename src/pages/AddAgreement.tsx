@@ -157,7 +157,6 @@ const AddAgreement = () => {
         setIsSubmitting(false);
         return;
       }
-      const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
       
       if (leaseData.vehicle_id && leaseData.status === 'active') {
         const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
