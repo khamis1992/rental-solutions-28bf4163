@@ -244,73 +244,25 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = React.memo((
                 </TableRow>
               </TableHeader>
               <TableBody>
-  {memoizedTransactions.length === 0 ? (
-    <TableRow>
-      <TableCell colSpan={7} className="h-24 text-center">
-        No transactions found.
-      </TableCell>
-    </TableRow>
-  ) : (
-    // Virtualized list for performance
-    <TableRow>
-      <TableCell colSpan={7} style={{ padding: 0, border: 0 }}>
-        <List
-          height={400}
-          itemCount={memoizedTransactions.length}
-          itemSize={56}
-          width={"100%"}
-        >
-          {Row}
-        </List>
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
-            </Table>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-                        <div className="flex items-center">
-                          {getTypeIcon(transaction.type)}
-                          <span className="ml-2 capitalize">{transaction.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(transaction.date), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell>{transaction.category}</TableCell>
-                      <TableCell className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEditTransaction?.(transaction.id)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => onDeleteTransaction?.(transaction.id)}
-                              className="text-red-600"
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                {memoizedTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No transactions found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} style={{ padding: 0, border: 0 }}>
+                      <List
+                        height={400}
+                        itemCount={memoizedTransactions.length}
+                        itemSize={56}
+                        width={"100%"}
+                      >
+                        {Row}
+                      </List>
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -319,7 +271,6 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = React.memo((
       </CardContent>
     </Card>
   );
-};
+});
 
 export default FinancialTransactions;
-

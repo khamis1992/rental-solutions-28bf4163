@@ -29,15 +29,11 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onDeletePayment }) 
           <TableHead>Date</TableHead>
           <TableHead>Amount</TableHead>
           <TableHead>Status</TableHead>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
+          <TableHead>Method</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
         <TableBody>
           {memoizedPayments.length === 0 ? (
             <TableRow>
@@ -55,6 +51,5 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onDeletePayment }) 
     </>
   );
 };
-});
 
 export default PaymentList;
