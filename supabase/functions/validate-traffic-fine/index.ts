@@ -92,55 +92,20 @@ async function scrapeTrafficFine(licensePlate: string) {
   console.log(`Starting web scraping for license plate: ${licensePlate}`);
   
   try {
-    // Check for dev mode flag to bypass real scraping
-    const isDev = Deno.env.get("DEVELOPMENT_MODE") === "true";
+    // PRODUCTION IMPLEMENTATION
+    console.log("Starting actual MOI website request");
     
-    if (isDev) {
-      // Simulate API delay
-      await delay(2000);
-      
-      // Deterministic result based on license plate for testing
-      const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
-        .reduce((sum, digit) => sum + parseInt(digit), 0) % 2 === 0;
-        
-      console.log(`Completed validation for ${licensePlate} with result: ${hasEvenDigits ? 'Fine found' : 'No fine found'}`);
-      
-      return {
-        licensePlate,
-        validationDate: new Date(),
-        validationSource: 'MOI Traffic System (Development Mode)',
-        hasFine: hasEvenDigits,
-        details: hasEvenDigits 
-          ? 'Fine found in the system according to MOI website (Development Mode)' 
-          : 'No fines found for this vehicle in MOI system (Development Mode)'
-      };
-    } else {
-      // PRODUCTION IMPLEMENTATION
-      console.log("Starting actual MOI website request");
-      
-      // Check if we have the required API key for captcha
-      const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY");
-      if (!captchaApiKey) {
-        console.error("CAPTCHA_API_KEY not configured in Supabase secrets");
-        
-        // Fallback to development mode if API key is missing
-        console.warn("Falling back to development mode due to missing API key");
-        
-        await delay(1000);
-        
-        const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
-          .reduce((sum, digit) => sum + parseInt(digit), 0) % 2 === 0;
-          
-        return {
-          licensePlate,
-          validationDate: new Date(),
-          validationSource: 'MOI Traffic System (Fallback Mode)',
-          hasFine: hasEvenDigits,
-          details: hasEvenDigits 
-            ? 'Fine found in the system (CAPTCHA API key missing, using fallback mode)' 
-            : 'No fines found (CAPTCHA API key missing, using fallback mode)'
-        };
-      }
+    // Check if we have the required API key for captcha
+    const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY");
+    if (!captchaApiKey) {
+      throw new Error("CAPTCHA_API_KEY not configured in Supabase secrets. Real data cannot be retrieved.");
+    }
+    // Only allow real data scraping logic. Do not return any simulated or fallback results.
+    const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY");
+    if (!captchaApiKey) {
+      throw new Error("CAPTCHA_API_KEY not configured in Supabase secrets. Real data cannot be retrieved.");
+    }
+    // Continue with actual scraping logic below (unchanged):
       
       // 1. Initial request to get the session and CSRF tokens
       const initialResponse = await fetch('https://fees2.moi.gov.qa/moipay/inquiry/violation', {

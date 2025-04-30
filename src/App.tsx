@@ -92,19 +92,6 @@ function App() {
             <SettingsProvider>
               <NotificationProvider>
                 <TooltipProvider>
-                  {/* Debug element - can be removed in production */}
-                  <div style={{
-                    zIndex: 9999,
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    background: 'yellow',
-                    padding: '4px 8px',
-                    fontSize: '12px'
-                  }}>
-                    DEV MODE
-                  </div>
-                  
                   <Toaster />
                   <Sonner />
                   

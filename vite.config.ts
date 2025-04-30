@@ -13,8 +13,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     imagetools(),
-    mode === 'development' &&
-    componentTagger(),
+
   ].filter(Boolean),
   resolve: {
     alias: {
