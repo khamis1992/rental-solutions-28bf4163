@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
-import { useApiMutation, useApiQuery } from './use-api';
+import { useApiMutation, useApiQuery } from '@/hooks/api'; // Changed from './use-api' to '@/hooks/api'
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
 const getSystemDate = () => new Date();
