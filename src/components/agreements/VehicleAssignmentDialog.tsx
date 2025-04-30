@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,7 @@ export function VehicleAssignmentDialog({
       const { data: vehicleData } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleId)
+        .eq('id', vehicleId as string)
         .single();
       
       if (vehicleData) {
@@ -58,7 +57,7 @@ export function VehicleAssignmentDialog({
       const { data: paymentsData } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', asLeaseId(existingAgreement.id as string))
         .in('status', ['pending', 'overdue']);
         
       if (paymentsData) {
@@ -69,7 +68,7 @@ export function VehicleAssignmentDialog({
       const { data: finesData } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', asLeaseId(existingAgreement.id as string))
         .eq('payment_status', 'pending');
         
       if (finesData) {
@@ -80,7 +79,7 @@ export function VehicleAssignmentDialog({
       const { data: leaseData } = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
+        .eq('id', asLeaseId(existingAgreement.id as string))
         .single();
         
       if (leaseData?.customer_id) {
@@ -259,4 +258,3 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
-

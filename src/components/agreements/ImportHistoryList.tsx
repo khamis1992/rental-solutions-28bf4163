@@ -23,7 +23,7 @@ export function ImportHistoryList() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as ImportHistoryItem[];
+      return data as unknown as ImportHistoryItem[];
     }
   });
 

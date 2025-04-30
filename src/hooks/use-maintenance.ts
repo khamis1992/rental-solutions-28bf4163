@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { useCrudApi } from '@/hooks/api/use-crud-api'; // Changed from './use-api' to '@/hooks/api/use-crud-api'
+import { useCrudApi } from '@/hooks/use-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { UseQueryResult } from '@tanstack/react-query';
 import { asTableId } from '@/utils/type-casting';

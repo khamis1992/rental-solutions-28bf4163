@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';
 import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { handleApiError } from '@/hooks/use-api';
+import { handleApiError } from '@/hooks/use-api'; // Fix the import path
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { safelyGetRecordFromResponse, safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
@@ -609,3 +609,4 @@ export const useVehicles = () => {
     }
   };
 };
+
