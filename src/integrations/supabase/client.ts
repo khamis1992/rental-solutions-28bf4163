@@ -4,9 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { Database } from './types';
 
-// Use environment variables from .env
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y";
+// Use environment variables from .env, with fallback for Cypress environment
+// Check if running in Cypress context (window.Cypress exists)
+const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
+
+// Prioritize Cypress env vars if available, then Vite env vars, then fallback
+const cypressSupabaseUrl = isCypress ? (window as any).Cypress.env('VITE_SUPABASE_URL') : undefined;
+const cypressAnonKey = isCypress ? (window as any).Cypress.env('VITE_SUPABASE_ANON_KEY') : undefined;
+
+const SUPABASE_URL = cypressSupabaseUrl || import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = cypressAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y";
 
 // Create client with improved retry configuration and connection recovery mechanisms
 export const supabase = createClient<Database>(
@@ -18,11 +25,13 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
     },
     global: {
-      fetch: (...args) => {
+      // Explicitly type args for the fetch wrapper
+      fetch: (input: RequestInfo | URL, init?: RequestInit) => {
         // Enhanced fetch with automatic retry logic for network issues
         const fetchWithRetry = async (retries = 3, backoffDelay = 300) => {
           try {
-            return await fetch(...args);
+            // Pass arguments explicitly
+            return await fetch(input, init);
           } catch (err) {
             if (retries <= 0) {
               throw err;
@@ -39,9 +48,7 @@ export const supabase = createClient<Database>(
         'x-client-info': 'supabase-js/2.38.4',
       },
     },
-    // Improve retry configuration for better resilience
-    retryAttempts: 5,
-    retryInterval: attempt => Math.min(1000 * Math.pow(2, attempt), 10000), // Exponential backoff with max 10s
+    // Removed invalid retry options - retry logic is in the custom fetch wrapper
   }
 );
 
@@ -123,11 +130,12 @@ export const checkSupabaseHealth = async (): Promise<{
           error = response.error;
         } else if (retryCount === 1) {
           const response = await supabase.from('vehicle_types').select('count', { count: 'exact', head: true });
-          error = response.error;
-        } else {
-          const response = await supabase.rpc('get_server_time');
-          error = response.error;
-        }
+           error = response.error;
+         } else {
+           // Replace RPC call with another table check
+           const response = await supabase.from('customers').select('count', { count: 'exact', head: true });
+           error = response.error;
+         }
         
         isHealthy = !error;
         if (isHealthy) break;

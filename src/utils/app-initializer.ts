@@ -7,12 +7,15 @@ import { getSystemServicesStatus } from './service-availability';
 // Initialize services check status flag
 let servicesChecked = false;
 
+// Check if running in Cypress context
+const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
+
 export const initializeApp = async () => {
   // Set up database tables and other requirements
   await setupInvoiceTemplatesTable();
   
-  // Only check system services once per session
-  if (!servicesChecked) {
+  // Only check system services once per session AND skip if in Cypress test
+  if (!servicesChecked && !isCypress) {
     // Check system services status
     console.log("Checking system services availability...");
     
@@ -46,6 +49,8 @@ export const initializeApp = async () => {
         duration: 6000,
       });
     }
+  } else if (isCypress) {
+      console.log("Skipping system service check in Cypress environment.");
   }
   
   // Check for any environment configuration issues

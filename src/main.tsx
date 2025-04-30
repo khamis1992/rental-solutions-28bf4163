@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
-import { reportWebVitals } from './web-vitals';
+import { reportWebVitals } from '../web-vitals'; // Corrected path
 
 // Create a client
 const queryClient = new QueryClient({
