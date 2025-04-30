@@ -1,6 +1,7 @@
 
 import { Repository } from '@/lib/database/repository';
 import { DbListResponse, DbSingleResponse, TableRow } from '@/lib/database/types';
+import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Base service class that provides common functionality for all services
@@ -18,7 +19,12 @@ export abstract class BaseService<T extends string> {
   async findAll(): Promise<TableRow<T>[]> {
     const response = await this.repository.findAll();
     if (response.error) {
-      console.error(`Error finding all ${this.repository.tableName}:`, response.error);
+      logOperation(
+        'baseService.findAll', 
+        'error', 
+        { table: this.repository.tableName, error: response.error.message },
+        `Error finding all ${this.repository.tableName}`
+      );
       throw new Error(`Failed to fetch ${this.repository.tableName}`);
     }
     return response.data;
@@ -30,7 +36,12 @@ export abstract class BaseService<T extends string> {
   async findById(id: string): Promise<TableRow<T>> {
     const response = await this.repository.findById(id);
     if (response.error) {
-      console.error(`Error finding ${this.repository.tableName} by ID:`, response.error);
+      logOperation(
+        'baseService.findById', 
+        'error', 
+        { table: this.repository.tableName, id, error: response.error.message },
+        `Error finding ${this.repository.tableName} by ID`
+      );
       throw new Error(`Failed to fetch ${this.repository.tableName} with ID ${id}`);
     }
     return response.data;
@@ -42,7 +53,12 @@ export abstract class BaseService<T extends string> {
   async create(data: any): Promise<TableRow<T>> {
     const response = await this.repository.create(data);
     if (response.error) {
-      console.error(`Error creating ${this.repository.tableName}:`, response.error);
+      logOperation(
+        'baseService.create', 
+        'error', 
+        { table: this.repository.tableName, error: response.error.message },
+        `Error creating ${this.repository.tableName}`
+      );
       throw new Error(`Failed to create ${this.repository.tableName}`);
     }
     return response.data;
@@ -54,7 +70,12 @@ export abstract class BaseService<T extends string> {
   async update(id: string, data: any): Promise<TableRow<T>> {
     const response = await this.repository.update(id, data);
     if (response.error) {
-      console.error(`Error updating ${this.repository.tableName}:`, response.error);
+      logOperation(
+        'baseService.update', 
+        'error', 
+        { table: this.repository.tableName, id, error: response.error.message },
+        `Error updating ${this.repository.tableName}`
+      );
       throw new Error(`Failed to update ${this.repository.tableName} with ID ${id}`);
     }
     return response.data;
@@ -66,7 +87,12 @@ export abstract class BaseService<T extends string> {
   async delete(id: string): Promise<void> {
     const response = await this.repository.delete(id);
     if (response.error) {
-      console.error(`Error deleting ${this.repository.tableName}:`, response.error);
+      logOperation(
+        'baseService.delete', 
+        'error', 
+        { table: this.repository.tableName, id, error: response.error.message },
+        `Error deleting ${this.repository.tableName}`
+      );
       throw new Error(`Failed to delete ${this.repository.tableName} with ID ${id}`);
     }
   }
@@ -111,7 +137,12 @@ export async function handleServiceOperation<T>(
     const data = await operation();
     return successResult(data);
   } catch (error) {
-    console.error('Service operation error:', error);
+    logOperation(
+      'baseService.handleServiceOperation', 
+      'error', 
+      { error: error instanceof Error ? error.message : String(error) },
+      'Service operation error'
+    );
     return errorResult<T>(error instanceof Error ? error : new Error(String(error)));
   }
 }
