@@ -1,13 +1,11 @@
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Agreement, AgreementStatus, Payment } from '@/types/api-response';
-import { castDbId } from '@/utils/supabase-type-helpers';
-import { withTimeout, executeWithRetry } from '@/types/api-response';
-import { formatDate } from '@/utils/date-utils';
+import { supabase } from "@/lib/supabase";
+import { castDbId } from "@/utils/supabase-type-helpers";
+import { withTimeout, executeWithRetry } from "@/types/api-response";
+import { formatDate } from "@/lib/date-utils";
 
-const agreementCache = new Map<string, Agreement>();
+const agreementCache = new Map();
 
-async function getCachedAgreement(id: string) {
+async function getCachedAgreement(id) {
   if (agreementCache.has(id)) {
     return agreementCache.get(id)!;
   }
@@ -559,19 +557,19 @@ function validateAgreementUpdate(current: Agreement, update: Partial<Agreement>)
   };
 }
 
-function createPaymentRecord(agreement: Agreement, dueDate: Date): Payment {
+function createPaymentRecord(agreement, dueDate) {
   return {
     agreement_id: agreement.id,
     amount: agreement.rent_amount,
-    description: `Rent Payment - ${formatDate(dueDate, 'MMMM yyyy')}`,
-    type: 'Income',
-    status: 'pending',
+    description: `Rent Payment - ${formatDate(dueDate, "MMMM yyyy")}`,
+    type: "Income",
+    status: "pending",
     due_date: formatDate(dueDate),
     is_recurring: false
   };
 }
 
-function calculatePaymentDates(agreement: Agreement): { firstDueDate: Date } {
+function calculatePaymentDates(agreement) {
   // Determine rent due day (default to 1 if not specified)
   const rentDueDay = agreement.rent_due_day || 1;
   
@@ -593,29 +591,29 @@ function calculatePaymentDates(agreement: Agreement): { firstDueDate: Date } {
   return { firstDueDate };
 }
 
-async function checkExistingPayments(agreementId: string, firstDueDate: Date): Promise<boolean> {
+async function checkExistingPayments(agreementId, firstDueDate) {
   const { data, error } = await supabase
-    .from('payments')
-    .select('id')
-    .eq('agreement_id', agreementId)
-    .gte('due_date', formatDate(firstDueDate))
+    .from("payments")
+    .select("id")
+    .eq("agreement_id", agreementId)
+    .gte("due_date", formatDate(firstDueDate))
     .limit(1);
     
   if (error) {
-    console.error('Error checking existing payments:', error);
+    console.error("Error checking existing payments:", error);
     return false;
   }
   
   return data && data.length > 0;
 }
 
-async function insertPayment(payment: Payment): Promise<void> {
+async function insertPayment(payment) {
   const { error } = await supabase
-    .from('payments')
+    .from("payments")
     .insert([payment]);
     
   if (error) {
-    console.error('Error inserting payment:', error);
+    console.error("Error inserting payment:", error);
     throw error;
   }
 }
