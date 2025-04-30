@@ -1,12 +1,26 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-export const useApiQuery = (key: string, queryFn: () => Promise<any>, options = {}) => {
-  return useQuery([key], queryFn, options);
+export const useApiQuery = <TData = any, TError = Error>(
+  queryKey: string | string[],
+  queryFn: () => Promise<TData>,
+  options?: UseQueryOptions<TData, TError>
+) => {
+  return useQuery<TData, TError>({
+    queryKey,
+    queryFn,
+    ...options
+  });
 };
 
-export const useApiMutation = (mutationFn: (variables: any) => Promise<any>, options = {}) => {
-  return useMutation(mutationFn, options);
+export const useApiMutation = <TData = unknown, TVariables = void, TContext = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  options?: UseMutationOptions<TData, Error, TVariables, TContext>
+) => {
+  return useMutation<TData, Error, TVariables, TContext>({
+    mutationFn,
+    ...options
+  });
 };
 
 export const useCrudApi = (tableName: string) => {
