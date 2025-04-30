@@ -1,5 +1,5 @@
+
 import { supabase } from '@/lib/supabase';
-import { cacheAvailability } from './cache-utils';
 
 // Cache for storing availability check results
 const availabilityCache: Record<string, { available: boolean; timestamp: number }> = {};
@@ -66,8 +66,14 @@ export const checkEdgeFunctionAvailability = async (
       if (!response.error) {
         console.log(`Edge function ${functionName} is available`);
         
-        // Cache the positive result
-        cacheAvailability(functionName, true, now);
+        // Cache the positive result both in memory and session storage
+        const cacheValue = { available: true, timestamp: now };
+        availabilityCache[functionName] = cacheValue;
+        
+        if (typeof sessionStorage !== 'undefined') {
+          const sessionCacheKey = `edge_function_available_${functionName}`;
+          sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+        }
         
         return true;
       }
@@ -91,8 +97,14 @@ export const checkEdgeFunctionAvailability = async (
   
   console.error(`Edge function ${functionName} is unavailable after ${retries + 1} attempts`);
   
-  // Cache the negative result
-  cacheAvailability(functionName, false, now);
+  // Cache the negative result both in memory and session storage
+  const cacheValue = { available: false, timestamp: now };
+  availabilityCache[functionName] = cacheValue;
+  
+  if (typeof sessionStorage !== 'undefined') {
+    const sessionCacheKey = `edge_function_available_${functionName}`;
+    sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+  }
   
   return false;
 };

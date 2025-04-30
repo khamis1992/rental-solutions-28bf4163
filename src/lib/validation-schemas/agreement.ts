@@ -31,44 +31,6 @@ export const agreementSchema = z.object({
   terms_accepted: z.boolean().default(false).optional(),
 });
 
-/**
- * Validates agreement form data according to schema
- * @param formData - The agreement form data to validate
- * @returns Object containing validation result and errors/validated data
- */
-export function validateAgreementForm(formData: unknown) {
-  try {
-    const validatedData = agreementSchema.parse(formData);
-    return {
-      success: true,
-      data: validatedData,
-      errors: null
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      // Format Zod errors into a more user-friendly format
-      const formattedErrors = error.errors.reduce((acc, err) => {
-        const path = err.path.join('.');
-        acc[path] = err.message;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      return {
-        success: false,
-        data: null,
-        errors: formattedErrors
-      };
-    }
-    
-    // Handle unexpected errors
-    return {
-      success: false,
-      data: null,
-      errors: { _form: 'An unexpected error occurred during validation' }
-    };
-  }
-}
-
 // Enum for payment status
 export const PaymentStatus = {
   PENDING: 'pending',

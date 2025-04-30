@@ -1,3 +1,4 @@
+
 import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
 
@@ -95,14 +96,4 @@ export function safelyExtractData<T>(response: any): T | null {
 // Type guard for checking if a response has data
 export function hasResponseData<T>(response: any): response is { data: T } {
   return !response?.error && response?.data !== null && response?.data !== undefined;
-}
-
-// Add this function to utils.ts
-export function mapDbResponse<T>(response: any): T | null {
-  if (!response) return null;
-  if (response.error) {
-    console.error('Database error:', response.error);
-    return null;
-  }
-  return response.data as T;
 }
