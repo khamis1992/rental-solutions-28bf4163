@@ -6,6 +6,7 @@ import { Database } from '@/types/database.types';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { asLeaseStatus } from '@/lib/database/utils';
 import { supabase } from '@/lib/supabase';
+import { logOperation } from '@/utils/monitoring-utils';
 
 // Define agreement type for readability
 export type Agreement = TableRow<'leases'>;
@@ -97,7 +98,12 @@ export class AgreementService extends BaseService<'leases'> {
       const { data, error } = await query;
 
       if (error) {
-        console.error("Error fetching agreements:", error);
+        logOperation(
+          'agreementService.findAgreements', 
+          'error', 
+          { filters, error: error.message },
+          'Error fetching agreements'
+        );
         throw new Error(`Failed to fetch agreements: ${error.message}`);
       }
 
@@ -121,7 +127,12 @@ export class AgreementService extends BaseService<'leases'> {
         .single();
 
       if (error) {
-        console.error("Error fetching agreement from Supabase:", error);
+        logOperation(
+          'agreementService.getAgreementDetails', 
+          'error', 
+          { id, error: error.message },
+          'Error fetching agreement from Supabase'
+        );
         throw new Error(`Failed to load agreement details: ${error.message}`);
       }
 
@@ -194,7 +205,12 @@ export class AgreementService extends BaseService<'leases'> {
         .eq('agreement_id', id);
         
       if (overduePaymentsDeleteError) {
-        console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
+        logOperation(
+          'agreementService.deleteAgreement', 
+          'error', 
+          { id, error: overduePaymentsDeleteError.message },
+          'Failed to delete related overdue payments'
+        );
       }
       
       const { error: paymentDeleteError } = await supabase
@@ -203,7 +219,12 @@ export class AgreementService extends BaseService<'leases'> {
         .eq('lease_id', id);
         
       if (paymentDeleteError) {
-        console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
+        logOperation(
+          'agreementService.deleteAgreement', 
+          'error', 
+          { id, error: paymentDeleteError.message },
+          'Failed to delete related payments'
+        );
       }
       
       const { data: relatedReverts } = await supabase
@@ -218,7 +239,12 @@ export class AgreementService extends BaseService<'leases'> {
           .eq('import_id', id);
           
         if (revertDeleteError) {
-          console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
+          logOperation(
+            'agreementService.deleteAgreement', 
+            'error', 
+            { id, error: revertDeleteError.message },
+            'Failed to delete related revert records'
+          );
         }
       }
       
@@ -234,7 +260,12 @@ export class AgreementService extends BaseService<'leases'> {
           .eq('agreement_id', id);
           
         if (finesDeleteError) {
-          console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
+          logOperation(
+            'agreementService.deleteAgreement', 
+            'error', 
+            { id, error: finesDeleteError.message },
+            'Failed to delete related traffic fines'
+          );
         }
       }
       
