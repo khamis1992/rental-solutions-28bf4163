@@ -6,10 +6,10 @@ export * from './repository';
 export * from '@/types/database-common';
 
 // Export repositories
-import { leaseRepository } from './repositories/lease-repository';
-import { vehicleRepository } from './repositories/vehicle-repository';
-import { profileRepository } from './repositories/profile-repository';
-import { paymentRepository } from './repositories/payment-repository';
+export { leaseRepository } from './repositories/lease-repository';
+export { vehicleRepository } from './repositories/vehicle-repository';
+export { profileRepository } from './repositories/profile-repository';
+export { paymentRepository } from './repositories/payment-repository';
 
 // Legacy type casting functions for backward compatibility
 import { 

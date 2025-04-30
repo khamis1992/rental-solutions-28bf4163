@@ -1,51 +1,74 @@
 
+import { PostgrestError } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 
-/**
- * Handles API errors and displays appropriate toast messages
- * @param error - The error object
- * @param defaultMessage - Optional default message to display
- */
-export function handleApiError(error: unknown, defaultMessage?: string): void {
+export function handleApiError(error: unknown, context?: string): void {
   console.error('API Error:', error);
   
-  const errorMessage = getErrorMessage(error);
+  let errorMessage = 'An unexpected error occurred';
+  
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'string') {
+    errorMessage = error;
+  } else if (isPostgrestError(error)) {
+    errorMessage = `Database error: ${error.message}`;
+    
+    // Handle specific database errors
+    switch (error.code) {
+      case '23505':
+        errorMessage = 'A record with this information already exists.';
+        break;
+      case '23503':
+        errorMessage = 'This record cannot be modified because it is referenced by other data.';
+        break;
+      case '42P01':
+        errorMessage = 'Database table not found. Please contact support.';
+        break;
+      case '42703':
+        errorMessage = 'Database column not found. Please contact support.';
+        break;
+      case '28000':
+        errorMessage = 'Authentication failed. Please try signing in again.';
+        break;
+      case '40001':
+        errorMessage = 'Database is temporarily unavailable. Please try again.';
+        break;
+      case '57014':
+        errorMessage = 'Query timed out. Please try again with a simpler request.';
+        break;
+    }
+  }
+  
+  if (context) {
+    errorMessage = `${context}: ${errorMessage}`;
+  }
   
   toast({
-    variant: 'destructive',
     title: 'Error',
-    description: errorMessage || defaultMessage || 'An unexpected error occurred'
+    description: errorMessage,
+    variant: 'destructive',
   });
 }
 
-/**
- * Displays a success message for API operations
- * @param message - Success message to display
- */
+function isPostgrestError(error: unknown): error is PostgrestError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    'code' in error
+  );
+}
+
 export function handleApiSuccess(message: string): void {
   toast({
     title: 'Success',
-    description: message
+    description: message,
   });
 }
 
-/**
- * Extracts a readable error message from different error types
- * @param error - The error object
- * @returns Formatted error message string
- */
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    return String((error as { message: unknown }).message);
-  }
-  
-  if (typeof error === 'string') {
-    return error;
-  }
-  
-  return 'An unknown error occurred';
+export function formatValidationErrors(errors: Record<string, string[]>): string {
+  return Object.entries(errors)
+    .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+    .join('\n');
 }

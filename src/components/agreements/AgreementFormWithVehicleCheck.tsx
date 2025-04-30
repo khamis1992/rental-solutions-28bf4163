@@ -33,7 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
-import VehicleAssignmentDialog from "./VehicleAssignmentDialog";
+import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 
 interface AgreementFormProps {
@@ -161,11 +161,6 @@ const AgreementFormWithVehicleCheck = ({
   };
 
   const handleVehicleChange = async (vehicleId: string) => {
-    if (!vehicleId || vehicleId.trim() === "") {
-      toast.error("Please select a valid vehicle.");
-      setIsCheckingVehicle(false);
-      return;
-    }
     setIsCheckingVehicle(true);
     try {
       // Check if vehicle is already assigned to an active agreement

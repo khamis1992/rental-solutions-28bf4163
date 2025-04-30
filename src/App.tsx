@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -69,6 +70,8 @@ import SystemSettings from "./pages/SystemSettings";
 import initializeApp from "./utils/app-initializer";
 
 function App() {
+  // Move the QueryClient initialization inside the component
+  // This ensures React hooks are called in the correct context
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -94,7 +97,6 @@ function App() {
                 <TooltipProvider>
                   <Toaster />
                   <Sonner />
-                  
                   <Routes>
                     <Route path="/" element={<Index />} />
                     
@@ -107,71 +109,77 @@ function App() {
                     </Route>
                     
                     {/* Protected Routes */}
-                    <Route path="/*" element={
-                      <ProtectedRoute>
-                        <div className="app-container">
-                          <Sidebar />
-                          <main className="main-content">
+                    <Route
+                      path="/*"
+                      element={
+                        <ProtectedRoute>
+                          <>
+                            <Sidebar />
                             <Routes>
                               <Route path="/dashboard" element={<Dashboard />} />
                               
-                              {/* Vehicle Management */}
+                              {/* Vehicle Management Routes */}
                               <Route path="/vehicles" element={<Vehicles />} />
                               <Route path="/vehicles/add" element={<AddVehicle />} />
                               <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
                               <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
                               
-                              {/* Customer Management */}
+                              {/* Customer Management Routes */}
                               <Route path="/customers" element={<Customers />} />
                               <Route path="/customers/add" element={<AddCustomer />} />
                               <Route path="/customers/:id" element={<CustomerDetailPage />} />
                               <Route path="/customers/edit/:id" element={<EditCustomer />} />
                               
-                              {/* Agreement Management */}
+                              {/* Agreement Management Routes */}
                               <Route path="/agreements" element={<Agreements />} />
                               <Route path="/agreements/add" element={<AddAgreement />} />
-                              <Route path="/agreements/:id" element={<AgreementDetailPage />} />
                               <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                              <Route path="/agreements/:id" element={<AgreementDetailPage />} />
                               
-                              {/* Maintenance Management */}
+                              {/* Maintenance Management Routes */}
                               <Route path="/maintenance" element={<Maintenance />} />
                               <Route path="/maintenance/add" element={<AddMaintenance />} />
                               <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
                               <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
                               
-                              {/* Legal Management */}
+                              {/* Legal Management Routes */}
                               <Route path="/legal" element={<Legal />} />
                               <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
                               
-                              {/* Traffic Fines */}
+                              {/* Traffic Fines Management Route */}
                               <Route path="/fines" element={<TrafficFines />} />
                               
-                              {/* Financials */}
+                              {/* Financials Management Route */}
                               <Route path="/financials" element={<Financials />} />
                               
-                              {/* Reports */}
+                              {/* Reports Routes */}
                               <Route path="/reports" element={<Reports />} />
                               <Route path="/reports/scheduled" element={<ScheduledReports />} />
                               
-                              {/* Settings */}
-                              <Route path="/settings" element={<UserSettings />} />
+                              {/* System Settings Route */}
                               <Route path="/settings/system" element={<SystemSettings />} />
                               
-                              {/* Admin-only routes */}
-                              <Route path="/user-management" element={
-                                <ProtectedRoute roles={["admin"]}>
-                                  <UserManagement />
-                                </ProtectedRoute>
-                              } />
+                              {/* User Management Routes */}
+                              <Route path="/settings" element={<UserSettings />} />
+                              <Route 
+                                path="/user-management" 
+                                element={
+                                  <ProtectedRoute roles={["admin"]}>
+                                    <UserManagement />
+                                  </ProtectedRoute>
+                                } 
+                              />
                               
-                              {/* Fallback routes */}
+                              {/* Unauthorized Route */}
                               <Route path="/unauthorized" element={<NotFound />} />
+                              
+                              {/* Catch-all route for 404 */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
-                          </main>
-                        </div>
-                      </ProtectedRoute>
-                    } />
+                          </>
+                        </ProtectedRoute>
+                      }
+                    />
                   </Routes>
                 </TooltipProvider>
               </NotificationProvider>
@@ -181,6 +189,6 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

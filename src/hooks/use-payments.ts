@@ -1,6 +1,6 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import type { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
 
 export const usePayments = (agreementId?: string) => {
@@ -25,37 +25,33 @@ export const usePayments = (agreementId?: string) => {
 
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
-  const addPayment = useSupabaseMutation(
-    async (newPayment: Partial<Payment>) => {
-      const response = await paymentRepository.recordPayment(newPayment);
-      if (response.error) {
-        console.error("Error adding payment:", response.error);
-        return null;
-      }
-      return response.data;
-    },
-    {
-      onSuccess: () => {
-        refetch();
-      }
-    }
-  );
+  const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
+    const response = await paymentRepository.recordPayment(newPayment);
 
-  const updatePayment = useSupabaseMutation(
-    async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-      const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
-      if (response.error) {
-        console.error("Error updating payment:", response.error);
-        throw response.error;
-      }
-      return response.data;
-    },
-    {
-      onSuccess: () => {
-        refetch();
-      }
+    if (response.error) {
+      console.error("Error adding payment:", response.error);
+      return null;
     }
-  );
+    return response.data;
+  }, {
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
+    const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
+
+    if (response.error) {
+      console.error("Error updating payment:", response.error);
+      throw response.error;
+    }
+    return response.data;
+  }, {
+    onSuccess: () => {
+      refetch();
+    }
+  });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
     const response = await paymentRepository.delete(paymentId);

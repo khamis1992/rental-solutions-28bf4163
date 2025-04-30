@@ -18,13 +18,11 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
     },
     global: {
-      // Explicitly type args for the fetch wrapper
-      fetch: (input: RequestInfo | URL, init?: RequestInit) => {
+      fetch: (...args) => {
         // Enhanced fetch with automatic retry logic for network issues
         const fetchWithRetry = async (retries = 3, backoffDelay = 300) => {
           try {
-            // Pass arguments explicitly
-            return await fetch(input, init);
+            return await fetch(...args);
           } catch (err) {
             if (retries <= 0) {
               throw err;
@@ -41,7 +39,9 @@ export const supabase = createClient<Database>(
         'x-client-info': 'supabase-js/2.38.4',
       },
     },
-    // Removed invalid retry options - retry logic is in the custom fetch wrapper
+    // Improve retry configuration for better resilience
+    retryAttempts: 5,
+    retryInterval: attempt => Math.min(1000 * Math.pow(2, attempt), 10000), // Exponential backoff with max 10s
   }
 );
 
@@ -123,12 +123,11 @@ export const checkSupabaseHealth = async (): Promise<{
           error = response.error;
         } else if (retryCount === 1) {
           const response = await supabase.from('vehicle_types').select('count', { count: 'exact', head: true });
-           error = response.error;
-         } else {
-           // Replace RPC call with another table check
-           const response = await supabase.from('customers').select('count', { count: 'exact', head: true });
-           error = response.error;
-         }
+          error = response.error;
+        } else {
+          const response = await supabase.rpc('get_server_time');
+          error = response.error;
+        }
         
         isHealthy = !error;
         if (isHealthy) break;

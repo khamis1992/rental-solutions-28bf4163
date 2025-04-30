@@ -33,7 +33,7 @@ export const QuickActions = () => {
       title: "Schedule Maintenance", 
       icon: Wrench, 
       color: "bg-amber-500", 
-      onClick: () => navigate('/maintenance/add') 
+      onClick: () => navigate('/maintenance/new') 
     }
   ];
 

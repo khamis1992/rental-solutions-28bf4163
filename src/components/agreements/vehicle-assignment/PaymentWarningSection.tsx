@@ -1,6 +1,4 @@
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
 import { Payment } from '@/types/payment-history.types';
 import { Badge } from '@/components/ui/badge';
 
@@ -85,3 +83,4 @@ export function PaymentWarningSection({
     </>
   );
 }
+

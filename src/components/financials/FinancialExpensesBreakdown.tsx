@@ -1,17 +1,40 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 import { TrendingDown, Clock, AlertTriangle } from 'lucide-react';
-import { calculateFinancialBreakdown } from '@/services/financial/calculations';
 
 const FinancialExpensesBreakdown: React.FC = () => {
   const { financialSummary, isLoadingSummary } = useFinancials();
 
-  // Use extracted business logic from financial service
-  const financialData = calculateFinancialBreakdown(financialSummary);
+  // Use memo to avoid recalculation on each render
+  const financialData = useMemo(() => {
+    if (!financialSummary) {
+      return {
+        totalExpenses: 0,
+        currentMonthDue: 0,
+        overdueExpenses: 0,
+        regularExpenses: 0
+      };
+    }
+    
+    // Ensure all values are proper numbers with explicit conversions
+    const totalExp = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
+    const currentDue = parseFloat(Number(financialSummary.currentMonthDue || 0).toFixed(2));
+    const overdue = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
+    
+    // Calculate regular expenses based on total minus overdue
+    const regular = parseFloat((totalExp - overdue).toFixed(2));
+
+    return {
+      totalExpenses: totalExp,
+      currentMonthDue: currentDue,
+      overdueExpenses: overdue,
+      regularExpenses: regular
+    };
+  }, [financialSummary]);
 
   if (isLoadingSummary) {
     return (

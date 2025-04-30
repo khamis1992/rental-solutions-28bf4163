@@ -1,5 +1,5 @@
 
-import { enhancedSupabase as supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase';
 
 // Cache for storing availability check results
 const availabilityCache: Record<string, { available: boolean; timestamp: number }> = {};

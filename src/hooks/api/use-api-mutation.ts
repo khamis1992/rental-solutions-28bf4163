@@ -1,35 +1,31 @@
 
-import { useMutation, UseMutationOptions } from '@tanstack/react-query';
+import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { handleApiError, handleApiSuccess } from '@/lib/api/error-handlers';
 
-/**
- * Custom hook for API mutations with standardized error handling
- *
- * @param mutationFn - The function that performs the mutation
- * @param options - Additional React Query mutation options
- * @returns The result from useMutation with proper error handling
- */
-export function useApiMutation<TData, TVariables, TError = Error, TContext = unknown>(
+export function useApiMutation<TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: Omit<UseMutationOptions<TData, TError, TVariables, TContext>, 'mutationFn'>
-) {
+  options?: {
+    onSuccess?: (data: TData, variables: TVariables) => void;
+    onError?: (error: Error, variables: TVariables) => void;
+    onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables) => void;
+    successMessage?: string;
+  }
+): UseMutationResult<TData, Error, TVariables, unknown> {
   return useMutation({
-    mutationFn: async (variables: TVariables) => {
+    mutationFn: async (variables) => {
       try {
         const result = await mutationFn(variables);
-        
-        // If onSuccess callback is provided in options, don't show success message here
-        // as the component will handle it
-        if (!options?.onSuccess && typeof options?.meta?.successMessage === 'string') {
-          handleApiSuccess(options.meta.successMessage);
+        if (options?.successMessage) {
+          handleApiSuccess(options.successMessage);
         }
-        
         return result;
       } catch (error) {
         handleApiError(error);
         throw error;
       }
     },
-    ...options
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onSettled: options?.onSettled
   });
 }

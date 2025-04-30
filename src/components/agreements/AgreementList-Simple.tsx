@@ -1,11 +1,10 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { FilePlus, Trash2 } from 'lucide-react';
+import { FilePlus, Filter, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
-import VirtualizedAgreementTable from './table/VirtualizedAgreementTable';
-import { mapDbToAgreement } from '@/services/agreement/transformations';
+import { AgreementTable } from './table/AgreementTable';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,9 +30,6 @@ export function AgreementList() {
   } = useAgreementTable();
 
   const selectedCount = Object.keys(rowSelection).length;
-  
-  // Map database agreements to proper Agreement type including required fields
-  const mappedAgreements = agreements?.map(agreement => mapDbToAgreement(agreement)) || [];
 
   return (
     <div className="space-y-4">
@@ -58,8 +54,8 @@ export function AgreementList() {
         </Button>
       </div>
 
-      <VirtualizedAgreementTable
-        agreements={mappedAgreements}
+      <AgreementTable
+        agreements={agreements}
         isLoading={isLoading}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}

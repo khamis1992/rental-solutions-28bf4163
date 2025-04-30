@@ -1,6 +1,6 @@
 
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
-import { enhancedSupabase as supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
 

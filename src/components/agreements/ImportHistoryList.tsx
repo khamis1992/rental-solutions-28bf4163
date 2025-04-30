@@ -1,20 +1,19 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { mapDbToImportHistory } from '@/utils/type-adapters';
-import { 
+import { supabase } from '@/integrations/supabase/client';
+import { ImportHistoryItem } from '@/types/import-types';
+import {
   Table,
+  TableHeader,
+  TableRow,
+  TableHead,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+} from "@/components/ui/table"
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
-export const ImportHistoryList: React.FC = () => {
+export function ImportHistoryList() {
   const { data: imports, isLoading } = useQuery({
     queryKey: ['agreement-imports'],
     queryFn: async () => {
@@ -24,7 +23,7 @@ export const ImportHistoryList: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data?.map(mapDbToImportHistory) || [];
+      return data as ImportHistoryItem[];
     }
   });
 
@@ -50,13 +49,13 @@ export const ImportHistoryList: React.FC = () => {
             <TableRow key={item.id}>
               <TableCell>{item.file_name}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'completed' ? 'success' : item.status === 'failed' ? 'destructive' : 'default'}>
+                <Badge variant={item.status === 'completed' ? 'success' : item.status === 'failed' ? 'unpaid' : 'default'}>
                   {item.status}
                 </Badge>
               </TableCell>
-              <TableCell>{item.row_count ?? 'N/A'}</TableCell>
-              <TableCell>{item.processed_count ?? 'N/A'}</TableCell>
-              <TableCell>{item.error_count ?? 'N/A'}</TableCell>
+              <TableCell>{item.total_records ?? 'N/A'}</TableCell>
+              <TableCell>{item.processed_records ?? 'N/A'}</TableCell>
+              <TableCell>{item.failed_records ?? 'N/A'}</TableCell>
               <TableCell>{format(new Date(item.created_at), 'MM/dd/yyyy HH:mm')}</TableCell>
             </TableRow>
           ))}

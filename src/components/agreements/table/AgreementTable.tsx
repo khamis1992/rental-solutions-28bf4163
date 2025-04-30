@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import AgreementRow from './AgreementRow';
 import { Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useReactTable, flexRender, getCoreRowModel } from '@tanstack/react-table';
@@ -35,13 +34,6 @@ export function AgreementTable({
     [deleteAgreement]
   );
 
-  const handleRowSelect = React.useCallback(
-    (id: string, checked: boolean) => {
-      setRowSelection(prev => ({ ...prev, [id]: checked }));
-    },
-    [setRowSelection]
-  );
-
   const table = useReactTable({
     data: agreements || [],
     columns,
@@ -49,9 +41,6 @@ export function AgreementTable({
     state: { rowSelection },
     onRowSelectionChange: setRowSelection,
   });
-
-  // For large datasets, consider virtualization here using react-window
-  // See optimization notes in codebase audit
 
   if (isLoading) {
     return (
@@ -119,17 +108,16 @@ export function AgreementTable({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <AgreementRow
-              key={row.id}
-              agreement={row.original}
-              onDelete={deleteAgreement}
-              isSelected={row.getIsSelected()}
-              onSelect={handleRowSelect}
-            />
+            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
   );
 }
-

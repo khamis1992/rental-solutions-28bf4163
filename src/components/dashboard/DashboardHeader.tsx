@@ -32,7 +32,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/settings/system')}
+          onClick={() => navigate('/system-settings')}
         >
           <Settings className="h-4 w-4 mr-2" />
           Settings

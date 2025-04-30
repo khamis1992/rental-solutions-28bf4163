@@ -1,33 +1,26 @@
 
-/**
- * Creates a standardized query configuration object for React Query
- * @param options - Custom query options
- * @returns React Query configuration
- */
-export function createQueryConfig(options?: {
-  enabled?: boolean;
-  refetchOnMount?: boolean;
-  refetchOnWindowFocus?: boolean;
-  refetchOnReconnect?: boolean;
-  retry?: boolean | number;
-}) {
+import { UseQueryOptions } from '@tanstack/react-query';
+
+export const defaultQueryConfig = {
+  retry: (failureCount: number, error: any) => {
+    // Don't retry on specific error types
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = (error as { code: string }).code;
+      if (['23505', '23503', '42P01', '42703'].includes(code)) {
+        return false;
+      }
+    }
+    return failureCount < 3;
+  },
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  refetchOnWindowFocus: false
+};
+
+export function createQueryConfig<TData>(
+  options?: Partial<UseQueryOptions<TData, Error>>
+): UseQueryOptions<TData, Error> {
   return {
-    // Default to enabled
-    enabled: options?.enabled !== false,
-    
-    // Default to refetching on mount for fresh data
-    refetchOnMount: options?.refetchOnMount !== false,
-    
-    // Default to not refetching on window focus for better performance
-    refetchOnWindowFocus: options?.refetchOnWindowFocus || false,
-    
-    // Default to refetching when reconnecting
-    refetchOnReconnect: options?.refetchOnReconnect !== false,
-    
-    // Default to 1 retry
-    retry: options?.retry === undefined ? 1 : options.retry,
-    
-    // Default staleTime (5 minutes)
-    staleTime: 5 * 60 * 1000
+    ...defaultQueryConfig,
+    ...options
   };
 }

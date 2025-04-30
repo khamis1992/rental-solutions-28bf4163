@@ -5,7 +5,7 @@ import { vehicleService, VehicleFilterParams } from '@/services/VehicleService';
 import { toast } from 'sonner';
 
 /**
- * Hook for working with the Vehicle Services
+ * Hook for working with the Vehicle Service
  */
 export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   const [filters, setFilters] = useState<VehicleFilterParams>(initialFilters);
@@ -20,12 +20,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicles', filters],
     queryFn: async () => {
-      try {
-        const { data } = await vehicleService.findVehicles(filters);
-        return data;
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to fetch vehicles');
+      const result = await vehicleService.findVehicles(filters);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch vehicles');
       }
+      return result.data;
     },
     staleTime: 600000, // 10 minutes
     gcTime: 900000, // 15 minutes
@@ -38,11 +37,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicleTypes'],
     queryFn: async () => {
-      try {
-        return await vehicleService.getVehicleTypes();
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to fetch vehicle types');
+      const result = await vehicleService.getVehicleTypes();
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch vehicle types');
       }
+      return result.data;
     },
     staleTime: 3600000, // 1 hour
   });
@@ -50,11 +49,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for getting vehicle details
   const getVehicleDetails = useMutation({
     mutationFn: async (id: string) => {
-      try {
-        return await vehicleService.getVehicleDetails(id);
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to fetch vehicle details');
+      const result = await vehicleService.getVehicleDetails(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch vehicle details');
       }
+      return result.data;
     }
   });
 
@@ -66,11 +65,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   } = useQuery({
     queryKey: ['vehicles', 'available'],
     queryFn: async () => {
-      try {
-        return await vehicleService.findAvailableVehicles();
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to fetch available vehicles');
+      const result = await vehicleService.findAvailableVehicles();
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch available vehicles');
       }
+      return result.data;
     },
     staleTime: 300000, // 5 minutes
   });
@@ -78,11 +77,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for updating a vehicle
   const updateVehicle = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      try {
-        return await vehicleService.updateVehicle(id, data);
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to update vehicle');
+      const result = await vehicleService.update(id, data);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to update vehicle');
       }
+      return result.data;
     },
     onSuccess: () => {
       toast.success('Vehicle updated successfully');
@@ -96,11 +95,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for updating vehicle status
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      try {
-        return await vehicleService.updateStatus(id, status);
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to update vehicle status');
+      const result = await vehicleService.updateStatus(id, status);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to update vehicle status');
       }
+      return result.data;
     },
     onSuccess: () => {
       toast.success('Status updated successfully');
@@ -114,13 +113,11 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
   // Mutation for deleting a vehicle
   const deleteVehicle = useMutation({
     mutationFn: async (id: string) => {
-      try {
-        // There is no direct delete by id in the new VehicleService, so use batchDelete
-        await vehicleService.batchDelete([id]);
-        return id;
-      } catch (err) {
-        throw new Error((err as Error).message || 'Failed to delete vehicle');
+      const result = await vehicleService.delete(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to delete vehicle');
       }
+      return id;
     },
     onSuccess: () => {
       toast.success('Vehicle deleted successfully');
@@ -131,8 +128,24 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
     }
   });
 
-  // Mutations for analytics and maintenance are not implemented in the new VehicleService
-  // If needed, implement them in VehicleService and expose here.
+  // Mutation for calculating vehicle utilization
+  const calculateUtilization = useMutation({
+    mutationFn: async ({ 
+      id, 
+      startDate, 
+      endDate 
+    }: { 
+      id: string; 
+      startDate: Date; 
+      endDate: Date 
+    }) => {
+      const result = await vehicleService.calculateUtilizationMetrics(id, startDate, endDate);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to calculate utilization');
+      }
+      return result.data;
+    }
+  });
 
   return {
     vehicles,
@@ -150,12 +163,14 @@ export const useVehicleService = (initialFilters: VehicleFilterParams = {}) => {
     updateVehicle: updateVehicle.mutateAsync,
     updateStatus: updateStatus.mutateAsync,
     deleteVehicle: deleteVehicle.mutateAsync,
-    // calculateUtilization and getMaintenanceRecords are not implemented in the new VehicleService
+    calculateUtilization: calculateUtilization.mutateAsync,
+    // Expose isPending states for UI loading indicators
     isPending: {
       getVehicleDetails: getVehicleDetails.isPending,
       updateVehicle: updateVehicle.isPending,
       updateStatus: updateStatus.isPending,
       deleteVehicle: deleteVehicle.isPending,
+      calculateUtilization: calculateUtilization.isPending,
     }
   };
 };

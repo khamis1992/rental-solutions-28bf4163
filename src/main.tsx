@@ -1,9 +1,8 @@
- 
+
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
-import { reportWebVitals } from '../web-vitals'; // Corrected path
 
 // Create a client
 const queryClient = new QueryClient({
@@ -21,8 +20,3 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </QueryClientProvider>
 );
-
-reportWebVitals((metric) => {
-  // You can send these metrics to an analytics endpoint instead
-  console.log('Web Vitals metric:', metric);
-});

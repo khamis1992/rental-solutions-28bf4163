@@ -151,31 +151,26 @@ const AddAgreement = () => {
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      // Ensure we handle formData correctly without double destructuring
-      if (!formData.vehicle_id || formData.vehicle_id.trim() === "") {
-        toast.error("Vehicle is required to create an agreement.");
-        setIsSubmitting(false);
-        return;
-      }
+      const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
       
-      if (formData.vehicle_id && formData.status === 'active') {
-        const { isAvailable, existingAgreement } = await checkVehicleAvailability(formData.vehicle_id);
+      if (leaseData.vehicle_id && leaseData.status === 'active') {
+        const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
         
         if (!isAvailable && existingAgreement) {
           console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
         }
       }
       
-      console.log("Submitting lease data:", formData);
+      console.log("Submitting lease data:", leaseData);
       
-      const { data, error } = await supabase.from("leases").insert([formData]).select("id").single();
+      const { data, error } = await supabase.from("leases").insert([leaseData]).select("id").single();
       if (error) {
         throw error;
       }
       
-      if (formData.status === 'active' && formData.vehicle_id) {
-        await activateAgreement(data.id, formData.vehicle_id);
-      } else if (formData.status === 'active') {
+      if (leaseData.status === 'active' && leaseData.vehicle_id) {
+        await activateAgreement(data.id, leaseData.vehicle_id);
+      } else if (leaseData.status === 'active') {
         // If agreement is active but not tied to a vehicle, still generate payment
         try {
           console.log("Generating initial payment schedule for new agreement");
