@@ -1,16 +1,16 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useApiQuery, useApiMutation, useCrudApi } from '@/hooks/api/index';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   const [vehicleId, setVehicleId] = useState<string | null>(null);
 
   // Fetch all vehicles
-  const { data: vehicles, isLoading, error } = useQuery(
-    'vehicles',
-    async () => {
+  const { data: vehicles, isLoading, error } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('vehicles')
         .select('*');
@@ -19,12 +19,12 @@ export const useVehicles = () => {
       }
       return data;
     }
-  );
+  });
 
   // Fetch single vehicle by ID
-  const { data: vehicle, isLoading: isVehicleLoading, error: vehicleError } = useQuery(
-    ['vehicle', vehicleId],
-    async () => {
+  const { data: vehicle, isLoading: isVehicleLoading, error: vehicleError } = useQuery({
+    queryKey: ['vehicle', vehicleId],
+    queryFn: async () => {
       if (!vehicleId) return null;
       const { data, error } = await supabase
         .from('vehicles')
@@ -36,14 +36,12 @@ export const useVehicles = () => {
       }
       return data;
     },
-    {
-      enabled: !!vehicleId, // Only run when vehicleId is not null
-    }
-  );
+    enabled: !!vehicleId, // Only run when vehicleId is not null
+  });
 
   // Mutation to add a new vehicle
-  const addVehicleMutation = useMutation(
-    async (newVehicle: any) => {
+  const addVehicleMutation = useMutation({
+    mutationFn: async (newVehicle: any) => {
       const { data, error } = await supabase
         .from('vehicles')
         .insert([newVehicle]);
@@ -52,17 +50,15 @@ export const useVehicles = () => {
       }
       return data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch
-        queryClient.invalidateQueries('vehicles');
-      },
-    }
-  );
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
 
   // Mutation to update a vehicle
-  const updateVehicleMutation = useMutation(
-    async ({ id, ...updates }: any) => {
+  const updateVehicleMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: any) => {
       const { data, error } = await supabase
         .from('vehicles')
         .update(updates)
@@ -72,16 +68,14 @@ export const useVehicles = () => {
       }
       return data;
     },
-    {
-      onSuccess: () => {
-        // Invalidate and refetch
-        queryClient.invalidateQueries('vehicles');
-        if (vehicleId) {
-          queryClient.invalidateQueries(['vehicle', vehicleId]);
-        }
-      },
-    }
-  );
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      if (vehicleId) {
+        queryClient.invalidateQueries({ queryKey: ['vehicle', vehicleId] });
+      }
+    },
+  });
 
   // Function to set the vehicle ID for fetching a single vehicle
   const getVehicle = (id: string) => {

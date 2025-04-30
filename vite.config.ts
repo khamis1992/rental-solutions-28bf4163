@@ -20,12 +20,12 @@ export default defineConfig(({ mode }) => ({
       'react-dom',
       'react-router-dom',
     ],
-    force: true
+    force: mode === 'development' // Only force in development mode
   },
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    visualizer({
+    mode === 'production' && visualizer({
       open: true,
       gzipSize: true,
       brotliSize: true,

@@ -18,3 +18,20 @@ export interface ImportData {
   row_count: number;
   created_at: string;
 }
+
+export interface ImportFilter {
+  status?: string[];
+  dateRange?: {
+    from: Date | undefined;
+    to: Date | undefined;
+  };
+}
+
+export interface ImportErrorItem {
+  id: string;
+  import_log_id: string;
+  row_number: number;
+  error_message: string;
+  row_data: Record<string, any>;
+  created_at: string;
+}

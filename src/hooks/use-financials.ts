@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useApiQuery, useApiMutation } from '@/hooks/api/index';
+import { useApiQuery, useApiMutation } from '@/hooks/api';
 
 export const useFinancials = () => {
   const queryClient = useQueryClient();
