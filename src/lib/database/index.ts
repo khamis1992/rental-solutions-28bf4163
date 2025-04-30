@@ -1,72 +1,48 @@
-
 // Export types
-export * from './types';
-export * from './utils';
-export * from './repository';
+export type {
+  DbResponse,
+  DbListResponse,
+  DbSingleResponse,
+  TableRow,
+  TableInsert,
+  TableUpdate
+} from './types';
+
+export type {
+  LeaseId,
+  VehicleId,
+  ProfileId,
+  PaymentId,
+  TrafficFineId,
+  MaintenanceId,
+  LeaseStatus,
+  VehicleStatus,
+  ProfileStatus,
+  PaymentStatus,
+  MaintenanceStatus
+} from './utils';
+
+export { Repository } from './repository';
 export * from '@/types/database-common';
 
-// Export repositories
-export { leaseRepository } from './repositories/lease-repository';
-export { vehicleRepository } from './repositories/vehicle-repository';
-export { profileRepository } from './repositories/profile-repository';
-export { paymentRepository } from './repositories/payment-repository';
-
-// Legacy type casting functions for backward compatibility
-import { 
-  asLeaseId, 
-  asVehicleId, 
-  asProfileId, 
-  asPaymentId, 
-  asTrafficFineId, 
-  asMaintenanceId,
-  asLeaseStatus,
-  asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus,
-  asEntityStatus
-} from '@/types/database-common';
-
-// Export with legacy names for backward compatibility
+// Export all repository instances
 export {
-  asLeaseId,
-  asVehicleId,
-  asProfileId,
-  asPaymentId,
-  asTrafficFineId,
-  asMaintenanceId,
-  asLeaseStatus,
-  asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus
-};
+  leaseRepository,
+  vehicleRepository,
+  profileRepository,
+  paymentRepository,
+  trafficFineRepository,
+  legalCaseRepository,
+  maintenanceRepository
+} from './repository';
 
-// Fix common ID column errors by providing direct casting functions
-export const asLeaseIdColumn = asLeaseId;
-export const asVehicleIdColumn = asVehicleId;
-export const asProfileIdColumn = asProfileId;
-export const asPaymentIdColumn = asPaymentId;
-export const asTrafficFineIdColumn = asTrafficFineId;
-export const asMaintenanceIdColumn = asMaintenanceId;
-
-// Alias for legacy code
-export const asStatusColumn = asEntityStatus;
-
-// Special function to handle type errors in legacy code
-export function castLeaseUpdate(data: any): any {
-  return data;
-}
-
-// Handle type errors in legacy code
-export function castRowData<T>(data: T): T {
-  return data;
-}
-
-// Export collection of repository instances for easy access
+// Export repository collection for grouped access
 export const repositories = {
-  lease: leaseRepository,
-  vehicle: vehicleRepository,
-  profile: profileRepository,
-  payment: paymentRepository
+  lease: new Repository('leases'),
+  vehicle: new Repository('vehicles'),
+  profile: new Repository('profiles'),
+  payment: new Repository('unified_payments'),
+  trafficFine: new Repository('traffic_fines'),
+  legalCase: new Repository('legal_cases'),
+  maintenance: new Repository('maintenance')
 };
