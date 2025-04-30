@@ -4,6 +4,7 @@ import { TableRow } from '@/lib/database/types';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import { logOperation } from '@/utils/monitoring-utils';
 
 // Define payment type for readability
 export type PaymentRecord = TableRow<'unified_payments'>;
@@ -117,7 +118,12 @@ export class PaymentService extends BaseService<'unified_payments'> {
           .single();
           
         if (queryError) {
-          console.error("Error fetching existing payment:", queryError);
+          logOperation(
+            'paymentService.handleSpecialPayment', 
+            'error', 
+            { targetPaymentId, error: queryError.message },
+            'Error fetching existing payment'
+          );
           throw new Error(`Failed to fetch payment: ${queryError.message}`);
         } else if (existingPayment) {
           existingPaymentId = existingPayment.id;
@@ -237,7 +243,12 @@ export class PaymentService extends BaseService<'unified_payments'> {
             .insert(lateFeeRecord);
           
           if (lateFeeError) {
-            console.error("Late fee recording error:", lateFeeError);
+            logOperation(
+              'paymentService.handleSpecialPayment', 
+              'error', 
+              { agreementId, lateFineAmount, error: lateFeeError.message },
+              'Late fee recording error'
+            );
             throw new Error(`Payment recorded but failed to record late fee: ${lateFeeError.message}`);
           }
         }
@@ -327,9 +338,19 @@ export class PaymentService extends BaseService<'unified_payments'> {
               .eq('id', duplicate.id);
               
             if (deleteError) {
-              console.error(`Error deleting duplicate payment ${duplicate.id}:`, deleteError);
+              logOperation(
+                'paymentService.fixAgreementPayments', 
+                'error', 
+                { agreementId, paymentId: duplicate.id, error: deleteError.message },
+                `Error deleting duplicate payment`
+              );
             } else {
-              console.log(`Successfully deleted duplicate payment ${duplicate.id}`);
+              logOperation(
+                'paymentService.fixAgreementPayments', 
+                'success', 
+                { agreementId, paymentId: duplicate.id },
+                `Successfully deleted duplicate payment`
+              );
               fixedCount++;
             }
           }
