@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
