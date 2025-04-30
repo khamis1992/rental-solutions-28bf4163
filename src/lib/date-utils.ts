@@ -1,5 +1,6 @@
 
 import { format, parseISO, isValid } from 'date-fns';
+import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Safely converts a date string or Date object to a Date object
@@ -28,7 +29,8 @@ const safelyParseDate = (dateInput: Date | string | null | undefined): Date | nu
     
     return null;
   } catch (error) {
-    console.error('Error parsing date:', error, 'Input was:', dateInput);
+    logOperation('dateUtils.safelyParseDate', 'error', 
+      { input: String(dateInput) }, error instanceof Error ? error.message : String(error));
     return null;
   }
 };
@@ -46,7 +48,8 @@ export const formatDate = (date: Date | string | null | undefined, formatString 
   try {
     return format(parsedDate, formatString);
   } catch (error) {
-    console.error('Error formatting date:', error, 'Input was:', date);
+    logOperation('dateUtils.formatDate', 'error', 
+      { input: String(date) }, error instanceof Error ? error.message : String(error));
     return 'Invalid date';
   }
 };
@@ -82,7 +85,8 @@ export const formatDateForInput = (date: Date | string | null | undefined): stri
   try {
     return format(parsedDate, 'yyyy-MM-dd');
   } catch (error) {
-    console.error('Error formatting date for input:', error);
+    logOperation('dateUtils.formatDateForInput', 'error', 
+      { input: String(date) }, error instanceof Error ? error.message : String(error));
     return '';
   }
 };

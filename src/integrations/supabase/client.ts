@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { Database } from './types';
+import { logOperation } from '@/utils/monitoring-utils';
 
 // Use environment variables from .env
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
@@ -76,7 +77,8 @@ export const testConnection = async (): Promise<boolean> => {
     
     return isHealthy;
   } catch (err) {
-    console.error('Supabase connection test failed:', err);
+    logOperation('supabase.testConnection', 'error', 
+      { error: err instanceof Error ? err.message : String(err) }, 'Supabase connection test failed');
     
     // Update cache with error state
     lastHealthCheck = {
@@ -132,7 +134,8 @@ export const checkSupabaseHealth = async (): Promise<{
         isHealthy = !error;
         if (isHealthy) break;
         
-        console.log(`Health check attempt ${retryCount + 1} failed: ${error?.message}`);
+        logOperation('supabase.checkSupabaseHealth', 'warning', 
+          { attempt: retryCount + 1, error: error?.message }, `Health check attempt failed`);
         retryCount++;
         await new Promise(r => setTimeout(r, 500 * retryCount)); // Exponential backoff
       } catch (err) {
@@ -148,7 +151,8 @@ export const checkSupabaseHealth = async (): Promise<{
     const latency = Math.round(endTime - startTime);
     
     if (!isHealthy) {
-      console.error('All Supabase health check attempts failed:', error);
+      logOperation('supabase.checkSupabaseHealth', 'error', 
+        { error: error instanceof Error ? error.message : String(error) }, 'All Supabase health check attempts failed');
       
       // Update cache
       lastHealthCheck = {
@@ -179,7 +183,8 @@ export const checkSupabaseHealth = async (): Promise<{
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error checking Supabase connection';
-    console.error('Supabase connection error:', errorMessage);
+    logOperation('supabase.checkSupabaseHealth', 'error', 
+      { error: errorMessage }, 'Supabase connection error');
     
     // Update cache with error state
     lastHealthCheck = {
@@ -210,13 +215,15 @@ export const checkConnectionWithRetry = async (
     
     attempts++;
     if (attempts < retries) {
-      console.log(`Connection attempt ${attempts} failed, retrying in ${delay}ms...`);
+      logOperation('supabase.checkConnectionWithRetry', 'warning', 
+        { attempt: attempts, delay }, `Connection attempt failed, retrying`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay = Math.min(delay * 2, 10000); // Exponential backoff with max 10s
     }
   }
   
-  console.error(`Failed to connect to database after ${retries} attempts`);
+  logOperation('supabase.checkConnectionWithRetry', 'error', 
+    { retries }, `Failed to connect to database after ${retries} attempts`);
   return false;
 };
 
@@ -235,14 +242,16 @@ export const monitorDatabaseConnection = (
       previousStatus = isHealthy;
       
       if (!isHealthy) {
-        console.error(`Database connection lost: ${error}`);
+        logOperation('supabase.monitorDatabaseConnection', 'error', 
+          { error }, 'Database connection lost');
         toast.error('Database connection lost', {
           description: `Cannot connect to database: ${error || 'Check your internet connection'}`,
           duration: 0, // Keep until dismissed or reconnected
           id: 'db-connection-error'
         });
       } else {
-        console.log(`Database connection restored (latency: ${latency}ms)`);
+        logOperation('supabase.monitorDatabaseConnection', 'success', 
+          { latency }, 'Database connection restored');
         toast.success('Database connection restored', {
           description: 'Your connection to the database has been re-established',
           id: 'db-connection-error'

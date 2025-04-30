@@ -2,6 +2,7 @@
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 import { exists } from '@/utils/response-mapper';
+import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Type for database ID that ensures consistent typing across the application
@@ -44,7 +45,8 @@ export function extractResponseData<T>(
 ): T | null {
   if (!hasResponseData(response)) {
     if (response?.error) {
-      console.error('Database error:', response.error);
+      logOperation('typeHelpers.extractResponseData', 'error', 
+        { error: response.error }, 'Database error');
     }
     return null;
   }
@@ -84,7 +86,8 @@ export function toPaymentStatus(status: string): PaymentStatusType {
  */
 export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
   if (response?.error) {
-    console.error('Database error:', response.error);
+    logOperation('typeHelpers.handleDatabaseResponse', 'error', 
+      { error: response.error }, 'Database error');
     return null;
   }
   
