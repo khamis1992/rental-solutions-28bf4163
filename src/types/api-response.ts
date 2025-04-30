@@ -65,6 +65,29 @@ export async function executeWithRetry<T>(
   return createErrorResponse(lastError, 'Max retries exceeded');
 }
 
+export interface Agreement {
+  id: string;
+  status: 'active' | 'pending' | 'draft' | 'cancelled' | 'closed' | 'pending_payment' | 'completed' | 'pending_deposit' | 'terminated' | 'archived';
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string;
+  end_date: string;
+  rent_amount: number;
+  deposit_amount: number;
+  total_amount: number;
+  daily_late_fee: number;
+  agreement_duration?: string;
+  notes?: string;
+  terms_accepted: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+  last_payment_date?: string;
+  payment_frequency: 'weekly' | 'biweekly' | 'monthly';
+  payment_day: number;
+}
+
 export interface Payment {
   id?: string;
   agreement_id: string;

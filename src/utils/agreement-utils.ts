@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { castDbId } from "@/utils/supabase-type-helpers";
 import { withTimeout, executeWithRetry } from "@/types/api-response";
 import { formatDate } from "@/lib/date-utils";
+import { PaymentHistoryItem } from '@/types/payment-history.types';
+import { Agreement } from '@/types/api-response';
 
 const agreementCache = new Map();
 
@@ -523,6 +525,35 @@ export async function processAgreements(agreements: Agreement[]) {
   return results;
 }
 
+export async function processAgreementPayments(agreement: Agreement): Promise<void> {
+  const paymentDates = calculatePaymentDates(agreement);
+  for (const date of paymentDates) {
+    const payment = createPaymentRecord(agreement, date);
+    await insertPayment(payment);
+  }
+}
+
+export function validateAgreementDates(agreement: Agreement): boolean {
+  return new Date(agreement.start_date) < new Date(agreement.end_date);
+}
+
+async function checkDuplicateAgreement(agreement: Agreement): Promise<boolean> {
+  const { count } = await supabase
+    .from('leases')
+    .select('*', { count: 'exact', head: true })
+    .eq('vehicle_id', agreement.vehicle_id)
+    .eq('status', 'active');
+  return (count || 0) > 0;
+}
+
+function generateAgreementNumber(agreement: Agreement): string {
+  return `AG-${agreement.vehicle_id.slice(0, 4)}-${new Date(agreement.start_date).getFullYear()}`;
+}
+
+async function notifyParties(agreement: Agreement): Promise<void> {
+  // Implementation would go here
+}
+
 function validateAgreementUpdate(current: Agreement, update: Partial<Agreement>): {
   isValid: boolean;
   errors: string[];
@@ -557,19 +588,19 @@ function validateAgreementUpdate(current: Agreement, update: Partial<Agreement>)
   };
 }
 
-function createPaymentRecord(agreement, dueDate) {
+export async function createPaymentRecord(agreement: Agreement, paymentDate: Date): Promise<Payment> {
   return {
     agreement_id: agreement.id,
     amount: agreement.rent_amount,
-    description: `Rent Payment - ${formatDate(dueDate, "MMMM yyyy")}`,
+    description: `Rent Payment - ${formatDate(paymentDate, "MMMM yyyy")}`,
     type: "Income",
     status: "pending",
-    due_date: formatDate(dueDate),
+    due_date: formatDate(paymentDate),
     is_recurring: false
   };
 }
 
-function calculatePaymentDates(agreement) {
+function calculatePaymentDates(agreement: Agreement): Date[] {
   // Determine rent due day (default to 1 if not specified)
   const rentDueDay = agreement.rent_due_day || 1;
   
@@ -588,7 +619,7 @@ function calculatePaymentDates(agreement) {
     firstDueDate.setMonth(firstDueDate.getMonth() + 1);
   }
   
-  return { firstDueDate };
+  return [firstDueDate];
 }
 
 async function checkExistingPayments(agreementId, firstDueDate) {
