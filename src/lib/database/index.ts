@@ -22,10 +22,10 @@ export type {
   MaintenanceStatus
 } from './utils';
 
-export { Repository } from './repository';
-export * from '@/types/database-common';
+import { Repository } from './repository';
 
-// Export all repository instances
+export { Repository } from './repository';
+
 export {
   leaseRepository,
   vehicleRepository,
@@ -36,7 +36,6 @@ export {
   maintenanceRepository
 } from './repository';
 
-// Export repository collection for grouped access
 export const repositories = {
   lease: new Repository('leases'),
   vehicle: new Repository('vehicles'),
@@ -46,3 +45,5 @@ export const repositories = {
   legalCase: new Repository('legal_cases'),
   maintenance: new Repository('maintenance')
 };
+
+export * from '@/types/database-common';
