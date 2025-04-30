@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -10,10 +11,20 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  optimizeDeps: {
+    include: [
+      '@supabase/supabase-js',
+      '@tanstack/react-query',
+      'date-fns',
+      'react',
+      'react-dom',
+      'react-router-dom',
+    ],
+    force: true
+  },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
     visualizer({
       open: true,
       gzipSize: true,
@@ -24,9 +35,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     chunkSizeWarningLimit: 1000,
+    sourcemap: mode === 'development',
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -40,12 +53,5 @@ export default defineConfig(({ mode }) => ({
         }
       }
     }
-  },
-  optimizeDeps: {
-    include: [
-      '@supabase/supabase-js',
-      '@tanstack/react-query',
-      'date-fns',
-    ],
-  },
+  }
 }));
