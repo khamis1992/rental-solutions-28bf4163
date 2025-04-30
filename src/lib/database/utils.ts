@@ -1,5 +1,6 @@
 import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
+import { logOperation } from '@/utils/monitoring-utils';
 
 // Define table-specific ID types
 export type LeaseId = Database['public']['Tables']['leases']['Row']['id'];
@@ -86,7 +87,12 @@ export function asTableColumn<
 // Response data extraction with type safety
 export function safelyExtractData<T>(response: any): T | null {
   if (response?.error) {
-    console.error("Error in response:", response.error);
+    logOperation(
+      'database.safelyExtractData', 
+      'error', 
+      { error: response.error }, 
+      'Error in response'
+    );
     return null;
   }
   return response?.data || null;
@@ -101,7 +107,12 @@ export function hasResponseData<T>(response: any): response is { data: T } {
 export function mapDbResponse<T>(response: any): T | null {
   if (!response) return null;
   if (response.error) {
-    console.error('Database error:', response.error);
+    logOperation(
+      'database.mapDbResponse', 
+      'error', 
+      { error: response.error }, 
+      'Database error'
+    );
     return null;
   }
   return response.data as T;
