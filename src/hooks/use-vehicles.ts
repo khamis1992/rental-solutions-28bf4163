@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -6,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';
 import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { handleApiError } from '../use-api'; // Update import path
+import { handleApiError } from '@/hooks/use-api'; // Fix the import path
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { safelyGetRecordFromResponse, safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
@@ -608,3 +609,4 @@ export const useVehicles = () => {
     }
   };
 };
+
