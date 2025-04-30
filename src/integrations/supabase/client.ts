@@ -4,16 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { Database } from './types';
 
-// Use environment variables from .env, with fallback for Cypress environment
-// Check if running in Cypress context (window.Cypress exists)
-const isCypress = typeof window !== 'undefined' && (window as any).Cypress;
-
-// Prioritize Cypress env vars if available, then Vite env vars, then fallback
-const cypressSupabaseUrl = isCypress ? (window as any).Cypress.env('VITE_SUPABASE_URL') : undefined;
-const cypressAnonKey = isCypress ? (window as any).Cypress.env('VITE_SUPABASE_ANON_KEY') : undefined;
-
-const SUPABASE_URL = cypressSupabaseUrl || import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = cypressAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y";
+// Use environment variables from .env
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y";
 
 // Create client with improved retry configuration and connection recovery mechanisms
 export const supabase = createClient<Database>(
