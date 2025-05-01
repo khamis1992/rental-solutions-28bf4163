@@ -2,7 +2,7 @@
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database.types';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasResponseData } from '@/utils/supabase-type-helpers';
 
 // Define helper types for improved type safety
 type DbTables = Database['public']['Tables'];
@@ -57,7 +57,7 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
         .from(tableName)
         .select(columns);
       
-      if (!hasData(response)) {
+      if (!hasResponseData(response)) {
         console.error('Error in Supabase query:', response.error);
         return null;
       }
@@ -71,7 +71,7 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
         .eq('id', id)
         .single();
         
-      if (!hasData(response)) {
+      if (!hasResponseData(response)) {
         console.error('Error in Supabase query:', response.error);
         return null;
       }
@@ -89,7 +89,7 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
       
       const response = await query;
       
-      if (!hasData(response)) {
+      if (!hasResponseData(response)) {
         console.error('Error in Supabase query:', response.error);
         return null;
       }

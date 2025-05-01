@@ -5,13 +5,21 @@ import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { LEASE_STATUSES, PAYMENT_STATUSES } from '@/types/database-common';
-import { safeAsync } from '@/utils/error-handling';
+import { safeAsync, isApiError, isDatabaseError } from '@/utils/error-handling';
 
 interface Stats {
   activeAgreements: number;
   pendingPayments: number;
   expiredAgreements: number;
   averageRentAmount: string;
+}
+
+interface CountResult {
+  count: number;
+}
+
+interface AvgRentResult {
+  rent_amount: number;
 }
 
 export default function AgreementStats() {
@@ -28,45 +36,71 @@ export default function AgreementStats() {
       try {
         setLoading(true);
 
+        // Create the queries first
+        const activeAgreementsPromise = supabase
+          .from('leases')
+          .select('count', { count: 'exact', head: true })
+          .eq('status', LEASE_STATUSES.ACTIVE);
+
+        const pendingPaymentsPromise = supabase
+          .from('unified_payments')
+          .select('count', { count: 'exact', head: true })
+          .eq('status', PAYMENT_STATUSES.PENDING);
+
+        const expiredAgreementsPromise = supabase
+          .from('leases')
+          .select('count', { count: 'exact', head: true })
+          .eq('status', LEASE_STATUSES.EXPIRED);
+
+        const avgRentPromise = supabase.rpc('get_average_rent_amount');
+
         // Use safeAsync to handle each query individually
         const [activeResult, pendingResult, expiredResult, avgRentResult] = await Promise.all([
-          // Fetch active agreement count
-          safeAsync(supabase
-            .from('leases')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', LEASE_STATUSES.ACTIVE)),
-
-          // Fetch pending payments count
-          safeAsync(supabase
-            .from('unified_payments')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', PAYMENT_STATUSES.PENDING)),
-
-          // Fetch expired agreements count
-          safeAsync(supabase
-            .from('leases')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', LEASE_STATUSES.EXPIRED)),
-
-          // Fetch average rent amount
-          safeAsync(supabase.rpc('get_average_rent_amount'))
+          safeAsync<CountResult>(activeAgreementsPromise),
+          safeAsync<CountResult>(pendingPaymentsPromise),
+          safeAsync<CountResult>(expiredAgreementsPromise),
+          safeAsync<AvgRentResult>(avgRentPromise)
         ]);
 
-        // Handle errors individually but continue processing
+        // Handle errors individually with proper type checking
         if (activeResult.error) {
-          console.error('Error fetching active agreements count:', activeResult.error);
+          console.error('Error fetching active agreements count:', 
+            isApiError(activeResult.error) 
+              ? `API error: ${activeResult.error.statusCode} - ${activeResult.error.message}`
+              : isDatabaseError(activeResult.error)
+              ? `DB error: ${activeResult.error.operation} on ${activeResult.error.table}`
+              : activeResult.error.message
+          );
         }
 
         if (pendingResult.error) {
-          console.error('Error fetching pending payments count:', pendingResult.error);
+          console.error('Error fetching pending payments count:', 
+            isApiError(pendingResult.error)
+              ? `API error: ${pendingResult.error.statusCode} - ${pendingResult.error.message}`
+              : isDatabaseError(pendingResult.error)
+              ? `DB error: ${pendingResult.error.operation} on ${pendingResult.error.table}`
+              : pendingResult.error.message
+          );
         }
 
         if (expiredResult.error) {
-          console.error('Error fetching expired agreements count:', expiredResult.error);
+          console.error('Error fetching expired agreements count:', 
+            isApiError(expiredResult.error)
+              ? `API error: ${expiredResult.error.statusCode} - ${expiredResult.error.message}`
+              : isDatabaseError(expiredResult.error)
+              ? `DB error: ${expiredResult.error.operation} on ${expiredResult.error.table}`
+              : expiredResult.error.message
+          );
         }
 
         if (avgRentResult.error) {
-          console.error('Error fetching average rent amount:', avgRentResult.error);
+          console.error('Error fetching average rent amount:', 
+            isApiError(avgRentResult.error)
+              ? `API error: ${avgRentResult.error.statusCode} - ${avgRentResult.error.message}`
+              : isDatabaseError(avgRentResult.error)
+              ? `DB error: ${avgRentResult.error.operation} on ${avgRentResult.error.table}`
+              : avgRentResult.error.message
+          );
         }
         
         // Handle average rent amount if available
