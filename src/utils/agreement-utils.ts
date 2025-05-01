@@ -4,6 +4,7 @@ import { withTimeout, executeWithRetry } from "@/types/api-response";
 import { formatDate } from "@/lib/date-utils";
 import { PaymentHistoryItem } from '@/types/payment-history.types';
 import { Agreement } from '@/types/api-response';
+import { logOperation } from "@/utils/monitoring-utils";
 
 const agreementCache = new Map();
 
@@ -71,7 +72,9 @@ export const updateAgreementWithCheck = async (
     if (onSuccess) onSuccess();
     return { success: true };
   } catch (error) {
-    console.error('Error updating agreement:', error);
+    logOperation('agreement.update', 'error', 
+      { id, error: error instanceof Error ? error.message : String(error) },
+      'Error updating agreement');
     if (onError) onError(error);
     return { success: false, error };
   }
@@ -91,7 +94,8 @@ const processingPaymentSchedule = async (
     const agreement = await getCachedAgreement(agreementId);
 
     if (!agreement) {
-      console.error("Error fetching agreement for payment schedule:");
+      logOperation('agreement.paymentSchedule', 'error', 
+        { agreementId }, 'Error fetching agreement for payment schedule');
       return { success: false, message: "Agreement not found" };
     }
 
@@ -111,14 +115,18 @@ const processingPaymentSchedule = async (
       
       return result;
     } catch (error) {
-      console.error("Error in payment schedule generation:", error);
+      logOperation('agreement.paymentSchedule', 'error', 
+        { agreementId, error: error instanceof Error ? error.message : String(error) },
+        'Error in payment schedule generation');
       return { 
         success: false, 
         message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
       };
     }
   } catch (error) {
-    console.error("Error in processingPaymentSchedule:", error);
+    logOperation('agreement.paymentSchedule', 'error', 
+      { agreementId, error: error instanceof Error ? error.message : String(error) },
+      'Error in processingPaymentSchedule');
     return { 
       success: false, 
       message: `Failed to process payment schedule: ${error instanceof Error ? error.message : String(error)}` 
@@ -135,7 +143,8 @@ const generatePaymentScheduleAsync = async (agreementId: string, onStatusUpdate?
     const agreement = await getCachedAgreement(agreementId);
 
     if (!agreement) {
-      console.error("Error fetching agreement for payment schedule:");
+      logOperation('agreement.paymentSchedule', 'error', 
+        { agreementId }, 'Error fetching agreement for payment schedule');
       return { success: false, message: "Agreement not found" };
     }
 
@@ -283,7 +292,9 @@ export const activateAgreement = async (
       .eq('id', castDbId(agreementId));
     
     if (updateError) {
-      console.error("Error activating agreement:", updateError);
+      logOperation('agreement.activate', 'error', 
+        { agreementId, error: updateError.message },
+        'Error activating agreement');
       return { 
         success: false, 
         message: `Failed to activate agreement: ${updateError.message}` 
@@ -294,7 +305,9 @@ export const activateAgreement = async (
     const scheduleResult = await forceGeneratePaymentForAgreement({ id: agreementId });
     
     if (!scheduleResult.success) {
-      console.warn("Agreement activated but payment schedule generation failed:", scheduleResult.message);
+      logOperation('agreement.activate', 'warning', 
+        { agreementId, message: scheduleResult.message },
+        'Agreement activated but payment schedule generation failed');
       return {
         success: true, // Still return true as the activation itself succeeded
         message: `Agreement activated but payment schedule generation had issues: ${scheduleResult.message}`
@@ -306,7 +319,9 @@ export const activateAgreement = async (
       message: "Agreement activated successfully with payment schedule"
     };
   } catch (error) {
-    console.error("Error in activateAgreement:", error);
+    logOperation('agreement.activate', 'error', 
+      { agreementId, error: error instanceof Error ? error.message : String(error) },
+      'Error in activateAgreement');
     return { 
       success: false, 
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
@@ -319,7 +334,9 @@ export const activateAgreement = async (
  */
 export const checkVehicleAvailability = async (vehicleId: string) => {
   try {
-    console.log("Checking availability for vehicle:", vehicleId);
+    logOperation('vehicle.checkAvailability', 'success', 
+      { vehicleId },
+      'Checking availability for vehicle');
     
     // Check if the vehicle is already assigned to an active agreement
     const { data: activeAgreements, error } = await supabase
@@ -330,7 +347,9 @@ export const checkVehicleAvailability = async (vehicleId: string) => {
       .limit(1);
       
     if (error) {
-      console.error("Error checking vehicle availability:", error);
+      logOperation('vehicle.checkAvailability', 'error', 
+        { vehicleId, error: error.message },
+        'Error checking vehicle availability');
       return { 
         isAvailable: false, 
         error: error.message,
@@ -343,7 +362,9 @@ export const checkVehicleAvailability = async (vehicleId: string) => {
     
     if (!isAvailable && activeAgreements && activeAgreements.length > 0) {
       existingAgreement = activeAgreements[0];
-      console.log("Vehicle is already assigned to agreement:", existingAgreement.agreement_number);
+      logOperation('vehicle.checkAvailability', 'warning', 
+        { vehicleId, agreementNumber: existingAgreement.agreement_number },
+        'Vehicle is already assigned to agreement');
     }
     
     return {
@@ -352,7 +373,9 @@ export const checkVehicleAvailability = async (vehicleId: string) => {
       vehicleId
     };
   } catch (error) {
-    console.error("Error in checkVehicleAvailability:", error);
+    logOperation('vehicle.checkAvailability', 'error', 
+      { vehicleId, error: error instanceof Error ? error.message : String(error) },
+      'Error in checkVehicleAvailability');
     return { 
       isAvailable: false, 
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -371,7 +394,8 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
   error?: any 
 }> => {
   try {
-    console.log('Checking for missing payment schedules');
+    logOperation('agreement.paymentSchedule', 'success', 
+      {}, 'Checking for missing payment schedules');
     
     // Find active agreements without payment records
     const { data: activeAgreements, error: agreementsError } = await supabase
@@ -381,7 +405,9 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
       .is('payment_status', null);
     
     if (agreementsError) {
-      console.error('Error fetching active agreements:', agreementsError);
+      logOperation('agreement.paymentSchedule', 'error', 
+        { error: agreementsError.message },
+        'Error fetching active agreements');
       return { 
         success: false, 
         generatedCount: 0,
@@ -391,11 +417,14 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     }
     
     if (!activeAgreements || activeAgreements.length === 0) {
-      console.log('No agreements require payment schedule generation');
+      logOperation('agreement.paymentSchedule', 'success', 
+        {}, 'No agreements require payment schedule generation');
       return { success: true, generatedCount: 0, message: 'No payments needed to be generated' };
     }
     
-    console.log(`Found ${activeAgreements.length} agreements that might need payment schedules`);
+    logOperation('agreement.paymentSchedule', 'success', 
+      { count: activeAgreements.length },
+      `Found agreements that might need payment schedules`);
     
     let generatedCount = 0;
     let failedCount = 0;
@@ -409,14 +438,18 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
           generatedCount++;
         } else {
           failedCount++;
-          console.error(`Failed to generate payment schedule for agreement ${agreement.id}: ${result.message}`);
+          logOperation('agreement.paymentSchedule', 'error', 
+            { agreementId: agreement.id, message: result.message },
+            'Failed to generate payment schedule for agreement');
         }
         
         // Small delay between agreements
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (err) {
         failedCount++;
-        console.error(`Error processing agreement ${agreement.id}:`, err);
+        logOperation('agreement.paymentSchedule', 'error', 
+          { agreementId: agreement.id, error: err instanceof Error ? err.message : String(err) },
+          'Error processing agreement');
       }
     }
     
@@ -426,7 +459,9 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
       message: `Generated ${generatedCount} payment schedules${failedCount > 0 ? `, ${failedCount} failed` : ''}` 
     };
   } catch (err) {
-    console.error('Unexpected error in checkAndCreateMissingPaymentSchedules:', err);
+    logOperation('agreement.paymentSchedule', 'error', 
+      { error: err instanceof Error ? err.message : String(err) },
+      'Unexpected error in checkAndCreateMissingPaymentSchedules');
     return { 
       success: false, 
       generatedCount: 0,
@@ -478,7 +513,9 @@ export async function acquireLock(lockId: number): Promise<boolean> {
   }) as { data: boolean, error: any };
   
   if (error) {
-    console.error('Error acquiring lock:', error);
+    logOperation('agreement.lock', 'error', 
+      { lockId, error: error.message },
+      'Error acquiring lock');
     return false;
   }
   
@@ -631,7 +668,9 @@ async function checkExistingPayments(agreementId, firstDueDate) {
     .limit(1);
     
   if (error) {
-    console.error("Error checking existing payments:", error);
+    logOperation('agreement.payments', 'error', 
+      { agreementId, error: error.message },
+      'Error checking existing payments');
     return false;
   }
   
@@ -644,7 +683,9 @@ async function insertPayment(payment) {
     .insert([payment]);
     
   if (error) {
-    console.error("Error inserting payment:", error);
+    logOperation('agreement.payments', 'error', 
+      { payment, error: error.message },
+      'Error inserting payment');
     throw error;
   }
 }

@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -14,18 +15,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  */
 export const runPaymentScheduleMaintenanceJob = async () => {
   try {
-    console.log("Running payment schedule maintenance job");
+    logOperation('paymentSchedule.maintenanceJob', 'success', 
+      {}, 'Running payment schedule maintenance job');
     const result = await checkAndCreateMissingPaymentSchedules();
     
     if (result.success) {
-      console.log(`Payment schedule maintenance job completed: ${result.message}`);
+      logOperation('paymentSchedule.maintenanceJob', 'success', 
+        { message: result.message }, 'Payment schedule maintenance job completed');
     } else {
-      console.error(`Payment schedule maintenance job failed: ${result.message}`);
+      logOperation('paymentSchedule.maintenanceJob', 'error', 
+        { message: result.message }, 'Payment schedule maintenance job failed');
     }
     
     return result;
   } catch (error) {
-    console.error("Unexpected error in runPaymentScheduleMaintenanceJob:", error);
+    logOperation('paymentSchedule.maintenanceJob', 'error', 
+      { error: error instanceof Error ? error.message : String(error) }, 
+      'Unexpected error in payment schedule maintenance job');
     throw error;
   }
 };
@@ -44,27 +50,32 @@ export const manuallyRunPaymentMaintenance = async () => {
  */
 export const checkAndGenerateMonthlyPayments = async () => {
   try {
-    console.log("Running monthly payment check");
+    logOperation('paymentSchedule.generateMonthlyPayments', 'success', 
+      {}, 'Running monthly payment check');
     
     // Call Supabase RPC function to generate missing payment records
     const { data, error } = await supabase.rpc('generate_missing_payment_records');
     
     if (error) {
-      console.error("Error generating payment records:", error);
+      logOperation('paymentSchedule.generateMonthlyPayments', 'error', 
+        { error: error.message }, 'Error generating payment records');
       return {
         success: false,
         message: `Failed to generate payment records: ${error.message}`
       };
     }
     
-    console.log("Monthly payment check completed successfully");
+    logOperation('paymentSchedule.generateMonthlyPayments', 'success', 
+      { recordCount: data?.length || 0 }, 'Monthly payment check completed successfully');
     return {
       success: true,
       message: "Monthly payment check completed successfully",
       records: data
     };
   } catch (error) {
-    console.error("Error in checkAndGenerateMonthlyPayments:", error);
+    logOperation('paymentSchedule.generateMonthlyPayments', 'error', 
+      { error: error instanceof Error ? error.message : String(error) }, 
+      'Error in monthly payment generation');
     return {
       success: false,
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
@@ -79,7 +90,8 @@ export const checkAndGenerateMonthlyPayments = async () => {
  */
 export const fixAgreementPayments = async (agreementId: string) => {
   try {
-    console.log(`Fixing payment records for agreement ${agreementId}`);
+    logOperation('paymentSchedule.fixAgreementPayments', 'success', 
+      { agreementId }, 'Fixing payment records for agreement');
     
     // First, get all payments for this agreement
     const { data: payments, error: paymentsError } = await supabase
@@ -89,7 +101,8 @@ export const fixAgreementPayments = async (agreementId: string) => {
       .order('original_due_date', { ascending: true });
     
     if (paymentsError) {
-      console.error("Error fetching payments:", paymentsError);
+      logOperation('paymentSchedule.fixAgreementPayments', 'error', 
+        { agreementId, error: paymentsError.message }, 'Error fetching payments');
       return { 
         success: false, 
         message: `Failed to fetch payments: ${paymentsError.message}` 
@@ -125,7 +138,9 @@ export const fixAgreementPayments = async (agreementId: string) => {
     for (const [month, monthlyPayments] of Object.entries(paymentsByMonth)) {
       // If there's more than one payment per month, we have duplicates
       if (monthlyPayments.length > 1) {
-        console.log(`Found ${monthlyPayments.length} payments for month ${month}`);
+        logOperation('paymentSchedule.fixAgreementPayments', 'warning', 
+          { agreementId, month, count: monthlyPayments.length }, 
+          `Found multiple payments for month`);
         
         // Sort payments by creation date, keeping the oldest
         monthlyPayments.sort((a, b) => 
@@ -142,9 +157,13 @@ export const fixAgreementPayments = async (agreementId: string) => {
             .eq('id', duplicate.id);
             
           if (deleteError) {
-            console.error(`Error deleting duplicate payment ${duplicate.id}:`, deleteError);
+            logOperation('paymentSchedule.fixAgreementPayments', 'error', 
+              { agreementId, paymentId: duplicate.id, error: deleteError.message }, 
+              'Error deleting duplicate payment');
           } else {
-            console.log(`Successfully deleted duplicate payment ${duplicate.id}`);
+            logOperation('paymentSchedule.fixAgreementPayments', 'success', 
+              { agreementId, paymentId: duplicate.id }, 
+              'Successfully deleted duplicate payment');
             fixedCount++;
           }
         }
@@ -158,7 +177,9 @@ export const fixAgreementPayments = async (agreementId: string) => {
     };
     
   } catch (error) {
-    console.error("Error in fixAgreementPayments:", error);
+    logOperation('paymentSchedule.fixAgreementPayments', 'error', 
+      { agreementId, error: error instanceof Error ? error.message : String(error) }, 
+      'Error in payment record fixing');
     return { 
       success: false, 
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 

@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Custom hook for managing agreement status changes
@@ -55,7 +56,12 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
         .eq('id', id);
         
       if (updateError) {
-        console.error("Error updating agreement status:", updateError);
+        logOperation(
+          'agreementStatus.updateStatus', 
+          'error', 
+          { id, error: updateError.message, newStatus },
+          'Error updating agreement status'
+        );
         toast.error(`Failed to update status: ${updateError.message}`);
         setStatusUpdateProgress(null);
         setIsProcessing(false);
@@ -83,12 +89,22 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
           if (result.success) {
             setStatusUpdateProgress("Payment schedule setup completed successfully");
           } else {
-            console.warn("Payment schedule issue:", result.message);
+            logOperation(
+              'agreementStatus.updateStatus', 
+              'warning', 
+              { id, message: result.message },
+              'Payment schedule issue'
+            );
             setStatusUpdateProgress("Status updated, but there was an issue with the payment schedule");
             toast.warning("Status updated, but there was an issue with the payment schedule. It will be retried automatically.");
           }
         } catch (err) {
-          console.error("Error in payment schedule setup:", err);
+          logOperation(
+            'agreementStatus.updateStatus', 
+            'error', 
+            { id, error: err instanceof Error ? err.message : String(err) },
+            'Error in payment schedule setup'
+          );
           // Don't fail the status change, just show a warning
           toast.warning("Status updated, but there was an issue with the payment schedule");
         }
@@ -109,7 +125,12 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       
       // Calculate how long the operation took
       const operationTime = Date.now() - startTime;
-      console.log(`Status update operation completed in ${operationTime}ms`);
+      logOperation(
+        'agreementStatus.updateStatus', 
+        'success', 
+        { id, newStatus, operationTime },
+        `Status update operation completed in ${operationTime}ms`
+      );
       
       toast.success(`Agreement status updated to ${newStatus}`);
       
@@ -121,7 +142,12 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       
       return true;
     } catch (error) {
-      console.error("Unexpected error updating agreement status:", error);
+      logOperation(
+        'agreementStatus.updateStatus', 
+        'error', 
+        { id, newStatus, error: error instanceof Error ? error.message : String(error) },
+        'Unexpected error updating agreement status'
+      );
       toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setStatusUpdateProgress(null);
       setIsProcessing(false);
@@ -142,7 +168,12 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
         .single();
         
       if (error || !data) {
-        console.error("Error fetching agreement for payment schedule:", error);
+        logOperation(
+          'agreementStatus.generatePaymentSchedule', 
+          'error', 
+          { id, error: error?.message || 'No data found' },
+          'Error fetching agreement for payment schedule'
+        );
         return { 
           success: false, 
           message: `Failed to fetch agreement details: ${error?.message || 'No data found'}` 
@@ -189,13 +220,23 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
         });
         
       if (insertError) {
-        console.error("Error creating payment:", insertError);
+        logOperation(
+          'agreementStatus.generatePaymentSchedule', 
+          'error', 
+          { id, error: insertError.message },
+          'Error creating payment'
+        );
         return { success: false, message: `Failed to create payment: ${insertError.message}` };
       }
       
       return { success: true, message: "Payment schedule created successfully" };
     } catch (error) {
-      console.error("Error in generatePaymentSchedule:", error);
+      logOperation(
+        'agreementStatus.generatePaymentSchedule', 
+        'error', 
+        { id, error: error instanceof Error ? error.message : String(error) },
+        'Error in generatePaymentSchedule'
+      );
       return { 
         success: false, 
         message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : 'Unknown error'}`

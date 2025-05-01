@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { validateAgreementForm } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
+import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Creates a new agreement after validating the input data
@@ -29,7 +30,12 @@ export async function createAgreement(agreementData: unknown) {
       .single();
     
     if (error) {
-      console.error('Error creating agreement:', error);
+      logOperation(
+        'agreementService.createAgreement', 
+        'error', 
+        { error: error.message },
+        'Error creating agreement'
+      );
       return {
         success: false,
         data: null,
@@ -44,7 +50,12 @@ export async function createAgreement(agreementData: unknown) {
       errors: null
     };
   } catch (error) {
-    console.error('Unexpected error creating agreement:', error);
+    logOperation(
+      'agreementService.createAgreement', 
+      'error', 
+      { error: error instanceof Error ? error.message : String(error) },
+      'Unexpected error creating agreement'
+    );
     return {
       success: false,
       data: null,

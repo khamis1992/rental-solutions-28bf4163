@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getSystemServicesStatus } from '@/utils/service-availability';
+import { logOperation } from '@/utils/monitoring-utils';
 
 interface SystemSetting {
   id: string;
@@ -47,7 +48,12 @@ const SystemSettings = () => {
           isChecking: false
         });
       } catch (err) {
-        console.error("Error checking service availability:", err);
+        logOperation(
+          'systemSettings.services.check', 
+          'error', 
+          { error: err instanceof Error ? err.message : String(err) },
+          'Error checking service availability'
+        );
         setServiceStatus({
           agreementImport: false,
           customerImport: false,
@@ -155,7 +161,12 @@ const SystemSettings = () => {
         description: "Failed to save settings. Please try again.",
         variant: "destructive",
       });
-      console.error("Error saving settings:", error);
+      logOperation(
+        'systemSettings.save', 
+        'error', 
+        { error: error instanceof Error ? error.message : String(error) },
+        'Error saving settings'
+      );
     }
   });
   
