@@ -1,6 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { handleSupabaseResponse, asLeaseStatus, asVehicleStatus, AGREEMENT_STATUSES } from './supabase-helpers';
+import { 
+  handleSupabaseResponse, 
+  asLeaseStatus, 
+  asVehicleStatus, 
+  AGREEMENT_STATUSES, 
+  isValidResponse 
+} from './supabase-helpers';
 
 /**
  * Safely finds a lease by ID
@@ -119,6 +125,26 @@ export async function updateVehicleStatus(vehicleId: string, status: string) {
     return handleSupabaseResponse({ data, error });
   } catch (error) {
     console.error('Error updating vehicle status:', error);
+    return null;
+  }
+}
+
+/**
+ * Safely fetches data with proper error handling
+ */
+export async function safeDataFetch<T>(
+  query: () => Promise<{ data: T | null; error: any }>,
+  errorMessage: string
+): Promise<T | null> {
+  try {
+    const response = await query();
+    if (response.error) {
+      console.error(errorMessage, response.error);
+      return null;
+    }
+    return response.data;
+  } catch (error) {
+    console.error(errorMessage, error);
     return null;
   }
 }

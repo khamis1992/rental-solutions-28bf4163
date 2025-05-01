@@ -7,12 +7,19 @@ export type TableName = keyof Database['public']['Tables'];
 export type Row<T extends TableName> = Database['public']['Tables'][T]['Row'];
 export type RowColumn<T extends TableName, K extends keyof Row<T>> = Row<T>[K];
 
+// Status types with proper typing
+export type LeaseStatusType = Row<'leases'>['status'];
+export type VehicleStatusType = Row<'vehicles'>['status'];
+export type PaymentStatusType = Row<'unified_payments'>['status'];
+export type ProfileStatusType = Row<'profiles'>['status'];
+export type TrafficFinePaymentStatusType = Row<'traffic_fines'>['payment_status'];
+
 // Type-safe status casting functions for common tables
-export const asLeaseStatus = (status: string): Row<'leases'>['status'] => status as Row<'leases'>['status'];
-export const asVehicleStatus = (status: string): Row<'vehicles'>['status'] => status as Row<'vehicles'>['status'];
-export const asPaymentStatus = (status: string): Row<'unified_payments'>['status'] => status as Row<'unified_payments'>['status'];
-export const asProfileStatus = (status: string): Row<'profiles'>['status'] => status as Row<'profiles'>['status'];
-export const asTrafficFinePaymentStatus = (status: string): Row<'traffic_fines'>['payment_status'] => status as Row<'traffic_fines'>['payment_status'];
+export const asLeaseStatus = (status: string): LeaseStatusType => status as LeaseStatusType;
+export const asVehicleStatus = (status: string): VehicleStatusType => status as VehicleStatusType;
+export const asPaymentStatus = (status: string): PaymentStatusType => status as PaymentStatusType;
+export const asProfileStatus = (status: string): ProfileStatusType => status as ProfileStatusType;
+export const asTrafficFinePaymentStatus = (status: string): TrafficFinePaymentStatusType => status as TrafficFinePaymentStatusType;
 
 // Helper for handling Supabase response data safely
 export function handleSupabaseResponse<T>(response: { data: T | null; error: any }): T | null {
@@ -72,4 +79,15 @@ export function safelyExtractData<T>(response: { data: T | null, error: any }): 
 export function safelyMapData<T, R>(data: T | null, mapFn: (item: T) => R): R | null {
   if (!data) return null;
   return mapFn(data);
+}
+
+// Type guard to check if a response has valid data
+export function isValidResponse<T>(response: { data: T | null, error: any }): response is { data: T, error: null } {
+  return !response.error && response.data !== null;
+}
+
+// Safe data access for potentially null responses
+export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
+  if (!obj) return undefined;
+  return obj[key];
 }
