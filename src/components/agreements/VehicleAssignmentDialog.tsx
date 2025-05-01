@@ -7,20 +7,42 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from '@/integrations/supabase/client';
-import { Payment } from '@/types/payment-history.types';
 import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps } from '@/types/vehicle-assignment.types';
 import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
-import { TrafficFine } from "@/hooks/use-traffic-fines";
 import { asLeaseId } from "@/lib/database";
+import { LeaseRow } from '@/lib/database/types';
+
+// Create more specific types instead of using 'any'
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  status: string;
+  description?: string;
+  payment_method?: string;
+}
+
+interface TrafficFine {
+  id: string;
+  violation_number: string;
+  fine_amount: number;
+  payment_status: string;
+  violation_date: string;
+}
+
+interface ExistingAgreement {
+  id: string;
+  agreement_number: string;
+}
 
 export function VehicleAssignmentDialog({
-  isOpen,
-  onClose,
-  onConfirm,
-  vehicleId,
-  existingAgreement
+  open,
+  onOpenChange,
+  agreementId,
+  currentVehicleId,
+  onAssignVehicle
 }: VehicleAssignmentDialogProps) {
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
@@ -31,66 +53,101 @@ export function VehicleAssignmentDialog({
   const [acknowledgedFines, setAcknowledgedFines] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [existingAgreement, setExistingAgreement] = useState<ExistingAgreement | null>(null);
 
   useEffect(() => {
-    if (isOpen && existingAgreement) {
-      fetchAssociatedData();
+    if (open && currentVehicleId) {
+      fetchVehicleDetails();
+      fetchExistingAgreement();
     }
-  }, [isOpen, existingAgreement]);
+  }, [open, currentVehicleId]);
 
-  const fetchAssociatedData = async () => {
-    if (!existingAgreement) return;
+  const fetchExistingAgreement = async () => {
+    if (!currentVehicleId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('id, agreement_number')
+        .eq('vehicle_id', currentVehicleId)
+        .eq('status', 'active')
+        .single();
+        
+      if (data && !error) {
+        setExistingAgreement({
+          id: data.id,
+          agreement_number: data.agreement_number
+        });
+        fetchAssociatedData(data.id);
+      }
+    } catch (error) {
+      console.error("Error fetching existing agreement:", error);
+    }
+  };
+
+  const fetchVehicleDetails = async () => {
+    if (!currentVehicleId) return;
     
     setIsLoading(true);
     try {
-      // Fetch vehicle information
-      const { data: vehicleData } = await supabase
+      const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleId)
+        .eq('id', currentVehicleId)
         .single();
       
-      if (vehicleData) {
-        setVehicleInfo(vehicleData as VehicleInfo);
+      if (data && !error) {
+        setVehicleInfo(data as VehicleInfo);
       }
-      
+    } catch (error) {
+      console.error("Error fetching vehicle details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAssociatedData = async (leaseId: string) => {
+    if (!leaseId) return;
+    
+    setIsLoading(true);
+    try {
       // Fetch pending payments
-      const { data: paymentsData } = await supabase
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', leaseId)
         .in('status', ['pending', 'overdue']);
         
-      if (paymentsData) {
+      if (paymentsData && !paymentsError) {
         setPendingPayments(paymentsData as Payment[]);
       }
       
       // Fetch traffic fines
-      const { data: finesData } = await supabase
+      const { data: finesData, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
+        .eq('lease_id', leaseId)
         .eq('payment_status', 'pending');
         
-      if (finesData) {
+      if (finesData && !finesError) {
         setTrafficFines(finesData as TrafficFine[]);
       }
       
       // Fetch customer information through lease
-      const { data: leaseData } = await supabase
+      const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
+        .eq('id', leaseId)
         .single();
         
-      if (leaseData?.customer_id) {
-        const { data: customerData } = await supabase
+      if (leaseData?.customer_id && !leaseError) {
+        const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')
           .eq('id', leaseData.customer_id)
           .single();
           
-        if (customerData) {
+        if (customerData && !customerError) {
           setCustomerInfo(customerData as CustomerInfo);
         }
       }
@@ -101,13 +158,14 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  const formatDate = (date: Date | undefined) => {
+  const formatDate = (date: string | Date | undefined) => {
     if (!date) return 'N/A';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
-    }).format(date);
+    }).format(dateObj);
   };
 
   // Check if we need acknowledgments
@@ -118,15 +176,17 @@ export function VehicleAssignmentDialog({
   const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
                     (!needsFinesAcknowledgment || acknowledgedFines);
 
-  if (!isOpen || !existingAgreement) return null;
+  if (!open || !existingAgreement) return null;
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const handleConfirm = async () => {
+    if (currentVehicleId) {
+      await onAssignVehicle(currentVehicleId);
+    }
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center space-x-2">
@@ -239,7 +299,7 @@ export function VehicleAssignmentDialog({
         <Separator />
         
         <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button 
@@ -259,4 +319,3 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
-

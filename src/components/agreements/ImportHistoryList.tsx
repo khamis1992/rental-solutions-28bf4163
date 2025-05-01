@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { safeAsync } from '@/utils/error-handling';
 
 export function ImportHistoryList() {
   const { data: imports, isLoading } = useQuery({
@@ -23,7 +25,17 @@ export function ImportHistoryList() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as ImportHistoryItem[];
+      
+      // Safe casting with type transformation
+      return (data || []).map(item => ({
+        id: item.id,
+        file_name: item.file_name,
+        status: item.status as ImportHistoryItem['status'],
+        total_records: item.row_count || 0,
+        processed_records: item.processed_count || 0,
+        failed_records: item.error_count || 0,
+        created_at: item.created_at
+      })) as ImportHistoryItem[];
     }
   });
 
@@ -49,7 +61,10 @@ export function ImportHistoryList() {
             <TableRow key={item.id}>
               <TableCell>{item.file_name}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'completed' ? 'success' : item.status === 'failed' ? 'unpaid' : 'default'}>
+                <Badge variant={
+                  item.status === 'completed' ? 'success' : 
+                  item.status === 'failed' ? 'unpaid' : 'default'
+                }>
                   {item.status}
                 </Badge>
               </TableCell>

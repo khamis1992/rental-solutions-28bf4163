@@ -1,7 +1,7 @@
 
 import { usePaymentService } from './services/usePaymentService';
 import { useQuery } from '@tanstack/react-query';
-import type { Payment } from '@/types/agreement-types';
+import { Payment } from '@/types/payment.types';
 
 export function usePayment(agreementId?: string) {
   const {
@@ -22,15 +22,25 @@ export function usePayment(agreementId?: string) {
     enabled: !!agreementId,
   });
 
-  const handlePaymentSubmit = async (
-    amount: number,
-    paymentDate: Date,
-    notes?: string,
-    paymentMethod?: string,
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
-  ) => {
+  interface PaymentSubmitParams {
+    amount: number;
+    paymentDate: Date;
+    notes?: string;
+    paymentMethod?: string;
+    referenceNumber?: string;
+    includeLatePaymentFee?: boolean;
+    isPartialPayment?: boolean;
+  }
+
+  const handlePaymentSubmit = async ({
+    amount,
+    paymentDate,
+    notes,
+    paymentMethod,
+    referenceNumber,
+    includeLatePaymentFee,
+    isPartialPayment
+  }: PaymentSubmitParams): Promise<void> => {
     if (!agreementId) return;
 
     await handleSpecialPayment(
@@ -48,7 +58,7 @@ export function usePayment(agreementId?: string) {
   };
 
   return {
-    payments: paymentHistory,
+    payments: paymentHistory as Payment[] | undefined,
     isLoading,
     error,
     recordPayment,

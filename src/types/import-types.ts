@@ -1,34 +1,46 @@
 
-import { Database } from './database.types';
-
-export type AgreementImport = Database['public']['Tables']['agreement_imports']['Row'];
-export type AgreementImportInsert = Database['public']['Tables']['agreement_imports']['Insert'];
-export type AgreementImportUpdate = Database['public']['Tables']['agreement_imports']['Update'];
+/**
+ * Type definitions for import features
+ */
 
 export interface ImportHistoryItem {
   id: string;
-  created_at: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
   file_name: string;
-  total_records?: number;
-  processed_records?: number;
-  failed_records?: number;
-  error_message?: string;
-  original_file_name?: string;
-  row_count?: number;
-  error_count?: number;
+  status: ImportStatus;
+  total_records: number;
+  processed_records: number;
+  failed_records: number;
+  created_at: string;
 }
 
-export function mapImportRecordToHistoryItem(record: any): ImportHistoryItem {
-  return {
-    id: record.id,
-    created_at: record.created_at,
-    status: record.status,
-    file_name: record.file_name,
-    original_file_name: record.original_file_name,
-    total_records: record.row_count,
-    processed_records: record.processed_count,
-    failed_records: record.error_count,
-    error_message: record.errors ? JSON.stringify(record.errors) : undefined
-  };
+export type ImportStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface ImportProgress {
+  processedCount: number;
+  totalCount: number;
+  errorCount: number;
+  percentComplete: number;
+}
+
+export interface ImportError {
+  row: number;
+  column?: string;
+  message: string;
+  value?: unknown;
+}
+
+export interface ImportBatch {
+  id: string;
+  fileName: string;
+  createdAt: string;
+  status: ImportStatus;
+  createdBy?: string;
+  originalFileName?: string;
+}
+
+export interface ImportMapping {
+  id: string;
+  name: string;
+  fieldMappings: Record<string, string>;
+  isActive: boolean;
 }
