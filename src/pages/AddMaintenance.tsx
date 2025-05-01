@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
@@ -34,7 +35,12 @@ const AddMaintenance = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    console.log("Form submitted with data:", formData);
+    logOperation(
+      'maintenance.create.submit', 
+      'success', 
+      { formData },
+      'Form submitted with data'
+    );
     
     setIsSubmitting(true);
     setError(null);
@@ -52,7 +58,12 @@ const AddMaintenance = () => {
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       
-      console.log("Prepared data for submission:", preparedData);
+      logOperation(
+        'maintenance.create.prepare', 
+        'success', 
+        { preparedData },
+        'Prepared data for submission'
+      );
       
       await create.mutateAsync(preparedData);
       
@@ -64,7 +75,12 @@ const AddMaintenance = () => {
       
       navigate('/maintenance');
     } catch (err: any) {
-      console.error('Error creating maintenance record:', err);
+      logOperation(
+        'maintenance.create', 
+        'error', 
+        { error: err.message || String(err) },
+        'Error creating maintenance record'
+      );
       setError(err.message || 'Failed to create maintenance record. Please try again.');
     } finally {
       setIsSubmitting(false);
