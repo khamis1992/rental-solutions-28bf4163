@@ -33,3 +33,15 @@ export interface PaymentSchedule {
   late_fee_applied?: number;
   balance?: number;
 }
+
+export interface Payment {
+  id: string;
+  amount: number;
+  amount_paid?: number;
+  payment_date?: string | Date;
+  status: string;
+  lease_id?: string;
+  description?: string;
+  payment_method?: string;
+  transaction_id?: string;
+}
