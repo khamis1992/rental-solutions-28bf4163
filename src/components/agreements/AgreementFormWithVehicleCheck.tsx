@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -615,32 +616,32 @@ const AgreementFormWithVehicleCheck = ({
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border p-3 rounded-md">
               <h5 className="font-semibold mb-2">Customer Data</h5>
-              <p><code>{{"{{CUSTOMER_NAME}}"}}</code>: {selectedCustomer.full_name}</p>
-              <p><code>{{"{{CUSTOMER_EMAIL}}"}}</code>: {selectedCustomer.email}</p>
-              <p><code>{{"{{CUSTOMER_PHONE}}"}}</code>: {selectedCustomer.phone_number}</p>
-              <p><code>{{"{{CUSTOMER_LICENSE}}"}}</code>: {selectedCustomer.driver_license}</p>
-              <p><code>{{"{{CUSTOMER_NATIONALITY}}"}}</code>: {selectedCustomer.nationality}</p>
+              <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
+              <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
+              <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
+              <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
+              <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
             </div>
             
             <div className="border p-3 rounded-md">
               <h5 className="font-semibold mb-2">Vehicle Data</h5>
-              <p><code>{{"{{VEHICLE_MAKE}}"}}</code>: {selectedVehicle.make}</p>
-              <p><code>{{"{{VEHICLE_MODEL}}"}}</code>: {selectedVehicle.model}</p>
-              <p><code>{{"{{VEHICLE_PLATE}}"}}</code>: {selectedVehicle.license_plate}</p>
-              <p><code>{{"{{VEHICLE_VIN}}"}}</code>: {selectedVehicle.vin}</p>
-              <p><code>{{"{{VEHICLE_YEAR}}"}}</code>: {selectedVehicle.year}</p>
+              <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
+              <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
+              <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
+              <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
+              <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
             </div>
           </div>
           
           <div className="mt-4 border p-3 rounded-md">
             <h5 className="font-semibold mb-2">Agreement Data</h5>
             <div className="grid grid-cols-2 gap-2">
-              <p><code>{{"{{AGREEMENT_NUMBER}}"}}</code>: {form.getValues("agreement_number")}</p>
-              <p><code>{{"{{START_DATE}}"}}</code>: {format(form.getValues("start_date"), "PPP")}</p>
-              <p><code>{{"{{END_DATE}}"}}</code>: {format(form.getValues("end_date"), "PPP")}</p>
-              <p><code>{{"{{RENT_AMOUNT}}"}}</code>: {form.getValues("rent_amount")} QAR</p>
-              <p><code>{{"{{DEPOSIT_AMOUNT}}"}}</code>: {form.getValues("deposit_amount")} QAR</p>
-              <p><code>{{"{{TOTAL_AMOUNT}}"}}</code>: {form.getValues("total_amount")} QAR</p>
+              <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
+              <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+              <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+              <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
+              <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
+              <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
             </div>
           </div>
         </div>
@@ -902,4 +903,139 @@ const AgreementFormWithVehicleCheck = ({
               
               {selectedVehicle && (
                 <div className="bg-muted p-3 rounded-md text-sm">
-                  <p><strong>Make:</strong> {selectedVehicle.
+                  <p><strong>Make:</strong> {selectedVehicle.make}</p>
+                  <p><strong>Model:</strong> {selectedVehicle.model}</p>
+                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
+                  <p><strong>Year:</strong> {selectedVehicle.year}</p>
+                  {selectedVehicle.color && <p><strong>Color:</strong> {selectedVehicle.color}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="rent_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rent Amount (QAR)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(isNaN(value) ? 0 : value);
+                    }} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="deposit_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Deposit Amount (QAR)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(isNaN(value) ? 0 : value);
+                    }} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="total_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Total Amount (QAR) - Calculated Automatically</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    disabled 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="daily_late_fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Daily Late Fee (QAR)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(isNaN(value) ? 0 : value);
+                    }} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {selectedCustomer && selectedVehicle && renderAgreementPreview()}
+          
+          <div className="flex justify-end space-x-4">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Save Agreement'
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+      
+      {isVehicleDialogOpen && (
+        <VehicleAssignmentDialog
+          open={isVehicleDialogOpen}
+          onOpenChange={setIsVehicleDialogOpen}
+          agreementId=""
+          currentVehicleId={form.getValues("vehicle_id")}
+          onAssignVehicle={handleVehicleConfirmation}
+        />
+      )}
+    </>
+  );
+};
+
+export default AgreementFormWithVehicleCheck;
