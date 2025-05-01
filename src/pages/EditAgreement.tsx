@@ -12,6 +12,7 @@ import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRentAmount } from '@/hooks/use-rent-amount'; 
 import { supabase } from '@/integrations/supabase/client';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,20 +37,26 @@ const EditAgreement = () => {
         return;
       }
       
-      console.log("Fetching agreement with ID:", id);
+      logOperation('agreement.fetch', 'success', { id }, 'Fetching agreement with ID');
       setIsLoading(true);
       try {
         const data = await getAgreement(id);
-        console.log("Fetched agreement data:", data);
+        logOperation('agreement.fetch', 'success', 
+          { id, hasData: !!data }, 
+          'Fetched agreement data');
         if (data) {
           const fullAgreement = adaptSimpleToFullAgreement(data);
-          console.log("Converted to full agreement:", fullAgreement);
+          logOperation('agreement.fetch', 'success', 
+            { id, hasAgreement: !!fullAgreement }, 
+            'Converted to full agreement');
           setAgreement(fullAgreement);
           
           if (data.vehicle_id && (!data.vehicles || !Object.keys(data.vehicles).length)) {
             fetchVehicleDetails(data.vehicle_id);
           } else if (data.vehicles) {
-            console.log("Vehicle data already included:", data.vehicles);
+            logOperation('agreement.fetch', 'success', 
+              { id, hasVehicleData: !!data.vehicles },
+              'Vehicle data already included');
             setVehicleData(data.vehicles);
           }
         } else {
@@ -57,7 +64,9 @@ const EditAgreement = () => {
           navigate("/agreements");
         }
       } catch (error) {
-        console.error("Error fetching agreement for edit:", error);
+        logOperation('agreement.fetch', 'error', 
+          { id, error: error instanceof Error ? error.message : String(error) },
+          'Error fetching agreement for edit');
         toast.error("Failed to load agreement details");
         navigate("/agreements");
       } finally {
@@ -71,7 +80,9 @@ const EditAgreement = () => {
 
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
-      console.log("Fetching vehicle details for ID:", vehicleId);
+      logOperation('vehicle.fetch', 'success', 
+        { vehicleId }, 
+        'Fetching vehicle details for ID');
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
@@ -79,12 +90,16 @@ const EditAgreement = () => {
         .single();
         
       if (error) {
-        console.error("Error fetching vehicle details:", error);
+        logOperation('vehicle.fetch', 'error', 
+          { vehicleId, error: error.message }, 
+          'Error fetching vehicle details');
         return;
       }
       
       if (data) {
-        console.log("Fetched vehicle data:", data);
+        logOperation('vehicle.fetch', 'success', 
+          { vehicleId, hasData: !!data }, 
+          'Fetched vehicle data');
         setVehicleData(data);
         
         setAgreement(prev => {
@@ -99,16 +114,20 @@ const EditAgreement = () => {
         });
       }
     } catch (error) {
-      console.error("Error in fetchVehicleDetails:", error);
+      logOperation('vehicle.fetch', 'error', 
+        { vehicleId, error: error instanceof Error ? error.message : String(error) },
+        'Error in fetchVehicleDetails');
     }
   };
 
   useEffect(() => {
     if (rentAmount && agreement && !agreement.rent_amount) {
-      console.log("Setting rent amount from hook:", rentAmount);
+      logOperation('agreement.rentAmount', 'success', 
+        { id: id || '', rentAmount }, 
+        'Setting rent amount from hook');
       setAgreement(prev => prev ? { ...prev, rent_amount: rentAmount } : null);
     }
-  }, [rentAmount, agreement]);
+  }, [rentAmount, agreement, id]);
 
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
@@ -163,7 +182,9 @@ const EditAgreement = () => {
               navigate(`/agreements/${id}`);
             },
             (error: any) => {
-              console.error("Error updating agreement:", error);
+              logOperation('agreement.update', 'error', 
+                { id, error: error instanceof Error ? error.message : String(error) },
+                'Error updating agreement');
               setUpdateProgress(null);
               toast.error(`Failed to update: ${error.message || "Unknown error"}`);
               setIsSubmitting(false);
@@ -173,13 +194,17 @@ const EditAgreement = () => {
           timeoutPromise
         ]);
       } catch (timeoutError) {
-        console.error("Operation timed out:", timeoutError);
+        logOperation('agreement.update', 'error', 
+          { id, error: timeoutError instanceof Error ? timeoutError.message : String(timeoutError) },
+          'Operation timed out');
         toast.error("Operation timed out. The system might still be processing your request.");
         setIsSubmitting(false);
         setUpdateProgress(null);
       }
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      logOperation('agreement.update', 'error', 
+        { id, error: error instanceof Error ? error.message : String(error) },
+        'Error in handleSubmit');
       toast.error("Failed to update agreement");
       setIsSubmitting(false);
       setUpdateProgress(null);
