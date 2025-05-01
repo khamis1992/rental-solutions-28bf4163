@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,14 +32,16 @@ const EditMaintenance = () => {
         const record = records.find(r => r.id === id);
         
         if (record) {
-          console.log("Found maintenance record:", record);
+          logOperation('maintenance.fetch', 'success', { id, recordFound: true }, "Found maintenance record");
           setMaintenance(record);
         } else {
-          console.error("Maintenance record not found for ID:", id);
+          logOperation('maintenance.fetch', 'error', { id }, "Maintenance record not found for ID");
           setError('Maintenance record not found');
         }
       } catch (err) {
-        console.error('Error fetching maintenance record:', err);
+        logOperation('maintenance.fetch', 'error', 
+          { id, error: err instanceof Error ? err.message : String(err) }, 
+          'Error fetching maintenance record');
         setError('Failed to load maintenance record');
       } finally {
         setIsLoading(false);
@@ -68,7 +71,9 @@ const EditMaintenance = () => {
   const handleSubmit = async (formData: any) => {
     if (!id) return;
     
-    console.log("Form submitted with data:", formData);
+    logOperation('maintenance.update', 'success', 
+      { id, formData: { ...formData, vehicle_id: formData.vehicle_id } }, 
+      "Form submitted with data");
     setIsSubmitting(true);
     setError(null);
     
@@ -84,7 +89,9 @@ const EditMaintenance = () => {
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       
-      console.log("Prepared data for update:", preparedData);
+      logOperation('maintenance.update', 'success', 
+        { id, preparedData: { ...preparedData, vehicle_id: preparedData.vehicle_id } }, 
+        "Prepared data for update");
       
       await update.mutateAsync({ 
         id, 
@@ -99,7 +106,9 @@ const EditMaintenance = () => {
       
       navigate('/maintenance');
     } catch (err) {
-      console.error('Error updating maintenance record:', err);
+      logOperation('maintenance.update', 'error', 
+        { id, error: err instanceof Error ? err.message : String(err) }, 
+        'Error updating maintenance record');
       setError('Failed to update maintenance record. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -143,7 +152,9 @@ const EditMaintenance = () => {
     vehicle_id: maintenance.vehicle_id || null,
   };
 
-  console.log("Prepared maintenance record for form:", formattedMaintenance);
+  logOperation('maintenance.form', 'success', 
+    { id, formattedMaintenance: { ...formattedMaintenance, vehicle_id: formattedMaintenance.vehicle_id } }, 
+    "Prepared maintenance record for form");
 
   return (
     <PageContainer 
