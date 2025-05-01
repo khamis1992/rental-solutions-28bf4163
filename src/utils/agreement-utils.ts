@@ -1,7 +1,10 @@
+
 import { supabase } from "@/lib/supabase";
 import { safeAsync } from "@/utils/error-handling";
 import { toast } from "sonner";
 import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
+import { Agreement } from "@/lib/validation-schemas/agreement";
+import { SimpleAgreement } from "@/hooks/use-agreements";
 
 interface ExistingAgreement {
   id: string;
@@ -12,6 +15,30 @@ interface VehicleAvailabilityResult {
   isAvailable: boolean;
   existingAgreement?: ExistingAgreement;
   error?: string;
+}
+
+/**
+ * Adapts a SimpleAgreement to a full Agreement object
+ * Used when loading agreement details from a simplified data structure
+ */
+export function adaptSimpleToFullAgreement(simpleAgreement: SimpleAgreement): Agreement {
+  return {
+    id: simpleAgreement.id,
+    agreement_number: simpleAgreement.agreement_number,
+    customer_id: simpleAgreement.customer_id,
+    vehicle_id: simpleAgreement.vehicle_id,
+    start_date: simpleAgreement.start_date,
+    end_date: simpleAgreement.end_date,
+    total_amount: simpleAgreement.total_amount,
+    deposit_amount: simpleAgreement.deposit_amount,
+    status: simpleAgreement.status,
+    notes: simpleAgreement.notes,
+    created_at: simpleAgreement.created_at,
+    updated_at: simpleAgreement.updated_at,
+    customers: simpleAgreement.customers,
+    vehicles: simpleAgreement.vehicles,
+    unified_payments: simpleAgreement.unified_payments
+  };
 }
 
 /**
@@ -131,4 +158,3 @@ export async function activateAgreement(agreementId: string, vehicleId: string):
     return false;
   }
 }
-
