@@ -1,5 +1,5 @@
 
-import { PostgrestError } from '@supabase/supabase-js';
+import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import { ServiceResponse, successResponse, errorResponse } from './response-handler';
 
 /**
@@ -7,6 +7,14 @@ import { ServiceResponse, successResponse, errorResponse } from './response-hand
  */
 export function hasResponseData<T>(response: { data: T | null; error: PostgrestError | null }): response is { data: T; error: null } {
   return response.data !== null && response.error === null;
+}
+
+/**
+ * Helper to cast a string to UUID format without changing its value
+ * This is just for type safety, not actual conversion
+ */
+export function castToUUID(id: string): string {
+  return id; // Just for type hinting, no actual conversion
 }
 
 /**
@@ -107,3 +115,19 @@ export function formatPostgrestError(error: PostgrestError): {
     hint: error.hint
   };
 }
+
+/**
+ * Check if the object has data property
+ * Legacy support for older code
+ */
+export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): boolean {
+  return response.data !== null && response.error === null;
+}
+
+/**
+ * Check if the object has a property
+ */
+export function hasProperty<T, K extends string>(obj: T, prop: K): boolean {
+  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
