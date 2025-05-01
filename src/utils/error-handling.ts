@@ -92,3 +92,47 @@ export async function safeAsync<T>(
     };
   }
 }
+
+// Apply a transformation function safely, handling errors
+export function safeTransform<T, R>(
+  value: T, 
+  transform: (value: T) => R,
+  fallback: R
+): R {
+  try {
+    return transform(value);
+  } catch (error) {
+    console.error('Transform error:', error);
+    return fallback;
+  }
+}
+
+// Safely access deep nested properties
+export function safeAccess<T, K extends keyof T>(
+  obj: T | null | undefined,
+  key: K,
+  fallback: T[K]
+): T[K] {
+  if (obj == null) {
+    return fallback;
+  }
+  return obj[key] ?? fallback;
+}
+
+// Process multiple operations and collect errors
+export async function collectErrors<T>(
+  operations: Array<() => Promise<T>>
+): Promise<{ results: T[], errors: Error[] }> {
+  const results: T[] = [];
+  const errors: Error[] = [];
+  
+  for (const operation of operations) {
+    try {
+      results.push(await operation());
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+  
+  return { results, errors };
+}

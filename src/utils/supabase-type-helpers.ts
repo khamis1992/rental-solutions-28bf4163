@@ -1,132 +1,109 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
-
-/**
- * Safely get data from a Supabase response, returns null if error or no data
- */
-export function getResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
-  if (!response || response.error || !response.data) {
-    console.error('Error in Supabase response:', response?.error);
-    return null;
-  }
-  return response.data;
-}
+import { PostgrestError } from '@supabase/supabase-js';
+import { ServiceResponse, successResponse, errorResponse } from './response-handler';
 
 /**
  * Type guard to check if a response has data
  */
-export function hasData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: NonNullable<T>; error: null } {
-  return !response.error && response.data !== null;
+export function hasResponseData<T>(response: { data: T | null; error: PostgrestError | null }): response is { data: T; error: null } {
+  return response.data !== null && response.error === null;
 }
 
 /**
- * Handle Supabase response with proper error logging
+ * Convert a Supabase response to a ServiceResponse
  */
-export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+export function toServiceResponse<T>(response: { data: T | null; error: PostgrestError | null }): ServiceResponse<T> {
   if (response.error) {
-    console.error('Error in Supabase response:', response.error);
-    return null;
+    return errorResponse(response.error);
   }
-  return response.data || null;
-}
-
-/**
- * Safe database ID type 
- */
-export type SafeId = string;
-
-/**
- * Generic database record type with ID
- */
-export interface DbRecord {
-  id: SafeId;
-  [key: string]: any;
-}
-
-/**
- * Safely cast string ID to database ID type
- */
-export const castDbId = (id: string): SafeId => id as SafeId;
-
-/**
- * Safely cast database ID value for Supabase UUID operations
- * This is needed to ensure IDs are properly handled in Supabase queries
- */
-export const castToUUID = (id: string): string => id;
-
-/**
- * Safely access nested properties from potentially null/undefined objects
- */
-export function getSafeProperty<T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K
-): T[K] | undefined {
-  if (!obj) return undefined;
-  return obj[key];
-}
-
-/**
- * Safely cast any string ID to the proper database ID type
- */
-export function castDatabaseId(id: string): SafeId {
-  return id as SafeId;
-}
-
-/**
- * Safely check if a response is successful and has data
- */
-export function isSuccessResponse<T>(response: PostgrestResponse<T>): response is PostgrestResponse<T> & { data: T } {
-  return !response.error && response.data !== null;
-}
-
-/**
- * Type guard to ensure we have a valid response object
- * before accessing properties
- */
-export function ensureResponseHasData<T, K extends keyof T>(
-  response: PostgrestResponse<T> | { error: any },
-  key: K
-): response is PostgrestResponse<T> & { data: T & Record<K, NonNullable<unknown>> } {
-  if ('error' in response && response.error) return false;
-  if (!('data' in response) || !response.data) return false;
-  return key in response.data;
-}
-
-/**
- * Retrieve a value from a response with proper type checking
- * Returns defaultValue if the property doesn't exist or response is an error
- */
-export function getResponseValue<T, K extends keyof T, D>(
-  response: PostgrestResponse<T> | { error: any },
-  key: K,
-  defaultValue: D
-): T[K] | D {
-  if (ensureResponseHasData(response, key)) {
-    return response.data[key];
+  
+  if (response.data === null) {
+    return errorResponse('No data returned');
   }
-  return defaultValue;
+  
+  return successResponse(response.data);
 }
 
 /**
- * Safely handle a response and extract data with proper error handling
+ * Safely convert a Supabase query to a ServiceResponse
  */
-export function handleResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
-  if (response.error) {
-    console.error('Error in Supabase response:', response.error);
-    return null;
+export async function safeQueryToServiceResponse<T>(
+  queryFn: () => Promise<{ data: T | null; error: PostgrestError | null }>,
+  context?: string
+): Promise<ServiceResponse<T>> {
+  try {
+    const response = await queryFn();
+    
+    if (response.error) {
+      console.error(context ? `${context}: ${response.error.message}` : response.error.message);
+      return errorResponse(response.error);
+    }
+    
+    if (response.data === null) {
+      return errorResponse('No data returned');
+    }
+    
+    return successResponse(response.data);
+  } catch (error) {
+    console.error(context ? `${context}: ${error}` : error);
+    return errorResponse(error instanceof Error ? error : String(error));
+  }
+}
+
+/**
+ * Handle a collection of Supabase queries safely
+ */
+export async function safeQueriesInParallel<T extends Record<string, any>>(
+  queries: { [K in keyof T]: () => Promise<{ data: T[K] | null; error: PostgrestError | null }> }
+): Promise<{ [K in keyof T]: ServiceResponse<T[K]> }> {
+  const keys = Object.keys(queries) as Array<keyof T>;
+  const results: Record<string, ServiceResponse<any>> = {};
+  
+  await Promise.all(keys.map(async (key) => {
+    try {
+      const response = await queries[key]();
+      
+      if (response.error) {
+        results[key as string] = errorResponse(response.error);
+      } else if (response.data === null) {
+        results[key as string] = errorResponse(`No data returned for ${String(key)}`);
+      } else {
+        results[key as string] = successResponse(response.data);
+      }
+    } catch (error) {
+      results[key as string] = errorResponse(error instanceof Error ? error : String(error));
+    }
+  }));
+  
+  return results as { [K in keyof T]: ServiceResponse<T[K]> };
+}
+
+/**
+ * Extract data safely from a Supabase response or return a default value
+ */
+export function extractDataOrDefault<T>(
+  response: { data: T | null; error: PostgrestError | null },
+  defaultValue: T
+): T {
+  if (response.error || response.data === null) {
+    return defaultValue;
   }
   return response.data;
 }
 
 /**
- * Extract data from an array response, with safe handling
+ * Convert a PostgrestError to a more useful format
  */
-export function handleArrayResponse<T>(response: PostgrestResponse<T[]>): T[] {
-  if (response.error || !response.data) {
-    console.error('Error in Supabase array response:', response.error);
-    return [];
-  }
-  return response.data;
+export function formatPostgrestError(error: PostgrestError): {
+  message: string;
+  code: string;
+  details: string;
+  hint?: string;
+} {
+  return {
+    message: error.message,
+    code: error.code,
+    details: error.details || '',
+    hint: error.hint
+  };
 }

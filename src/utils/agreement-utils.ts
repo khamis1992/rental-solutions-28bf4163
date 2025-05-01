@@ -1,7 +1,9 @@
+
 import { supabase } from '@/lib/supabase';
 import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
-import { withTimeout } from '@/utils/promise-utils';
+import { withTimeout, chainOperations } from '@/utils/promise-utils';
 import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
+import { hasResponseData as hasSupabaseData, safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
 
 /**
  * Check if a vehicle is available to be assigned to an agreement
@@ -13,51 +15,66 @@ export async function checkVehicleAvailability(vehicleId: string): Promise<Servi
   existingAgreement?: any;
   error?: string;
 }>> {
-  return wrapOperation(async () => {
-    // Check if vehicle exists and its status
-    const vehicleResponse = await supabase
-      .from('vehicles')
-      .select('status')
-      .eq('id', vehicleId)
-      .single();
+  return safeQueryToServiceResponse(
+    async () => {
+      // Check if vehicle exists and its status
+      const vehicleResponse = await supabase
+        .from('vehicles')
+        .select('status')
+        .eq('id', vehicleId)
+        .single();
 
-    if (!hasResponseData(vehicleResponse)) {
-      return {
-        isAvailable: false,
-        error: 'Vehicle not found'
-      };
-    }
-
-    // Check if vehicle is already assigned to an active agreement
-    const agreementResponse = await supabase
-      .from('leases')
-      .select('id, agreement_number, customer_id')
-      .eq('vehicle_id', vehicleId)
-      .eq('status', LEASE_STATUSES.ACTIVE)
-      .single();
-
-    if (agreementResponse.error) {
-      // PGRST116 is "no rows returned" which means no active agreement
-      if (agreementResponse.error.code === 'PGRST116') {
+      if (!hasSupabaseData(vehicleResponse)) {
         return {
-          isAvailable: true
+          data: {
+            isAvailable: false,
+            error: 'Vehicle not found'
+          },
+          error: null
         };
       }
-      
-      // Any other error is a problem
-      console.error("Error checking vehicle availability:", agreementResponse.error);
-      return {
-        isAvailable: false,
-        error: 'Error checking vehicle availability'
-      };
-    }
 
-    // Vehicle is assigned to an active agreement
-    return {
-      isAvailable: false,
-      existingAgreement: agreementResponse.data
-    };
-  }, 'Checking vehicle availability');
+      // Check if vehicle is already assigned to an active agreement
+      const agreementResponse = await supabase
+        .from('leases')
+        .select('id, agreement_number, customer_id')
+        .eq('vehicle_id', vehicleId)
+        .eq('status', LEASE_STATUSES.ACTIVE)
+        .single();
+
+      if (agreementResponse.error) {
+        // PGRST116 is "no rows returned" which means no active agreement
+        if (agreementResponse.error.code === 'PGRST116') {
+          return {
+            data: {
+              isAvailable: true
+            },
+            error: null
+          };
+        }
+        
+        // Any other error is a problem
+        console.error("Error checking vehicle availability:", agreementResponse.error);
+        return {
+          data: {
+            isAvailable: false,
+            error: 'Error checking vehicle availability'
+          },
+          error: null
+        };
+      }
+
+      // Vehicle is assigned to an active agreement
+      return {
+        data: {
+          isAvailable: false,
+          existingAgreement: agreementResponse.data
+        },
+        error: null
+      };
+    },
+    'Checking vehicle availability'
+  );
 }
 
 /**
@@ -254,26 +271,18 @@ export async function forceGeneratePaymentForAgreement(agreement: any): Promise<
  * @returns Result of the payment generation operation
  */
 export async function generatePaymentForAgreement(agreementId: string): Promise<ServiceResponse<any>> {
-  return wrapOperation(async () => {
-    // Fetch agreement data using a single query with proper type handling
-    const { data: agreement, error: agreementError } = await supabase
-      .from('leases')
-      .select('*')
-      .eq('id', agreementId)
-      .single();
-    
-    if (agreementError || !agreement) {
-      throw new Error(agreementError?.message || "Agreement not found");
-    }
-    
-    // Generate payment using the timeout-protected function
-    const result = await forceGeneratePaymentForAgreement(agreement);
-    
-    // If the result wasn't successful, throw an error so wrapOperation can handle it
-    if (!result.success) {
-      throw new Error(result.message || "Failed to generate payment");
-    }
-    
-    return result.data;
-  }, 'Generating payment for agreement');
+  // Use our new composition pattern to simplify the flow
+  return chainOperations(
+    // First operation: fetch the agreement
+    safeQueryToServiceResponse(
+      () => supabase
+        .from('leases')
+        .select('*')
+        .eq('id', agreementId)
+        .single(),
+      'Fetching agreement for payment generation'
+    ),
+    // Second operation: generate payment with the fetched agreement
+    (agreement) => forceGeneratePaymentForAgreement(agreement)
+  );
 }

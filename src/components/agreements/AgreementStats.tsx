@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { AGREEMENT_STATUSES, PAYMENT_STATUSES } from '@/types/database-common';
+import { LEASE_STATUSES, PAYMENT_STATUSES } from '@/types/database-common';
+import { safeAsync } from '@/utils/error-handling';
 
 interface Stats {
   activeAgreements: number;
@@ -26,62 +28,64 @@ export default function AgreementStats() {
       try {
         setLoading(true);
 
-        // Fetch active agreement count
-        const { data: activeAgreements, error: activeError } = await supabase
-          .from('leases')
-          .select('count', { count: 'exact', head: true })
-          .eq('status', AGREEMENT_STATUSES.ACTIVE as string);
+        // Use safeAsync to handle each query individually
+        const [activeResult, pendingResult, expiredResult, avgRentResult] = await Promise.all([
+          // Fetch active agreement count
+          safeAsync(supabase
+            .from('leases')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', LEASE_STATUSES.ACTIVE)),
 
-        // Fetch pending payments count
-        const { data: pendingPayments, error: pendingError } = await supabase
-          .from('unified_payments')
-          .select('count', { count: 'exact', head: true })
-          .eq('status', PAYMENT_STATUSES.PENDING as string);
+          // Fetch pending payments count
+          safeAsync(supabase
+            .from('unified_payments')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', PAYMENT_STATUSES.PENDING)),
 
-        // Fetch expired agreements count
-        const { data: expiredAgreements, error: expiredError } = await supabase
-          .from('leases')
-          .select('count', { count: 'exact', head: true })
-          .eq('status', AGREEMENT_STATUSES.EXPIRED as string);
+          // Fetch expired agreements count
+          safeAsync(supabase
+            .from('leases')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', LEASE_STATUSES.EXPIRED)),
 
-        // Fetch average rent amount
-        const { data: avgRentResponse, error: avgRentError } = await supabase
-          .rpc('get_average_rent_amount');
+          // Fetch average rent amount
+          safeAsync(supabase.rpc('get_average_rent_amount'))
+        ]);
 
-        if (activeError) {
-          console.error('Error fetching active agreements count:', activeError);
+        // Handle errors individually but continue processing
+        if (activeResult.error) {
+          console.error('Error fetching active agreements count:', activeResult.error);
         }
 
-        if (pendingError) {
-          console.error('Error fetching pending payments count:', pendingError);
+        if (pendingResult.error) {
+          console.error('Error fetching pending payments count:', pendingResult.error);
         }
 
-        if (expiredError) {
-          console.error('Error fetching expired agreements count:', expiredError);
+        if (expiredResult.error) {
+          console.error('Error fetching expired agreements count:', expiredResult.error);
         }
 
-        if (avgRentError) {
-          console.error('Error fetching average rent amount:', avgRentError);
+        if (avgRentResult.error) {
+          console.error('Error fetching average rent amount:', avgRentResult.error);
         }
         
-        if (avgRentResponse !== null && 'rent_amount' in avgRentResponse) {
-          const formattedRent = formatCurrency(avgRentResponse.rent_amount || 0);
-          
-          setStats({
-            activeAgreements: activeAgreements?.count || 0,
-            pendingPayments: pendingPayments?.count || 0,
-            expiredAgreements: expiredAgreements?.count || 0,
-            averageRentAmount: formattedRent
-          });
+        // Handle average rent amount if available
+        let averageRent = '$0';
+        if (avgRentResult.data && avgRentResult.data.rent_amount !== null) {
+          averageRent = formatCurrency(avgRentResult.data.rent_amount || 0);
         }
-        else {
-          setStats({
-            activeAgreements: activeAgreements?.count || 0,
-            pendingPayments: pendingPayments?.count || 0,
-            expiredAgreements: expiredAgreements?.count || 0,
-            averageRentAmount: '$0'
-          });
-        }
+        
+        // Extract counts safely with fallbacks to 0
+        const activeCount = activeResult.data?.count || 0;
+        const pendingCount = pendingResult.data?.count || 0;
+        const expiredCount = expiredResult.data?.count || 0;
+        
+        setStats({
+          activeAgreements: activeCount,
+          pendingPayments: pendingCount,
+          expiredAgreements: expiredCount,
+          averageRentAmount: averageRent
+        });
 
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
