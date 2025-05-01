@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { SimpleAgreement } from "@/hooks/use-agreements";
+import { asLeaseStatus, asVehicleStatus, castId } from "@/utils/supabase-helpers";
 
 interface ExistingAgreement {
   id: string;
@@ -43,6 +44,7 @@ export function adaptSimpleToFullAgreement(simpleAgreement: SimpleAgreement): Ag
 
 /**
  * Checks if a vehicle is available or currently assigned to another agreement
+ * Returns availability status and existing agreement info if assigned
  */
 export async function checkVehicleAvailability(vehicleId: string): Promise<VehicleAvailabilityResult> {
   try {
@@ -50,7 +52,7 @@ export async function checkVehicleAvailability(vehicleId: string): Promise<Vehic
     const { data: vehicleData, error: vehicleError } = await supabase
       .from("vehicles")
       .select("status")
-      .eq("id", vehicleId as any)
+      .eq("id", castId(vehicleId, 'vehicles'))
       .single();
 
     if (vehicleError) {
@@ -69,8 +71,8 @@ export async function checkVehicleAvailability(vehicleId: string): Promise<Vehic
     const { data: agreementData, error: agreementError } = await supabase
       .from("leases")
       .select("id, agreement_number")
-      .eq("vehicle_id", vehicleId as any)
-      .eq("status", 'active' as any)
+      .eq("vehicle_id", castId(vehicleId, 'vehicles'))
+      .eq("status", asLeaseStatus('active'))
       .single();
 
     if (agreementError && agreementError.code !== 'PGRST116') {
@@ -116,7 +118,7 @@ export async function activateAgreement(agreementId: string, vehicleId: string):
       // Close the existing agreement first
       const { error: closeError } = await supabase
         .from("leases")
-        .update({ status: 'closed' })
+        .update({ status: asLeaseStatus('closed') })
         .eq("id", availability.existingAgreement.id);
         
       if (closeError) {
@@ -131,8 +133,8 @@ export async function activateAgreement(agreementId: string, vehicleId: string):
     // Set vehicle status to in-use
     const { error: vehicleError } = await supabase
       .from("vehicles")
-      .update({ status: 'in_use' })
-      .eq("id", vehicleId as any);
+      .update({ status: asVehicleStatus('in_use') })
+      .eq("id", castId(vehicleId, 'vehicles'));
       
     if (vehicleError) {
       console.error("Error updating vehicle status:", vehicleError);
@@ -189,7 +191,7 @@ export async function updateAgreementWithCheck(
           // Close the other agreement first
           const { error: closeError } = await supabase
             .from("leases")
-            .update({ status: 'closed' })
+            .update({ status: asLeaseStatus('closed') })
             .eq("id", vehicleAvailability.existingAgreement.id);
             
           if (closeError) {
@@ -209,8 +211,8 @@ export async function updateAgreementWithCheck(
       if (data.vehicle_id) {
         const { error: vehicleError } = await supabase
           .from("vehicles")
-          .update({ status: 'in_use' })
-          .eq("id", data.vehicle_id);
+          .update({ status: asVehicleStatus('in_use') })
+          .eq("id", castId(data.vehicle_id, 'vehicles'));
           
         if (vehicleError) {
           throw new Error(`Failed to update vehicle status: ${vehicleError.message}`);
@@ -255,8 +257,8 @@ export async function updateAgreementWithCheck(
         
         const { error: vehicleError } = await supabase
           .from("vehicles")
-          .update({ status: 'available' })
-          .eq("id", vehicleId);
+          .update({ status: asVehicleStatus('available') })
+          .eq("id", castId(vehicleId, 'vehicles'));
           
         if (vehicleError) {
           console.warn("Failed to update vehicle status:", vehicleError);

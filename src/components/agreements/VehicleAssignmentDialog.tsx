@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,35 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from '@/integrations/supabase/client';
-import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps } from '@/types/vehicle-assignment.types';
+import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps, Payment, TrafficFine } from '@/types/vehicle-assignment.types';
 import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
-import { asLeaseId } from "@/lib/database";
-import { LeaseRow } from '@/lib/database/types';
-
-// Create more specific types instead of using 'any'
-interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string;
-  status: string;
-  description?: string;
-  payment_method?: string;
-}
-
-interface TrafficFine {
-  id: string;
-  violation_number: string;
-  fine_amount: number;
-  payment_status: string;
-  violation_date: string;
-}
-
-interface ExistingAgreement {
-  id: string;
-  agreement_number: string;
-}
+import { asLeaseStatus, castId, asPaymentStatus, handleSupabaseResponse } from "@/utils/supabase-helpers";
 
 export function VehicleAssignmentDialog({
   open,
@@ -53,7 +28,10 @@ export function VehicleAssignmentDialog({
   const [acknowledgedFines, setAcknowledgedFines] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
-  const [existingAgreement, setExistingAgreement] = useState<ExistingAgreement | null>(null);
+  const [existingAgreement, setExistingAgreement] = useState<{
+    id: string;
+    agreement_number: string;
+  } | null>(null);
 
   useEffect(() => {
     if (open && currentVehicleId) {
@@ -69,16 +47,19 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('leases')
         .select('id, agreement_number')
-        .eq('vehicle_id', currentVehicleId)
-        .eq('status', 'active')
+        .eq('vehicle_id', castId(currentVehicleId, 'vehicles'))
+        .eq('status', asLeaseStatus('active'))
         .single();
+      
+      // Handle response safely
+      const safeData = handleSupabaseResponse({ data, error });
         
-      if (data && !error) {
+      if (safeData) {
         setExistingAgreement({
-          id: data.id,
-          agreement_number: data.agreement_number
+          id: safeData.id,
+          agreement_number: safeData.agreement_number
         });
-        fetchAssociatedData(data.id);
+        fetchAssociatedData(safeData.id);
       }
     } catch (error) {
       console.error("Error fetching existing agreement:", error);
@@ -93,11 +74,14 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', currentVehicleId)
+        .eq('id', castId(currentVehicleId, 'vehicles'))
         .single();
       
-      if (data && !error) {
-        setVehicleInfo(data as VehicleInfo);
+      // Handle response safely
+      const safeData = handleSupabaseResponse({ data, error });
+      
+      if (safeData) {
+        setVehicleInfo(safeData as VehicleInfo);
       }
     } catch (error) {
       console.error("Error fetching vehicle details:", error);
@@ -115,11 +99,11 @@ export function VehicleAssignmentDialog({
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', leaseId)
-        .in('status', ['pending', 'overdue']);
+        .eq('lease_id', castId(leaseId, 'unified_payments'))
+        .in('status', [asPaymentStatus('pending'), asPaymentStatus('overdue')]);
         
-      if (paymentsData && !paymentsError) {
-        setPendingPayments(paymentsData as Payment[]);
+      if (!paymentsError && paymentsData) {
+        setPendingPayments(paymentsData as unknown as Payment[]);
       }
       
       // Fetch traffic fines
@@ -130,7 +114,7 @@ export function VehicleAssignmentDialog({
         .eq('payment_status', 'pending');
         
       if (finesData && !finesError) {
-        setTrafficFines(finesData as TrafficFine[]);
+        setTrafficFines(finesData as unknown as TrafficFine[]);
       }
       
       // Fetch customer information through lease

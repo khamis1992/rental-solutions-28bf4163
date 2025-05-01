@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +44,8 @@ import { safeAsync } from "@/utils/error-handling";
 import { applyValidationResultToForm } from "@/services/AgreementValidationService";
 import { handleAgreementSubmission } from "@/utils/agreement-submission";
 import { Textarea } from "@/components/ui/textarea";
+import { checkVehicleAvailability } from "@/utils/agreement-utils";
+import { asLeaseStatus, castId, asPaymentStatus, handleSupabaseResponse } from "@/utils/supabase-helpers";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
