@@ -1,13 +1,14 @@
-
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
+import errorService from '@/services/error/ErrorService';
+import { configureErrorLogger } from '@/utils/error-logger';
 
 // Initialize services check status flag
 let servicesChecked = false;
 
-export const initializeApp = async () => {
+export default function initializeApp() {
   // Set up database tables and other requirements
   await setupInvoiceTemplatesTable();
   
@@ -55,6 +56,40 @@ export const initializeApp = async () => {
       duration: 6000,
     });
   }
-};
+  
+  // Configure error logging
+  configureErrorLogger({
+    enableConsoleLogging: process.env.NODE_ENV !== 'production',
+    logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'debug',
+    includeTimestamp: true,
+    includeStack: true
+  });
 
-export default initializeApp;
+  // Add global error handler for uncaught exceptions
+  if (typeof window !== 'undefined') {
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled Promise Rejection:', event.reason);
+      errorService.handleError(event.reason, {
+        context: 'Unhandled Promise',
+        severity: 'error',
+        category: 'unknown',
+        code: 'UNHANDLED_PROMISE'
+      });
+      // Prevent default handling
+      event.preventDefault();
+    });
+    
+    window.addEventListener('error', (event) => {
+      console.error('Uncaught Error:', event.error);
+      errorService.handleError(event.error || event.message, {
+        context: 'Uncaught Error',
+        severity: 'error',
+        category: 'unknown',
+        code: 'UNCAUGHT_ERROR'
+      });
+      // Prevent default handling
+      event.preventDefault();
+      return true;
+    });
+  }
+}

@@ -1,6 +1,6 @@
 
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { handleApiError, handleApiSuccess } from '@/lib/api/error-handlers';
+import { handleApiError, handleApiSuccess } from '@/lib/api/error-api';
 
 export function useApiMutation<TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,
@@ -9,8 +9,11 @@ export function useApiMutation<TData, TVariables>(
     onError?: (error: Error, variables: TVariables) => void;
     onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables) => void;
     successMessage?: string;
+    errorContext?: string; // Added context parameter
   }
 ): UseMutationResult<TData, Error, TVariables, unknown> {
+  const { errorContext, ...mutationOptions } = options || {};
+  
   return useMutation({
     mutationFn: async (variables) => {
       try {
@@ -20,12 +23,12 @@ export function useApiMutation<TData, TVariables>(
         }
         return result;
       } catch (error) {
-        handleApiError(error);
+        handleApiError(error, errorContext);
         throw error;
       }
     },
-    onSuccess: options?.onSuccess,
-    onError: options?.onError,
-    onSettled: options?.onSettled
+    onSuccess: mutationOptions.onSuccess,
+    onError: mutationOptions.onError,
+    onSettled: mutationOptions.onSettled
   });
 }

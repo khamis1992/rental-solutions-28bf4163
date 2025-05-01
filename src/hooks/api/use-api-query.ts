@@ -1,6 +1,6 @@
 
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/api/error-handlers';
+import { handleApiError } from '@/lib/api/error-api';
 import { createQueryConfig } from '@/lib/api/query-config';
 
 export function useApiQuery<TData>(
@@ -12,8 +12,11 @@ export function useApiQuery<TData>(
     refetchOnWindowFocus?: boolean;
     refetchOnReconnect?: boolean;
     retry?: boolean | number;
+    errorContext?: string; // Added context parameter
   }
 ): UseQueryResult<TData | null, Error> {
+  const { errorContext, ...queryOptions } = options || {};
+  
   return useQuery({
     queryKey,
     queryFn: async () => {
@@ -34,10 +37,10 @@ export function useApiQuery<TData>(
         
         return response;
       } catch (error) {
-        handleApiError(error, `Error fetching ${queryKey[0]}`);
+        handleApiError(error, errorContext || `Error fetching ${queryKey[0]}`);
         throw error;
       }
     },
-    ...createQueryConfig(options)
+    ...createQueryConfig(queryOptions)
   });
 }
