@@ -21,6 +21,7 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -38,7 +39,12 @@ const Reports = () => {
         const data = await getAllRecords();
         setMaintenanceData(data || []);
       } catch (error) {
-        console.error("Error fetching maintenance data:", error);
+        logOperation(
+          'reports.maintenance.fetch', 
+          'error', 
+          { error: error instanceof Error ? error.message : String(error) },
+          'Error fetching maintenance data'
+        );
       }
     };
     
@@ -47,7 +53,12 @@ const Reports = () => {
   
   useEffect(() => {
     if (trafficFines) {
-      console.log("Traffic fines data loaded in Reports:", trafficFines.length);
+      logOperation(
+        'reports.trafficFines.load', 
+        'success', 
+        { count: trafficFines.length },
+        'Traffic fines data loaded in Reports'
+      );
     }
   }, [trafficFines]);
   
@@ -68,7 +79,12 @@ const Reports = () => {
   };
   
   const getReportData = () => {
-    console.log("Getting report data for:", selectedTab);
+    logOperation(
+      'reports.getData', 
+      'success', 
+      { reportType: selectedTab },
+      'Getting report data for report type'
+    );
     switch (selectedTab) {
       case 'fleet':
         return reportData || [];
@@ -99,11 +115,16 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'traffic':
-        console.log("Getting traffic fines data for report:", {
-          available: Array.isArray(trafficFines),
-          count: trafficFines?.length || 0,
-          sample: trafficFines?.slice(0, 3) || []
-        });
+        logOperation(
+          'reports.trafficFines.report', 
+          'success', 
+          {
+            available: Array.isArray(trafficFines),
+            count: trafficFines?.length || 0,
+            sampleCount: trafficFines?.slice(0, 3).length || 0
+          },
+          'Getting traffic fines data for report'
+        );
         
         if (Array.isArray(trafficFines)) {
           return trafficFines.map(fine => {
@@ -117,7 +138,15 @@ const Reports = () => {
                 violationDate = null;
               }
             } catch (err) {
-              console.error("Invalid date format:", fine.violationDate);
+              logOperation(
+                'reports.trafficFines.dateFormat', 
+                'error', 
+                { 
+                  violationDate: String(fine.violationDate),
+                  error: err instanceof Error ? err.message : String(err)
+                },
+                'Invalid date format in traffic fine'
+              );
               violationDate = null;
             }
             
