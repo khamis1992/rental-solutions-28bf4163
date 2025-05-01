@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { safeAsync } from "@/utils/error-handling";
 import { toast } from "sonner";
@@ -132,3 +131,4 @@ export async function activateAgreement(agreementId: string, vehicleId: string):
     return false;
   }
 }
+

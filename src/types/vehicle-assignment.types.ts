@@ -27,3 +27,31 @@ export interface VehicleAssignmentDialogProps {
   currentVehicleId: string | undefined;
   onAssignVehicle: (vehicleId: string) => Promise<void>;
 }
+
+export interface ExistingAgreement {
+  id: string;
+  agreement_number: string;
+}
+
+export interface VehicleAvailabilityResult {
+  isAvailable: boolean;
+  existingAgreement?: ExistingAgreement;
+  error?: string;
+}
+
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  status: string;
+  description?: string;
+  payment_method?: string;
+}
+
+export interface TrafficFine {
+  id: string;
+  violation_number: string;
+  fine_amount: number;
+  payment_status: string;
+  violation_date: string;
+}
