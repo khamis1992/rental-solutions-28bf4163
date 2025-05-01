@@ -17,17 +17,17 @@ import { useReactTable, flexRender, getCoreRowModel } from '@tanstack/react-tabl
 interface AgreementTableProps {
   agreements: Agreement[];
   isLoading: boolean;
-  rowSelection: Record<string, boolean>;
-  setRowSelection: (selection: Record<string, boolean>) => void;
-  deleteAgreement: (id: string) => void;
+  rowSelection?: Record<string, boolean>;
+  setRowSelection?: (selection: Record<string, boolean>) => void;
+  deleteAgreement?: (id: string) => void;
 }
 
 export function AgreementTable({ 
   agreements, 
   isLoading,
-  rowSelection,
-  setRowSelection,
-  deleteAgreement
+  rowSelection = {},
+  setRowSelection = () => {},
+  deleteAgreement = () => {}
 }: AgreementTableProps) {
   const columns = React.useMemo(
     () => getAgreementColumns(deleteAgreement),

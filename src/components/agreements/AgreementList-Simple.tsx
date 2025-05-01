@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { FilePlus, Filter, Trash2 } from 'lucide-react';
+import { FilePlus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
+import { Agreement } from '@/types/agreement';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,10 @@ export function AgreementList() {
     handleBulkDelete,
   } = useAgreementTable();
 
-  const selectedCount = Object.keys(rowSelection).length;
+  const selectedCount = Object.keys(rowSelection || {}).length;
+  
+  // Convert agreements to proper type
+  const typedAgreements: Agreement[] = agreements as unknown as Agreement[];
 
   return (
     <div className="space-y-4">
@@ -55,7 +59,7 @@ export function AgreementList() {
       </div>
 
       <AgreementTable
-        agreements={agreements}
+        agreements={typedAgreements}
         isLoading={isLoading}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}

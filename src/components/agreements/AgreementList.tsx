@@ -35,12 +35,6 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={typedAgreements}
         isLoading={isLoading}
-        pagination={pagination}
-        setPagination={setPagination}
-        sorting={sorting}
-        setSorting={setSorting}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
       />
     </div>
   );

@@ -20,4 +20,3 @@ export function CustomerDetailsSection({ customerInfo, isDetailsOpen }: Customer
     </div>
   );
 }
-
