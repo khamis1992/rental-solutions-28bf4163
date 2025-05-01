@@ -4,6 +4,7 @@ export interface CustomerInfo {
   full_name: string;
   email?: string;
   phone_number?: string;
+  driver_license?: string;
 }
 
 export interface VehicleInfo {

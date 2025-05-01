@@ -26,3 +26,30 @@ export function handleSupabaseResponse<T>(response: { data: T | null; error: any
 export function castId(id: string, table: TableName): any {
   return id as any; // This helps circumvent TypeScript's strict checking when we know the ID is valid
 }
+
+// Constants for agreement statuses to ensure consistency
+export const AGREEMENT_STATUSES = {
+  ACTIVE: 'active',
+  PENDING: 'pending',
+  PENDING_PAYMENT: 'pending_payment',
+  PENDING_DEPOSIT: 'pending_deposit',
+  DRAFT: 'draft', 
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed',
+  TERMINATED: 'terminated',
+  CLOSED: 'closed',
+  ARCHIVED: 'archived',
+  EXPIRED: 'expired'
+};
+
+// Constants for payment statuses
+export const PAYMENT_STATUSES = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  PARTIALLY_PAID: 'partially_paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
+  REFUNDED: 'refunded',
+  PROCESSING: 'processing'
+};
+

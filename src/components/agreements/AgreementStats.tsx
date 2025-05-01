@@ -4,29 +4,8 @@ import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { asLeaseStatus, asPaymentStatus, handleSupabaseResponse } from '@/utils/supabase-helpers';
-
-// Define types for agreement stats
-interface AgreementStatsType {
-  totalAgreements: number;
-  activeAgreements: number;
-  pendingPayments: number;
-  overduePayments: number;
-  activeValue: number;
-}
-
-// Constants for statuses
-const AGREEMENT_STATUSES = {
-  ACTIVE: 'active',
-  PENDING: 'pending',
-  CLOSED: 'closed'
-};
-
-const PAYMENT_STATUSES = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  OVERDUE: 'overdue'
-};
+import { handleSupabaseResponse, AGREEMENT_STATUSES, PAYMENT_STATUSES } from '@/utils/supabase-helpers';
+import { AgreementStats as AgreementStatsType } from '@/types/agreement-stats.types';
 
 export function AgreementStats() {
   const [stats, setStats] = useState<AgreementStatsType>({
@@ -50,12 +29,12 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asLeaseStatus(AGREEMENT_STATUSES.ACTIVE));
+          .eq('status', AGREEMENT_STATUSES.ACTIVE);
           
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asPaymentStatus(PAYMENT_STATUSES.PENDING));
+          .eq('status', PAYMENT_STATUSES.PENDING);
           
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
@@ -65,15 +44,20 @@ export function AgreementStats() {
         const { data: activeAgreements, error } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asLeaseStatus(AGREEMENT_STATUSES.ACTIVE));
+          .eq('status', AGREEMENT_STATUSES.ACTIVE);
 
         // Handle response safely
         const safeActiveAgreements = handleSupabaseResponse(
           { data: activeAgreements, error }
         );
         
-        const activeValue = safeActiveAgreements?.reduce((sum, agreement) => 
-          sum + (Number(agreement?.rent_amount) || 0), 0) || 0;
+        // Calculate total active value safely
+        let activeValue = 0;
+        if (safeActiveAgreements) {
+          activeValue = safeActiveAgreements.reduce((sum, agreement) => {
+            return sum + (Number(agreement?.rent_amount) || 0);
+          }, 0);
+        }
         
         setStats({
           totalAgreements: totalCount || 0,

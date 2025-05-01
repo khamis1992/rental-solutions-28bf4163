@@ -11,7 +11,7 @@ import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps, Payment, Traff
 import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
-import { asLeaseStatus, castId, asPaymentStatus, handleSupabaseResponse } from "@/utils/supabase-helpers";
+import { handleSupabaseResponse, AGREEMENT_STATUSES, PAYMENT_STATUSES } from "@/utils/supabase-helpers";
 
 export function VehicleAssignmentDialog({
   open,
@@ -48,19 +48,17 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('leases')
         .select('id, agreement_number')
-        .eq('vehicle_id', castId(currentVehicleId, 'vehicles'))
-        .eq('status', asLeaseStatus(AGREEMENT_STATUSES.ACTIVE))
+        .eq('vehicle_id', currentVehicleId)
+        .eq('status', AGREEMENT_STATUSES.ACTIVE)
         .single();
       
       // Handle response safely
-      const safeData = handleSupabaseResponse({ data, error });
-        
-      if (safeData) {
+      if (data && !error) {
         setExistingAgreement({
-          id: safeData.id,
-          agreement_number: safeData.agreement_number
+          id: data.id,
+          agreement_number: data.agreement_number
         });
-        fetchAssociatedData(safeData.id);
+        fetchAssociatedData(data.id);
       }
     } catch (error) {
       console.error("Error fetching existing agreement:", error);
@@ -75,14 +73,11 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', castId(currentVehicleId, 'vehicles'))
+        .eq('id', currentVehicleId)
         .single();
       
-      // Handle response safely
-      const safeData = handleSupabaseResponse({ data, error });
-      
-      if (safeData) {
-        setVehicleInfo(safeData as VehicleInfo);
+      if (data && !error) {
+        setVehicleInfo(data as VehicleInfo);
       }
     } catch (error) {
       console.error("Error fetching vehicle details:", error);
@@ -100,11 +95,11 @@ export function VehicleAssignmentDialog({
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', castId(leaseId, 'unified_payments'))
-        .in('status', [asPaymentStatus(PAYMENT_STATUSES.PENDING), asPaymentStatus(PAYMENT_STATUSES.OVERDUE)]);
+        .eq('lease_id', leaseId)
+        .in('status', [PAYMENT_STATUSES.PENDING, PAYMENT_STATUSES.OVERDUE]);
         
-      if (!paymentsError && paymentsData) {
-        setPendingPayments(paymentsData as unknown as Payment[]);
+      if (paymentsData && !paymentsError) {
+        setPendingPayments(paymentsData as Payment[]);
       }
       
       // Fetch traffic fines
@@ -115,7 +110,7 @@ export function VehicleAssignmentDialog({
         .eq('payment_status', 'pending');
         
       if (finesData && !finesError) {
-        setTrafficFines(finesData as unknown as TrafficFine[]);
+        setTrafficFines(finesData as TrafficFine[]);
       }
       
       // Fetch customer information through lease
@@ -125,7 +120,7 @@ export function VehicleAssignmentDialog({
         .eq('id', leaseId)
         .single();
         
-      if (leaseData?.customer_id && !leaseError) {
+      if (leaseData && !leaseError && leaseData.customer_id) {
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')
@@ -304,16 +299,3 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
-
-// Add missing constants
-const AGREEMENT_STATUSES = {
-  ACTIVE: 'active',
-  PENDING: 'pending',
-  CLOSED: 'closed'
-};
-
-const PAYMENT_STATUSES = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  OVERDUE: 'overdue'
-};
