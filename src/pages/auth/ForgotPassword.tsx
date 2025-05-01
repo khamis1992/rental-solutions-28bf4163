@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { logOperation } from "@/utils/monitoring-utils";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -35,7 +36,12 @@ const ForgotPassword = () => {
       await resetPassword(data.email);
       setIsSubmitted(true);
     } catch (error) {
-      console.error("Password reset error:", error);
+      logOperation(
+        'auth.passwordReset', 
+        'error', 
+        { error: error instanceof Error ? error.message : String(error) },
+        'Password reset error'
+      );
     } finally {
       setIsLoading(false);
     }

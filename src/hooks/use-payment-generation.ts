@@ -4,6 +4,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
+import { logOperation } from '@/utils/monitoring-utils';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -50,7 +51,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           .single();
           
         if (queryError) {
-          console.error("Error fetching existing payment:", queryError);
+          logOperation(
+            'paymentGeneration.handleSpecialAgreementPayments', 
+            'error', 
+            { paymentId, error: queryError.message },
+            'Error fetching existing payment'
+          );
         } else if (existingPayment) {
           existingPaymentId = existingPayment.id;
           existingPaymentAmount = existingPayment.amount || 0;
@@ -70,7 +76,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           .single();
           
         if (leaseError) {
-          console.error("Error fetching lease data for late fee:", leaseError);
+          logOperation(
+            'paymentGeneration.handleSpecialAgreementPayments', 
+            'error', 
+            { agreementId, error: leaseError.message },
+            'Error fetching lease data for late fee'
+          );
         } else if (leaseData) {
           dailyLateFee = leaseData.daily_late_fee || 120;
         }
@@ -98,13 +109,18 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const newBalance = existingPaymentAmount - totalPaid;
         const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
         
-        console.log("Updating existing payment:", {
-          existingPaymentId,
-          totalPaid,
-          newBalance,
-          newStatus,
-          paymentDate: paymentDate.toISOString()
-        });
+        logOperation(
+          'paymentGeneration.handleSpecialAgreementPayments', 
+          'success', 
+          {
+            existingPaymentId,
+            totalPaid,
+            newBalance,
+            newStatus,
+            paymentDate: paymentDate.toISOString()
+          },
+          'Updating existing payment'
+        );
         
         // Update the existing payment record
         const { error: updateError } = await supabase
@@ -119,7 +135,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           .eq('id', existingPaymentId);
           
         if (updateError) {
-          console.error("Error updating payment:", updateError);
+          logOperation(
+            'paymentGeneration.handleSpecialAgreementPayments', 
+            'error', 
+            { existingPaymentId, error: updateError.message },
+            'Error updating payment'
+          );
           toast.error("Failed to record additional payment");
           return false;
         }
@@ -159,7 +180,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
         };
         
-        console.log("Recording payment:", paymentRecord);
+        logOperation(
+          'paymentGeneration.handleSpecialAgreementPayments', 
+          'success', 
+          { paymentRecord },
+          'Recording payment'
+        );
         
         // Insert the payment record
         const { data, error } = await supabase
@@ -169,7 +195,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           .single();
         
         if (error) {
-          console.error("Payment recording error:", error);
+          logOperation(
+            'paymentGeneration.handleSpecialAgreementPayments', 
+            'error', 
+            { error: error.message },
+            'Payment recording error'
+          );
           toast.error("Failed to record payment");
           return false;
         }
@@ -192,14 +223,24 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
           };
           
-          console.log("Recording late fee:", lateFeeRecord);
+          logOperation(
+          'paymentGeneration.handleSpecialAgreementPayments', 
+          'success', 
+          { lateFeeRecord },
+          'Recording late fee'
+        );
           
           const { error: lateFeeError } = await supabase
             .from('unified_payments')
             .insert(lateFeeRecord);
           
           if (lateFeeError) {
-            console.error("Late fee recording error:", lateFeeError);
+            logOperation(
+              'paymentGeneration.handleSpecialAgreementPayments', 
+              'error', 
+              { agreementId, error: lateFeeError.message },
+              'Late fee recording error'
+            );
             toast.warning("Payment recorded but failed to record late fee");
           } else {
             toast.success(isPartialPayment ? 
@@ -216,7 +257,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       refreshAgreementData();
       return true;
     } catch (error) {
-      console.error("Unexpected error recording payment:", error);
+      logOperation(
+        'paymentGeneration.handleSpecialAgreementPayments', 
+        'error', 
+        { error: error instanceof Error ? error.message : String(error) },
+        'Unexpected error recording payment'
+      );
       toast.error("An unexpected error occurred while recording payment");
       return false;
     } finally {

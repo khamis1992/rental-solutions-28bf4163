@@ -40,12 +40,14 @@ import {
   Upload
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { TrafficFine } from '@/types/traffic-fine-types';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { logOperation } from '@/utils/monitoring-utils';
 import TrafficFineImport from './TrafficFineImport';
 import {
   Dialog,
@@ -79,7 +81,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   }, [trafficFines]);
   
   // Data validation function to check for data integrity
-  const validateTrafficFinesData = (fines: any[]) => {
+  const validateTrafficFinesData = (fines: Partial<TrafficFine>[]) => {
     const issues: string[] = [];
     
     // Check for required fields and data consistency
@@ -110,9 +112,10 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       issues
     });
     
-    // Log issues to console for debugging
+    // Log issues using structured logging
     if (issues.length > 0) {
-      console.warn('Traffic fines data validation issues:', issues);
+      logOperation('trafficFinesList.validateData', 'warning', 
+        { issueCount: issues.length }, 'Traffic fines data validation issues');
     }
   };
 
@@ -133,7 +136,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       await payTrafficFine.mutate({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
-      console.error("Error paying fine:", error);
+      logOperation('trafficFinesList.payFine', 'error', 
+        { id }, error instanceof Error ? error.message : "Unknown error");
       toast.error("Failed to pay fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });
@@ -145,7 +149,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       await disputeTrafficFine.mutate({ id });
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
-      console.error("Error disputing fine:", error);
+      logOperation('trafficFinesList.disputeFine', 'error', 
+        { id }, error instanceof Error ? error.message : "Unknown error");
       toast.error("Failed to dispute fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
       });
@@ -169,20 +174,24 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
         return;
       }
 
-      console.log(`Attempting to auto-assign ${pendingFines.length} fines`);
+      logOperation('trafficFinesList.autoAssign', 'success', 
+        { count: pendingFines.length }, `Attempting to auto-assign ${pendingFines.length} fines`);
 
       for (const fine of pendingFines) {
         if (!fine.licensePlate) {
-          console.log(`Skipping fine ${fine.id} - missing license plate`);
+          logOperation('trafficFinesList.autoAssign', 'warning', 
+            { fineId: fine.id }, `Skipping fine - missing license plate`);
           continue;
         }
 
         try {
-          console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
+          logOperation('trafficFinesList.autoAssign', 'success', 
+            { fineId: fine.id, licensePlate: fine.licensePlate }, `Assigning fine with license plate`);
           await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
-          console.error(`Failed to assign fine ${fine.id}:`, error);
+          logOperation('trafficFinesList.autoAssign', 'error', 
+            { fineId: fine.id }, error instanceof Error ? error.message : "Unknown error");
           failedCount++;
         }
       }
@@ -197,7 +206,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
         toast.error(`Failed to assign ${failedCount} fines`);
       }
     } catch (error: any) {
-      console.error("Auto-assignment error:", error);
+      logOperation('trafficFinesList.autoAssign', 'error', 
+        { error: error.message || "Unknown error" }, "Auto-assignment error");
       toast.error("There was an error assigning fines to customers: " + (error.message || "Unknown error"));
     } finally {
       setAssigningFines(false);
@@ -207,24 +217,24 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
+        return <Badge><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
       case 'disputed':
-        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
+        return <Badge><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
       case 'pending':
       default:
-        return <Badge className="bg-red-500 text-white border-red-600"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
+        return <Badge><X className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
 
-  const getCustomerAssignmentStatus = (fine: any) => {
+  const getCustomerAssignmentStatus = (fine: Partial<TrafficFine>) => {
     if (fine.customerId) {
       return (
-        <Badge className="bg-blue-500 text-white border-blue-600">
+        <Badge>
           <UserCheck className="mr-1 h-3 w-3" /> Assigned
         </Badge>
       );
     }
-    return <Badge variant="outline">Unassigned</Badge>;
+    return <Badge>Unassigned</Badge>;
   };
 
   if (error) {

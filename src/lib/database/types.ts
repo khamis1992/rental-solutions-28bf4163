@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
@@ -22,11 +21,11 @@ export type LegalCaseRow = TableRow<'legal_cases'>;
 export type MaintenanceRow = TableRow<'maintenance'>;
 
 // Status types
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = string; // Using string as the database type is text
-export type VehicleStatus = VehicleRow['status'];
-export type ProfileStatus = ProfileRow['status'];
-export type MaintenanceStatus = MaintenanceRow['status'];
+export type LeaseStatus = 'active' | 'pending' | 'draft' | 'cancelled' | 'closed' | 'pending_payment' | 'completed' | 'pending_deposit' | 'terminated' | 'archived';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type VehicleStatus = 'available' | 'reserved' | 'rented' | 'maintenance' | 'out_of_service';
+export type ProfileStatus = 'active' | 'inactive' | 'pending' | 'suspended';
+export type MaintenanceStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 
 // Response types for better error handling
 export type DbResponse<T> = {

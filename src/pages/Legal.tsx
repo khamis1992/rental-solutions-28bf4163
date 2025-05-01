@@ -15,6 +15,7 @@ import {
   Bookmark,
   ArrowRight
 } from 'lucide-react';
+import { logOperation } from '@/utils/monitoring-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,7 +33,7 @@ const Legal = () => {
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    console.log(`Tab changed to: ${value}`);
+    logOperation('legal.tabChange', 'success', { tab: value }, `Tab changed to: ${value}`);
   };
   
   const handleExportReport = () => {

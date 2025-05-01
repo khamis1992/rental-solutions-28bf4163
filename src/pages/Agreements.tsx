@@ -18,6 +18,7 @@ import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -38,7 +39,12 @@ const Agreements = () => {
             return;
           }
         } catch (e) {
-          console.warn('Error parsing cached edge function status:', e);
+          logOperation(
+            'agreements.edgeFunction.cache', 
+            'warning', 
+            { error: e instanceof Error ? e.message : String(e) },
+            'Error parsing cached edge function status'
+          );
         }
       }
     }
@@ -60,10 +66,20 @@ const Agreements = () => {
   React.useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
-        console.log("Running automatic payment schedule maintenance check");
+        logOperation(
+          'agreements.maintenance.check', 
+          'success', 
+          {},
+          'Running automatic payment schedule maintenance check'
+        );
         await runPaymentScheduleMaintenanceJob();
       } catch (error) {
-        console.error("Error running payment maintenance job:", error);
+        logOperation(
+          'agreements.maintenance.check', 
+          'error', 
+          { error: error instanceof Error ? error.message : String(error) },
+          'Error running payment maintenance job'
+        );
         // We don't show a toast here since this is a background task
       }
     };

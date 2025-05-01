@@ -21,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { asVehicleId } from '@/utils/database-type-helpers';
+import { logOperation } from '@/utils/monitoring-utils';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +34,12 @@ const VehicleDetailPage = () => {
   // Force a refresh on component mount
   React.useEffect(() => {
     if (id) {
-      console.log('VehicleDetailPage: Fetching fresh vehicle data for ID:', id);
+      logOperation(
+        'vehicleDetailPage.fetchVehicle', 
+        'success', 
+        { id },
+        'Fetching fresh vehicle data'
+      );
       refetch();
     }
   }, [id, refetch]);
