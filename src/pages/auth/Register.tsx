@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { logOperation } from "@/utils/monitoring-utils";
 
 const registerSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters"),
@@ -47,7 +48,12 @@ const Register = () => {
       });
       navigate("/auth/login", { replace: true });
     } catch (error) {
-      console.error("Registration error:", error);
+      logOperation(
+        'auth.register', 
+        'error', 
+        { error: error instanceof Error ? error.message : String(error) },
+        'Registration error'
+      );
     } finally {
       setIsLoading(false);
     }
