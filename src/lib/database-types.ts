@@ -1,7 +1,6 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { logOperation } from '@/utils/monitoring-utils';
 
 // Helper type for easy table access
 export type Tables = Database['public']['Tables'];
@@ -19,12 +18,7 @@ export type UUID = string;
 // Generic response handler with strong typing
 export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
   if (response.error) {
-    logOperation(
-      'databaseTypes.handleDatabaseResponse', 
-      'error', 
-      { error: response.error },
-      'Database error'
-    );
+    console.error('Database error:', response.error);
     return null;
   }
   return response.data || null;

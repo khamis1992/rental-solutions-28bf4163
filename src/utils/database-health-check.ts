@@ -1,7 +1,6 @@
 
 import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Check the health of the Supabase connection using the client's built-in health check
@@ -9,16 +8,13 @@ import { logOperation } from '@/utils/monitoring-utils';
  */
 export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error?: string }> => {
   try {
-    logOperation('databaseHealth.checkDatabaseHealth', 'success', 
-      {}, 'Checking database connection health');
+    console.log('Checking database connection health');
     const result = await checkSupabaseHealth();
     
     if (!result.isHealthy) {
-      logOperation('databaseHealth.checkDatabaseHealth', 'error', 
-        { error: result.error }, 'Database health check failed');
+      console.error('Database health check failed:', result.error);
     } else {
-      logOperation('databaseHealth.checkDatabaseHealth', 'success', 
-        { latency: result.latency }, 'Database connection is healthy');
+      console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
     }
     
     return { 
@@ -27,8 +23,7 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
-    logOperation('databaseHealth.checkDatabaseHealth', 'error', 
-      { error: errorMessage }, 'Database connection error');
+    console.error('Database connection error:', errorMessage);
     return { isHealthy: false, error: errorMessage };
   }
 };
