@@ -7,7 +7,6 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const EditCustomer = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,40 +31,20 @@ const EditCustomer = () => {
     setError(null);
     
     try {
-      logOperation(
-        'customer.fetch', 
-        'success', 
-        { id, attempt: fetchAttempts + 1 },
-        `Fetching customer data for ID: ${id}, attempt ${fetchAttempts + 1}`
-      );
+      console.log(`Fetching customer data for ID: ${id}, attempt ${fetchAttempts + 1}`);
       const data = await getCustomer(id);
       
       if (!data) {
-        logOperation(
-          'customer.fetch', 
-          'error', 
-          { id },
-          `No customer found with ID: ${id}`
-        );
+        console.error(`No customer found with ID: ${id}`);
         setError("Customer not found");
         setLoading(false);
         return;
       }
       
-      logOperation(
-        'customer.fetch', 
-        'success', 
-        { id, data },
-        "Customer data successfully retrieved"
-      );
+      console.log("Customer data successfully retrieved:", data);
       setCustomer(data);
     } catch (err) {
-      logOperation(
-        'customer.fetch', 
-        'error', 
-        { id, error: err instanceof Error ? err.message : String(err) },
-        "Error fetching customer"
-      );
+      console.error("Error fetching customer:", err);
       setError("Failed to load customer data");
       toast.error("Error loading customer data");
     } finally {
@@ -97,22 +76,12 @@ const EditCustomer = () => {
     
     setIsSubmitting(true);
     try {
-      logOperation(
-        'customer.update', 
-        'success', 
-        { id, data },
-        "Updating customer with data"
-      );
+      console.log("Updating customer with data:", data);
       await updateCustomer.mutateAsync({ ...data, id });
       toast.success("Customer updated successfully");
       navigate(`/customers/${id}`);
     } catch (err) {
-      logOperation(
-        'customer.update', 
-        'error', 
-        { id, error: err instanceof Error ? err.message : String(err) },
-        "Error updating customer"
-      );
+      console.error("Error updating customer:", err);
       toast.error("Failed to update customer");
     } finally {
       setIsSubmitting(false);

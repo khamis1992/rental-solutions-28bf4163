@@ -2,132 +2,107 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Upload, ScanLine, Loader2 } from 'lucide-react';
+import { Camera, Upload, RefreshCw } from 'lucide-react';
 import { Client } from '@/lib/supabase';
-import { toast } from 'sonner';
 
 interface ReceiptScannerProps {
-  onScanComplete: (extractedData: {
-    amount?: number;
-    date?: string;
+  onScanComplete: (data: {
+    amount: number;
+    date: Date;
+    description: string;
     vendor?: string;
-    category?: string;
   }) => void;
 }
 
 const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onScanComplete }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-  
-  const handleUpload = async () => {
-    if (!file) {
-      toast.error('Please select a file first');
-      return;
-    }
-    
-    setIsUploading(true);
-    
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     try {
-      // Mock the image upload and processing
-      // In a real app, this would upload to Supabase storage and call an AI service
-      setTimeout(() => {
-        setIsUploading(false);
-        setIsProcessing(true);
-        
-        // Mock processing delay
-        setTimeout(() => {
-          setIsProcessing(false);
-          
-          // Mock extracted data
-          const extractedData = {
-            amount: Math.floor(Math.random() * 100) + 10,
-            date: new Date().toISOString().split('T')[0],
-            vendor: 'Sample Vendor',
-            category: 'Office Supplies'
-          };
-          
-          onScanComplete(extractedData);
-          toast.success('Receipt scanned successfully');
-        }, 2000);
-      }, 1500);
+      setScanning(true);
+      
+      // Create preview
+      setPreview(URL.createObjectURL(file));
+
+      // Upload to storage
+      const timestamp = Date.now();
+      const filename = `receipts/${timestamp}-${file.name}`;
+      const { data, error } = await Client.storage
+        .from('receipts')
+        .upload(filename, file);
+
+      if (error) throw error;
+
+      // TODO: In production, integrate with OCR service
+      // For now, simulate OCR with dummy data
+      const mockOCRData = {
+        amount: parseFloat((Math.random() * 1000).toFixed(2)),
+        date: new Date(),
+        description: "Business Expense",
+        vendor: "Sample Vendor"
+      };
+
+      onScanComplete(mockOCRData);
     } catch (error) {
-      setIsUploading(false);
-      toast.error('Failed to upload receipt');
-      console.error('Upload error:', error);
+      console.error('Error processing receipt:', error);
+    } finally {
+      setScanning(false);
     }
   };
-  
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="text-center">
-            <ScanLine className="mx-auto h-10 w-10 text-primary mb-2" />
-            <h3 className="text-lg font-medium">Receipt Scanner</h3>
-            <p className="text-sm text-muted-foreground">
-              Upload a receipt image to automatically extract details
-            </p>
-          </div>
+    <Card className="w-full max-w-sm">
+      <CardContent className="p-4">
+        <div className="flex flex-col items-center gap-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="receipt-upload"
+            capture="environment"
+          />
           
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <Label htmlFor="receipt" className="block cursor-pointer">
-              <Input
-                id="receipt"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
+          {preview && (
+            <div className="relative w-full aspect-[3/4]">
+              <img
+                src={preview}
+                alt="Receipt preview"
+                className="w-full h-full object-cover rounded-lg"
               />
-              <div className="space-y-2">
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG or PDF up to 5MB
-                </p>
-              </div>
-            </Label>
-            {file && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Selected: {file.name}
-              </p>
-            )}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('receipt-upload')?.click()}
+              disabled={scanning}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload
+            </Button>
+            
+            <Button
+              variant="default"
+              onClick={() => document.getElementById('receipt-upload')?.click()}
+              disabled={scanning}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Scan
+            </Button>
           </div>
-          
-          <Button
-            onClick={handleUpload}
-            disabled={!file || isUploading || isProcessing}
-            className="w-full"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
-              </>
-            ) : isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Scan Receipt'
-            )}
-          </Button>
-          
-          <p className="text-xs text-center text-muted-foreground">
-            This feature uses AI to extract information from your receipt.
-            Results may require verification.
-          </p>
+
+          {scanning && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Processing receipt...
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { FilePlus, Filter, Trash2 } from 'lucide-react';
@@ -14,7 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Agreement } from '@/types/api-response';
 
 export function AgreementList() {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
@@ -27,7 +27,7 @@ export function AgreementList() {
     setRowSelection,
     isDeleting,
     handleBulkDelete,
-  } = useAgreementTable<Agreement>();
+  } = useAgreementTable();
 
   const selectedCount = Object.keys(rowSelection).length;
 

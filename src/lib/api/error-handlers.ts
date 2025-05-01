@@ -1,11 +1,9 @@
 
 import { PostgrestError } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
-import { logOperation } from '@/utils/monitoring-utils';
 
 export function handleApiError(error: unknown, context?: string): void {
-  logOperation('apiErrorHandlers.handleApiError', 'error', 
-    { error: error instanceof Error ? error.message : String(error), context }, 'API Error');
+  console.error('API Error:', error);
   
   let errorMessage = 'An unexpected error occurred';
   

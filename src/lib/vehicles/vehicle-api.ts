@@ -13,7 +13,6 @@ import {
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
 import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
-import { logOperation } from '@/utils/monitoring-utils';
 
 // Helper function to convert database status to app status
 const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null => {
@@ -33,30 +32,14 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       // Map all statuses to DB format
       const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
       query = query.in('status', dbStatuses);
-      logOperation(
-        'vehicleApi.fetchVehicles', 
-        'success', 
-        { 
-          statuses: filters.statuses.join(', '), 
-          dbStatuses: dbStatuses.join(', ') 
-        },
-        'Filtering by multiple statuses'
-      );
+      console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
     }
     // Single status filter (backward compatibility)
     else if (filters.status) {
       // Convert application status to database status
       const dbStatus = mapToDBStatus(filters.status);
       query = query.eq('status', dbStatus);
-      logOperation(
-        'vehicleApi.fetchVehicles', 
-        'success', 
-        { 
-          status: filters.status, 
-          dbStatus 
-        },
-        'Filtering by status'
-      );
+      console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
     
     if (filters.make) {
@@ -87,12 +70,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   const { data, error } = await query;
   
   if (error) {
-    logOperation(
-      'vehicleApi.fetchVehicles', 
-      'error', 
-      { error: error.message },
-      'Error fetching vehicles'
-    );
+    console.error('Error fetching vehicles:', error);
     throw new Error('Failed to fetch vehicles');
   }
   
@@ -187,12 +165,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
   // Map the status properly for database storage
   if (dbData.status) {
     dbData.status = mapToDBStatus(dbData.status);
-    logOperation(
-      'vehicleApi.insertVehicle', 
-      'success', 
-      { dbStatus: dbData.status },
-      'Mapped status to DB format'
-    );
+    console.log(`API insertVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   
   const { data, error } = await supabase
@@ -216,23 +189,13 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   // Ensure proper status mapping for database storage
   if (dbData.status !== undefined) {
     dbData.status = mapToDBStatus(dbData.status);
-    logOperation(
-      'vehicleApi.updateVehicle', 
-      'success', 
-      { dbStatus: dbData.status },
-      'Mapped status to DB format'
-    );
+    console.log(`API updateVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   
   // Ensure we have an updated_at timestamp
   dbData.updated_at = new Date().toISOString();
   
-  logOperation(
-    'vehicleApi.updateVehicle', 
-    'success', 
-    { id, data: dbData },
-    'Updating vehicle with data'
-  );
+  console.log(`API: Updating vehicle ${id} with data:`, dbData);
   
   let attempts = 0;
   const maxAttempts = 3;
@@ -249,12 +212,7 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
       
       if (error) {
         lastError = error;
-        logOperation(
-          'vehicleApi.updateVehicle', 
-          'error', 
-          { id, attempt: attempts + 1, error: error.message },
-          'Update attempt failed'
-        );
+        console.error(`Update attempt ${attempts + 1} failed:`, error);
         attempts++;
         
         if (attempts < maxAttempts) {
@@ -265,21 +223,11 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
         throw error;
       }
       
-      logOperation(
-        'vehicleApi.updateVehicle', 
-        'success', 
-        { id },
-        'Vehicle updated successfully'
-      );
+      console.log(`API: Vehicle ${id} updated successfully:`, data);
       return data as DatabaseVehicleRecord;
     } catch (err) {
       lastError = err;
-      logOperation(
-        'vehicleApi.updateVehicle', 
-        'error', 
-        { id, attempt: attempts + 1, error: err instanceof Error ? err.message : String(err) },
-        'Update attempt failed with exception'
-      );
+      console.error(`Update attempt ${attempts + 1} failed with exception:`, err);
       attempts++;
       
       if (attempts < maxAttempts) {

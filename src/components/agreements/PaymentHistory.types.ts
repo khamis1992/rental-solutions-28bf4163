@@ -1,31 +1,41 @@
 
+import { Database } from '@/types/database.types';
+import { DbId, PaymentStatus } from '@/types/database-common';
+
 export interface Payment {
-  id: string;
-  lease_id?: string;
+  id: DbId;
   amount: number;
-  amount_paid?: number;
-  payment_date?: string | Date | null;
-  due_date?: string | Date | null;
-  status: string;
-  payment_method?: string | null;
-  description?: string | null;
+  payment_date: string | null;
+  payment_method?: string;
+  reference_number?: string | null;
+  transaction_id?: string | null;
+  notes?: string;
   type?: string;
+  status?: PaymentStatus;
   late_fine_amount?: number;
   days_overdue?: number;
-  original_due_date?: string | Date | null;
-  transaction_id?: string | null;
-  import_reference?: string | null;
+  lease_id?: DbId;
+  original_due_date?: string | null;
+  amount_paid?: number;
   balance?: number;
+  description?: string;
+  due_date?: string;
   include_late_fee?: boolean;
   is_partial?: boolean;
 }
 
-export interface PaymentHistoryItem {
-  id: string;
-  agreement_id: string; 
-  amount: number;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
-  date: string;
-  method?: string;
-  reference?: string;
+export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
+
+export interface PaymentHistoryProps {
+  payments?: Payment[];
+  isLoading?: boolean;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  onPaymentDeleted?: () => void;
+  onPaymentCreated?: () => void;
+  leaseStartDate?: string | Date | null;
+  leaseEndDate?: string | Date | null;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
+  leaseId?: DbId;
 }

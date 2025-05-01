@@ -32,7 +32,6 @@ import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
 import { generateAgreementReport } from '@/utils/agreement-report-utils';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const AgreementDetailPage = () => {
   const {
@@ -95,12 +94,7 @@ const AgreementDetailPage = () => {
         navigate("/agreements");
       }
     } catch (error) {
-      logOperation(
-        'agreement.fetch', 
-        'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Error fetching agreement'
-      );
+      console.error('Error fetching agreement:', error);
       toast.error('Failed to load agreement details');
     } finally {
       setIsLoading(false);
@@ -126,12 +120,7 @@ const AgreementDetailPage = () => {
       }, {} as Record<string, number>);
       const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
       if (hasDuplicates) {
-        logOperation(
-          'agreement.payments.duplicates', 
-          'warning', 
-          { id, hasDuplicates: true },
-          'Detected duplicate payments - will fix automatically'
-        );
+        console.log("Detected duplicate payments - will fix automatically");
         fixAgreementPayments(id).then(() => {
           fetchPayments();
         });
@@ -145,12 +134,7 @@ const AgreementDetailPage = () => {
       toast.success("Agreement deleted successfully");
       navigate("/agreements");
     } catch (error) {
-      logOperation(
-        'agreement.delete', 
-        'error', 
-        { id: agreementId, error: error instanceof Error ? error.message : String(error) },
-        'Error deleting agreement'
-      );
+      console.error("Error deleting agreement:", error);
       toast.error("Failed to delete agreement");
     }
   };
@@ -175,12 +159,7 @@ const AgreementDetailPage = () => {
         toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
       }
     } catch (error) {
-      logOperation(
-        'agreement.payment.generate', 
-        'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Error generating payment schedule'
-      );
+      console.error("Error generating payment:", error);
       toast.error("Failed to generate payment schedule");
     } finally {
       setIsGeneratingPayment(false);
@@ -201,12 +180,7 @@ const AgreementDetailPage = () => {
         toast.error(result.message || "Payment maintenance failed");
       }
     } catch (error) {
-      logOperation(
-        'agreement.maintenance.run', 
-        'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Error running maintenance job'
-      );
+      console.error("Error running maintenance job:", error);
       toast.error("Failed to run maintenance job");
     } finally {
       setIsRunningMaintenance(false);
@@ -221,12 +195,7 @@ const AgreementDetailPage = () => {
       doc.save(`agreement-report-${agreement.agreement_number}.pdf`);
       toast.success('Agreement report generated successfully');
     } catch (error) {
-      logOperation(
-        'agreement.report.generate', 
-        'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Error generating report'
-      );
+      console.error('Error generating report:', error);
       toast.error('Failed to generate agreement report');
     }
   };
@@ -289,12 +258,7 @@ const AgreementDetailPage = () => {
       fetchPayments();
       setIsPaymentDialogOpen(false);
     } catch (error) {
-      logOperation(
-        'agreement.payment.record', 
-        'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Error recording payment'
-      );
+      console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
     }
   };

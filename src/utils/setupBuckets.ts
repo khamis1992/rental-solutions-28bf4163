@@ -1,31 +1,20 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from "@/lib/supabase";
-import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Ensures that the required storage buckets exist in Supabase
  */
 export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?: string; details?: any }> => {
   try {
-    logOperation(
-      'setupBuckets.ensureStorageBuckets', 
-      'success', 
-      {},
-      'Setting up storage buckets...'
-    );
+    console.log('Setting up storage buckets...');
     
     // Get Supabase service role key from env
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseServiceKey) {
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'error', 
-        {},
-        'Service role key is missing! This is required for bucket creation'
-      );
+      console.error('Service role key is missing! This is required for bucket creation');
       return { 
         success: false, 
         error: 'Service role key is missing. Cannot create storage bucket. Check .env file.', 
@@ -41,23 +30,13 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       }
     });
     
-    logOperation(
-      'setupBuckets.ensureStorageBuckets', 
-      'success', 
-      {},
-      'Checking if agreements bucket exists...'
-    );
+    console.log('Checking if agreements bucket exists...');
     
     // Check if agreements bucket exists using service client
     const { data: buckets, error: listError } = await serviceClient.storage.listBuckets();
     
     if (listError) {
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'error', 
-        { error: listError.message },
-        'Error listing buckets with service client'
-      );
+      console.error('Error listing buckets with service client:', listError);
       return { 
         success: false, 
         error: `Failed to list buckets: ${listError.message}`, 
@@ -68,12 +47,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     const agreementBucketExists = buckets?.some(bucket => bucket.name === 'agreements');
     
     if (!agreementBucketExists) {
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'success', 
-        {},
-        'Agreements bucket does not exist, creating it with service role key...'
-      );
+      console.log('Agreements bucket does not exist, creating it with service role key...');
       
       try {
         // Create the bucket with service role client
@@ -83,21 +57,11 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         });
         
         if (createError) {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'error', 
-            { error: createError.message },
-            'Error creating bucket with service role key'
-          );
+          console.error('Error creating bucket with service role key:', createError);
           
           // Special handling for RLS errors
           if (createError.message.includes('violates row-level security policy')) {
-            logOperation(
-              'setupBuckets.ensureStorageBuckets', 
-              'error', 
-              { error: createError.message },
-              'Row-level security policy violation. This usually means the service role key is not bypassing RLS correctly'
-            );
+            console.error('Row-level security policy violation. This usually means the service role key is not bypassing RLS correctly.');
             
             return { 
               success: false, 
@@ -113,12 +77,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
           };
         }
         
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'success', 
-          {},
-          'Successfully created agreements bucket!'
-        );
+        console.log('Successfully created agreements bucket!');
         
         // Test if bucket is accessible by uploading a test file
         const testFile = new Blob(['test'], { type: 'text/plain' });
@@ -128,12 +87,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
           .upload('test-access.txt', testFile, { upsert: true });
         
         if (uploadError) {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'error', 
-            { error: uploadError.message },
-            'Error uploading test file'
-          );
+          console.error('Error uploading test file:', uploadError);
           
           return { 
             success: true, 
@@ -151,48 +105,23 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         // Fix double slash issue if present
         publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
         
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'success', 
-          { publicUrl },
-          'Test file public URL generated'
-        );
+        console.log('Test file public URL:', publicUrl);
         
         // Test URL by fetching it
         try {
           const response = await fetch(publicUrl, { method: 'HEAD' });
           if (!response.ok) {
-            logOperation(
-              'setupBuckets.ensureStorageBuckets', 
-              'warning', 
-              { status: response.status, publicUrl },
-              'URL access test failed'
-            );
+            console.warn(`URL access test failed: ${response.status}`);
           } else {
-            logOperation(
-              'setupBuckets.ensureStorageBuckets', 
-              'success', 
-              { publicUrl },
-              'URL access test succeeded'
-            );
+            console.log('URL access test succeeded!');
           }
         } catch (fetchErr) {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'warning', 
-            { error: fetchErr instanceof Error ? fetchErr.message : String(fetchErr), publicUrl },
-            'URL fetch test error'
-          );
+          console.warn('URL fetch test error:', fetchErr);
         }
         
         return { success: true };
       } catch (serviceErr) {
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'error', 
-          { error: serviceErr instanceof Error ? serviceErr.message : String(serviceErr) },
-          'Exception creating bucket with service role key'
-        );
+        console.error('Exception creating bucket with service role key:', serviceErr);
         return { 
           success: false, 
           error: 'Exception during bucket creation with service role key. Check Supabase storage dashboard and RLS policies.', 
@@ -202,12 +131,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     }
     
     // If we get here, the bucket already exists
-    logOperation(
-      'setupBuckets.ensureStorageBuckets', 
-      'success', 
-      {},
-      'Agreements bucket already exists, verifying access...'
-    );
+    console.log('Agreements bucket already exists, verifying access...');
     
     // Verify bucket is usable by trying to list files with service role client
     try {
@@ -217,12 +141,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         .list('', { limit: 100 });
       
       if (serviceListError) {
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'error', 
-          { error: serviceListError.message },
-          'Error listing files with service client'
-        );
+        console.error('Error listing files with service client:', serviceListError);
         
         return { 
           success: false, 
@@ -231,21 +150,11 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         };
       }
       
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'success', 
-        { fileCount: serviceFiles.length },
-        'Successfully listed files with service client'
-      );
+      console.log('Successfully listed files with service client:', serviceFiles);
       
       // If no test file exists, create one to verify write access
       if (!serviceFiles.some(file => file.name === 'test-access.txt')) {
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'success', 
-          {},
-          'Creating test file to verify write access...'
-        );
+        console.log('Creating test file to verify write access...');
         const testFile = new Blob(['test-access'], { type: 'text/plain' });
         
         const { error: uploadError } = await serviceClient.storage
@@ -253,19 +162,9 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
           .upload('test-access.txt', testFile, { upsert: true });
           
         if (uploadError) {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'warning', 
-            { error: uploadError.message },
-            'Write access test failed'
-          );
+          console.warn('Write access test failed:', uploadError);
         } else {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'success', 
-            {},
-            'Write access test succeeded'
-          );
+          console.log('Write access test succeeded!');
         }
       }
       
@@ -278,48 +177,23 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       // Fix double slash issue if present
       publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
         
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'success', 
-        { publicUrl },
-        'Public URL test generated'
-      );
+      console.log('Public URL test:', publicUrl);
       
       // Test URL by fetching it
       try {
         const response = await fetch(publicUrl, { method: 'HEAD' });
         if (!response.ok) {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'warning', 
-            { status: response.status, publicUrl },
-            'URL access test failed'
-          );
+          console.warn(`URL access test failed: ${response.status}`);
         } else {
-          logOperation(
-            'setupBuckets.ensureStorageBuckets', 
-            'success', 
-            { publicUrl },
-            'URL access test succeeded'
-          );
+          console.log('URL access test succeeded!');
         }
       } catch (fetchErr) {
-        logOperation(
-          'setupBuckets.ensureStorageBuckets', 
-          'warning', 
-          { error: fetchErr instanceof Error ? fetchErr.message : String(fetchErr), publicUrl },
-          'URL fetch test error'
-        );
+        console.warn('URL fetch test error:', fetchErr);
       }
       
       return { success: true, details: { files: serviceFiles } };
     } catch (final) {
-      logOperation(
-        'setupBuckets.ensureStorageBuckets', 
-        'error', 
-        { error: final instanceof Error ? final.message : String(final) },
-        'Error verifying bucket access'
-      );
+      console.error('Error verifying bucket access:', final);
       return { 
         success: false, 
         error: 'Bucket exists but encountered error verifying access. Check RLS policies.', 
@@ -327,12 +201,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       };
     }
   } catch (error) {
-    logOperation(
-      'setupBuckets.ensureStorageBuckets', 
-      'error', 
-      { error: error instanceof Error ? error.message : String(error) },
-      'Unexpected error ensuring storage buckets exist'
-    );
+    console.error('Unexpected error ensuring storage buckets exist:', error);
     return { 
       success: false, 
       error: 'Unexpected error ensuring storage buckets exist', 
@@ -352,12 +221,7 @@ export const diagnoseStorageIssues = async (): Promise<{
   details: any;
 }> => {
   try {
-    logOperation(
-      'setupBuckets.diagnoseStorageIssues', 
-      'success', 
-      {},
-      'Diagnosing storage issues...'
-    );
+    console.log('Diagnosing storage issues...');
     
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
@@ -371,12 +235,7 @@ export const diagnoseStorageIssues = async (): Promise<{
           persistSession: false
         }
       });
-      logOperation(
-        'setupBuckets.diagnoseStorageIssues', 
-        'success', 
-        {},
-        'Created service client for diagnosis'
-      );
+      console.log('Created service client for diagnosis');
     }
     
     // Check bucket existence with both clients
@@ -390,12 +249,7 @@ export const diagnoseStorageIssues = async (): Promise<{
         bucketExists = serviceBuckets?.some(bucket => bucket.name === 'agreements') || false;
         
         if (!serviceListError && bucketExists) {
-          logOperation(
-            'setupBuckets.diagnoseStorageIssues', 
-            'success', 
-            {},
-            'Bucket found with service client'
-          );
+          console.log('Bucket found with service client');
           listError = null;
         } else {
           listError = serviceListError;
@@ -456,12 +310,7 @@ export const diagnoseStorageIssues = async (): Promise<{
           // Check and fix double slash
           if (publicUrl.includes('//agreements/')) {
             publicUrl = publicUrl.replace('//agreements/', '/agreements/');
-            logOperation(
-              'setupBuckets.diagnoseStorageIssues', 
-              'success', 
-              { publicUrl },
-              'Fixed double slash in URL'
-            );
+            console.log('Fixed double slash in URL:', publicUrl);
           }
         }
         
@@ -521,12 +370,7 @@ export const diagnoseStorageIssues = async (): Promise<{
       }
     };
   } catch (error) {
-    logOperation(
-      'setupBuckets.diagnoseStorageIssues', 
-      'error', 
-      { error: error instanceof Error ? error.message : String(error) },
-      'Error during storage diagnosis'
-    );
+    console.error('Error during storage diagnosis:', error);
     return {
       bucketExists: false,
       canUpload: false,

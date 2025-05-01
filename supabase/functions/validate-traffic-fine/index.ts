@@ -1,7 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 // We'll use an alternative approach without deno_dom to avoid the installation issues
-import { logOperation, logError } from '../_shared/logging.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +26,7 @@ function extractTextBetween(html: string, startMarker: string, endMarker: string
 // 2Captcha service integration
 async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
   try {
-    logOperation('captcha.solve', 'info', {}, 'Attempting to solve CAPTCHA from image URL');
+    console.log(`Attempting to solve CAPTCHA from image URL`);
     
     // First submit the CAPTCHA to 2captcha service
     const response = await fetch('https://2captcha.com/in.php', {
@@ -44,14 +43,14 @@ async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
     });
     
     const jsonResponse = await response.json();
-    logOperation('captcha.solve', 'info', { response: jsonResponse }, '2captcha submit response');
+    console.log('2captcha submit response:', jsonResponse);
     
     if (!jsonResponse || jsonResponse.status !== 1 || !jsonResponse.request) {
       throw new Error(`Failed to submit CAPTCHA: ${JSON.stringify(jsonResponse)}`);
     }
     
     const requestId = jsonResponse.request;
-    logOperation('captcha.solve', 'success', { requestId }, 'CAPTCHA submitted successfully');
+    console.log(`CAPTCHA submitted successfully, request ID: ${requestId}`);
     
     // Wait for the CAPTCHA to be solved (polling)
     let attempts = 0;
@@ -60,39 +59,37 @@ async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
       await delay(5000); // Wait 5 seconds between each check
       attempts++;
       
-      logOperation('captcha.solve', 'info', { attempt: attempts, maxAttempts }, 'Checking CAPTCHA solution');
+      console.log(`Checking CAPTCHA solution, attempt ${attempts}/${maxAttempts}`);
       const resultResponse = await fetch(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${requestId}&json=1`);
       
       if (!resultResponse.ok) {
-        logOperation('captcha.solve', 'error', 
-          { status: resultResponse.status, statusText: resultResponse.statusText }, 
-          'Error response from 2captcha');
+        console.error('Error response from 2captcha:', resultResponse.status, resultResponse.statusText);
         continue;
       }
       
       const resultJson = await resultResponse.json();
-      logOperation('captcha.solve', 'info', { result: resultJson }, '2captcha result response');
+      console.log('2captcha result response:', resultJson);
       
       if (resultJson.status === 1) {
-        logOperation('captcha.solve', 'success', { solution: resultJson.request }, 'CAPTCHA solved successfully');
+        console.log('CAPTCHA solved successfully:', resultJson.request);
         return resultJson.request;
       } else if (resultJson.request !== 'CAPCHA_NOT_READY') {
         throw new Error(`CAPTCHA solving failed: ${resultJson.request}`);
       }
       
-      logOperation('captcha.solve', 'info', {}, 'CAPTCHA not ready yet, waiting...');
+      console.log(`CAPTCHA not ready yet, waiting...`);
     }
     
     throw new Error('CAPTCHA solving timeout: maximum attempts reached');
   } catch (error) {
-    logError('captcha.solve', error, {});
+    console.error('Error solving CAPTCHA:', error);
     throw error;
   }
 }
 
 // Web scraping logic for MOI website
 async function scrapeTrafficFine(licensePlate: string) {
-  logOperation('trafficFine.scrape', 'info', { licensePlate }, 'Starting web scraping for license plate');
+  console.log(`Starting web scraping for license plate: ${licensePlate}`);
   
   try {
     // Check for dev mode flag to bypass real scraping
@@ -106,9 +103,7 @@ async function scrapeTrafficFine(licensePlate: string) {
       const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
         .reduce((sum, digit) => sum + parseInt(digit), 0) % 2 === 0;
         
-      logOperation('trafficFine.scrape', 'success', 
-        { licensePlate, hasFine: hasEvenDigits }, 
-        `Completed validation with result: ${hasEvenDigits ? 'Fine found' : 'No fine found'} (Development Mode)`);
+      console.log(`Completed validation for ${licensePlate} with result: ${hasEvenDigits ? 'Fine found' : 'No fine found'}`);
       
       return {
         licensePlate,
@@ -121,15 +116,15 @@ async function scrapeTrafficFine(licensePlate: string) {
       };
     } else {
       // PRODUCTION IMPLEMENTATION
-      logOperation('trafficFine.scrape', 'info', {}, 'Starting actual MOI website request');
+      console.log("Starting actual MOI website request");
       
       // Check if we have the required API key for captcha
       const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY");
       if (!captchaApiKey) {
-        logOperation('trafficFine.scrape', 'error', {}, 'CAPTCHA_API_KEY not configured in Supabase secrets');
+        console.error("CAPTCHA_API_KEY not configured in Supabase secrets");
         
         // Fallback to development mode if API key is missing
-        logOperation('trafficFine.scrape', 'warning', {}, 'Falling back to development mode due to missing API key');
+        console.warn("Falling back to development mode due to missing API key");
         
         await delay(1000);
         
@@ -159,7 +154,7 @@ async function scrapeTrafficFine(licensePlate: string) {
       }
       
       const html = await initialResponse.text();
-      logOperation('trafficFine.scrape', 'success', {}, 'Initial request successful, extracting tokens');
+      console.log("Initial request successful, extracting tokens");
       
       // 2. Extract cookies from the response
       const cookies = initialResponse.headers.get('set-cookie')?.split(',') || [];
@@ -171,7 +166,7 @@ async function scrapeTrafficFine(licensePlate: string) {
         throw new Error("Could not find CSRF token in the response");
       }
       
-      logOperation('trafficFine.scrape', 'success', { csrfToken: csrfToken.substring(0, 10) + '...' }, 'Found CSRF token, preparing form submission');
+      console.log("Found CSRF token, preparing form submission");
       
       // 4. Prepare form data for submission
       const formData = new URLSearchParams();
@@ -186,14 +181,14 @@ async function scrapeTrafficFine(licensePlate: string) {
       try {
         const captchaImage = extractTextBetween(html, 'captcha-image" src="', '"');
         if (captchaImage) {
-          logOperation('trafficFine.scrape', 'info', { captchaImage }, 'CAPTCHA detected');
+          console.log("CAPTCHA detected:", captchaImage);
           
           // Get the full CAPTCHA image URL if it's a relative path
           const captchaUrl = captchaImage.startsWith('http') 
             ? captchaImage 
             : `https://fees2.moi.gov.qa${captchaImage}`;
           
-          logOperation('trafficFine.scrape', 'info', { captchaUrl }, 'Full CAPTCHA URL');
+          console.log("Full CAPTCHA URL:", captchaUrl);
           
           // Retrieve the CAPTCHA image
           const captchaResponse = await fetch(captchaUrl, {
@@ -212,22 +207,22 @@ async function scrapeTrafficFine(licensePlate: string) {
           const captchaBase64 = btoa(String.fromCharCode(...new Uint8Array(captchaBuffer)));
           const captchaDataUrl = `data:image/jpeg;base64,${captchaBase64}`;
           
-          logOperation('trafficFine.scrape', 'info', { base64Length: captchaBase64.length }, 'CAPTCHA image converted to base64');
+          console.log("CAPTCHA image converted to base64, length:", captchaBase64.length);
           
           // Use CAPTCHA solving service
-          logOperation('trafficFine.scrape', 'info', {}, 'Sending CAPTCHA to 2Captcha service');
+          console.log("Sending CAPTCHA to 2Captcha service");
           const captchaSolution = await solveCaptcha(captchaDataUrl, captchaApiKey);
           formData.append('captcha', captchaSolution);
           
-          logOperation('trafficFine.scrape', 'success', { solution: captchaSolution }, 'CAPTCHA solved successfully');
+          console.log("CAPTCHA solved successfully:", captchaSolution);
         }
       } catch (captchaError) {
-        logError('trafficFine.captcha', captchaError, {});
-        throw new Error(`CAPTCHA processing failed: ${captchaError instanceof Error ? captchaError.message : String(captchaError)}`);
+        console.error("Error processing CAPTCHA:", captchaError);
+        throw new Error(`CAPTCHA processing failed: ${captchaError.message}`);
       }
       
       // 6. Submit form to search for violations
-      logOperation('trafficFine.scrape', 'info', {}, 'Submitting search request to MOI website');
+      console.log("Submitting search request to MOI website");
       const response = await fetch('https://fees2.moi.gov.qa/moipay/inquiry/violation/search', {
         method: 'POST',
         body: formData,
@@ -245,7 +240,7 @@ async function scrapeTrafficFine(licensePlate: string) {
       
       // 7. Parse the response to determine if fine exists
       const responseHtml = await response.text();
-      logOperation('trafficFine.scrape', 'success', {}, 'Search completed, analyzing results');
+      console.log("Search completed, analyzing results");
       
       // Look for indicators of existing fines in the response
       const hasFine = responseHtml.includes('القيمة الاجمالية') || // Total amount in Arabic
@@ -264,18 +259,14 @@ async function scrapeTrafficFine(licensePlate: string) {
           const violationNumber = extractTextBetween(responseHtml, 'رقم المخالفة', '</td>').trim();
           
           details = `Fine found: Amount: ${amountText || 'Unknown'}, Date: ${violationDate || 'Unknown'}, Reference: ${violationNumber || 'Unknown'}`;
-          logOperation('trafficFine.scrape', 'success', 
-            { amountText, violationDate, violationNumber }, 
-            'Fine details extracted');
+          console.log("Fine details extracted:", details);
         } catch (detailsError) {
-          logError('trafficFine.extractDetails', detailsError, {});
+          console.error("Error extracting fine details:", detailsError);
           details = 'Fine found in the system, but details could not be extracted';
         }
       }
       
-      logOperation('trafficFine.scrape', 'success', 
-        { licensePlate, hasFine }, 
-        `Completed validation with result: ${hasFine ? 'Fine found' : 'No fine found'}`);
+      console.log(`Completed validation for ${licensePlate} with result: ${hasFine ? 'Fine found' : 'No fine found'}`);
       
       return {
         licensePlate,
@@ -286,8 +277,8 @@ async function scrapeTrafficFine(licensePlate: string) {
       };
     }
   } catch (error) {
-    logError('trafficFine.scrape', error, { licensePlate });
-    throw new Error(`Web scraping failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Error during web scraping:', error);
+    throw new Error(`Web scraping failed: ${error.message}`);
   }
 }
 
@@ -310,7 +301,7 @@ serve(async (req) => {
     
     // Check if this is a test request
     if (requestData.test === true) {
-      logOperation('trafficFine.validate', 'info', {}, 'Received test request, responding with success');
+      console.log("Received test request, responding with success");
       return new Response(JSON.stringify({ 
         status: "available", 
         message: "Edge function is running properly" 
@@ -345,8 +336,8 @@ serve(async (req) => {
           // Add a delay between requests
           await delay(500);
         } catch (error) {
-          logError('trafficFine.validate', error, { licensePlate: plate });
-          errors.push({ licensePlate: plate, error: error instanceof Error ? error.message : String(error) });
+          console.error(`Error validating ${plate}:`, error);
+          errors.push({ licensePlate: plate, error: error.message });
         }
       }
       
@@ -376,9 +367,7 @@ serve(async (req) => {
 
       const validationResult = await scrapeTrafficFine(licensePlate);
       
-      logOperation('trafficFine.validate', 'success', 
-        { licensePlate, hasFine: validationResult.hasFine }, 
-        `Validation completed. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
+      console.log(`Validation completed for ${licensePlate}. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
       
       return new Response(JSON.stringify(validationResult), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -386,9 +375,9 @@ serve(async (req) => {
       });
     }
   } catch (error) {
-    logError('trafficFine.validate', error, {});
+    console.error('Error validating traffic fine:', error);
     
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }), {
+    return new Response(JSON.stringify({ error: error.message || 'An unexpected error occurred' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500
     });

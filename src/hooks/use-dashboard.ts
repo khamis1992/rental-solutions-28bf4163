@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/lib/api/error-handlers';
+import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
 import { CacheManager, useCachedData } from '@/lib/cache-utils';
 

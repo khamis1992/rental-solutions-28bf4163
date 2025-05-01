@@ -1,18 +1,12 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
-import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Safely get data from a Supabase response, returns null if error or no data
  */
 export function getResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
   if (!response || response.error || !response.data) {
-    logOperation(
-      'supabaseTypeHelpers.getResponseData', 
-      'error', 
-      { error: response?.error }, 
-      'Error in Supabase response'
-    );
+    console.error('Error in Supabase response:', response?.error);
     return null;
   }
   return response.data;
@@ -32,12 +26,7 @@ export function hasData<T>(
  */
 export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
   if (response.error) {
-    logOperation(
-      'supabaseTypeHelpers.handleSupabaseResponse', 
-      'error', 
-      { error: response.error }, 
-      'Error in Supabase response'
-    );
+    console.error('Error in Supabase response:', response.error);
     return null;
   }
   return response.data || null;
@@ -125,12 +114,7 @@ export function getResponseValue<T, K extends keyof T, D>(
  */
 export function handleResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
   if (response.error) {
-    logOperation(
-      'supabaseTypeHelpers.handleResponseData', 
-      'error', 
-      { error: response.error }, 
-      'Error in Supabase response'
-    );
+    console.error('Error in Supabase response:', response.error);
     return null;
   }
   return response.data;
@@ -141,12 +125,7 @@ export function handleResponseData<T>(response: PostgrestSingleResponse<T> | Pos
  */
 export function handleArrayResponse<T>(response: PostgrestResponse<T[]>): T[] {
   if (response.error || !response.data) {
-    logOperation(
-      'supabaseTypeHelpers.handleArrayResponse', 
-      'error', 
-      { error: response.error }, 
-      'Error in Supabase array response'
-    );
+    console.error('Error in Supabase array response:', response.error);
     return [];
   }
   return response.data;

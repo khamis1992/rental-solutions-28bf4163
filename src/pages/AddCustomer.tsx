@@ -6,7 +6,6 @@ import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
@@ -20,12 +19,7 @@ const AddCustomer = () => {
       toast('Customer added successfully');
       navigate('/customers');
     } catch (error) {
-      logOperation(
-        'customer.create', 
-        'error', 
-        { error: error instanceof Error ? error.message : String(error) },
-        'Error creating customer'
-      );
+      console.error('Error creating customer:', error);
       toast('Failed to create customer', {
         description: error instanceof Error ? error.message : 'An unknown error occurred'
       });

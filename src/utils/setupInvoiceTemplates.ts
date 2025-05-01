@@ -1,7 +1,6 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { logOperation } from "@/utils/monitoring-utils";
 
 export const setupInvoiceTemplatesTable = async (): Promise<boolean> => {
   try {
@@ -13,8 +12,7 @@ export const setupInvoiceTemplatesTable = async (): Promise<boolean> => {
     
     // If we can query the table, it exists
     if (!checkError) {
-      logOperation('invoiceTemplates.setup', 'success', 
-        {}, 'Invoice templates table already exists');
+      console.log("Invoice templates table already exists");
       return true;
     }
     
@@ -22,19 +20,15 @@ export const setupInvoiceTemplatesTable = async (): Promise<boolean> => {
     const { error: createError } = await supabase.rpc('create_invoice_templates_table');
     
     if (createError) {
-      logOperation('invoiceTemplates.setup', 'error', 
-        { error: createError.message }, 'Error creating invoice templates table');
+      console.error("Error creating invoice templates table:", createError);
       toast.error("Could not set up invoice templates. Please check your database permissions.");
       return false;
     }
     
-    logOperation('invoiceTemplates.setup', 'success', 
-      {}, 'Successfully created invoice templates table');
+    console.log("Successfully created invoice templates table");
     return true;
   } catch (error) {
-    logOperation('invoiceTemplates.setup', 'error', 
-      { error: error instanceof Error ? error.message : String(error) }, 
-      'Error setting up invoice templates');
+    console.error("Error setting up invoice templates:", error);
     return false;
   }
 };

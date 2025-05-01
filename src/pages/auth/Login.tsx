@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import { logOperation } from "@/utils/monitoring-utils";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -44,12 +43,7 @@ const Login = () => {
       const from = (location.state as any)?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     } catch (error) {
-      logOperation(
-        'auth.login', 
-        'error', 
-        { error: error instanceof Error ? error.message : String(error) },
-        'Login error'
-      );
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
