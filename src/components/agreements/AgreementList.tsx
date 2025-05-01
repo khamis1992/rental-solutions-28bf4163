@@ -2,7 +2,8 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
-import { LeaseStatus } from '@/types/lease-types';
+import { LeaseStatus } from '@/lib/database/utils';
+import { Agreement } from '@/types/agreement';
 
 const AgreementList: React.FC = () => {
   const {
@@ -26,10 +27,13 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
+  // Cast agreements to the correct type
+  const typedAgreements: Agreement[] = agreements as unknown as Agreement[];
+
   return (
     <div>
       <AgreementTable
-        agreements={agreements}
+        agreements={typedAgreements}
         isLoading={isLoading}
         pagination={pagination}
         setPagination={setPagination}

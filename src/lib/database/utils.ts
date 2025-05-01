@@ -1,6 +1,7 @@
 
 import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
+import { DbResponse, DbListResponse, DbSingleResponse } from './types';
 
 // Define table-specific ID types
 export type LeaseId = Database['public']['Tables']['leases']['Row']['id'];
@@ -96,4 +97,29 @@ export function safelyExtractData<T>(response: any): T | null {
 // Type guard for checking if a response has data
 export function hasResponseData<T>(response: any): response is { data: T } {
   return !response?.error && response?.data !== null && response?.data !== undefined;
+}
+
+/**
+ * Maps a Supabase response to a standardized DbResponse format
+ */
+export function mapDbResponse<T>(response: any): DbResponse<T> {
+  if (response?.error) {
+    return {
+      data: null,
+      error: response.error,
+      status: 'error',
+      message: response.error.message
+    };
+  }
+  
+  return {
+    data: response?.data || null,
+    error: null,
+    status: 'success'
+  };
+}
+
+// General function to handle database ID safely
+export function asTableId(table: string, id: string): string {
+  return id;
 }
