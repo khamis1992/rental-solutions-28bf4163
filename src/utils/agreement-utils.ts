@@ -158,3 +158,140 @@ export async function activateAgreement(agreementId: string, vehicleId: string):
     return false;
   }
 }
+
+/**
+ * Updates an agreement with validation checks and status handling
+ */
+export async function updateAgreementWithCheck(
+  agreement: { id: string, data: any },
+  userId?: string,
+  onSuccess?: () => void,
+  onError?: (error: any) => void,
+  statusUpdateCallback?: (status: string) => void
+): Promise<void> {
+  try {
+    if (statusUpdateCallback) statusUpdateCallback("Starting agreement update process...");
+    
+    // Extract the data we need to update
+    const { id, data } = agreement;
+    
+    // If vehicle ID changed, check availability
+    if (data.vehicle_id) {
+      if (statusUpdateCallback) statusUpdateCallback("Checking vehicle availability...");
+      
+      const vehicleAvailability = await checkVehicleAvailability(data.vehicle_id);
+      
+      if (!vehicleAvailability.isAvailable && vehicleAvailability.existingAgreement) {
+        // The vehicle is assigned to another agreement
+        if (vehicleAvailability.existingAgreement.id !== id) {
+          if (statusUpdateCallback) statusUpdateCallback("Vehicle is currently assigned to another agreement. Reassigning...");
+          
+          // Close the other agreement first
+          const { error: closeError } = await supabase
+            .from("leases")
+            .update({ status: 'closed' })
+            .eq("id", vehicleAvailability.existingAgreement.id);
+            
+          if (closeError) {
+            throw new Error(`Failed to reassign vehicle: ${closeError.message}`);
+          }
+          
+          console.log(`Closed agreement ${vehicleAvailability.existingAgreement.agreement_number} to reassign vehicle`);
+        }
+      }
+    }
+    
+    // Check if the status is being changed to active
+    if (data.status === 'active') {
+      if (statusUpdateCallback) statusUpdateCallback("Activating agreement...");
+      
+      // Update vehicle status if vehicle is assigned
+      if (data.vehicle_id) {
+        const { error: vehicleError } = await supabase
+          .from("vehicles")
+          .update({ status: 'in_use' })
+          .eq("id", data.vehicle_id);
+          
+        if (vehicleError) {
+          throw new Error(`Failed to update vehicle status: ${vehicleError.message}`);
+        }
+        
+        if (statusUpdateCallback) statusUpdateCallback("Vehicle marked as in-use.");
+      }
+      
+      // Ensure payment schedule exists
+      try {
+        if (statusUpdateCallback) statusUpdateCallback("Generating payment schedule...");
+        await forceGeneratePaymentForAgreement(supabase, id);
+      } catch (paymentError) {
+        console.warn("Could not generate payment schedule:", paymentError);
+        // Non-critical error, continue with update
+      }
+    }
+    
+    // If status is changed to closed, update vehicle status
+    if (data.status === 'closed') {
+      if (statusUpdateCallback) statusUpdateCallback("Closing agreement...");
+      
+      // Get the current vehicle ID from the agreement if not in the update data
+      let vehicleId = data.vehicle_id;
+      if (!vehicleId) {
+        const { data: currentData, error: fetchError } = await supabase
+          .from("leases")
+          .select("vehicle_id")
+          .eq("id", id)
+          .single();
+          
+        if (fetchError) {
+          console.warn("Could not fetch current vehicle ID:", fetchError);
+        } else {
+          vehicleId = currentData.vehicle_id;
+        }
+      }
+      
+      // Update vehicle status to available if we have a vehicle ID
+      if (vehicleId) {
+        if (statusUpdateCallback) statusUpdateCallback("Updating vehicle status to available...");
+        
+        const { error: vehicleError } = await supabase
+          .from("vehicles")
+          .update({ status: 'available' })
+          .eq("id", vehicleId);
+          
+        if (vehicleError) {
+          console.warn("Failed to update vehicle status:", vehicleError);
+          // Non-critical error, continue with update
+        }
+      }
+    }
+    
+    // Record user who made the update
+    if (userId) {
+      data.updated_by = userId;
+    }
+    
+    // Perform the actual agreement update
+    if (statusUpdateCallback) statusUpdateCallback("Updating agreement record...");
+    const { error: updateError } = await supabase
+      .from("leases")
+      .update(data)
+      .eq("id", id);
+      
+    if (updateError) {
+      throw new Error(`Failed to update agreement: ${updateError.message}`);
+    }
+    
+    // All operations completed successfully
+    if (statusUpdateCallback) statusUpdateCallback("Agreement updated successfully!");
+    
+    if (onSuccess) {
+      onSuccess();
+    }
+  } catch (error) {
+    console.error("Error in updateAgreementWithCheck:", error);
+    
+    if (onError) {
+      onError(error);
+    }
+  }
+}
