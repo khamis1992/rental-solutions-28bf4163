@@ -19,8 +19,12 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react-router-dom',
+      'tailwind-merge',
+      'clsx',
+      'lucide-react',
+      'sonner'
     ],
-    force: mode === 'development' // Only force in development mode
+    force: true // Always force optimization for better development experience
   },
   plugins: [
     react(),

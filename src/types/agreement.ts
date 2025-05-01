@@ -21,6 +21,9 @@ export interface Agreement {
   last_payment_date: string | null;
   payment_frequency: string;
   payment_day: number;
+  // Join fields
+  customers?: any;
+  vehicles?: any;
 }
 
 export interface AgreementFormData {
@@ -38,4 +41,20 @@ export interface AgreementFormData {
   agreement_duration?: any;
   payment_frequency?: string;
   payment_day?: number;
+}
+
+export interface LeaseWithVehicle {
+  id: string;
+  status: LeaseStatus;
+  start_date: string;
+  end_date: string;
+  agreement_number: string;
+  vehicles: {
+    id: string;
+    make: string;
+    model: string;
+    year?: string | number;
+    license_plate?: string;
+    color?: string;
+  };
 }
