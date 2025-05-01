@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
+import { Agreement } from '@/types/api-response';
 import { LeaseStatus } from '@/types/lease-types';
 
 const AgreementList: React.FC = () => {
@@ -16,7 +16,7 @@ const AgreementList: React.FC = () => {
     setSorting,
     globalFilter,
     setGlobalFilter,
-  } = useAgreementTable();
+  } = useAgreementTable<Agreement>();
 
   if (isLoading) {
     return <div>Loading agreements...</div>;

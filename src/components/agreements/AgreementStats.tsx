@@ -36,12 +36,12 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
+          .eq('status', 'active' as LeaseStatus);
           
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', asPaymentStatus('pending'));
+          .eq('status', 'pending' as PaymentStatus);
           
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
@@ -51,7 +51,7 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
+          .eq('status', 'active' as LeaseStatus);
 
         const activeValue = activeAgreements?.reduce((sum, agreement) => 
           sum + (Number(agreement?.rent_amount) || 0), 0) || 0;
