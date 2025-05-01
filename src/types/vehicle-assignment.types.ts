@@ -1,39 +1,29 @@
 
-import { DbId } from './database-common';
+/**
+ * Type definitions for vehicle assignment dialog and related components
+ */
 
 export interface CustomerInfo {
-  id: DbId;
-  full_name: string;
+  id: string;
+  full_name?: string;
   email?: string;
   phone_number?: string;
-  address?: string;
+  driver_license?: string;
 }
 
 export interface VehicleInfo {
-  id: DbId;
+  id: string;
   make: string;
   model: string;
-  year: number;
   license_plate: string;
+  year?: number;
   color?: string;
-  image_url?: string;
-  status?: string;
-}
-
-export interface AgreementPayment {
-  id: DbId;
-  amount: number;
-  payment_date: string;
-  status: string;
-  notes?: string;
-  payment_method?: string;
-  transaction_id?: string;
 }
 
 export interface VehicleAssignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   agreementId: string;
-  currentVehicleId?: string;
+  currentVehicleId: string | undefined;
   onAssignVehicle: (vehicleId: string) => Promise<void>;
 }

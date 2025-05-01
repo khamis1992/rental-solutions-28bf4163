@@ -32,7 +32,6 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { checkVehicleAvailability } from "@/utils/agreement-utils";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
@@ -42,8 +41,10 @@ import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSect
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
 import { toast } from "sonner";
-import { asLeaseId } from "@/lib/database";
-import { LeaseRow } from '@/lib/database/types';
+import { safeAsync } from "@/utils/error-handling";
+import { applyValidationResultToForm } from "@/services/AgreementValidationService";
+import { handleAgreementSubmission } from "@/utils/agreement-submission";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -53,21 +54,7 @@ interface AgreementFormProps {
   isCheckingTemplate?: boolean;
 }
 
-const formSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
-  start_date: z.date(),
-  end_date: z.date(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
-  agreement_duration: z.string().optional(),
-  notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false),
-});
+const formSchema = agreementSchema;
 
 // Create more specific types instead of using 'any'
 interface Payment {
@@ -124,8 +111,8 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('leases')
         .select('id, agreement_number')
-        .eq('vehicle_id', currentVehicleId)
-        .eq('status', 'active')
+        .eq('vehicle_id', currentVehicleId as any)
+        .eq('status', 'active' as any)
         .single();
         
       if (data && !error) {
@@ -148,7 +135,7 @@ export function VehicleAssignmentDialog({
       const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', currentVehicleId)
+        .eq('id', currentVehicleId as any)
         .single();
       
       if (data && !error) {
@@ -170,11 +157,11 @@ export function VehicleAssignmentDialog({
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', leaseId)
-        .in('status', ['pending', 'overdue']);
+        .eq('lease_id', leaseId as any)
+        .in('status', ['pending', 'overdue'] as any[]);
         
       if (paymentsData && !paymentsError) {
-        setPendingPayments(paymentsData as Payment[]);
+        setPendingPayments(paymentsData as unknown as Payment[]);
       }
       
       // Fetch traffic fines
@@ -185,7 +172,7 @@ export function VehicleAssignmentDialog({
         .eq('payment_status', 'pending');
         
       if (finesData && !finesError) {
-        setTrafficFines(finesData as TrafficFine[]);
+        setTrafficFines(finesData as unknown as TrafficFine[]);
       }
       
       // Fetch customer information through lease
@@ -390,6 +377,7 @@ const AgreementFormWithVehicleCheck = ({
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
   const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
   const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
+  const [validationInProgress, setValidationInProgress] = useState(false);
 
   const generateAgreementNumber = () => {
     const prefix = "AGR";
@@ -490,7 +478,7 @@ const AgreementFormWithVehicleCheck = ({
       const { data, error } = await supabase
         .from("vehicles")
         .select("*")
-        .eq("id", vehicleId)
+        .eq("id", vehicleId as any)
         .single();
 
       if (error) {
@@ -522,22 +510,44 @@ const AgreementFormWithVehicleCheck = ({
     form.setValue("total_amount", total);
   };
 
-  const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
-    const finalData = {
-      ...data,
-      customer_data: selectedCustomer,
-      vehicle_data: selectedVehicle,
-      deposit_amount: data.deposit_amount,
-      terms_accepted: true
-    };
+  const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
+    setValidationInProgress(true);
     
-    onSubmit(finalData);
+    try {
+      // Prepare final data with selected customer and vehicle
+      const finalData = {
+        ...data,
+        customer_data: selectedCustomer,
+        vehicle_data: selectedVehicle,
+        deposit_amount: data.deposit_amount,
+        terms_accepted: true
+      };
+      
+      // Submit using the agreement submission handler
+      const result = await handleAgreementSubmission(finalData);
+      
+      if (result.success) {
+        toast.success("Agreement created successfully");
+        onSubmit(finalData);
+      } else {
+        toast.error("Failed to create agreement", {
+          description: result.error || "Please check form for errors."
+        });
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast.error("Submission failed", { 
+        description: error instanceof Error ? error.message : "An unexpected error occurred" 
+      });
+    } finally {
+      setValidationInProgress(false);
+    }
   };
 
-  const handleVehicleConfirmation = () => {
-    // User has confirmed they want to proceed with the vehicle assignment
-    // This will be handled in the submission logic which will close the old agreement
-    console.log("User confirmed vehicle reassignment");
+  // Function to handle vehicle reassignment
+  const handleVehicleAssign = async (vehicleId: string): Promise<void> => {
+    // Just close the dialog, the actual reassignment happens during form submission
+    setIsVehicleDialogOpen(false);
   };
 
   const startDate = form.watch("start_date");
@@ -616,32 +626,32 @@ const AgreementFormWithVehicleCheck = ({
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border p-3 rounded-md">
               <h5 className="font-semibold mb-2">Customer Data</h5>
-              <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
-              <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
-              <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
-              <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
-              <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
+              <p><code>{'{{CUSTOMER_NAME}}'}</code>: {selectedCustomer.full_name}</p>
+              <p><code>{'{{CUSTOMER_EMAIL}}'}</code>: {selectedCustomer.email}</p>
+              <p><code>{'{{CUSTOMER_PHONE}}'}</code>: {selectedCustomer.phone_number}</p>
+              <p><code>{'{{CUSTOMER_LICENSE}}'}</code>: {selectedCustomer.driver_license}</p>
+              <p><code>{'{{CUSTOMER_NATIONALITY}}'}</code>: {selectedCustomer.nationality}</p>
             </div>
             
             <div className="border p-3 rounded-md">
               <h5 className="font-semibold mb-2">Vehicle Data</h5>
-              <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
-              <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
-              <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
-              <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
-              <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
+              <p><code>{'{{VEHICLE_MAKE}}'}</code>: {selectedVehicle.make}</p>
+              <p><code>{'{{VEHICLE_MODEL}}'}</code>: {selectedVehicle.model}</p>
+              <p><code>{'{{VEHICLE_PLATE}}'}</code>: {selectedVehicle.license_plate}</p>
+              <p><code>{'{{VEHICLE_VIN}}'}</code>: {selectedVehicle.vin}</p>
+              <p><code>{'{{VEHICLE_YEAR}}'}</code>: {selectedVehicle.year}</p>
             </div>
           </div>
           
           <div className="mt-4 border p-3 rounded-md">
             <h5 className="font-semibold mb-2">Agreement Data</h5>
             <div className="grid grid-cols-2 gap-2">
-              <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
-              <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
-              <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
-              <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
-              <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
-              <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
+              <p><code>{'{{AGREEMENT_NUMBER}}'}</code>: {form.getValues("agreement_number")}</p>
+              <p><code>{'{{START_DATE}}'}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+              <p><code>{'{{END_DATE}}'}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+              <p><code>{'{{RENT_AMOUNT}}'}</code>: {form.getValues("rent_amount")} QAR</p>
+              <p><code>{'{{DEPOSIT_AMOUNT}}'}</code>: {form.getValues("deposit_amount")} QAR</p>
+              <p><code>{'{{TOTAL_AMOUNT}}'}</code>: {form.getValues("total_amount")} QAR</p>
             </div>
           </div>
         </div>
@@ -805,6 +815,24 @@ const AgreementFormWithVehicleCheck = ({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="daily_late_fee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Late Fee (QAR)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             <div className="space-y-4">
@@ -905,95 +933,70 @@ const AgreementFormWithVehicleCheck = ({
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <p><strong>Make:</strong> {selectedVehicle.make}</p>
                   <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
                   <p><strong>Year:</strong> {selectedVehicle.year}</p>
-                  {selectedVehicle.color && <p><strong>Color:</strong> {selectedVehicle.color}</p>}
+                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
+                  <p><strong>Color:</strong> {selectedVehicle.color}</p>
                 </div>
               )}
+
+              <FormField
+                control={form.control}
+                name="rent_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monthly Rent Amount (QAR)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="deposit_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deposit Amount (QAR)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="total_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Amount (QAR)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        disabled
+                        className="bg-gray-100"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
-          
-          <FormField
-            control={form.control}
-            name="rent_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rent Amount (QAR)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      field.onChange(isNaN(value) ? 0 : value);
-                    }} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="deposit_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deposit Amount (QAR)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      field.onChange(isNaN(value) ? 0 : value);
-                    }} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="total_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total Amount (QAR) - Calculated Automatically</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    disabled 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="daily_late_fee"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Daily Late Fee (QAR)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      field.onChange(isNaN(value) ? 0 : value);
-                    }} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
+
           <FormField
             control={form.control}
             name="notes"
@@ -1001,39 +1004,42 @@ const AgreementFormWithVehicleCheck = ({
               <FormItem>
                 <FormLabel>Notes</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Textarea
+                    placeholder="Enter any additional notes about this agreement"
+                    className="min-h-[100px]"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {renderAgreementPreview()}
           
-          {selectedCustomer && selectedVehicle && renderAgreementPreview()}
-          
-          <div className="flex justify-end space-x-4">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Save Agreement'
-              )}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" type="button" disabled={isSubmitting || validationInProgress}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || validationInProgress}
+              className="px-8"
+            >
+              {(isSubmitting || validationInProgress) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting ? "Submitting..." : "Create Agreement"}
             </Button>
           </div>
         </form>
       </Form>
       
-      {isVehicleDialogOpen && (
-        <VehicleAssignmentDialog
-          open={isVehicleDialogOpen}
-          onOpenChange={setIsVehicleDialogOpen}
-          agreementId=""
-          currentVehicleId={form.getValues("vehicle_id")}
-          onAssignVehicle={handleVehicleConfirmation}
-        />
-      )}
+      <VehicleAssignmentDialog 
+        open={isVehicleDialogOpen} 
+        onOpenChange={setIsVehicleDialogOpen}
+        agreementId=""
+        currentVehicleId={selectedVehicle?.id}
+        onAssignVehicle={handleVehicleAssign}
+      />
     </>
   );
 };

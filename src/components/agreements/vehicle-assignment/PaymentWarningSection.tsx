@@ -1,86 +1,83 @@
 
-import { Payment } from '@/types/payment-history.types';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { AlertCircle } from 'lucide-react';
+
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  status: string;
+  description?: string;
+  payment_method?: string;
+}
 
 interface PaymentWarningSectionProps {
   pendingPayments: Payment[];
   acknowledgedPayments: boolean;
-  onAcknowledgePayments: (value: boolean) => void;
+  onAcknowledgePayments: (acknowledged: boolean) => void;
   isPaymentHistoryOpen: boolean;
-  formatDate: (date: Date | undefined) => string;
+  formatDate: (date: string | Date | undefined) => string;
 }
 
-export function PaymentWarningSection({
+export const PaymentWarningSection: React.FC<PaymentWarningSectionProps> = ({
   pendingPayments,
   acknowledgedPayments,
   onAcknowledgePayments,
   isPaymentHistoryOpen,
   formatDate
-}: PaymentWarningSectionProps) {
-  if (pendingPayments.length === 0) return null;
-
-  const getStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
-      case 'pending':
-        return <Badge className="bg-amber-500">Pending</Badge>;
-      default:
-        return <Badge className="bg-slate-500">{status}</Badge>;
-    }
-  };
-
+}) => {
+  if (!isPaymentHistoryOpen || pendingPayments.length === 0) return null;
+  
+  const totalPending = pendingPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  
   return (
-    <>
-      {isPaymentHistoryOpen && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Payments</h4>
-          <div className="max-h-48 overflow-y-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="p-2 text-left">Amount</th>
-                  <th className="p-2 text-left">Status</th>
-                  <th className="p-2 text-left">Due Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingPayments.map((payment) => (
-                  <tr key={payment.id} className="border-b">
-                    <td className="p-2">{payment.amount} QAR</td>
-                    <td className="p-2">{getStatusBadge(payment.status || '')}</td>
-                    <td className="p-2">{formatDate(payment.due_date ? new Date(payment.due_date) : undefined)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-2 border rounded-md p-3 bg-amber-50">
-        <div className="flex items-center space-x-2">
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          <h3 className="text-sm font-medium">Pending Payments</h3>
-        </div>
-        <p className="text-sm mt-1 text-gray-600">
-          There {pendingPayments.length === 1 ? 'is' : 'are'} {pendingPayments.length} pending {pendingPayments.length === 1 ? 'payment' : 'payments'} associated with this agreement.
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="h-4 w-4 text-amber-500" />
+        <h4 className="font-medium text-amber-700">
+          {pendingPayments.length} Pending {pendingPayments.length === 1 ? 'Payment' : 'Payments'}
+        </h4>
+      </div>
+      
+      <div className="text-sm text-gray-600">
+        <p>
+          This vehicle has {pendingPayments.length} pending {pendingPayments.length === 1 ? 'payment' : 'payments'} 
+          totaling <span className="font-semibold">{totalPending.toFixed(2)} QAR</span>.
+          These payments will need to be addressed.
         </p>
-        <div className="mt-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={acknowledgedPayments}
-              onChange={(e) => onAcknowledgePayments(e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <span className="text-sm">I acknowledge the pending payments</span>
-          </label>
+      </div>
+      
+      <div className="mt-2 border rounded-md overflow-hidden">
+        <div className="bg-gray-50 px-3 py-2 text-sm font-medium">Payment History</div>
+        <div className="divide-y">
+          {pendingPayments.map(payment => (
+            <div key={payment.id} className="px-3 py-2 text-sm">
+              <div className="flex justify-between">
+                <span>{payment.description || "Monthly Payment"}</span>
+                <span className="font-semibold">{payment.amount?.toFixed(2) || 0} QAR</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 flex justify-between">
+                <span>Due: {formatDate(payment.payment_date)}</span>
+                <span className="capitalize px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  {payment.status}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    </>
+      
+      <div className="mt-4">
+        <label className="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={acknowledgedPayments}
+            onChange={(e) => onAcknowledgePayments(e.target.checked)}
+            className="rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <span className="text-sm">I understand this vehicle has pending payments</span>
+        </label>
+      </div>
+    </div>
   );
-}
-
+};
