@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export function VehicleAssignmentDialog({
         .from('leases')
         .select('id, agreement_number')
         .eq('vehicle_id', castId(currentVehicleId, 'vehicles'))
-        .eq('status', asLeaseStatus('active'))
+        .eq('status', asLeaseStatus(AGREEMENT_STATUSES.ACTIVE))
         .single();
       
       // Handle response safely
@@ -100,7 +101,7 @@ export function VehicleAssignmentDialog({
         .from('unified_payments')
         .select('*')
         .eq('lease_id', castId(leaseId, 'unified_payments'))
-        .in('status', [asPaymentStatus('pending'), asPaymentStatus('overdue')]);
+        .in('status', [asPaymentStatus(PAYMENT_STATUSES.PENDING), asPaymentStatus(PAYMENT_STATUSES.OVERDUE)]);
         
       if (!paymentsError && paymentsData) {
         setPendingPayments(paymentsData as unknown as Payment[]);
@@ -303,3 +304,16 @@ export function VehicleAssignmentDialog({
     </Dialog>
   );
 }
+
+// Add missing constants
+const AGREEMENT_STATUSES = {
+  ACTIVE: 'active',
+  PENDING: 'pending',
+  CLOSED: 'closed'
+};
+
+const PAYMENT_STATUSES = {
+  PENDING: 'pending',
+  PAID: 'paid',
+  OVERDUE: 'overdue'
+};

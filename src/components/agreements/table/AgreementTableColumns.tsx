@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -53,10 +54,10 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     ),
   },
   {
-    accessorKey: "customers.full_name",
+    accessorKey: "customer.full_name",
     header: "Customer",
     cell: ({ row }) => {
-      const customer = row.original.customers;
+      const customer = row.original.customer;
       return (
         <div>
           {customer && customer.id ? (
@@ -74,10 +75,10 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     },
   },
   {
-    accessorKey: "vehicles",
+    accessorKey: "vehicle",
     header: "Vehicle",
     cell: ({ row }) => {
-      const vehicle = row.original.vehicles;
+      const vehicle = row.original.vehicle;
       return (
         <div>
           {vehicle && vehicle.id ? (

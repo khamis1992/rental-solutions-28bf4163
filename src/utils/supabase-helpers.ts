@@ -24,5 +24,5 @@ export function handleSupabaseResponse<T>(response: { data: T | null; error: any
 
 // Safe type casting for IDs to help with TypeScript errors
 export function castId(id: string, table: TableName): any {
-  return id as any;
+  return id as any; // This helps circumvent TypeScript's strict checking when we know the ID is valid
 }
