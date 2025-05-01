@@ -7,6 +7,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { CacheManager } from '@/lib/cache-utils';
+import { logOperation } from '@/utils/monitoring-utils';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -18,7 +19,20 @@ if (typeof window !== 'undefined') {
         args[0].includes('schema cache')) {
       return; // Suppress all schema cache related errors
     }
-    // Pass all other errors to the original console.error
+    
+    if (args[0]) {
+      const errorMessage = typeof args[0] === 'string' ? args[0] : 'Console error';
+      const errorDetails = args.length > 1 ? args.slice(1) : undefined;
+      
+      logOperation(
+        'dashboard.error', 
+        'error', 
+        { details: errorDetails }, 
+        errorMessage
+      );
+    }
+    
+    // Pass all other errors to the original console.error for backward compatibility
     originalConsoleError.apply(console, args);
   };
 }
