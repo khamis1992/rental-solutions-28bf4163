@@ -7,10 +7,122 @@ import { ServiceResponse, successResponse, errorResponse } from '@/utils/respons
  * @param promise The promise to execute
  * @param timeoutMs Timeout in milliseconds
  * @param operationName Name of the operation for error messages
+ * @param onProgress Optional callback for progress updates
  */
 export async function withTimeout<T>(
   promise: Promise<T>, 
   timeoutMs: number = 8000,
+  operationName: string = 'Operation',
+  onProgress?: (message: string) => void
+): Promise<ServiceResponse<T>> {
+  try {
+    // Optional progress reporting
+    if (onProgress) {
+      onProgress(`Starting ${operationName}...`);
+    }
+    
+    // Create a timeout promise that rejects after specified time
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      
+      // Store the timeout ID to allow cleanup
+      return () => clearTimeout(timeoutId);
+    });
+
+    // Race between the actual operation and the timeout
+    const result = await Promise.race([promise, timeoutPromise]);
+    
+    if (onProgress) {
+      onProgress(`${operationName} completed successfully`);
+    }
+    
+    return successResponse(result);
+  } catch (error) {
+    console.error(`Error in ${operationName}:`, error);
+    
+    if (onProgress) {
+      onProgress(`Error in ${operationName}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    return errorResponse(error instanceof Error ? error : String(error));
+  }
+}
+
+/**
+ * Execute a promise with retries and timeout
+ * 
+ * @param operation Function that returns a promise
+ * @param options Configuration options
+ */
+export async function withTimeoutAndRetry<T>(
+  operation: () => Promise<T>,
+  options: {
+    timeoutMs?: number;
+    retries?: number; 
+    retryDelayMs?: number;
+    operationName?: string;
+    onProgress?: (message: string) => void;
+    shouldRetry?: (error: any) => boolean;
+  } = {}
+): Promise<ServiceResponse<T>> {
+  const {
+    timeoutMs = 8000,
+    retries = 2,
+    retryDelayMs = 1000,
+    operationName = 'Operation',
+    onProgress,
+    shouldRetry = () => true
+  } = options;
+  
+  let lastError: any = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      if (onProgress) {
+        onProgress(`Retrying ${operationName} (attempt ${attempt}/${retries})...`);
+      }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+    }
+    
+    // Execute the operation with timeout
+    const result = await withTimeout(
+      operation(),
+      timeoutMs,
+      `${operationName}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`,
+      onProgress
+    );
+    
+    // If successful or we shouldn't retry this error, return the result
+    if (result.success || (result.error && !shouldRetry(result.error))) {
+      return result;
+    }
+    
+    // Store the error for the next iteration or final return
+    lastError = result.error || new Error('Unknown error');
+  }
+  
+  // All retries failed
+  if (onProgress) {
+    onProgress(`${operationName} failed after ${retries + 1} attempts`);
+  }
+  
+  return errorResponse(lastError);
+}
+
+/**
+ * Run multiple promises with a timeout, returning the first to complete successfully
+ * 
+ * @param promises Array of promises to execute in parallel
+ * @param timeoutMs Timeout for the entire operation
+ * @param operationName Name of the operation for error messages
+ */
+export async function withTimeoutRace<T>(
+  promises: Array<Promise<T>>,
+  timeoutMs: number = 10000,
   operationName: string = 'Operation'
 ): Promise<ServiceResponse<T>> {
   try {
@@ -21,8 +133,8 @@ export async function withTimeout<T>(
       }, timeoutMs);
     });
 
-    // Race between the actual operation and the timeout
-    const result = await Promise.race([promise, timeoutPromise]);
+    // Race between all operations and the timeout
+    const result = await Promise.race([...promises, timeoutPromise]);
     return successResponse(result);
   } catch (error) {
     console.error(`Error in ${operationName}:`, error);

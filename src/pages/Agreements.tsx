@@ -1,244 +1,379 @@
-
-import React, { Suspense, useState } from 'react';
-import { Link } from 'react-router-dom';
-import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList-Simple';
-import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
-import { CSVImportModal } from '@/components/agreements/CSVImportModal';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useAgreements } from '@/hooks/use-agreements';
-import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
-import { toast } from 'sonner';
-import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { 
+import PageContainer from '@/components/layout/PageContainer';
+import {
+  Copy,
+  Download,
   FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
 } from 'lucide-react';
-import { AgreementStats } from '@/components/agreements/AgreementStats';
+import AgreementStats from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useAgreements } from '@/hooks/use-agreements';
+import { formatCurrency } from '@/lib/utils';
+import { AGREEMENT_STATUSES } from '@/types/database-common';
+import { useDataHandler } from '@/hooks/use-data-handler';
+import { useDownload } from '@/hooks/use-download';
+import { useUpload } from '@/hooks/use-upload';
+import { useReactTable } from '@/hooks/use-react-table';
+import { ColumnDef } from '@tanstack/react-table';
 
-const Agreements = () => {
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
+const AgreementsPage = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { getAgreements } = useAgreements();
+  const [agreements, setAgreements] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { setSearchParams, searchParams } = useAgreements();
-  const [showFilters, setShowFilters] = useState(false);
-  
-  React.useEffect(() => {
-    if (typeof sessionStorage !== 'undefined') {
-      const cachedStatus = sessionStorage.getItem('edge_function_available_process-agreement-imports');
-      if (cachedStatus) {
-        try {
-          const { available, timestamp } = JSON.parse(cachedStatus);
-          const now = Date.now();
-          if (now - timestamp < 60 * 60 * 1000) {
-            setIsEdgeFunctionAvailable(available);
-            return;
-          }
-        } catch (e) {
-          console.warn('Error parsing cached edge function status:', e);
-        }
-      }
-    }
-    
-    const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability('process-agreement-imports');
-      setIsEdgeFunctionAvailable(available);
-      if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
-          duration: 6000,
+  const [filters, setFilters] = useState({});
+  const [totalAgreements, setTotalAgreements] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [isRefetching, setIsRefetching] = useState(false);
+  const { handleDownload } = useDownload();
+  const { handleFileUpload } = useUpload();
+  const { handleOperation } = useDataHandler({
+    showSuccessToast: true,
+    showErrorToast: true,
+    successMessage: 'Agreements refetched successfully',
+    onError: (error) => {
+      toast({
+        title: 'Error refetching agreements',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const columns: ColumnDef<any>[] = [
+    {
+      accessorKey: 'agreement_number',
+      header: 'Agreement #',
+    },
+    {
+      accessorKey: 'customer_name',
+      header: 'Customer',
+    },
+    {
+      accessorKey: 'vehicle_license_plate',
+      header: 'Vehicle',
+    },
+    {
+      accessorKey: 'start_date',
+      header: 'Start Date',
+    },
+    {
+      accessorKey: 'end_date',
+      header: 'End Date',
+    },
+    {
+      accessorKey: 'rent_amount',
+      header: 'Rent Amount',
+      cell: ({ row }) => formatCurrency(row.original.rent_amount),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              {/* <MoreHorizontal className="h-4 w-4" /> */}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate(`/agreements/${row.original.id}`)}>
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(`/edit-agreement/${row.original.id}`)}>
+              Edit Agreement
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              Delete Agreement
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
+  const { table, Header, Row } = useReactTable({
+    columns,
+    data: agreements,
+    currentPage,
+    pageSize,
+    total: totalAgreements,
+    onPageChange: (page) => setCurrentPage(page),
+    onPageSizeChange: (size) => setPageSize(size),
+  });
+
+  useEffect(() => {
+    fetchAgreements();
+  }, [searchQuery, filters, currentPage, pageSize]);
+
+  const fetchAgreements = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAgreements({
+        search: searchQuery,
+        filters: filters,
+        page: currentPage,
+        pageSize: pageSize,
+      });
+
+      if (response.success && response.data) {
+        setAgreements(response.data.items);
+        setTotalAgreements(response.data.total);
+      } else {
+        toast({
+          title: 'Error fetching agreements',
+          description: response.message || 'Failed to load agreements.',
+          variant: 'destructive',
         });
       }
-    };
-    
-    checkAvailability();
-  }, []);
-  
-  // Run payment schedule maintenance job silently on page load
-  React.useEffect(() => {
-    const runMaintenanceJob = async () => {
-      try {
-        console.log("Running automatic payment schedule maintenance check");
-        await runPaymentScheduleMaintenanceJob();
-      } catch (error) {
-        console.error("Error running payment maintenance job:", error);
-        // We don't show a toast here since this is a background task
-      }
-    };
-    
-    // Run after a 3-second delay to allow other initial page operations to complete
-    const timer = setTimeout(() => {
-      runMaintenanceJob();
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  const handleImportComplete = () => {
-    setSearchParams({ 
-      status: 'all' 
-    });
+    } catch (error) {
+      toast({
+        title: 'Unexpected error',
+        description: 'An unexpected error occurred while fetching agreements.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  const handleApplySearch = () => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
+  const handleFiltersChange = (newFilters) => {
+    setFilters(newFilters);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleApplySearch();
-    }
+  const handleRefetch = async () => {
+    setIsRefetching(true);
+    await handleOperation(async () => {
+      return await getAgreements({
+        search: searchQuery,
+        filters: filters,
+        page: currentPage,
+        pageSize: pageSize,
+      });
+    });
+    setIsRefetching(false);
   };
 
-  const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(prev => ({ ...prev, ...filters }));
+  const handleDownloadAgreements = async () => {
+    await handleDownload({
+      url: '/api/download-agreements',
+      filename: 'agreements.csv',
+      toast: toast,
+    });
   };
 
-  // Create array of active filters for filter chips
-  const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
+  const handleUploadAgreements = async (file: File) => {
+    await handleFileUpload({
+      url: '/api/upload-agreements',
+      file: file,
+      toast: toast,
+    });
+  };
 
   return (
-    <PageContainer 
-      title="Rental Agreements" 
-      description="Manage customer rental agreements and contracts"
+    <PageContainer
+      title="Agreements"
+      description="Manage rental agreements and track their status"
     >
-      {/* Stats Overview */}
-      <div className="mb-6">
-        <AgreementStats />
-      </div>
-
-      {/* Search and Action Buttons */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="flex flex-grow max-w-md relative">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search agreements, customers, or vehicles..." 
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onKeyPress={handleKeyPress}
-              className="pl-10 pr-16"
-            />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleApplySearch}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2"
-            >
-              Search
-            </Button>
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="ml-2"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <Input
+            type="search"
+            placeholder="Search agreements..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+          <Button onClick={handleRefetch} disabled={isRefetching}>
+            Refetch <RefreshCw className="ml-2 h-4 w-4 animate-spin" />
           </Button>
         </div>
+        <div className="flex items-center space-x-2 mt-2 md:mt-0">
+          <Button variant="outline" onClick={handleDownloadAgreements}>
+            Download <Download className="ml-2 h-4 w-4" />
+          </Button>
+          <Button variant="outline">
+            Upload <FileUp className="ml-2 h-4 w-4" />
+          </Button>
+          <Button onClick={() => navigate('/create-agreement')}>
+            Create Agreement <FilePlus className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Button 
-            variant="outline" 
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2"
-            disabled={!isEdgeFunctionAvailable}
-          >
-            {!isEdgeFunctionAvailable && (
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+      <AgreementStats />
+
+      <AgreementFilters onChange={handleFiltersChange} />
+
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <Table>
+          <TableCaption>A list of your recent agreements.</TableCaption>
+          <TableHeader>
+            {columns.map((column) => (
+              <TableHead key={column.accessorKey || column.id}>
+                {column.header}
+              </TableHead>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <>
+                <TableRow>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton />
+                  </TableCell>
+                </TableRow>
+              </>
+            ) : agreements.length > 0 ? (
+              agreements.map((agreement) => (
+                <TableRow key={agreement.id}>
+                  <TableCell>{agreement.agreement_number}</TableCell>
+                  <TableCell>{agreement.customer_name}</TableCell>
+                  <TableCell>{agreement.vehicle_license_plate}</TableCell>
+                  <TableCell>{agreement.start_date}</TableCell>
+                  <TableCell>{agreement.end_date}</TableCell>
+                  <TableCell>{formatCurrency(agreement.rent_amount)}</TableCell>
+                  <TableCell>{agreement.status}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          {/* <MoreHorizontal className="h-4 w-4" /> */}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}`)}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/edit-agreement/${agreement.id}`)}>
+                          Edit Agreement
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                          Delete Agreement
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">
+                  No agreements found.
+                </TableCell>
+              </TableRow>
             )}
-            <FileUp className="h-4 w-4" />
-            Import CSV
-          </Button>
-          <Button asChild className="bg-primary hover:bg-primary/90">
-            <Link to="/agreements/add">
-              <FilePlus className="h-4 w-4 mr-2" />
-              New Agreement
-            </Link>
-          </Button>
-        </div>
+          </TableBody>
+          <TableFooter>
+            {/* Pagination controls */}
+          </TableFooter>
+        </Table>
       </div>
-
-      {/* Active Filters */}
-      {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {activeFilters.map(([key, value]) => (
-            <Badge 
-              key={key} 
-              variant="outline" 
-              className="flex gap-1 items-center px-3 py-1"
-            >
-              <span className="font-medium">{key}:</span> {value}
-              <button 
-                className="ml-1 rounded-full hover:bg-muted p-0.5"
-                onClick={() => {
-                  setSearchParams(prev => {
-                    const newParams = { ...prev };
-                    delete newParams[key];
-                    return newParams;
-                  });
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
-              </button>
-            </Badge>
-          ))}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setSearchParams({ status: 'all' })}
-            className="text-xs h-7 px-2"
-          >
-            Clear All
-          </Button>
-        </div>
-      )}
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <Card className="mb-6 p-4">
-          <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
-        </Card>
-      )}
-      
-      {/* Main Content */}
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2">
-            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-lg font-medium">Loading agreements...</span>
-          </div>
-        </div>
-      }>
-        <AgreementList />
-      </Suspense>
-      
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center">
-          <BarChart4 className="h-5 w-5 mr-2" />
-          Import History
-        </h2>
-        <ImportHistoryList />
-      </div>
-      
-      <CSVImportModal 
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        onImportComplete={handleImportComplete}
-      />
     </PageContainer>
   );
 };
 
-export default Agreements;
+export default AgreementsPage;

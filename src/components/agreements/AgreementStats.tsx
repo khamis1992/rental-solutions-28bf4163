@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { LEASE_STATUSES, PAYMENT_STATUSES } from '@/types/database-common';
 import { useTypedErrorHandling } from '@/hooks/use-typed-error-handling';
 import { formatTypedErrorMessage } from '@/utils/type-safe-errors';
+import { withTimeoutAndRetry } from '@/utils/promise-utils';
 
 interface Stats {
   activeAgreements: number;
@@ -46,69 +47,84 @@ export default function AgreementStats() {
 
   async function fetchStats() {
     await runWithErrorHandling(async () => {
-      // Create the queries
-      const activeAgreementsPromise = supabase
-        .from('leases')
-        .select('count', { count: 'exact', head: true })
-        .eq('status', LEASE_STATUSES.ACTIVE);
+      // Use our improved timeout handling for potentially hanging DB queries
+      const result = await withTimeoutAndRetry(
+        async () => {
+          // Create the queries
+          const activeAgreementsPromise = supabase
+            .from('leases')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', LEASE_STATUSES.ACTIVE);
 
-      const pendingPaymentsPromise = supabase
-        .from('unified_payments')
-        .select('count', { count: 'exact', head: true })
-        .eq('status', PAYMENT_STATUSES.PENDING);
+          const pendingPaymentsPromise = supabase
+            .from('unified_payments')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', PAYMENT_STATUSES.PENDING);
 
-      const expiredAgreementsPromise = supabase
-        .from('leases')
-        .select('count', { count: 'exact', head: true })
-        .eq('status', LEASE_STATUSES.EXPIRED);
+          const expiredAgreementsPromise = supabase
+            .from('leases')
+            .select('count', { count: 'exact', head: true })
+            .eq('status', LEASE_STATUSES.EXPIRED);
 
-      const avgRentPromise = supabase.rpc('get_average_rent_amount');
+          const avgRentPromise = supabase.rpc('get_average_rent_amount');
 
-      // Execute all queries in parallel and handle with type-safe error handling
-      const [activeResult, pendingResult, expiredResult, avgRentResult] = await Promise.all([
-        activeAgreementsPromise,
-        pendingPaymentsPromise,
-        expiredAgreementsPromise,
-        avgRentPromise
-      ]);
+          // Execute all queries in parallel and handle with type-safe error handling
+          const [activeResult, pendingResult, expiredResult, avgRentResult] = await Promise.all([
+            activeAgreementsPromise,
+            pendingPaymentsPromise,
+            expiredAgreementsPromise,
+            avgRentPromise
+          ]);
 
-      // Handle errors and extract data safely
-      if (activeResult.error) {
-        console.error('Error fetching active agreements count:', formatTypedErrorMessage(activeResult.error));
+          // Handle errors and extract data safely
+          if (activeResult.error) {
+            console.error('Error fetching active agreements count:', formatTypedErrorMessage(activeResult.error));
+          }
+
+          if (pendingResult.error) {
+            console.error('Error fetching pending payments count:', formatTypedErrorMessage(pendingResult.error));
+          }
+
+          if (expiredResult.error) {
+            console.error('Error fetching expired agreements count:', formatTypedErrorMessage(expiredResult.error));
+          }
+
+          if (avgRentResult.error) {
+            console.error('Error fetching average rent amount:', formatTypedErrorMessage(avgRentResult.error));
+          }
+          
+          // Handle average rent amount if available
+          let averageRent = '$0';
+          if (avgRentResult.data && avgRentResult.data.rent_amount !== null) {
+            averageRent = formatCurrency(avgRentResult.data.rent_amount || 0);
+          }
+          
+          // Extract counts safely with fallbacks to 0
+          const activeCount = activeResult.data?.[0]?.count || 0;
+          const pendingCount = pendingResult.data?.[0]?.count || 0;
+          const expiredCount = expiredResult.data?.[0]?.count || 0;
+          
+          return { activeCount, pendingCount, expiredCount, averageRent };
+        },
+        {
+          operationName: "Agreement stats fetch",
+          timeoutMs: 8000
+        }
+      );
+
+      if (result.success && result.data) {
+        const { activeCount, pendingCount, expiredCount, averageRent } = result.data;
+        
+        setStats({
+          activeAgreements: activeCount,
+          pendingPayments: pendingCount,
+          expiredAgreements: expiredCount,
+          averageRentAmount: averageRent
+        });
       }
-
-      if (pendingResult.error) {
-        console.error('Error fetching pending payments count:', formatTypedErrorMessage(pendingResult.error));
-      }
-
-      if (expiredResult.error) {
-        console.error('Error fetching expired agreements count:', formatTypedErrorMessage(expiredResult.error));
-      }
-
-      if (avgRentResult.error) {
-        console.error('Error fetching average rent amount:', formatTypedErrorMessage(avgRentResult.error));
-      }
-      
-      // Handle average rent amount if available
-      let averageRent = '$0';
-      if (avgRentResult.data && avgRentResult.data.rent_amount !== null) {
-        averageRent = formatCurrency(avgRentResult.data.rent_amount || 0);
-      }
-      
-      // Extract counts safely with fallbacks to 0
-      const activeCount = activeResult.data?.[0]?.count || 0;
-      const pendingCount = pendingResult.data?.[0]?.count || 0;
-      const expiredCount = expiredResult.data?.[0]?.count || 0;
-      
-      setStats({
-        activeAgreements: activeCount,
-        pendingPayments: pendingCount,
-        expiredAgreements: expiredCount,
-        averageRentAmount: averageRent
-      });
 
       // Return data for potential chaining
-      return { activeCount, pendingCount, expiredCount, averageRent };
+      return result;
     });
   }
 
