@@ -1,96 +1,77 @@
 
-import React, { useState, useEffect } from "react";
-import { Shield, UserCog } from "lucide-react";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { UserData } from './UserList';
+import { withTimeout } from '@/utils/promise-utils';
+import { safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface UserRoleManagerProps {
-  userId: string;
-  currentRole: string;
-  fullName: string;
-  disabled?: boolean;
+  user: UserData;
+  onRoleChange: (role: string) => void;
 }
 
-export const UserRoleManager = ({ userId, currentRole, fullName, disabled = false }: UserRoleManagerProps) => {
-  const [role, setRole] = useState<string>(currentRole);
-  const [isChanging, setIsChanging] = useState(false);
+export const UserRoleManager: React.FC<UserRoleManagerProps> = ({ user, onRoleChange }) => {
+  const [saving, setSaving] = useState(false);
+  const roles = ['admin', 'staff', 'customer', 'manager', 'accountant', 'maintenance'];
 
-  // Update the role state when currentRole prop changes
-  useEffect(() => {
-    setRole(currentRole);
-  }, [currentRole]);
-
-  const handleRoleChange = async (newRole: string) => {
-    if (newRole === role || disabled) return;
+  const updateUserRole = async (role: string) => {
+    setSaving(true);
     
     try {
-      setIsChanging(true);
-      console.log(`Attempting to update user ${userId} from role ${role} to ${newRole}`);
+      const result = await withTimeout(
+        safeQueryToServiceResponse(() => 
+          supabase
+            .from('profiles')
+            .update({ role })
+            .eq('id', user.id)
+        ),
+        5000,
+        'Update user role'
+      );
       
-      const { data, error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId)
-        .select("role");
-      
-      if (error) {
-        console.error("Update role error details:", error);
-        throw error;
+      if (result.success) {
+        toast.success(`Role updated to ${role}`);
+        onRoleChange(role);
+      } else {
+        toast.error(`Failed to update role: ${result.message || 'Unknown error'}`);
       }
-      
-      console.log("Update response:", data);
-      
-      // Only update the local role state if the server update succeeded
-      setRole(newRole);
-      toast.success(`${fullName}'s role updated to ${newRole}`);
-    } catch (error: any) {
-      console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role: " + error.message);
-      // Reset to the previous role on error
-      setRole(currentRole);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast.error(`Error updating role: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsChanging(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="flex items-center space-x-2">
-      {role === "admin" ? (
-        <Shield className="h-4 w-4 text-primary" />
-      ) : (
-        <UserCog className="h-4 w-4 text-blue-500" />
-      )}
-      
-      <Select
-        value={role}
-        onValueChange={handleRoleChange}
-        disabled={disabled || isChanging}
-      >
-        <SelectTrigger className="w-[130px] h-8">
-          <SelectValue placeholder="Select role" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="admin" className="flex items-center">
-            <div className="flex items-center">
-              <Shield className="h-4 w-4 mr-2 text-primary" />
-              <span>Admin</span>
-            </div>
-          </SelectItem>
-          <SelectItem value="staff" className="flex items-center">
-            <div className="flex items-center">
-              <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-              <span>Staff</span>
-            </div>
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="mb-4">
+          <p className="font-medium">User: {user.full_name || user.email}</p>
+          <p className="text-sm text-gray-500">Current Role: <span className="font-medium">{user.role}</span></p>
+        </div>
+        
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Select new role:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {roles.map((role) => (
+              <Button
+                key={role}
+                variant={role === user.role ? "default" : "outline"}
+                size="sm"
+                disabled={saving || role === user.role}
+                onClick={() => updateUserRole(role)}
+                className="justify-start"
+              >
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

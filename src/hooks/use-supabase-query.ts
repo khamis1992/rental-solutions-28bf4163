@@ -1,8 +1,9 @@
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database.types';
-import { hasResponseData } from '@/utils/supabase-type-helpers';
-import { withTimeout, withTimeoutAndRetry } from '@/utils/promise-utils';
+import { hasResponseData, safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
+import { withTimeout, withTimeoutAndRetry, chainOperations } from '@/utils/promise-utils';
+import { ServiceResponse } from '@/utils/response-handler';
 
 // Define helper types for improved type safety
 type DbTables = Database['public']['Tables'];
@@ -173,4 +174,81 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
       return result.data as T[];
     }
   };
+}
+
+/**
+ * Chain multiple Supabase operations with proper error handling and timeouts
+ * This reduces the need for sequential try/catch blocks and handles the 
+ * conversion between different response formats
+ * 
+ * @param operations Array of database operations to chain
+ * @param options Configuration for timeout and retry behavior
+ * @returns Service response with the final result or an error
+ */
+export async function chainDatabaseOperations<T>(
+  operations: Array<() => Promise<any>>,
+  options?: {
+    timeoutMs?: number;
+    operationName?: string;
+    retries?: number;
+  }
+): Promise<ServiceResponse<T>> {
+  const { timeoutMs = 10000, operationName = 'Database operations', retries = 0 } = options || {};
+  
+  // Convert regular functions to ones that return ServiceResponse
+  const wrappedOperations = operations.map((fn, index) => {
+    return async (prevResult?: any) => {
+      // For first operation, don't pass any arguments
+      if (index === 0) {
+        return safeQueryToServiceResponse(fn, `${operationName} - step ${index + 1}`);
+      } 
+      // For subsequent operations, pass previous result as argument
+      return safeQueryToServiceResponse(() => fn(prevResult), `${operationName} - step ${index + 1}`);
+    };
+  });
+  
+  return withTimeoutAndRetry(
+    () => chainOperations(...wrappedOperations),
+    { 
+      timeoutMs,
+      operationName,
+      retries
+    }
+  );
+}
+
+/**
+ * Optimized function to fetch a record by ID and then perform an action with it
+ * This handles all the error handling and response processing in one place
+ */
+export async function fetchAndProcessRecord<T, R>(
+  tableName: string,
+  id: string,
+  processFn: (record: T) => Promise<ServiceResponse<R>>,
+  options?: {
+    timeoutMs?: number;
+    retries?: number;
+    columns?: string;
+  }
+): Promise<ServiceResponse<R>> {
+  const { timeoutMs = 10000, retries = 0, columns = '*' } = options || {};
+  
+  return chainDatabaseOperations<R>(
+    [
+      // First operation: fetch the record
+      () => supabase
+        .from(tableName)
+        .select(columns)
+        .eq('id', id)
+        .single(),
+      
+      // Second operation: process the record
+      (record: T) => processFn(record)
+    ],
+    {
+      timeoutMs,
+      operationName: `Fetch and process ${tableName}`,
+      retries
+    }
+  );
 }

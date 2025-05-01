@@ -3,6 +3,8 @@ import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/respons
 import { withTimeout, withTimeoutAndRetry, chainOperations } from '@/utils/promise-utils';
 import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
 import { hasResponseData as hasSupabaseData, safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
+import { fetchAndProcessRecord, chainDatabaseOperations } from '@/hooks/use-supabase-query';
+import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 
 /**
  * Check if a vehicle is available to be assigned to an agreement
@@ -301,29 +303,56 @@ export async function generatePaymentSchedule(agreement: any): Promise<ServiceRe
 
 /**
  * Generate payment for an agreement by ID
+ * This is an optimized version that uses chainDatabaseOperations to combine
+ * the fetching of agreement data and payment generation into one operation
+ * 
  * @param agreementId The agreement ID to generate payment for
  * @returns Result of the payment generation operation
  */
 export async function generatePaymentForAgreement(agreementId: string): Promise<ServiceResponse<any>> {
-  // Use our chain operations with timeout pattern
-  return withTimeoutAndRetry(
-    () => chainOperations(
-      // First operation: fetch the agreement
-      safeQueryToServiceResponse(
-        () => supabase
-          .from('leases')
-          .select('*')
-          .eq('id', agreementId)
-          .single(),
-        'Fetching agreement for payment generation'
-      ),
-      // Second operation: generate payment with the fetched agreement
-      (agreement) => generatePaymentSchedule(agreement)
-    ),
+  return fetchAndProcessRecord(
+    'leases',
+    agreementId,
+    (agreement) => forceGeneratePaymentForAgreement(supabase, agreement.id, undefined),
     {
       operationName: "Payment generation",
       timeoutMs: 30000,
       retries: 2
     }
   );
+}
+
+/**
+ * Batch generate payments for multiple agreements
+ * @param agreementIds Array of agreement IDs to generate payments for
+ * @returns Results of payment generation operations
+ */
+export async function batchGeneratePayments(
+  agreementIds: string[]
+): Promise<{
+  results: Array<{ id: string; success: boolean; message?: string }>;
+  summary: { total: number; succeeded: number; failed: number };
+}> {
+  const results = await Promise.all(
+    agreementIds.map(async (id) => {
+      const result = await generatePaymentForAgreement(id);
+      return {
+        id,
+        success: result.success,
+        message: result.message
+      };
+    })
+  );
+
+  const summary = results.reduce(
+    (acc, curr) => {
+      acc.total += 1;
+      acc.succeeded += curr.success ? 1 : 0;
+      acc.failed += curr.success ? 0 : 1;
+      return acc;
+    },
+    { total: 0, succeeded: 0, failed: 0 }
+  );
+
+  return { results, summary };
 }
