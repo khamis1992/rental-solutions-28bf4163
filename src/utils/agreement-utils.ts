@@ -1,22 +1,27 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseStatus, asVehicleStatus } from './supabase-helpers';
+import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
+import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 
 /**
  * Check if a vehicle is available to be assigned to an agreement
  * @param vehicleId The ID of the vehicle to check
  * @returns An object with availability info and any existing agreement details
  */
-export async function checkVehicleAvailability(vehicleId: string) {
-  try {
+export async function checkVehicleAvailability(vehicleId: string): Promise<ServiceResponse<{
+  isAvailable: boolean;
+  existingAgreement?: any;
+  error?: string;
+}>> {
+  return wrapOperation(async () => {
     // Check if vehicle exists and its status
-    const { data: vehicleData, error: vehicleError } = await supabase
+    const vehicleResponse = await supabase
       .from('vehicles')
       .select('status')
       .eq('id', vehicleId)
       .single();
 
-    if (vehicleError) {
+    if (!hasResponseData(vehicleResponse)) {
       return {
         isAvailable: false,
         error: 'Vehicle not found'
@@ -24,41 +29,35 @@ export async function checkVehicleAvailability(vehicleId: string) {
     }
 
     // Check if vehicle is already assigned to an active agreement
-    const { data: existingAgreement, error: agreementError } = await supabase
+    const agreementResponse = await supabase
       .from('leases')
       .select('id, agreement_number, customer_id')
       .eq('vehicle_id', vehicleId)
-      .eq('status', asLeaseStatus('active'))
+      .eq('status', LEASE_STATUSES.ACTIVE)
       .single();
 
-    if (agreementError && agreementError.code !== 'PGRST116') {
-      // Only consider it an error if it's not "no rows returned"
-      console.error("Error checking vehicle availability:", agreementError);
+    if (agreementResponse.error) {
+      // PGRST116 is "no rows returned" which means no active agreement
+      if (agreementResponse.error.code === 'PGRST116') {
+        return {
+          isAvailable: true
+        };
+      }
+      
+      // Any other error is a problem
+      console.error("Error checking vehicle availability:", agreementResponse.error);
       return {
         isAvailable: false,
         error: 'Error checking vehicle availability'
       };
     }
 
-    if (existingAgreement) {
-      // Vehicle is assigned to an active agreement
-      return {
-        isAvailable: false,
-        existingAgreement
-      };
-    }
-
-    // Vehicle is available
-    return {
-      isAvailable: true
-    };
-  } catch (error) {
-    console.error("Error checking vehicle availability:", error);
+    // Vehicle is assigned to an active agreement
     return {
       isAvailable: false,
-      error: 'An unexpected error occurred'
+      existingAgreement: agreementResponse.data
     };
-  }
+  }, 'Checking vehicle availability');
 }
 
 /**
@@ -67,87 +66,81 @@ export async function checkVehicleAvailability(vehicleId: string) {
  * @param vehicleId The vehicle ID to associate with this agreement
  * @returns Result of the activation operation
  */
-export async function activateAgreement(agreementId: string, vehicleId: string) {
-  try {
+export async function activateAgreement(
+  agreementId: string, 
+  vehicleId: string
+): Promise<ServiceResponse<{
+  success: boolean;
+  message: string;
+}>> {
+  return wrapOperation(async () => {
     // Check if there's an existing active agreement for this vehicle
-    const { isAvailable, existingAgreement, error: availabilityError } = 
-      await checkVehicleAvailability(vehicleId);
+    const availabilityResult = await checkVehicleAvailability(vehicleId);
     
-    if (availabilityError) {
+    if (!availabilityResult.success) {
       return {
         success: false,
-        error: availabilityError,
-        message: 'Failed to check vehicle availability'
+        message: availabilityResult.message || 'Failed to check vehicle availability'
       };
     }
+    
+    const availabilityData = availabilityResult.data;
 
     // If vehicle is already assigned to another active agreement, close it first
-    if (!isAvailable && existingAgreement && existingAgreement.id !== agreementId) {
-      console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number}, closing it before reassigning`);
+    if (!availabilityData.isAvailable && availabilityData.existingAgreement && availabilityData.existingAgreement.id !== agreementId) {
+      console.log(`Vehicle is assigned to agreement #${availabilityData.existingAgreement.agreement_number}, closing it before reassigning`);
       
       // Set the previous agreement to closed status
-      const { error: closeError } = await supabase
+      const closeResponse = await supabase
         .from('leases')
-        .update({ status: asLeaseStatus('closed') })
-        .eq('id', existingAgreement.id);
+        .update({ status: LEASE_STATUSES.CLOSED })
+        .eq('id', availabilityData.existingAgreement.id);
         
-      if (closeError) {
-        console.error("Error closing previous agreement:", closeError);
+      if (closeResponse.error) {
+        console.error("Error closing previous agreement:", closeResponse.error);
         return {
           success: false,
-          error: closeError,
           message: 'Failed to close previous agreement for this vehicle'
         };
       }
     }
     
     // Update vehicle status to "rented"
-    const { error: vehicleError } = await supabase
+    const vehicleResponse = await supabase
       .from('vehicles')
-      .update({ status: asVehicleStatus('rented') })
+      .update({ status: VEHICLE_STATUSES.RENTED })
       .eq('id', vehicleId);
       
-    if (vehicleError) {
-      console.error("Error updating vehicle status:", vehicleError);
+    if (vehicleResponse.error) {
+      console.error("Error updating vehicle status:", vehicleResponse.error);
       return {
         success: false,
-        error: vehicleError,
         message: 'Failed to update vehicle status'
       };
     }
     
     // Set the agreement status to active
-    const { error: agreementError } = await supabase
+    const agreementResponse = await supabase
       .from('leases')
       .update({ 
-        status: asLeaseStatus('active'),
+        status: LEASE_STATUSES.ACTIVE,
         vehicle_id: vehicleId
       })
       .eq('id', agreementId);
     
-    if (agreementError) {
-      console.error("Error activating agreement:", agreementError);
+    if (agreementResponse.error) {
+      console.error("Error activating agreement:", agreementResponse.error);
       return {
         success: false,
-        error: agreementError,
         message: 'Failed to activate agreement'
       };
     }
-    
-    // Generate payment schedules - this would be handled by the imported function in agreement-submission.ts
     
     return {
       success: true,
       message: 'Agreement activated successfully'
     };
-  } catch (error) {
-    console.error("Error activating agreement:", error);
-    return {
-      success: false,
-      error,
-      message: 'An unexpected error occurred while activating agreement'
-    };
-  }
+  }, 'Activating agreement');
 }
 
 /**
@@ -156,69 +149,57 @@ export async function activateAgreement(agreementId: string, vehicleId: string) 
  * @param data The agreement data
  * @returns Result of the update operation
  */
-export async function updateAgreementWithCheck(id: string, data: any) {
-  try {
+export async function updateAgreementWithCheck(
+  id: string, 
+  data: any
+): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
     // Check if vehicle is available or already assigned to this agreement
     const vehicleId = data.vehicle_id;
     
     if (vehicleId) {
       // Check if the vehicle is already assigned to this agreement
-      const { data: currentAgreement } = await supabase
+      const currentAgreementResponse = await supabase
         .from('leases')
         .select('vehicle_id')
         .eq('id', id)
         .single();
 
-      // If the vehicle is changing, check availability
-      if (currentAgreement && currentAgreement.vehicle_id !== vehicleId) {
-        const availabilityResult = await checkVehicleAvailability(vehicleId);
-        
-        // If the vehicle is not available and assigned to a different agreement
-        if (!availabilityResult.isAvailable && availabilityResult.existingAgreement) {
-          // We need to handle this case in the UI - return the availability result
-          return { 
-            success: false,
-            availabilityResult,
-            message: 'Vehicle is currently assigned to another agreement'
-          };
+      if (hasResponseData(currentAgreementResponse)) {
+        // If the vehicle is changing, check availability
+        if (currentAgreementResponse.data.vehicle_id !== vehicleId) {
+          const availabilityResult = await checkVehicleAvailability(vehicleId);
+          
+          // If the vehicle is not available and assigned to a different agreement
+          if (availabilityResult.success && 
+              availabilityResult.data && 
+              !availabilityResult.data.isAvailable && 
+              availabilityResult.data.existingAgreement) {
+            // We need to handle this case in the UI - return the availability result
+            return { 
+              availabilityResult: availabilityResult.data,
+              needsConfirmation: true,
+              message: 'Vehicle is currently assigned to another agreement'
+            };
+          }
         }
       }
     }
 
     // All checks passed, proceed with update
-    const { data: updatedAgreement, error } = await supabase
+    const updatedAgreementResponse = await supabase
       .from('leases')
       .update(data)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {
-      return {
-        success: false,
-        error,
-        message: 'Failed to update agreement'
-      };
+    if (!hasResponseData(updatedAgreementResponse)) {
+      throw new Error(`Failed to update agreement: ${updatedAgreementResponse.error?.message}`);
     }
 
-    // After updating, check if we need to generate payment schedules
-    if (data.status === 'active') {
-      // Generate payment schedules - this would be a separate function
-      // await generatePaymentSchedules(id);
-    }
-
-    return {
-      success: true,
-      data: updatedAgreement
-    };
-  } catch (error) {
-    console.error("Error updating agreement:", error);
-    return {
-      success: false,
-      error,
-      message: 'An unexpected error occurred'
-    };
-  }
+    return updatedAgreementResponse.data;
+  }, 'Updating agreement');
 }
 
 /**

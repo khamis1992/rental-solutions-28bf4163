@@ -4,6 +4,11 @@
  */
 
 /**
+ * Type for database ID to ensure consistent ID handling
+ */
+export type DbId = string;
+
+/**
  * Lease/Agreement status values
  */
 export type LeaseStatus = 
@@ -56,6 +61,33 @@ export type TrafficFinePaymentStatus =
  * Generic entity status type for backwards compatibility
  */
 export type EntityStatus = string;
+
+/**
+ * Type-safe ID casting functions for specific entities
+ */
+export function asLeaseId(id: string): DbId {
+  return id as DbId;
+}
+
+export function asVehicleId(id: string): DbId {
+  return id as DbId;
+}
+
+export function asProfileId(id: string): DbId {
+  return id as DbId;
+}
+
+export function asPaymentId(id: string): DbId {
+  return id as DbId;
+}
+
+export function asTrafficFineId(id: string): DbId {
+  return id as DbId;
+}
+
+export function asMaintenanceId(id: string): DbId {
+  return id as DbId;
+}
 
 /**
  * Type-safe status casting functions

@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { asTrafficFinePaymentStatus, isValidResponse } from './supabase-helpers';
+import { TRAFFIC_FINE_PAYMENT_STATUSES, asTrafficFinePaymentStatus } from '@/types/database-common';
+import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 
 /**
  * Fetches traffic fines with type-safe handling
@@ -10,8 +11,8 @@ export async function fetchTrafficFines(options: {
   agreementId?: string;
   limit?: number;
   paymentStatus?: string;
-} = {}) {
-  try {
+} = {}): Promise<ServiceResponse<any[]>> {
+  return wrapOperation(async () => {
     // Start building the query
     let query = supabase
       .from('traffic_fines')
@@ -51,51 +52,49 @@ export async function fetchTrafficFines(options: {
     // Execute the query
     const response = await query.order('violation_date', { ascending: false });
     
-    if (isValidResponse(response)) {
+    if (hasResponseData(response)) {
       return response.data;
     }
     
-    console.error('Error fetching traffic fines:', response.error);
-    return null;
-  } catch (error) {
-    console.error('Unexpected error while fetching traffic fines:', error);
-    return null;
-  }
+    throw new Error(`Error fetching traffic fines: ${response.error?.message || 'Unknown error'}`);
+  }, 'Fetching traffic fines');
 }
 
 /**
  * Updates a traffic fine's payment status
  */
-export async function updateTrafficFinePaymentStatus(fineId: string, status: string) {
-  try {
+export async function updateTrafficFinePaymentStatus(
+  fineId: string, 
+  status: string
+): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
     const safeStatus = asTrafficFinePaymentStatus(status);
     const response = await supabase
       .from('traffic_fines')
       .update({ 
         payment_status: safeStatus,
-        ...(status === 'paid' ? { payment_date: new Date().toISOString() } : {})
+        ...(status === TRAFFIC_FINE_PAYMENT_STATUSES.PAID ? { payment_date: new Date().toISOString() } : {})
       })
       .eq('id', fineId)
       .select()
       .single();
       
-    if (isValidResponse(response)) {
+    if (hasResponseData(response)) {
       return response.data;
     }
     
-    console.error('Error updating traffic fine payment status:', response.error);
-    return null;
-  } catch (error) {
-    console.error('Unexpected error while updating traffic fine payment status:', error);
-    return null;
-  }
+    throw new Error(`Error updating traffic fine payment status: ${response.error?.message || 'Unknown error'}`);
+  }, 'Updating traffic fine payment status');
 }
 
 /**
  * Reassigns a traffic fine to a different agreement
  */
-export async function reassignTrafficFine(fineId: string, agreementId: string | null) {
-  try {
+export async function reassignTrafficFine(
+  fineId: string, 
+  agreementId: string | null
+): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
     const response = await supabase
       .from('traffic_fines')
       .update({ 
@@ -106,14 +105,10 @@ export async function reassignTrafficFine(fineId: string, agreementId: string | 
       .select()
       .single();
       
-    if (isValidResponse(response)) {
+    if (hasResponseData(response)) {
       return response.data;
     }
     
-    console.error('Error reassigning traffic fine:', response.error);
-    return null;
-  } catch (error) {
-    console.error('Unexpected error while reassigning traffic fine:', error);
-    return null;
-  }
+    throw new Error(`Error reassigning traffic fine: ${response.error?.message || 'Unknown error'}`);
+  }, 'Reassigning traffic fine');
 }

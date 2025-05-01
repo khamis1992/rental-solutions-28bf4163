@@ -14,23 +14,15 @@ import { paymentRepository } from './repositories/payment-repository';
 // Export repositories
 export { leaseRepository, vehicleRepository, profileRepository, paymentRepository };
 
-// Legacy type casting functions for backward compatibility
-import { 
-  asLeaseId, 
-  asVehicleId, 
-  asProfileId, 
-  asPaymentId, 
-  asTrafficFineId, 
-  asMaintenanceId,
-  asLeaseStatus,
-  asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus,
-  asEntityStatus
-} from '@/types/database-common';
+// Export collection of repository instances for easy access
+export const repositories = {
+  lease: leaseRepository,
+  vehicle: vehicleRepository,
+  profile: profileRepository,
+  payment: paymentRepository
+};
 
-// Export with legacy names for backward compatibility
+// Legacy type casting functions for backward compatibility - re-exporting from database-common
 export {
   asLeaseId,
   asVehicleId,
@@ -40,10 +32,8 @@ export {
   asMaintenanceId,
   asLeaseStatus,
   asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus
-};
+  asVehicleStatus
+} from '@/types/database-common';
 
 // Fix common ID column errors by providing direct casting functions
 export const asLeaseIdColumn = asLeaseId;
@@ -54,6 +44,7 @@ export const asTrafficFineIdColumn = asTrafficFineId;
 export const asMaintenanceIdColumn = asMaintenanceId;
 
 // Alias for legacy code
+import { asEntityStatus } from '@/types/database-common';
 export const asStatusColumn = asEntityStatus;
 
 // Special function to handle type errors in legacy code
@@ -65,11 +56,3 @@ export function castLeaseUpdate(data: any): any {
 export function castRowData<T>(data: T): T {
   return data;
 }
-
-// Export collection of repository instances for easy access
-export const repositories = {
-  lease: leaseRepository,
-  vehicle: vehicleRepository,
-  profile: profileRepository,
-  payment: paymentRepository
-};

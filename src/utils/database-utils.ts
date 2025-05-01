@@ -1,132 +1,142 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  handleSupabaseResponse, 
-  asLeaseStatus, 
-  asVehicleStatus, 
-  AGREEMENT_STATUSES, 
-  isValidResponse 
-} from './supabase-helpers';
+import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
+import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 
 /**
  * Safely finds a lease by ID
  */
-export async function findLeaseById(leaseId: string) {
-  try {
-    const { data, error } = await supabase
+export async function findLeaseById(leaseId: string): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
+    const response = await supabase
       .from('leases')
       .select('*')
       .eq('id', leaseId)
       .single();
       
-    return handleSupabaseResponse({ data, error });
-  } catch (error) {
-    console.error('Error finding lease:', error);
-    return null;
-  }
+    if (hasResponseData(response)) {
+      return response.data;
+    }
+    
+    throw new Error(`Lease not found: ${response.error?.message}`);
+  }, 'Finding lease');
 }
 
 /**
- * Safely finds vehicles
+ * Safely finds available vehicles
  */
-export async function findAvailableVehicles() {
-  try {
-    const availableStatus = asVehicleStatus('available');
-    const { data, error } = await supabase
+export async function findAvailableVehicles(): Promise<ServiceResponse<any[]>> {
+  return wrapOperation(async () => {
+    const response = await supabase
       .from('vehicles')
       .select('*')
-      .eq('status', availableStatus);
+      .eq('status', VEHICLE_STATUSES.AVAILABLE);
       
-    return handleSupabaseResponse({ data, error }) || [];
-  } catch (error) {
-    console.error('Error finding vehicles:', error);
+    if (hasResponseData(response)) {
+      return response.data;
+    }
+    
     return [];
-  }
+  }, 'Finding available vehicles');
 }
 
 /**
  * Safely updates an agreement status
  */
-export async function updateAgreementStatus(agreementId: string, status: string) {
-  try {
-    const safeStatus = asLeaseStatus(status);
-    const { data, error } = await supabase
+export async function updateAgreementStatus(
+  agreementId: string, 
+  status: string
+): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
+    const response = await supabase
       .from('leases')
-      .update({ status: safeStatus, updated_at: new Date() })
+      .update({ 
+        status: status, // Using string literal directly as we're standardizing to constants elsewhere
+        updated_at: new Date() 
+      })
       .eq('id', agreementId)
       .select()
       .single();
       
-    return handleSupabaseResponse({ data, error });
-  } catch (error) {
-    console.error('Error updating agreement status:', error);
-    return null;
-  }
+    if (hasResponseData(response)) {
+      return response.data;
+    }
+    
+    throw new Error(`Failed to update agreement status: ${response.error?.message}`);
+  }, 'Updating agreement status');
 }
 
 /**
  * Safely closes an existing agreement for a vehicle before assigning it to a new one
  */
-export async function closeExistingVehicleAgreements(vehicleId: string) {
-  try {
-    const activeStatus = asLeaseStatus(AGREEMENT_STATUSES.ACTIVE);
-    const closedStatus = asLeaseStatus(AGREEMENT_STATUSES.CLOSED);
-    
+export async function closeExistingVehicleAgreements(
+  vehicleId: string
+): Promise<ServiceResponse<{
+  success: boolean;
+  count: number;
+  agreements?: any[];
+  error?: any;
+}>> {
+  return wrapOperation(async () => {
     // Find all active agreements for the vehicle
-    const { data: activeAgreements, error: findError } = await supabase
+    const findResponse = await supabase
       .from('leases')
       .select('id')
       .eq('vehicle_id', vehicleId)
-      .eq('status', activeStatus);
+      .eq('status', LEASE_STATUSES.ACTIVE);
       
-    const safeActiveAgreements = handleSupabaseResponse({ data: activeAgreements, error: findError });
-    if (!safeActiveAgreements || safeActiveAgreements.length === 0) {
+    if (!hasResponseData(findResponse) || findResponse.data.length === 0) {
       return { success: true, count: 0 };
     }
     
     // Close all found agreements
-    const { data: updatedAgreements, error: updateError } = await supabase
+    const updateResponse = await supabase
       .from('leases')
       .update({ 
-        status: closedStatus, 
+        status: LEASE_STATUSES.CLOSED, 
         updated_at: new Date(),
         end_date: new Date()
       })
       .eq('vehicle_id', vehicleId)
-      .eq('status', activeStatus)
+      .eq('status', LEASE_STATUSES.ACTIVE)
       .select();
       
-    const safeUpdatedAgreements = handleSupabaseResponse({ data: updatedAgreements, error: updateError });
+    if (!hasResponseData(updateResponse)) {
+      throw new Error(`Failed to close agreements: ${updateResponse.error?.message}`);
+    }
     
     return { 
-      success: !updateError, 
-      count: safeUpdatedAgreements?.length || 0,
-      agreements: safeUpdatedAgreements
+      success: true, 
+      count: updateResponse.data?.length || 0,
+      agreements: updateResponse.data
     };
-  } catch (error) {
-    console.error('Error closing existing vehicle agreements:', error);
-    return { success: false, error };
-  }
+  }, 'Closing vehicle agreements');
 }
 
 /**
  * Safely updates a vehicle status
  */
-export async function updateVehicleStatus(vehicleId: string, status: string) {
-  try {
-    const safeStatus = asVehicleStatus(status);
-    const { data, error } = await supabase
+export async function updateVehicleStatus(
+  vehicleId: string, 
+  status: string
+): Promise<ServiceResponse<any>> {
+  return wrapOperation(async () => {
+    const response = await supabase
       .from('vehicles')
-      .update({ status: safeStatus, updated_at: new Date() })
+      .update({ 
+        status: status, // Using string literal directly as we're standardizing to constants elsewhere
+        updated_at: new Date() 
+      })
       .eq('id', vehicleId)
       .select()
       .single();
       
-    return handleSupabaseResponse({ data, error });
-  } catch (error) {
-    console.error('Error updating vehicle status:', error);
-    return null;
-  }
+    if (hasResponseData(response)) {
+      return response.data;
+    }
+    
+    throw new Error(`Failed to update vehicle status: ${response.error?.message}`);
+  }, 'Updating vehicle status');
 }
 
 /**
@@ -135,16 +145,14 @@ export async function updateVehicleStatus(vehicleId: string, status: string) {
 export async function safeDataFetch<T>(
   query: () => Promise<{ data: T | null; error: any }>,
   errorMessage: string
-): Promise<T | null> {
-  try {
+): Promise<ServiceResponse<T>> {
+  return wrapOperation(async () => {
     const response = await query();
-    if (response.error) {
-      console.error(errorMessage, response.error);
-      return null;
+    
+    if (!hasResponseData(response)) {
+      throw new Error(`${errorMessage}: ${response.error?.message || 'Unknown error'}`);
     }
+    
     return response.data;
-  } catch (error) {
-    console.error(errorMessage, error);
-    return null;
-  }
+  }, errorMessage);
 }

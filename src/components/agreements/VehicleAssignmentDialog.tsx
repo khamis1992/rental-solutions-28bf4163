@@ -11,14 +11,11 @@ import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSect
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
 import { 
-  handleSupabaseResponse, 
-  AGREEMENT_STATUSES, 
+  LEASE_STATUSES, 
   PAYMENT_STATUSES,
-  asLeaseStatus,
-  asPaymentStatus,
-  castId,
-  asTrafficFinePaymentStatus
-} from '@/utils/supabase-helpers';
+  TRAFFIC_FINE_PAYMENT_STATUSES
+} from '@/types/database-common';
+import { hasResponseData } from '@/utils/response-handler';
 
 export function VehicleAssignmentDialog({
   open,
@@ -52,24 +49,19 @@ export function VehicleAssignmentDialog({
     if (!currentVehicleId) return;
     
     try {
-      const activeStatus = asLeaseStatus(AGREEMENT_STATUSES.ACTIVE);
-      const vehicleIdParam = castId(currentVehicleId, 'vehicles');
-      
-      const { data, error } = await supabase
+      const response = await supabase
         .from('leases')
         .select('id, agreement_number')
-        .eq('vehicle_id', vehicleIdParam)
-        .eq('status', activeStatus)
+        .eq('vehicle_id', currentVehicleId)
+        .eq('status', LEASE_STATUSES.ACTIVE)
         .single();
       
-      // Handle response safely
-      const safeData = handleSupabaseResponse({ data, error });
-      if (safeData) {
+      if (hasResponseData(response)) {
         setExistingAgreement({
-          id: safeData.id,
-          agreement_number: safeData.agreement_number
+          id: response.data.id,
+          agreement_number: response.data.agreement_number
         });
-        fetchAssociatedData(safeData.id);
+        fetchAssociatedData(response.data.id);
       }
     } catch (error) {
       console.error("Error fetching existing agreement:", error);
@@ -81,17 +73,14 @@ export function VehicleAssignmentDialog({
     
     setIsLoading(true);
     try {
-      const vehicleIdParam = castId(currentVehicleId, 'vehicles');
-      
-      const { data, error } = await supabase
+      const response = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleIdParam)
+        .eq('id', currentVehicleId)
         .single();
       
-      const safeData = handleSupabaseResponse({ data, error });
-      if (safeData) {
-        setVehicleInfo(safeData as VehicleInfo);
+      if (hasResponseData(response)) {
+        setVehicleInfo(response.data as VehicleInfo);
       }
     } catch (error) {
       console.error("Error fetching vehicle details:", error);
@@ -106,20 +95,15 @@ export function VehicleAssignmentDialog({
     setIsLoading(true);
     try {
       // Fetch pending payments
-      const pendingStatus = asPaymentStatus(PAYMENT_STATUSES.PENDING);
-      const overdueStatus = asPaymentStatus(PAYMENT_STATUSES.OVERDUE);
-      const leaseIdParam = castId(leaseId, 'leases');
-      
-      const { data: paymentsData, error: paymentsError } = await supabase
+      const paymentsResponse = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', leaseIdParam)
-        .in('status', [pendingStatus, overdueStatus]);
+        .eq('lease_id', leaseId)
+        .in('status', [PAYMENT_STATUSES.PENDING, PAYMENT_STATUSES.OVERDUE]);
         
-      const safePaymentsData = handleSupabaseResponse({ data: paymentsData, error: paymentsError });
-      if (safePaymentsData) {
+      if (hasResponseData(paymentsResponse)) {
         // Transform data to match the Payment interface
-        const typedPayments: Payment[] = safePaymentsData.map(payment => ({
+        const typedPayments: Payment[] = paymentsResponse.data.map(payment => ({
           id: payment.id,
           amount: payment.amount,
           payment_date: payment.payment_date || '',
@@ -133,18 +117,15 @@ export function VehicleAssignmentDialog({
       }
       
       // Fetch traffic fines
-      const pendingPaymentStatus = asTrafficFinePaymentStatus('pending');
-      
-      const { data: finesData, error: finesError } = await supabase
+      const finesResponse = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', leaseIdParam)
-        .eq('payment_status', pendingPaymentStatus);
+        .eq('lease_id', leaseId)
+        .eq('payment_status', TRAFFIC_FINE_PAYMENT_STATUSES.PENDING);
         
-      const safeFinesData = handleSupabaseResponse({ data: finesData, error: finesError });
-      if (safeFinesData) {
+      if (hasResponseData(finesResponse)) {
         // Transform data to match the TrafficFine interface
-        const typedFines: TrafficFine[] = safeFinesData.map(fine => ({
+        const typedFines: TrafficFine[] = finesResponse.data.map(fine => ({
           id: fine.id,
           violation_number: fine.violation_number || '',
           fine_amount: fine.fine_amount || 0,
@@ -155,25 +136,21 @@ export function VehicleAssignmentDialog({
       }
       
       // Fetch customer information through lease
-      const { data: leaseData, error: leaseError } = await supabase
+      const leaseResponse = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', leaseIdParam)
+        .eq('id', leaseId)
         .single();
         
-      const safeLeaseData = handleSupabaseResponse({ data: leaseData, error: leaseError });
-      if (safeLeaseData && safeLeaseData.customer_id) {
-        const customerIdParam = castId(safeLeaseData.customer_id, 'profiles');
-        
-        const { data: customerData, error: customerError } = await supabase
+      if (hasResponseData(leaseResponse) && leaseResponse.data.customer_id) {
+        const customerResponse = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number, driver_license')
-          .eq('id', customerIdParam)
+          .eq('id', leaseResponse.data.customer_id)
           .single();
           
-        const safeCustomerData = handleSupabaseResponse({ data: customerData, error: customerError });
-        if (safeCustomerData) {
-          setCustomerInfo(safeCustomerData as CustomerInfo);
+        if (hasResponseData(customerResponse)) {
+          setCustomerInfo(customerResponse.data as CustomerInfo);
         }
       }
     } catch (error) {
