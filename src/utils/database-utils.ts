@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
-import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
+import { ServiceResponse, wrapOperation } from '@/utils/response-handler';
 
 /**
  * Safely finds a lease by ID
@@ -14,11 +14,11 @@ export async function findLeaseById(leaseId: string): Promise<ServiceResponse<an
       .eq('id', leaseId)
       .single();
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Lease not found: ${response.error?.message}`);
+    throw new Error(`Lease not found: ${response?.error?.message}`);
   }, 'Finding lease');
 }
 
@@ -32,7 +32,7 @@ export async function findAvailableVehicles(): Promise<ServiceResponse<any[]>> {
       .select('*')
       .eq('status', VEHICLE_STATUSES.AVAILABLE);
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
@@ -51,18 +51,18 @@ export async function updateAgreementStatus(
     const response = await supabase
       .from('leases')
       .update({ 
-        status: status, // Using string literal directly as we're standardizing to constants elsewhere
+        status: status,
         updated_at: new Date() 
       })
       .eq('id', agreementId)
       .select()
       .single();
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Failed to update agreement status: ${response.error?.message}`);
+    throw new Error(`Failed to update agreement status: ${response?.error?.message}`);
   }, 'Updating agreement status');
 }
 
@@ -75,7 +75,6 @@ export async function closeExistingVehicleAgreements(
   success: boolean;
   count: number;
   agreements?: any[];
-  error?: any;
 }>> {
   return wrapOperation(async () => {
     // Find all active agreements for the vehicle
@@ -85,7 +84,7 @@ export async function closeExistingVehicleAgreements(
       .eq('vehicle_id', vehicleId)
       .eq('status', LEASE_STATUSES.ACTIVE);
       
-    if (!hasResponseData(findResponse) || findResponse.data.length === 0) {
+    if (!findResponse?.data || findResponse.error || findResponse.data.length === 0) {
       return { success: true, count: 0 };
     }
     
@@ -101,8 +100,8 @@ export async function closeExistingVehicleAgreements(
       .eq('status', LEASE_STATUSES.ACTIVE)
       .select();
       
-    if (!hasResponseData(updateResponse)) {
-      throw new Error(`Failed to close agreements: ${updateResponse.error?.message}`);
+    if (updateResponse.error || !updateResponse.data) {
+      throw new Error(`Failed to close agreements: ${updateResponse?.error?.message}`);
     }
     
     return { 
@@ -111,6 +110,61 @@ export async function closeExistingVehicleAgreements(
       agreements: updateResponse.data
     };
   }, 'Closing vehicle agreements');
+}
+
+/**
+ * Checks if a vehicle is available for assignment
+ */
+export async function checkVehicleAvailability(
+  vehicleId: string
+): Promise<ServiceResponse<{ 
+  isAvailable: boolean; 
+  existingAgreement?: any; 
+  error?: string; 
+}>> {
+  return wrapOperation(async () => {
+    // Check if the vehicle exists
+    const vehicleResponse = await supabase
+      .from('vehicles')
+      .select('status')
+      .eq('id', vehicleId)
+      .single();
+      
+    if (vehicleResponse.error) {
+      return {
+        isAvailable: false,
+        error: `Vehicle not found: ${vehicleResponse.error.message}`
+      };
+    }
+    
+    // Check if vehicle is already assigned to an agreement
+    const agreementResponse = await supabase
+      .from('leases')
+      .select('id, agreement_number, customer_id, start_date, end_date')
+      .eq('vehicle_id', vehicleId)
+      .eq('status', LEASE_STATUSES.ACTIVE)
+      .single();
+      
+    // If no active agreement, vehicle is available
+    if (agreementResponse.error && agreementResponse.error.code === 'PGRST116') {
+      return { isAvailable: true };
+    }
+    
+    // If there's an active agreement, return details
+    if (!agreementResponse.error && agreementResponse.data) {
+      return {
+        isAvailable: false,
+        existingAgreement: agreementResponse.data,
+        error: 'Vehicle is currently assigned to an active agreement'
+      };
+    }
+    
+    // If any other error, handle it
+    return {
+      isAvailable: false,
+      error: agreementResponse.error ? agreementResponse.error.message : 'Unknown error checking agreement'
+    };
+  }, 'Checking vehicle availability');
 }
 
 /**
@@ -124,18 +178,18 @@ export async function updateVehicleStatus(
     const response = await supabase
       .from('vehicles')
       .update({ 
-        status: status, // Using string literal directly as we're standardizing to constants elsewhere
+        status: status,
         updated_at: new Date() 
       })
       .eq('id', vehicleId)
       .select()
       .single();
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Failed to update vehicle status: ${response.error?.message}`);
+    throw new Error(`Failed to update vehicle status: ${response?.error?.message}`);
   }, 'Updating vehicle status');
 }
 
@@ -149,7 +203,7 @@ export async function safeDataFetch<T>(
   return wrapOperation(async () => {
     const response = await query();
     
-    if (!hasResponseData(response)) {
+    if (response.error || !response.data) {
       throw new Error(`${errorMessage}: ${response.error?.message || 'Unknown error'}`);
     }
     

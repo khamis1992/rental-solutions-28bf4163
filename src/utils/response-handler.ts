@@ -85,8 +85,27 @@ export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K)
 }
 
 /**
- * Type guard for checking if a database response has data
+ * Enhanced type guard for checking if a database response has data
+ * Now handles various response formats for better type safety
  */
-export function hasResponseData<T>(response: { data: T | null; error: any }): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function hasResponseData<T>(response: any): response is { data: T; error: null } {
+  // Handle PostgreSQL response format
+  if (response && typeof response === 'object') {
+    // Check for basic structure
+    const hasDataField = 'data' in response && response.data !== null && response.data !== undefined;
+    const noError = !response.error;
+    
+    return hasDataField && noError;
+  }
+  return false;
+}
+
+/**
+ * Safe accessor for PostgreSQL response data
+ */
+export function getResponseData<T>(response: any): T | null {
+  if (hasResponseData<T>(response)) {
+    return response.data;
+  }
+  return null;
 }

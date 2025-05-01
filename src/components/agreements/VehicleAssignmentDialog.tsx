@@ -15,7 +15,6 @@ import {
   PAYMENT_STATUSES,
   TRAFFIC_FINE_PAYMENT_STATUSES
 } from '@/types/database-common';
-import { hasResponseData } from '@/utils/response-handler';
 
 export function VehicleAssignmentDialog({
   open,
@@ -56,7 +55,7 @@ export function VehicleAssignmentDialog({
         .eq('status', LEASE_STATUSES.ACTIVE)
         .single();
       
-      if (hasResponseData(response)) {
+      if (response && !response.error && response.data) {
         setExistingAgreement({
           id: response.data.id,
           agreement_number: response.data.agreement_number
@@ -79,7 +78,7 @@ export function VehicleAssignmentDialog({
         .eq('id', currentVehicleId)
         .single();
       
-      if (hasResponseData(response)) {
+      if (response && !response.error && response.data) {
         setVehicleInfo(response.data as VehicleInfo);
       }
     } catch (error) {
@@ -101,7 +100,7 @@ export function VehicleAssignmentDialog({
         .eq('lease_id', leaseId)
         .in('status', [PAYMENT_STATUSES.PENDING, PAYMENT_STATUSES.OVERDUE]);
         
-      if (hasResponseData(paymentsResponse)) {
+      if (paymentsResponse && !paymentsResponse.error && paymentsResponse.data) {
         // Transform data to match the Payment interface
         const typedPayments: Payment[] = paymentsResponse.data.map(payment => ({
           id: payment.id,
@@ -123,7 +122,7 @@ export function VehicleAssignmentDialog({
         .eq('lease_id', leaseId)
         .eq('payment_status', TRAFFIC_FINE_PAYMENT_STATUSES.PENDING);
         
-      if (hasResponseData(finesResponse)) {
+      if (finesResponse && !finesResponse.error && finesResponse.data) {
         // Transform data to match the TrafficFine interface
         const typedFines: TrafficFine[] = finesResponse.data.map(fine => ({
           id: fine.id,
@@ -142,14 +141,14 @@ export function VehicleAssignmentDialog({
         .eq('id', leaseId)
         .single();
         
-      if (hasResponseData(leaseResponse) && leaseResponse.data.customer_id) {
+      if (leaseResponse && !leaseResponse.error && leaseResponse.data && leaseResponse.data.customer_id) {
         const customerResponse = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number, driver_license')
           .eq('id', leaseResponse.data.customer_id)
           .single();
           
-        if (hasResponseData(customerResponse)) {
+        if (customerResponse && !customerResponse.error && customerResponse.data) {
           setCustomerInfo(customerResponse.data as CustomerInfo);
         }
       }

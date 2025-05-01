@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
@@ -17,6 +16,79 @@ export function AgreementStats() {
     activeValue: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Function to count agreements by status with proper type casting
+  const countAgreementsByStatus = async (status: string) => {
+    try {
+      const { count } = await supabase
+        .from('leases')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', status as any); // Use type assertion to fix TypeScript error
+      
+      return count || 0;
+    } catch (error) {
+      console.error(`Error counting ${status} agreements:`, error);
+      return 0;
+    }
+  };
+
+  // Function to count payments by status with proper type casting
+  const countPaymentsByStatus = async (status: string) => {
+    try {
+      const { count } = await supabase
+        .from('unified_payments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', status as any); // Use type assertion to fix TypeScript error
+      
+      return count || 0;
+    } catch (error) {
+      console.error(`Error counting ${status} payments:`, error);
+      return 0;
+    }
+  };
+
+  // Function to count agreements by status for specific period with proper type casting
+  const countAgreementsInPeriod = async (status: string, startDate: string, endDate: string) => {
+    try {
+      const { count } = await supabase
+        .from('leases')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', status as any) // Use type assertion to fix TypeScript error
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+      
+      return count || 0;
+    } catch (error) {
+      console.error(`Error counting ${status} agreements in period:`, error);
+      return 0;
+    }
+  };
+
+  // Function to get total rent amount with safe property access
+  const getTotalRentAmount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('rent_amount')
+        .eq('status', 'active' as any); // Use type assertion to fix TypeScript error
+      
+      if (error || !data) {
+        throw error || new Error('No data returned');
+      }
+      
+      // Use safe property access
+      const total = data.reduce((sum, lease) => {
+        const amount = lease && typeof lease === 'object' && 'rent_amount' in lease ? 
+          Number(lease.rent_amount || 0) : 0;
+        return sum + amount;
+      }, 0);
+      
+      return total;
+    } catch (error) {
+      console.error('Error calculating total rent amount:', error);
+      return 0;
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {

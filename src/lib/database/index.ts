@@ -10,16 +10,24 @@ import { leaseRepository } from './repositories/lease-repository';
 import { vehicleRepository } from './repositories/vehicle-repository';
 import { profileRepository } from './repositories/profile-repository';
 import { paymentRepository } from './repositories/payment-repository';
+import { trafficFineRepository } from './repositories/traffic-fine-repository';
 
 // Export repositories
-export { leaseRepository, vehicleRepository, profileRepository, paymentRepository };
+export { 
+  leaseRepository, 
+  vehicleRepository, 
+  profileRepository, 
+  paymentRepository,
+  trafficFineRepository
+};
 
 // Export collection of repository instances for easy access
 export const repositories = {
   lease: leaseRepository,
   vehicle: vehicleRepository,
   profile: profileRepository,
-  payment: paymentRepository
+  payment: paymentRepository,
+  trafficFine: trafficFineRepository
 };
 
 // Legacy type casting functions for backward compatibility - re-exporting from database-common
@@ -32,7 +40,8 @@ export {
   asMaintenanceId,
   asLeaseStatus,
   asPaymentStatus,
-  asVehicleStatus
+  asVehicleStatus,
+  asTrafficFinePaymentStatus
 } from '@/types/database-common';
 
 // Fix common ID column errors by providing direct casting functions
@@ -47,6 +56,11 @@ export const asMaintenanceIdColumn = asMaintenanceId;
 import { asEntityStatus } from '@/types/database-common';
 export const asStatusColumn = asEntityStatus;
 
+// Safe utility for string to enum casting (will be provided by new system)
+export function safeEnumCast<T extends string>(value: string, fallback?: T): T {
+  return value as T;
+}
+
 // Special function to handle type errors in legacy code
 export function castLeaseUpdate(data: any): any {
   return data;
@@ -56,3 +70,7 @@ export function castLeaseUpdate(data: any): any {
 export function castRowData<T>(data: T): T {
   return data;
 }
+
+// Create the traffic fine repository
+import { Repository } from './repository';
+export const createTrafficFineRepository = () => new Repository('traffic_fines');

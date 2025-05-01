@@ -52,11 +52,11 @@ export async function fetchTrafficFines(options: {
     // Execute the query
     const response = await query.order('violation_date', { ascending: false });
     
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Error fetching traffic fines: ${response.error?.message || 'Unknown error'}`);
+    throw new Error(`Error fetching traffic fines: ${response?.error?.message || 'Unknown error'}`);
   }, 'Fetching traffic fines');
 }
 
@@ -79,11 +79,11 @@ export async function updateTrafficFinePaymentStatus(
       .select()
       .single();
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Error updating traffic fine payment status: ${response.error?.message || 'Unknown error'}`);
+    throw new Error(`Error updating traffic fine payment status: ${response?.error?.message || 'Unknown error'}`);
   }, 'Updating traffic fine payment status');
 }
 
@@ -105,10 +105,10 @@ export async function reassignTrafficFine(
       .select()
       .single();
       
-    if (hasResponseData(response)) {
+    if (response && !response.error && response.data) {
       return response.data;
     }
     
-    throw new Error(`Error reassigning traffic fine: ${response.error?.message || 'Unknown error'}`);
+    throw new Error(`Error reassigning traffic fine: ${response?.error?.message || 'Unknown error'}`);
   }, 'Reassigning traffic fine');
 }

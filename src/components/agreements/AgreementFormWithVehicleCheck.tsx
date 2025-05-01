@@ -511,6 +511,44 @@ const AgreementFormWithVehicleCheck = ({
     form.setValue("total_amount", total);
   };
 
+  // Check vehicle availability before submitting
+  const checkVehicleAvailability = async (vehicleId: string) => {
+    if (!vehicleId) return { success: true, data: { isAvailable: true } };
+    
+    try {
+      // Use our improved utility function for vehicle availability check
+      const response = await checkVehicleAvailability(vehicleId);
+      
+      // If the vehicle is available, proceed normally
+      if (response.success && response.data && response.data.isAvailable) {
+        return { success: true, data: { isAvailable: true } };
+      }
+      
+      // If vehicle is assigned to another agreement, return the details
+      if (response.success && response.data && !response.data.isAvailable && response.data.existingAgreement) {
+        return { 
+          success: true, 
+          data: { 
+            isAvailable: false, 
+            existingAgreement: response.data.existingAgreement 
+          } 
+        };
+      }
+      
+      // Handle errors
+      return { 
+        success: false, 
+        error: response.error || new Error(response.data?.error || 'Failed to check vehicle availability')
+      };
+    } catch (error) {
+      console.error("Error checking vehicle availability:", error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error : new Error('Unknown error checking vehicle availability')
+      };
+    }
+  };
+
   const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
     setValidationInProgress(true);
     
