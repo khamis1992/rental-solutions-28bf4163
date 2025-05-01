@@ -2,7 +2,6 @@
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { logOperation } from '@/utils/monitoring-utils';
 
 // Enum for agreement status
 export const AgreementStatus = {
@@ -31,44 +30,6 @@ export const agreementSchema = z.object({
   // Mark as optional with a default value so it's available in the UI but not sent to DB
   terms_accepted: z.boolean().default(false).optional(),
 });
-
-/**
- * Validates agreement form data according to schema
- * @param formData - The agreement form data to validate
- * @returns Object containing validation result and errors/validated data
- */
-export function validateAgreementForm(formData: unknown) {
-  try {
-    const validatedData = agreementSchema.parse(formData);
-    return {
-      success: true,
-      data: validatedData,
-      errors: null
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      // Format Zod errors into a more user-friendly format
-      const formattedErrors = error.errors.reduce((acc, err) => {
-        const path = err.path.join('.');
-        acc[path] = err.message;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      return {
-        success: false,
-        data: null,
-        errors: formattedErrors
-      };
-    }
-    
-    // Handle unexpected errors
-    return {
-      success: false,
-      data: null,
-      errors: { _form: 'An unexpected error occurred during validation' }
-    };
-  }
-}
 
 // Enum for payment status
 export const PaymentStatus = {
@@ -117,15 +78,7 @@ export const forceGeneratePaymentForAgreement = async (
   specificMonth?: Date // Optional parameter to specify which month to generate for
 ): Promise<{ success: boolean; message?: string }> => {
   try {
-    logOperation(
-      'agreement.generatePayment', 
-      'success', 
-      { 
-        agreementId, 
-        month: specificMonth ? specificMonth.toLocaleString('default', { month: 'long', year: 'numeric' }) : 'current' 
-      },
-      `Generating payment schedule for agreement`
-    );
+    console.log(`Generating payment schedule for agreement ${agreementId}${specificMonth ? ` for ${specificMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}` : ''}`);
     
     // Get the agreement details
     const { data: agreement, error } = await supabase
@@ -135,12 +88,7 @@ export const forceGeneratePaymentForAgreement = async (
       .single();
       
     if (error) {
-      logOperation(
-        'agreement.generatePayment', 
-        'error', 
-        { agreementId, error: error.message },
-        'Error fetching agreement'
-      );
+      console.error("Error fetching agreement:", error);
       return { success: false, message: `Error fetching agreement: ${error.message}` };
     }
     
@@ -173,25 +121,12 @@ export const forceGeneratePaymentForAgreement = async (
       .lt('original_due_date', monthEnd.toISOString());
       
     if (checkError) {
-      logOperation(
-        'agreement.generatePayment', 
-        'error', 
-        { agreementId, error: checkError.message },
-        'Error checking existing payments'
-      );
+      console.error("Error checking existing payments:", checkError);
       return { success: false, message: `Error checking existing payments: ${checkError.message}` };
     }
     
     if (existingPayments && existingPayments.length > 0) {
-      logOperation(
-        'agreement.generatePayment', 
-        'warning', 
-        { 
-          agreementId, 
-          month: monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' }) 
-        },
-        'Payment already exists for month'
-      );
+      console.log(`Payment already exists for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
       return { success: false, message: `Payment already exists for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}` };
     }
     
@@ -226,36 +161,18 @@ export const forceGeneratePaymentForAgreement = async (
       .single();
       
     if (createError) {
-      logOperation(
-        'agreement.generatePayment', 
-        'error', 
-        { agreementId, error: createError.message },
-        'Error creating payment'
-      );
+      console.error("Error creating payment:", createError);
       return { success: false, message: `Error creating payment: ${createError.message}` };
     }
     
-    logOperation(
-      'agreement.generatePayment', 
-      'success', 
-      { 
-        agreementId, 
-        month: monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' }) 
-      },
-      'Successfully generated payment schedule'
-    );
+    console.log(`Successfully generated payment schedule for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
     return { 
       success: true, 
       message: `Successfully generated payment for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}` 
     };
     
   } catch (error) {
-    logOperation(
-      'agreement.generatePayment', 
-      'error', 
-      { error: error instanceof Error ? error.message : String(error) },
-      'Unexpected error in forceGeneratePaymentForAgreement'
-    );
+    console.error("Unexpected error in forceGeneratePaymentForAgreement:", error);
     return { 
       success: false, 
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 

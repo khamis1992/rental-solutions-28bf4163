@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -37,12 +36,7 @@ export const useCustomers = () => {
   } = useQuery({
     queryKey: ['customers', searchParams],
     queryFn: async () => {
-      logOperation(
-        'customers.fetchCustomers', 
-        'success', 
-        { searchParams },
-        'Fetching customers with params'
-      );
+      console.log('Fetching customers with params:', searchParams);
       
       try {
         let query = supabase
@@ -64,21 +58,11 @@ export const useCustomers = () => {
         const { data, error } = await query;
         
         if (error) {
-          logOperation(
-            'customers.fetchCustomers', 
-            'error', 
-            { error: error.message },
-            'Supabase query error'
-          );
+          console.error('Supabase query error:', error);
           throw new Error(error.message);
         }
         
-        logOperation(
-          'customers.fetchCustomers', 
-          'success', 
-          { dataCount: data?.length || 0 },
-          'Raw customer data from profiles table'
-        );
+        console.log('Raw customer data from profiles table:', data);
         
         const processedCustomers = (data || []).map(profile => ({
           id: profile.id,
@@ -94,20 +78,10 @@ export const useCustomers = () => {
           updated_at: profile.updated_at,
         }));
         
-        logOperation(
-          'customers.fetchCustomers', 
-          'success', 
-          { customerCount: processedCustomers.length },
-          'Processed customers from profiles'
-        );
+        console.log('Processed customers from profiles:', processedCustomers);
         return processedCustomers as Customer[];
       } catch (catchError) {
-        logOperation(
-          'customers.fetchCustomers', 
-          'error', 
-          { error: catchError instanceof Error ? catchError.message : String(catchError) },
-          'Unexpected error in customer fetch'
-        );
+        console.error('Unexpected error in customer fetch:', catchError);
         return [];
       }
     },
@@ -120,20 +94,10 @@ export const useCustomers = () => {
 
   const createCustomer = useMutation({
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
-      logOperation(
-        'customers.createCustomer', 
-        'success', 
-        { newCustomer },
-        'Creating new customer with data'
-      );
+      console.log('Creating new customer with data:', newCustomer);
       
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
-      logOperation(
-        'customers.createCustomer', 
-        'success', 
-        { formattedPhone },
-        'Formatted phone number'
-      );
+      console.log('Formatted phone number:', formattedPhone);
       
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
@@ -153,21 +117,11 @@ export const useCustomers = () => {
         .single();
 
       if (error) {
-        logOperation(
-          'customers.createCustomer', 
-          'error', 
-          { error: error.message },
-          'Error creating customer'
-        );
+        console.error('Error creating customer:', error);
         throw new Error(error.message);
       }
       
-      logOperation(
-        'customers.createCustomer', 
-        'success', 
-        { customerId: data?.id },
-        'Created customer'
-      );
+      console.log('Created customer:', data);
       return {
         ...data,
         phone: stripCountryCode(data.phone_number || '')
@@ -185,12 +139,7 @@ export const useCustomers = () => {
   const updateCustomer = useMutation({
     mutationFn: async (customer: Customer) => {
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
-      logOperation(
-        'customers.updateCustomer', 
-        'success', 
-        { customerId: customer.id, formattedPhone },
-        'Updating customer with formatted phone'
-      );
+      console.log('Updating customer with formatted phone:', formattedPhone);
       
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
@@ -208,22 +157,7 @@ export const useCustomers = () => {
         .eq('id', customer.id)
         .select();
 
-      if (error) {
-        logOperation(
-          'customers.updateCustomer', 
-          'error', 
-          { customerId: customer.id, error: error.message },
-          'Error updating customer'
-        );
-        throw new Error(error.message);
-      }
-      
-      logOperation(
-        'customers.updateCustomer', 
-        'success', 
-        { customerId: customer.id },
-        'Updated customer'
-      );
+      if (error) throw new Error(error.message);
       
       return {
         ...data[0],
@@ -246,22 +180,7 @@ export const useCustomers = () => {
         .delete()
         .eq('id', id);
 
-      if (error) {
-        logOperation(
-          'customers.deleteCustomer', 
-          'error', 
-          { customerId: id, error: error.message },
-          'Error deleting customer'
-        );
-        throw new Error(error.message);
-      }
-      
-      logOperation(
-        'customers.deleteCustomer', 
-        'success', 
-        { customerId: id },
-        'Customer deleted successfully'
-      );
+      if (error) throw new Error(error.message);
       return id;
     },
     onSuccess: () => {
@@ -275,12 +194,7 @@ export const useCustomers = () => {
 
   const getCustomer = async (id: string): Promise<Customer | null> => {
     try {
-      logOperation(
-        'customers.getCustomer', 
-        'success', 
-        { customerId: id },
-        'Fetching customer with ID'
-      );
+      console.log('Fetching customer with ID:', id);
       
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
@@ -289,32 +203,17 @@ export const useCustomers = () => {
         .maybeSingle();
 
       if (error) {
-        logOperation(
-          'customers.getCustomer', 
-          'error', 
-          { customerId: id, error: error.message },
-          'Error fetching customer by ID'
-        );
+        console.error('Error fetching customer by ID:', error);
         toast.error('Failed to fetch customer', { description: error.message });
         return null;
       }
 
       if (!data) {
-        logOperation(
-          'customers.getCustomer', 
-          'warning', 
-          { customerId: id },
-          'No customer found with ID'
-        );
+        console.log('No customer found with ID:', id);
         return null;
       }
 
-      logOperation(
-        'customers.getCustomer', 
-        'success', 
-        { customerId: id },
-        'Raw customer data from profiles'
-      );
+      console.log('Raw customer data from profiles:', data);
 
       const customerData: Customer = {
         id: data.id,
@@ -332,12 +231,7 @@ export const useCustomers = () => {
       
       return customerData;
     } catch (error) {
-      logOperation(
-        'customers.getCustomer', 
-        'error', 
-        { customerId: id, error: error instanceof Error ? error.message : String(error) },
-        'Unexpected error fetching customer'
-      );
+      console.error('Unexpected error fetching customer:', error);
       toast.error('Failed to fetch customer');
       return null;
     }

@@ -11,7 +11,6 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,9 +41,7 @@ const EditVehicle = () => {
   // Sync fetched data with local state, forcing an update when status changes
   useEffect(() => {
     if (fetchedVehicle) {
-      logOperation('vehicle.fetch', 'success', 
-        { id: fetchedVehicle.id, make: fetchedVehicle.make, model: fetchedVehicle.model },
-        'Vehicle data received from API');
+      console.log("Vehicle data received from API:", fetchedVehicle);
       setVehicle(fetchedVehicle);
       setIsLoading(false);
       setLoadError(null);
@@ -57,9 +54,7 @@ const EditVehicle = () => {
     if (fetchError) {
       setIsLoading(false);
       setLoadError(fetchError instanceof Error ? fetchError : new Error('Failed to fetch vehicle'));
-      logOperation('vehicle.fetch', 'error', 
-        { error: fetchError instanceof Error ? fetchError.message : String(fetchError) },
-        'Vehicle fetch error');
+      console.error('Vehicle fetch error:', fetchError);
     }
   }, [fetchedVehicle, isFetching, fetchError]);
 
@@ -81,23 +76,17 @@ const EditVehicle = () => {
     
     try {
       setIsSubmitting(true);
-      logOperation('vehicle.update', 'success', 
-        { id, ...formData },
-        'Submitting form data');
+      console.log("Submitting form data:", formData);
       
       // Make sure to preserve the current status if not changed in the form
       if (!formData.status && vehicle.status) {
-        logOperation('vehicle.update', 'success', 
-          { id, status: vehicle.status },
-          'Preserving current status');
+        console.log(`Preserving current status: ${vehicle.status}`);
         formData.status = vehicle.status;
       }
       
       // Make sure status is properly handled
       if (formData.status) {
-        logOperation('vehicle.update', 'success', 
-          { id, status: formData.status },
-          'Status being submitted');
+        console.log(`EditVehicle: Status being submitted: ${formData.status}`);
       }
       
       await new Promise<void>((resolve, reject) => {
@@ -105,9 +94,7 @@ const EditVehicle = () => {
           { id, data: formData },
           {
             onSuccess: async () => {
-              logOperation('vehicle.update', 'success', 
-                { id },
-                'Update successful, refreshing data');
+              console.log("Update successful, refreshing data");
               try {
                 // Force data refresh from server before navigating
                 await refetch();
@@ -115,16 +102,12 @@ const EditVehicle = () => {
                 setUpdateCompleted(true);
                 resolve();
               } catch (refreshError) {
-                logOperation('vehicle.update', 'error', 
-                  { id, error: refreshError instanceof Error ? refreshError.message : String(refreshError) },
-                  'Error refreshing data');
+                console.error('Error refreshing data:', refreshError);
                 reject(refreshError);
               }
             },
             onError: (error) => {
-              logOperation('vehicle.update', 'error', 
-                { id, error: error instanceof Error ? error.message : String(error) },
-                'Update vehicle error');
+              console.error('Update vehicle error:', error);
               toast.error('Failed to update vehicle', {
                 description: error instanceof Error ? error.message : 'Unknown error occurred',
               });
@@ -138,9 +121,7 @@ const EditVehicle = () => {
       });
     } catch (error) {
       setIsSubmitting(false);
-      logOperation('vehicle.update', 'error', 
-        { id, error: error instanceof Error ? error.message : String(error) },
-        'Edit vehicle submission error');
+      console.error('Edit vehicle submission error:', error);
       toast.error('Error submitting form', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
@@ -149,18 +130,14 @@ const EditVehicle = () => {
   
   // Handle status update completion with forced refresh
   const handleStatusUpdated = async (): Promise<boolean> => {
-    logOperation('vehicle.status', 'success', 
-      { id: id || '' },
-      'Status updated, refreshing vehicle data');
+    console.log('Status updated, refreshing vehicle data');
     setStatusUpdateInProgress(true);
     
     try {
       // Force cache invalidation and get fresh data
       const refreshResult = await refetch();
       
-      logOperation('vehicle.status', 'success', 
-        { id: id || '', hasError: !!refreshResult.error },
-        'Data refresh completed');
+      console.log(`Data refresh completed:`, refreshResult);
       
       if (refreshResult.error) {
         throw refreshResult.error;
@@ -169,9 +146,7 @@ const EditVehicle = () => {
       if (refreshResult.data) {
         // Update local state to ensure UI reflects the latest status
         setVehicle(refreshResult.data);
-        logOperation('vehicle.status', 'success', 
-          { id: id || '', status: refreshResult.data.status },
-          'Local vehicle state updated with new data');
+        console.log('Local vehicle state updated with new data:', refreshResult.data);
       }
       
       // Add a small delay to ensure database consistency
@@ -180,9 +155,7 @@ const EditVehicle = () => {
       // Return success to the caller
       return true;
     } catch (error) {
-      logOperation('vehicle.status', 'error', 
-        { id: id || '', error: error instanceof Error ? error.message : String(error) },
-        'Error refreshing data after status update');
+      console.error('Error refreshing data after status update:', error);
       toast.error('Failed to refresh data after status update');
       throw error;
     } finally {
@@ -231,9 +204,7 @@ const EditVehicle = () => {
         ? vehicleStatus as VehicleStatus 
         : 'available';
   
-  logOperation('vehicle.ui', 'success', 
-    { id: id || '', status: validatedStatus },
-    'Rendering vehicle with status');
+  console.log(`Rendering vehicle with status: ${validatedStatus}`);
   
   return (
     <PageContainer>
@@ -247,9 +218,7 @@ const EditVehicle = () => {
               size="sm" 
               variant="outline"
               onClick={() => {
-                logOperation('vehicle.ui', 'success', 
-                  { id: id || '', status: validatedStatus },
-                  'Opening status update dialog with status');
+                console.log("Opening status update dialog with status:", validatedStatus);
                 setShowStatusDialog(true);
               }}
               disabled={statusUpdateInProgress}
@@ -282,9 +251,7 @@ const EditVehicle = () => {
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => {
-          logOperation('vehicle.ui', 'success', 
-            { id: id || '' },
-            'Closing status update dialog');
+          console.log("Closing status update dialog");
           setShowStatusDialog(false);
         }}
         currentStatus={validatedStatus}

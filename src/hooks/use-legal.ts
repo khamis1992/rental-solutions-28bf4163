@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { logOperation } from '@/utils/monitoring-utils';
 
 export type LegalDocument = {
   id: string;
@@ -87,12 +86,7 @@ export const useLegalDocuments = () => {
         
         setDocuments(mockDocuments);
       } catch (err) {
-        logOperation(
-          'legal.fetchDocuments', 
-          'error', 
-          { error: err instanceof Error ? err.message : String(err) },
-          'Error fetching legal documents'
-        );
+        console.error('Error fetching legal documents:', err);
         setError('Failed to load legal documents');
         toast.error('Failed to load legal documents');
       } finally {
@@ -166,12 +160,7 @@ export const useComplianceItems = () => {
         
         setItems(mockItems);
       } catch (err) {
-        logOperation(
-          'legal.fetchComplianceItems', 
-          'error', 
-          { error: err instanceof Error ? err.message : String(err) },
-          'Error fetching compliance items'
-        );
+        console.error('Error fetching compliance items:', err);
         setError('Failed to load compliance items');
         toast.error('Failed to load compliance items');
       } finally {

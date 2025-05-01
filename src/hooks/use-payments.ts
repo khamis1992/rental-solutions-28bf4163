@@ -2,7 +2,6 @@
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
-import { logOperation } from '@/utils/monitoring-utils';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -13,12 +12,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await paymentRepository.findByLeaseId(agreementId);
       
       if (response.error) {
-        logOperation(
-          'payments.fetchPayments', 
-          'error', 
-          { agreementId, error: response.error.message },
-          'Error fetching payments'
-        );
+        console.error("Error fetching payments:", response.error);
         return [] as Payment[];
       }
       
@@ -35,12 +29,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await paymentRepository.recordPayment(newPayment);
 
     if (response.error) {
-      logOperation(
-        'payments.addPayment', 
-        'error', 
-        { payment: newPayment, error: response.error.message },
-        'Error adding payment'
-      );
+      console.error("Error adding payment:", response.error);
       return null;
     }
     return response.data;
@@ -54,12 +43,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
 
     if (response.error) {
-      logOperation(
-        'payments.updatePayment', 
-        'error', 
-        { id: paymentUpdate.id, data: paymentUpdate.data, error: response.error.message },
-        'Error updating payment'
-      );
+      console.error("Error updating payment:", response.error);
       throw response.error;
     }
     return response.data;
@@ -73,12 +57,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await paymentRepository.delete(paymentId);
 
     if (response.error) {
-      logOperation(
-        'payments.deletePayment', 
-        'error', 
-        { paymentId, error: response.error.message },
-        'Error deleting payment'
-      );
+      console.error("Error deleting payment:", response.error);
       return null;
     }
     return { success: true };

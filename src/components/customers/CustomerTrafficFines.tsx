@@ -13,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileText, Loader2 } from 'lucide-react';
 import { generateStandardReport } from '@/utils/report-utils';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -44,17 +43,6 @@ type LeaseInfo = {
   start_date: string;
   end_date: string | null;
   agreement_number: string;
-  status?: string;
-};
-
-type LeaseWithVehicle = LeaseInfo & {
-  vehicles: {
-    id: string;
-    make: string;
-    model: string;
-    year?: string;
-    license_plate?: string;
-  };
 };
 
 type CustomerInfo = {
@@ -90,8 +78,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           .single();
           
         if (customer && !customerError) {
-          logOperation('customerTrafficFines.fetchCustomer', 'success', 
-            { customerId: customer.id }, 'Customer data fetched successfully');
+          console.log('Customer data fetched successfully:', customer);
           setCustomerInfo({
             id: customer.id,
             full_name: customer.full_name,
@@ -100,8 +87,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             driver_license: customer.driver_license
           });
         } else {
-          logOperation('customerTrafficFines.fetchCustomer', 'error', 
-            { customerId }, customerError?.message || 'Error fetching customer');
+          console.error('Error fetching customer:', customerError);
         }
 
         const leaseResponse = await supabase
@@ -121,11 +107,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           return;
         }
 
-        const leaseData = leaseResponse.data as LeaseWithVehicle[];
-        
-        if (!leaseData || leaseData.length === 0) {
-          logOperation('customerTrafficFines.fetchLeases', 'warning', 
-            { customerId }, 'No lease data found for customer');
+        const leaseData = leaseResponse.data;
+        if (!leaseData.length) {
           setIsLoading(false);
           return;
         }
@@ -143,8 +126,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
               id: lease.id,
               start_date: lease.start_date,
               end_date: lease.end_date,
-              agreement_number: lease.agreement_number,
-              status: lease.status
+              agreement_number: lease.agreement_number
             };
           }
         });
@@ -191,9 +173,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           }
         });
         
-        logOperation('customerTrafficFines.processFines', 'success', 
-          { customerId, validCount: validFines.length, invalidCount: invalidFines.length }, 
-          `Found ${validFines.length} valid fines and ${invalidFines.length} invalid fines`);
+        console.log(`Customer ${customerId}: Found ${validFines.length} valid fines and ${invalidFines.length} invalid fines`);
 
         const vehicleIds = Array.from(
           new Set(
@@ -210,7 +190,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             .in('id', vehicleIds);
 
           if (hasData(vehiclesResponse)) {
-            const vehicleData = vehiclesResponse.data as VehicleInfo[];
+            const vehicleData = vehiclesResponse.data;
             const vehicleMap: Record<string, VehicleInfo> = {};
             
             vehicleData.forEach(vehicle => {
@@ -222,9 +202,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             });
             
             setVehicles(vehicleMap);
-          } else {
-            logOperation('customerTrafficFines.fetchVehicles', 'warning', 
-              { vehicleIds }, 'Failed to fetch vehicle information');
           }
         }
 
@@ -253,13 +230,13 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
 
   const generateTrafficFinesReport = async () => {
     try {
-      logOperation('customerTrafficFines.generateReport', 'success', 
-        { customerId: customerInfo?.id }, 'Generating traffic fines report');
+      console.log('Generating report with customer info:', customerInfo);
+      console.log('Active lease info:', activeLeaseInfo);
       
       const doc = generateStandardReport(
         'Traffic Violations Report',
         undefined,
-        (doc, startY) => {
+        async (doc, startY) => {
           let currentY = startY;
           
           // Customer Information section
@@ -404,8 +381,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       doc.save('traffic-violations-report.pdf');
       toast.success('Traffic violations report generated successfully');
     } catch (error) {
-      logOperation('customerTrafficFines.generateReport', 'error', 
-        { customerId: customerInfo?.id }, 'Failed to generate traffic violations report');
+      console.error('Error generating report:', error);
       toast.error('Failed to generate traffic violations report');
     }
   };
@@ -497,23 +473,23 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                         <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
                         <TableCell>
                           {fine.payment_status === 'paid' ? (
-                            <Badge>Paid</Badge>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Paid</Badge>
                           ) : fine.payment_status === 'pending' ? (
-                            <Badge>Pending</Badge>
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>
                           ) : fine.payment_status === 'disputed' ? (
-                            <Badge>Disputed</Badge>
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Disputed</Badge>
                           ) : (
-                            <Badge>Unknown</Badge>
+                            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Unknown</Badge>
                           )}
                         </TableCell>
                         <TableCell>{getLeaseInfo(fine.lease_id)}</TableCell>
                         <TableCell>
                           {isValid ? (
-                            <Badge>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                               Valid
                             </Badge>
                           ) : (
-                            <Badge>
+                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                               Invalid Period
                             </Badge>
                           )}

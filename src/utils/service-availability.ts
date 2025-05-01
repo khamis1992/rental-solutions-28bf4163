@@ -1,6 +1,5 @@
+
 import { supabase } from '@/lib/supabase';
-import { cacheAvailability } from './cache-utils';
-import { logOperation } from '@/utils/monitoring-utils';
 
 // Cache for storing availability check results
 const availabilityCache: Record<string, { available: boolean; timestamp: number }> = {};
@@ -28,22 +27,12 @@ export const checkEdgeFunctionAvailability = async (
         
         // If still valid in cache, return immediately
         if (now - timestamp < CACHE_TTL) {
-          logOperation(
-            'serviceAvailability.checkEdgeFunction', 
-            'success', 
-            { functionName, available, source: 'sessionStorage' },
-            `Using session storage cache for edge function`
-          );
+          console.log(`Using session storage cache for ${functionName}: ${available}`);
           return available;
         }
       } catch (err) {
         // If there's an error parsing, just continue to the next cache level
-        logOperation(
-          'serviceAvailability.checkEdgeFunction', 
-          'warning', 
-          { error: err instanceof Error ? err.message : String(err) },
-          'Error parsing session storage cache'
-        );
+        console.warn('Error parsing session storage cache:', err);
       }
     }
   }
@@ -53,12 +42,7 @@ export const checkEdgeFunctionAvailability = async (
   const now = Date.now();
   
   if (cachedResult && (now - cachedResult.timestamp < CACHE_TTL)) {
-    logOperation(
-      'serviceAvailability.checkEdgeFunction', 
-      'success', 
-      { functionName, available: cachedResult.available, source: 'memoryCache' },
-      `Using in-memory cache for edge function`
-    );
+    console.log(`Using in-memory cache for ${functionName}: ${cachedResult.available}`);
     
     // Update session storage with this value
     if (typeof sessionStorage !== 'undefined') {
@@ -73,37 +57,28 @@ export const checkEdgeFunctionAvailability = async (
   
   while (attempt <= retries) {
     try {
-      logOperation(
-        'serviceAvailability.checkEdgeFunction', 
-        'success', 
-        { functionName, attempt: attempt + 1, totalAttempts: retries + 1 },
-        `Checking edge function availability`
-      );
+      console.log(`Checking edge function availability: ${functionName} (attempt ${attempt + 1}/${retries + 1})`);
       
       const response = await supabase.functions.invoke(functionName, {
         body: { test: true },
       });
       
       if (!response.error) {
-        logOperation(
-          'serviceAvailability.checkEdgeFunction', 
-          'success', 
-          { functionName },
-          `Edge function is available`
-        );
+        console.log(`Edge function ${functionName} is available`);
         
-        // Cache the positive result
-        cacheAvailability(functionName, true, now);
+        // Cache the positive result both in memory and session storage
+        const cacheValue = { available: true, timestamp: now };
+        availabilityCache[functionName] = cacheValue;
+        
+        if (typeof sessionStorage !== 'undefined') {
+          const sessionCacheKey = `edge_function_available_${functionName}`;
+          sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+        }
         
         return true;
       }
       
-      logOperation(
-        'serviceAvailability.checkEdgeFunction', 
-        'warning', 
-        { functionName, error: response.error, attempt: attempt + 1 },
-        `Edge function check failed`
-      );
+      console.warn(`Edge function ${functionName} check failed:`, response.error);
       attempt++;
       
       if (attempt <= retries) {
@@ -111,12 +86,7 @@ export const checkEdgeFunctionAvailability = async (
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     } catch (err) {
-      logOperation(
-        'serviceAvailability.checkEdgeFunction', 
-        'error', 
-        { functionName, error: err instanceof Error ? err.message : String(err), attempt: attempt + 1 },
-        `Error checking edge function`
-      );
+      console.error(`Error checking edge function ${functionName}:`, err);
       attempt++;
       
       if (attempt <= retries) {
@@ -125,15 +95,16 @@ export const checkEdgeFunctionAvailability = async (
     }
   }
   
-  logOperation(
-    'serviceAvailability.checkEdgeFunction', 
-    'error', 
-    { functionName, attempts: retries + 1 },
-    `Edge function is unavailable after multiple attempts`
-  );
+  console.error(`Edge function ${functionName} is unavailable after ${retries + 1} attempts`);
   
-  // Cache the negative result
-  cacheAvailability(functionName, false, now);
+  // Cache the negative result both in memory and session storage
+  const cacheValue = { available: false, timestamp: now };
+  availabilityCache[functionName] = cacheValue;
+  
+  if (typeof sessionStorage !== 'undefined') {
+    const sessionCacheKey = `edge_function_available_${functionName}`;
+    sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+  }
   
   return false;
 };
@@ -157,21 +128,11 @@ export const getSystemServicesStatus = async (): Promise<{
         
         // Cache valid for 1 hour
         if (now - timestamp < CACHE_TTL) {
-          logOperation(
-            'serviceAvailability.getSystemServicesStatus', 
-            'success', 
-            { source: 'sessionStorage' },
-            'Using cached system services status'
-          );
+          console.log('Using cached system services status');
           return status;
         }
       } catch (err) {
-        logOperation(
-          'serviceAvailability.getSystemServicesStatus', 
-          'warning', 
-          { error: err instanceof Error ? err.message : String(err) },
-          'Error parsing services cache'
-        );
+        console.warn('Error parsing services cache:', err);
       }
     }
   }

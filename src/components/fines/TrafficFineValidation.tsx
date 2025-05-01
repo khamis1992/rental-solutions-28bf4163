@@ -11,7 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { logOperation } from '@/utils/monitoring-utils';
 
 const validationSchema = z.object({
   licensePlate: z.string().min(1, 'License plate is required'),
@@ -68,12 +67,7 @@ const TrafficFineValidation: React.FC = () => {
         });
         
       if (validationError) {
-        logOperation(
-          'trafficFineValidation.onSubmit', 
-          'error', 
-          { error: validationError.message },
-          'Error recording validation'
-        );
+        console.error('Error recording validation:', validationError);
         toast.error('Error recording validation result');
       }
       
@@ -86,12 +80,7 @@ const TrafficFineValidation: React.FC = () => {
       });
       
     } catch (error) {
-      logOperation(
-        'trafficFineValidation.onSubmit', 
-        'error', 
-        { error: error instanceof Error ? error.message : String(error) },
-        'Validation error'
-      );
+      console.error('Validation error:', error);
       toast.error('Failed to validate license plate');
     } finally {
       setIsValidating(false);
@@ -121,15 +110,7 @@ const TrafficFineValidation: React.FC = () => {
         });
       }
     } catch (error) {
-      logOperation(
-        'trafficFineValidation.handleAssignToCustomer', 
-        'error', 
-        { 
-          fineId: id,
-          error: error instanceof Error ? error.message : String(error) 
-        },
-        'Error assigning fine to customer'
-      );
+      console.error("Error assigning fine to customer:", error);
       toast.error("Failed to assign fine to customer", {
         description: error instanceof Error ? error.message : "An unexpected error occurred"
       });

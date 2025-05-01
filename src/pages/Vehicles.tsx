@@ -10,7 +10,6 @@ import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/Vehic
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 // Define valid statuses based on app enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -71,7 +70,7 @@ const Vehicles = () => {
     if (newFilters.status && newFilters.status !== 'all') {
       // Ensure we're using the application VehicleStatus type
       convertedFilters.status = newFilters.status as VehicleStatus;
-      logOperation('vehicles.filter', 'success', { status: newFilters.status }, `Setting status filter: ${newFilters.status}`);
+      console.log(`Setting status filter: ${newFilters.status}`);
     }
     
     if (newFilters.make && newFilters.make !== 'all') 

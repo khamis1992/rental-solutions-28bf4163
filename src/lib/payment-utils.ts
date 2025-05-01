@@ -1,7 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { logOperation } from '@/utils/monitoring-utils';
 
 /**
  * Finds and fixes duplicate payment entries for a given lease
@@ -15,8 +14,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
   error?: any;
 }> => {
   try {
-    logOperation('paymentUtils.fixDuplicatePayments', 'success', 
-      { leaseId }, 'Checking for duplicate payments');
+    console.log(`Checking for duplicate payments for lease: ${leaseId}`);
     
     // Get all payments for this lease
     const { data: payments, error } = await supabase
@@ -26,8 +24,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
       .order('original_due_date', { ascending: true });
     
     if (error) {
-      logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-        { leaseId, error: error.message }, 'Error fetching payments');
+      console.error("Error fetching payments:", error);
       return {
         success: false,
         message: `Failed to fetch payments: ${error.message}`,
@@ -63,9 +60,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
     
     for (const [yearMonth, monthPayments] of Object.entries(paymentsByMonth)) {
       if (monthPayments.length > 1) {
-        logOperation('paymentUtils.fixDuplicatePayments', 'warning', 
-          { leaseId, yearMonth, count: monthPayments.length }, 
-          `Found multiple payments for month`);
+        console.log(`Found ${monthPayments.length} payments for ${yearMonth}`);
         
         // Enhanced sorting with more comprehensive status priority
         // paid/completed > partially_paid > overdue > pending
@@ -108,22 +103,16 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
         // Keep the first (highest priority) payment and mark others for deletion
         const [keepPayment, ...duplicates] = monthPayments;
         
-        logOperation('paymentUtils.fixDuplicatePayments', 'success', 
-          { leaseId, paymentId: keepPayment.id, status: keepPayment.status, yearMonth }, 
-          `Keeping payment with highest priority`);
+        console.log(`Keeping payment ${keepPayment.id} with status ${keepPayment.status} for ${yearMonth}`);
         
         // Delete duplicates
         for (const duplicate of duplicates) {
-          logOperation('paymentUtils.fixDuplicatePayments', 'warning', 
-            { leaseId, paymentId: duplicate.id, status: duplicate.status, yearMonth }, 
-            `Deleting duplicate payment`);
+          console.log(`Deleting duplicate payment ${duplicate.id} with status ${duplicate.status} for ${yearMonth}`);
           
           // If we're deleting a payment with some amount_paid but keeping one without payment
           // (shouldn't happen with our sorting, but just to be safe)
           if (duplicate.amount_paid && !keepPayment.amount_paid) {
-            logOperation('paymentUtils.fixDuplicatePayments', 'warning', 
-              { leaseId, paymentId: duplicate.id, amountPaid: duplicate.amount_paid }, 
-              `Deleting payment with amount_paid`);
+            console.log(`Warning: Deleting payment with amount_paid: ${duplicate.amount_paid}`);
             
             // Update the kept payment with the amount_paid info
             const { error: updateError } = await supabase
@@ -138,13 +127,9 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
               .eq('id', keepPayment.id);
               
             if (updateError) {
-              logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-                { leaseId, paymentId: keepPayment.id, error: updateError.message }, 
-                `Error updating payment info`);
+              console.error(`Error updating payment info: ${updateError.message}`);
             } else {
-              logOperation('paymentUtils.fixDuplicatePayments', 'success', 
-                { leaseId, paymentId: keepPayment.id }, 
-                `Transferred payment info to kept payment`);
+              console.log(`Transferred payment info to kept payment ${keepPayment.id}`);
             }
           }
           
@@ -154,14 +139,10 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
             .eq('id', duplicate.id);
           
           if (deleteError) {
-            logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-              { leaseId, paymentId: duplicate.id, error: deleteError.message }, 
-              `Error deleting duplicate payment`);
+            console.error(`Error deleting duplicate payment ${duplicate.id}:`, deleteError);
           } else {
             fixedCount++;
-            logOperation('paymentUtils.fixDuplicatePayments', 'success', 
-              { leaseId, paymentId: duplicate.id, yearMonth }, 
-              `Deleted duplicate payment`);
+            console.log(`Deleted duplicate payment ${duplicate.id} for ${yearMonth}`);
           }
         }
       }
@@ -175,9 +156,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
       .single();
     
     if (leaseError) {
-      logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-        { leaseId, error: leaseError.message }, 
-        `Error fetching lease details`);
+      console.error(`Error fetching lease details:`, leaseError);
       return {
         success: true,
         message: `Fixed ${fixedCount} duplicate payments but couldn't check for missing months`,
@@ -202,9 +181,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
         
         // If we don't have a payment for this month and it's not a future month, create one
         if (!existingMonths.has(yearMonth)) {
-          logOperation('paymentUtils.fixDuplicatePayments', 'warning', 
-            { leaseId, yearMonth }, 
-            `Creating missing payment for month`);
+          console.log(`Creating missing payment for ${yearMonth}`);
           
           // Create payment record
           const dueDate = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -226,14 +203,10 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
             });
             
           if (insertError) {
-            logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-              { leaseId, yearMonth, error: insertError.message }, 
-              `Error creating payment for month`);
+            console.error(`Error creating payment for ${yearMonth}:`, insertError);
           } else {
             fixedCount++;
-            logOperation('paymentUtils.fixDuplicatePayments', 'success', 
-              { leaseId, yearMonth }, 
-              `Created missing payment for month`);
+            console.log(`Created missing payment for ${yearMonth}`);
           }
         }
       }
@@ -245,9 +218,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
       fixedCount
     };
   } catch (err) {
-    logOperation('paymentUtils.fixDuplicatePayments', 'error', 
-      { leaseId, error: err instanceof Error ? err.message : String(err) }, 
-      `Unexpected error in fixDuplicatePayments`);
+    console.error("Unexpected error in fixDuplicatePayments:", err);
     return {
       success: false,
       message: `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
@@ -283,9 +254,7 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
       .single();
     
     if (leaseError) {
-      logOperation('paymentUtils.ensureAllMonthlyPayments', 'error', 
-        { leaseId, error: leaseError.message }, 
-        `Error fetching lease details`);
+      console.error(`Error fetching lease details:`, leaseError);
       return {
         success: false,
         message: `Failed to fetch lease details: ${leaseError.message}`,
@@ -311,9 +280,7 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
       .eq('lease_id', leaseId);
     
     if (paymentsError) {
-      logOperation('paymentUtils.ensureAllMonthlyPayments', 'error', 
-        { leaseId, error: paymentsError.message }, 
-        `Error fetching payments`);
+      console.error("Error fetching payments:", paymentsError);
       return {
         success: false,
         message: `Failed to fetch payments: ${paymentsError.message}`,
@@ -376,14 +343,10 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
           });
           
         if (insertError) {
-          logOperation('paymentUtils.ensureAllMonthlyPayments', 'error', 
-            { leaseId, yearMonth, error: insertError.message }, 
-            `Error creating payment for month`);
+          console.error(`Error creating payment for ${yearMonth}:`, insertError);
         } else {
           generatedCount++;
-          logOperation('paymentUtils.ensureAllMonthlyPayments', 'success', 
-            { leaseId, yearMonth }, 
-            `Created payment for month`);
+          console.log(`Created payment for ${yearMonth}`);
         }
       } else {
         // Payment exists, check if we need to update the status
@@ -409,14 +372,10 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
               .eq('id', payment.id);
               
             if (updateError) {
-              logOperation('paymentUtils.ensureAllMonthlyPayments', 'error', 
-                { leaseId, paymentId: payment.id, error: updateError.message }, 
-                `Error updating payment to overdue`);
+              console.error(`Error updating payment ${payment.id}:`, updateError);
             } else {
               updatedCount++;
-              logOperation('paymentUtils.ensureAllMonthlyPayments', 'success', 
-                { leaseId, paymentId: payment.id, daysOverdue }, 
-                `Updated payment to overdue status`);
+              console.log(`Updated payment ${payment.id} to overdue (${daysOverdue} days)`);
             }
           }
         }
@@ -430,9 +389,7 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
       updatedCount
     };
   } catch (err) {
-    logOperation('paymentUtils.ensureAllMonthlyPayments', 'error', 
-      { leaseId, error: err instanceof Error ? err.message : String(err) }, 
-      `Unexpected error in ensureAllMonthlyPayments`);
+    console.error("Unexpected error in ensureAllMonthlyPayments:", err);
     return {
       success: false,
       message: `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,

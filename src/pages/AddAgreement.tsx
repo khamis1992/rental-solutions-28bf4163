@@ -14,7 +14,6 @@ import { ensureStorageBuckets } from "@/utils/setupBuckets";
 import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
 import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement-utils";
 import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
-import { logOperation } from "@/utils/monitoring-utils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -37,12 +36,7 @@ const AddAgreement = () => {
           const now = Date.now();
           
           if (now - timestamp < 60 * 60 * 1000) {
-            logOperation(
-              'addAgreement.templateCheck', 
-              'success', 
-              { source: 'cache' },
-              'Using cached template check results'
-            );
+            console.log('Using cached template check results');
             setStandardTemplateExists(exists);
             if (diagnosis) setTemplateDiagnosis(diagnosis);
             if (specificCheck) setSpecificUrlCheck(specificCheck);
@@ -52,43 +46,23 @@ const AddAgreement = () => {
             return;
           }
         } catch (err) {
-          logOperation(
-            'addAgreement.templateCheck', 
-            'warning', 
-            { error: err instanceof Error ? err.message : String(err) },
-            'Error parsing template check cache'
-          );
+          console.warn('Error parsing template check cache:', err);
         }
       }
     }
     
     const setupStorage = async () => {
       try {
-        logOperation(
-          'addAgreement.setupStorage', 
-          'success', 
-          {},
-          'Setting up storage and ensuring buckets exist'
-        );
+        console.log("Setting up storage and ensuring buckets exist...");
         setCheckingTemplate(true);
         setTemplateError(null);
 
         const specificUrl = "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx";
-        logOperation(
-          'addAgreement.checkTemplate', 
-          'success', 
-          { url: specificUrl },
-          'Checking specific template URL'
-        );
+        console.log("Checking specific URL: ", specificUrl);
         const specificCheck = await checkSpecificTemplateUrl(specificUrl);
         setSpecificUrlCheck(specificCheck);
         if (specificCheck.accessible) {
-          logOperation(
-            'addAgreement.checkTemplate', 
-            'success', 
-            { url: specificUrl },
-            'Specific URL is accessible'
-          );
+          console.log("Specific URL is accessible!");
           setStandardTemplateExists(true);
           setTemplateError(null);
           setCheckingTemplate(false);
@@ -103,22 +77,12 @@ const AddAgreement = () => {
           
           return;
         } else {
-          logOperation(
-            'addAgreement.checkTemplate', 
-            'warning', 
-            { url: specificUrl, error: specificCheck.error },
-            'Specific URL is not accessible'
-          );
+          console.log("Specific URL is not accessible:", specificCheck.error);
         }
 
         const result = await ensureStorageBuckets();
         if (!result.success) {
-          logOperation(
-            'addAgreement.setupStorage', 
-            'error', 
-            { error: result.error },
-            'Error setting up storage buckets'
-          );
+          console.error("Error setting up storage buckets:", result.error);
 
           if (result.error?.includes("row-level security") || result.error?.includes("RLS")) {
             setTemplateError("Permission error: Please create the 'agreements' bucket manually in the Supabase dashboard. Use the service role key for storage operations.");
@@ -129,27 +93,12 @@ const AddAgreement = () => {
             description: "There was an error setting up storage buckets. Template creation may fail."
           });
         } else {
-          logOperation(
-            'addAgreement.setupStorage', 
-            'success', 
-            {},
-            'Storage buckets setup complete'
-          );
+          console.log("Storage buckets setup complete");
         }
 
-        logOperation(
-          'addAgreement.checkTemplate', 
-          'success', 
-          {},
-          'Checking if agreement template exists'
-        );
+        console.log("Checking if agreement template exists...");
         const exists = await checkStandardTemplateExists();
-        logOperation(
-          'addAgreement.checkTemplate', 
-          'success', 
-          { exists },
-          'Template exists result'
-        );
+        console.log("Template exists result:", exists);
         setStandardTemplateExists(exists);
         if (!exists) {
           setTemplateError("Template not found. Please upload a template file or create the agreements bucket manually in Supabase dashboard.");
@@ -158,19 +107,9 @@ const AddAgreement = () => {
           });
           const diagnosis = await diagnosisTemplateAccess();
           setTemplateDiagnosis(diagnosis);
-          logOperation(
-            'addAgreement.checkTemplate', 
-            'success', 
-            { diagnosis },
-            'Template diagnosis'
-          );
+          console.log("Template diagnosis:", diagnosis);
           if (diagnosis.errors.length > 0) {
-            logOperation(
-              'addAgreement.checkTemplate', 
-              'error', 
-              { errors: diagnosis.errors },
-              'Diagnosis errors'
-            );
+            console.error("Diagnosis errors:", diagnosis.errors);
           }
         } else {
           setTemplateError(null);
@@ -181,19 +120,9 @@ const AddAgreement = () => {
 
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
-        logOperation(
-          'addAgreement.checkTemplate', 
-          'success', 
-          { urlDiagnosis },
-          'Template URL diagnosis'
-        );
+        console.log("Template URL diagnosis:", urlDiagnosis);
         if (urlDiagnosis.status === "error") {
-          logOperation(
-            'addAgreement.checkTemplate', 
-            'error', 
-            { issues: urlDiagnosis.issues },
-            'Template URL issues'
-          );
+          console.error("Template URL issues:", urlDiagnosis.issues);
         }
         
         if (typeof sessionStorage !== 'undefined') {
@@ -206,12 +135,7 @@ const AddAgreement = () => {
           }));
         }
       } catch (error) {
-        logOperation(
-          'addAgreement.setupStorage', 
-          'error', 
-          { error: error instanceof Error ? error.message : String(error) },
-          'Error during template setup'
-        );
+        console.error("Error during template setup:", error);
         setStandardTemplateExists(false);
         setTemplateError("Error checking template. Please upload a template file.");
         toast.error("Error Checking Template", {
@@ -233,24 +157,11 @@ const AddAgreement = () => {
         const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
         
         if (!isAvailable && existingAgreement) {
-          logOperation(
-            'addAgreement.handleSubmit', 
-            'success', 
-            { 
-              vehicleId: leaseData.vehicle_id,
-              existingAgreementNumber: existingAgreement.agreement_number 
-            },
-            `Vehicle is assigned to agreement which will be closed`
-          );
+          console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
         }
       }
       
-      logOperation(
-        'addAgreement.handleSubmit', 
-        'success', 
-        { leaseData },
-        'Submitting lease data'
-      );
+      console.log("Submitting lease data:", leaseData);
       
       const { data, error } = await supabase.from("leases").insert([leaseData]).select("id").single();
       if (error) {
@@ -262,46 +173,20 @@ const AddAgreement = () => {
       } else if (leaseData.status === 'active') {
         // If agreement is active but not tied to a vehicle, still generate payment
         try {
-          logOperation(
-            'addAgreement.handleSubmit', 
-            'success', 
-            { agreementId: data.id },
-            'Generating initial payment schedule for new agreement'
-          );
+          console.log("Generating initial payment schedule for new agreement");
           const result = await forceGeneratePaymentForAgreement(supabase, data.id);
           if (!result.success) {
-            logOperation(
-              'addAgreement.handleSubmit', 
-              'warning', 
-              { 
-                agreementId: data.id,
-                message: result.message 
-              },
-              'Could not generate payment schedule'
-            );
+            console.warn("Could not generate payment schedule:", result.message);
           }
         } catch (paymentError) {
-          logOperation(
-            'addAgreement.handleSubmit', 
-            'error', 
-            { 
-              agreementId: data.id,
-              error: paymentError instanceof Error ? paymentError.message : String(paymentError)
-            },
-            'Error generating payment schedule'
-          );
+          console.error("Error generating payment schedule:", paymentError);
         }
       }
       
       toast.success("Agreement created successfully");
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
-      logOperation(
-        'addAgreement.handleSubmit', 
-        'error', 
-        { error: error.message || String(error) },
-        'Error creating agreement'
-      );
+      console.error("Error creating agreement:", error);
       toast.error("Failed to create agreement", {
         description: error.message || "Something went wrong"
       });
@@ -318,22 +203,8 @@ const AddAgreement = () => {
     setUploadError(null);
 
     try {
-      logOperation(
-        'addAgreement.handleFileUpload', 
-        'success', 
-        { fileName: file.name, fileSize: file.size },
-        'Uploading agreement template'
-      );
-      
       const result = await uploadAgreementTemplate(file);
       if (result.success) {
-        logOperation(
-          'addAgreement.handleFileUpload', 
-          'success', 
-          { fileName: file.name },
-          'Template uploaded successfully'
-        );
-        
         toast.success("Template Uploaded", {
           description: "The agreement template has been successfully uploaded."
         });
@@ -352,26 +223,12 @@ const AddAgreement = () => {
           }));
         }
       } else {
-        logOperation(
-          'addAgreement.handleFileUpload', 
-          'error', 
-          { fileName: file.name, error: result.error },
-          'Template upload failed'
-        );
-        
         setUploadError(result.error || "Unknown error uploading template");
         toast.error("Upload Failed", {
           description: result.error || "Failed to upload template."
         });
       }
     } catch (error: any) {
-      logOperation(
-        'addAgreement.handleFileUpload', 
-        'error', 
-        { error: error.message || String(error) },
-        'Error uploading template'
-      );
-      
       setUploadError(error.message || "Error uploading template");
       toast.error("Upload Error", {
         description: error.message || "An unexpected error occurred."
