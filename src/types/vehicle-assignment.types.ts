@@ -27,7 +27,7 @@ export interface VehicleAssignmentDialogProps {
 export interface Payment {
   id: string;
   amount: number;
-  payment_date?: string;
+  payment_date: string;
   status: string;
   description?: string;
   payment_method?: string;

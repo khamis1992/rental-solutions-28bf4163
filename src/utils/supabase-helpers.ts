@@ -8,10 +8,11 @@ export type Row<T extends TableName> = Database['public']['Tables'][T]['Row'];
 export type RowColumn<T extends TableName, K extends keyof Row<T>> = Row<T>[K];
 
 // Type-safe status casting functions for common tables
-export const asLeaseStatus = (status: string) => status as Row<'leases'>['status'];
-export const asVehicleStatus = (status: string) => status as Row<'vehicles'>['status'];
-export const asPaymentStatus = (status: string) => status as Row<'unified_payments'>['status'];
-export const asProfileStatus = (status: string) => status as Row<'profiles'>['status'];
+export const asLeaseStatus = (status: string): Row<'leases'>['status'] => status as Row<'leases'>['status'];
+export const asVehicleStatus = (status: string): Row<'vehicles'>['status'] => status as Row<'vehicles'>['status'];
+export const asPaymentStatus = (status: string): Row<'unified_payments'>['status'] => status as Row<'unified_payments'>['status'];
+export const asProfileStatus = (status: string): Row<'profiles'>['status'] => status as Row<'profiles'>['status'];
+export const asTrafficFinePaymentStatus = (status: string): Row<'traffic_fines'>['payment_status'] => status as Row<'traffic_fines'>['payment_status'];
 
 // Helper for handling Supabase response data safely
 export function handleSupabaseResponse<T>(response: { data: T | null; error: any }): T | null {
@@ -40,7 +41,7 @@ export const AGREEMENT_STATUSES = {
   CLOSED: 'closed',
   ARCHIVED: 'archived',
   EXPIRED: 'expired'
-};
+} as const;
 
 // Constants for payment statuses
 export const PAYMENT_STATUSES = {
@@ -51,5 +52,24 @@ export const PAYMENT_STATUSES = {
   CANCELLED: 'cancelled',
   REFUNDED: 'refunded',
   PROCESSING: 'processing'
-};
+} as const;
 
+// Helper functions for handling type-safe database queries
+export function safelyGetProperty<T, K extends keyof T>(obj: T | null, key: K): T[K] | undefined {
+  return obj ? obj[key] : undefined;
+}
+
+// Helper to safely extract data from Supabase responses
+export function safelyExtractData<T>(response: { data: T | null, error: any }): T | null {
+  if (response.error) {
+    console.error("Database error:", response.error);
+    return null;
+  }
+  return response.data;
+}
+
+// Helper to safely handle data from responses that may have errors
+export function safelyMapData<T, R>(data: T | null, mapFn: (item: T) => R): R | null {
+  if (!data) return null;
+  return mapFn(data);
+}

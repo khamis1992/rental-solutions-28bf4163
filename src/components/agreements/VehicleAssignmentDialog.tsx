@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,15 @@ import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps, Payment, Traff
 import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
-import { handleSupabaseResponse, AGREEMENT_STATUSES, PAYMENT_STATUSES } from "@/utils/supabase-helpers";
+import { 
+  handleSupabaseResponse, 
+  AGREEMENT_STATUSES, 
+  PAYMENT_STATUSES,
+  asLeaseStatus,
+  asPaymentStatus,
+  castId,
+  asTrafficFinePaymentStatus
+} from '@/utils/supabase-helpers';
 
 export function VehicleAssignmentDialog({
   open,
@@ -45,20 +52,24 @@ export function VehicleAssignmentDialog({
     if (!currentVehicleId) return;
     
     try {
+      const activeStatus = asLeaseStatus(AGREEMENT_STATUSES.ACTIVE);
+      const vehicleIdParam = castId(currentVehicleId, 'vehicles');
+      
       const { data, error } = await supabase
         .from('leases')
         .select('id, agreement_number')
-        .eq('vehicle_id', currentVehicleId)
-        .eq('status', AGREEMENT_STATUSES.ACTIVE)
+        .eq('vehicle_id', vehicleIdParam)
+        .eq('status', activeStatus)
         .single();
       
       // Handle response safely
-      if (data && !error) {
+      const safeData = handleSupabaseResponse({ data, error });
+      if (safeData) {
         setExistingAgreement({
-          id: data.id,
-          agreement_number: data.agreement_number
+          id: safeData.id,
+          agreement_number: safeData.agreement_number
         });
-        fetchAssociatedData(data.id);
+        fetchAssociatedData(safeData.id);
       }
     } catch (error) {
       console.error("Error fetching existing agreement:", error);
@@ -70,14 +81,17 @@ export function VehicleAssignmentDialog({
     
     setIsLoading(true);
     try {
+      const vehicleIdParam = castId(currentVehicleId, 'vehicles');
+      
       const { data, error } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', currentVehicleId)
+        .eq('id', vehicleIdParam)
         .single();
       
-      if (data && !error) {
-        setVehicleInfo(data as VehicleInfo);
+      const safeData = handleSupabaseResponse({ data, error });
+      if (safeData) {
+        setVehicleInfo(safeData as VehicleInfo);
       }
     } catch (error) {
       console.error("Error fetching vehicle details:", error);
@@ -92,43 +106,74 @@ export function VehicleAssignmentDialog({
     setIsLoading(true);
     try {
       // Fetch pending payments
+      const pendingStatus = asPaymentStatus(PAYMENT_STATUSES.PENDING);
+      const overdueStatus = asPaymentStatus(PAYMENT_STATUSES.OVERDUE);
+      const leaseIdParam = castId(leaseId, 'leases');
+      
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', leaseId)
-        .in('status', [PAYMENT_STATUSES.PENDING, PAYMENT_STATUSES.OVERDUE]);
+        .eq('lease_id', leaseIdParam)
+        .in('status', [pendingStatus, overdueStatus]);
         
-      if (paymentsData && !paymentsError) {
-        setPendingPayments(paymentsData as Payment[]);
+      const safePaymentsData = handleSupabaseResponse({ data: paymentsData, error: paymentsError });
+      if (safePaymentsData) {
+        // Transform data to match the Payment interface
+        const typedPayments: Payment[] = safePaymentsData.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          payment_date: payment.payment_date || '',
+          status: payment.status,
+          description: payment.description,
+          payment_method: payment.payment_method,
+          days_overdue: payment.days_overdue,
+          late_fine_amount: payment.late_fine_amount
+        }));
+        setPendingPayments(typedPayments);
       }
       
       // Fetch traffic fines
+      const pendingPaymentStatus = asTrafficFinePaymentStatus('pending');
+      
       const { data: finesData, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', leaseId)
-        .eq('payment_status', 'pending');
+        .eq('lease_id', leaseIdParam)
+        .eq('payment_status', pendingPaymentStatus);
         
-      if (finesData && !finesError) {
-        setTrafficFines(finesData as TrafficFine[]);
+      const safeFinesData = handleSupabaseResponse({ data: finesData, error: finesError });
+      if (safeFinesData) {
+        // Transform data to match the TrafficFine interface
+        const typedFines: TrafficFine[] = safeFinesData.map(fine => ({
+          id: fine.id,
+          violation_number: fine.violation_number || '',
+          fine_amount: fine.fine_amount || 0,
+          payment_status: fine.payment_status,
+          violation_date: fine.violation_date || ''
+        }));
+        setTrafficFines(typedFines);
       }
       
       // Fetch customer information through lease
       const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', leaseId)
+        .eq('id', leaseIdParam)
         .single();
         
-      if (leaseData && !leaseError && leaseData.customer_id) {
+      const safeLeaseData = handleSupabaseResponse({ data: leaseData, error: leaseError });
+      if (safeLeaseData && safeLeaseData.customer_id) {
+        const customerIdParam = castId(safeLeaseData.customer_id, 'profiles');
+        
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
-          .select('id, full_name, email, phone_number')
-          .eq('id', leaseData.customer_id)
+          .select('id, full_name, email, phone_number, driver_license')
+          .eq('id', customerIdParam)
           .single();
           
-        if (customerData && !customerError) {
-          setCustomerInfo(customerData as CustomerInfo);
+        const safeCustomerData = handleSupabaseResponse({ data: customerData, error: customerError });
+        if (safeCustomerData) {
+          setCustomerInfo(safeCustomerData as CustomerInfo);
         }
       }
     } catch (error) {

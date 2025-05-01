@@ -4,7 +4,13 @@ import { Card } from '@/components/ui/card';
 import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { handleSupabaseResponse, AGREEMENT_STATUSES, PAYMENT_STATUSES } from '@/utils/supabase-helpers';
+import { 
+  handleSupabaseResponse, 
+  AGREEMENT_STATUSES, 
+  PAYMENT_STATUSES,
+  asLeaseStatus,
+  asPaymentStatus 
+} from '@/utils/supabase-helpers';
 import { AgreementStats as AgreementStatsType } from '@/types/agreement-stats.types';
 
 export function AgreementStats() {
@@ -22,6 +28,10 @@ export function AgreementStats() {
       try {
         setIsLoading(true);
         
+        // Use the active status constant instead of string literals
+        const activeStatus = asLeaseStatus(AGREEMENT_STATUSES.ACTIVE);
+        const pendingStatus = asPaymentStatus(PAYMENT_STATUSES.PENDING);
+        
         const { count: totalCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true });
@@ -29,12 +39,12 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', AGREEMENT_STATUSES.ACTIVE);
+          .eq('status', activeStatus);
           
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', PAYMENT_STATUSES.PENDING);
+          .eq('status', pendingStatus);
           
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
@@ -44,7 +54,7 @@ export function AgreementStats() {
         const { data: activeAgreements, error } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', AGREEMENT_STATUSES.ACTIVE);
+          .eq('status', activeStatus);
 
         // Handle response safely
         const safeActiveAgreements = handleSupabaseResponse(
