@@ -1,4 +1,3 @@
-
 /**
  * Type-safe helpers for working with Supabase responses
  */
@@ -76,4 +75,11 @@ export function handleSupabaseError<T>(error: any, context?: string): ServiceRes
   const errorMsg = error instanceof Error ? error.message : String(error);
   console.error(`${context || 'Supabase operation'} error:`, error);
   return errorResponse(errorMsg);
+}
+
+/**
+ * Helper function to cast a string to UUID safely
+ */
+export function castToUUID(id: string): string {
+  return id;
 }

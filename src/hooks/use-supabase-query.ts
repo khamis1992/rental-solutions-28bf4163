@@ -1,8 +1,13 @@
+
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database.types';
 import { hasResponseData, safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
-import { withTimeout, withTimeoutAndRetry, chainOperations } from '@/utils/promise-utils';
+import { 
+  withTimeout, 
+  withTimeoutAndRetry, 
+  chainOperations 
+} from '@/utils/promise';
 import { ServiceResponse } from '@/utils/response-handler';
 
 // Define helper types for improved type safety

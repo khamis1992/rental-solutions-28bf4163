@@ -2,7 +2,7 @@
 import { AgreementValidationService } from "@/services/AgreementValidationService";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement-utils";
+import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement";
 import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
 import { DatabaseError, ApiError, safeAsync } from "@/utils/error-handling";
 
