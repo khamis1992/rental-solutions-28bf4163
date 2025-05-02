@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,14 +24,36 @@ const TrafficFines = () => {
     setActiveTab("list");
   };
 
-  // Error handling example
+  // Error handling
   useEffect(() => {
     // Clear any stale notifications when component mounts
     errorNotification.clearError("traffic-fines-error");
     
+    // Register a global traffic fines error handler
+    const handleTrafficFinesError = (event: ErrorEvent) => {
+      // Only handle errors that are likely from the traffic fines module
+      if (event.message.includes('traffic') || 
+          event.message.includes('fine') || 
+          event.filename?.includes('fines')) {
+        
+        errorNotification.showError("Traffic Fines Error", {
+          description: event.message,
+          id: "traffic-fines-runtime-error"
+        });
+        
+        // Prevent default browser error handling
+        event.preventDefault();
+      }
+    };
+
+    // Add global error listener
+    window.addEventListener('error', handleTrafficFinesError);
+    
     return () => {
-      // Clean up any pending notifications when component unmounts
+      // Clean up event listener and any pending notifications when component unmounts
+      window.removeEventListener('error', handleTrafficFinesError);
       errorNotification.clearError("traffic-fines-error");
+      errorNotification.clearError("traffic-fines-runtime-error");
     };
   }, [errorNotification]);
 

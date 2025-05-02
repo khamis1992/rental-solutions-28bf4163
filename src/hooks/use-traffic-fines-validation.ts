@@ -1,9 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BasicMutationResult } from '@/utils/type-utils';
+import { 
+  ValidationError, 
+  mapToValidationError, 
+  groupValidationErrors, 
+  generateErrorSummary 
+} from '@/utils/validation/traffic-fine-validation-errors';
+import { useErrorNotification } from '@/hooks/use-error-notification';
 
 export interface ValidationResult {
   licensePlate: string;
@@ -16,6 +22,10 @@ export interface ValidationResult {
 
 export const useTrafficFinesValidation = () => {
   const queryClient = useQueryClient();
+  const errorNotification = useErrorNotification();
+  
+  // Track validation errors
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   
   // Fetch validation history
   const { data: validationHistory, isLoading, error } = useQuery({
@@ -29,7 +39,12 @@ export const useTrafficFinesValidation = () => {
           .limit(20);
           
         if (error) {
-          throw new Error(`Failed to fetch validation history: ${error.message}`);
+          const errorMessage = `Failed to fetch validation history: ${error.message}`;
+          errorNotification.showError('Validation History Error', {
+            description: errorMessage,
+            id: 'validation-history-error'
+          });
+          throw new Error(errorMessage);
         }
         
         if (!data) return [];
@@ -101,6 +116,11 @@ export const useTrafficFinesValidation = () => {
   // Validate traffic fine - explicitly specify return type to avoid deep type instantiation
   const validateTrafficFine = async (licensePlate: string): Promise<ValidationResult> => {
     try {
+      // Validate input
+      if (!licensePlate || typeof licensePlate !== 'string' || !licensePlate.trim()) {
+        throw new Error('Invalid license plate format');
+      }
+      
       // Log validation attempt
       await incrementValidationAttempt(licensePlate);
       
@@ -128,7 +148,10 @@ export const useTrafficFinesValidation = () => {
         });
       
       if (logError) {
-        console.error('Error logging validation:', logError);
+        errorNotification.showError('Validation Logging Error', {
+          description: `Error logging validation: ${logError.message}`,
+          id: 'validation-log-error'
+        });
       }
       
       // Invalidate the query to refresh the validation history
@@ -136,15 +159,33 @@ export const useTrafficFinesValidation = () => {
       
       return validationData;
     } catch (error) {
-      console.error('Error in validateTrafficFine:', error);
-      throw error;
+      const validationError = mapToValidationError(error, licensePlate);
+      
+      // Store validation errors for later analysis
+      setValidationErrors(prev => [...prev, validationError]);
+      
+      // Show notification for critical errors
+      errorNotification.showError(`Validation Error: ${validationError.code}`, {
+        description: validationError.message,
+        id: `traffic-validation-${validationError.code}`
+      });
+      
+      throw validationError;
     }
   };
   
   // Batch validate multiple license plates
-  const batchValidateTrafficFines = async (licensePlates: string[]): Promise<ValidationResult[]> => {
+  const batchValidateTrafficFines = async (licensePlates: string[]): Promise<{
+    results: ValidationResult[];
+    errors: ValidationError[];
+    summary: {
+      total: number;
+      succeeded: number;
+      failed: number;
+    }
+  }> => {
     const results: ValidationResult[] = [];
-    const failures: string[] = [];
+    const errors: ValidationError[] = [];
     
     // Process each license plate sequentially to avoid overwhelming the system
     for (const plate of licensePlates) {
@@ -155,23 +196,61 @@ export const useTrafficFinesValidation = () => {
         // Add a small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
-        console.error(`Failed to validate ${plate}:`, error);
-        failures.push(plate);
+        // If it's already a ValidationError, use it directly
+        if (error && typeof error === 'object' && 'code' in error) {
+          errors.push(error as ValidationError);
+        } else {
+          // Otherwise, map it to a structured validation error
+          errors.push(mapToValidationError(error, plate));
+        }
       }
     }
     
+    // Process and group errors for better reporting
+    const groupedErrors = groupValidationErrors(errors);
+    const errorSummary = generateErrorSummary(groupedErrors);
+    
     // Show summary notification
     if (results.length > 0) {
-      toast.success(`Validated ${results.length}/${licensePlates.length} license plates`, {
-        description: failures.length > 0 ? `Failed: ${failures.length} plates` : 'All validations completed successfully'
-      });
-    } else if (failures.length > 0) {
-      toast.error(`All validations failed (${failures.length} plates)`, {
-        description: 'Please check your inputs and try again'
-      });
+      if (errors.length > 0) {
+        // Partial success
+        toast.warning(
+          `Validated ${results.length}/${licensePlates.length} license plates`, 
+          {
+            description: `Failed: ${errors.length} plates. ${errorSummary}`,
+            duration: 5000
+          }
+        );
+      } else {
+        // Complete success
+        toast.success(
+          `Validated ${results.length}/${licensePlates.length} license plates`, 
+          {
+            description: 'All validations completed successfully'
+          }
+        );
+      }
+    } else if (errors.length > 0) {
+      // Complete failure
+      errorNotification.showError(
+        `Validation Failed`, 
+        {
+          description: errorSummary,
+          id: 'batch-validation-error'
+        }
+      );
     }
     
-    return results;
+    // Return comprehensive results for further handling if needed
+    return {
+      results,
+      errors,
+      summary: {
+        total: licensePlates.length,
+        succeeded: results.length,
+        failed: errors.length
+      }
+    };
   };
   
   // Manually validate a specific fine by ID - using BasicMutationResult to avoid type issues
@@ -182,10 +261,14 @@ export const useTrafficFinesValidation = () => {
           .from('traffic_fines')
           .select('license_plate')
           .eq('id', fineId)
-          .single();
+          .maybeSingle();
           
         if (fineError || !fine) {
           throw new Error(`Failed to retrieve fine details: ${fineError?.message || 'Fine not found'}`);
+        }
+        
+        if (!fine.license_plate) {
+          throw new Error(`Fine record is missing license plate information`);
         }
         
         const result = await validateTrafficFine(fine.license_plate);
@@ -199,14 +282,18 @@ export const useTrafficFinesValidation = () => {
             .eq('id', fineId);
             
           if (updateError) {
-            console.error(`Failed to update fine status: ${updateError.message}`);
+            errorNotification.showError('Fine Status Update Error', {
+              description: `Failed to update fine status: ${updateError.message}`,
+              id: 'fine-update-error'
+            });
           }
         }
         
         return { fineId, validationResult: result };
       } catch (error) {
-        console.error('Error validating fine by ID:', error);
-        throw error;
+        const validationError = error instanceof Error ? error : new Error('Unknown error during validation');
+        console.error('Error validating fine by ID:', validationError);
+        throw validationError;
       }
     },
     onSuccess: (data) => {
@@ -216,8 +303,9 @@ export const useTrafficFinesValidation = () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
     },
     onError: (error) => {
-      toast.error('Fine validation failed', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      errorNotification.showError('Fine Validation Failed', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        id: 'validate-fine-error'
       });
     }
   });
@@ -241,8 +329,7 @@ export const useTrafficFinesValidation = () => {
           return { processed: 0, updated: 0, message: 'No pending fines found' };
         }
         
-        let processed = 0;
-        let updated = 0;
+        const results: { id: string; updated: boolean; error?: string }[] = [];
         
         // Process fines in batches of 5
         const batchSize = 5;
@@ -252,8 +339,16 @@ export const useTrafficFinesValidation = () => {
           // Process each fine in the batch
           for (const fine of batch) {
             try {
+              if (!fine.license_plate) {
+                results.push({ 
+                  id: fine.id, 
+                  updated: false, 
+                  error: 'Missing license plate' 
+                });
+                continue;
+              }
+                
               const validationResult = await validateTrafficFine(fine.license_plate);
-              processed++;
               
               // If no fine found in validation system, mark as paid
               if (!validationResult.hasFine) {
@@ -262,38 +357,71 @@ export const useTrafficFinesValidation = () => {
                   .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
                   .eq('id', fine.id);
                   
-                if (!updateError) {
-                  updated++;
-                }
+                results.push({ 
+                  id: fine.id, 
+                  updated: !updateError,
+                  error: updateError ? updateError.message : undefined
+                });
+              } else {
+                // Fine still exists in the system
+                results.push({ id: fine.id, updated: false });
               }
               
               // Add a delay between requests to avoid overwhelming the system
               await new Promise(resolve => setTimeout(resolve, 500));
             } catch (error) {
-              console.error(`Error processing fine ${fine.id}:`, error);
-              continue;
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              results.push({ id: fine.id, updated: false, error: errorMessage });
             }
           }
         }
         
-        return { processed, updated, message: `Processed ${processed} fines, updated ${updated} statuses` };
+        // Generate summary statistics
+        const processed = results.length;
+        const updated = results.filter(r => r.updated).length;
+        const failed = results.filter(r => r.error).length;
+        
+        return { 
+          processed, 
+          updated, 
+          failed,
+          results,
+          message: `Processed ${processed} fines, updated ${updated} statuses, ${failed} errors` 
+        };
       } catch (error) {
         console.error('Error in updateAllPendingFines:', error);
         throw error;
       }
     },
     onSuccess: (result) => {
-      toast.success('Batch update completed', {
-        description: result.message
-      });
+      if (result.updated > 0) {
+        toast.success('Batch update completed', {
+          description: result.message
+        });
+      } else if (result.processed > 0) {
+        toast.info('Batch validation completed', {
+          description: result.message
+        });
+      } else {
+        toast('No changes made', {
+          description: result.message
+        });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
     },
     onError: (error) => {
-      toast.error('Batch update failed', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      errorNotification.showError('Batch Update Failed', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        id: 'batch-update-error'
       });
     }
   });
+  
+  // Clear all validation errors
+  const clearValidationErrors = () => {
+    setValidationErrors([]);
+  };
   
   return {
     validationHistory,
@@ -302,6 +430,8 @@ export const useTrafficFinesValidation = () => {
     validateTrafficFine,
     validateFineById,
     batchValidateTrafficFines,
-    updateAllPendingFines
+    updateAllPendingFines,
+    validationErrors,
+    clearValidationErrors
   };
 };
