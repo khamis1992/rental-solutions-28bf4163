@@ -2,11 +2,12 @@
 import { supabase } from '@/lib/supabase';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
 import { createDebugLogger } from '@/utils/promise/utils';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 
 const debug = createDebugLogger('vehicle:search');
 
 /**
- * Find a vehicle by its license plate with improved performance
+ * Find a vehicle by its license plate with improved normalization and matching
  * 
  * @param licensePlate The license plate to search for
  * @returns Result object with success flag, data and message
@@ -30,15 +31,15 @@ export const findVehicleByLicensePlate = async (
       };
     }
     
-    // Normalize license plate for consistent searching
-    const normalizedLicensePlate = licensePlate.trim().toUpperCase();
+    // Enhanced normalization for consistent searching
+    const normalizedLicensePlate = normalizeLicensePlate(licensePlate);
     debug(`Normalized license plate for search: ${normalizedLicensePlate}`);
     
-    // Direct query without unnecessary health check
+    // Query with normalized license plate
     const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*)')
-      .ilike('license_plate', normalizedLicensePlate)
+      .ilike('license_plate', `%${normalizedLicensePlate}%`)
       .maybeSingle();
     
     if (error) {
@@ -53,7 +54,7 @@ export const findVehicleByLicensePlate = async (
       debug(`No vehicle found with license plate: ${normalizedLicensePlate}`);
       return {
         success: false,
-        message: `No vehicle found with license plate: ${normalizedLicensePlate}`
+        message: `No vehicle found with license plate: ${licensePlate}`
       };
     }
     

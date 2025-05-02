@@ -2,9 +2,10 @@
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { supabase } from '@/lib/supabase';
 import { VehicleStatus } from '@/types/vehicle';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 
 /**
- * Updates vehicle information in the database with improved efficiency
+ * Updates vehicle information in the database with improved efficiency and normalization
  */
 export const updateVehicleInfo = async (
   id: string, 
@@ -39,6 +40,13 @@ export const updateVehicleInfo = async (
 
     // Prepare update data
     const updateData: any = { ...data };
+    
+    // Normalize license plate if provided
+    if (updateData.license_plate) {
+      const originalLicensePlate = updateData.license_plate;
+      updateData.license_plate = normalizeLicensePlate(originalLicensePlate);
+      console.log(`Normalized license plate from "${originalLicensePlate}" to "${updateData.license_plate}"`);
+    }
     
     // Map status if provided - ensure proper type handling
     if (updateData.status !== undefined) {

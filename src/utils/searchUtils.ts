@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for enhanced search capabilities
  */
@@ -25,12 +26,22 @@ export const extractNumericParts = (text: string): string => {
 /**
  * Normalizes a license plate by removing spaces, special characters, and converting to uppercase
  * This makes license plate comparisons more reliable
+ * 
+ * @param licensePlate The license plate to normalize
+ * @returns Normalized license plate string
  */
 export const normalizeLicensePlate = (licensePlate: string): string => {
   if (!licensePlate) return '';
   
   // Remove all non-alphanumeric characters and convert to uppercase
-  return licensePlate.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const normalized = licensePlate.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  
+  // Additional normalization to handle common substitutions
+  return normalized
+    .replace(/[0O]/g, '0')  // Convert both 'O' and '0' to '0'
+    .replace(/[1I]/g, '1')  // Convert both 'I' and '1' to '1'
+    .replace(/[5S]/g, '5')  // Convert both 'S' and '5' to '5'
+    .replace(/[8B]/g, '8'); // Convert both 'B' and '8' to '8'
 };
 
 /**
@@ -42,6 +53,43 @@ export const normalizeAgreementNumber = (agreementNumber: string): string => {
   
   // Remove spaces and special characters, keep letters and numbers
   return agreementNumber.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+};
+
+/**
+ * Performs fuzzy matching between two license plates
+ * @param plate1 First license plate to compare
+ * @param plate2 Second license plate to compare
+ * @returns Similarity score between 0 and 1
+ */
+export const getLicensePlateSimilarity = (plate1: string, plate2: string): number => {
+  if (!plate1 || !plate2) return 0;
+  
+  const normalized1 = normalizeLicensePlate(plate1);
+  const normalized2 = normalizeLicensePlate(plate2);
+  
+  if (normalized1 === normalized2) return 1;
+  
+  // Handle exact match with different format
+  if (normalized1.length === normalized2.length) {
+    let matchingChars = 0;
+    for (let i = 0; i < normalized1.length; i++) {
+      if (normalized1[i] === normalized2[i]) matchingChars++;
+    }
+    return matchingChars / normalized1.length;
+  }
+  
+  // Handle one being substring of the other
+  if (normalized1.includes(normalized2)) {
+    return normalized2.length / normalized1.length;
+  }
+  
+  if (normalized2.includes(normalized1)) {
+    return normalized1.length / normalized2.length;
+  }
+  
+  // Handle more complex cases - check common characters
+  const common = [...normalized1].filter(char => normalized2.includes(char)).length;
+  return common / Math.max(normalized1.length, normalized2.length);
 };
 
 /**
@@ -91,6 +139,10 @@ export const doesLicensePlateMatch = (
         return true;
       }
     }
+    
+    // Calculate similarity score for fuzzy matching
+    const similarity = getLicensePlateSimilarity(normalizedPlate, normalizedQuery);
+    if (similarity > 0.7) return true; // 70% similarity threshold
   }
   
   return false;

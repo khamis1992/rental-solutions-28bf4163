@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
 import { findVehicleByLicensePlate } from '@/utils/vehicle';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 
 interface VehicleSearchFormValues {
   licensePlate: string;
@@ -20,6 +21,8 @@ interface VehicleStatusSearchProps {
 
 export const VehicleStatusSearch = ({ onVehicleFound }: VehicleStatusSearchProps) => {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [normalizedQuery, setNormalizedQuery] = React.useState('');
   
   // Form for searching vehicles
   const searchForm = useForm<VehicleSearchFormValues>({
@@ -31,6 +34,14 @@ export const VehicleStatusSearch = ({ onVehicleFound }: VehicleStatusSearchProps
   const handleSearch = async (data: VehicleSearchFormValues) => {
     try {
       setIsLoading(true);
+      
+      // Store the search query for display
+      const query = data.licensePlate.trim();
+      setSearchQuery(query);
+      
+      // Display normalized version
+      const normalized = normalizeLicensePlate(query);
+      setNormalizedQuery(normalized);
       
       const result = await findVehicleByLicensePlate(data.licensePlate);
       
@@ -79,6 +90,11 @@ export const VehicleStatusSearch = ({ onVehicleFound }: VehicleStatusSearchProps
                       disabled={isLoading}
                     />
                   </FormControl>
+                  {normalizedQuery && searchQuery !== normalizedQuery && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Will search for normalized plate: {normalizedQuery}
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
