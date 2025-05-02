@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { ServiceResponse } from '../response-handler';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
@@ -171,18 +172,6 @@ async function savePaymentSchedule(schedule: any[]): Promise<ServiceResponse<any
       message: `Error saving payment schedule: ${error instanceof Error ? error.message : String(error)}` 
     };
   }
-}
-
-/**
- * Helper function to add months to a date
- * @param date The starting date
- * @param months Number of months to add
- * @returns New date with months added
- */
-function addMonths(date: Date, months: number): Date {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
 }
 
 /**
