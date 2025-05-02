@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasResponseData } from '@/utils/supabase-type-helpers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';

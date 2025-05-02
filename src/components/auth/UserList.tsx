@@ -6,9 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { UserRoleManager } from './UserRoleManager';
-import { withTimeout } from '@/utils/promise-utils';
-import { safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
+import { withTimeout, withTimeoutAndRetry } from '@/utils/promise-utils';
+import { safeQueryToServiceResponse, hasResponseData } from '@/utils/supabase-type-helpers';
 import { Badge } from '@/components/ui/badge';
+import { ServiceResponse } from '@/utils/response-handler';
+import { chainDatabaseOperations } from '@/hooks/use-supabase-query';
 
 export interface UserData {
   id: string;
@@ -34,15 +36,18 @@ export const UserList = () => {
     setLoading(true);
     
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
             .select('*')
             .order('created_at', { ascending: false })
         ),
-        5000,
-        'Load users'
+        { 
+          timeoutMs: 5000,
+          operationName: 'Load users',
+          retries: 1
+        }
       );
       
       if (result.success && result.data) {
@@ -70,44 +75,40 @@ export const UserList = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      // First, get user auth ID
-      const authResponse = await withTimeout(
-        safeQueryToServiceResponse(() => 
-          supabase
-            .from('auth_users')
-            .select('id')
-            .eq('profile_id', userId)
-            .single()
-        ),
-        5000,
-        'Get auth user'
-      );
-
-      if (authResponse.success && authResponse.data) {
-        const authId = String(authResponse.data.id);
+      // Use chainDatabaseOperations to perform sequential operations with proper error handling
+      const result = await chainDatabaseOperations<{ success: boolean; message: string }>([
+        // First operation: Get auth user ID
+        () => supabase
+          .from('auth_users')
+          .select('id')
+          .eq('profile_id', userId)
+          .single(),
+          
+        // Second operation: Delete user (using the data from first operation)
+        async (authUserResult) => {
+          if (authUserResult && authUserResult.id) {
+            const { error: authError } = await supabase.auth.admin.deleteUser(authUserResult.id);
+            if (authError) throw new Error(`Auth delete error: ${authError.message}`);
+          }
+          return { success: true };
+        },
         
-        // Delete from auth.users through admin API
-        const { error: authError } = await supabase.auth.admin.deleteUser(authId);
-        if (authError) throw new Error(`Auth delete error: ${authError.message}`);
-      }
+        // Third operation: Delete profile
+        () => supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId)
+      ], {
+        timeoutMs: 10000,
+        operationName: 'Delete user',
+        retries: 1
+      });
 
-      // Delete profile
-      const profileResult = await withTimeout(
-        safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .delete()
-            .eq('id', userId)
-        ),
-        5000,
-        'Delete profile'
-      );
-
-      if (profileResult.success) {
+      if (result.success) {
         toast.success("User deleted successfully");
         loadUsers(); // Reload the list
       } else {
-        toast.error(`Failed to delete user: ${profileResult.message || 'Unknown error'}`);
+        toast.error(`Failed to delete user: ${result.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error("Error deleting user:", error);
@@ -117,15 +118,18 @@ export const UserList = () => {
 
   const suspendUser = async (userId: string) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
-            .update({ status: 'suspended' as const })
+            .update({ status: 'suspended' })
             .eq('id', userId)
         ),
-        5000,
-        'Suspend user'
+        {
+          timeoutMs: 5000,
+          operationName: 'Suspend user',
+          retries: 1
+        }
       );
 
       if (result.success) {
@@ -142,15 +146,18 @@ export const UserList = () => {
 
   const activateUser = async (userId: string) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
-            .update({ status: 'active' as const })
+            .update({ status: 'active' })
             .eq('id', userId)
         ),
-        5000,
-        'Activate user'
+        {
+          timeoutMs: 5000,
+          operationName: 'Activate user',
+          retries: 1
+        }
       );
 
       if (result.success) {
@@ -167,15 +174,18 @@ export const UserList = () => {
 
   const promoteToStaff = async (email: string) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
             .update({ role: 'staff' })
             .eq('email', email)
         ),
-        5000,
-        'Promote to staff'
+        {
+          timeoutMs: 5000,
+          operationName: 'Promote to staff',
+          retries: 1
+        }
       );
 
       if (result.success) {
@@ -192,15 +202,18 @@ export const UserList = () => {
 
   const demoteToCustomer = async (email: string) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
             .update({ role: 'customer' })
             .eq('email', email)
         ),
-        5000,
-        'Demote to customer'
+        {
+          timeoutMs: 5000,
+          operationName: 'Demote to customer',
+          retries: 1
+        }
       );
 
       if (result.success) {
@@ -217,15 +230,18 @@ export const UserList = () => {
 
   const updateUserStatus = async (userId: string, status: UserData['status']) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
             .update({ status })
             .eq('id', userId)
         ),
-        5000,
-        'Update user status'
+        {
+          timeoutMs: 5000,
+          operationName: 'Update user status',
+          retries: 1
+        }
       );
 
       if (result.success) {
@@ -242,15 +258,18 @@ export const UserList = () => {
 
   const changeUserRole = async (userId: string, newRole: string) => {
     try {
-      const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+      const result = await withTimeoutAndRetry(
+        () => safeQueryToServiceResponse(() => 
           supabase
             .from('profiles')
             .update({ role: newRole })
             .eq('id', userId)
         ),
-        5000,
-        'Change user role'
+        {
+          timeoutMs: 5000,
+          operationName: 'Change user role',
+          retries: 1
+        }
       );
 
       if (result.success) {

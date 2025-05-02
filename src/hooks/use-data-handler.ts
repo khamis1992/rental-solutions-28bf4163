@@ -1,109 +1,95 @@
 
-import { useState, useCallback } from 'react';
-import { ServiceResponse, successResponse, errorResponse } from '@/utils/response-handler';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { ServiceResponse } from '@/utils/response-handler';
 
-interface UseDataHandlerOptions<T> {
-  onSuccess?: (data: T) => void;
-  onError?: (error: any) => void;
+interface DataHandlerOptions {
   showSuccessToast?: boolean;
   showErrorToast?: boolean;
   successMessage?: string;
+  errorMessage?: string;
+  onSuccess?: (data: any) => void;
+  onError?: (error: any) => void;
+  onSettled?: () => void;
 }
 
-export function useDataHandler<T = any>(options: UseDataHandlerOptions<T> = {}) {
+export function useDataHandler(options: DataHandlerOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<T | null>(null);
 
   const {
-    onSuccess,
-    onError,
     showSuccessToast = true,
     showErrorToast = true,
-    successMessage = 'Operation completed successfully'
+    successMessage = 'Operation completed successfully',
+    errorMessage = 'Operation failed',
+    onSuccess,
+    onError,
+    onSettled
   } = options;
 
-  const handleOperation = useCallback(
-    async <R = T>(
-      operation: () => Promise<ServiceResponse<R>>,
-      customOptions?: {
-        successMessage?: string;
-        errorMessage?: string;
-        showToast?: boolean;
-      }
-    ): Promise<ServiceResponse<R>> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await operation();
-
-        if (response.success && response.data) {
-          setData(response.data as unknown as T);
-          
-          if (onSuccess) {
-            onSuccess(response.data as unknown as T);
-          }
-
-          if (showSuccessToast && customOptions?.showToast !== false) {
-            toast({
-              title: 'Success',
-              description: customOptions?.successMessage || successMessage
-            });
-          }
-          
-          setIsLoading(false);
-          return response;
-        } else {
-          const errorMsg = response.message || 'An unknown error occurred';
-          
-          setError(new Error(errorMsg));
-          
-          if (onError) {
-            onError(response.error || new Error(errorMsg));
-          }
-
-          if (showErrorToast && customOptions?.showToast !== false) {
-            toast({
-              title: 'Error',
-              description: customOptions?.errorMessage || errorMsg,
-              variant: 'destructive'
-            });
-          }
-          
-          setIsLoading(false);
-          return response;
+  const handleOperation = async <T>(operation: () => Promise<ServiceResponse<T>>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await operation();
+      
+      if (result.success) {
+        if (showSuccessToast) {
+          // toast.success(successMessage);
+          console.log(successMessage);
         }
-      } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e));
         
-        setError(error);
+        if (onSuccess) {
+          onSuccess(result.data);
+        }
+        
+        return result;
+      } else {
+        const errorObj = new Error(result.message || errorMessage);
+        setError(errorObj);
+        
+        if (showErrorToast) {
+          // toast.error(result.message || errorMessage);
+          console.error(result.message || errorMessage);
+        }
         
         if (onError) {
-          onError(error);
-        }
-
-        if (showErrorToast && customOptions?.showToast !== false) {
-          toast({
-            title: 'Error',
-            description: customOptions?.errorMessage || error.message,
-            variant: 'destructive'
-          });
+          onError(errorObj);
         }
         
-        setIsLoading(false);
-        return errorResponse(error);
+        return result;
       }
-    },
-    [onSuccess, onError, showSuccessToast, showErrorToast, successMessage]
-  );
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      
+      if (showErrorToast) {
+        // toast.error(errorObj.message || errorMessage);
+        console.error(errorObj.message || errorMessage);
+      }
+      
+      if (onError) {
+        onError(errorObj);
+      }
+      
+      return {
+        success: false,
+        error: errorObj,
+        message: errorObj.message,
+        statusCode: 500
+      } as ServiceResponse<T>;
+    } finally {
+      setIsLoading(false);
+      
+      if (onSettled) {
+        onSettled();
+      }
+    }
+  };
 
   return {
-    handleOperation,
     isLoading,
     error,
-    data,
-    setData
+    handleOperation
   };
 }

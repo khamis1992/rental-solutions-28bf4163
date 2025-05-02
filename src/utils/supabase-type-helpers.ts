@@ -55,3 +55,11 @@ export async function safeQueryToServiceResponse<T>(
     };
   }
 }
+
+/**
+ * Cast UUID string for Supabase operations
+ */
+export function castToUUID(id: string): string {
+  // In a real application, you might want to add validation here
+  return id;
+}
