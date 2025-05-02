@@ -2,7 +2,7 @@
 import { useTrafficFinesQuery, TrafficFine, TrafficFineStatusType } from './use-traffic-fines-query';
 import { useTrafficFineMutations, TrafficFinePayload, TrafficFineCreatePayload } from './use-traffic-fine-mutations';
 import { useTrafficFineCleanup } from './use-traffic-fine-cleanup';
-import { useBatchValidation } from './use-batch-validation';
+import { useBatchValidation, BatchValidationOptions, BatchValidationResults } from './use-batch-validation';
 
 /**
  * Main traffic fines hook that combines query, mutations, and cleanup functionality
@@ -33,8 +33,10 @@ export type {
   TrafficFine,
   TrafficFineStatusType,
   TrafficFinePayload,
-  TrafficFineCreatePayload
+  TrafficFineCreatePayload,
+  BatchValidationOptions,
+  BatchValidationResults
 };
 
 // Export batch validation hook separately for direct use
-export { useBatchValidation, BatchValidationOptions, BatchValidationResults } from './use-batch-validation';
+export { useBatchValidation } from './use-batch-validation';

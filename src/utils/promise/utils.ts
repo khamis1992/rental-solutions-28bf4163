@@ -1,24 +1,32 @@
 
 /**
- * Type guard to check if a value is not null or undefined
+ * Check if a value is defined (not null or undefined)
  */
 export function isDefined<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
 /**
- * Safely extract data from a response object that might have errors
+ * Safely extract a value from an object that might be null or undefined
  */
-export function safeExtract<T>(response: { data?: T, error?: any }): T | null {
-  if (response.error || !response.data) {
-    return null;
+export function safeExtract<T, K extends keyof T>(
+  obj: T | null | undefined,
+  key: K,
+  defaultValue: T[K]
+): T[K] {
+  if (!obj) {
+    return defaultValue;
   }
-  return response.data;
+  return obj[key] !== undefined ? obj[key] : defaultValue;
 }
 
 /**
- * Helper function to add a castToUUID function for handling UUIDs safely
+ * Cast a string to a UUID, ensuring it has the correct format
  */
-export function castToUUID(id: string): string {
-  return id;
+export function castToUUID(value: string): string {
+  // Simple validation to ensure the string looks like a UUID
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    return value;
+  }
+  throw new Error(`Invalid UUID format: ${value}`);
 }

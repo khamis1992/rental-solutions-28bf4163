@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { X, Loader2, SearchIcon, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { useBatchValidation } from '@/hooks/traffic-fines/use-batch-validation';
+import { useBatchValidation } from '@/hooks/traffic-fines';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface BatchValidationFormProps {
@@ -31,7 +31,7 @@ const BatchValidationForm = ({
   const [concurrency, setConcurrency] = useState(2);
   const [continueOnError, setContinueOnError] = useState(true);
   
-  const { validateBatch, isValidating } = useBatchValidation();
+  const { validateBatch, isValidating, validationProgress } = useBatchValidation();
   
   const handleValidate = async () => {
     if (!batchInput.trim()) return;
@@ -43,13 +43,6 @@ const BatchValidationForm = ({
       .filter(Boolean);
       
     if (licensePlates.length === 0) return;
-    
-    // Reset stats
-    setProcessingStats({
-      total: licensePlates.length,
-      processed: 0,
-      percentComplete: 0
-    });
     
     try {
       // Perform batch validation with progress tracking
@@ -63,11 +56,11 @@ const BatchValidationForm = ({
       onValidate();
     } catch (error) {
       console.error('Batch validation error:', error);
-    } finally {
-      // Clear stats when done
-      setProcessingStats(null);
     }
   };
+  
+  // Use the validation progress from the hook if available
+  const stats = validationProgress || processingStats;
   
   return (
     <div className="flex flex-col space-y-2">
@@ -123,12 +116,12 @@ const BatchValidationForm = ({
         </div>
       </div>
       
-      {processingStats && (
+      {stats && (
         <div className="space-y-1">
-          <Progress value={processingStats.percentComplete} className="h-2" />
+          <Progress value={stats.percentComplete} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Processing batch...</span>
-            <span>{processingStats.processed} / {processingStats.total}</span>
+            <span>{stats.processed} / {stats.total}</span>
           </div>
         </div>
       )}
