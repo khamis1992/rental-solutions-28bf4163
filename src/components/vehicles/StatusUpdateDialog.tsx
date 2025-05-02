@@ -20,9 +20,6 @@ import { VehicleStatus } from '@/types/vehicle';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 import { Loader2 } from 'lucide-react';
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 
 interface StatusUpdateDialogProps {
   isOpen: boolean;

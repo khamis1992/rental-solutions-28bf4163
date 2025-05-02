@@ -1,8 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { VehicleInsertData, VehicleUpdateData, DatabaseVehicleRecord } from '@/types/vehicle';
 import { mapToDBStatus } from '../vehicle-mappers';
-import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
 import { withTimeoutAndRetry } from '@/utils/promise';
 
 /**

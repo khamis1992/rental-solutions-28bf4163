@@ -8,8 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { CarFront, Loader2 } from 'lucide-react';
-import { VehicleData } from '@/types/vehicle';
-import { VehicleStatus } from '@/types/vehicle';
+import { VehicleData, VehicleStatus } from '@/types/vehicle';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 
 interface StatusUpdateFormValues {

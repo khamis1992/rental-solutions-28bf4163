@@ -14,11 +14,19 @@ import {
 export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): VehicleStatus | undefined {
   if (!dbStatus) return undefined;
   
-  if (dbStatus === 'reserve') {
-    return 'reserved';
-  }
+  // Single place where the mapping occurs
+  const statusMap: Record<DatabaseVehicleStatus, VehicleStatus> = {
+    'available': 'available',
+    'rented': 'rented',
+    'maintenance': 'maintenance',
+    'retired': 'retired',
+    'police_station': 'police_station',
+    'accident': 'accident',
+    'stolen': 'stolen',
+    'reserve': 'reserved'
+  };
   
-  return dbStatus as VehicleStatus;
+  return statusMap[dbStatus];
 }
 
 /**
@@ -27,11 +35,19 @@ export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): 
 export function mapToDBStatus(status: VehicleStatus | undefined): DatabaseVehicleStatus | undefined {
   if (!status) return undefined;
   
-  if (status === 'reserved') {
-    return 'reserve';
-  }
+  // Single place where the mapping occurs
+  const statusMap: Record<VehicleStatus, DatabaseVehicleStatus> = {
+    'available': 'available',
+    'rented': 'rented',
+    'maintenance': 'maintenance',
+    'retired': 'retired',
+    'police_station': 'police_station',
+    'accident': 'accident',
+    'stolen': 'stolen',
+    'reserved': 'reserve'
+  };
   
-  return status as DatabaseVehicleStatus;
+  return statusMap[status];
 }
 
 /**
@@ -47,7 +63,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     color: record.color,
     vin: record.vin,
     mileage: record.mileage,
-    status: mapDBStatusToAppStatus(record.status || null),
+    status: mapDBStatusToAppStatus(record.status || null) || 'available',
     description: record.description,
     image_url: record.image_url,
     created_at: record.created_at,
