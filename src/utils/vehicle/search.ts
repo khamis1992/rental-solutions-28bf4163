@@ -1,14 +1,12 @@
 
 import { supabase } from '@/lib/supabase';
-import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
 import { createDebugLogger } from '@/utils/promise/utils';
-import { withTimeoutAndRetry } from '@/utils/promise';
 
 const debug = createDebugLogger('vehicle:search');
 
 /**
- * Find a vehicle by its license plate with improved error handling
+ * Find a vehicle by its license plate with improved performance
  * 
  * @param licensePlate The license plate to search for
  * @returns Result object with success flag, data and message
@@ -32,52 +30,26 @@ export const findVehicleByLicensePlate = async (
       };
     }
     
-    // Check database connection first
-    const connectionStatus = await checkSupabaseHealth();
-    if (!connectionStatus.isHealthy) {
-      debug(`Database connection issue: ${connectionStatus.error}`);
-      return {
-        success: false,
-        message: `Database connection issue: ${connectionStatus.error || 'Unknown connection error'}`
-      };
-    }
-    
     // Normalize license plate for consistent searching
     const normalizedLicensePlate = licensePlate.trim().toUpperCase();
     debug(`Normalized license plate for search: ${normalizedLicensePlate}`);
     
-    // Use withTimeoutAndRetry for the database query
-    const result = await withTimeoutAndRetry(
-      async () => {
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('*, vehicle_types(*)')
-          .ilike('license_plate', normalizedLicensePlate)
-          .maybeSingle();
-        
-        if (error) {
-          throw error;
-        }
-        
-        return data;
-      },
-      {
-        retries: 1,
-        retryDelayMs: 500,
-        timeoutMs: 5000,
-        operationName: `Search vehicle with license plate ${normalizedLicensePlate}`,
-      }
-    );
+    // Direct query without unnecessary health check
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*, vehicle_types(*)')
+      .ilike('license_plate', normalizedLicensePlate)
+      .maybeSingle();
     
-    if (!result.success) {
-      debug(`Database query failed: ${result.error?.message}`);
+    if (error) {
+      debug(`Database query failed: ${error.message}`);
       return {
         success: false,
-        message: `Error searching for vehicle: ${result.error?.message || 'Unknown database error'}`
+        message: `Error searching for vehicle: ${error.message}`
       };
     }
     
-    if (!result.data) {
+    if (!data) {
       debug(`No vehicle found with license plate: ${normalizedLicensePlate}`);
       return {
         success: false,
@@ -85,11 +57,11 @@ export const findVehicleByLicensePlate = async (
       };
     }
     
-    debug(`Vehicle found: ${result.data.make} ${result.data.model} (${result.data.license_plate})`);
+    debug(`Vehicle found: ${data.make} ${data.model} (${data.license_plate})`);
     return {
       success: true,
-      data: result.data as DatabaseVehicleRecord,
-      message: `Vehicle found: ${result.data.make} ${result.data.model}`
+      data: data as DatabaseVehicleRecord,
+      message: `Vehicle found: ${data.make} ${data.model}`
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);

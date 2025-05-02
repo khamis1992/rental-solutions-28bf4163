@@ -8,8 +8,7 @@ const debug = (message: string) => {
 };
 
 /**
- * Update vehicle status with simplified error handling
- * Streamlined implementation with better reliability
+ * Update vehicle status with improved performance and simplified error handling
  */
 export const updateVehicleStatus = async (
   id: string,
@@ -23,7 +22,7 @@ export const updateVehicleStatus = async (
     'police_station', 'accident', 'stolen', 'retired'
   ];
   
-  if (!validStatuses.includes(status as VehicleStatus)) {
+  if (!validStatuses.includes(status)) {
     debug(`Invalid status value provided: ${status}`);
     return {
       success: false,
@@ -46,32 +45,7 @@ export const updateVehicleStatus = async (
     
     debug(`Mapped status to database format: '${dbStatus}'`);
     
-    // First verify the vehicle exists
-    const { data: vehicle, error: checkError } = await supabase
-      .from('vehicles')
-      .select('id, status')
-      .eq('id', id)
-      .maybeSingle();
-      
-    if (checkError) {
-      debug(`Error checking vehicle existence: ${checkError.message}`);
-      return {
-        success: false,
-        message: `Failed to verify vehicle: ${checkError.message}`
-      };
-    }
-    
-    if (!vehicle) {
-      debug(`Vehicle with ID ${id} not found`);
-      return {
-        success: false,
-        message: `Vehicle with ID ${id} not found`
-      };
-    }
-    
-    debug(`Current vehicle DB status: ${vehicle.status}, updating to: ${dbStatus}`);
-    
-    // Perform a direct update with consistent timestamp
+    // Update with timestamp in a single operation for better performance
     const timestamp = new Date().toISOString();
     debug(`Performing database update with timestamp ${timestamp}`);
     
@@ -96,11 +70,6 @@ export const updateVehicleStatus = async (
     if (data && data.length > 0) {
       const updatedVehicle = data[0];
       debug(`Update successful. New database status: ${updatedVehicle.status}`);
-      
-      // Double-check the status was updated correctly
-      if (updatedVehicle.status !== dbStatus) {
-        debug(`WARNING: Status mismatch: expected ${dbStatus}, got ${updatedVehicle.status}`);
-      }
       
       return {
         success: true,
