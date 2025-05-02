@@ -8,3 +8,6 @@ export * from './VehicleImageUpload';
 export * from './VehicleMonitoring';
 export * from './VehicleOnboardingWizard';
 export * from './VehicleStatusUpdate';
+export * from './VehicleStatusSearch';
+export * from './VehicleStatusUpdateForm';
+
