@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { Database } from './types';
+import { showErrorNotification, clearNotification } from '@/utils/notification/error-notification-manager';
 
 // Use environment variables from .env
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
@@ -220,6 +221,10 @@ export const checkConnectionWithRetry = async (
   return false;
 };
 
+// Constants for notification IDs
+const DB_CONNECTION_ERROR_ID = 'db-connection-error';
+const DB_CONNECTION_RESTORED_ID = 'db-connection-restored';
+
 // A unified function to monitor database connectivity with UI feedback
 export const monitorDatabaseConnection = (
   onConnectionChange?: (status: { isConnected: boolean, error?: string }) => void,
@@ -236,16 +241,24 @@ export const monitorDatabaseConnection = (
       
       if (!isHealthy) {
         console.error(`Database connection lost: ${error}`);
-        toast.error('Database connection lost', {
+        
+        // Use error notification manager to prevent duplicate notifications
+        showErrorNotification('Database connection lost', {
           description: `Cannot connect to database: ${error || 'Check your internet connection'}`,
           duration: 0, // Keep until dismissed or reconnected
-          id: 'db-connection-error'
+          id: DB_CONNECTION_ERROR_ID
         });
       } else {
         console.log(`Database connection restored (latency: ${latency}ms)`);
+        
+        // Clear the error notification if it exists
+        clearNotification(DB_CONNECTION_ERROR_ID);
+        
+        // Show restoration notification (no need for special handling as this is rare)
         toast.success('Database connection restored', {
           description: 'Your connection to the database has been re-established',
-          id: 'db-connection-error'
+          id: DB_CONNECTION_RESTORED_ID,
+          duration: 5000  // Show briefly then dismiss
         });
       }
       

@@ -9,9 +9,12 @@ import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
 import TrafficFineDataQuality from "@/components/reports/TrafficFineDataQuality";
+import { useErrorNotification } from "@/hooks/use-error-notification";
+import { useEffect } from "react";
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
+  const errorNotification = useErrorNotification();
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -20,6 +23,17 @@ const TrafficFines = () => {
   const handleFineSaved = () => {
     setActiveTab("list");
   };
+
+  // Error handling example
+  useEffect(() => {
+    // Clear any stale notifications when component mounts
+    errorNotification.clearError("traffic-fines-error");
+    
+    return () => {
+      // Clean up any pending notifications when component unmounts
+      errorNotification.clearError("traffic-fines-error");
+    };
+  }, [errorNotification]);
 
   return (
     <PageContainer>

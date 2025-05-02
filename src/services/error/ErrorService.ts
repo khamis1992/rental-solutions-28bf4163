@@ -1,5 +1,6 @@
 
 import { ErrorData, ErrorSeverity } from '@/contexts/ErrorContext';
+import { showErrorNotification } from '@/utils/notification/error-notification-manager';
 
 // Define error categories
 export type ErrorCategory = 
@@ -95,6 +96,15 @@ class ErrorService {
       errorMessage = `${context}: ${errorMessage}`;
     }
     
+    // Use notification manager to prevent duplicate notifications
+    // for critical errors that might occur repeatedly
+    if (errorCode.startsWith('DB_')) {
+      showErrorNotification(errorCode, {
+        description: errorMessage,
+        id: `api-db-error-${errorCode}`,
+      });
+    }
+    
     return this.errorHandler({
       message: errorMessage,
       severity: 'error',
@@ -120,6 +130,12 @@ class ErrorService {
     if (context) {
       errorMessage = `${context}: ${errorMessage}`;
     }
+    
+    // Use notification manager to prevent duplicate network error notifications
+    showErrorNotification('Network Error', {
+      description: errorMessage,
+      id: 'network-error',
+    });
     
     return this.errorHandler({
       message: errorMessage,
@@ -193,6 +209,14 @@ class ErrorService {
     
     if (context) {
       errorMessage = `${context}: ${errorMessage}`;
+    }
+    
+    // Use the notification manager for serious errors
+    if (severity === 'error') {
+      showErrorNotification(code, {
+        description: errorMessage,
+        id: `general-error-${category}-${code}`,
+      });
     }
     
     return this.errorHandler({
