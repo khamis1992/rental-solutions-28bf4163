@@ -1,331 +1,338 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileUp, AlertCircle, Check } from 'lucide-react';
-import { downloadCSVTemplate } from '@/utils/csv-utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, AlertTriangle, Check, X } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import Papa from 'papaparse';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/lib/supabase';
+import { asUUID } from '@/lib/uuid-helpers';
+import { validateTrafficFines, identifyFinesWithoutLicensePlates } from '@/utils/validation/traffic-fine-validation';
 
 interface CsvRow {
-  violation_number?: string;
-  license_plate?: string;
-  violation_date?: string;
-  fine_amount?: string;
-  violation_charge?: string;
-  fine_location?: string;
-  payment_status?: string;
+  [key: string]: string;
 }
 
-const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void }) => {
+const TrafficFineImport = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<CsvRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [importStats, setImportStats] = useState<{
-    total: number;
-    success: number;
-    failed: number;
+  const [parsing, setParsing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [parsedData, setParsedData] = useState<CsvRow[]>([]);
+  const [validationResults, setValidationResults] = useState<{
+    allValid: boolean;
+    errorCount: number;
+    finesWithoutLicensePlate: any[];
   } | null>(null);
 
-  const csvHeaders = [
-    'violation_number',
-    'license_plate',
-    'violation_date',
-    'fine_amount',
-    'violation_charge',
-    'fine_location',
-    'payment_status'
-  ];
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+      setParsedData([]);
+      setValidationResults(null);
+    }
+  }, []);
+  
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv'],
+      'application/csv': ['.csv']
+    },
+    maxFiles: 1
+  });
 
-  // Map from CSV column names to database field names
-  const fieldMapping: Record<string, string> = {
-    'violation_number': 'violation_number',
-    'license_plate': 'license_plate',
-    'violation_date': 'violation_date',
-    'fine_amount': 'fine_amount',
-    'violation_charge': 'violation_charge',
-    'fine_location': 'fine_location',
-    'payment_status': 'payment_status'
-  };
-
-  const downloadTemplate = () => {
-    downloadCSVTemplate(csvHeaders, 'traffic_fines_import_template.csv');
-    toast.success('Template downloaded successfully', {
-      description: 'Fill in the template with your traffic fines data and upload it'
+  const parseFile = async () => {
+    if (!file) return;
+    
+    setParsing(true);
+    
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        try {
+          const data = results.data as CsvRow[];
+          
+          // Perform validation on the parsed data
+          const mappedData = data.map(row => ({
+            licensePlate: row.licensePlate || row.license_plate || '',
+            violationNumber: row.violationNumber || row.violation_number || '',
+            violationDate: row.violationDate || row.violation_date || '',
+            fineAmount: parseFloat(row.fineAmount || row.fine_amount || '0'),
+            violationCharge: row.violationCharge || row.violation_charge || '',
+            location: row.location || ''
+          }));
+          
+          const validationResults = validateTrafficFines(mappedData);
+          const finesWithoutLicensePlate = identifyFinesWithoutLicensePlates(mappedData);
+          
+          setValidationResults({
+            allValid: validationResults.allValid,
+            errorCount: validationResults.errorCount,
+            finesWithoutLicensePlate
+          });
+          
+          setParsedData(data);
+          
+          if (validationResults.errorCount > 0) {
+            toast.warning(`Found ${validationResults.errorCount} validation errors in the data`, {
+              description: "Review the errors before proceeding with the import."
+            });
+          } else if (finesWithoutLicensePlate.length > 0) {
+            toast.warning(`Found ${finesWithoutLicensePlate.length} fines without license plates`, {
+              description: "License plates are required for proper assignment."
+            });
+          } else {
+            toast.success("CSV file parsed successfully, ready to import", {
+              description: `Found ${data.length} traffic fines to import`
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing CSV:', error);
+          toast.error('Error parsing CSV file', {
+            description: error instanceof Error ? error.message : 'Check file format and try again'
+          });
+        } finally {
+          setParsing(false);
+        }
+      },
+      error: (error) => {
+        console.error('CSV parsing error:', error);
+        toast.error('Failed to parse CSV file', {
+          description: error.message
+        });
+        setParsing(false);
+      }
     });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      parseCSV(selectedFile);
-    }
-  };
-
-  const parseCSV = (file: File) => {
-    setError(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const csvText = event.target?.result as string;
-        const rows = csvText.split('\n').filter(line => line.trim() !== '');
-        
-        // Extract headers
-        const headers = rows[0].split(',').map(header => header.trim().toLowerCase());
-        
-        // Validate required headers
-        const missingHeaders = ['license_plate'].filter(
-          requiredHeader => !headers.includes(requiredHeader)
-        );
-        
-        if (missingHeaders.length > 0) {
-          setError(`Missing required headers: ${missingHeaders.join(', ')}`);
-          return;
-        }
-        
-        // Parse data
-        const parsedRows: CsvRow[] = [];
-        for (let i = 1; i < Math.min(rows.length, 6); i++) {
-          const values = rows[i].split(',');
-          const row: CsvRow = {};
-          
-          headers.forEach((header, index) => {
-            if (fieldMapping[header] && values[index]) {
-              row[header as keyof CsvRow] = values[index].trim();
-            }
-          });
-          
-          // Validate license plate is present
-          if (!row.license_plate) {
-            continue;
-          }
-          
-          parsedRows.push(row);
-        }
-        
-        setPreviewData(parsedRows);
-      } catch (err) {
-        console.error('Error parsing CSV:', err);
-        setError('Failed to parse CSV file. Please check the format.');
-      }
-    };
+  const importData = async () => {
+    if (parsedData.length === 0) return;
     
-    reader.onerror = () => {
-      setError('Failed to read file');
-    };
-    
-    reader.readAsText(file);
-  };
-
-  const handleImport = async () => {
-    if (!file) return;
-    
-    setIsLoading(true);
-    setError(null);
+    setImporting(true);
     
     try {
-      const reader = new FileReader();
+      // Process each row of data
+      const results = {
+        success: 0,
+        errors: 0,
+        details: [] as string[]
+      };
       
-      reader.onload = async (event) => {
+      for (const row of parsedData) {
         try {
-          const csvText = event.target?.result as string;
-          const rows = csvText.split('\n').filter(line => line.trim() !== '');
-          const headers = rows[0].split(',').map(header => header.trim().toLowerCase());
+          // Map CSV columns to database fields
+          const fineData = {
+            violation_number: row.violationNumber || row.violation_number || undefined,
+            license_plate: row.licensePlate || row.license_plate,
+            violation_date: new Date(row.violationDate || row.violation_date || new Date()).toISOString(),
+            fine_amount: parseFloat(row.fineAmount || row.fine_amount || '0'),
+            violation_charge: row.violationCharge || row.violation_charge || undefined,
+            fine_location: row.location || undefined,
+            payment_status: 'pending',
+            entry_type: 'imported'
+          };
           
-          let successCount = 0;
-          let failCount = 0;
-          
-          // Process each row (skipping header)
-          for (let i = 1; i < rows.length; i++) {
-            const values = rows[i].split(',');
-            const data: Record<string, any> = {};
+          // Insert the record
+          const { data, error } = await supabase
+            .from('traffic_fines')
+            .insert(fineData)
+            .select();
             
-            // Map CSV fields to database fields
-            headers.forEach((header, index) => {
-              if (fieldMapping[header] && values[index]) {
-                const value = values[index].trim();
-                
-                // Type conversions as needed
-                if (header === 'fine_amount') {
-                  data[fieldMapping[header]] = parseFloat(value);
-                } else if (header === 'violation_date') {
-                  data[fieldMapping[header]] = new Date(value).toISOString();
-                } else {
-                  data[fieldMapping[header]] = value;
-                }
-              }
-            });
-            
-            // Ensure license_plate is present
-            if (!data.license_plate || data.license_plate.trim() === '') {
-              console.warn(`Row ${i} skipped: missing license plate`);
-              failCount++;
-              continue;
-            }
-            
-            // Set default values for missing fields
-            if (!data.payment_status) {
-              data.payment_status = 'pending';
-            }
-            
-            if (!data.violation_number) {
-              data.violation_number = `TF-${Math.floor(Math.random() * 10000)}`;
-            }
-            
-            // Insert into database
-            const { error: insertError } = await supabase
-              .from('traffic_fines')
-              .insert(data);
-              
-            if (insertError) {
-              console.error(`Error inserting row ${i}:`, insertError);
-              failCount++;
-            } else {
-              successCount++;
-            }
+          if (error) {
+            throw error;
           }
           
-          setImportStats({
-            total: rows.length - 1, // Excluding header
-            success: successCount,
-            failed: failCount
-          });
-          
-          if (successCount > 0) {
-            toast.success(`Successfully imported ${successCount} traffic fines`);
-            if (onImportComplete) onImportComplete();
-          }
-          
-          if (failCount > 0) {
-            toast.error(`Failed to import ${failCount} traffic fines`);
-          }
-        } catch (err) {
-          console.error('Error processing import:', err);
-          setError('Failed to process import. Please check the console for details.');
-        } finally {
-          setIsLoading(false);
+          results.success++;
+        } catch (error) {
+          console.error('Error importing row:', error, row);
+          results.errors++;
+          results.details.push(`Error with fine ${row.violationNumber || row.license_plate}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-      };
+      }
       
-      reader.onerror = () => {
-        setError('Failed to read file');
-        setIsLoading(false);
-      };
+      // Show results
+      if (results.errors === 0) {
+        toast.success(`Successfully imported ${results.success} traffic fines`);
+      } else {
+        toast.warning(
+          `Imported ${results.success} fines with ${results.errors} errors`,
+          {
+            description: `Some fines could not be imported due to errors.`
+          }
+        );
+      }
       
-      reader.readAsText(file);
-    } catch (err) {
-      console.error('Error during import:', err);
-      setError('An unexpected error occurred during import');
-      setIsLoading(false);
+      // Reset state
+      setFile(null);
+      setParsedData([]);
+      setValidationResults(null);
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('Failed to import traffic fines', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
         <CardTitle>Import Traffic Fines</CardTitle>
+        <CardDescription>
+          Upload a CSV file containing traffic fines data
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+      <CardContent className="space-y-6">
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-secondary/20 transition-colors ${
+            isDragActive ? 'border-primary bg-secondary/20' : 'border-muted-foreground/20'
+          }`}
+        >
+          <input {...getInputProps()} />
+          {isDragActive ? (
+            <div className="text-primary">Drop the file here...</div>
+          ) : (
+            <>
+              <p className="text-muted-foreground">
+                Drag and drop a CSV file here, or click to select a file
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Accepted format: .csv
+              </p>
+            </>
+          )}
+        </div>
+
+        {file && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">.csv</Badge>
+                <span className="font-medium">{file.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({Math.round(file.size / 1024)} KB)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setFile(null);
+                    setParsedData([]);
+                    setValidationResults(null);
+                  }}
+                  className="h-8 px-2"
+                >
+                  <X size={16} />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={parseFile}
+                  disabled={parsing}
+                  className="h-8"
+                >
+                  {parsing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Parsing...
+                    </>
+                  ) : (
+                    'Parse File'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
-        
-        {importStats && (
-          <Alert className="mb-4" variant={importStats.failed > 0 ? "destructive" : "default"}>
-            <Check className="h-4 w-4" />
-            <AlertTitle>Import Summary</AlertTitle>
+
+        {validationResults && (
+          <Alert variant={validationResults.allValid ? "default" : "destructive"}>
+            {validationResults.allValid ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <AlertTriangle className="h-4 w-4" />
+            )}
+            <AlertTitle>Validation Results</AlertTitle>
             <AlertDescription>
-              Total: {importStats.total}, 
-              Successful: {importStats.success}, 
-              Failed: {importStats.failed}
+              {validationResults.allValid 
+                ? `All ${parsedData.length} records passed validation`
+                : `Found ${validationResults.errorCount} validation errors in the data.`}
+              {validationResults.finesWithoutLicensePlate.length > 0 && (
+                <div className="mt-2 text-sm">
+                  Warning: {validationResults.finesWithoutLicensePlate.length} records are missing license plates
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
-        
-        <div className="space-y-4">
-          <div className="flex flex-col space-y-2">
-            <label htmlFor="csv-file" className="text-sm font-medium">
-              Select CSV File
-            </label>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('csv-file')?.click()}
-                className="w-full md:w-auto"
-              >
-                <FileUp className="h-4 w-4 mr-2" />
-                Choose File
-              </Button>
-              <Button 
-                variant="secondary"
-                onClick={downloadTemplate}
-                className="w-full md:w-auto"
-              >
-                Download Template
-              </Button>
-            </div>
-            <input
-              type="file"
-              id="csv-file"
-              className="hidden"
-              accept=".csv"
-              onChange={handleFileChange}
-            />
-            <p className="text-sm text-muted-foreground">
-              {file ? file.name : 'No file selected'}
-            </p>
-          </div>
-          
-          {previewData.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">Data Preview</h3>
-              <div className="border rounded-md overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Violation #</TableHead>
-                      <TableHead>License Plate</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Location</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewData.map((row, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{row.violation_number || 'N/A'}</TableCell>
-                        <TableCell className={!row.license_plate ? 'text-red-500 font-bold' : ''}>
-                          {row.license_plate || 'MISSING'}
-                        </TableCell>
-                        <TableCell>{row.violation_date || 'N/A'}</TableCell>
-                        <TableCell>{row.fine_amount || 'N/A'}</TableCell>
-                        <TableCell>{row.fine_location || 'N/A'}</TableCell>
-                      </TableRow>
+
+        {parsedData.length > 0 && (
+          <>
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {Object.keys(parsedData[0]).map((header) => (
+                      <TableHead key={header}>{header}</TableHead>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parsedData.slice(0, 5).map((row, index) => (
+                    <TableRow key={index}>
+                      {Object.values(row).map((value, valueIndex) => (
+                        <TableCell key={valueIndex}>{value}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </div>
+            
+            {parsedData.length > 5 && (
+              <p className="text-xs text-center text-muted-foreground">
+                Showing 5 of {parsedData.length} records
+              </p>
+            )}
+            
+            <div className="flex justify-end">
+              <Button
+                onClick={importData}
+                disabled={importing || validationResults?.errorCount > 0}
+                className="mt-2"
+              >
+                {importing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  `Import ${parsedData.length} Traffic Fines`
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={handleImport} 
-          disabled={!file || previewData.length === 0 || isLoading}
-          className="w-full md:w-auto"
-        >
-          {isLoading ? 'Importing...' : 'Import Traffic Fines'}
-        </Button>
-      </CardFooter>
     </Card>
   );
 };

@@ -1,326 +1,205 @@
 
-/**
- * Testing utilities for traffic fines functionality
- */
-import { supabase } from '@/integrations/supabase/client';
-import { TrafficFine } from '@/hooks/use-traffic-fines';
-import { logOperation } from './monitoring-utils';
+import { supabase } from '@/lib/supabase';
+import { validateTrafficFines, identifyFinesWithoutLicensePlates } from '@/utils/validation/traffic-fine-validation';
 
 /**
- * Run a diagnostic test on traffic fine assignment process
+ * Traffic fine data quality test result
  */
-export const testTrafficFineAssignment = async (fineId: string) => {
-  const results = {
-    success: false,
-    steps: [] as {step: string, success: boolean, message: string, data?: any}[],
-    overallStatus: '',
-    recommendations: [] as string[]
+export interface TrafficFineDataQualityResult {
+  status: 'success' | 'warning' | 'error';
+  totalRecords: number;
+  validRecords: number;
+  invalidRecords: number;
+  missingLicensePlateCount: number;
+  duplicateCount: number;
+  issues: string[];
+}
+
+/**
+ * Test the quality of traffic fine data in the database
+ * @returns Promise resolving to a data quality test result
+ */
+export const testTrafficFineDataQuality = async (): Promise<TrafficFineDataQualityResult> => {
+  const results: TrafficFineDataQualityResult = {
+    status: 'success',
+    totalRecords: 0,
+    validRecords: 0,
+    invalidRecords: 0,
+    missingLicensePlateCount: 0,
+    duplicateCount: 0,
+    issues: []
   };
   
   try {
-    // Step 1: Get traffic fine details
-    let step = {
-      step: 'Fetching traffic fine',
-      success: false,
-      message: '',
-      data: null as any
-    };
+    // Fetch all traffic fines
+    const { data: fines, error } = await supabase
+      .from('traffic_fines')
+      .select('*');
+      
+    if (error) {
+      throw new Error(`Failed to fetch traffic fines: ${error.message}`);
+    }
     
-    const { data: fine, error: fineError } = await supabase
+    if (!fines) {
+      throw new Error('No data returned from database');
+    }
+    
+    results.totalRecords = fines.length;
+    
+    if (fines.length === 0) {
+      results.issues.push('No traffic fines found in the database');
+      return results;
+    }
+    
+    // Check for data validation issues
+    const mappedData = fines.map(fine => ({
+      licensePlate: fine.license_plate,
+      violationNumber: fine.violation_number,
+      violationDate: fine.violation_date ? new Date(fine.violation_date) : undefined,
+      fineAmount: fine.fine_amount,
+      violationCharge: fine.violation_charge,
+      location: fine.fine_location
+    }));
+    
+    const validationResults = validateTrafficFines(mappedData);
+    results.invalidRecords = validationResults.errorCount;
+    results.validRecords = results.totalRecords - results.invalidRecords;
+    
+    if (validationResults.errorCount > 0) {
+      results.status = 'warning';
+      results.issues.push(`${validationResults.errorCount} traffic fines have validation errors`);
+    }
+    
+    // Check for missing license plates
+    const finesWithoutLicensePlate = identifyFinesWithoutLicensePlates(mappedData);
+    results.missingLicensePlateCount = finesWithoutLicensePlate.length;
+    
+    if (finesWithoutLicensePlate.length > 0) {
+      results.status = 'warning';
+      results.issues.push(`${finesWithoutLicensePlate.length} traffic fines have no license plate`);
+    }
+    
+    // Check for potential duplicates
+    const licenseViolationMap = new Map<string, string[]>();
+    
+    fines.forEach(fine => {
+      if (!fine.license_plate || !fine.violation_date) return;
+      
+      const key = `${fine.license_plate}_${fine.violation_date}`;
+      const existingIds = licenseViolationMap.get(key) || [];
+      licenseViolationMap.set(key, [...existingIds, fine.id]);
+    });
+    
+    const duplicates = Array.from(licenseViolationMap.entries())
+      .filter(([_, ids]) => ids.length > 1);
+      
+    results.duplicateCount = duplicates.length;
+    
+    if (duplicates.length > 0) {
+      results.status = 'warning';
+      results.issues.push(`Found ${duplicates.length} potential duplicate entries (same license plate and date)`);
+    }
+    
+    // Set final status
+    if (results.invalidRecords > results.totalRecords * 0.2) {
+      results.status = 'error';
+      results.issues.push(`High percentage (${Math.round(results.invalidRecords / results.totalRecords * 100)}%) of invalid records detected`);
+    }
+    
+    return results;
+    
+  } catch (error) {
+    console.error('Error testing data quality:', error);
+    return {
+      status: 'error',
+      totalRecords: 0,
+      validRecords: 0,
+      invalidRecords: 0,
+      missingLicensePlateCount: 0,
+      duplicateCount: 0,
+      issues: [error instanceof Error ? error.message : 'Unknown error occurred']
+    };
+  }
+};
+
+/**
+ * Fix common data quality issues with traffic fines
+ * @returns Promise resolving to a result of the fix operation
+ */
+export const fixTrafficFineDataQualityIssues = async (): Promise<{
+  success: boolean;
+  fixed: number;
+  issues: string[];
+}> => {
+  const result = {
+    success: true,
+    fixed: 0,
+    issues: [] as string[]
+  };
+  
+  try {
+    // 1. Fix missing violation dates by setting them to the current date
+    const { data: noDateData, error: noDateError } = await supabase
+      .from('traffic_fines')
+      .update({ violation_date: new Date().toISOString() })
+      .is('violation_date', null)
+      .select();
+      
+    if (noDateError) {
+      throw new Error(`Error fixing missing dates: ${noDateError.message}`);
+    }
+    
+    if (noDateData && noDateData.length > 0) {
+      result.fixed += noDateData.length;
+      result.issues.push(`Fixed ${noDateData.length} records with missing violation dates`);
+    }
+    
+    // 2. Fix negative fine amounts by converting them to positive
+    const { data: negativeAmountData, error: negativeAmountError } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('id', fineId)
-      .single();
+      .lt('fine_amount', 0);
       
-    if (fineError) {
-      step.success = false;
-      step.message = `Error: ${fineError.message}`;
-      results.steps.push(step);
-      results.overallStatus = 'Failed to fetch traffic fine';
-      results.recommendations.push('Verify that the traffic fine ID exists');
-      return results;
+    if (negativeAmountError) {
+      throw new Error(`Error finding negative amounts: ${negativeAmountError.message}`);
     }
     
-    step.success = true;
-    step.message = 'Successfully fetched traffic fine';
-    step.data = fine;
-    results.steps.push(step);
-    
-    // Step 2: Check license plate
-    step = {
-      step: 'Validating license plate',
-      success: false,
-      message: '',
-      data: null
-    };
-    
-    if (!fine.license_plate) {
-      step.success = false;
-      step.message = 'Traffic fine has no license plate';
-      results.steps.push(step);
-      results.overallStatus = 'Cannot process without license plate';
-      results.recommendations.push('Add a license plate to the traffic fine');
-      return results;
-    }
-    
-    step.success = true;
-    step.message = `License plate: ${fine.license_plate}`;
-    results.steps.push(step);
-    
-    // Step 3: Find vehicle
-    step = {
-      step: 'Finding vehicle',
-      success: false,
-      message: '',
-      data: null
-    };
-    
-    const { data: vehicle, error: vehicleError } = await supabase
-      .from('vehicles')
-      .select('id, make, model, license_plate')
-      .eq('license_plate', fine.license_plate)
-      .single();
+    if (negativeAmountData && negativeAmountData.length > 0) {
+      for (const fine of negativeAmountData) {
+        await supabase
+          .from('traffic_fines')
+          .update({ fine_amount: Math.abs(fine.fine_amount) })
+          .eq('id', fine.id);
+      }
       
-    if (vehicleError) {
-      step.success = false;
-      step.message = `Error: ${vehicleError.message}`;
-      results.steps.push(step);
-      results.overallStatus = 'Failed to find matching vehicle';
-      results.recommendations.push('Verify that a vehicle with this license plate exists');
-      return results;
+      result.fixed += negativeAmountData.length;
+      result.issues.push(`Fixed ${negativeAmountData.length} records with negative fine amounts`);
     }
     
-    step.success = true;
-    step.message = `Found vehicle: ${vehicle.make} ${vehicle.model}`;
-    step.data = vehicle;
-    results.steps.push(step);
-    
-    // Step 4: Find active lease
-    step = {
-      step: 'Finding active lease',
-      success: false,
-      message: '',
-      data: null
-    };
-    
-    const violationDate = new Date(fine.violation_date);
-    
-    const { data: leases, error: leaseError } = await supabase
-      .from('leases')
-      .select('id, customer_id, agreement_number, start_date, end_date')
-      .eq('vehicle_id', vehicle.id)
-      .lte('start_date', violationDate.toISOString())
-      .gte('end_date', violationDate.toISOString());
+    // 3. Fix null payment statuses
+    const { data: noStatusData, error: noStatusError } = await supabase
+      .from('traffic_fines')
+      .update({ payment_status: 'pending' })
+      .is('payment_status', null)
+      .select();
       
-    if (leaseError) {
-      step.success = false;
-      step.message = `Error: ${leaseError.message}`;
-      results.steps.push(step);
-      results.overallStatus = 'Failed to find active lease';
-      results.recommendations.push('Verify that the database is accessible');
-      return results;
+    if (noStatusError) {
+      throw new Error(`Error fixing missing statuses: ${noStatusError.message}`);
     }
     
-    if (!leases || leases.length === 0) {
-      step.success = false;
-      step.message = `No active lease found for date: ${violationDate.toISOString()}`;
-      results.steps.push(step);
-      results.overallStatus = 'No active lease for this date';
-      results.recommendations.push('Verify that the vehicle was leased on the violation date');
-      return results;
+    if (noStatusData && noStatusData.length > 0) {
+      result.fixed += noStatusData.length;
+      result.issues.push(`Fixed ${noStatusData.length} records with missing payment status`);
     }
     
-    step.success = true;
-    step.message = `Found ${leases.length} active lease(s)`;
-    step.data = leases;
-    results.steps.push(step);
-    
-    // Step 5: Get customer details
-    step = {
-      step: 'Getting customer details',
-      success: false,
-      message: '',
-      data: null
-    };
-    
-    const lease = leases[0]; // Use the first lease if multiple
-    
-    if (!lease.customer_id) {
-      step.success = false;
-      step.message = 'Lease has no customer ID';
-      results.steps.push(step);
-      results.overallStatus = 'Lease is missing customer information';
-      results.recommendations.push('Update the lease with customer information');
-      return results;
-    }
-    
-    const { data: customer, error: customerError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('id', lease.customer_id)
-      .single();
-      
-    if (customerError) {
-      step.success = false;
-      step.message = `Error: ${customerError.message}`;
-      results.steps.push(step);
-      results.overallStatus = 'Failed to get customer details';
-      results.recommendations.push('Verify that the customer exists');
-      return results;
-    }
-    
-    step.success = true;
-    step.message = `Found customer: ${customer.full_name}`;
-    step.data = customer;
-    results.steps.push(step);
-    
-    // Final result
-    results.success = true;
-    results.overallStatus = 'Traffic fine can be assigned successfully';
+    return result;
     
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    results.steps.push({
-      step: 'Unexpected error',
+    console.error('Error fixing data quality issues:', error);
+    return {
       success: false,
-      message: errorMessage,
-      data: null
-    });
-    results.overallStatus = 'Test failed due to unexpected error';
-    results.recommendations.push('Check server logs for details');
-    
-    // Log the error
-    logOperation(
-      'trafficFineAssignmentTest',
-      'error',
-      { fineId },
-      errorMessage
-    );
+      fixed: 0,
+      issues: [error instanceof Error ? error.message : 'Unknown error occurred']
+    };
   }
-  
-  return results;
-};
-
-/**
- * Validate a traffic fine for assignment eligibility
- */
-export const validateTrafficFineForAssignment = (fine: TrafficFine): {
-  isValid: boolean;
-  validationErrors: string[];
-} => {
-  const validationErrors: string[] = [];
-  
-  // Required fields
-  if (!fine.id) validationErrors.push('Missing fine ID');
-  if (!fine.licensePlate) validationErrors.push('Missing license plate');
-  if (!fine.violationDate) validationErrors.push('Missing violation date');
-  
-  // Validation rules
-  if (fine.fineAmount <= 0) validationErrors.push('Invalid fine amount');
-  
-  // Date validation
-  const violationDate = fine.violationDate;
-  const today = new Date();
-  if (violationDate > today) validationErrors.push('Violation date cannot be in the future');
-  
-  // Business rules
-  if (fine.paymentStatus === 'paid') validationErrors.push('Fine is already paid');
-  
-  return {
-    isValid: validationErrors.length === 0,
-    validationErrors
-  };
-};
-
-/**
- * Run a health check on traffic fines system
- */
-export const runTrafficFinesSystemHealthCheck = async () => {
-  const results = {
-    status: 'success' as 'success' | 'warning' | 'error',
-    issues: [] as string[],
-    metrics: {
-      totalFines: 0,
-      unassignedFines: 0,
-      pendingFines: 0,
-      paidFines: 0,
-      disputedFines: 0
-    }
-  };
-  
-  try {
-    // Check database connection
-    const { error: connectionError } = await supabase.from('traffic_fines').select('count', { count: 'exact', head: true });
-    
-    if (connectionError) {
-      results.status = 'error';
-      results.issues.push(`Database connection error: ${connectionError.message}`);
-      return results;
-    }
-    
-    // Get traffic fines counts
-    const { data: countData, error: countError } = await supabase
-      .from('traffic_fines')
-      .select('payment_status, lease_id', { count: 'exact' });
-      
-    if (countError) {
-      results.status = 'error';
-      results.issues.push(`Failed to get traffic fines count: ${countError.message}`);
-      return results;
-    }
-    
-    // Calculate metrics
-    if (countData) {
-      results.metrics.totalFines = countData.length;
-      results.metrics.unassignedFines = countData.filter(fine => !fine.lease_id).length;
-      results.metrics.pendingFines = countData.filter(fine => fine.payment_status === 'pending').length;
-      results.metrics.paidFines = countData.filter(fine => fine.payment_status === 'paid').length;
-      results.metrics.disputedFines = countData.filter(fine => fine.payment_status === 'disputed').length;
-    }
-    
-    // Check for potential data issues
-    
-    // 1. Fines without license plates
-    const { data: noPlateData, error: noPlateError } = await supabase
-      .from('traffic_fines')
-      .select('id')
-      .is('license_plate', null);
-      
-    if (!noPlateError && noPlateData && noPlateData.length > 0) {
-      results.status = 'warning';
-      results.issues.push(`${noPlateData.length} traffic fines have no license plate`);
-    }
-    
-    // 2. Fines with future dates
-    const { data: futureDates, error: futureDatesError } = await supabase
-      .from('traffic_fines')
-      .select('id, violation_date')
-      .gt('violation_date', new Date().toISOString());
-      
-    if (!futureDatesError && futureDates && futureDates.length > 0) {
-      results.status = 'warning';
-      results.issues.push(`${futureDates.length} traffic fines have future violation dates`);
-    }
-    
-    // Overall system status
-    if (results.issues.length === 0) {
-      results.status = 'success';
-    } else if (results.status !== 'error') {
-      results.status = 'warning';
-    }
-    
-  } catch (error) {
-    results.status = 'error';
-    results.issues.push(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
-    
-    // Log the error
-    logOperation(
-      'trafficFinesHealthCheck',
-      'error',
-      {},
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-  
-  return results;
 };

@@ -1,266 +1,203 @@
 import React, { useState } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SearchIcon, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import { supabase } from '@/lib/supabase';
+import { TrafficFineStatusType } from '@/hooks/use-traffic-fines';
+import { validateTrafficFineWithToast } from '@/utils/validation/traffic-fine-validation';
 
-const validationSchema = z.object({
-  licensePlate: z.string().min(1, 'License plate is required'),
-});
+const TrafficFineValidation = () => {
+  const [licensePlate, setLicensePlate] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    fines_found: number;
+    total_amount: number;
+    pending_amount: number;
+    fines: {
+      id: string;
+      violation_number: string;
+      violation_date: Date;
+      amount: number;
+      status: TrafficFineStatusType;
+    }[];
+  } | null>(null);
 
-type ValidationFormValues = z.infer<typeof validationSchema>;
-
-const TrafficFineValidation: React.FC = () => {
-  const [validationResult, setValidationResult] = useState<any>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [assigningFine, setAssigningFine] = useState<string | null>(null);
-  const { trafficFines, assignToCustomer } = useTrafficFines();
-  
-  const form = useForm<ValidationFormValues>({
-    resolver: zodResolver(validationSchema),
-    defaultValues: {
-      licensePlate: '',
-    },
-  });
-
-  const onSubmit = async (data: ValidationFormValues) => {
-    setIsValidating(true);
-    setValidationResult(null);
-    
-    try {
-      const relevantFines = trafficFines?.filter(fine => 
-        fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
-      ) || [];
-      
-      const totalAmount = relevantFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
-      const pendingAmount = relevantFines
-        .filter(fine => fine.paymentStatus === 'pending')
-        .reduce((sum, fine) => sum + fine.fineAmount, 0);
-      
-      const { error: validationError } = await supabase
-        .from('traffic_fine_validations')
-        .insert({
-          license_plate: data.licensePlate,
-          validation_date: new Date().toISOString(),
-          validation_source: 'manual',
-          result: {
-            fines_found: relevantFines.length,
-            total_amount: totalAmount,
-            pending_amount: pendingAmount,
-            fines: relevantFines.map(fine => ({
-              id: fine.id,
-              violation_number: fine.violationNumber,
-              violation_date: fine.violationDate,
-              amount: fine.fineAmount,
-              status: fine.paymentStatus
-            }))
-          },
-          status: 'completed'
-        });
-        
-      if (validationError) {
-        console.error('Error recording validation:', validationError);
-        toast.error('Error recording validation result');
-      }
-      
-      setValidationResult({
-        licensePlate: data.licensePlate,
-        finesCount: relevantFines.length,
-        totalAmount,
-        pendingAmount,
-        fines: relevantFines
-      });
-      
-    } catch (error) {
-      console.error('Validation error:', error);
-      toast.error('Failed to validate license plate');
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const handleAssignToCustomer = async (id: string) => {
-    if (!id) {
-      toast.error("Invalid fine ID");
+  const validateLicensePlate = async () => {
+    // Validate license plate
+    if (!validateTrafficFineWithToast({
+      licensePlate
+    })) {
       return;
     }
-
+    
+    setValidating(true);
     try {
-      setAssigningFine(id);
-      await assignToCustomer.mutateAsync({ id });
-      toast.success("Fine assigned to customer successfully");
+      // Call the local validation endpoint
+      const validationDate = new Date().toISOString();
       
-      if (validationResult && validationResult.fines) {
-        setValidationResult({
-          ...validationResult,
-          fines: validationResult.fines.map((fine: any) => {
-            if (fine.id === id) {
-              return { ...fine, isAssigned: true };
-            }
-            return fine;
-          })
-        });
+      // For demonstration, we'll just query the database
+      const { data: fines, error } = await supabase
+        .from('traffic_fines')
+        .select('*')
+        .eq('license_plate', licensePlate)
+        .order('violation_date', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Error fetching fines: ${error.message}`);
       }
+      
+      // Process results
+      const validationData = {
+        fines_found: fines?.length || 0,
+        total_amount: fines?.reduce((sum, f) => sum + (f.fine_amount || 0), 0) || 0,
+        pending_amount: fines?.filter(f => f.payment_status === 'pending')
+          .reduce((sum, f) => sum + (f.fine_amount || 0), 0) || 0,
+        fines: (fines || []).map(f => ({
+          id: f.id,
+          violation_number: f.violation_number || '',
+          violation_date: new Date(f.violation_date),
+          amount: f.fine_amount || 0,
+          status: f.payment_status as TrafficFineStatusType
+        }))
+      };
+      
+      setValidationResult(validationData);
+      
+      // Log validation in the validation history table
+      await supabase
+        .from('traffic_fine_validations')
+        .insert({
+          license_plate: licensePlate,
+          validation_date: validationDate,
+          validation_source: 'local_database',
+          result: validationData,
+          status: 'completed'
+        });
+      
+      // Show result notification
+      if (validationData.fines_found > 0) {
+        toast.warning(`Found ${validationData.fines_found} traffic ${validationData.fines_found > 1 ? 'fines' : 'fine'} for ${licensePlate}`, {
+          description: `Total amount: QAR ${validationData.total_amount}`
+        });
+      } else {
+        toast.success(`No traffic fines found for ${licensePlate}`);
+      }
+      
     } catch (error) {
-      console.error("Error assigning fine to customer:", error);
-      toast.error("Failed to assign fine to customer", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      console.error('Error validating license plate:', error);
+      toast.error('Failed to validate license plate', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
+      setValidationResult(null);
     } finally {
-      setAssigningFine(null);
+      setValidating(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Fine Validation</CardTitle>
-          <CardDescription>
-            Check if a vehicle has any pending traffic fines
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent>
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-12 md:col-span-6">
-                  <FormField
-                    control={form.control}
-                    name="licensePlate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>License Plate</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter license plate" 
-                            {...field} 
-                            disabled={isValidating}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-12 md:col-span-6 md:flex md:items-end">
-                  <Button 
-                    type="submit" 
-                    disabled={isValidating} 
-                    className="w-full"
-                  >
-                    {isValidating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Validating...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Validate
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </form>
-        </Form>
-        <CardFooter className="flex flex-col items-start">
-          {validationResult && (
-            <div className="w-full">
-              <Alert 
-                variant={validationResult.finesCount > 0 ? "destructive" : "default"}
-                className={validationResult.finesCount > 0 ? "mb-4" : ""}
-              >
-                {validationResult.finesCount > 0 ? (
-                  <AlertCircle className="h-4 w-4" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                <AlertTitle>
-                  {validationResult.finesCount > 0 
-                    ? `${validationResult.finesCount} Traffic Fine(s) Found` 
-                    : 'No Traffic Fines Found'}
-                </AlertTitle>
-                <AlertDescription>
-                  {validationResult.finesCount > 0 
-                    ? `Total amount: QAR ${validationResult.totalAmount.toFixed(2)}, Pending amount: QAR ${validationResult.pendingAmount.toFixed(2)}`
-                    : `No traffic fines found for license plate ${validationResult.licensePlate}`}
-                </AlertDescription>
-              </Alert>
+    <Card>
+      <CardHeader>
+        <CardTitle>Traffic Fine Validation</CardTitle>
+        <CardDescription>
+          Check if a vehicle has any pending traffic fines
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex flex-col space-y-2">
+          <Label htmlFor="licensePlate">License Plate</Label>
+          <div className="flex space-x-2">
+            <Input
+              id="licensePlate"
+              placeholder="Enter license plate"
+              value={licensePlate}
+              onChange={(e) => setLicensePlate(e.target.value)}
+              className="flex-grow"
+            />
+            <Button 
+              onClick={validateLicensePlate} 
+              disabled={validating || !licensePlate}
+              className="w-36"
+            >
+              {validating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <SearchIcon className="mr-2 h-4 w-4" />
+                  Validate
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Enter the vehicle's license plate to check for any traffic fines
+          </p>
+        </div>
 
-              {validationResult.finesCount > 0 && (
-                <div className="mt-4 border rounded-md p-4">
-                  <h3 className="font-semibold mb-2">Fine Details</h3>
-                  <div className="space-y-2">
-                    {validationResult.fines.map((fine: any) => (
-                      <div key={fine.id} className="p-2 border rounded flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{fine.violationNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(fine.violationDate).toLocaleDateString()}
-                          </p>
+        {validationResult && (
+          <Alert 
+            variant={validationResult.fines_found > 0 ? "destructive" : "default"}
+            className="mt-6"
+          >
+            {validationResult.fines_found > 0 ? (
+              <AlertCircle className="h-4 w-4" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
+            <AlertTitle>Validation Results</AlertTitle>
+            <AlertDescription>
+              {validationResult.fines_found > 0 ? (
+                <div className="space-y-2">
+                  <p>
+                    Found {validationResult.fines_found} traffic {validationResult.fines_found > 1 ? 'fines' : 'fine'} for license plate {licensePlate}
+                  </p>
+                  <p>
+                    Total amount: QAR {validationResult.total_amount}
+                  </p>
+                  <p>
+                    Pending amount: QAR {validationResult.pending_amount}
+                  </p>
+                  
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold mb-2">Fine Details</h4>
+                    <div className="space-y-2">
+                      {validationResult.fines.map((fine, index) => (
+                        <div key={index} className="border p-2 rounded-md text-sm">
+                          <div className="flex justify-between">
+                            <span>Violation #{fine.violation_number || index+1}</span>
+                            <span className={fine.status === 'paid' ? 'text-green-500' : 'text-red-500'}>
+                              {fine.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Date: {fine.violation_date.toLocaleDateString()}</span>
+                            <span>Amount: QAR {fine.amount}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <p className="font-medium">QAR {fine.fineAmount.toFixed(2)}</p>
-                          <p className={`text-sm ${
-                            fine.paymentStatus === 'paid' 
-                              ? 'text-green-600' 
-                              : fine.paymentStatus === 'disputed' 
-                                ? 'text-amber-600' 
-                                : 'text-red-600'
-                          }`}>
-                            {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
-                          </p>
-                        </div>
-                        <div className="ml-4">
-                          {!fine.customerId && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAssignToCustomer(fine.id)}
-                              disabled={assigningFine === fine.id}
-                              className="flex items-center"
-                            >
-                              {assigningFine === fine.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Assigning...
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-3 w-3 mr-1" />
-                                  Assign
-                                </>
-                              )}
-                            </Button>
-                          )}
-                          {fine.customerId && (
-                            <div className="text-xs text-green-600 flex items-center">
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              Assigned
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <p>No traffic fines found for license plate {licensePlate}</p>
               )}
-            </div>
-          )}
-        </CardFooter>
-      </Card>
-    </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Add more detailed information or actions if needed */}
+      </CardContent>
+    </Card>
   );
 };
 
