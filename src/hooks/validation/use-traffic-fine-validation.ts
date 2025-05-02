@@ -1,81 +1,136 @@
 
-import { useState } from 'react';
-import { 
-  TrafficFineValidationResult, 
-  TrafficFineValidationSchema, 
-  validateTrafficFine 
-} from '@/utils/validation/traffic-fine-validation';
+import { useState, useCallback } from 'react';
 
-/**
- * Custom hook for validating traffic fine data
- */
-export const useTrafficFineValidation = (initialData?: TrafficFineValidationSchema) => {
-  const [data, setData] = useState<TrafficFineValidationSchema>(initialData || {});
-  const [validationResult, setValidationResult] = useState<TrafficFineValidationResult>({ 
-    isValid: true, 
-    errors: {} 
+interface TrafficFineData {
+  violationNumber?: string;
+  licensePlate?: string;
+  violationDate?: Date | null;
+  fineAmount?: number | null;
+  violationCharge?: string;
+  location?: string;
+  paymentStatus?: string;
+}
+
+interface ValidationErrors {
+  licensePlate?: string;
+  violationDate?: string;
+  fineAmount?: string;
+}
+
+export function useTrafficFineValidation() {
+  const [data, setData] = useState<TrafficFineData>({
+    violationNumber: '',
+    licensePlate: '',
+    violationDate: null,
+    fineAmount: null,
+    violationCharge: '',
+    location: '',
+    paymentStatus: 'pending'
   });
-  const [isDirty, setIsDirty] = useState<Record<string, boolean>>({});
   
-  /**
-   * Updates a field and validates it
-   */
-  const updateField = (field: keyof TrafficFineValidationSchema, value: any) => {
-    const newData = { ...data, [field]: value };
-    setData(newData);
-    setIsDirty({ ...isDirty, [field]: true });
-    
-    // Validate the updated data
-    const result = validateTrafficFine(newData);
-    setValidationResult(result);
-    
-    return result.isValid;
-  };
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [isDirty, setIsDirty] = useState(false);
   
-  /**
-   * Validates all fields and marks them as dirty
-   */
-  const validateAll = (): boolean => {
-    const result = validateTrafficFine(data);
-    setValidationResult(result);
-    
-    // Mark all fields as dirty when doing a full validation
-    const allDirty: Record<string, boolean> = {};
-    Object.keys(data).forEach(key => {
-      allDirty[key] = true;
-    });
-    setIsDirty(allDirty);
-    
-    return result.isValid;
-  };
-  
-  /**
-   * Gets the error message for a field if it's dirty and has an error
-   */
-  const getFieldError = (field: keyof TrafficFineValidationSchema): string | undefined => {
-    if (isDirty[field] && validationResult.errors[field]) {
-      return validationResult.errors[field];
+  const validateField = useCallback((field: keyof TrafficFineData, value: any): string | undefined => {
+    switch (field) {
+      case 'licensePlate':
+        if (!value || value.trim() === '') {
+          return 'License plate is required';
+        }
+        break;
+      
+      case 'violationDate':
+        if (!value) {
+          return 'Violation date is required';
+        }
+        
+        // Check if date is in the future
+        const currentDate = new Date();
+        currentDate.setHours(23, 59, 59, 999); // End of today
+        
+        if (value > currentDate) {
+          return 'Violation date cannot be in the future';
+        }
+        break;
+        
+      case 'fineAmount':
+        if (value === null || value === undefined) {
+          return 'Fine amount is required';
+        }
+        
+        if (isNaN(Number(value)) || Number(value) <= 0) {
+          return 'Fine amount must be a positive number';
+        }
+        break;
     }
+    
     return undefined;
-  };
+  }, []);
+
+  const updateField = useCallback((field: keyof TrafficFineData, value: any) => {
+    setData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    const error = validateField(field, value);
+    
+    setErrors(prev => ({
+      ...prev,
+      [field]: error
+    }));
+    
+    setIsDirty(true);
+  }, [validateField]);
   
-  /**
-   * Resets the form state
-   */
-  const resetForm = (newData?: TrafficFineValidationSchema) => {
-    setData(newData || {});
-    setValidationResult({ isValid: true, errors: {} });
-    setIsDirty({});
-  };
+  const validateAll = useCallback((): boolean => {
+    const newErrors: ValidationErrors = {};
+    let isValid = true;
+    
+    // Validate required fields
+    const requiredFields: (keyof TrafficFineData)[] = ['licensePlate', 'violationDate', 'fineAmount'];
+    
+    requiredFields.forEach(field => {
+      const error = validateField(field, data[field]);
+      if (error) {
+        newErrors[field] = error;
+        isValid = false;
+      }
+    });
+    
+    setErrors(newErrors);
+    setIsDirty(true);
+    
+    return isValid;
+  }, [data, validateField]);
+  
+  const resetForm = useCallback(() => {
+    setData({
+      violationNumber: '',
+      licensePlate: '',
+      violationDate: null,
+      fineAmount: null,
+      violationCharge: '',
+      location: '',
+      paymentStatus: 'pending'
+    });
+    setErrors({});
+    setIsDirty(false);
+  }, []);
+  
+  const getFieldError = useCallback((field: keyof ValidationErrors) => {
+    return errors[field];
+  }, [errors]);
   
   return {
     data,
-    isValid: validationResult.isValid,
-    errors: validationResult.errors,
+    errors,
     isDirty,
+    isValid: Object.keys(errors).length === 0,
     updateField,
+    validateField,
     validateAll,
-    getFieldError,
-    resetForm
+    resetForm,
+    getFieldError
   };
-};
+}

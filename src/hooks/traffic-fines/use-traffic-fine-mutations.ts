@@ -1,6 +1,6 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export interface TrafficFinePayload {
@@ -30,6 +30,14 @@ export function useTrafficFineMutations() {
         // Ensure licensePlate is present and not empty
         if (!fineData.licensePlate || fineData.licensePlate.trim() === '') {
           throw new Error('License plate is required for traffic fines');
+        }
+        
+        // Validate violation date is not in the future
+        const currentDate = new Date();
+        currentDate.setHours(23, 59, 59, 999); // End of today
+        
+        if (fineData.violationDate > currentDate) {
+          throw new Error('Violation date cannot be in the future');
         }
         
         // Create payload for database

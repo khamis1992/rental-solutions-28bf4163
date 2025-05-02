@@ -45,18 +45,40 @@ import TrafficFineImport from './TrafficFineImport';
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
+  onAddFine?: () => void;
 }
 
-const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
+const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
+  const { 
+    trafficFines, 
+    isLoading, 
+    payTrafficFine, 
+    disputeTrafficFine, 
+    assignToCustomer,
+    cleanupInvalidAssignments 
+  } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
+  const [showInvalidAssignments, setShowInvalidAssignments] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   ) : [];
+
+  // Check for invalid date ranges in fine assignments
+  const invalidAssignments = filteredFines.filter(fine => {
+    if (!fine.leaseId || !fine.leaseStartDate || !fine.violationDate) return false;
+    
+    const violationDate = new Date(fine.violationDate);
+    const leaseStartDate = new Date(fine.leaseStartDate);
+    const leaseEndDate = fine.leaseEndDate ? new Date(fine.leaseEndDate) : new Date();
+    
+    return violationDate < leaseStartDate || violationDate > leaseEndDate;
+  });
+  
+  const hasInvalidAssignments = invalidAssignments.length > 0;
 
   const assignedFines = filteredFines.filter(fine => fine.customerId);
   const unassignedFines = filteredFines.filter(fine => !fine.customerId);
@@ -99,7 +121,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutate({ id: fine.id });
+          await assignToCustomer.mutateAsync({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -123,6 +145,10 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
       setAssigningFines(false);
     }
   };
+  
+  const handleFixInvalidAssignments = () => {
+    cleanupInvalidAssignments.mutate();
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -138,6 +164,19 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
   const getCustomerAssignmentStatus = (fine: any) => {
     if (fine.customerId) {
+      const isInvalidAssignment = fine.leaseId && fine.violationDate && fine.leaseStartDate && (
+        new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
+        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate))
+      );
+      
+      if (isInvalidAssignment) {
+        return (
+          <Badge className="bg-orange-500 text-white border-orange-600">
+            <AlertTriangle className="mr-1 h-3 w-3" /> Invalid Assignment
+          </Badge>
+        );
+      }
+      
       return (
         <Badge className="bg-blue-500 text-white border-blue-600">
           <UserCheck className="mr-1 h-3 w-3" /> Assigned
@@ -173,6 +212,46 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
         />
       </div>
 
+      {hasInvalidAssignments && (
+        <Alert variant={showInvalidAssignments ? "default" : "destructive"} className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>
+              {invalidAssignments.length} traffic {invalidAssignments.length === 1 ? 'fine is' : 'fines are'} assigned to customers 
+              but the violation dates fall outside the lease periods.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowInvalidAssignments(!showInvalidAssignments)}
+              >
+                {showInvalidAssignments ? 'Hide' : 'Show'} Invalid Assignments
+              </Button>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                onClick={handleFixInvalidAssignments}
+                disabled={cleanupInvalidAssignments.isPending}
+              >
+                {cleanupInvalidAssignments.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Fixing...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="mr-2 h-3 w-3" />
+                    Fix Invalid Assignments
+                  </>
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -192,7 +271,10 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                 <UserCheck className="mr-2 h-4 w-4" /> 
                 {(assigningFines || isAutoAssigning) ? "Assigning..." : "Auto-Assign"}
               </Button>
-              <Button className="w-full md:w-auto">
+              <Button 
+                className="w-full md:w-auto"
+                onClick={onAddFine}
+              >
                 <Plus className="mr-2 h-4 w-4" /> Add Fine
               </Button>
             </div>
@@ -233,7 +315,15 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                     </TableCell>
                   </TableRow>
                 ) : filteredFines.length > 0 ? (
-                  filteredFines.map((fine) => (
+                  filteredFines.filter(fine => {
+                    // Filter out invalid assignments if not showing them
+                    if (!showInvalidAssignments && fine.customerId && fine.leaseId && fine.violationDate && fine.leaseStartDate) {
+                      const isInvalid = new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
+                        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate));
+                      return !isInvalid;
+                    }
+                    return true;
+                  }).map((fine) => (
                     <TableRow key={fine.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -133,7 +133,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
               <span className="text-destructive ml-1">*</span>
             </Label>
             <DatePicker
-              date={validation.data.violationDate instanceof Date ? validation.data.violationDate : null}
+              date={validation.data.violationDate}
               onSelect={(date) => validation.updateField('violationDate', date)}
               disabled={createFineMutation.isPending}
               className={validation.getFieldError('violationDate') ? 'border-destructive' : ''}

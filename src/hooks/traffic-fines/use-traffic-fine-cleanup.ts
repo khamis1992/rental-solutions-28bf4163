@@ -1,7 +1,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
 import { TrafficFine } from './use-traffic-fines-query';
 
 /**
@@ -40,11 +40,16 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
         );
         
         if (invalidFines.length === 0) {
-          toast.info('No invalid fine assignments found');
+          toast({
+            title: 'No invalid fine assignments found',
+            description: 'All traffic fines are properly assigned to valid lease periods'
+          });
           return { cleaned: 0 };
         }
         
         const invalidFineIds = invalidFines.map(fine => fine.id);
+        
+        console.log(`Cleaning up ${invalidFineIds.length} invalid fine assignments`);
         
         // Clear the lease_id for these fines
         const { error, count } = await supabase
@@ -67,11 +72,16 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success(`Successfully cleaned up ${data.cleaned} invalid fine assignments`);
+      toast({
+        title: 'Cleanup successful',
+        description: `Successfully cleaned up ${data.cleaned} invalid fine assignments`
+      });
     },
     onError: (error: Error) => {
-      toast.error('Failed to clean up invalid assignments', {
-        description: error.message
+      toast({
+        title: 'Cleanup failed',
+        description: error.message,
+        variant: 'destructive'
       });
     }
   });
