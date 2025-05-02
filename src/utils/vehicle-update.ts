@@ -1,8 +1,9 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { VehicleStatus, DatabaseVehicleStatus } from '@/types/vehicle';
+import { VehicleStatus } from '@/types/vehicle';
 import { withTimeoutAndRetry } from '@/utils/promise';
 
 /**
@@ -246,7 +247,7 @@ export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{
 };
 
 /**
- * Update just the vehicle status with proper error handling and forced verification
+ * Update just the vehicle status with simplified error handling and verification
  * This is the main function used by the StatusUpdateDialog
  */
 export const updateVehicleStatus = async (
@@ -304,7 +305,7 @@ export const updateVehicleStatus = async (
       async () => {
         // Perform a direct update to the database with consistent timestamp
         const timestamp = new Date().toISOString();
-        console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
+        console.log(`Performing database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
         
         const { data, error } = await supabase
           .from('vehicles')
@@ -336,67 +337,10 @@ export const updateVehicleStatus = async (
       };
     }
     
-    // Add a small delay before verification
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Verify status was actually updated with a separate query
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('vehicles')
-      .select('id, status, updated_at')
-      .eq('id', id)
-      .maybeSingle();
-      
-    if (verifyError) {
-      console.error('Verification query failed:', verifyError);
-      return {
-        success: false,
-        message: `Update succeeded but verification failed: ${verifyError.message}`
-      };
-    } else {
-      console.log(`Verification query shows status is now: ${verifyData?.status}`);
-      
-      // Double check that the status was actually updated as expected
-      if (verifyData?.status !== dbStatus) {
-        console.error(`Status verification failed: expected ${dbStatus}, got ${verifyData?.status}`);
-        
-        // Try one more time with a direct update
-        const forceUpdateResult = await withTimeoutAndRetry(
-          async () => {
-            const { error } = await supabase
-              .from('vehicles')
-              .update({ 
-                status: dbStatus,
-                updated_at: new Date().toISOString() 
-              })
-              .eq('id', id);
-              
-            if (error) {
-              throw error;
-            }
-            
-            return true;
-          },
-          {
-            retries: 1,
-            operationName: 'Force status update'
-          }
-        );
-        
-        if (!forceUpdateResult.success) {
-          return {
-            success: false,
-            message: `Status update verification failed. Database inconsistent.`
-          };
-        }
-        
-        console.log("Final force update completed, status should be updated now");
-      }
-    }
-    
     return {
       success: true,
       message: `Vehicle status updated to ${status}`,
-      data: updateResult.data || verifyData
+      data: updateResult.data
     };
   } catch (err) {
     console.error('Error in status update:', err);

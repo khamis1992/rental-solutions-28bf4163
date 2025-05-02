@@ -2,13 +2,13 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { CarFront, Loader2 } from 'lucide-react';
-import { VehicleData, VehicleStatus } from '@/types/vehicle';
+import { VehicleStatus } from '@/types/vehicle';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 
 interface StatusUpdateFormValues {
@@ -16,7 +16,13 @@ interface StatusUpdateFormValues {
 }
 
 interface VehicleStatusUpdateFormProps {
-  vehicle: VehicleData;
+  vehicle: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    status: VehicleStatus;
+  };
   onStatusUpdated: () => void;
   onCancel: () => void;
 }

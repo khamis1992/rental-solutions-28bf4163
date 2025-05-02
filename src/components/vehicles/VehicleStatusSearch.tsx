@@ -2,20 +2,20 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
-import { VehicleData } from '@/types/vehicle';
 import { findVehicleByLicensePlate } from '@/utils/vehicle-update';
+import { DatabaseVehicleRecord } from '@/types/vehicle';
 
 interface VehicleSearchFormValues {
   licensePlate: string;
 }
 
 interface VehicleStatusSearchProps {
-  onVehicleFound: (vehicle: VehicleData) => void;
+  onVehicleFound: (vehicle: DatabaseVehicleRecord) => void;
 }
 
 export const VehicleStatusSearch = ({ onVehicleFound }: VehicleStatusSearchProps) => {

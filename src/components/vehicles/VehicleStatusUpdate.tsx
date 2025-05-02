@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { VehicleData } from '@/types/vehicle';
 import { VehicleStatusSearch } from './VehicleStatusSearch';
 import { VehicleStatusUpdateForm } from './VehicleStatusUpdateForm';
+import { DatabaseVehicleRecord, VehicleStatus } from '@/types/vehicle';
+import { mapDBStatusToAppStatus } from '@/lib/vehicles/vehicle-mappers';
 
 const VehicleStatusUpdate = () => {
   const [step, setStep] = useState<'search' | 'update'>('search');
-  const [vehicle, setVehicle] = useState<VehicleData | null>(null);
+  const [vehicle, setVehicle] = useState<DatabaseVehicleRecord | null>(null);
 
-  const handleVehicleFound = (foundVehicle: VehicleData) => {
+  const handleVehicleFound = (foundVehicle: DatabaseVehicleRecord) => {
     setVehicle(foundVehicle);
     setStep('update');
   };
@@ -30,7 +31,13 @@ const VehicleStatusUpdate = () => {
         <VehicleStatusSearch onVehicleFound={handleVehicleFound} />
       ) : (
         <VehicleStatusUpdateForm 
-          vehicle={vehicle!} 
+          vehicle={{
+            id: vehicle!.id,
+            make: vehicle!.make,
+            model: vehicle!.model,
+            license_plate: vehicle!.license_plate,
+            status: mapDBStatusToAppStatus(vehicle!.status) || 'available'
+          }} 
           onStatusUpdated={handleStatusUpdated} 
           onCancel={handleCancel} 
         />

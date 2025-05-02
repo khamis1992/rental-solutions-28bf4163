@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { VehicleInsertData, VehicleUpdateData, DatabaseVehicleRecord } from '@/types/vehicle';
 import { mapToDBStatus } from '../vehicle-mappers';
