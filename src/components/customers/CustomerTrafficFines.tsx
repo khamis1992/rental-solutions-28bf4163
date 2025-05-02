@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { FileText } from 'lucide-react';
+import { FileText, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/utils/date-formatter';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -24,7 +26,8 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
   const [loading, setLoading] = useState<boolean>(true);
   const [agreements, setAgreements] = useState<any[]>([]);
   const [selectedAgreement, setSelectedAgreement] = useState<string>('all');
-
+  const [invalidAssignments, setInvalidAssignments] = useState<any[]>([]);
+  
   useEffect(() => {
     fetchCustomerAgreements();
     fetchTrafficFines();
@@ -73,7 +76,9 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           leases!traffic_fines_lease_id_fkey (
             id,
             agreement_number,
-            status
+            status,
+            start_date,
+            end_date
           ),
           vehicles!traffic_fines_vehicle_id_fkey (
             id,
@@ -105,7 +110,34 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
         return;
       }
 
-      setFines(data || []);
+      // Process fines and check for invalid assignments
+      if (data) {
+        const invalid = [];
+        
+        for (const fine of data) {
+          const violationDate = fine.violation_date ? new Date(fine.violation_date) : null;
+          const leaseStartDate = fine.leases?.start_date ? new Date(fine.leases.start_date) : null;
+          const leaseEndDate = fine.leases?.end_date ? new Date(fine.leases.end_date) : null;
+          
+          // Use our improved validation function
+          if (violationDate && leaseStartDate) {
+            const validation = validateFineDate(violationDate, leaseStartDate, leaseEndDate);
+            if (!validation.isValid) {
+              invalid.push({...fine, validationReason: validation.reason});
+            }
+          }
+        }
+        
+        setFines(data);
+        setInvalidAssignments(invalid);
+        
+        // Show warning if invalid assignments exist
+        if (invalid.length > 0) {
+          toast.warning(`Found ${invalid.length} invalid fine ${invalid.length === 1 ? 'assignment' : 'assignments'}`, {
+            description: 'Some fines are assigned to leases but the violation dates don\'t match the lease periods.'
+          });
+        }
+      }
     } catch (err) {
       console.error('Exception fetching traffic fines:', err);
     } finally {
@@ -129,6 +161,37 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
     }
   };
 
+  const handleFixInvalidAssignments = async () => {
+    if (invalidAssignments.length === 0) return;
+    
+    try {
+      // Unassign invalid assignments
+      const fixed = [];
+      
+      for (const fine of invalidAssignments) {
+        const { error } = await supabase
+          .from('traffic_fines')
+          .update({ 
+            lease_id: null,
+            assignment_status: 'pending'
+          })
+          .eq('id', fine.id);
+          
+        if (!error) {
+          fixed.push(fine.id);
+        }
+      }
+      
+      toast.success(`Fixed ${fixed.length} invalid assignments`);
+      
+      // Refresh the list
+      fetchTrafficFines(selectedAgreement !== 'all' ? selectedAgreement : undefined);
+    } catch (error) {
+      console.error('Error fixing invalid assignments:', error);
+      toast.error("Failed to fix invalid assignments");
+    }
+  };
+
   const getFineStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'paid':
@@ -140,6 +203,22 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
       default:
         return <Badge variant="secondary">{status || 'Unknown'}</Badge>;
     }
+  };
+
+  const getAssignmentValidityBadge = (fine: any) => {
+    // Check for fines in invalidAssignments array
+    const isInvalid = invalidAssignments.some(invalid => invalid.id === fine.id);
+    
+    if (isInvalid) {
+      return (
+        <Badge variant="destructive" className="ml-2 text-xs">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Invalid Period
+        </Badge>
+      );
+    }
+    
+    return null;
   };
 
   return (
@@ -170,6 +249,19 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
             <FileText className="mr-2 h-4 w-4" />
             Export Report
           </Button>
+          
+          {/* Add fix invalid assignments button */}
+          {invalidAssignments.length > 0 && (
+            <Button
+              onClick={handleFixInvalidAssignments}
+              variant="destructive"
+              size="sm"
+              className="flex items-center"
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Fix {invalidAssignments.length} Invalid {invalidAssignments.length === 1 ? 'Assignment' : 'Assignments'}
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -211,7 +303,10 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
                         ? `QAR ${fine.fine_amount.toFixed(2)}`
                         : 'N/A'}
                     </TableCell>
-                    <TableCell>{getFineStatusBadge(fine.payment_status)}</TableCell>
+                    <TableCell>
+                      {getFineStatusBadge(fine.payment_status)}
+                      {getAssignmentValidityBadge(fine)}
+                    </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
                         View
