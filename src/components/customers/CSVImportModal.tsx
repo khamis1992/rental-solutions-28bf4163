@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,14 +18,20 @@ import { downloadCSVTemplate } from '@/utils/csv-utils';
 
 interface CSVImportModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onImportComplete: () => void;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImportModalProps) {
+const CSVImportModal: React.FC<CSVImportModalProps> = ({
+  open,
+  onClose,
+  onSuccess
+}) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>('success');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -68,8 +73,8 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         throw new Error(`Error uploading file: ${uploadError.message}`);
       }
 
-      // Create import log entry
-      const { data: importLog, error: logError } = await supabase
+      // Create an import log
+      const importLogResult = await supabase
         .from('customer_import_logs')
         .insert({
           file_name: fileName,
@@ -78,16 +83,20 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           created_by: (await supabase.auth.getUser()).data.user?.id,
           mapping_used: customerCSVMap
         })
-        .select()
-        .single();
-
-      if (logError) {
-        throw new Error(`Error creating import log: ${logError.message}`);
+        .select();
+      
+      if (!importLogResult.data || importLogResult.error) {
+        setStatus('error');
+        setErrorMessage('Failed to create import log: ' + 
+          (importLogResult.error?.message || 'Unknown error'));
+        return;
       }
-
+      
+      const importLogId = importLogResult.data[0].id;
+      
       // Call the process-customer-imports function to start processing
       const { error: processError } = await supabase.functions.invoke('process-customer-imports', {
-        body: { importId: importLog.id }
+        body: { importId: importLogId }
       });
 
       if (processError) {
@@ -99,8 +108,8 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         description: 'Your file is being processed. You will be notified when complete.'
       });
       
-      onImportComplete();
-      onOpenChange(false);
+      onSuccess();
+      onClose();
       setFile(null);
     } catch (err) {
       console.error('Import error:', err);
@@ -113,11 +122,11 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const handleCancel = () => {
     setFile(null);
     setError(null);
-    onOpenChange(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Import Customers</DialogTitle>
@@ -184,4 +193,6 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default CSVImportModal;

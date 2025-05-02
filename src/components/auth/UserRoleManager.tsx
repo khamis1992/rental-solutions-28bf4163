@@ -22,7 +22,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({ user, onRoleCh
     
     try {
       const result = await withTimeout(
-        safeQueryToServiceResponse(() => 
+        safeQueryToServiceResponse(async () => 
           supabase
             .from('profiles')
             .update({ role })
@@ -50,7 +50,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({ user, onRoleCh
     <Card>
       <CardContent className="pt-6">
         <div className="mb-4">
-          <p className="font-medium">User: {user.full_name || user.email}</p>
+          <p className="font-medium">User: {user.email}</p>
           <p className="text-sm text-gray-500">Current Role: <span className="font-medium">{user.role}</span></p>
         </div>
         
