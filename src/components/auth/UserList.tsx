@@ -21,15 +21,23 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { useDataHandler } from "@/hooks/use-data-handler";
 
+// Define the UserData type and export it
+export interface UserData {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const UserList: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userToUpdate, setUserToUpdate] = useState<any>(null);
+  const [userToUpdate, setUserToUpdate] = useState<UserData | null>(null);
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const { handleOperation } = useDataHandler({
     showSuccessToast: true,
@@ -77,7 +85,7 @@ const UserList: React.FC = () => {
         .eq("email", email)
         .single();
         
-      if (authUserError) {
+      if (authUserError && authUserError.code !== 'PGRST116') {
         console.error("Error fetching auth user:", authUserError);
         throw new Error(`Error fetching user authentication data: ${authUserError.message}`);
       }
@@ -141,7 +149,7 @@ const UserList: React.FC = () => {
     });
   };
 
-  const openUpdateDialog = (user: any) => {
+  const openUpdateDialog = (user: UserData) => {
     setUserToUpdate(user);
     setIsUpdateOpen(true);
   };

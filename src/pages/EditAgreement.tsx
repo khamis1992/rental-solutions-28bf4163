@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -7,8 +6,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { updateAgreementWithCheck } from '@/utils/agreement-utils';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { updateAgreementWithCheck, adaptSimpleToFullAgreement } from '@/utils/agreement'; // Updated import path
 import { useAuth } from '@/contexts/AuthContext';
 import { useRentAmount } from '@/hooks/use-rent-amount'; 
 import { supabase } from '@/integrations/supabase/client';

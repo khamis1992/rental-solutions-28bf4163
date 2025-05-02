@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasResponseData } from '@/utils/supabase-type-helpers';
 import { ExclamationTriangleIcon } from '@/components/icons/radix-shim';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FileText, Loader2 } from 'lucide-react';
-import { generateStandardReport } from '@/utils/report-utils';
-import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -101,7 +102,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           `)
           .eq('customer_id', customerId);
 
-        if (!hasData(leaseResponse)) {
+        if (!hasResponseData(leaseResponse)) {
           console.error('Error fetching leases:', leaseResponse.error);
           setIsLoading(false);
           return;
@@ -139,7 +140,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           .select('*')
           .in('lease_id', leaseIds);
 
-        if (!hasData(finesResponse)) {
+        if (!hasResponseData(finesResponse)) {
           console.error('Error fetching fines:', finesResponse.error);
           setIsLoading(false);
           return;
@@ -189,7 +190,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             .select('id, make, model')
             .in('id', vehicleIds);
 
-          if (hasData(vehiclesResponse)) {
+          if (hasResponseData(vehiclesResponse)) {
             const vehicleData = vehiclesResponse.data;
             const vehicleMap: Record<string, VehicleInfo> = {};
             

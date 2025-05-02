@@ -1,65 +1,79 @@
 
-import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
-import { ServiceResponse } from '@/utils/response-handler';
+/**
+ * Type-safe helpers for working with Supabase responses
+ */
+
+import { ServiceResponse, successResponse, errorResponse } from './response-handler';
 
 /**
- * Type guard to check if a Supabase response has data
+ * Type guard to check if a database response has data
  */
-export function hasResponseData<T>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
-  return response && 'data' in response && response.data !== null && !response.error;
-}
-
-/**
- * Convert a Supabase query to a ServiceResponse - makes it easier to compose functions
- * @param queryFn The function that executes the Supabase query
- * @param operationName Optional name for the operation (for logging)
- * @returns A ServiceResponse with standardized error handling
- */
-export async function safeQueryToServiceResponse<T>(
-  queryFn: () => Promise<PostgrestResponse<T> | PostgrestSingleResponse<T>>,
-  operationName?: string
-): Promise<ServiceResponse<T>> {
-  try {
-    const response = await queryFn();
+export function hasResponseData<T>(response: any): response is { data: T; error: null } {
+  // Handle PostgreSQL response format
+  if (response && typeof response === 'object') {
+    // Check for basic structure
+    const hasDataField = 'data' in response && response.data !== null && response.data !== undefined;
+    const noError = !response.error;
     
-    if (response.error) {
-      console.error(`${operationName || 'Database query'} error:`, response.error);
-      return {
-        success: false,
-        error: response.error,
-        message: response.error.message || 'Database query failed',
-        statusCode: response.status || 500
-      };
-    }
-    
-    if (response.data === null) {
-      return {
-        success: false,
-        message: 'No data returned',
-        statusCode: 404
-      };
-    }
-    
-    return {
-      success: true,
-      data: response.data,
-      statusCode: response.status || 200
-    };
-  } catch (error) {
-    console.error(`${operationName || 'Database query'} exception:`, error);
-    return {
-      success: false,
-      error: error instanceof Error ? error : new Error(String(error)),
-      message: error instanceof Error ? error.message : String(error),
-      statusCode: 500
-    };
+    return hasDataField && noError;
   }
+  return false;
 }
 
 /**
- * Cast UUID string for Supabase operations
+ * Alias for hasResponseData to avoid breaking existing code
  */
-export function castToUUID(id: string): string {
-  // In a real application, you might want to add validation here
-  return id;
+export function hasData<T>(response: any): response is { data: T; error: null } {
+  return hasResponseData<T>(response);
+}
+
+/**
+ * Safe accessor for PostgreSQL response data
+ */
+export function getResponseData<T>(response: any): T | null {
+  if (hasResponseData<T>(response)) {
+    return response.data;
+  }
+  return null;
+}
+
+/**
+ * Utility to convert Supabase query errors to ServiceResponse format
+ */
+export function safeQueryToServiceResponse<T>(
+  queryFn: () => Promise<any>,
+  context?: string
+): Promise<ServiceResponse<T>> {
+  return new Promise(async (resolve) => {
+    try {
+      const result = await queryFn();
+      
+      if (hasResponseData<T>(result)) {
+        resolve(successResponse(result.data));
+      } else {
+        const errorMsg = result.error ? result.error.message || String(result.error) : 'Unknown database error';
+        console.error(`${context || 'Database query'} error:`, result.error);
+        resolve(errorResponse(errorMsg));
+      }
+    } catch (err) {
+      console.error(`${context || 'Database operation'} exception:`, err);
+      resolve(errorResponse(err instanceof Error ? err : String(err)));
+    }
+  });
+}
+
+/**
+ * Safe wrapper for database ID types
+ */
+export function asTableId<T extends string>(id: string): T {
+  return id as T;
+}
+
+/**
+ * Convert any query error into a service response
+ */
+export function handleSupabaseError<T>(error: any, context?: string): ServiceResponse<T> {
+  const errorMsg = error instanceof Error ? error.message : String(error);
+  console.error(`${context || 'Supabase operation'} error:`, error);
+  return errorResponse(errorMsg);
 }
