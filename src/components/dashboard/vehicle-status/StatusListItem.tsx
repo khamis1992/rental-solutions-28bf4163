@@ -1,48 +1,50 @@
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import { StatusConfig } from './types';
 
 interface StatusListItemProps {
   status: StatusConfig;
   count: number;
-  onClick: () => void;
+  totalVehicles: number;
 }
 
-export const StatusListItem: React.FC<StatusListItemProps> = ({
-  status,
-  count,
-  onClick
-}) => {
+export const StatusListItem = ({ status, count, totalVehicles }: StatusListItemProps) => {
+  const navigate = useNavigate();
+  const percentage = totalVehicles > 0 ? Math.round((count / totalVehicles) * 100) : 0;
+  
+  const handleClick = () => {
+    navigate(`/vehicles?status=${status.filterValue}`);
+  };
+  
   const Icon = status.icon;
   
   return (
     <div 
-      key={status.key} 
-      className={cn(
-        "flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100",
-        status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
-          ? "bg-red-50 hover:bg-red-100" 
-          : "bg-slate-50 hover:bg-slate-100"
-      )}
-      onClick={onClick}
+      className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer" 
+      onClick={handleClick}
     >
-      <div 
-        className="p-1.5 rounded-md" 
-        style={{ backgroundColor: `${status.color}20` }}
-      >
-        <Icon 
-          size={16} 
-          style={{ color: status.color }} 
-        />
+      <div className="mr-3">
+        <Icon size={24} style={{ color: status.color }} />
       </div>
       <div className="flex-grow">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">{status.name}</span>
-          <span className="text-sm font-semibold">{count}</span>
+          <span className="font-medium">{status.name}</span>
+          <span className="text-sm text-gray-600">{count}</span>
         </div>
-        <p className="text-xs text-muted-foreground">{status.description}</p>
+        <div className="text-xs text-gray-500">{status.description}</div>
+        <div className="mt-1 h-1.5 w-full bg-gray-200 rounded-full">
+          <div 
+            className="h-full rounded-full" 
+            style={{ 
+              width: `${percentage}%`,
+              backgroundColor: status.color
+            }}
+          ></div>
+        </div>
       </div>
     </div>
   );
 };
+
+export default StatusListItem;

@@ -1,172 +1,102 @@
 
 import { supabase } from '@/lib/supabase';
-import { withTimeoutAndRetry } from '@/utils/promise';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
+import { createDebugLogger } from '@/utils/promise/utils';
+import { withTimeoutAndRetry } from '@/utils/promise';
+
+const debug = createDebugLogger('vehicle:search');
 
 /**
- * Find a vehicle by its license plate with improved reliability
+ * Find a vehicle by its license plate with improved error handling
  * 
  * @param licensePlate The license plate to search for
- * @returns Promise with vehicle information or error
+ * @returns Result object with success flag, data and message
  */
 export const findVehicleByLicensePlate = async (
   licensePlate: string
-): Promise<{ success: boolean; message: string; data?: DatabaseVehicleRecord }> => {
-  if (!licensePlate) {
-    return {
-      success: false,
-      message: 'License plate is required'
-    };
-  }
-  
-  // Clean up license plate string (remove extra spaces, standardize format)
-  const cleanLicensePlate = licensePlate.trim().toUpperCase();
-  
+): Promise<{
+  success: boolean;
+  data?: DatabaseVehicleRecord;
+  message: string;
+}> => {
   try {
-    // Use withTimeoutAndRetry for robust database operations
+    debug(`Searching for vehicle with license plate: ${licensePlate}`);
+    
+    // Validate input
+    if (!licensePlate || typeof licensePlate !== 'string' || licensePlate.trim() === '') {
+      debug('Invalid or empty license plate provided');
+      return {
+        success: false,
+        message: 'Please provide a valid license plate'
+      };
+    }
+    
+    // Check database connection first
+    const connectionStatus = await checkSupabaseHealth();
+    if (!connectionStatus.isHealthy) {
+      debug(`Database connection issue: ${connectionStatus.error}`);
+      return {
+        success: false,
+        message: `Database connection issue: ${connectionStatus.error || 'Unknown connection error'}`
+      };
+    }
+    
+    // Normalize license plate for consistent searching
+    const normalizedLicensePlate = licensePlate.trim().toUpperCase();
+    debug(`Normalized license plate for search: ${normalizedLicensePlate}`);
+    
+    // Use withTimeoutAndRetry for the database query
     const result = await withTimeoutAndRetry(
       async () => {
-        // First check database connection health
-        const { isHealthy, error: healthError } = await checkSupabaseHealth();
-        
-        if (!isHealthy) {
-          throw new Error(`Database connection error: ${healthError || 'Cannot connect to database'}`);
-        }
-        
-        // Search for the vehicle
         const { data, error } = await supabase
           .from('vehicles')
-          .select('*')
-          .ilike('license_plate', cleanLicensePlate)
+          .select('*, vehicle_types(*)')
+          .ilike('license_plate', normalizedLicensePlate)
           .maybeSingle();
         
         if (error) {
           throw error;
         }
         
-        if (!data) {
-          throw new Error(`No vehicle found with license plate ${cleanLicensePlate}`);
-        }
-        
-        return data as DatabaseVehicleRecord;
+        return data;
       },
       {
+        retries: 1,
+        retryDelayMs: 500,
         timeoutMs: 5000,
-        retries: 2,
-        retryDelayMs: 1000,
-        operationName: `Find vehicle by license plate ${cleanLicensePlate}`
+        operationName: `Search vehicle with license plate ${normalizedLicensePlate}`,
       }
     );
     
     if (!result.success) {
+      debug(`Database query failed: ${result.error?.message}`);
       return {
         success: false,
-        message: result.error?.message || `Vehicle with license plate ${cleanLicensePlate} not found`
+        message: `Error searching for vehicle: ${result.error?.message || 'Unknown database error'}`
       };
     }
     
-    return {
-      success: true,
-      message: `Vehicle found`,
-      data: result.data
-    };
-  } catch (error) {
-    console.error(`Error finding vehicle by license plate:`, error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Error searching for vehicle'
-    };
-  }
-};
-
-/**
- * Batch search vehicles by license plates with concurrent processing
- * 
- * @param licensePlates Array of license plates to search for
- * @param options Configuration options including concurrency
- */
-export const batchFindVehiclesByLicensePlate = async (
-  licensePlates: string[],
-  options: {
-    concurrency?: number;
-    onProgress?: (status: { completed: number; total: number; current: string }) => void;
-  } = {}
-): Promise<{
-  success: boolean;
-  vehicles: DatabaseVehicleRecord[];
-  notFound: string[];
-  errors: { licensePlate: string; error: string }[];
-}> => {
-  const { concurrency = 2, onProgress } = options;
-  
-  try {
-    // Import the batchOperations function dynamically to avoid circular dependencies
-    const { batchOperations } = await import('@/utils/promise/batch');
-    
-    const result = await batchOperations(
-      licensePlates,
-      async (licensePlate) => {
-        const result = await findVehicleByLicensePlate(licensePlate);
-        if (!result.success || !result.data) {
-          throw new Error(result.message);
-        }
-        return result.data;
-      },
-      {
-        concurrency,
-        continueOnError: true,
-        onProgress: (status) => {
-          if (onProgress) {
-            onProgress({
-              completed: status.completed,
-              total: status.total,
-              current: status.current
-            });
-          }
-        }
-      }
-    );
-    
-    if (!result.success) {
+    if (!result.data) {
+      debug(`No vehicle found with license plate: ${normalizedLicensePlate}`);
       return {
         success: false,
-        vehicles: result.data?.results || [],
-        notFound: [],
-        errors: result.data?.errors.map(e => ({
-          licensePlate: e.item,
-          error: e.error.message
-        })) || []
+        message: `No vehicle found with license plate: ${normalizedLicensePlate}`
       };
     }
     
-    const notFound = result.data.errors
-      .filter(e => e.error.message.includes('not found'))
-      .map(e => e.item);
-    
-    const otherErrors = result.data.errors
-      .filter(e => !e.error.message.includes('not found'))
-      .map(e => ({
-        licensePlate: e.item,
-        error: e.error.message
-      }));
-    
+    debug(`Vehicle found: ${result.data.make} ${result.data.model} (${result.data.license_plate})`);
     return {
       success: true,
-      vehicles: result.data.results,
-      notFound,
-      errors: otherErrors
+      data: result.data as DatabaseVehicleRecord,
+      message: `Vehicle found: ${result.data.make} ${result.data.model}`
     };
-  } catch (error) {
-    console.error('Error in batch vehicle search:', error);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    debug(`Unexpected error: ${errorMessage}`);
     return {
       success: false,
-      vehicles: [],
-      notFound: [],
-      errors: [{ 
-        licensePlate: 'batch',
-        error: error instanceof Error ? error.message : 'Unknown error in batch processing'
-      }]
+      message: `Error searching for vehicle: ${errorMessage}`
     };
   }
 };

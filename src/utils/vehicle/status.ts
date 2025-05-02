@@ -23,7 +23,7 @@ export const updateVehicleStatus = async (
     'police_station', 'accident', 'stolen', 'retired'
   ];
   
-  if (!validStatuses.includes(status)) {
+  if (!validStatuses.includes(status as VehicleStatus)) {
     debug(`Invalid status value provided: ${status}`);
     return {
       success: false,
