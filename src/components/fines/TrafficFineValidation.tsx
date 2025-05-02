@@ -1,173 +1,179 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { TrafficFineStatusType } from '@/hooks/use-traffic-fines';
-import { validateTrafficFineWithToast } from '@/utils/validation/traffic-fine-validation';
-import { useTrafficFinesValidation } from '@/hooks/use-traffic-fines-validation';
-import { useErrorNotification } from '@/hooks/use-error-notification';
-import SingleValidationForm from './validation/SingleValidationForm';
-import BatchValidationForm from './validation/BatchValidationForm';
-import ValidationResult from './validation/ValidationResult';
-import ValidationHistory from './validation/ValidationHistory';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { HelpCircle, Loader2, ListChecks, FileText, SearchIcon } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import SingleValidationForm from "@/components/fines/validation/SingleValidationForm";
+import BatchValidationForm from "@/components/fines/validation/BatchValidationForm";
+import ValidationHistory from "@/components/fines/validation/ValidationHistory";
+import ValidationResult from "@/components/fines/validation/ValidationResult";
+import { useTrafficFinesValidation } from "@/hooks/use-traffic-fines-validation";
+import { useBatchValidation } from "@/hooks/traffic-fines/use-batch-validation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TrafficFineValidation = () => {
-  const [licensePlate, setLicensePlate] = useState('');
-  const [batchInput, setBatchInput] = useState('');
+  const [licensePlate, setLicensePlate] = useState("");
+  const [batchInput, setBatchInput] = useState("");
+  const [validationResult, setValidationResult] = useState<any>(null);
   const [showBatchInput, setShowBatchInput] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<{
-    fines_found: number;
-    total_amount: number;
-    pending_amount: number;
-    fines: {
-      id: string;
-      violation_number: string;
-      violation_date: Date;
-      amount: number;
-      status: TrafficFineStatusType;
-    }[];
-  } | null>(null);
-
+  const [activeTab, setActiveTab] = useState<string>("single");
+  
   const { 
     validateTrafficFine, 
-    batchValidateTrafficFines,
-    validationHistory 
+    validationHistory, 
+    isLoading, 
+    error,
+    validationErrors,
+    clearValidationErrors
   } = useTrafficFinesValidation();
   
-  const errorNotification = useErrorNotification();
+  const { validateBatch, isValidating } = useBatchValidation();
+  
+  // Clear validation result when switching tabs
+  useEffect(() => {
+    setValidationResult(null);
+    setLicensePlate("");
+    setBatchInput("");
+  }, [activeTab]);
 
-  const handleValidateLicensePlate = async () => {
-    // Validate license plate
-    if (!validateTrafficFineWithToast({
-      licensePlate
-    })) {
+  const handleValidate = async () => {
+    if (!licensePlate.trim()) {
+      toast.error("Please enter a license plate");
       return;
     }
-    
-    setValidating(true);
+
     try {
-      // Call validation function from our hook
-      const result = await validateTrafficFine(licensePlate);
-      
-      // Process results for display
-      const validationData = {
-        fines_found: result.hasFine ? 1 : 0,
-        total_amount: 0, // This would come from the validation response in a real system
-        pending_amount: 0, // This would come from the validation response in a real system
-        fines: result.hasFine ? [{
-          id: result.validationId || 'unknown',
-          violation_number: 'From validation system',
-          violation_date: result.validationDate,
-          amount: 0, // This would come from the validation response in a real system
-          status: 'pending' as TrafficFineStatusType
-        }] : []
-      };
-      
-      setValidationResult(validationData);
-      
-      // Show result notification
-      if (validationData.fines_found > 0) {
-        toast.warning(`Found ${validationData.fines_found} traffic ${validationData.fines_found > 1 ? 'fines' : 'fine'} for ${licensePlate}`);
-      } else {
-        toast.success(`No traffic fines found for ${licensePlate}`);
-      }
-      
+      const result = await validateTrafficFine(licensePlate.trim());
+      setValidationResult(result);
     } catch (error) {
-      console.error('Error validating license plate:', error);
-      errorNotification.showError('Validation Failed', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        id: 'license-validation-error'
-      });
-      setValidationResult(null);
-    } finally {
-      setValidating(false);
+      console.error("Validation error:", error);
+      // Error will be handled by the hook's error handling
     }
   };
   
-  const handleValidateBatch = async () => {
+  const handleBatchValidate = async () => {
     if (!batchInput.trim()) {
-      toast.error('Please enter license plates');
+      toast.error("Please enter at least one license plate");
       return;
     }
-    
-    // Parse input to get array of plates
-    const plates = batchInput.trim().split('\n')
+
+    const plates = batchInput
+      .split("\n")
       .map(line => line.trim())
-      .filter(line => line.length > 0);
-    
+      .filter(Boolean);
+      
     if (plates.length === 0) {
-      toast.error('No valid license plates found');
+      toast.error("No valid license plates found");
       return;
     }
-    
-    if (plates.length > 20) {
-      errorNotification.showError('Too many plates', {
-        description: 'Please limit batch validation to 20 plates at a time to prevent system overload.',
-        id: 'batch-size-error'
-      });
-      return;
-    }
-    
-    setValidating(true);
-    
+
     try {
-      const batchResult = await batchValidateTrafficFines(plates);
-      
-      // Results are handled directly in the hook through toast notifications
-      
-      // Reset UI state after batch processing
-      if (batchResult.errors.length === 0) {
-        // If successful, clear the input
-        setBatchInput('');
-        setShowBatchInput(false);
-      }
+      await validateBatch(plates);
+      // Refresh history after batch validation
+      setShowBatchInput(false);
+      setActiveTab("history");
     } catch (error) {
-      errorNotification.showError('Batch Validation Failed', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        id: 'batch-validation-error'
-      });
-    } finally {
-      setValidating(false);
+      console.error("Batch validation error:", error);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Traffic Fine Validation</CardTitle>
-        <CardDescription>
-          Check if a vehicle has any pending traffic fines
-        </CardDescription>
+        <div className="flex items-center space-x-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => clearValidationErrors()}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs text-sm">
+                  Validate license plates against traffic violations database to check for any outstanding fines.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {showBatchInput ? (
-          <BatchValidationForm
-            batchInput={batchInput}
-            setBatchInput={setBatchInput}
-            validating={validating}
-            onValidate={handleValidateBatch}
-            onHideBatchInput={() => setShowBatchInput(false)}
-          />
-        ) : (
-          <SingleValidationForm
-            licensePlate={licensePlate}
-            setLicensePlate={setLicensePlate}
-            validating={validating}
-            onValidate={handleValidateLicensePlate}
-            onShowBatchInput={() => setShowBatchInput(true)}
-          />
-        )}
-
-        {validationResult && (
-          <ValidationResult 
-            result={validationResult} 
-            licensePlate={licensePlate} 
-          />
-        )}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="single" className="flex items-center">
+              <SearchIcon className="h-4 w-4 mr-2" />
+              Single Query
+            </TabsTrigger>
+            <TabsTrigger value="batch" className="flex items-center">
+              <ListChecks className="h-4 w-4 mr-2" />
+              Batch Process
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              History
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="single" className="space-y-4">
+            <SingleValidationForm
+              licensePlate={licensePlate}
+              setLicensePlate={setLicensePlate}
+              validating={isLoading}
+              onValidate={handleValidate}
+            />
+            
+            {validationResult && <ValidationResult result={validationResult} />}
+          </TabsContent>
+          
+          <TabsContent value="batch" className="space-y-4">
+            <BatchValidationForm
+              batchInput={batchInput}
+              setBatchInput={setBatchInput}
+              validating={isLoading}
+              onValidate={handleBatchValidate}
+              onHideBatchInput={() => setShowBatchInput(false)}
+            />
+          </TabsContent>
+          
+          <TabsContent value="history" className="space-y-4">
+            <ValidationHistory 
+              history={validationHistory || []}
+              isLoading={isLoading}
+              error={error}
+            />
+          </TabsContent>
+        </Tabs>
         
-        {validationHistory && validationHistory.length > 0 && (
-          <ValidationHistory history={validationHistory} />
+        {validationErrors && validationErrors.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTitle>Validation Errors</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-5 text-sm">
+                {validationErrors.slice(0, 3).map((err, idx) => (
+                  <li key={idx}>{err.message}</li>
+                ))}
+                {validationErrors.length > 3 && (
+                  <li>Plus {validationErrors.length - 3} more errors...</li>
+                )}
+              </ul>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => clearValidationErrors()}
+                className="mt-2"
+              >
+                Clear Errors
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>

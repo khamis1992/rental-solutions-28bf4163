@@ -2,6 +2,7 @@
 import { useTrafficFinesQuery, TrafficFine, TrafficFineStatusType } from './use-traffic-fines-query';
 import { useTrafficFineMutations, TrafficFinePayload, TrafficFineCreatePayload } from './use-traffic-fine-mutations';
 import { useTrafficFineCleanup } from './use-traffic-fine-cleanup';
+import { useBatchValidation } from './use-batch-validation';
 
 /**
  * Main traffic fines hook that combines query, mutations, and cleanup functionality
@@ -9,7 +10,8 @@ import { useTrafficFineCleanup } from './use-traffic-fine-cleanup';
 export function useTrafficFines() {
   const { data: trafficFines, isLoading, error } = useTrafficFinesQuery();
   const { createTrafficFine, assignToCustomer, payTrafficFine, disputeTrafficFine } = useTrafficFineMutations();
-  const { cleanupInvalidAssignments } = useTrafficFineCleanup(trafficFines);
+  const { cleanupInvalidAssignments, bulkProcessFines, isValidFine } = useTrafficFineCleanup(trafficFines);
+  const { validateBatch, processBatchOperations } = useBatchValidation();
 
   return {
     trafficFines,
@@ -19,7 +21,11 @@ export function useTrafficFines() {
     payTrafficFine,
     disputeTrafficFine,
     createTrafficFine,
-    cleanupInvalidAssignments
+    cleanupInvalidAssignments,
+    bulkProcessFines,
+    isValidFine,
+    validateBatch,
+    processBatchOperations
   };
 }
 
@@ -29,3 +35,6 @@ export type {
   TrafficFinePayload,
   TrafficFineCreatePayload
 };
+
+// Export batch validation hook separately for direct use
+export { useBatchValidation, BatchValidationOptions, BatchValidationResults } from './use-batch-validation';
