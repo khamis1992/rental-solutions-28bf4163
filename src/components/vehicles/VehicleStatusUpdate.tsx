@@ -20,10 +20,25 @@ interface StatusUpdateFormValues {
   status: VehicleStatus;
 }
 
+// Define a proper type for the vehicle data
+interface VehicleData {
+  id: string;
+  make: string;
+  model: string;
+  year?: number;
+  color?: string | null;
+  license_plate: string;
+  status: VehicleStatus;
+  vehicle_types?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 const VehicleStatusUpdate = () => {
   const [step, setStep] = useState<'search' | 'update'>('search');
   const [isLoading, setIsLoading] = useState(false);
-  const [vehicle, setVehicle] = useState<any>(null);
+  const [vehicle, setVehicle] = useState<VehicleData | null>(null);
 
   // Form for searching vehicles
   const searchForm = useForm<VehicleSearchFormValues>({
