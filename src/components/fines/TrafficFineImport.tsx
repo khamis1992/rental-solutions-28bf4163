@@ -19,14 +19,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
-import { asUUID } from '@/lib/uuid-helpers';
 import { validateTrafficFines, identifyFinesWithoutLicensePlates } from '@/utils/validation/traffic-fine-validation';
 
 interface CsvRow {
   [key: string]: string;
 }
 
-const TrafficFineImport = () => {
+interface TrafficFineImportProps {
+  onImportComplete?: () => void;
+}
+
+const TrafficFineImport = ({ onImportComplete }: TrafficFineImportProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -180,6 +183,11 @@ const TrafficFineImport = () => {
       setFile(null);
       setParsedData([]);
       setValidationResults(null);
+      
+      // Call completion callback
+      if (onImportComplete) {
+        onImportComplete();
+      }
       
     } catch (error) {
       console.error('Import error:', error);
