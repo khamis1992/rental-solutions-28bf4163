@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { TRAFFIC_FINE_PAYMENT_STATUSES, asTrafficFinePaymentStatus } from '@/types/database-common';
 import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
+import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 
 /**
  * Fetches traffic fines with type-safe handling
@@ -85,6 +86,49 @@ export async function updateTrafficFinePaymentStatus(
     
     throw new Error(`Error updating traffic fine payment status: ${response?.error?.message || 'Unknown error'}`);
   }, 'Updating traffic fine payment status');
+}
+
+/**
+ * Finds leases that match a violation date using the correct date comparison approach
+ */
+export async function findLeasesByViolationDate(
+  vehicleId: string, 
+  violationDate: Date | string
+): Promise<ServiceResponse<any[]>> {
+  return wrapOperation(async () => {
+    // Get all active leases for this vehicle
+    const { data: leases, error } = await supabase
+      .from('leases')
+      .select('id, start_date, end_date, customer_id, agreement_number')
+      .eq('vehicle_id', vehicleId)
+      .is('deleted_at', null);
+      
+    if (error) {
+      throw new Error(`Failed to find leases: ${error.message}`);
+    }
+    
+    if (!leases || leases.length === 0) {
+      return [];
+    }
+    
+    // Normalize the violation date
+    const violationDateObj = typeof violationDate === 'string' 
+      ? new Date(violationDate) 
+      : violationDate;
+    
+    // Filter leases where the violation date falls within the lease period
+    const matchingLeases = leases.filter(lease => {
+      const validation = validateFineDate(
+        violationDateObj,
+        lease.start_date,
+        lease.end_date
+      );
+      
+      return validation.isValid;
+    });
+    
+    return matchingLeases;
+  }, 'Finding leases by violation date');
 }
 
 /**
