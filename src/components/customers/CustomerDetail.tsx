@@ -71,7 +71,7 @@ export const CustomerDetail = () => {
       }
       
       // Create a lease lookup for quick validation
-      const leaseLookup = leases.reduce((acc, lease) => {
+      const leaseLookup = leases.reduce((acc: any, lease: any) => {
         acc[lease.id] = lease;
         return acc;
       }, {});

@@ -1,3 +1,4 @@
+
 import { useTrafficFinesQuery } from './use-traffic-fines-query';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -117,5 +118,4 @@ export async function findBestMatchingLease(
   }
 }
 
-// Other validation functions can be exported from this file
-// This is a utility file specifically for traffic fine validation logic
+// Export the validation functions for external use

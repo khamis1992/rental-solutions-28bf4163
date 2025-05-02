@@ -2,20 +2,20 @@
 import { supabase } from '@/lib/supabase';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { VehicleStatus } from '@/types/vehicle';
-import { withTimeoutAndRetry } from '@/utils/promise';
-import { createDebugLogger } from '@/utils/promise/utils';
 
-const debug = createDebugLogger('vehicle:status');
+const debug = (message: string) => {
+  console.log(`[vehicle:status] ${message}`);
+};
 
 /**
- * Update just the vehicle status with simplified error handling and verification
- * This is the main function used by the StatusUpdateDialog
+ * Update vehicle status with simplified error handling
+ * Streamlined implementation with better reliability
  */
 export const updateVehicleStatus = async (
   id: string,
   status: VehicleStatus
 ): Promise<{ success: boolean; message: string; data?: any }> => {
-  debug(`updateVehicleStatus: Updating vehicle ${id} status to ${status}`);
+  debug(`Updating vehicle ${id} status to ${status}`);
   
   // Validate the status to ensure it's a valid VehicleStatus value
   const validStatuses: VehicleStatus[] = [
@@ -32,6 +32,7 @@ export const updateVehicleStatus = async (
   }
   
   try {
+    // Convert app status to database format
     debug(`Converting app status '${status}' to database format`);
     const dbStatus = mapToDBStatus(status);
     
@@ -39,11 +40,11 @@ export const updateVehicleStatus = async (
       debug(`Status mapping failed for '${status}'`);
       return {
         success: false,
-        message: `Could not map status '${status}' to database format. Valid statuses are: ${validStatuses.join(', ')}`
+        message: `Could not map status '${status}' to database format`
       };
     }
     
-    debug(`Successfully mapped status to database format: '${dbStatus}'`);
+    debug(`Mapped status to database format: '${dbStatus}'`);
     
     // First verify the vehicle exists
     const { data: vehicle, error: checkError } = await supabase
@@ -70,63 +71,48 @@ export const updateVehicleStatus = async (
     
     debug(`Current vehicle DB status: ${vehicle.status}, updating to: ${dbStatus}`);
     
-    // Using withTimeoutAndRetry for the status update operation
-    const updateResult = await withTimeoutAndRetry(
-      async () => {
-        // Perform a direct update to the database with consistent timestamp
-        const timestamp = new Date().toISOString();
-        debug(`Performing database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
-        
-        const { data, error } = await supabase
-          .from('vehicles')
-          .update({ 
-            status: dbStatus,
-            updated_at: timestamp
-          })
-          .eq('id', id)
-          .select('*');
-          
-        if (error) {
-          throw error;
-        }
-        
-        // Verify update was successful
-        if (data && data.length > 0) {
-          const updatedVehicle = data[0];
-          debug(`Update successful. New database status: ${updatedVehicle.status}`);
-          
-          // Double-check that the status was actually updated
-          if (updatedVehicle.status !== dbStatus) {
-            debug(`WARNING: Update succeeded but status mismatch: expected ${dbStatus}, got ${updatedVehicle.status}`);
-          }
-        }
-        
-        return data;
-      },
-      {
-        retries: 2,
-        retryDelayMs: 500,
-        timeoutMs: 5000,
-        operationName: `Update vehicle ${id} status to ${status}`,
-        onRetry: (attempt, error) => {
-          debug(`Retry attempt #${attempt} due to error: ${error.message}`);
-        }
-      }
-    );
+    // Perform a direct update with consistent timestamp
+    const timestamp = new Date().toISOString();
+    debug(`Performing database update with timestamp ${timestamp}`);
     
-    if (!updateResult.success) {
-      debug(`Status update failed: ${updateResult.error?.message}`);
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update({ 
+        status: dbStatus,
+        updated_at: timestamp
+      })
+      .eq('id', id)
+      .select('*');
+      
+    if (error) {
+      debug(`Status update failed: ${error.message}`);
       return {
         success: false,
-        message: `Status update failed: ${updateResult.error?.message || 'Unknown error'}`
+        message: `Status update failed: ${error.message}`
       };
     }
     
-    debug(`Status update successful for vehicle ${id}`);
+    // Verify update was successful
+    if (data && data.length > 0) {
+      const updatedVehicle = data[0];
+      debug(`Update successful. New database status: ${updatedVehicle.status}`);
+      
+      // Double-check the status was updated correctly
+      if (updatedVehicle.status !== dbStatus) {
+        debug(`WARNING: Status mismatch: expected ${dbStatus}, got ${updatedVehicle.status}`);
+      }
+      
+      return {
+        success: true,
+        message: `Vehicle status updated to ${status}`,
+        data: updatedVehicle
+      };
+    }
+    
+    debug(`Update completed but no data returned`);
     return {
       success: true,
-      message: `Vehicle status updated to ${status}`,
-      data: updateResult.data
+      message: `Vehicle status updated to ${status}`
     };
   } catch (err) {
     debug(`Error in status update: ${err instanceof Error ? err.message : String(err)}`);

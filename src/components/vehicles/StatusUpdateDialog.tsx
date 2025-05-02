@@ -74,7 +74,7 @@ const StatusUpdateDialog = ({
 
     try {
       setIsUpdating(true);
-      console.log(`Attempting to update vehicle ${vehicleId} status from ${currentStatus} to ${status}`);
+      console.log(`Updating vehicle ${vehicleId} status from ${currentStatus} to ${status}`);
       
       const validStatuses: VehicleStatus[] = [
         'available', 'rented', 'reserved', 'maintenance', 
@@ -86,24 +86,18 @@ const StatusUpdateDialog = ({
         throw new Error(`Invalid status: ${status}`);
       }
 
-      console.log(`About to call updateVehicleStatus with id=${vehicleId} and status=${status}`);
-
       const result = await updateVehicleStatus(vehicleId, status);
-      console.log(`Status update API response:`, result);
 
       if (result.success) {
         toast.success(`Vehicle status updated successfully to ${status}`);
-        console.log("Status update result:", result);
         
         try {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Small delay to ensure database consistency
+          await new Promise(resolve => setTimeout(resolve, 300));
           
-          console.log("Calling onStatusUpdated callback");
           const refreshResult = await onStatusUpdated();
-          console.log("onStatusUpdated result:", refreshResult);
           
           if (refreshResult) {
-            console.log("Status update callback completed successfully");
             onClose();
           } else {
             console.warn("Status updated but refresh may not have completed properly");
@@ -124,7 +118,7 @@ const StatusUpdateDialog = ({
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      toast.error("Error updating status", {
+      toast.error("Error updating vehicle status", {
         description: error instanceof Error ? error.message : "Unknown error occurred"
       });
     } finally {
@@ -133,73 +127,66 @@ const StatusUpdateDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!isUpdating && !open) {
-        onClose();
-      }
-    }}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Update Vehicle Status</DialogTitle>
           <DialogDescription>
             {vehicleDetails.make} {vehicleDetails.model} ({vehicleDetails.licensePlate})
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4 py-4">
+        <div className="grid gap-4 py-4">
           <div>
-            <p className="text-sm font-medium mb-2">Current Status:</p>
-            <Badge variant={getStatusBadgeVariant(currentStatus)}>
-              {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1).replace('_', ' ')}
-            </Badge>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium">New Status:</p>
-            <Select
-              value={status}
-              disabled={isUpdating}
-              onValueChange={(value) => {
-                console.log(`StatusUpdateDialog: Changing status from ${status} to ${value}`);
-                setStatus(value as VehicleStatus);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="rented">Rented</SelectItem>
-                <SelectItem value="reserved">Reserved</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="police_station">Police Station</SelectItem>
-                <SelectItem value="accident">Accident</SelectItem>
-                <SelectItem value="stolen">Stolen</SelectItem>
-                <SelectItem value="retired">Retired</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-sm font-medium">Current status:</span>
+              <Badge variant={getStatusBadgeVariant(currentStatus)}>
+                {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="status" className="text-sm font-medium col-span-1">
+                New status
+              </label>
+              <Select 
+                disabled={isUpdating} 
+                value={status} 
+                onValueChange={(value) => setStatus(value as VehicleStatus)}
+                className="col-span-3"
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="rented">Rented</SelectItem>
+                  <SelectItem value="reserved">Reserved</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="police_station">Police Station</SelectItem>
+                  <SelectItem value="accident">Accident</SelectItem>
+                  <SelectItem value="stolen">Stolen</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isUpdating}
-          >
+        
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button
+          <Button 
             onClick={handleStatusChange}
-            disabled={status === currentStatus || isUpdating}
+            disabled={isUpdating || status === currentStatus}
           >
             {isUpdating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
               </>
             ) : (
-              "Update Status"
+              'Save Changes'
             )}
           </Button>
         </div>
