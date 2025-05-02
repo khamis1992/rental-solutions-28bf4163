@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { TRAFFIC_FINE_PAYMENT_STATUSES, asTrafficFinePaymentStatus } from '@/types/database-common';
 import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
+import { fuzzyMatchLicensePlates, normalizeLicensePlate } from '@/utils/searchUtils';
 
 /**
  * Fetches traffic fines with type-safe handling
@@ -33,7 +34,8 @@ export async function fetchTrafficFines(options: {
     
     // Apply filters if provided
     if (options.licensePlate) {
-      query = query.eq('license_plate', options.licensePlate);
+      const normalizedPlate = normalizeLicensePlate(options.licensePlate);
+      query = query.eq('license_plate', normalizedPlate);
     }
     
     if (options.agreementId) {
