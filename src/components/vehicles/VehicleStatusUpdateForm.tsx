@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { CarFront, Loader2 } from 'lucide-react';
 import { VehicleStatus } from '@/types/vehicle';
-import { updateVehicleStatus } from '@/utils/vehicle-update';
+import { updateVehicleStatus } from '@/utils/vehicle';
 
 interface StatusUpdateFormValues {
   status: VehicleStatus;

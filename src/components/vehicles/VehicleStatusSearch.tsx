@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
-import { findVehicleByLicensePlate } from '@/utils/vehicle-update';
+import { findVehicleByLicensePlate } from '@/utils/vehicle';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
 
 interface VehicleSearchFormValues {

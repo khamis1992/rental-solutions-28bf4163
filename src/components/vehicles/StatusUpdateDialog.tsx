@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { toast } from 'sonner';
 import {
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { VehicleStatus } from '@/types/vehicle';
-import { updateVehicleStatus } from '@/utils/vehicle-update';
+import { updateVehicleStatus } from '@/utils/vehicle';
 import { Loader2 } from 'lucide-react';
 import { useState } from "react";
 
