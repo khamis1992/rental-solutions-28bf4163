@@ -1,8 +1,10 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { VehicleStatus } from '@/types/vehicle';
+import { withTimeoutAndRetry } from '@/utils/promise';
 
 /**
  * Updates vehicle information in the database with improved error handling
@@ -97,82 +99,82 @@ export const updateVehicleInfo = async (
     
     console.log('Final update data to be sent to database:', updateData);
 
-    let retryCount = 0;
-    const maxRetries = 2;
-    let lastError = null;
-    
-    // Retry loop for database update
-    while (retryCount <= maxRetries) {
-      try {
-        // Update the vehicle
+    // Use withTimeoutAndRetry for the database update
+    const updateResult = await withTimeoutAndRetry(
+      async () => {
         const { data: updatedVehicle, error } = await supabase
           .from('vehicles')
           .update(updateData)
           .eq('id', id)
           .select('*, vehicle_types(*)')
           .maybeSingle();
-        
-        if (error) {
-          console.error(`Attempt ${retryCount + 1}: Error updating vehicle:`, error);
-          lastError = error;
-          retryCount++;
           
-          if (retryCount <= maxRetries) {
-            console.log(`Retrying update... (${retryCount}/${maxRetries})`);
-            await new Promise(r => setTimeout(r, 1000 * retryCount)); // Exponential backoff
-            continue;
-          }
-          break;
+        if (error) {
+          throw error;
         }
         
-        if (!updatedVehicle) {
-          console.log('Update may have succeeded but no data returned, fetching vehicle data separately');
-          const { data: fetchedVehicle, error: fetchError } = await supabase
+        return updatedVehicle;
+      },
+      {
+        retries: 2,
+        retryDelayMs: 1000,
+        timeoutMs: 5000,
+        operationName: `Update vehicle ${id}`,
+        onProgress: (message) => console.log(message)
+      }
+    );
+
+    if (!updateResult.success) {
+      console.error(`All update attempts failed:`, updateResult.error);
+      return { 
+        success: false, 
+        message: `Failed to update after multiple attempts: ${updateResult.error?.message || 'Unknown error'}`
+      };
+    }
+    
+    if (!updateResult.data) {
+      console.log('Update may have succeeded but no data returned, fetching vehicle data separately');
+      const fetchResult = await withTimeoutAndRetry(
+        async () => {
+          const { data, error } = await supabase
             .from('vehicles')
             .select('*, vehicle_types(*)')
             .eq('id', id)
             .maybeSingle();
             
-          if (fetchError) {
-            console.error('Error fetching updated vehicle:', fetchError);
-            return {
-              success: true,
-              message: 'Vehicle updated but failed to fetch updated data',
-            };
+          if (error) {
+            throw error;
           }
           
-          console.log(`Successfully updated vehicle:`, fetchedVehicle);
-          return { 
-            success: true, 
-            message: `Vehicle updated successfully`,
-            data: fetchedVehicle
-          };
+          return data;
+        },
+        {
+          retries: 1,
+          retryDelayMs: 500,
+          operationName: 'Fetch updated vehicle data'
         }
-        
-        console.log(`Successfully updated vehicle:`, updatedVehicle);
-        return { 
-          success: true, 
-          message: `Vehicle updated successfully`,
-          data: updatedVehicle
+      );
+      
+      if (!fetchResult.success) {
+        return {
+          success: true,
+          message: 'Vehicle updated but failed to fetch updated data',
         };
-      } catch (updateError) {
-        console.error(`Attempt ${retryCount + 1}: Unexpected error updating vehicle:`, updateError);
-        lastError = updateError;
-        retryCount++;
-        
-        if (retryCount <= maxRetries) {
-          await new Promise(r => setTimeout(r, 1000 * retryCount));
-          continue;
-        }
       }
+      
+      console.log(`Successfully updated vehicle:`, fetchResult.data);
+      return { 
+        success: true, 
+        message: `Vehicle updated successfully`,
+        data: fetchResult.data
+      };
     }
     
-    // If we get here, all retries failed
-    const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
-    console.error(`All update attempts failed:`, lastError);
+    console.log(`Successfully updated vehicle:`, updateResult.data);
     return { 
-      success: false, 
-      message: `Failed to update after multiple attempts: ${errorMessage}` 
+      success: true, 
+      message: `Vehicle updated successfully`,
+      data: updateResult.data
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -268,7 +270,6 @@ export const updateVehicleStatus = async (
     };
   }
   
-  // Direct database update with verification steps
   try {
     console.log(`Status value before mapping: ${status}`);
     const dbStatus = mapToDBStatus(status);
@@ -299,33 +300,45 @@ export const updateVehicleStatus = async (
     
     console.log(`Current vehicle DB status: ${vehicle.status}`);
     
-    // Add a small delay to ensure database consistency
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Using withTimeoutAndRetry for the status update operation
+    const updateResult = await withTimeoutAndRetry(
+      async () => {
+        // Perform a direct update to the database with consistent timestamp
+        const timestamp = new Date().toISOString();
+        console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
+        
+        const { data, error } = await supabase
+          .from('vehicles')
+          .update({ 
+            status: dbStatus,
+            updated_at: timestamp
+          })
+          .eq('id', id)
+          .select('*');
+          
+        if (error) {
+          throw error;
+        }
+        
+        return data;
+      },
+      {
+        retries: 2,
+        retryDelayMs: 500,
+        timeoutMs: 5000,
+        operationName: `Update vehicle ${id} status to ${status}`
+      }
+    );
     
-    // Perform a direct update to the database with consistent timestamp
-    const timestamp = new Date().toISOString();
-    console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
-    const { data: directUpdate, error: directError } = await supabase
-      .from('vehicles')
-      .update({ 
-        status: dbStatus,
-        updated_at: timestamp
-      })
-      .eq('id', id)
-      .select('*');
-      
-    if (directError) {
-      console.error('Direct update failed:', directError);
+    if (!updateResult.success) {
       return {
         success: false,
-        message: `Direct update failed: ${directError.message}`
+        message: `Status update failed: ${updateResult.error?.message || 'Unknown error'}`
       };
     }
     
-    console.log('Direct update succeeded:', directUpdate);
-    
-    // Add another small delay before verification
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Add a small delay before verification
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     // Verify status was actually updated with a separate query
     const { data: verifyData, error: verifyError } = await supabase
@@ -347,18 +360,30 @@ export const updateVehicleStatus = async (
       if (verifyData?.status !== dbStatus) {
         console.error(`Status verification failed: expected ${dbStatus}, got ${verifyData?.status}`);
         
-        // Try one more time with a direct update and no return data
-        console.log("Attempting final force update with no return...");
-        const { error: finalError } = await supabase
-          .from('vehicles')
-          .update({ 
-            status: dbStatus,
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', id);
-          
-        if (finalError) {
-          console.error('Final force update failed:', finalError);
+        // Try one more time with a direct update
+        const forceUpdateResult = await withTimeoutAndRetry(
+          async () => {
+            const { error } = await supabase
+              .from('vehicles')
+              .update({ 
+                status: dbStatus,
+                updated_at: new Date().toISOString() 
+              })
+              .eq('id', id);
+              
+            if (error) {
+              throw error;
+            }
+            
+            return true;
+          },
+          {
+            retries: 1,
+            operationName: 'Force status update'
+          }
+        );
+        
+        if (!forceUpdateResult.success) {
           return {
             success: false,
             message: `Status update verification failed. Database inconsistent.`
@@ -372,10 +397,10 @@ export const updateVehicleStatus = async (
     return {
       success: true,
       message: `Vehicle status updated to ${status}`,
-      data: directUpdate || verifyData
+      data: updateResult.data || verifyData
     };
   } catch (err) {
-    console.error('Error in direct status update:', err);
+    console.error('Error in status update:', err);
     return {
       success: false,
       message: `Error in status update: ${err instanceof Error ? err.message : 'Unknown error occurred'}`

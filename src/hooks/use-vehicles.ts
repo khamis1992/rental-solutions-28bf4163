@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -415,13 +414,9 @@ export const useVehicles = () => {
             
             console.log('Updating vehicle with data:', vehicleData);
             
-            let attempt = 0;
-            const maxAttempts = 3;
-            let lastError = null;
-            let updatedVehicle = null;
-            
-            while (attempt < maxAttempts && !updatedVehicle) {
-              try {
+            // Use withTimeoutAndRetry for the database update
+            const updateResult = await withTimeoutAndRetry(
+              async () => {
                 const { data: result, error } = await supabase
                   .from('vehicles')
                   .update(vehicleData)
@@ -430,60 +425,59 @@ export const useVehicles = () => {
                   .maybeSingle();
                   
                 if (error) {
-                  console.error(`Update attempt ${attempt + 1} failed:`, error);
-                  lastError = error;
-                  attempt++;
-                  if (attempt < maxAttempts) {
-                    await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-                    continue;
-                  }
                   throw error;
                 }
-    
-                if (!result) {
-                  console.log('Update succeeded but no data returned, fetching vehicle data separately');
-                  const { data: fetchedVehicle, error: fetchError } = await supabase
+                
+                return result;
+              },
+              {
+                retries: 2,
+                retryDelayMs: 500,
+                timeoutMs: 8000,
+                operationName: `Update vehicle ${id}`,
+                onProgress: (message) => console.log(message)
+              }
+            );
+            
+            if (!updateResult.success) {
+              throw updateResult.error || new Error('Failed to update vehicle after multiple attempts');
+            }
+            
+            let updatedVehicle = updateResult.data;
+            
+            if (!updatedVehicle) {
+              console.log('Update succeeded but no data returned, fetching vehicle data separately');
+              const fetchResult = await withTimeoutAndRetry(
+                async () => {
+                  const { data, error } = await supabase
                     .from('vehicles')
                     .select('*, vehicle_types(*)')
                     .eq('id', id)
                     .maybeSingle();
                     
-                  if (fetchError) {
-                    console.error('Error fetching updated vehicle:', fetchError);
-                    throw new Error(`Vehicle updated but failed to fetch updated data: ${fetchError.message}`);
+                  if (error) {
+                    throw error;
                   }
                   
-                  if (!fetchedVehicle) {
-                    console.error('Vehicle not found after update:', id);
-                    throw new Error('Vehicle was updated but could not be found afterwards');
-                  }
-                  
-                  console.log('Successfully fetched vehicle after update:', fetchedVehicle);
-                  updatedVehicle = mapDatabaseRecordToVehicle(fetchedVehicle);
-                  console.log('Mapped updated vehicle:', updatedVehicle);
-                } else {
-                  console.log('Vehicle updated successfully with data returned:', result);
-                  updatedVehicle = mapDatabaseRecordToVehicle(result);
-                  console.log('Mapped updated vehicle from result:', updatedVehicle);
+                  return data;
+                },
+                {
+                  retries: 1,
+                  operationName: 'Fetch updated vehicle'
                 }
-              } catch (e) {
-                console.error(`Update attempt ${attempt + 1} failed with exception:`, e);
-                lastError = e;
-                attempt++;
-                
-                if (attempt < maxAttempts) {
-                  await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-                } else {
-                  throw e;
-                }
+              );
+              
+              if (!fetchResult.success || !fetchResult.data) {
+                throw new Error('Vehicle updated but failed to fetch updated data');
               }
+              
+              console.log('Successfully fetched vehicle after update:', fetchResult.data);
+              updatedVehicle = fetchResult.data;
+            } else {
+              console.log('Vehicle updated successfully with data returned:', updatedVehicle);
             }
             
-            if (!updatedVehicle) {
-              throw lastError || new Error('Failed to update vehicle after multiple attempts');
-            }
-            
-            return updatedVehicle;
+            return mapDatabaseRecordToVehicle(updatedVehicle);
           } catch (error) {
             console.error('Update vehicle error details:', error);
             handleApiError(error, 'Failed to update vehicle');

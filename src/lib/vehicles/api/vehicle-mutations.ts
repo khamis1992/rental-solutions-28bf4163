@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VehicleInsertData, VehicleUpdateData, DatabaseVehicleRecord } from '@/types/vehicle';
 import { mapToDBStatus } from '../vehicle-mappers';
 import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
+import { withTimeoutAndRetry } from '@/utils/promise';
 
 /**
  * Insert a new vehicle 
@@ -17,7 +18,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
     console.log(`API insertVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   
-  const { data, error } = await supabase
+  const { data: result, error } = await supabase
     .from('vehicles')
     .insert(dbData)
     .select()
@@ -27,11 +28,11 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
     throw new Error(`Error creating vehicle: ${error.message}`);
   }
   
-  return data as DatabaseVehicleRecord;
+  return result as DatabaseVehicleRecord;
 }
 
 /**
- * Update a vehicle
+ * Update a vehicle - Refactored to use withTimeoutAndRetry utility
  */
 export async function updateVehicle(id: string, vehicleData: VehicleUpdateData): Promise<DatabaseVehicleRecord> {
   // Make a copy of the data to avoid modifying the original
@@ -48,12 +49,8 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   
   console.log(`API: Updating vehicle ${id} with data:`, dbData);
   
-  let attempts = 0;
-  const maxAttempts = 3;
-  let lastError = null;
-  
-  while (attempts < maxAttempts) {
-    try {
+  const response = await withTimeoutAndRetry(
+    async () => {
       const { data, error } = await supabase
         .from('vehicles')
         .update(dbData)
@@ -62,35 +59,26 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
         .single();
       
       if (error) {
-        lastError = error;
-        console.error(`Update attempt ${attempts + 1} failed:`, error);
-        attempts++;
-        
-        if (attempts < maxAttempts) {
-          // Wait before retrying
-          await new Promise(r => setTimeout(r, 500 * attempts));
-          continue;
-        }
         throw error;
       }
       
-      console.log(`API: Vehicle ${id} updated successfully:`, data);
       return data as DatabaseVehicleRecord;
-    } catch (err) {
-      lastError = err;
-      console.error(`Update attempt ${attempts + 1} failed with exception:`, err);
-      attempts++;
-      
-      if (attempts < maxAttempts) {
-        // Wait before retrying
-        await new Promise(r => setTimeout(r, 500 * attempts));
-      } else {
-        break;
-      }
+    },
+    {
+      retries: 2,
+      retryDelayMs: 500,
+      timeoutMs: 5000,
+      operationName: `Update vehicle ${id}`,
+      onProgress: (message) => console.log(message)
     }
+  );
+  
+  if (!response.success) {
+    throw response.error || new Error('Failed to update vehicle');
   }
   
-  throw lastError || new Error('Failed to update vehicle after multiple attempts');
+  console.log(`API: Vehicle ${id} updated successfully:`, response.data);
+  return response.data;
 }
 
 /**
