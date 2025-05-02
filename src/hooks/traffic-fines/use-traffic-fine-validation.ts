@@ -118,4 +118,50 @@ export async function findBestMatchingLease(
   }
 }
 
-// Export the validation functions for external use
+/**
+ * Hook to validate traffic fines and find matching leases
+ */
+export function useTrafficFineValidation() {
+  const [validationResult, setValidationResult] = useState<{ 
+    isValid: boolean; 
+    reason?: string; 
+    leaseId?: string | null;
+  } | null>(null);
+  
+  const validateFine = async (licensePlate: string, violationDate: Date | string) => {
+    try {
+      const result = await findBestMatchingLease(licensePlate, violationDate);
+      
+      if (result.leaseId) {
+        setValidationResult({
+          isValid: true,
+          leaseId: result.leaseId
+        });
+        return { isValid: true, leaseId: result.leaseId };
+      } else {
+        setValidationResult({
+          isValid: false,
+          reason: result.reason || 'No matching lease found'
+        });
+        return { isValid: false, reason: result.reason };
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      setValidationResult({
+        isValid: false,
+        reason: error instanceof Error ? error.message : 'Unknown error during validation'
+      });
+      return { 
+        isValid: false, 
+        reason: error instanceof Error ? error.message : 'Unknown error during validation'
+      };
+    }
+  };
+  
+  return {
+    validationResult,
+    validateFine,
+    validateFineDate,
+    findBestMatchingLease
+  };
+}

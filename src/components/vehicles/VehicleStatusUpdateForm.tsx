@@ -112,6 +112,8 @@ export const VehicleStatusUpdateForm = ({
                         <SelectItem value="rented">Rented</SelectItem>
                         <SelectItem value="reserved">Reserved</SelectItem>
                         <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="police_station">Police Station</SelectItem>
+                        <SelectItem value="accident">Accident</SelectItem>
                         <SelectItem value="stolen">Stolen</SelectItem>
                         <SelectItem value="retired">Retired</SelectItem>
                       </SelectContent>

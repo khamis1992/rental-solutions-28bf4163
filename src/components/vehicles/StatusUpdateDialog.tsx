@@ -58,8 +58,10 @@ const StatusUpdateDialog = ({
       case 'stolen':
         return 'destructive';
       case 'maintenance':
+      case 'accident':
         return 'warning';
       case 'retired':
+      case 'police_station':
         return 'outline';
       default:
         return 'outline';
