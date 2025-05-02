@@ -5,6 +5,7 @@ import { LEASE_STATUSES, VEHICLE_STATUSES } from '@/types/database-common';
 import { hasResponseData as hasSupabaseData, safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
 import { fetchAndProcessRecord, chainDatabaseOperations } from '@/hooks/use-supabase-query';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
+import { processBatches } from '@/utils/concurrency-utils';
 
 /**
  * Check if a vehicle is available to be assigned to an agreement
@@ -333,17 +334,44 @@ export async function batchGeneratePayments(
   results: Array<{ id: string; success: boolean; message?: string }>;
   summary: { total: number; succeeded: number; failed: number };
 }> {
-  const results = await Promise.all(
-    agreementIds.map(async (id) => {
-      const result = await generatePaymentForAgreement(id);
-      return {
-        id,
-        success: result.success,
-        message: result.message
-      };
-    })
+  console.log(`Starting batch payment generation for ${agreementIds.length} agreements`);
+  
+  // Process agreements in batches with controlled concurrency
+  const results = await processBatches(
+    agreementIds,
+    10, // Process 10 agreements per batch
+    3,  // Maximum 3 concurrent operations
+    async (id) => {
+      try {
+        console.log(`Generating payment for agreement ${id}`);
+        const result = await generatePaymentForAgreement(id);
+        
+        if (!result.success) {
+          console.error(`Failed to generate payment for agreement ${id}: ${result.message}`);
+        }
+        
+        return {
+          id,
+          success: result.success,
+          message: result.message
+        };
+      } catch (error) {
+        console.error(`Error generating payment for agreement ${id}:`, error);
+        return {
+          id,
+          success: false,
+          message: error instanceof Error ? error.message : String(error)
+        };
+      }
+    },
+    (batchResults, batchIndex) => {
+      // Log progress after each batch
+      const successCount = batchResults.filter(r => r.success).length;
+      console.log(`Completed batch ${batchIndex + 1}: ${successCount}/${batchResults.length} succeeded`);
+    }
   );
 
+  // Calculate summary statistics
   const summary = results.reduce(
     (acc, curr) => {
       acc.total += 1;
@@ -354,5 +382,6 @@ export async function batchGeneratePayments(
     { total: 0, succeeded: 0, failed: 0 }
   );
 
+  console.log(`Batch payment generation completed: ${summary.succeeded}/${summary.total} succeeded`);
   return { results, summary };
 }

@@ -1,444 +1,299 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { UserRoleManager } from './UserRoleManager';
-import { withTimeout, withTimeoutAndRetry } from '@/utils/promise-utils';
-import { safeQueryToServiceResponse, hasResponseData } from '@/utils/supabase-type-helpers';
-import { Badge } from '@/components/ui/badge';
-import { ServiceResponse } from '@/utils/response-handler';
-import { chainDatabaseOperations } from '@/hooks/use-supabase-query';
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { useDataHandler } from "@/hooks/use-data-handler";
 
-export interface UserData {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  created_at: string;
-  status: 'active' | 'inactive' | 'suspended' | 'pending_review' | 'blacklisted';
-}
-
-export const UserList = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
+const UserList: React.FC = () => {
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [showRoleManager, setShowRoleManager] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToUpdate, setUserToUpdate] = useState<any>(null);
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const { handleOperation } = useDataHandler({
+    showSuccessToast: true,
+    showErrorToast: true,
+  });
 
   useEffect(() => {
-    loadUsers();
+    fetchUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const fetchUsers = async () => {
     setLoading(true);
     
     try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false })
-        ),
-        { 
-          timeoutMs: 5000,
-          operationName: 'Load users',
-          retries: 1
+      const result = await handleOperation(async () => {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, email, role, status, created_at, updated_at");
+
+        if (error) {
+          throw new Error(`Failed to fetch users: ${error.message}`);
         }
-      );
-      
-      if (result.success && result.data) {
-        // Type-safe conversion of the results to match our UserData interface
-        const typedUsers: UserData[] = result.data.map(user => ({
-          id: String(user.id),
-          full_name: String(user.full_name || ''),
-          email: String(user.email || ''),
-          role: String(user.role || 'customer'),
-          created_at: user.created_at ? new Date(user.created_at).toLocaleString() : '',
-          status: (user.status as UserData['status']) || 'pending_review'
-        }));
         
-        setUsers(typedUsers);
-      } else {
-        toast.error(`Failed to load users: ${result.message || 'Unknown error'}`);
+        return { success: true, data: data || [] };
+      });
+
+      if (result.success && result.data) {
+        setUsers(result.data.map(user => ({
+          ...user,
+          createdAt: new Date(user.created_at).toLocaleDateString(),
+          updatedAt: user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A'
+        })));
       }
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast.error(`Error loading users: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    try {
-      // Use chainDatabaseOperations to perform sequential operations with proper error handling
-      const result = await chainDatabaseOperations<{ success: boolean; message: string }>([
-        // First operation: Get auth user ID
-        () => supabase
-          .from('auth_users')
-          .select('id')
-          .eq('profile_id', userId)
-          .single(),
-          
-        // Second operation: Delete user (using the data from first operation)
-        async (authUserResult) => {
-          if (authUserResult && authUserResult.id) {
-            const { error: authError } = await supabase.auth.admin.deleteUser(authUserResult.id);
-            if (authError) throw new Error(`Auth delete error: ${authError.message}`);
-          }
-          return { success: true };
-        },
+  const handleRoleChange = async (email: string, newRole: string) => {
+    await handleOperation(async () => {
+      // First check if user has an auth entry
+      const { data: authUser, error: authUserError } = await supabase
+        .from("auth_users")
+        .select("profile_id")
+        .eq("email", email)
+        .single();
         
-        // Third operation: Delete profile
-        () => supabase
-          .from('profiles')
-          .delete()
-          .eq('id', userId)
-      ], {
-        timeoutMs: 10000,
-        operationName: 'Delete user',
-        retries: 1
-      });
-
-      if (result.success) {
-        toast.success("User deleted successfully");
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to delete user: ${result.message || 'Unknown error'}`);
+      if (authUserError) {
+        console.error("Error fetching auth user:", authUserError);
+        throw new Error(`Error fetching user authentication data: ${authUserError.message}`);
       }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error(`Error deleting user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      
+      // Update the profile with the new role
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("email", email);
+        
+      if (error) {
+        throw new Error(`Failed to update user role: ${error.message}`);
+      }
+      
+      // Update the UI
+      setUsers(users.map(user => 
+        user.email === email ? { ...user, role: newRole } : user
+      ));
+      
+      return { success: true, message: `User role updated to ${newRole}` };
+    });
   };
 
-  const suspendUser = async (userId: string) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ status: 'suspended' })
-            .eq('id', userId)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Suspend user',
-          retries: 1
-        }
-      );
-
-      if (result.success) {
-        toast.success("User suspended successfully");
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to suspend user: ${result.message || 'Unknown error'}`);
+  const handleSuspendUser = async (userId: string) => {
+    await handleOperation(async () => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "suspended" })
+        .eq("id", userId);
+        
+      if (error) {
+        throw new Error(`Failed to suspend user: ${error.message}`);
       }
-    } catch (error) {
-      console.error("Error suspending user:", error);
-      toast.error(`Error suspending user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      
+      // Update the UI
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: "suspended" } : user
+      ));
+      
+      return { success: true, message: "User suspended successfully" };
+    });
   };
 
-  const activateUser = async (userId: string) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ status: 'active' })
-            .eq('id', userId)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Activate user',
-          retries: 1
-        }
-      );
-
-      if (result.success) {
-        toast.success("User activated successfully");
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to activate user: ${result.message || 'Unknown error'}`);
+  const handleReinstateUser = async (userId: string) => {
+    await handleOperation(async () => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
+        
+      if (error) {
+        throw new Error(`Failed to reinstate user: ${error.message}`);
       }
-    } catch (error) {
-      console.error("Error activating user:", error);
-      toast.error(`Error activating user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      
+      // Update the UI
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: "active" } : user
+      ));
+      
+      return { success: true, message: "User reinstated successfully" };
+    });
   };
 
-  const promoteToStaff = async (email: string) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ role: 'staff' })
-            .eq('email', email)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Promote to staff',
-          retries: 1
-        }
-      );
-
-      if (result.success) {
-        toast.success("User promoted to staff successfully");
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to promote user: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error("Error promoting user:", error);
-      toast.error(`Error promoting user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  const openUpdateDialog = (user: any) => {
+    setUserToUpdate(user);
+    setIsUpdateOpen(true);
   };
 
-  const demoteToCustomer = async (email: string) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ role: 'customer' })
-            .eq('email', email)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Demote to customer',
-          retries: 1
-        }
-      );
+  const handleUpdateRole = async (newRole: string) => {
+    if (!userToUpdate) return;
 
-      if (result.success) {
-        toast.success("User demoted to customer successfully");
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to demote user: ${result.message || 'Unknown error'}`);
+    await handleOperation(async () => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("email", userToUpdate.email);
+        
+      if (error) {
+        throw new Error(`Failed to update user role: ${error.message}`);
       }
-    } catch (error) {
-      console.error("Error demoting user:", error);
-      toast.error(`Error demoting user: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const updateUserStatus = async (userId: string, status: UserData['status']) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ status })
-            .eq('id', userId)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Update user status',
-          retries: 1
-        }
-      );
-
-      if (result.success) {
-        toast.success(`User status updated to ${status}`);
-        loadUsers(); // Reload the list
-      } else {
-        toast.error(`Failed to update user status: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error("Error updating user status:", error);
-      toast.error(`Error updating user status: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const changeUserRole = async (userId: string, newRole: string) => {
-    try {
-      const result = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() => 
-          supabase
-            .from('profiles')
-            .update({ role: newRole })
-            .eq('id', userId)
-        ),
-        {
-          timeoutMs: 5000,
-          operationName: 'Change user role',
-          retries: 1
-        }
-      );
-
-      if (result.success) {
-        toast.success(`User role updated to ${newRole}`);
-        loadUsers(); // Reload the list
-        setShowRoleManager(false);
-      } else {
-        toast.error(`Failed to update user role: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      toast.error(`Error updating user role: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'suspended': return 'bg-red-500';
-      case 'pending_review': return 'bg-yellow-500';
-      case 'inactive': return 'bg-gray-500';
-      case 'blacklisted': return 'bg-black text-white';
-      default: return 'bg-blue-500';
-    }
+      
+      // Update the UI
+      setUsers(users.map(user => 
+        user.email === userToUpdate.email ? { ...user, role: newRole } : user
+      ));
+      
+      setIsUpdateOpen(false);
+      
+      return { success: true, message: `User role updated to ${newRole}` };
+    });
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>User Management</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card>
+      <CardContent className="p-0">
         {loading ? (
-          <div className="text-center py-4">Loading users...</div>
+          <div className="h-64 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="p-2 text-left">Name</th>
-                  <th className="p-2 text-left">Email</th>
-                  <th className="p-2 text-left">Role</th>
-                  <th className="p-2 text-left">Status</th>
-                  <th className="p-2 text-left">Created</th>
-                  <th className="p-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {users.map((user) => (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">{user.full_name || "No name"}</td>
-                    <td className="p-2">{user.email}</td>
-                    <td className="p-2">
-                      <Badge variant="outline" className="capitalize">
-                        {user.role || "customer"}
+                  <TableRow key={user.id}>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={user.role === "admin" ? "default" : "outline"}
+                      >
+                        {user.role || "user"}
                       </Badge>
-                    </td>
-                    <td className="p-2">
-                      <Badge className={`capitalize ${getStatusColor(user.status)}`}>
-                        {user.status || "pending"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          user.status === "active"
+                            ? "success"
+                            : user.status === "suspended"
+                            ? "destructive"
+                            : "outline"
+                        }
+                      >
+                        {user.status || "active"}
                       </Badge>
-                    </td>
-                    <td className="p-2 text-sm">{user.created_at}</td>
-                    <td className="p-2 text-right">
+                    </TableCell>
+                    <TableCell>{user.createdAt}</TableCell>
+                    <TableCell>{user.updatedAt}</TableCell>
+                    <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Dialog open={showRoleManager && selectedUser?.id === user.id} onOpenChange={(open) => !open && setShowRoleManager(false)}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowRoleManager(true);
-                              }}
-                            >
-                              Role
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Manage User Role</DialogTitle>
-                            </DialogHeader>
-                            {selectedUser && (
-                              <UserRoleManager 
-                                user={selectedUser} 
-                                onRoleChange={(role) => changeUserRole(selectedUser.id, role)}
-                              />
-                            )}
-                          </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={showDeleteDialog && selectedUser?.id === user.id} onOpenChange={(open) => !open && setShowDeleteDialog(false)}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Confirm Delete</DialogTitle>
-                            </DialogHeader>
-                            <p>Are you sure you want to delete {selectedUser?.full_name || selectedUser?.email}?</p>
-                            <p className="text-sm text-gray-500 mt-2">This action cannot be undone.</p>
-                            <div className="flex justify-end gap-2 mt-4">
-                              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-                              <Button 
-                                variant="destructive" 
-                                onClick={() => {
-                                  if (selectedUser) deleteUser(selectedUser.id);
-                                  setShowDeleteDialog(false);
-                                }}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-
-                        {user.status === 'active' ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => suspendUser(user.id)}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openUpdateDialog(user)}
+                        >
+                          Change Role
+                        </Button>
+                        {user.status === "suspended" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReinstateUser(user.id)}
+                          >
+                            Reinstate
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleSuspendUser(user.id)}
                           >
                             Suspend
                           </Button>
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => activateUser(user.id)}
-                          >
-                            Activate
-                          </Button>
                         )}
-
-                        {user.role === 'customer' ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => promoteToStaff(user.email)}
-                          >
-                            Promote
-                          </Button>
-                        ) : user.role === 'staff' ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => demoteToCustomer(user.email)}
-                          >
-                            Demote
-                          </Button>
-                        ) : null}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
+
+      {userToUpdate && (
+        <Dialog open={isUpdateOpen} onOpenChange={setIsUpdateOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update User Role</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p>
+                Current role for {userToUpdate.email}:{" "}
+                <Badge>{userToUpdate.role || "user"}</Badge>
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant={userToUpdate.role === "admin" ? "default" : "outline"}
+                  onClick={() => handleUpdateRole("admin")}
+                >
+                  Set as Admin
+                </Button>
+                <Button
+                  variant={userToUpdate.role === "staff" ? "default" : "outline"}
+                  onClick={() => handleUpdateRole("staff")}
+                >
+                  Set as Staff
+                </Button>
+                <Button
+                  variant={userToUpdate.role === "user" ? "default" : "outline"}
+                  onClick={() => handleUpdateRole("user")}
+                >
+                  Set as Regular User
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsUpdateOpen(false)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };
+
+export default UserList;
