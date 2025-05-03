@@ -1,10 +1,10 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TRAFFIC_FINE_PAYMENT_STATUSES, asTrafficFinePaymentStatus } from '@/types/database-common';
 import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { fuzzyMatchLicensePlates, normalizeLicensePlate } from '@/utils/searchUtils';
 import { createLogger } from '@/utils/error-logger';
+import { batchOperations } from '@/utils/promise/batch';
 
 const logger = createLogger('traffic-fines');
 
@@ -181,4 +181,115 @@ export async function reassignTrafficFine(
     logger.error(`Error reassigning traffic fine: ${response?.error?.message || 'Unknown error'}`);
     throw new Error(`Error reassigning traffic fine: ${response?.error?.message || 'Unknown error'}`);
   }, 'Reassigning traffic fine');
+}
+
+/**
+ * Handles reassignment of traffic fines when a vehicle's license plate changes
+ */
+export async function handleLicensePlateChange(
+  oldLicensePlate: string,
+  newLicensePlate: string,
+  vehicleId: string
+): Promise<ServiceResponse<{
+  updated: number;
+  total: number;
+  errors: any[];
+}>> {
+  return wrapOperation(async () => {
+    logger.info(`Processing license plate change: ${oldLicensePlate} → ${newLicensePlate}`);
+    
+    // Normalize license plates for consistency
+    const normalizedOldPlate = normalizeLicensePlate(oldLicensePlate);
+    const normalizedNewPlate = normalizeLicensePlate(newLicensePlate);
+    
+    // Find all traffic fines with the old license plate
+    const { data: fines, error: findError } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('license_plate', normalizedOldPlate);
+      
+    if (findError) {
+      logger.error(`Failed to find associated fines: ${findError.message}`);
+      throw new Error(`Failed to find associated fines: ${findError.message}`);
+    }
+    
+    const totalFines = fines?.length || 0;
+    logger.info(`Found ${totalFines} traffic fines associated with license plate ${normalizedOldPlate}`);
+    
+    if (totalFines === 0) {
+      return {
+        updated: 0,
+        total: 0,
+        errors: []
+      };
+    }
+    
+    // Use batch operations for updating the fines
+    const result = await batchOperations(
+      fines,
+      async (fine) => {
+        const { data, error } = await supabase
+          .from('traffic_fines')
+          .update({
+            license_plate: normalizedNewPlate,
+            vehicle_id: vehicleId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', fine.id)
+          .select();
+          
+        if (error) throw error;
+        return data;
+      },
+      {
+        concurrency: 3,
+        continueOnError: true,
+        onProgress: (status) => {
+          logger.debug(`License plate change progress: ${status.completed}/${status.total}`);
+        }
+      }
+    );
+    
+    if (!result.success) {
+      logger.error(`Error updating traffic fines: ${result.error?.message}`);
+    }
+    
+    const successCount = result.success ? (result.data.completed - result.data.errors.length) : 0;
+    logger.info(`Successfully updated ${successCount} of ${totalFines} traffic fines`);
+    
+    return {
+      updated: successCount,
+      total: totalFines,
+      errors: result.success ? result.data.errors : [{ message: result.error?.message }]
+    };
+  }, 'Updating traffic fines for license plate change');
+}
+
+/**
+ * Find traffic fines by license plate with normalized matching
+ */
+export async function findFinesByLicensePlate(
+  licensePlate: string
+): Promise<ServiceResponse<any[]>> {
+  return wrapOperation(async () => {
+    const normalizedPlate = normalizeLicensePlate(licensePlate);
+    logger.debug(`Finding traffic fines for normalized license plate: ${normalizedPlate}`);
+    
+    const { data, error } = await supabase
+      .from('traffic_fines')
+      .select(`
+        *,
+        vehicles:vehicle_id(*),
+        leases:lease_id(*)
+      `)
+      .eq('license_plate', normalizedPlate);
+      
+    if (error) {
+      logger.error(`Failed to find fines by license plate: ${error.message}`);
+      throw new Error(`Failed to find fines by license plate: ${error.message}`);
+    }
+    
+    logger.info(`Found ${data?.length || 0} fines for license plate ${normalizedPlate}`);
+    return data || [];
+  }, 'Finding traffic fines by license plate');
 }

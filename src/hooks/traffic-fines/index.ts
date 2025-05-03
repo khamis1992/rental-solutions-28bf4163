@@ -3,6 +3,7 @@ import { useTrafficFinesQuery, TrafficFine, TrafficFineStatusType } from './use-
 import { useTrafficFineMutations, TrafficFinePayload, TrafficFineCreatePayload } from './use-traffic-fine-mutations';
 import { useTrafficFineCleanup } from './use-traffic-fine-cleanup';
 import { useBatchValidation, BatchValidationOptions, BatchValidationResults } from './use-batch-validation';
+import { useLicensePlateChangeHandler } from './use-license-plate-change-handler';
 
 /**
  * Main traffic fines hook that combines query, mutations, and cleanup functionality
@@ -12,6 +13,7 @@ export function useTrafficFines() {
   const { createTrafficFine, assignToCustomer, payTrafficFine, disputeTrafficFine } = useTrafficFineMutations();
   const { cleanupInvalidAssignments, bulkProcessFines, isValidFine } = useTrafficFineCleanup(trafficFines);
   const { validateBatch, processBatchOperations } = useBatchValidation();
+  const { handleLicensePlateChange, findAssociatedFines, isProcessing } = useLicensePlateChangeHandler();
 
   return {
     trafficFines,
@@ -25,7 +27,11 @@ export function useTrafficFines() {
     bulkProcessFines,
     isValidFine,
     validateBatch,
-    processBatchOperations
+    processBatchOperations,
+    // License plate change handling
+    handleLicensePlateChange,
+    findAssociatedFines,
+    isProcessingPlateChange: isProcessing
   };
 }
 
@@ -40,3 +46,6 @@ export type {
 
 // Export batch validation hook separately for direct use
 export { useBatchValidation } from './use-batch-validation';
+
+// Export license plate change handler for direct use
+export { useLicensePlateChangeHandler } from './use-license-plate-change-handler';

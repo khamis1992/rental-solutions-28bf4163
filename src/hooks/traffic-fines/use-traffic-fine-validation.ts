@@ -1,193 +1,147 @@
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { normalizeLicensePlate, fuzzyMatchLicensePlates } from '@/utils/searchUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 import { createLogger } from '@/utils/error-logger';
 
-const logger = createLogger('traffic-fine:validation');
+const logger = createLogger('traffic-fine-validation');
 
-interface ValidationResult {
-  id: string;
-  validationDate: string;
-  licensePlate: string;
-  status: string;
-  result: any;
-  error?: string;
-}
-
-interface DateValidationResult {
+/**
+ * Result of a date validation operation
+ */
+export interface DateValidationResult {
   isValid: boolean;
-  message?: string;
+  message: string; // Changed from 'reason' to 'message' for consistency
 }
 
 /**
- * Validates if a violation date falls within a lease period
- * Properly handles timezone issues by comparing dates without time components
+ * Validates if a traffic fine date falls within a lease period
+ * 
+ * @param violationDate Date of the traffic violation
+ * @param leaseStartDate Start date of the lease
+ * @param leaseEndDate End date of the lease (optional for ongoing leases)
+ * @returns Validation result object with isValid flag and message
  */
 export function validateFineDate(
-  violationDate: Date,
-  startDateStr?: string | null, 
-  endDateStr?: string | null
+  violationDate: Date | string,
+  leaseStartDate: Date | string,
+  leaseEndDate?: Date | string | null
 ): DateValidationResult {
-  if (!startDateStr) {
-    return { isValid: false, message: 'No lease start date provided' };
+  try {
+    // Convert string dates to Date objects if needed
+    const violationDateObj = violationDate instanceof Date ? violationDate : new Date(violationDate);
+    const leaseStartDateObj = leaseStartDate instanceof Date ? leaseStartDate : new Date(leaseStartDate);
+    
+    // For end date, handle null/undefined (ongoing lease)
+    const leaseEndDateObj = leaseEndDate 
+      ? (leaseEndDate instanceof Date ? leaseEndDate : new Date(leaseEndDate))
+      : null;
+    
+    // Check if dates are valid
+    if (isNaN(violationDateObj.getTime())) {
+      logger.warn('Invalid violation date provided for validation');
+      return { isValid: false, message: 'Invalid violation date' };
+    }
+    
+    if (isNaN(leaseStartDateObj.getTime())) {
+      logger.warn('Invalid lease start date provided for validation');
+      return { isValid: false, message: 'Invalid lease start date' };
+    }
+    
+    if (leaseEndDateObj && isNaN(leaseEndDateObj.getTime())) {
+      logger.warn('Invalid lease end date provided for validation');
+      return { isValid: false, message: 'Invalid lease end date' };
+    }
+    
+    // Check if violation date is before lease start
+    if (violationDateObj < leaseStartDateObj) {
+      logger.debug(`Violation date ${violationDateObj.toISOString()} is before lease start ${leaseStartDateObj.toISOString()}`);
+      return { 
+        isValid: false, 
+        message: 'Violation occurred before the lease started' 
+      };
+    }
+    
+    // Check if violation date is after lease end (if lease has ended)
+    if (leaseEndDateObj && violationDateObj > leaseEndDateObj) {
+      logger.debug(`Violation date ${violationDateObj.toISOString()} is after lease end ${leaseEndDateObj.toISOString()}`);
+      return { 
+        isValid: false, 
+        message: 'Violation occurred after the lease ended' 
+      };
+    }
+    
+    // If we got here, the date is valid
+    return { isValid: true, message: 'Valid' };
+  } catch (error) {
+    logger.error('Error validating fine date:', error);
+    return { 
+      isValid: false, 
+      message: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
   }
-  
-  // Parse dates and reset to midnight UTC to avoid timezone issues
-  const startDate = new Date(startDateStr);
-  startDate.setUTCHours(0, 0, 0, 0);
-  
-  const endDate = endDateStr ? new Date(endDateStr) : new Date();
-  endDate.setUTCHours(23, 59, 59, 999);
-  
-  const violation = new Date(violationDate);
-  violation.setUTCHours(12, 0, 0, 0);
-  
-  // Check if violation date is within range
-  if (violation >= startDate && violation <= endDate) {
-    return { isValid: true };
-  }
-  
-  return { 
-    isValid: false, 
-    message: `Violation date ${violation.toISOString().split('T')[0]} is outside lease period: ${
-      startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
-  };
 }
 
 /**
- * Hook for traffic fine validation functionality
+ * Finds the best matching lease for a traffic fine based on license plate and date
  */
-export const useTrafficFineValidation = () => {
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  /**
-   * Validates a traffic fine by license plate
-   */
-  const validateLicensePlate = async (licensePlate: string): Promise<ValidationResult> => {
-    setIsValidating(true);
-    setError(null);
-    
+export async function findBestMatchingLease(licensePlate: string, violationDate: Date | string) {
+  try {
     const normalizedPlate = normalizeLicensePlate(licensePlate);
-    logger.debug(`Validating license plate: ${normalizedPlate}`);
+    logger.debug(`Finding best matching lease for ${normalizedPlate} on ${violationDate}`);
     
-    try {
-      // Step 1: Check if vehicle exists with this license plate
-      const { data: vehicles, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('id, make, model, license_plate, year')
-        .ilike('license_plate', normalizedPlate);
+    // First, try to find the vehicle by license plate
+    const { data: vehicles, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select('id, license_plate, make, model')
+      .ilike('license_plate', `%${normalizedPlate}%`);
       
-      if (vehicleError) {
-        logger.error(`Vehicle lookup failed: ${vehicleError.message}`);
-        throw new Error(`Vehicle lookup failed: ${vehicleError.message}`);
-      }
-      
-      // Handle no vehicle found
-      if (!vehicles || vehicles.length === 0) {
-        logger.info(`No vehicle found with license plate: ${normalizedPlate}`);
-        const result = {
-          id: `validation-${Date.now()}`,
-          validationDate: new Date().toISOString(),
-          licensePlate: normalizedPlate,
-          status: 'failed',
-          result: { message: 'No vehicle found with this license plate' }
-        };
-        setValidationResults(prev => [result, ...prev]);
-        return result;
-      }
-      
-      // Try fuzzy matching if exact match didn't work
-      const fuzzyMatches = vehicles.filter(v => fuzzyMatchLicensePlates(v.license_plate, normalizedPlate));
-      logger.debug(`Found ${vehicles.length} vehicles, ${fuzzyMatches.length} fuzzy matches`);
-      
-      // Get all leases for the vehicle(s)
-      let currentLeases: any[] = [];
-      
-      for (const vehicle of fuzzyMatches.length > 0 ? fuzzyMatches : vehicles) {
-        logger.debug(`Fetching leases for vehicle: ${vehicle.id} (${vehicle.make} ${vehicle.model})`);
-        const { data: leases, error: leaseError } = await supabase
-          .from('leases')
-          .select(`
-            id, 
-            agreement_number,
-            start_date,
-            end_date,
-            status,
-            customer_id,
-            profiles:customer_id (full_name, email, phone_number)
-          `)
-          .eq('vehicle_id', vehicle.id)
-          .order('start_date', { ascending: false });
-        
-        if (leaseError) {
-          logger.error(`Lease lookup failed: ${leaseError.message}`);
-          throw new Error(`Lease lookup failed: ${leaseError.message}`);
-        }
-        
-        if (leases && leases.length > 0) {
-          logger.debug(`Found ${leases.length} leases for vehicle: ${vehicle.id}`);
-          currentLeases = [...currentLeases, ...leases.map(lease => ({
-            ...lease,
-            vehicle: vehicle
-          }))];
-        }
-      }
-      
-      // Create validation result
-      const result: ValidationResult = {
-        id: `validation-${Date.now()}`,
-        validationDate: new Date().toISOString(),
-        licensePlate: normalizedPlate,
-        status: 'success',
-        result: {
-          vehicles: fuzzyMatches.length > 0 ? fuzzyMatches : vehicles,
-          leases: currentLeases,
-          matchType: fuzzyMatches.length > 0 && fuzzyMatches.length < vehicles.length ? 'fuzzy' : 'exact'
-        }
-      };
-      
-      logger.info(`Successfully validated license plate: ${normalizedPlate}`);
-      setValidationResults(prev => [result, ...prev]);
-      return result;
-      
-    } catch (err) {
-      const error = err as Error;
-      logger.error(`Validation error: ${error.message}`);
-      setError(error);
-      const result = {
-        id: `validation-${Date.now()}`,
-        validationDate: new Date().toISOString(),
-        licensePlate: normalizedPlate,
-        status: 'error',
-        error: error.message
-      };
-      setValidationResults(prev => [result, ...prev]);
-      return result;
-    } finally {
-      setIsValidating(false);
+    if (vehicleError || !vehicles || vehicles.length === 0) {
+      logger.debug(`No vehicle found with license plate ${normalizedPlate}`);
+      return { leaseId: null, reason: 'No matching vehicle found' };
     }
-  };
-
-  // Return validation history
-  const getValidationHistory = () => validationResults;
-  
-  // Clear validation history
-  const clearValidationHistory = () => {
-    logger.debug('Clearing validation history');
-    setValidationResults([]);
-  };
-
-  return {
-    validateLicensePlate,
-    isValidating,
-    error,
-    validationResults,
-    getValidationHistory,
-    clearValidationHistory
-  };
-};
-
-export default useTrafficFineValidation;
+    
+    // For each vehicle, check for active leases at the time of violation
+    for (const vehicle of vehicles) {
+      const { data: leases, error: leaseError } = await supabase
+        .from('leases')
+        .select('id, start_date, end_date, customer_id')
+        .eq('vehicle_id', vehicle.id);
+        
+      if (leaseError || !leases || leases.length === 0) {
+        logger.debug(`No leases found for vehicle ${vehicle.id}`);
+        continue;
+      }
+      
+      // Convert violation date to date object for comparison
+      const violationDateObj = violationDate instanceof Date 
+        ? violationDate 
+        : new Date(violationDate);
+      
+      // Find a lease that covers the violation date
+      for (const lease of leases) {
+        const validation = validateFineDate(
+          violationDateObj,
+          lease.start_date,
+          lease.end_date
+        );
+        
+        if (validation.isValid) {
+          logger.info(
+            `Found matching lease ${lease.id} for license plate ${normalizedPlate} on ${violationDateObj.toISOString()}`
+          );
+          return { leaseId: lease.id, reason: 'Matching lease found' };
+        }
+      }
+    }
+    
+    // No matching lease found
+    logger.debug(`No matching lease found for ${normalizedPlate} on the violation date`);
+    return { leaseId: null, reason: 'No active lease for this vehicle at the time of violation' };
+  } catch (error) {
+    logger.error('Error finding matching lease:', error);
+    return { 
+      leaseId: null, 
+      reason: `Error finding matching lease: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
