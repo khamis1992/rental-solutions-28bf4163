@@ -35,47 +35,47 @@ const isValidProfile = (profile: any): profile is { id: string; full_name: strin
 };
 
 // Fetch overdue payments
-const fetchOverduePayments = async (): Promise<{ 
+export const fetchOverduePayments = async (): Promise<{
   data: CustomerObligation[];
   error: string | null;
 }> => {
   try {
     console.log("Fetching overdue payments...");
-    
+
     // Step 1: First fetch payments that are overdue
     const { data: overduePayments, error: paymentsError } = await supabase
       .from('unified_payments')
       .select(`
-        id, 
-        amount, 
-        amount_paid, 
-        balance, 
-        payment_date, 
+        id,
+        amount,
+        amount_paid,
+        balance,
+        payment_date,
         days_overdue,
         lease_id
       `)
       .eq('status', 'pending')
       .gt('days_overdue', 0)
       .order('days_overdue', { ascending: false });
-    
+
     if (paymentsError) {
       console.error('Error fetching overdue payments:', paymentsError);
       return { data: [], error: `Payment fetch error: ${paymentsError.message}` };
     }
-    
+
     console.log(`Fetched ${overduePayments?.length || 0} overdue payments`);
-    
+
     if (!overduePayments || overduePayments.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Step 2: Extract lease IDs for the second query
     const leaseIds = overduePayments.map(payment => payment.lease_id).filter(Boolean);
-    
+
     if (leaseIds.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Step 3: Fetch leases data separately
     const { data: leasesData, error: leasesError } = await supabase
       .from('leases')
@@ -85,25 +85,25 @@ const fetchOverduePayments = async (): Promise<{
         customer_id
       `)
       .in('id', leaseIds);
-    
+
     if (leasesError) {
       console.error('Error fetching leases data:', leasesError);
       return { data: [], error: `Lease data fetch error: ${leasesError.message}` };
     }
-    
+
     // Step 4: Create a map of lease IDs to lease data for quick lookup
     const leaseMap = new Map();
     leasesData?.forEach(lease => {
       leaseMap.set(lease.id, lease);
     });
-    
+
     // Step 5: Extract customer IDs for the third query
     const customerIds = leasesData?.map(lease => lease.customer_id).filter(Boolean) || [];
-    
+
     if (customerIds.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Step 6: Fetch customer data separately
     const { data: customersData, error: customersError } = await supabase
       .from('profiles')
@@ -112,58 +112,58 @@ const fetchOverduePayments = async (): Promise<{
         full_name
       `)
       .in('id', customerIds);
-    
+
     if (customersError) {
       console.error('Error fetching customers data:', customersError);
       return { data: [], error: `Customer data fetch error: ${customersError.message}` };
     }
-    
+
     // Step 7: Create a map of customer IDs to customer data for quick lookup
     const customerMap = new Map();
     customersData?.forEach(customer => {
       customerMap.set(customer.id, customer);
     });
-    
+
     // Step 8: Combine all the data manually
     const result: CustomerObligation[] = [];
-    
+
     for (const payment of overduePayments) {
       if (!payment.lease_id) {
         console.log(`Skipping payment ${payment.id} - missing lease ID`);
         continue;
       }
-      
+
       const lease = leaseMap.get(payment.lease_id);
       if (!lease) {
         console.log(`Skipping payment ${payment.id} - missing lease data for lease ID ${payment.lease_id}`);
         continue;
       }
-      
+
       if (!lease.customer_id) {
         console.log(`Skipping payment ${payment.id} - missing customer ID in lease ${lease.id}`);
         continue;
       }
-      
+
       const customer = customerMap.get(lease.customer_id);
       if (!customer) {
         console.log(`Skipping payment ${payment.id} - missing customer data for customer ID ${lease.customer_id}`);
         continue;
       }
-      
+
       // Type guard to ensure we have proper profile data
       if (!isValidProfile(customer)) {
         console.log(`Skipping payment ${payment.id} - invalid profile data for customer ID ${lease.customer_id}`);
         continue;
       }
-      
+
       const daysOverdue = payment.days_overdue || 0;
-      
+
       // Calculate late fine for this payment
       const lateFine = calculateLateFine(daysOverdue);
-      
+
       // Add the original balance plus the late fine
       const totalAmount = (payment.balance || 0) + lateFine;
-      
+
       result.push({
         id: payment.id,
         customerId: customer.id,
@@ -180,7 +180,7 @@ const fetchOverduePayments = async (): Promise<{
         lateFine: lateFine // Add the late fine amount to the obligation object
       });
     }
-    
+
     return { data: result, error: null };
   } catch (error) {
     console.error('Error processing payment obligations:', error);
@@ -195,14 +195,14 @@ const fetchTrafficFines = async (): Promise<{
 }> => {
   try {
     console.log("Fetching traffic fines...");
-    
+
     // First fetch traffic fines with lease_id
     const { data: trafficFines, error: finesError } = await supabase
       .from('traffic_fines')
       .select(`
-        id, 
-        fine_amount, 
-        violation_date, 
+        id,
+        fine_amount,
+        violation_date,
         violation_number,
         violation_charge,
         fine_location,
@@ -210,25 +210,25 @@ const fetchTrafficFines = async (): Promise<{
       `)
       .eq('payment_status', 'pending')
       .order('violation_date', { ascending: false });
-    
+
     if (finesError) {
       console.error('Error fetching traffic fines:', finesError);
       return { data: [], error: `Traffic fines fetch error: ${finesError.message}` };
     }
-    
+
     console.log(`Fetched ${trafficFines?.length || 0} traffic fines`);
-    
+
     if (!trafficFines || trafficFines.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Extract lease IDs for the second query
     const leaseIds = trafficFines.map(fine => fine.lease_id).filter(id => id != null);
-    
+
     if (leaseIds.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Fetch leases data for these fines
     const { data: leasesData, error: leasesError } = await supabase
       .from('leases')
@@ -238,21 +238,21 @@ const fetchTrafficFines = async (): Promise<{
         customer_id
       `)
       .in('id', leaseIds);
-    
+
     if (leasesError) {
       console.error('Error fetching leases data for fines:', leasesError);
       return { data: [], error: `Lease data fetch error: ${leasesError.message}` };
     }
-    
+
     // Create a map of lease IDs to lease data for quick lookup
     const leaseMap = new Map();
     leasesData?.forEach(lease => {
       leaseMap.set(lease.id, lease);
     });
-    
+
     // Extract customer IDs for the third query
     const customerIds = leasesData?.map(lease => lease.customer_id) || [];
-    
+
     // Fetch customer data
     const { data: customersData, error: customersError } = await supabase
       .from('profiles')
@@ -261,49 +261,49 @@ const fetchTrafficFines = async (): Promise<{
         full_name
       `)
       .in('id', customerIds);
-    
+
     if (customersError) {
       console.error('Error fetching customers data for fines:', customersError);
       return { data: [], error: `Customer data fetch error: ${customersError.message}` };
     }
-    
+
     // Create a map of customer IDs to customer data for quick lookup
     const customerMap = new Map();
     customersData?.forEach(customer => {
       customerMap.set(customer.id, customer);
     });
-    
+
     const result: CustomerObligation[] = [];
-    
+
     // Combine all the data
     for (const fine of trafficFines) {
       if (!fine.lease_id) {
         console.log(`Skipping fine ${fine.id} - missing lease ID`);
         continue;
       }
-      
+
       const lease = leaseMap.get(fine.lease_id);
       if (!lease) {
         console.log(`Skipping fine ${fine.id} - missing lease data`);
         continue;
       }
-      
+
       const customer = customerMap.get(lease.customer_id);
       if (!customer) {
         console.log(`Skipping fine ${fine.id} - missing customer data`);
         continue;
       }
-      
+
       // Type guard to ensure we have proper profile data
       if (!isValidProfile(customer)) {
         console.log(`Skipping fine ${fine.id} - invalid profile data`);
         continue;
       }
-      
+
       const violationDate = new Date(fine.violation_date);
       const today = new Date();
       const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       result.push({
         id: fine.id,
         customerId: customer.id,
@@ -319,7 +319,7 @@ const fetchTrafficFines = async (): Promise<{
         agreementNumber: lease.agreement_number
       });
     }
-    
+
     return { data: result, error: null };
   } catch (error) {
     console.error('Error processing traffic fine obligations:', error);
@@ -334,39 +334,39 @@ const fetchLegalCases = async (): Promise<{
 }> => {
   try {
     console.log("Fetching legal cases...");
-    
+
     // Fetch legal cases directly with customer_id
     const { data: legalCases, error: casesError } = await supabase
       .from('legal_cases')
       .select(`
-        id, 
-        amount_owed, 
-        created_at, 
-        customer_id, 
-        priority, 
+        id,
+        amount_owed,
+        created_at,
+        customer_id,
+        priority,
         status
       `)
       .in('status', ['pending_reminder', 'in_legal_process', 'escalated'])
       .order('created_at', { ascending: false });
-    
+
     if (casesError) {
       console.error('Error fetching legal cases:', casesError);
       return { data: [], error: `Legal cases fetch error: ${casesError.message}` };
     }
-    
+
     console.log(`Fetched ${legalCases?.length || 0} legal cases`);
-    
+
     if (!legalCases || legalCases.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Extract customer IDs for the second query
     const customerIds = legalCases.map(legalCase => legalCase.customer_id).filter(id => id != null);
-    
+
     if (customerIds.length === 0) {
       return { data: [], error: null };
     }
-    
+
     // Fetch customer data
     const { data: customersData, error: customersError } = await supabase
       .from('profiles')
@@ -375,49 +375,49 @@ const fetchLegalCases = async (): Promise<{
         full_name
       `)
       .in('id', customerIds);
-    
+
     if (customersError) {
       console.error('Error fetching customers data for legal cases:', customersError);
       return { data: [], error: `Customer data fetch error: ${customersError.message}` };
     }
-    
+
     // Create a map of customer IDs to customer data for quick lookup
     const customerMap = new Map();
     customersData?.forEach(customer => {
       customerMap.set(customer.id, customer);
     });
-    
+
     const result: CustomerObligation[] = [];
-    
+
     // Combine all the data
     for (const legalCase of legalCases) {
       if (!legalCase.customer_id) {
         console.log(`Skipping legal case ${legalCase.id} - missing customer ID`);
         continue;
       }
-      
+
       const customer = customerMap.get(legalCase.customer_id);
       if (!customer) {
         console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
         continue;
       }
-      
+
       // Type guard to ensure we have proper profile data
       if (!isValidProfile(customer)) {
         console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
         continue;
       }
-      
+
       const createdDate = new Date(legalCase.created_at);
       const today = new Date();
       const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       // Map priority to urgency
       let urgency: UrgencyLevel = 'medium';
       if (legalCase.priority === 'high') urgency = 'high';
       if (legalCase.priority === 'urgent') urgency = 'critical';
       if (legalCase.priority === 'low') urgency = 'low';
-      
+
       result.push({
         id: legalCase.id,
         customerId: legalCase.customer_id,
@@ -431,7 +431,7 @@ const fetchLegalCases = async (): Promise<{
         daysOverdue
       });
     }
-    
+
     return { data: result, error: null };
   } catch (error) {
     console.error('Error processing legal case obligations:', error);
@@ -447,19 +447,19 @@ export const fetchLegalObligations = async (): Promise<{
 }> => {
   try {
     console.log("Starting legal obligations fetch...");
-    
+
     // Try to fetch all types of obligations, but handle failures independently
     const [paymentsResult, finesResult, casesResult] = await Promise.allSettled([
       fetchOverduePayments(),
       fetchTrafficFines(),
       fetchLegalCases()
     ]);
-    
+
     // Initialize collections
     const allObligations: CustomerObligation[] = [];
     const errors: string[] = [];
     let partialSuccess = false;
-    
+
     // Process payments result
     if (paymentsResult.status === 'fulfilled') {
       if (paymentsResult.value.error) {
@@ -471,7 +471,7 @@ export const fetchLegalObligations = async (): Promise<{
     } else {
       errors.push('Failed to fetch payment obligations');
     }
-    
+
     // Process fines result
     if (finesResult.status === 'fulfilled') {
       if (finesResult.value.error) {
@@ -483,7 +483,7 @@ export const fetchLegalObligations = async (): Promise<{
     } else {
       errors.push('Failed to fetch traffic fine obligations');
     }
-    
+
     // Process legal cases result
     if (casesResult.status === 'fulfilled') {
       if (casesResult.value.error) {
@@ -495,9 +495,9 @@ export const fetchLegalObligations = async (): Promise<{
     } else {
       errors.push('Failed to fetch legal case obligations');
     }
-    
+
     console.log(`Total obligations fetched: ${allObligations.length}`);
-    
+
     // If we have some data but not all, we can still show what we have
     if (allObligations.length > 0 && errors.length > 0) {
       return {
@@ -506,7 +506,7 @@ export const fetchLegalObligations = async (): Promise<{
         partialSuccess: true
       };
     }
-    
+
     // If all failed, return an error
     if (errors.length > 0 && allObligations.length === 0) {
       return {
@@ -514,7 +514,7 @@ export const fetchLegalObligations = async (): Promise<{
         error: errors.join('. ')
       };
     }
-    
+
     // Everything succeeded
     return {
       obligations: allObligations,

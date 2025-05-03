@@ -38,8 +38,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const MaintenanceList = () => {
-  
-  const { 
+
+  const {
     getAll,
     remove,
     getAllRecords
@@ -49,7 +49,7 @@ export const MaintenanceList = () => {
     statuses: ['maintenance', 'accident', 'available', 'rented', 'reserved']
   });
   const navigate = useNavigate();
-  
+
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +59,7 @@ export const MaintenanceList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all-statuses');
   const [vehicleFilter, setVehicleFilter] = useState('all-vehicles');
-  
+
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -74,11 +74,11 @@ export const MaintenanceList = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchMaintenance();
   }, []);
-  
-  
+
+
   const handleSelectRecord = (id) => {
     if (selectedRecords.includes(id)) {
       setSelectedRecords(selectedRecords.filter(recordId => recordId !== id));
@@ -86,7 +86,7 @@ export const MaintenanceList = () => {
       setSelectedRecords([...selectedRecords, id]);
     }
   };
-  
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedRecords(maintenanceRecords.map(record => record.id));
@@ -94,12 +94,12 @@ export const MaintenanceList = () => {
       setSelectedRecords([]);
     }
   };
-  
+
   const handleDelete = (id) => {
     setRecordToDelete(id);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const confirmDelete = () => {
     if (recordToDelete) {
       remove.mutate(recordToDelete, {
@@ -112,33 +112,33 @@ export const MaintenanceList = () => {
     setIsDeleteDialogOpen(false);
     setRecordToDelete(null);
   };
-  
+
   const handleBulkDelete = () => {
     console.log("Bulk delete functionality is not implemented");
   };
-  
+
   const applyFilters = async () => {
     try {
       setIsLoading(true);
       const records = await getAllRecords();
-      
+
       let filteredRecords = records;
-      
+
       if (searchTerm) {
-        filteredRecords = filteredRecords.filter(record => 
+        filteredRecords = filteredRecords.filter(record =>
           record?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           record?.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
-      
+
       if (statusFilter && statusFilter !== 'all-statuses') {
         filteredRecords = filteredRecords.filter(record => record?.status === statusFilter);
       }
-      
+
       if (vehicleFilter && vehicleFilter !== 'all-vehicles') {
         filteredRecords = filteredRecords.filter(record => record?.vehicle_id === vehicleFilter);
       }
-      
+
       setMaintenanceRecords(filteredRecords);
     } catch (err) {
       setError(err);
@@ -146,12 +146,12 @@ export const MaintenanceList = () => {
       setIsLoading(false);
     }
   };
-  
+
   const clearFilters = async () => {
     setSearchTerm('');
     setStatusFilter('all-statuses');
     setVehicleFilter('all-vehicles');
-    
+
     try {
       setIsLoading(true);
       const records = await getAllRecords();
@@ -162,12 +162,12 @@ export const MaintenanceList = () => {
       setIsLoading(false);
     }
   };
-  
+
   const formatMaintenanceType = (type) => {
     if (!type) return 'Unknown';
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
-  
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "scheduled":
@@ -182,25 +182,40 @@ export const MaintenanceList = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   const getVehicleName = (vehicleId) => {
-    if (!vehicles) return 'Loading...';
-    const vehicle = vehicles.find(v => v?.id === vehicleId);
-    return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
+    if (!vehicles || !Array.isArray(vehicles)) return 'Loading...';
+
+    // Find the vehicle with the matching ID
+    const vehicle = vehicles.find(v => {
+      // Make sure v is an object with an id property
+      return v && typeof v === 'object' && 'id' in v && v.id === vehicleId;
+    });
+
+    // Make sure vehicle has the required properties
+    if (vehicle &&
+        typeof vehicle === 'object' &&
+        'make' in vehicle &&
+        'model' in vehicle &&
+        'license_plate' in vehicle) {
+      return `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`;
+    }
+
+    return 'Unknown Vehicle';
   };
-  
+
   const getValidVehicleOptions = () => {
     if (!vehicles || !Array.isArray(vehicles)) return [];
-    
-    return vehicles.filter(vehicle => 
-      vehicle && 
+
+    return vehicles.filter(vehicle =>
+      vehicle &&
       vehicle.id &&
-      vehicle.make && 
-      vehicle.model && 
+      vehicle.make &&
+      vehicle.model &&
       vehicle.license_plate
     );
   };
-  
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -214,7 +229,7 @@ export const MaintenanceList = () => {
   }
 
   const validVehicleOptions = getValidVehicleOptions();
-  
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -230,7 +245,7 @@ export const MaintenanceList = () => {
               onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             />
           </div>
-          
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
@@ -243,7 +258,7 @@ export const MaintenanceList = () => {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Filter by vehicle" />
@@ -257,17 +272,17 @@ export const MaintenanceList = () => {
               ))}
             </SelectContent>
           </Select>
-          
+
           <Button variant="outline" size="sm" onClick={applyFilters}>
             <Filter className="h-4 w-4 mr-2" />
             Apply Filters
           </Button>
-          
+
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Clear
           </Button>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {selectedRecords.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleBulkDelete}>
@@ -275,20 +290,20 @@ export const MaintenanceList = () => {
               Delete Selected ({selectedRecords.length})
             </Button>
           )}
-          
+
           <Button onClick={() => navigate('/maintenance/add')}>
             <Plus className="h-4 w-4 mr-2" />
             Add Maintenance
           </Button>
         </div>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Maintenance Records</CardTitle>
         </CardHeader>
         <CardContent>
-          
+
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((_, index) => (
@@ -314,7 +329,7 @@ export const MaintenanceList = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <Checkbox 
+                      <Checkbox
                         onCheckedChange={handleSelectAll}
                         checked={selectedRecords.length === maintenanceRecords.length && maintenanceRecords.length > 0}
                       />
@@ -330,11 +345,11 @@ export const MaintenanceList = () => {
                 <TableBody>
                   {maintenanceRecords.map(record => {
                     if (!record || !record.id) return null;
-                    
+
                     return (
                       <TableRow key={record.id}>
                         <TableCell>
-                          <Checkbox 
+                          <Checkbox
                             checked={selectedRecords.includes(record.id)}
                             onCheckedChange={() => handleSelectRecord(record.id)}
                           />
@@ -387,7 +402,7 @@ export const MaintenanceList = () => {
           )}
         </CardContent>
       </Card>
-      
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

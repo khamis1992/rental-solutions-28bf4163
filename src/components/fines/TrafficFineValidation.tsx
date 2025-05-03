@@ -20,18 +20,18 @@ const TrafficFineValidation = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [showBatchInput, setShowBatchInput] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("single");
-  
-  const { 
-    validateTrafficFine, 
-    validationHistory, 
-    isLoading, 
+
+  const {
+    validateTrafficFine,
+    validationHistory,
+    isLoading,
     error,
     validationErrors,
     clearValidationErrors
   } = useTrafficFinesValidation();
-  
+
   const { validateBatch, isValidating } = useBatchValidation();
-  
+
   // Clear validation result when switching tabs
   useEffect(() => {
     setValidationResult(null);
@@ -53,7 +53,7 @@ const TrafficFineValidation = () => {
       // Error will be handled by the hook's error handling
     }
   };
-  
+
   const handleBatchValidate = async () => {
     if (!batchInput.trim()) {
       toast.error("Please enter at least one license plate");
@@ -64,11 +64,21 @@ const TrafficFineValidation = () => {
       .split("\n")
       .map(line => line.trim())
       .filter(Boolean);
-      
+
     if (plates.length === 0) {
       toast.error("No valid license plates found");
       return;
     }
+
+    // Create validation result objects with required properties
+    const validationResults = plates.map(plate => ({
+      licensePlate: plate,
+      isValid: true,
+      message: 'Validation pending',
+      validationDate: new Date(),
+      validationSource: 'batch',
+      hasFine: false
+    }));
 
     try {
       await validateBatch(plates);
@@ -88,8 +98,8 @@ const TrafficFineValidation = () => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => clearValidationErrors()}
                 >
@@ -121,7 +131,7 @@ const TrafficFineValidation = () => {
               History
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="single" className="space-y-4">
             <SingleValidationForm
               licensePlate={licensePlate}
@@ -129,10 +139,10 @@ const TrafficFineValidation = () => {
               validating={isLoading}
               onValidate={handleValidate}
             />
-            
+
             {validationResult && <ValidationResult result={validationResult} />}
           </TabsContent>
-          
+
           <TabsContent value="batch" className="space-y-4">
             <BatchValidationForm
               batchInput={batchInput}
@@ -142,16 +152,16 @@ const TrafficFineValidation = () => {
               onHideBatchInput={() => setShowBatchInput(false)}
             />
           </TabsContent>
-          
+
           <TabsContent value="history" className="space-y-4">
-            <ValidationHistory 
+            <ValidationHistory
               history={validationHistory || []}
               isLoading={isLoading}
               error={error}
             />
           </TabsContent>
         </Tabs>
-        
+
         {validationErrors && validationErrors.length > 0 && (
           <Alert variant="destructive">
             <AlertTitle>Validation Errors</AlertTitle>
@@ -164,9 +174,9 @@ const TrafficFineValidation = () => {
                   <li>Plus {validationErrors.length - 3} more errors...</li>
                 )}
               </ul>
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => clearValidationErrors()}
                 className="mt-2"
               >

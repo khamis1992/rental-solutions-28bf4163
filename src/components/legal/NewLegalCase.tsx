@@ -46,7 +46,7 @@ const NewLegalCase = () => {
   const navigate = useNavigate();
   const { createLegalCase, caseTypes, caseStatuses, casePriorities } = useLegalCases();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,18 +59,21 @@ const NewLegalCase = () => {
       assigned_to: '',
     },
   });
-  
+
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
-      
-      await createLegalCase({
+
+      // Create a properly typed object without resolution_date
+      const caseData = {
         ...data,
         amount_owed: data.amount_owed || 0,
-        resolution_date: null,
-        resolution_notes: null
-      });
-      
+        // Don't include resolution_date or resolution_notes if they're not in the type
+        // They will be set to null in the database by default
+      };
+
+      await createLegalCase(caseData);
+
       toast.success('Legal case created successfully');
       navigate('/legal');
     } catch (error) {
@@ -80,7 +83,7 @@ const NewLegalCase = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -100,7 +103,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="case_type"
@@ -125,7 +128,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="amount_owed"
@@ -140,7 +143,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="priority"
@@ -165,7 +168,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="status"
@@ -190,7 +193,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="assigned_to"
@@ -205,7 +208,7 @@ const NewLegalCase = () => {
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -213,17 +216,17 @@ const NewLegalCase = () => {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Describe the legal case" 
-                      className="min-h-[120px]" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Describe the legal case"
+                      className="min-h-[120px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <div className="flex gap-4 justify-end">
               <Button type="button" variant="outline" onClick={() => navigate('/legal')}>
                 Cancel

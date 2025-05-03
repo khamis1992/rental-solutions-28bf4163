@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useTrafficFineValidation } from '@/hooks/validation/use-traffic-fine-validation';
+import { TrafficFineCreatePayload } from '@/hooks/traffic-fines/use-traffic-fine-mutations';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -29,34 +30,40 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
       if (!validation.validateAll()) {
         throw new Error('Validation failed');
       }
-      
-      // Transform dates to ISO string format for DB
-      const violationDate = data.violationDate instanceof Date 
-        ? data.violationDate.toISOString() 
-        : data.violationDate;
-      
-      // Create payload for database
-      const fineData = {
-        violation_number: data.violationNumber,
-        license_plate: data.licensePlate?.trim(),
-        violation_date: violationDate,
-        fine_amount: parseFloat(data.fineAmount),
-        violation_charge: data.violationCharge,
-        fine_location: data.location,
-        payment_status: 'pending',
-        assignment_status: 'pending' 
+
+      // Create payload that matches TrafficFineCreatePayload
+      const fineData: TrafficFineCreatePayload = {
+        violationNumber: data.violationNumber || '',
+        licensePlate: data.licensePlate?.trim() || '',
+        violationDate: data.violationDate instanceof Date ? data.violationDate : new Date(),
+        fineAmount: parseFloat(data.fineAmount) || 0,
+        violationCharge: data.violationCharge,
+        location: data.location,
+        paymentStatus: 'pending'
       };
-      
+
+      // Transform for database
+      const dbPayload = {
+        violation_number: fineData.violationNumber,
+        license_plate: fineData.licensePlate,
+        violation_date: fineData.violationDate.toISOString(),
+        fine_amount: fineData.fineAmount,
+        violation_charge: fineData.violationCharge,
+        fine_location: fineData.location,
+        payment_status: fineData.paymentStatus,
+        assignment_status: 'pending'
+      };
+
       const { data: result, error } = await supabase
         .from('traffic_fines')
-        .insert(fineData)
+        .insert(dbPayload)
         .select('*')
         .single();
-        
+
       if (error) {
         throw new Error(`Failed to create traffic fine: ${error.message}`);
       }
-      
+
       return result;
     },
     onSuccess: () => {
@@ -77,7 +84,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
       });
     }
   });
-  
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-muted">
@@ -96,27 +103,27 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
             </AlertDescription>
           </Alert>
         )}
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="violationNumber">Violation Number</Label>
-            <Input 
-              id="violationNumber" 
-              placeholder="Enter violation number" 
+            <Input
+              id="violationNumber"
+              placeholder="Enter violation number"
               value={validation.data.violationNumber || ''}
               onChange={(e) => validation.updateField('violationNumber', e.target.value)}
               disabled={createFineMutation.isPending}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="licensePlate" className="flex items-center">
               License Plate
               <span className="text-destructive ml-1">*</span>
             </Label>
-            <Input 
-              id="licensePlate" 
-              placeholder="Enter license plate" 
+            <Input
+              id="licensePlate"
+              placeholder="Enter license plate"
               value={validation.data.licensePlate || ''}
               onChange={(e) => validation.updateField('licensePlate', e.target.value)}
               disabled={createFineMutation.isPending}
@@ -126,7 +133,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
               <p className="text-destructive text-sm mt-1">{validation.getFieldError('licensePlate')}</p>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="violationDate" className="flex items-center">
               Violation Date
@@ -142,16 +149,16 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
               <p className="text-destructive text-sm mt-1">{validation.getFieldError('violationDate')}</p>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="fineAmount" className="flex items-center">
               Fine Amount
               <span className="text-destructive ml-1">*</span>
             </Label>
-            <Input 
-              id="fineAmount" 
+            <Input
+              id="fineAmount"
               type="number"
-              placeholder="0.00" 
+              placeholder="0.00"
               value={validation.data.fineAmount || ''}
               onChange={(e) => validation.updateField('fineAmount', e.target.value ? parseFloat(e.target.value) : null)}
               disabled={createFineMutation.isPending}
@@ -161,23 +168,23 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
               <p className="text-destructive text-sm mt-1">{validation.getFieldError('fineAmount')}</p>
             )}
           </div>
-          
+
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="location">Location</Label>
-            <Input 
-              id="location" 
-              placeholder="Enter location of violation" 
+            <Input
+              id="location"
+              placeholder="Enter location of violation"
               value={validation.data.location || ''}
               onChange={(e) => validation.updateField('location', e.target.value)}
               disabled={createFineMutation.isPending}
             />
           </div>
-          
+
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="violationCharge">Violation Charge</Label>
-            <Textarea 
-              id="violationCharge" 
-              placeholder="Enter violation charge details" 
+            <Textarea
+              id="violationCharge"
+              placeholder="Enter violation charge details"
               value={validation.data.violationCharge || ''}
               onChange={(e) => validation.updateField('violationCharge', e.target.value)}
               disabled={createFineMutation.isPending}
@@ -185,7 +192,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
             />
           </div>
         </div>
-        
+
         <div className="flex justify-end mt-6">
           <Button
             onClick={() => validation.resetForm()}
@@ -195,9 +202,9 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
           >
             Clear
           </Button>
-          
-          <Button 
-            type="submit" 
+
+          <Button
+            type="submit"
             onClick={() => createFineMutation.mutate(validation.data)}
             disabled={createFineMutation.isPending || !validation.data.licensePlate}
           >

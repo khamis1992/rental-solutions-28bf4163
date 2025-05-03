@@ -2,20 +2,20 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Maintenance, 
-  maintenanceSchema, 
-  MaintenanceStatus, 
-  MaintenanceType 
+import {
+  Maintenance,
+  maintenanceSchema,
+  MaintenanceStatus,
+  MaintenanceType
 } from '@/lib/validation-schemas/maintenance';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
 } from '@/components/ui/form';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -80,13 +80,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const vehiclesList = vehicles || [];
 
   // Filter out invalid vehicle data to prevent select errors
-  const validVehicles = vehiclesList.filter(vehicle => 
-    vehicle && 
-    vehicle.id && 
-    vehicle.make && 
-    vehicle.model && 
-    vehicle.license_plate
-  );
+  const validVehicles = vehiclesList.filter(vehicle => {
+    // First check if vehicle is an object
+    if (!vehicle || typeof vehicle !== 'object') return false;
+
+    // Then check for required properties
+    return (
+      'id' in vehicle &&
+      'make' in vehicle &&
+      'model' in vehicle &&
+      'license_plate' in vehicle
+    );
+  });
 
   // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;
@@ -107,8 +112,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value || undefined}
                       disabled={isLoadingVehicles}
                     >
@@ -120,8 +125,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       <SelectContent>
                         {hasVehicles ? (
                           validVehicles.map(vehicle => (
-                            <SelectItem 
-                              key={vehicle.id} 
+                            <SelectItem
+                              key={vehicle.id}
                               value={vehicle.id}
                             >
                               {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
@@ -144,8 +149,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Maintenance Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
                     >
                       <FormControl>
@@ -155,8 +160,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         {Object.entries(MaintenanceType).map(([key, value]) => (
-                          <SelectItem 
-                            key={key} 
+                          <SelectItem
+                            key={key}
                             value={value}
                           >
                             {formatMaintenanceType(value)}
@@ -176,8 +181,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value || MaintenanceStatus.SCHEDULED}
                     >
                       <FormControl>
@@ -285,10 +290,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   <FormItem>
                     <FormLabel>Cost ($)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="0.00" 
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
                         {...field}
                         onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                       />
@@ -336,9 +341,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   <FormItem>
                     <FormLabel>Odometer Reading (km)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
+                      <Input
+                        type="number"
+                        placeholder="0"
                         {...field}
                         onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                       />
@@ -357,8 +362,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Describe the maintenance work required or performed" 
+                    <Textarea
+                      placeholder="Describe the maintenance work required or performed"
                       {...field}
                       rows={3}
                     />
@@ -376,8 +381,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <FormItem>
                   <FormLabel>Additional Notes</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Add any additional information or notes" 
+                    <Textarea
+                      placeholder="Add any additional information or notes"
                       {...field}
                       rows={3}
                     />
@@ -387,7 +392,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               )}
             />
           </CardContent>
-          
+
           <CardFooter className="flex justify-between">
             <CustomButton
               type="button"
@@ -396,7 +401,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             >
               Cancel
             </CustomButton>
-            
+
             <CustomButton type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {submitLabel || (isEditMode ? 'Update Record' : 'Create Record')}

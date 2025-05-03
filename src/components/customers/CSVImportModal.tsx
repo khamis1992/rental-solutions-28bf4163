@@ -84,16 +84,23 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
           mapping_used: customerCSVMap
         })
         .select();
-      
+
       if (!importLogResult.data || importLogResult.error) {
         setStatus('error');
-        setErrorMessage('Failed to create import log: ' + 
+        setErrorMessage('Failed to create import log: ' +
           (importLogResult.error?.message || 'Unknown error'));
         return;
       }
-      
+
+      // Make sure we have data and it has an id property
+      if (!importLogResult.data[0] || typeof importLogResult.data[0].id === 'undefined') {
+        setStatus('error');
+        setErrorMessage('Failed to get import log ID');
+        return;
+      }
+
       const importLogId = importLogResult.data[0].id;
-      
+
       // Call the process-customer-imports function to start processing
       const { error: processError } = await supabase.functions.invoke('process-customer-imports', {
         body: { importId: importLogId }
@@ -101,13 +108,17 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
 
       if (processError) {
         console.warn('Error invoking function, but import is queued:', processError);
+        // Show a warning toast instead of error since the import is still queued
+        toast.error('Warning: Function invocation failed, but import is queued', {
+          description: 'Your import will still be processed by the scheduler.'
+        });
         // We'll still consider this a success as the record is created and will be processed by scheduler
       }
-      
+
       toast.success('File uploaded successfully', {
         description: 'Your file is being processed. You will be notified when complete.'
       });
-      
+
       onSuccess();
       onClose();
       setFile(null);

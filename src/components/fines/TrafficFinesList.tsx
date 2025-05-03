@@ -1,36 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { 
-  AlertTriangle, 
-  Car, 
-  CheckCircle, 
-  MoreVertical, 
-  Plus, 
-  Search, 
+import {
+  AlertTriangle,
+  Car,
+  CheckCircle,
+  MoreVertical,
+  Plus,
+  Search,
   X,
   UserCheck,
   DollarSign,
@@ -42,7 +42,7 @@ import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/ui/stat-card';
-import TrafficFineImport from './TrafficFineImport'; 
+import TrafficFineImport from './TrafficFineImport';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useTrafficFineCleanup } from '@/hooks/traffic-fines/use-traffic-fine-cleanup';
 
@@ -54,30 +54,30 @@ interface TrafficFinesListProps {
   triggerCleanup?: boolean;
 }
 
-const TrafficFinesList = ({ 
-  isAutoAssigning = false, 
-  onAddFine, 
+const TrafficFinesList = ({
+  isAutoAssigning = false,
+  onAddFine,
   onInvalidAssignmentsFound,
   showInvalidAssignments = false,
   triggerCleanup = false
 }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { 
-    trafficFines, 
-    isLoading, 
-    payTrafficFine, 
-    disputeTrafficFine, 
+  const {
+    trafficFines,
+    isLoading,
+    payTrafficFine,
+    disputeTrafficFine,
     assignToCustomer
   } = useTrafficFines();
-  
+
   const {
     cleanupInvalidAssignments,
     isValidFine
   } = useTrafficFineCleanup(trafficFines);
-  
+
   const [assigningFines, setAssigningFines] = useState(false);
-  
-  const filteredFines = trafficFines ? trafficFines.filter(fine => 
+
+  const filteredFines = trafficFines ? trafficFines.filter(fine =>
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
@@ -88,7 +88,7 @@ const TrafficFinesList = ({
     if (!fine.leaseId || !fine.leaseStartDate || !fine.violationDate) return false;
     return !isValidFine(fine);
   });
-  
+
   const hasInvalidAssignments = invalidAssignments.length > 0;
 
   // Notify parent about invalid assignments
@@ -107,7 +107,7 @@ const TrafficFinesList = ({
 
   const assignedFines = filteredFines.filter(fine => fine.customerId);
   const unassignedFines = filteredFines.filter(fine => !fine.customerId);
-  
+
   const assignedFinesAmount = assignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
 
@@ -170,14 +170,9 @@ const TrafficFinesList = ({
       setAssigningFines(false);
     }
   };
-  
+
   const handleFixInvalidAssignments = () => {
-    cleanupInvalidAssignments.mutate({
-      // Trigger refetch after cleanup to ensure UI is updated
-      onSuccess: () => {
-        // This will be handled by the invalidation in the hook
-      }
-    });
+    cleanupInvalidAssignments.mutate();
   };
 
   const getStatusBadge = (status: string) => {
@@ -194,8 +189,13 @@ const TrafficFinesList = ({
 
   const getCustomerAssignmentStatus = (fine: any) => {
     if (fine.customerId) {
-      const isInvalidAssignment = fine.leaseId && fine.violationDate && fine.leaseStartDate && !isValidFine(fine);
-      
+      // Check if this is an invalid assignment
+      let isInvalidAssignment = false;
+
+      if (fine.leaseId && fine.violationDate && fine.leaseStartDate) {
+        isInvalidAssignment = !isValidFine(fine);
+      }
+
       if (isInvalidAssignment) {
         return (
           <Badge className="bg-orange-500 text-white border-orange-600">
@@ -203,7 +203,7 @@ const TrafficFinesList = ({
           </Badge>
         );
       }
-      
+
       return (
         <Badge className="bg-blue-500 text-white border-blue-600">
           <UserCheck className="mr-1 h-3 w-3" /> Assigned
@@ -216,21 +216,21 @@ const TrafficFinesList = ({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard 
+        <StatCard
           title="Total Traffic Fines"
           value={filteredFines.length.toString()}
           description="Total number of traffic fines in the system"
           icon={AlertTriangle}
           iconColor="text-amber-500"
         />
-        <StatCard 
+        <StatCard
           title="Assigned Fines"
           value={assignedFines.length.toString()}
           description={`Total amount: ${formatCurrency(assignedFinesAmount)}`}
           icon={UserCheck}
           iconColor="text-blue-500"
         />
-        <StatCard 
+        <StatCard
           title="Unassigned Fines"
           value={unassignedFines.length.toString()}
           description={`Total amount: ${formatCurrency(unassignedFinesAmount)}`}
@@ -245,13 +245,13 @@ const TrafficFinesList = ({
           <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
           <AlertDescription className="flex flex-col gap-2">
             <p>
-              {invalidAssignments.length} traffic {invalidAssignments.length === 1 ? 'fine is' : 'fines are'} assigned to customers 
+              {invalidAssignments.length} traffic {invalidAssignments.length === 1 ? 'fine is' : 'fines are'} assigned to customers
               but the violation dates fall outside the lease periods.
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={handleFixInvalidAssignments}
                 disabled={cleanupInvalidAssignments.isPending}
               >
@@ -282,16 +282,16 @@ const TrafficFinesList = ({
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
+              <Button
                 className="w-full md:w-auto"
                 onClick={handleAutoAssignFines}
                 disabled={assigningFines || isAutoAssigning}
                 variant="secondary"
               >
-                <UserCheck className="mr-2 h-4 w-4" /> 
+                <UserCheck className="mr-2 h-4 w-4" />
                 {(assigningFines || isAutoAssigning) ? "Assigning..." : "Auto-Assign"}
               </Button>
-              <Button 
+              <Button
                 className="w-full md:w-auto"
                 onClick={onAddFine}
               >
@@ -312,7 +312,7 @@ const TrafficFinesList = ({
               />
             </div>
           </div>
-          
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -375,19 +375,19 @@ const TrafficFinesList = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handlePayFine(fine.id)}
                               disabled={fine.paymentStatus === 'paid'}
                             >
                               <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDisputeFine(fine.id)}
                               disabled={fine.paymentStatus === 'disputed'}
                             >
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
