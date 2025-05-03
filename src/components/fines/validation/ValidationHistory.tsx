@@ -11,7 +11,10 @@ export interface ValidationResult {
   isValid: boolean;
   message: string;
   details?: any;
-  timestamp: Date;
+  timestamp?: Date;
+  validationDate?: Date;
+  validationSource?: string;
+  hasFine?: boolean;
 }
 
 export interface ValidationHistoryProps {
@@ -57,7 +60,8 @@ const ValidationHistory: React.FC<ValidationHistoryProps> = ({ history }) => {
                   {item.message}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {item.timestamp ? format(new Date(item.timestamp), 'PPp') : 'Unknown time'}
+                  {item.timestamp ? format(new Date(item.timestamp), 'PPp') :
+                   item.validationDate ? format(new Date(item.validationDate), 'PPp') : 'Unknown time'}
                 </p>
               </div>
             </div>

@@ -84,14 +84,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     // First check if vehicle is an object
     if (!vehicle || typeof vehicle !== 'object') return false;
 
-    // Then check for required properties
+    // Then check for required properties using type guard
     return (
       'id' in vehicle &&
       'make' in vehicle &&
       'model' in vehicle &&
       'license_plate' in vehicle
     );
-  });
+  }) as Array<{
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    [key: string]: any;
+  }>;
 
   // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;

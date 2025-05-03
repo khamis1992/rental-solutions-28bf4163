@@ -20,6 +20,9 @@ interface ValidationResultType {
   message: string;
   details?: any;
   timestamp?: Date;
+  validationDate?: Date;
+  validationSource?: string;
+  hasFine?: boolean;
 }
 
 const TrafficFineValidation = () => {

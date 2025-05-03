@@ -183,7 +183,7 @@ export const MaintenanceList = () => {
     }
   };
 
-  const getVehicleName = (vehicleId) => {
+  const getVehicleName = (vehicleId: string) => {
     if (!vehicles || !Array.isArray(vehicles)) return 'Loading...';
 
     // Find the vehicle with the matching ID
@@ -192,12 +192,17 @@ export const MaintenanceList = () => {
       return v && typeof v === 'object' && 'id' in v && v.id === vehicleId;
     });
 
+    // Type guard to ensure vehicle has the required properties
+    const isValidVehicle = (v: any): v is { make: string; model: string; license_plate: string } => {
+      return v &&
+        typeof v === 'object' &&
+        'make' in v &&
+        'model' in v &&
+        'license_plate' in v;
+    };
+
     // Make sure vehicle has the required properties
-    if (vehicle &&
-        typeof vehicle === 'object' &&
-        'make' in vehicle &&
-        'model' in vehicle &&
-        'license_plate' in vehicle) {
+    if (isValidVehicle(vehicle)) {
       return `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`;
     }
 
@@ -207,13 +212,17 @@ export const MaintenanceList = () => {
   const getValidVehicleOptions = () => {
     if (!vehicles || !Array.isArray(vehicles)) return [];
 
-    return vehicles.filter(vehicle =>
-      vehicle &&
-      vehicle.id &&
-      vehicle.make &&
-      vehicle.model &&
-      vehicle.license_plate
-    );
+    // Type guard to ensure vehicle has the required properties
+    const isValidVehicle = (v: any): v is { id: string; make: string; model: string; license_plate: string } => {
+      return v &&
+        typeof v === 'object' &&
+        'id' in v &&
+        'make' in v &&
+        'model' in v &&
+        'license_plate' in v;
+    };
+
+    return vehicles.filter(isValidVehicle);
   };
 
   if (error) {

@@ -191,18 +191,19 @@ const TrafficFinesList = ({
 
     setIsProcessing(true);
     try {
-      const result = await bulkProcessFines({
+      // Get the IDs of unassigned fines
+      const fineIds = unassignedFines.map(fine => fine.id);
+
+      // Call bulkProcessFines with the correct parameters
+      const result = await bulkProcessFines.mutateAsync({
+        fineIds,
+        action: 'reassign',
         batchSize: 5,
-        concurrency: 2,
-        silent: false,
-        onSuccess: (results: any) => {
-          // This callback will be handled within the bulkProcessFines function
-          console.log("Batch processing completed:", results);
-        }
+        continueOnError: true
       });
 
-      toast.success(`Processed ${result.processed} fines`, {
-        description: `Successfully assigned: ${result.assigned}, Failed: ${result.failed}`
+      toast.success(`Processed ${result.processed || 0} fines`, {
+        description: `Successfully assigned: ${result.processed || 0}, Failed: ${result.failed || 0}`
       });
     } catch (error) {
       console.error("Error in bulk processing:", error);

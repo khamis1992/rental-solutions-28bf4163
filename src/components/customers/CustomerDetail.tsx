@@ -6,7 +6,7 @@ import { UserCircle, Phone, Mail, Home, AlertTriangle, Calendar, FileCheck } fro
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import CustomerTrafficFines from './CustomerTrafficFines.tsx';
+import { CustomerTrafficFines } from './CustomerTrafficFines';
 import { toast } from 'sonner';
 import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { supabase } from '@/lib/supabase';

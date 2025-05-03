@@ -23,7 +23,7 @@ export function getCategorizedErrorMessage(error: unknown): {
       category: 'unknown'
     };
   }
-  
+
   // Handle Error objects
   if (error instanceof Error) {
     return {
@@ -31,7 +31,7 @@ export function getCategorizedErrorMessage(error: unknown): {
       category: error.name === 'ValidationError' ? 'validation' : 'unknown'
     };
   }
-  
+
   // Handle Postgrest/Supabase errors
   if (isPostgrestError(error)) {
     return {
@@ -40,7 +40,7 @@ export function getCategorizedErrorMessage(error: unknown): {
       statusCode: getStatusCodeFromPostgrestError(error)
     };
   }
-  
+
   // Handle HTTP responses
   if (typeof error === 'object' && error !== null && 'status' in error && 'statusText' in error) {
     return {
@@ -49,7 +49,7 @@ export function getCategorizedErrorMessage(error: unknown): {
       statusCode: (error as any).status
     };
   }
-  
+
   // Default error handling
   return {
     message: 'An unexpected error occurred',
@@ -57,20 +57,35 @@ export function getCategorizedErrorMessage(error: unknown): {
   };
 }
 
-// Handle API errors with appropriate UI feedback
+/**
+ * Handle API errors with appropriate UI feedback
+ * This is the standardized error handling function that should be used across the application
+ *
+ * @param error - The error object from the API call
+ * @param context - Optional context information for the error
+ */
 export function handleApiError(error: unknown, context?: string): void {
+  // First log the error for debugging
+  console.error('API Error:', error, context ? `Context: ${context}` : '');
+
+  // Transform the error to a standardized format
   const errorInfo = safeTransform(
     error,
     getCategorizedErrorMessage,
     { message: 'An unexpected error occurred', category: 'unknown' }
   );
-  
+
   // Add context to message if provided
-  const message = context 
+  const message = context
     ? `${context}: ${errorInfo.message}`
     : errorInfo.message;
-  
-  errorService.handleApiError({ message, code: errorInfo.category }, context);
+
+  // Use the error service to handle the error (this will show toast notifications)
+  errorService.handleApiError({
+    message,
+    code: errorInfo.category,
+    details: error instanceof Error ? error.stack : undefined
+  }, context);
 }
 
 // Type guard for Postgrest errors
@@ -115,7 +130,7 @@ export function getStatusCodeFromPostgrestError(error: PostgrestError): number {
   switch (error.code) {
     case '23505': return 409; // Conflict
     case '23503': return 400; // Bad Request
-    case '42P01': 
+    case '42P01':
     case '42703': return 500; // Server Error
     case '28000': return 401; // Unauthorized
     case '40001': return 503; // Service Unavailable
@@ -124,11 +139,27 @@ export function getStatusCodeFromPostgrestError(error: PostgrestError): number {
   }
 }
 
-// Handle successful API operations with appropriate UI feedback
-export function handleApiSuccess(message: string): void {
+/**
+ * Handle successful API operations with appropriate UI feedback
+ * This is the standardized success handling function that should be used across the application
+ *
+ * @param message - The success message to display
+ * @param options - Optional configuration for the toast notification
+ */
+export function handleApiSuccess(
+  message: string,
+  options?: {
+    title?: string;
+    duration?: number;
+  }
+): void {
+  const { title = 'Success', duration = 3000 } = options || {};
+
+  // Use the toast notification system to show success messages
   toast({
-    title: 'Success',
+    title,
     description: message,
+    duration,
   });
 }
 

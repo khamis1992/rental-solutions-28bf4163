@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
 import { Search, AlertTriangle, Loader2, Plus, Filter, FileText, CalendarDays } from 'lucide-react';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,6 +34,8 @@ export interface CustomerObligation {
   urgency: 'low' | 'medium' | 'high' | 'critical';
   status: string;
   daysOverdue: number;
+  lateFine?: number;
+  agreementId?: string;
 }
 
 // Mock data for demonstration
@@ -118,14 +120,14 @@ export const CustomerLegalObligations = () => {
         const matchesSearch = obligation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
           obligation.status.toLowerCase().includes(searchQuery.toLowerCase());
-          
+
         const matchesStatus = filterStatus === null || obligation.status.toLowerCase() === filterStatus.toLowerCase();
         const matchesType = filterType === null || obligation.obligationType === filterType;
-        const matchesTab = activeTab === 'all' || 
+        const matchesTab = activeTab === 'all' ||
                          (activeTab === 'overdue' && obligation.status === 'overdue') ||
                          (activeTab === 'urgent' && (obligation.urgency === 'high' || obligation.urgency === 'critical')) ||
                          (activeTab === 'pending' && obligation.status === 'pending');
-        
+
         return matchesSearch && matchesStatus && matchesType && matchesTab;
       }
     );
@@ -238,7 +240,7 @@ export const CustomerLegalObligations = () => {
                 </Button>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-orange-500">
               <CardContent className="p-4">
                 <p className="text-sm font-medium text-muted-foreground">Urgent Obligations</p>
@@ -249,7 +251,7 @@ export const CustomerLegalObligations = () => {
                 </Button>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
               <CardContent className="p-4">
                 <p className="text-sm font-medium text-muted-foreground">Pending Obligations</p>
@@ -260,7 +262,7 @@ export const CustomerLegalObligations = () => {
                 </Button>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-white shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-green-500">
               <CardContent className="p-4">
                 <p className="text-sm font-medium text-muted-foreground">Overdue Amount</p>
@@ -309,7 +311,7 @@ export const CustomerLegalObligations = () => {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              
+
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -320,7 +322,7 @@ export const CustomerLegalObligations = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                   <Select value={filterType || ''} onValueChange={(value) => setFilterType(value || null)}>
                     <SelectTrigger className="w-[180px]">
@@ -334,7 +336,7 @@ export const CustomerLegalObligations = () => {
                       <SelectItem value="service">Service</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Button variant="outline" size="icon" onClick={() => {
                     setFilterType(null);
                     setFilterStatus(null);
@@ -345,7 +347,7 @@ export const CustomerLegalObligations = () => {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -362,7 +364,7 @@ export const CustomerLegalObligations = () => {
                   <TableBody>
                     {filteredObligations.length > 0 ? (
                       filteredObligations.map((obligation) => (
-                        <TableRow 
+                        <TableRow
                           key={obligation.id}
                           className="cursor-pointer"
                           onClick={() => handleObligationClick(obligation)}
@@ -380,8 +382,8 @@ export const CustomerLegalObligations = () => {
                             {getTypeIcon(obligation.obligationType)}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {obligation.amount === 0 ? 
-                              'N/A' : 
+                            {obligation.amount === 0 ?
+                              'N/A' :
                               obligation.amount.toLocaleString('en-US', {
                                 style: 'currency',
                                 currency: 'QAR',
@@ -422,7 +424,7 @@ export const CustomerLegalObligations = () => {
                   </TableBody>
                 </Table>
               </div>
-              
+
               <div className="flex justify-between items-center mt-4">
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredObligations.length} of {obligations.length} obligations

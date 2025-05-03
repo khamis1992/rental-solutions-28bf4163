@@ -21,19 +21,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
 interface CustomerFormProps {
   initialData?: Customer;
-  onSubmit: (data: Customer) => void;
+  onSubmit: (data: Customer) => Promise<void> | void;
   isLoading?: boolean;
 }
 
-export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormProps) {
+/**
+ * Customer form component for creating and editing customers
+ * Uses React Hook Form with Zod validation
+ */
+export function CustomerForm({ initialData, onSubmit, isLoading = false }: CustomerFormProps) {
   const navigate = useNavigate();
-  const formInitialized = useRef(false);
-  
-  const defaultValues: Partial<Customer> = {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Define default values for the form
+  const defaultValues: z.infer<typeof customerSchema> = {
     full_name: "",
     email: "",
     phone: "",
@@ -41,36 +48,52 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
     driver_license: "",
     nationality: "",
     notes: "",
-    status: "active" as const,
+    status: "active",
   };
 
-  const form = useForm<Customer>({
+  // Initialize form with React Hook Form and Zod validation
+  const form = useForm<z.infer<typeof customerSchema>>({
     resolver: zodResolver(customerSchema),
-    defaultValues,
+    defaultValues: initialData || defaultValues,
+    mode: "onBlur", // Validate fields when they lose focus
   });
 
+  // Update form when initialData changes
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0 && !formInitialized.current) {
-      const safeInitialData: Partial<Customer> = {
-        full_name: initialData.full_name || "",
-        email: initialData.email || "",
-        phone: initialData.phone || "",
-        address: initialData.address || "",
-        driver_license: initialData.driver_license || "",
-        nationality: initialData.nationality || "",
-        notes: initialData.notes || "",
-        status: initialData.status || "active",
-      };
-      
-      console.log("Resetting form with initialData:", safeInitialData);
+    if (initialData) {
+      // Create a safe version of the initial data with fallbacks for null/undefined values
+      const safeInitialData = Object.entries(initialData).reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value ?? defaultValues[key as keyof typeof defaultValues] ?? "",
+        }),
+        {} as z.infer<typeof customerSchema>
+      );
+
       form.reset(safeInitialData);
-      formInitialized.current = true;
     }
   }, [initialData, form]);
 
+  // Handle form submission with error handling
+  const handleSubmit = async (data: z.infer<typeof customerSchema>) => {
+    try {
+      setIsSubmitting(true);
+      await onSubmit(data);
+      toast.success(initialData ? "Customer updated successfully" : "Customer created successfully");
+    } catch (error) {
+      toast.error(
+        initialData ? "Failed to update customer" : "Failed to create customer",
+        { description: error instanceof Error ? error.message : "An unexpected error occurred" }
+      );
+      console.error("Form submission error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-w-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -79,13 +102,13 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter customer's full name" {...field} value={field.value || ''} />
+                  <Input placeholder="Enter customer's full name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="email"
@@ -93,13 +116,13 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="customer@example.com" {...field} value={field.value || ''} />
+                  <Input type="email" placeholder="customer@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="phone"
@@ -107,7 +130,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="33123456" {...field} value={field.value || ''} />
+                  <Input placeholder="33123456" {...field} />
                 </FormControl>
                 <FormDescription>
                   Enter 8 digits only. The +974 country code will be added automatically.
@@ -116,7 +139,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="driver_license"
@@ -124,13 +147,13 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Driver License</FormLabel>
                 <FormControl>
-                  <Input placeholder="License number" {...field} value={field.value || ''} />
+                  <Input placeholder="License number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="nationality"
@@ -138,20 +161,20 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Nationality</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter customer's nationality" {...field} value={field.value || ''} />
+                  <Input placeholder="Enter customer's nationality" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || 'active'}>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select customer status" />
@@ -162,6 +185,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="blacklisted">Blacklisted</SelectItem>
                     <SelectItem value="pending_review">Pending Review</SelectItem>
+                    <SelectItem value="pending_payment">Pending Payment</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
@@ -172,7 +196,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             )}
           />
         </div>
-          
+
         <FormField
           control={form.control}
           name="address"
@@ -180,13 +204,13 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="Customer's address" {...field} value={field.value || ''} />
+                <Textarea placeholder="Customer's address" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="notes"
@@ -194,23 +218,27 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea placeholder="Additional notes about the customer" {...field} value={field.value || ''} />
+                <Textarea placeholder="Additional notes about the customer" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <div className="flex items-center justify-end space-x-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate("/customers")}
+            disabled={isSubmitting || isLoading}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Saving..." : initialData ? "Update Customer" : "Add Customer"}
+          <Button
+            type="submit"
+            disabled={isSubmitting || isLoading || !form.formState.isDirty}
+          >
+            {isSubmitting || isLoading ? "Saving..." : initialData ? "Update Customer" : "Add Customer"}
           </Button>
         </div>
       </form>

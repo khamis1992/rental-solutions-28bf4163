@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTrafficFines } from "@/hooks/use-traffic-fines";
+import { useTrafficFines, TrafficFineCreatePayload } from "@/hooks/use-traffic-fines";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -61,7 +61,18 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
   const onSubmit = async (values: z.infer<typeof fineSchema>) => {
     setLoading(true);
     try {
-      await createTrafficFine.mutateAsync(values);
+      // Ensure all required fields are present and properly typed
+      const payload: TrafficFineCreatePayload = {
+        violationNumber: values.violationNumber,
+        licensePlate: values.licensePlate,
+        violationDate: values.violationDate,
+        fineAmount: values.fineAmount,
+        violationCharge: values.violationCharge || undefined,
+        location: values.location || undefined,
+        paymentStatus: 'pending'
+      };
+
+      await createTrafficFine.mutateAsync(payload);
 
       // Reset form on successful save
       form.reset();
