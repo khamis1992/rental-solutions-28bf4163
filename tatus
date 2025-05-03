@@ -1,0 +1,192 @@
+[1mdiff --cc src/components/fines/TrafficFineEntry.tsx[m
+[1mindex cd495cef,04a1bb96..00000000[m
+[1m--- a/src/components/fines/TrafficFineEntry.tsx[m
+[1m+++ b/src/components/fines/TrafficFineEntry.tsx[m
+[36m@@@ -1,223 -1,243 +1,438 @@@[m
+  [m
+[32m++<<<<<<< HEAD[m
+[32m +import React from 'react';[m
+[32m +import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';[m
+[32m +import { Button } from '@/components/ui/button';[m
+[32m +import { Input } from '@/components/ui/input';[m
+[32m +import { Textarea } from '@/components/ui/textarea';[m
+[32m +import { Label } from '@/components/ui/label';[m
+[32m +import { DatePicker } from '@/components/ui/date-picker';[m
+[32m +import { useToast } from '@/hooks/use-toast';[m
+[32m +import { Loader2 } from 'lucide-react';[m
+[32m +import { useMutation } from '@tanstack/react-query';[m
+[32m +import { supabase } from '@/lib/supabase';[m
+[32m +import { useTrafficFineValidation } from '@/hooks/validation/use-traffic-fine-validation';[m
+[32m +import { TrafficFineCreatePayload } from '@/hooks/traffic-fines/use-traffic-fine-mutations';[m
+[32m +import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';[m
+[32m +import { AlertTriangle } from 'lucide-react';[m
+[32m++=======[m
+[32m+ import React, { useState } from "react";[m
+[32m+ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";[m
+[32m+ import { Button } from "@/components/ui/button";[m
+[32m+ import { Input } from "@/components/ui/input";[m
+[32m+ import { useTrafficFines } from "@/hooks/use-traffic-fines";[m
+[32m+ import { z } from "zod";[m
+[32m+ import { zodResolver } from "@hookform/resolvers/zod";[m
+[32m+ import { useForm } from "react-hook-form";[m
+[32m+ import { Loader2, CalendarIcon } from "lucide-react";[m
+[32m+ import { toast } from "sonner";[m
+[32m+ import {[m
+[32m+   Form,[m
+[32m+   FormControl,[m
+[32m+   FormDescription,[m
+[32m+   FormField,[m
+[32m+   FormItem,[m
+[32m+   FormLabel,[m
+[32m+   FormMessage,[m
+[32m+ } from "@/components/ui/form";[m
+[32m+ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";[m
+[32m+ import { Calendar } from "@/components/ui/calendar";[m
+[32m+ import { cn } from "@/lib/utils";[m
+[32m+ import { format } from "date-fns";[m
+[32m+ [m
+[32m+ const fineSchema = z.object({[m
+[32m+   violationNumber: z.string().min(1, "Required"),[m
+[32m+   licensePlate: z.string().min(1, "Required"),[m
+[32m+   violationDate: z.date({[m
+[32m+     required_error: "Please select a date",[m
+[32m+   }),[m
+[32m+   fineAmount: z.coerce[m
+[32m+     .number()[m
+[32m+     .min(0.01, "Amount must be greater than 0")[m
+[32m+     .refine((amount) => !isNaN(amount), {[m
+[32m+       message: "Must be a valid number",[m
+[32m+     }),[m
+[32m+   violationCharge: z.string().optional(),[m
+[32m+   location: z.string().optional(),[m
+[32m+ });[m
+[32m++>>>>>>> 0ac376d465a25513f755157a0e77134b050774e1[m
+  [m
+  interface TrafficFineEntryProps {[m
+    onFineSaved?: () => void;[m
+  }[m
+  [m
+  const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {[m
+[31m-   const { toast } = useToast();[m
+[31m-   const validation = useTrafficFineValidation();[m
+[32m+   const { createTrafficFine } = useTrafficFines();[m
+[32m+   const [loading, setLoading] = useState(false);[m
+  [m
+[32m++<<<<<<< HEAD[m
+[32m +  // Create the traffic fine[m
+[32m +  const createFineMutation = useMutation({[m
+[32m +    mutationFn: async (data: any) => {[m
+[32m +      // First validate everything[m
+[32m +      if (!validation.validateAll()) {[m
+[32m +        throw new Error('Validation failed');[m
+[32m +      }[m
+[32m +[m
+[32m +      // Create payload that matches TrafficFineCreatePayload[m
+[32m +      const fineData: TrafficFineCreatePayload = {[m
+[32m +        violationNumber: data.violationNumber || '',[m
+[32m +        licensePlate: data.licensePlate?.trim() || '',[m
+[32m +        violationDate: data.violationDate instanceof Date ? data.violationDate : new Date(),[m
+[32m +        fineAmount: parseFloat(data.fineAmount) || 0,[m
+[32m +        violationCharge: data.violationCharge,[m
+[32m +        location: data.location,[m
+[32m +        paymentStatus: 'pending'[m
+[32m +      };[m
+[32m +[m
+[32m +      // Transform for database[m
+[32m +      const dbPayload = {[m
+[32m +        violation_number: fineData.violationNumber,[m
+[32m +        license_plate: fineData.licensePlate,[m
+[32m +        violation_date: fineData.violationDate.toISOString(),[m
+[32m +        fine_amount: fineData.fineAmount,[m
+[32m +        violation_charge: fineData.violationCharge,[m
+[32m +        fine_location: fineData.location,[m
+[32m +        payment_status: fineData.paymentStatus,[m
+[32m +        assignment_status: 'pending'[m
+[32m +      };[m
+[32m +[m
+[32m +      const { data: result, error } = await supabase[m
+[32m +        .from('traffic_fines')[m
+[32m +        .insert(dbPayload)[m
+[32m +        .select('*')[m
+[32m +        .single();[m
+[32m +[m
+[32m +      if (error) {[m
+[32m +        throw new Error(`Failed to create traffic fine: ${error.message}`);[m
+[32m +      }[m
+[32m +[m
+[32m +      return result;[m
+[32m++=======[m
+[32m+   const form = useForm<z.infer<typeof fineSchema>>({[m
+[32m+     resolver: zodResolver(fineSchema),[m
+[32m+     defaultValues: {[m
+[32m+       violationNumber: "",[m
+[32m+       licensePlate: "",[m
+[32m+       violationCharge: "",[m
+[32m+       location: "",[m
+[32m+       fineAmount: undefined,[m
+[32m++>>>>>>> 0ac376d465a25513f755157a0e77134b050774e1[m
+      },[m
+[31m-     onSuccess: () => {[m
+[31m-       toast({[m
+[31m-         title: 'Fine recorded successfully',[m
+[31m-         description: 'The traffic fine has been added to the system'[m
+[31m-       });[m
+[31m-       validation.resetForm();[m
+[32m+   });[m
+[32m+ [m
+[32m+   const onSubmit = async (values: z.infer<typeof fineSchema>) => {[m
+[32m+     setLoading(true);[m
+[32m+     try {[m
+[32m+       await createTrafficFine.mutateAsync(values);[m
+[32m+       [m
+[32m+       // Reset form on successful save[m
+[32m+       form.reset();[m
+[32m+       [m
+        if (onFineSaved) {[m
+          onFineSaved();[m
+        }[m
+[31m-     },[m
+[31m-     onError: (error: any) => {[m
+[31m-       toast({[m
+[31m-         title: 'Failed to save traffic fine',[m
+[31m-         description: error.message,[m
+[31m-         variant: 'destructive'[m
+[32m+     } catch (error) {[m
+[32m+       console.error("Error creating traffic fine:", error);[m
+[32m+       toast.error("Failed to create traffic fine", {[m
+[32m+         description: error instanceof Error ? error.message : "Unknown error",[m
+        });[m
+[32m+     } finally {[m
+[32m+       setLoading(false);[m
+      }[m
+[32m++<<<<<<< HEAD[m
+[32m +  });[m
+[32m++=======[m
+[32m+   };[m
+[32m++>>>>>>> 0ac376d465a25513f755157a0e77134b050774e1[m
+  [m
+    return ([m
+[31m-     <Card className="overflow-hidden">[m
+[31m-       <CardHeader className="bg-muted">[m
+[32m+     <Card>[m
+[32m+       <CardHeader>[m
+          <CardTitle>Record New Traffic Fine</CardTitle>[m
+[31m-         <CardDescription>[m
+[31m-           Enter the details of the traffic fine[m
+[31m-         </CardDescription>[m
+        </CardHeader>[m
+[32m++<<<<<<< HEAD[m
+[32m +      <CardContent className="p-6 space-y-6">[m
+[32m +        {!validation.isValid && validation.isDirty && ([m
+[32m +          <Alert variant="destructive" className="mb-4">[m
+[32m +            <AlertTriangle className="h-4 w-4" />[m
+[32m +            <AlertTitle>Validation Error</AlertTitle>[m
+[32m +            <AlertDescription>[m
+[32m +              {Object.values(validation.errors).join(', ')}[m
+[32m +            </AlertDescription>[m
+[32m +          </Alert>[m
+[32m +        )}[m
+[32m +[m
+[32m +        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">[m
+[32m +          <div className="space-y-2">[m
+[32m +            <Label htmlF
