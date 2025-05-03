@@ -1,408 +1,285 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { format, addMonths, addWeeks, addDays } from 'date-fns';
-import { FinancialTransaction } from '@/hooks/use-financials';
 
-// Schema for expense form validation
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from 'sonner';
+import ReceiptScanner from "./ReceiptScanner";
+
 const expenseSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
-  description: z.string().min(3, 'Description is required').max(100),
-  date: z.date(),
-  status: z.enum(['completed', 'pending', 'failed']),
-  reference: z.string().optional(),
-  paymentMethod: z.string().optional(),
-  isRecurring: z.boolean().default(false),
-  recurringInterval: z.string().optional().nullable(),
-  nextPaymentDate: z.date().optional().nullable(),
+  expenseDate: z.date({
+    required_error: "Please select a date",
+  }),
+  amount: z.string().min(1, "Please enter an amount"),
+  category: z.string({
+    required_error: "Please select a category",
+  }),
+  paymentMethod: z.string({
+    required_error: "Please select a payment method",
+  }),
+  description: z.string().optional(),
+  receipt: z.any().optional(),
 });
-
-type ExpenseForm = z.infer<typeof expenseSchema>;
 
 interface ExpenseDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (data: Omit<FinancialTransaction, 'id' | 'type' | 'category'>) => void;
-  expense?: FinancialTransaction;
-  title?: string;
+  onClose: () => void;
+  onSave?: (data: any) => void;
 }
 
-const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
-  open,
-  onOpenChange,
-  onSubmit,
-  expense,
-  title = 'Add Expense',
-}) => {
-  const form = useForm<ExpenseForm>({
+const ExpenseDialog = ({ open, onClose, onSave }: ExpenseDialogProps) => {
+  const [activeTab, setActiveTab] = useState("manual");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form setup
+  const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      amount: expense?.amount || 0,
-      description: expense?.description || '',
-      date: expense?.date ? new Date(expense.date) : new Date(),
-      status: expense?.status || 'completed',
-      reference: expense?.reference || '',
-      paymentMethod: expense?.paymentMethod || 'Cash',
-      isRecurring: expense?.isRecurring || false,
-      recurringInterval: expense?.recurringInterval || null,
-      nextPaymentDate: expense?.nextPaymentDate ? new Date(expense.nextPaymentDate) : null,
+      expenseDate: new Date(),
+      amount: "",
+      category: "",
+      paymentMethod: "",
+      description: "",
     },
   });
 
-  const isRecurring = form.watch('isRecurring');
-
-  // Function to calculate next payment date based on interval
-  const calculateNextPaymentDate = (interval: string, currentDate: Date) => {
-    switch (interval) {
-      case 'monthly':
-        return addMonths(currentDate, 1);
-      case 'weekly':
-        return addWeeks(currentDate, 1);
-      case 'daily':
-        return addDays(currentDate, 1);
-      case 'quarterly':
-        return addMonths(currentDate, 3);
-      case 'yearly':
-        return addMonths(currentDate, 12);
-      default:
-        return addMonths(currentDate, 1);
+  const handleScanComplete = (data: any) => {
+    if (data) {
+      // Pre-fill form with scanned data
+      form.setValue("expenseDate", new Date(data.date));
+      form.setValue("amount", data.amount);
+      form.setValue("category", data.category.toLowerCase());
+      form.setValue("description", data.description);
+      
+      // Switch to manual tab to review
+      setActiveTab("manual");
+      
+      toast.success("Receipt data extracted", {
+        description: "Please review and submit the expense details"
+      });
     }
   };
 
-  // Update next payment date when interval changes
-  React.useEffect(() => {
-    const interval = form.getValues('recurringInterval');
-    const isRecurringValue = form.getValues('isRecurring');
-
-    if (isRecurringValue && interval) {
-      const currentDate = form.getValues('date') || new Date();
-      const nextDate = calculateNextPaymentDate(interval, currentDate);
-      form.setValue('nextPaymentDate', nextDate);
+  const onSubmit = async (data: z.infer<typeof expenseSchema>) => {
+    setIsSubmitting(true);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      console.log("Expense data:", data);
+      
+      if (onSave) {
+        onSave({
+          ...data,
+          amount: parseFloat(data.amount),
+        });
+      }
+      
+      toast.success("Expense recorded successfully");
+      form.reset();
+      onClose();
+    } catch (error) {
+      console.error("Error saving expense:", error);
+      toast.error("Failed to save expense");
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [form.watch('recurringInterval'), form.watch('isRecurring')]);
-
-  const handleSubmit = (data: ExpenseForm) => {
-    // If not recurring, ensure we don't send related fields
-    if (!data.isRecurring) {
-      data.recurringInterval = null;
-      data.nextPaymentDate = null;
-    }
-
-    // Convert form data to the expected format, ensuring all required properties are present
-    const expenseData = {
-      amount: data.amount,
-      description: data.description,
-      date: data.date,
-      status: data.status, // This is now required
-      reference: data.reference || '',
-      paymentMethod: data.paymentMethod || 'Cash',
-      isRecurring: data.isRecurring,
-      recurringInterval: data.recurringInterval,
-      nextPaymentDate: data.nextPaymentDate,
-    };
-
-    onSubmit(expenseData);
-    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>Record Expense</DialogTitle>
           <DialogDescription>
-            Enter the expense details or scan a receipt below.
+            Add a new expense to the financial records.
           </DialogDescription>
         </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="mb-4">
-              <ReceiptScanner
-                onScanComplete={(data) => {
-                  form.setValue('amount', data.amount);
-                  form.setValue('date', data.date);
-                  form.setValue('description', data.description);
-                }}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(parseFloat(e.target.value) || 0);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Expense description..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+            <TabsTrigger value="scan">Scan Receipt</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="manual" className="pt-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="expenseDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
                         <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className="w-full pl-3 text-left font-normal"
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Credit Card">Credit Card</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="Check">Check</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="reference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reference (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Reference number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="isRecurring"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Recurring Expense</FormLabel>
-                    <FormDescription>
-                      Set this expense to repeat automatically.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {isRecurring && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="recurringInterval"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Recurrence Interval</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value || undefined}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                          <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="nextPaymentDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Next Payment Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className="w-full pl-3 text-left font-normal"
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={field.onChange}
-                            initialFocus
+                          <Input
+                            placeholder="0.00"
+                            type="number"
+                            step="0.01"
+                            {...field}
                           />
-                        </PopoverContent>
-                      </Popover>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="fuel">Fuel</SelectItem>
+                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                            <SelectItem value="insurance">Insurance</SelectItem>
+                            <SelectItem value="registration">Registration</SelectItem>
+                            <SelectItem value="parts">Parts</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Method</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="card">Credit/Debit Card</SelectItem>
+                            <SelectItem value="bank">Bank Transfer</SelectItem>
+                            <SelectItem value="check">Check</SelectItem>
+                            <SelectItem value="mobile">Mobile Payment</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Add details about this expense..."
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Optional details about the expense.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save</Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                
+                <DialogFooter>
+                  <Button variant="outline" type="button" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Expense"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </TabsContent>
+          
+          <TabsContent value="scan" className="pt-4">
+            <ReceiptScanner onScanComplete={handleScanComplete} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

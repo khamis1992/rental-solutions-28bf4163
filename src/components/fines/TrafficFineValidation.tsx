@@ -14,10 +14,18 @@ import { useBatchValidation } from "@/hooks/traffic-fines/use-batch-validation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+interface ValidationResultType {
+  licensePlate: string;
+  isValid: boolean;
+  message: string;
+  details?: any;
+  timestamp?: Date;
+}
+
 const TrafficFineValidation = () => {
   const [licensePlate, setLicensePlate] = useState("");
   const [batchInput, setBatchInput] = useState("");
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResultType | null>(null);
   const [showBatchInput, setShowBatchInput] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("single");
   
@@ -47,7 +55,10 @@ const TrafficFineValidation = () => {
 
     try {
       const result = await validateTrafficFine(licensePlate.trim());
-      setValidationResult(result);
+      setValidationResult({
+        licensePlate: licensePlate.trim(),
+        ...result
+      });
     } catch (error) {
       console.error("Validation error:", error);
       // Error will be handled by the hook's error handling
@@ -128,9 +139,15 @@ const TrafficFineValidation = () => {
               setLicensePlate={setLicensePlate}
               validating={isLoading}
               onValidate={handleValidate}
+              onShowBatchInput={() => setShowBatchInput(true)}
             />
             
-            {validationResult && <ValidationResult result={validationResult} />}
+            {validationResult && (
+              <ValidationResult 
+                result={validationResult} 
+                licensePlate={validationResult.licensePlate}
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="batch" className="space-y-4">
@@ -146,8 +163,6 @@ const TrafficFineValidation = () => {
           <TabsContent value="history" className="space-y-4">
             <ValidationHistory 
               history={validationHistory || []}
-              isLoading={isLoading}
-              error={error}
             />
           </TabsContent>
         </Tabs>

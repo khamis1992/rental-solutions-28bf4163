@@ -35,6 +35,7 @@ export function useTrafficFines() {
   };
 }
 
+// Explicitly export all types needed by external modules
 export type {
   TrafficFine,
   TrafficFineStatusType,

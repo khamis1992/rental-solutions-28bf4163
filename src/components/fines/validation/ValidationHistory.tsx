@@ -1,58 +1,69 @@
 
 import React from 'react';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, XCircle } from 'lucide-react';
 
-interface ValidationHistoryItem {
+export interface ValidationResult {
+  id?: string;
   licensePlate: string;
-  validationDate: Date;
-  hasFine: boolean;
-  validationId?: string;
+  isValid: boolean;
+  message: string;
+  details?: any;
+  timestamp: Date;
 }
 
-interface ValidationHistoryProps {
-  history: ValidationHistoryItem[];
+export interface ValidationHistoryProps {
+  history: ValidationResult[];
 }
 
-const ValidationHistory = ({ history }: ValidationHistoryProps) => {
-  if (!history || history.length === 0) return null;
+const ValidationHistory: React.FC<ValidationHistoryProps> = ({ history }) => {
+  if (!history || history.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground">
+            No validation history available. Validate some license plates to see them here.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="mt-6">
-      <h4 className="text-sm font-medium mb-2">Recent Validations</h4>
-      <div className="border rounded-md overflow-hidden">
-        <div className="max-h-60 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="text-left p-2">License Plate</th>
-                <th className="text-left p-2">Date</th>
-                <th className="text-left p-2">Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.slice(0, 5).map((item, i) => (
-                <tr key={i} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/50'}>
-                  <td className="p-2">{item.licensePlate}</td>
-                  <td className="p-2">{item.validationDate.toLocaleString()}</td>
-                  <td className="p-2">
-                    {item.hasFine ? (
-                      <span className="flex items-center text-destructive">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        Fine found
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-green-600">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        No fine
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="space-y-4">
+      {history.map((item, index) => (
+        <Card key={item.id || index} className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex items-center p-4">
+              <div className="mr-4">
+                {item.isValid ? (
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                ) : (
+                  <XCircle className="h-6 w-6 text-red-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">
+                    License Plate: <span className="font-bold">{item.licensePlate}</span>
+                  </div>
+                  <Badge variant={item.isValid ? "success" : "destructive"}>
+                    {item.isValid ? 'Valid' : 'Invalid'}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {item.message}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {item.timestamp ? format(new Date(item.timestamp), 'PPp') : 'Unknown time'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

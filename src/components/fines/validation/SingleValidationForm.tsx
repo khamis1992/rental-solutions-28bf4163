@@ -2,66 +2,59 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { SearchIcon, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-interface SingleValidationFormProps {
+export interface SingleValidationFormProps {
   licensePlate: string;
-  setLicensePlate: (value: string) => void;
+  setLicensePlate: React.Dispatch<React.SetStateAction<string>>;
   validating: boolean;
   onValidate: () => void;
-  onShowBatchInput: () => void;
+  onShowBatchInput?: () => void;
 }
 
-const SingleValidationForm = ({
+const SingleValidationForm: React.FC<SingleValidationFormProps> = ({
   licensePlate,
   setLicensePlate,
   validating,
   onValidate,
   onShowBatchInput
-}: SingleValidationFormProps) => {
+}) => {
   return (
-    <div className="flex flex-col space-y-2">
-      <Label htmlFor="licensePlate">License Plate</Label>
-      <div className="flex space-x-2">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <Input
-          id="licensePlate"
-          placeholder="Enter license plate"
+          placeholder="Enter license plate number..."
           value={licensePlate}
           onChange={(e) => setLicensePlate(e.target.value)}
-          className="flex-grow"
+          className="flex-1"
           disabled={validating}
+          onKeyDown={(e) => e.key === 'Enter' && onValidate()}
         />
         <Button 
           onClick={onValidate} 
           disabled={validating || !licensePlate.trim()}
-          className="w-36"
         >
           {validating ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Validating...
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Validating
             </>
-          ) : (
-            <>
-              <SearchIcon className="mr-2 h-4 w-4" />
-              Validate
-            </>
-          )}
+          ) : 'Validate'}
         </Button>
       </div>
-      <div className="flex justify-between items-center">
-        <p className="text-xs text-muted-foreground">
-          Enter the vehicle's license plate to check for any traffic fines
-        </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onShowBatchInput}
-        >
-          Batch Validate
-        </Button>
-      </div>
+      
+      {onShowBatchInput && (
+        <div className="flex justify-end">
+          <Button 
+            variant="link" 
+            size="sm" 
+            onClick={onShowBatchInput}
+            className="text-xs"
+          >
+            Need to validate multiple plates? Use batch mode
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
