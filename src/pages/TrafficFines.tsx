@@ -12,12 +12,18 @@ import TrafficFineDataQuality from "@/components/reports/TrafficFineDataQuality"
 import { useErrorNotification } from "@/hooks/use-error-notification";
 import { useEffect } from "react";
 import { createLogger } from "@/utils/error-logger";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const logger = createLogger("pages:traffic-fines");
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
   const errorNotification = useErrorNotification();
+  const [hasInvalidAssignments, setHasInvalidAssignments] = useState(false);
+  const [showInvalidAssignments, setShowInvalidAssignments] = useState(false);
+  const [cleanupInProgress, setCleanupInProgress] = useState(false);
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -25,6 +31,15 @@ const TrafficFines = () => {
   
   const handleFineSaved = () => {
     setActiveTab("list");
+  };
+
+  const handleCleanupInvalidAssignments = async () => {
+    setCleanupInProgress(true);
+    // TrafficFinesList component will handle the actual cleanup
+    setTimeout(() => {
+      setCleanupInProgress(false);
+      setHasInvalidAssignments(false);
+    }, 1500);
   };
 
   // Error handling
@@ -73,6 +88,45 @@ const TrafficFines = () => {
         icon={AlertTriangle}
       />
       
+      {hasInvalidAssignments && (
+        <Alert variant={showInvalidAssignments ? "default" : "destructive"} className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>
+              Some traffic fines are assigned to customers but the violation dates fall outside the lease periods.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowInvalidAssignments(!showInvalidAssignments)}
+              >
+                {showInvalidAssignments ? 'Hide' : 'Show'} Invalid Assignments
+              </Button>
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                onClick={handleCleanupInvalidAssignments}
+                disabled={cleanupInProgress}
+              >
+                {cleanupInProgress ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Fixing...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="mr-2 h-3 w-3" />
+                    Fix Invalid Assignments
+                  </>
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-1 md:grid-cols-5 w-full">
           <TabsTrigger value="list" className="flex items-center">
@@ -98,7 +152,14 @@ const TrafficFines = () => {
         </TabsList>
         
         <TabsContent value="list" className="space-y-6">
-          <TrafficFinesList onAddFine={handleAddFine} />
+          <TrafficFinesList 
+            onAddFine={handleAddFine}
+            onInvalidAssignmentsFound={(hasInvalid) => {
+              setHasInvalidAssignments(hasInvalid);
+            }}
+            showInvalidAssignments={showInvalidAssignments}
+            triggerCleanup={cleanupInProgress}
+          />
         </TabsContent>
         
         <TabsContent value="add" className="space-y-6">

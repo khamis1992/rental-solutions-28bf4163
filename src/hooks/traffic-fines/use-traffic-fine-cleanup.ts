@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { TrafficFine } from './use-traffic-fines-query';
 import { batchOperations } from '@/utils/promise/batch';
 import { createLogger } from '@/utils/error-logger';
+import { validateFineDate } from './use-traffic-fine-validation';
 
 const logger = createLogger('traffic-fines:cleanup');
 
@@ -21,29 +22,93 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
     // Check if the fine has a violation date and the assigned lease has start/end dates
     if (!fine.violationDate || !fine.leaseStartDate) return false;
     
-    const violationDate = new Date(fine.violationDate);
-    const leaseStartDate = new Date(fine.leaseStartDate);
-    const leaseEndDate = fine.leaseEndDate ? new Date(fine.leaseEndDate) : new Date();
+    const validation = validateFineDate(
+      fine.violationDate,
+      fine.leaseStartDate,
+      fine.leaseEndDate
+    );
     
-    return violationDate >= leaseStartDate && violationDate <= leaseEndDate;
+    return validation.isValid;
   };
   
   // Function to clean up invalid assignments with improved batch processing
   const cleanupInvalidAssignments = useMutation({
-    mutationFn: async (options: { batchSize?: number; concurrency?: number } = {}) => {
+    mutationFn: async (options: { 
+      batchSize?: number; 
+      concurrency?: number;
+      vehicleId?: string;
+      licensePlate?: string;
+      leaseId?: string;
+      silent?: boolean;
+    } = {}) => {
       try {
-        if (!trafficFines || trafficFines.length === 0) {
-          throw new Error('No traffic fines data available');
+        // If no traffic fines are provided, fetch only the ones relevant to the filter
+        let finesToProcess = trafficFines;
+        
+        if (!finesToProcess || finesToProcess.length === 0 || options.vehicleId || options.licensePlate || options.leaseId) {
+          logger.info('Fetching specific traffic fines for cleanup');
+          
+          let query = supabase.from('traffic_fines').select(`
+            id, 
+            violation_date, 
+            lease_id, 
+            vehicle_id,
+            license_plate,
+            leases:lease_id (
+              id, 
+              start_date, 
+              end_date
+            )
+          `);
+          
+          // Apply filters if provided
+          if (options.vehicleId) {
+            query = query.eq('vehicle_id', options.vehicleId);
+          }
+          
+          if (options.licensePlate) {
+            query = query.eq('license_plate', options.licensePlate);
+          }
+          
+          if (options.leaseId) {
+            query = query.eq('lease_id', options.leaseId);
+          }
+          
+          // Only target assigned fines
+          query = query.not('lease_id', 'is', null);
+          
+          const { data, error } = await query;
+          
+          if (error) {
+            logger.error('Failed to fetch traffic fines:', error);
+            throw error;
+          }
+          
+          // Transform data to match TrafficFine structure
+          finesToProcess = data?.map(fine => ({
+            id: fine.id,
+            violationDate: fine.violation_date,
+            leaseId: fine.lease_id,
+            leaseStartDate: fine.leases?.start_date,
+            leaseEndDate: fine.leases?.end_date,
+            // Add other fields as needed
+          })) || [];
+          
+          logger.info(`Found ${finesToProcess.length} fines to check for invalid assignments`);
         }
         
-        logger.info('Starting invalid assignment cleanup...');
-        
         // Get all fines with invalid date ranges
-        const invalidFines = trafficFines.filter(fine => 
-          fine.leaseId && fine.violationDate && fine.leaseStartDate && 
-          (fine.violationDate < fine.leaseStartDate || 
-           (fine.leaseEndDate && fine.violationDate > fine.leaseEndDate))
-        );
+        const invalidFines = finesToProcess.filter(fine => {
+          if (!fine.leaseId || !fine.violationDate || !fine.leaseStartDate) return false;
+          
+          const validation = validateFineDate(
+            fine.violationDate,
+            fine.leaseStartDate,
+            fine.leaseEndDate
+          );
+          
+          return !validation.isValid;
+        });
         
         if (invalidFines.length === 0) {
           logger.info('No invalid fine assignments found');
@@ -96,19 +161,26 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast({
-        title: 'Cleanup successful',
-        description: `Successfully cleaned up ${data.cleaned} invalid fine assignments`
-      });
+      
+      // Only show toast notification if not silent mode
+      if (!variables.silent && data.cleaned > 0) {
+        toast({
+          title: 'Cleanup successful',
+          description: `Successfully cleaned up ${data.cleaned} invalid fine assignments`
+        });
+      }
     },
-    onError: (error: Error) => {
-      toast({
-        title: 'Cleanup failed',
-        description: error.message,
-        variant: 'destructive'
-      });
+    onError: (error: Error, variables) => {
+      // Only show toast notification if not silent mode
+      if (!variables.silent) {
+        toast({
+          title: 'Cleanup failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+      }
     }
   });
   

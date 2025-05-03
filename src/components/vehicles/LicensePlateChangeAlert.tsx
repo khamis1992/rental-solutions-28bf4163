@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createLogger } from '@/utils/error-logger';
+import { useTrafficFineCleanup } from '@/hooks/traffic-fines/use-traffic-fine-cleanup';
 
 const logger = createLogger('license-plate-change-alert');
 
@@ -23,6 +24,7 @@ const LicensePlateChangeAlert: React.FC<LicensePlateChangeAlertProps> = ({
 }) => {
   const [visible, setVisible] = useState(true);
   const { findAssociatedFines, handleLicensePlateChange, isProcessing } = useLicensePlateChangeHandler();
+  const { cleanupInvalidAssignments } = useTrafficFineCleanup();
   const [fineCount, setFineCount] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   
@@ -32,6 +34,12 @@ const LicensePlateChangeAlert: React.FC<LicensePlateChangeAlertProps> = ({
       setFineCount(fines.length);
       setChecked(true);
       logger.info(`Found ${fines.length} traffic fines associated with license plate ${oldLicensePlate}`);
+      
+      // Automatically clean up any invalid assignments for this vehicle
+      cleanupInvalidAssignments.mutate({ 
+        vehicleId, 
+        silent: true 
+      });
     } catch (error) {
       logger.error('Error checking for associated fines:', error);
       setFineCount(0);

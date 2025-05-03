@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -34,32 +35,47 @@ import {
   UserCheck,
   DollarSign,
   Users,
+  Loader2
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 import TrafficFineImport from './TrafficFineImport'; 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTrafficFineCleanup } from '@/hooks/traffic-fines/use-traffic-fine-cleanup';
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
   onAddFine?: () => void;
+  onInvalidAssignmentsFound?: (hasInvalid: boolean) => void;
+  showInvalidAssignments?: boolean;
+  triggerCleanup?: boolean;
 }
 
-const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesListProps) => {
+const TrafficFinesList = ({ 
+  isAutoAssigning = false, 
+  onAddFine, 
+  onInvalidAssignmentsFound,
+  showInvalidAssignments = false,
+  triggerCleanup = false
+}: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { 
     trafficFines, 
     isLoading, 
     payTrafficFine, 
     disputeTrafficFine, 
-    assignToCustomer,
-    cleanupInvalidAssignments 
+    assignToCustomer
   } = useTrafficFines();
+  
+  const {
+    cleanupInvalidAssignments,
+    isValidFine
+  } = useTrafficFineCleanup(trafficFines);
+  
   const [assigningFines, setAssigningFines] = useState(false);
-  const [showInvalidAssignments, setShowInvalidAssignments] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -70,15 +86,24 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
   // Check for invalid date ranges in fine assignments
   const invalidAssignments = filteredFines.filter(fine => {
     if (!fine.leaseId || !fine.leaseStartDate || !fine.violationDate) return false;
-    
-    const violationDate = new Date(fine.violationDate);
-    const leaseStartDate = new Date(fine.leaseStartDate);
-    const leaseEndDate = fine.leaseEndDate ? new Date(fine.leaseEndDate) : new Date();
-    
-    return violationDate < leaseStartDate || violationDate > leaseEndDate;
+    return !isValidFine(fine);
   });
   
   const hasInvalidAssignments = invalidAssignments.length > 0;
+
+  // Notify parent about invalid assignments
+  useEffect(() => {
+    if (onInvalidAssignmentsFound) {
+      onInvalidAssignmentsFound(hasInvalidAssignments);
+    }
+  }, [hasInvalidAssignments, onInvalidAssignmentsFound]);
+
+  // Trigger cleanup when requested
+  useEffect(() => {
+    if (triggerCleanup) {
+      handleFixInvalidAssignments();
+    }
+  }, [triggerCleanup]);
 
   const assignedFines = filteredFines.filter(fine => fine.customerId);
   const unassignedFines = filteredFines.filter(fine => !fine.customerId);
@@ -147,7 +172,12 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
   };
   
   const handleFixInvalidAssignments = () => {
-    cleanupInvalidAssignments.mutate();
+    cleanupInvalidAssignments.mutate({
+      // Trigger refetch after cleanup to ensure UI is updated
+      onSuccess: () => {
+        // This will be handled by the invalidation in the hook
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -164,10 +194,7 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
 
   const getCustomerAssignmentStatus = (fine: any) => {
     if (fine.customerId) {
-      const isInvalidAssignment = fine.leaseId && fine.violationDate && fine.leaseStartDate && (
-        new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
-        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate))
-      );
+      const isInvalidAssignment = fine.leaseId && fine.violationDate && fine.leaseStartDate && !isValidFine(fine);
       
       if (isInvalidAssignment) {
         return (
@@ -222,13 +249,6 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
               but the violation dates fall outside the lease periods.
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => setShowInvalidAssignments(!showInvalidAssignments)}
-              >
-                {showInvalidAssignments ? 'Hide' : 'Show'} Invalid Assignments
-              </Button>
               <Button 
                 size="sm" 
                 variant="secondary" 
@@ -318,8 +338,7 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
                   filteredFines.filter(fine => {
                     // Filter out invalid assignments if not showing them
                     if (!showInvalidAssignments && fine.customerId && fine.leaseId && fine.violationDate && fine.leaseStartDate) {
-                      const isInvalid = new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
-                        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate));
+                      const isInvalid = !isValidFine(fine);
                       return !isInvalid;
                     }
                     return true;

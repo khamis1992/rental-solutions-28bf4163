@@ -1,147 +1,123 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { normalizeLicensePlate } from '@/utils/searchUtils';
 import { createLogger } from '@/utils/error-logger';
 
 const logger = createLogger('traffic-fine-validation');
 
 /**
- * Result of a date validation operation
+ * Date validation result including reason for invalidity
  */
 export interface DateValidationResult {
   isValid: boolean;
-  message: string; // Changed from 'reason' to 'message' for consistency
+  reason?: string;
 }
 
 /**
- * Validates if a traffic fine date falls within a lease period
- * 
- * @param violationDate Date of the traffic violation
- * @param leaseStartDate Start date of the lease
- * @param leaseEndDate End date of the lease (optional for ongoing leases)
- * @returns Validation result object with isValid flag and message
+ * Validate if a traffic fine date falls within a lease period
  */
 export function validateFineDate(
   violationDate: Date | string,
   leaseStartDate: Date | string,
-  leaseEndDate?: Date | string | null
+  leaseEndDate?: Date | string
 ): DateValidationResult {
-  try {
-    // Convert string dates to Date objects if needed
-    const violationDateObj = violationDate instanceof Date ? violationDate : new Date(violationDate);
-    const leaseStartDateObj = leaseStartDate instanceof Date ? leaseStartDate : new Date(leaseStartDate);
-    
-    // For end date, handle null/undefined (ongoing lease)
-    const leaseEndDateObj = leaseEndDate 
-      ? (leaseEndDate instanceof Date ? leaseEndDate : new Date(leaseEndDate))
-      : null;
-    
-    // Check if dates are valid
-    if (isNaN(violationDateObj.getTime())) {
-      logger.warn('Invalid violation date provided for validation');
-      return { isValid: false, message: 'Invalid violation date' };
-    }
-    
-    if (isNaN(leaseStartDateObj.getTime())) {
-      logger.warn('Invalid lease start date provided for validation');
-      return { isValid: false, message: 'Invalid lease start date' };
-    }
-    
-    if (leaseEndDateObj && isNaN(leaseEndDateObj.getTime())) {
-      logger.warn('Invalid lease end date provided for validation');
-      return { isValid: false, message: 'Invalid lease end date' };
-    }
-    
-    // Check if violation date is before lease start
-    if (violationDateObj < leaseStartDateObj) {
-      logger.debug(`Violation date ${violationDateObj.toISOString()} is before lease start ${leaseStartDateObj.toISOString()}`);
-      return { 
-        isValid: false, 
-        message: 'Violation occurred before the lease started' 
-      };
-    }
-    
-    // Check if violation date is after lease end (if lease has ended)
-    if (leaseEndDateObj && violationDateObj > leaseEndDateObj) {
-      logger.debug(`Violation date ${violationDateObj.toISOString()} is after lease end ${leaseEndDateObj.toISOString()}`);
-      return { 
-        isValid: false, 
-        message: 'Violation occurred after the lease ended' 
-      };
-    }
-    
-    // If we got here, the date is valid
-    return { isValid: true, message: 'Valid' };
-  } catch (error) {
-    logger.error('Error validating fine date:', error);
+  // Convert dates to consistent format
+  const violation = new Date(violationDate);
+  const start = new Date(leaseStartDate);
+  const end = leaseEndDate ? new Date(leaseEndDate) : new Date();
+  
+  // Check if violation date is before lease start
+  if (violation < start) {
     return { 
-      isValid: false, 
-      message: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      isValid: false,
+      reason: `Violation date (${violation.toLocaleDateString()}) is before lease start date (${start.toLocaleDateString()})`
     };
   }
+  
+  // Check if violation date is after lease end
+  if (violation > end) {
+    return { 
+      isValid: false,
+      reason: `Violation date (${violation.toLocaleDateString()}) is after lease end date (${end.toLocaleDateString()})`
+    };
+  }
+  
+  return { isValid: true };
 }
 
 /**
- * Finds the best matching lease for a traffic fine based on license plate and date
+ * Finds the best matching lease for assigning traffic fines
  */
-export async function findBestMatchingLease(licensePlate: string, violationDate: Date | string) {
+export async function findBestMatchingLease(
+  licensePlate: string, 
+  violationDate: Date | string
+): Promise<{ leaseId: string | null; reason?: string }> {
   try {
     const normalizedPlate = normalizeLicensePlate(licensePlate);
-    logger.debug(`Finding best matching lease for ${normalizedPlate} on ${violationDate}`);
+    logger.debug(`Finding best matching lease for license plate ${normalizedPlate} on ${violationDate}`);
     
-    // First, try to find the vehicle by license plate
+    // Find vehicles with this license plate
     const { data: vehicles, error: vehicleError } = await supabase
       .from('vehicles')
-      .select('id, license_plate, make, model')
-      .ilike('license_plate', `%${normalizedPlate}%`);
-      
-    if (vehicleError || !vehicles || vehicles.length === 0) {
-      logger.debug(`No vehicle found with license plate ${normalizedPlate}`);
-      return { leaseId: null, reason: 'No matching vehicle found' };
+      .select('id')
+      .eq('license_plate', normalizedPlate);
+    
+    if (vehicleError) {
+      logger.error(`Error finding vehicle: ${vehicleError.message}`);
+      return { leaseId: null, reason: `Error finding vehicle: ${vehicleError.message}` };
     }
     
-    // For each vehicle, check for active leases at the time of violation
-    for (const vehicle of vehicles) {
-      const { data: leases, error: leaseError } = await supabase
-        .from('leases')
-        .select('id, start_date, end_date, customer_id')
-        .eq('vehicle_id', vehicle.id);
-        
-      if (leaseError || !leases || leases.length === 0) {
-        logger.debug(`No leases found for vehicle ${vehicle.id}`);
-        continue;
-      }
-      
-      // Convert violation date to date object for comparison
-      const violationDateObj = violationDate instanceof Date 
-        ? violationDate 
-        : new Date(violationDate);
-      
-      // Find a lease that covers the violation date
-      for (const lease of leases) {
-        const validation = validateFineDate(
-          violationDateObj,
-          lease.start_date,
-          lease.end_date
-        );
-        
-        if (validation.isValid) {
-          logger.info(
-            `Found matching lease ${lease.id} for license plate ${normalizedPlate} on ${violationDateObj.toISOString()}`
-          );
-          return { leaseId: lease.id, reason: 'Matching lease found' };
-        }
-      }
+    if (!vehicles || vehicles.length === 0) {
+      logger.warn(`No vehicles found with license plate ${normalizedPlate}`);
+      return { leaseId: null, reason: `No vehicle found with license plate ${normalizedPlate}` };
     }
     
-    // No matching lease found
-    logger.debug(`No matching lease found for ${normalizedPlate} on the violation date`);
-    return { leaseId: null, reason: 'No active lease for this vehicle at the time of violation' };
+    const vehicleId = vehicles[0].id;
+    
+    // Find leases for this vehicle
+    const { data: leases, error: leaseError } = await supabase
+      .from('leases')
+      .select('id, start_date, end_date, customer_id')
+      .eq('vehicle_id', vehicleId)
+      .is('deleted_at', null);
+    
+    if (leaseError) {
+      logger.error(`Error finding leases: ${leaseError.message}`);
+      return { leaseId: null, reason: `Error finding leases: ${leaseError.message}` };
+    }
+    
+    if (!leases || leases.length === 0) {
+      logger.warn(`No lease found for vehicle ${vehicleId}`);
+      return { leaseId: null, reason: 'No lease found for this vehicle' };
+    }
+    
+    // Convert violation date
+    const violationDateObj = new Date(violationDate);
+    
+    // Find the lease that covers this violation date
+    const matchingLease = leases.find(lease => {
+      const validation = validateFineDate(
+        violationDateObj,
+        lease.start_date,
+        lease.end_date
+      );
+      return validation.isValid;
+    });
+    
+    if (!matchingLease) {
+      logger.warn(`No lease covers the violation date ${violationDateObj.toISOString()}`);
+      return { 
+        leaseId: null, 
+        reason: 'No lease covers the violation date' 
+      };
+    }
+    
+    logger.info(`Found matching lease ${matchingLease.id} for date ${violationDateObj.toISOString()}`);
+    return { leaseId: matchingLease.id };
+    
   } catch (error) {
-    logger.error('Error finding matching lease:', error);
-    return { 
-      leaseId: null, 
-      reason: `Error finding matching lease: ${error instanceof Error ? error.message : 'Unknown error'}`
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`Error finding matching lease: ${message}`);
+    return { leaseId: null, reason: `Error finding matching lease: ${message}` };
   }
 }
