@@ -123,7 +123,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           if (violationDate && leaseStartDate) {
             const validation = validateFineDate(violationDate, leaseStartDate, leaseEndDate);
             if (!validation.isValid) {
-              invalid.push({...fine, validationReason: validation.reason});
+              invalid.push({...fine, validationReason: validation.message});
             }
           }
         }
