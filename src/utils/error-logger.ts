@@ -7,14 +7,16 @@ interface ErrorLoggerConfig {
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   includeTimestamp: boolean;
   includeStack: boolean;
+  disableInProduction: boolean;
 }
 
 // Default configuration
 const defaultConfig: ErrorLoggerConfig = {
-  enableConsoleLogging: process.env.NODE_ENV !== 'production',
-  logLevel: 'error',
+  enableConsoleLogging: true,
+  logLevel: process.env.NODE_ENV === 'production' ? 'error' : 'debug',
   includeTimestamp: true,
   includeStack: process.env.NODE_ENV !== 'production',
+  disableInProduction: true
 };
 
 // Current configuration
@@ -27,7 +29,7 @@ export function configureErrorLogger(newConfig: Partial<ErrorLoggerConfig>) {
 
 // Log an error
 export function logError(error: Error | ErrorData | string, context?: string) {
-  if (!config.enableConsoleLogging) return;
+  if (!config.enableConsoleLogging || (process.env.NODE_ENV === 'production' && config.disableInProduction)) return;
   
   const timestamp = config.includeTimestamp ? new Date().toISOString() : '';
   const prefix = context ? `[${context}]` : '';
@@ -75,37 +77,96 @@ export function logError(error: Error | ErrorData | string, context?: string) {
       }
       break;
   }
+}
+
+// Is a log level enabled
+function isLevelEnabled(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
+  if (process.env.NODE_ENV === 'production' && config.disableInProduction) return false;
+  if (!config.enableConsoleLogging) return false;
   
-  // You can add additional logging backends here
-  // For example, sending to a logging service
+  const levels = ['debug', 'info', 'warn', 'error'];
+  const configLevelIndex = levels.indexOf(config.logLevel);
+  const checkLevelIndex = levels.indexOf(level);
+  
+  // If the level being checked is greater than or equal to the configured level, it's enabled
+  return checkLevelIndex >= configLevelIndex;
 }
 
 // Create a namespaced logger
 export function createLogger(namespace: string) {
   return {
-    debug: (message: string) => {
-      if (config.logLevel === 'debug') {
-        console.debug(`[${namespace}] ${message}`);
+    debug: (message: string, ...data: any[]) => {
+      if (isLevelEnabled('debug')) {
+        if (data.length > 0) {
+          console.debug(`[${namespace}] ${message}`, ...data);
+        } else {
+          console.debug(`[${namespace}] ${message}`);
+        }
       }
     },
-    info: (message: string) => {
-      if (['debug', 'info'].includes(config.logLevel)) {
-        console.info(`[${namespace}] ${message}`);
+    info: (message: string, ...data: any[]) => {
+      if (isLevelEnabled('info')) {
+        if (data.length > 0) {
+          console.info(`[${namespace}] ${message}`, ...data);
+        } else {
+          console.info(`[${namespace}] ${message}`);
+        }
       }
     },
-    warn: (message: string) => {
-      if (['debug', 'info', 'warn'].includes(config.logLevel)) {
-        console.warn(`[${namespace}] ${message}`);
+    warn: (message: string, ...data: any[]) => {
+      if (isLevelEnabled('warn')) {
+        if (data.length > 0) {
+          console.warn(`[${namespace}] ${message}`, ...data);
+        } else {
+          console.warn(`[${namespace}] ${message}`);
+        }
       }
     },
-    error: (error: Error | string) => {
-      logError(error, namespace);
+    error: (message: string | Error, ...data: any[]) => {
+      if (isLevelEnabled('error')) {
+        const errorMessage = message instanceof Error ? message.message : message;
+        if (data.length > 0) {
+          console.error(`[${namespace}] ${errorMessage}`, ...data);
+          if (message instanceof Error && config.includeStack && message.stack) {
+            console.error(message.stack);
+          }
+        } else {
+          console.error(`[${namespace}] ${errorMessage}`);
+          if (message instanceof Error && config.includeStack && message.stack) {
+            console.error(message.stack);
+          }
+        }
+      }
     }
   };
 }
 
+// Initialize logger with environment-specific settings
+export function initializeLogger() {
+  // In production, only show errors by default
+  if (process.env.NODE_ENV === 'production') {
+    configureErrorLogger({
+      logLevel: 'error',
+      includeStack: false,
+      disableInProduction: false // Allow some logs in production, but only errors
+    });
+  } 
+  // In development, show all logs
+  else {
+    configureErrorLogger({
+      logLevel: 'debug',
+      includeStack: true,
+      disableInProduction: false
+    });
+  }
+}
+
+// Initialize with default settings
+initializeLogger();
+
 export default {
   configureErrorLogger,
   logError,
-  createLogger
+  createLogger,
+  initializeLogger
 };

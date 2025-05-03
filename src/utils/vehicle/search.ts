@@ -1,10 +1,10 @@
 
 import { supabase } from '@/lib/supabase';
 import { DatabaseVehicleRecord } from '@/types/vehicle';
-import { createDebugLogger } from '@/utils/promise/utils';
 import { normalizeLicensePlate } from '@/utils/searchUtils';
+import { createLogger } from '@/utils/error-logger';
 
-const debug = createDebugLogger('vehicle:search');
+const logger = createLogger('vehicle:search');
 
 /**
  * Find a vehicle by its license plate with improved normalization and matching
@@ -20,11 +20,11 @@ export const findVehicleByLicensePlate = async (
   message: string;
 }> => {
   try {
-    debug(`Searching for vehicle with license plate: ${licensePlate}`);
+    logger.debug(`Searching for vehicle with license plate: ${licensePlate}`);
     
     // Validate input
     if (!licensePlate || typeof licensePlate !== 'string' || licensePlate.trim() === '') {
-      debug('Invalid or empty license plate provided');
+      logger.warn('Invalid or empty license plate provided');
       return {
         success: false,
         message: 'Please provide a valid license plate'
@@ -33,7 +33,7 @@ export const findVehicleByLicensePlate = async (
     
     // Enhanced normalization for consistent searching
     const normalizedLicensePlate = normalizeLicensePlate(licensePlate);
-    debug(`Normalized license plate for search: ${normalizedLicensePlate}`);
+    logger.debug(`Normalized license plate for search: ${normalizedLicensePlate}`);
     
     // Query with normalized license plate
     const { data, error } = await supabase
@@ -43,7 +43,7 @@ export const findVehicleByLicensePlate = async (
       .maybeSingle();
     
     if (error) {
-      debug(`Database query failed: ${error.message}`);
+      logger.error(`Database query failed: ${error.message}`);
       return {
         success: false,
         message: `Error searching for vehicle: ${error.message}`
@@ -51,14 +51,14 @@ export const findVehicleByLicensePlate = async (
     }
     
     if (!data) {
-      debug(`No vehicle found with license plate: ${normalizedLicensePlate}`);
+      logger.info(`No vehicle found with license plate: ${normalizedLicensePlate}`);
       return {
         success: false,
         message: `No vehicle found with license plate: ${licensePlate}`
       };
     }
     
-    debug(`Vehicle found: ${data.make} ${data.model} (${data.license_plate})`);
+    logger.info(`Vehicle found: ${data.make} ${data.model} (${data.license_plate})`);
     return {
       success: true,
       data: data as DatabaseVehicleRecord,
@@ -66,7 +66,7 @@ export const findVehicleByLicensePlate = async (
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    debug(`Unexpected error: ${errorMessage}`);
+    logger.error(`Unexpected error: ${errorMessage}`);
     return {
       success: false,
       message: `Error searching for vehicle: ${errorMessage}`

@@ -1,4 +1,8 @@
 
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('promise:utils');
+
 /**
  * Check if a value is defined (not null or undefined)
  */
@@ -82,7 +86,11 @@ export function verifyEnum<T extends string>(
 export function createDebugLogger(context: string) {
   return (message: string, ...data: any[]) => {
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[${context}] ${message}`, ...data);
+      if (data.length > 0) {
+        logger.debug(`[${context}] ${message}`, ...data);
+      } else {
+        logger.debug(`[${context}] ${message}`);
+      }
     }
   };
 }
@@ -101,7 +109,7 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, defaultV
   try {
     return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error('Failed to parse JSON string:', error);
+    logger.error('Failed to parse JSON string:', error);
     return defaultValue;
   }
 }

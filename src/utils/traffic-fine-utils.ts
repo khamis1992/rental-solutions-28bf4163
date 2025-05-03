@@ -4,6 +4,9 @@ import { TRAFFIC_FINE_PAYMENT_STATUSES, asTrafficFinePaymentStatus } from '@/typ
 import { ServiceResponse, wrapOperation, hasResponseData } from '@/utils/response-handler';
 import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { fuzzyMatchLicensePlates, normalizeLicensePlate } from '@/utils/searchUtils';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('traffic-fines');
 
 /**
  * Fetches traffic fines with type-safe handling
@@ -15,6 +18,8 @@ export async function fetchTrafficFines(options: {
   paymentStatus?: string;
 } = {}): Promise<ServiceResponse<any[]>> {
   return wrapOperation(async () => {
+    logger.debug('Fetching traffic fines with options:', options);
+    
     // Start building the query
     let query = supabase
       .from('traffic_fines')
@@ -35,20 +40,24 @@ export async function fetchTrafficFines(options: {
     // Apply filters if provided
     if (options.licensePlate) {
       const normalizedPlate = normalizeLicensePlate(options.licensePlate);
+      logger.debug(`Filtering by normalized license plate: ${normalizedPlate}`);
       query = query.eq('license_plate', normalizedPlate);
     }
     
     if (options.agreementId) {
+      logger.debug(`Filtering by agreement ID: ${options.agreementId}`);
       query = query.eq('lease_id', options.agreementId);
     }
     
     if (options.paymentStatus) {
       const safeStatus = asTrafficFinePaymentStatus(options.paymentStatus);
+      logger.debug(`Filtering by payment status: ${safeStatus}`);
       query = query.eq('payment_status', safeStatus);
     }
     
     // Apply limit if provided
     if (options.limit && options.limit > 0) {
+      logger.debug(`Limiting results to: ${options.limit}`);
       query = query.limit(options.limit);
     }
     
@@ -56,9 +65,11 @@ export async function fetchTrafficFines(options: {
     const response = await query.order('violation_date', { ascending: false });
     
     if (response && !response.error && response.data) {
+      logger.info(`Found ${response.data.length} traffic fines`);
       return response.data;
     }
     
+    logger.error(`Error fetching traffic fines: ${response?.error?.message || 'Unknown error'}`);
     throw new Error(`Error fetching traffic fines: ${response?.error?.message || 'Unknown error'}`);
   }, 'Fetching traffic fines');
 }
@@ -71,6 +82,8 @@ export async function updateTrafficFinePaymentStatus(
   status: string
 ): Promise<ServiceResponse<any>> {
   return wrapOperation(async () => {
+    logger.debug(`Updating traffic fine ${fineId} payment status to ${status}`);
+    
     const safeStatus = asTrafficFinePaymentStatus(status);
     const response = await supabase
       .from('traffic_fines')
@@ -83,9 +96,11 @@ export async function updateTrafficFinePaymentStatus(
       .single();
       
     if (response && !response.error && response.data) {
+      logger.info(`Successfully updated traffic fine ${fineId} payment status to ${status}`);
       return response.data;
     }
     
+    logger.error(`Error updating traffic fine payment status: ${response?.error?.message || 'Unknown error'}`);
     throw new Error(`Error updating traffic fine payment status: ${response?.error?.message || 'Unknown error'}`);
   }, 'Updating traffic fine payment status');
 }
@@ -98,6 +113,8 @@ export async function findLeasesByViolationDate(
   violationDate: Date | string
 ): Promise<ServiceResponse<any[]>> {
   return wrapOperation(async () => {
+    logger.debug(`Finding leases for vehicle ${vehicleId} on violation date ${violationDate}`);
+    
     // Get all active leases for this vehicle
     const { data: leases, error } = await supabase
       .from('leases')
@@ -106,10 +123,12 @@ export async function findLeasesByViolationDate(
       .is('deleted_at', null);
       
     if (error) {
+      logger.error(`Failed to find leases: ${error.message}`);
       throw new Error(`Failed to find leases: ${error.message}`);
     }
     
     if (!leases || leases.length === 0) {
+      logger.info(`No leases found for vehicle ${vehicleId}`);
       return [];
     }
     
@@ -129,6 +148,7 @@ export async function findLeasesByViolationDate(
       return validation.isValid;
     });
     
+    logger.info(`Found ${matchingLeases.length} matching leases for violation date ${violationDate}`);
     return matchingLeases;
   }, 'Finding leases by violation date');
 }
@@ -141,6 +161,8 @@ export async function reassignTrafficFine(
   agreementId: string | null
 ): Promise<ServiceResponse<any>> {
   return wrapOperation(async () => {
+    logger.debug(`Reassigning traffic fine ${fineId} to agreement ${agreementId || 'none'}`);
+    
     const response = await supabase
       .from('traffic_fines')
       .update({ 
@@ -152,9 +174,11 @@ export async function reassignTrafficFine(
       .single();
       
     if (response && !response.error && response.data) {
+      logger.info(`Successfully reassigned traffic fine ${fineId}`);
       return response.data;
     }
     
+    logger.error(`Error reassigning traffic fine: ${response?.error?.message || 'Unknown error'}`);
     throw new Error(`Error reassigning traffic fine: ${response?.error?.message || 'Unknown error'}`);
   }, 'Reassigning traffic fine');
 }

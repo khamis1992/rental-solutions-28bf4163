@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { normalizeLicensePlate, fuzzyMatchLicensePlates } from '@/utils/searchUtils';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('traffic-fine:validation');
 
 interface ValidationResult {
   id: string;
@@ -68,6 +71,7 @@ export const useTrafficFineValidation = () => {
     setError(null);
     
     const normalizedPlate = normalizeLicensePlate(licensePlate);
+    logger.debug(`Validating license plate: ${normalizedPlate}`);
     
     try {
       // Step 1: Check if vehicle exists with this license plate
@@ -76,10 +80,14 @@ export const useTrafficFineValidation = () => {
         .select('id, make, model, license_plate, year')
         .ilike('license_plate', normalizedPlate);
       
-      if (vehicleError) throw new Error(`Vehicle lookup failed: ${vehicleError.message}`);
+      if (vehicleError) {
+        logger.error(`Vehicle lookup failed: ${vehicleError.message}`);
+        throw new Error(`Vehicle lookup failed: ${vehicleError.message}`);
+      }
       
       // Handle no vehicle found
       if (!vehicles || vehicles.length === 0) {
+        logger.info(`No vehicle found with license plate: ${normalizedPlate}`);
         const result = {
           id: `validation-${Date.now()}`,
           validationDate: new Date().toISOString(),
@@ -93,11 +101,13 @@ export const useTrafficFineValidation = () => {
       
       // Try fuzzy matching if exact match didn't work
       const fuzzyMatches = vehicles.filter(v => fuzzyMatchLicensePlates(v.license_plate, normalizedPlate));
+      logger.debug(`Found ${vehicles.length} vehicles, ${fuzzyMatches.length} fuzzy matches`);
       
       // Get all leases for the vehicle(s)
       let currentLeases: any[] = [];
       
       for (const vehicle of fuzzyMatches.length > 0 ? fuzzyMatches : vehicles) {
+        logger.debug(`Fetching leases for vehicle: ${vehicle.id} (${vehicle.make} ${vehicle.model})`);
         const { data: leases, error: leaseError } = await supabase
           .from('leases')
           .select(`
@@ -112,9 +122,13 @@ export const useTrafficFineValidation = () => {
           .eq('vehicle_id', vehicle.id)
           .order('start_date', { ascending: false });
         
-        if (leaseError) throw new Error(`Lease lookup failed: ${leaseError.message}`);
+        if (leaseError) {
+          logger.error(`Lease lookup failed: ${leaseError.message}`);
+          throw new Error(`Lease lookup failed: ${leaseError.message}`);
+        }
         
         if (leases && leases.length > 0) {
+          logger.debug(`Found ${leases.length} leases for vehicle: ${vehicle.id}`);
           currentLeases = [...currentLeases, ...leases.map(lease => ({
             ...lease,
             vehicle: vehicle
@@ -135,11 +149,13 @@ export const useTrafficFineValidation = () => {
         }
       };
       
+      logger.info(`Successfully validated license plate: ${normalizedPlate}`);
       setValidationResults(prev => [result, ...prev]);
       return result;
       
     } catch (err) {
       const error = err as Error;
+      logger.error(`Validation error: ${error.message}`);
       setError(error);
       const result = {
         id: `validation-${Date.now()}`,
@@ -160,6 +176,7 @@ export const useTrafficFineValidation = () => {
   
   // Clear validation history
   const clearValidationHistory = () => {
+    logger.debug('Clearing validation history');
     setValidationResults([]);
   };
 

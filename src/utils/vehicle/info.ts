@@ -3,6 +3,10 @@ import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { supabase } from '@/lib/supabase';
 import { VehicleStatus } from '@/types/vehicle';
 import { normalizeLicensePlate } from '@/utils/searchUtils';
+import { createLogger } from '@/utils/error-logger';
+
+// Create a logger for this module
+const logger = createLogger('vehicle:info');
 
 /**
  * Updates vehicle information in the database with improved efficiency and normalization
@@ -27,11 +31,11 @@ export const updateVehicleInfo = async (
   }>
 ): Promise<{ success: boolean; message: string; data?: any }> => {
   try {
-    console.log(`Attempting to update vehicle ${id} with data:`, data);
+    logger.debug(`Updating vehicle ${id}`);
     
     // Validate input parameters
     if (!id || typeof id !== 'string' || id.trim() === '') {
-      console.error('Invalid vehicle ID provided:', id);
+      logger.error('Invalid vehicle ID provided: ' + id);
       return { 
         success: false,
         message: 'Invalid vehicle ID provided' 
@@ -45,19 +49,19 @@ export const updateVehicleInfo = async (
     if (updateData.license_plate) {
       const originalLicensePlate = updateData.license_plate;
       updateData.license_plate = normalizeLicensePlate(originalLicensePlate);
-      console.log(`Normalized license plate from "${originalLicensePlate}" to "${updateData.license_plate}"`);
+      logger.debug(`Normalized license plate from "${originalLicensePlate}" to "${updateData.license_plate}"`);
     }
     
     // Map status if provided - ensure proper type handling
     if (updateData.status !== undefined) {
       // Convert any status to proper database format
       try {
-        console.log(`Pre-mapping status value: ${updateData.status}`);
+        logger.debug(`Pre-mapping status value: ${updateData.status}`);
         const dbStatus = mapToDBStatus(updateData.status);
         updateData.status = dbStatus;
-        console.log(`Mapped status ${data.status} to database status ${dbStatus}`);
+        logger.debug(`Mapped status ${data.status} to database status ${dbStatus}`);
       } catch (err) {
-        console.error('Error mapping status:', err);
+        logger.error('Error mapping status:', err);
         return {
           success: false,
           message: `Invalid status value: ${updateData.status}`
@@ -68,7 +72,7 @@ export const updateVehicleInfo = async (
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();
     
-    console.log('Final update data to be sent to database:', updateData);
+    logger.debug('Sending update to database');
 
     // Perform the update in a single operation
     const { data: updatedVehicle, error } = await supabase
@@ -79,14 +83,14 @@ export const updateVehicleInfo = async (
       .maybeSingle();
       
     if (error) {
-      console.error(`Update failed:`, error);
+      logger.error(`Update failed:`, error);
       return { 
         success: false, 
         message: `Failed to update: ${error.message}`
       };
     }
     
-    console.log(`Successfully updated vehicle:`, updatedVehicle);
+    logger.info(`Successfully updated vehicle ${id}`);
     return { 
       success: true, 
       message: `Vehicle updated successfully`,
@@ -94,7 +98,7 @@ export const updateVehicleInfo = async (
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Unexpected error updating vehicle:', err);
+    logger.error('Unexpected error updating vehicle:', err);
     return { 
       success: false, 
       message: `Unexpected error: ${errorMessage}` 
