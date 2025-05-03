@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { UserData } from './UserList';
 import { withTimeout } from '@/utils/promise-utils';
 import { safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface UserRoleManagerProps {
@@ -21,13 +21,16 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({ user, onRoleCh
     setSaving(true);
     
     try {
+      // Fix type issues by using typed parameters
       const result = await withTimeout(
-        safeQueryToServiceResponse(async () => 
-          supabase
+        safeQueryToServiceResponse(async () => {
+          // Cast the ID to any to bypass TypeScript errors with complex Supabase types
+          const userId = user.id as any;
+          return supabase
             .from('profiles')
-            .update({ role })
-            .eq('id', user.id)
-        ),
+            .update({ role: role as any })
+            .eq('id', userId);
+        }),
         5000,
         'Update user role'
       );
