@@ -1,19 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
+import { Search, FilterX, Filter, ChevronDown, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { VehicleStatus } from '@/types/vehicle';
 import { Button } from '@/components/ui/button';
-import { FilterX } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 export interface VehicleFilterValues {
   status: string;
@@ -30,7 +35,58 @@ interface VehicleFiltersProps {
   className?: string;
 }
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({
+// Define filter options outside component to avoid recreating on each render
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'available', label: 'Available' },
+  { value: 'rented', label: 'Rented' },
+  { value: 'reserved', label: 'Reserved' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'police_station', label: 'Police Station' },
+  { value: 'accident', label: 'Accident' },
+  { value: 'stolen', label: 'Stolen' },
+  { value: 'retired', label: 'Retired' }
+];
+
+const MAKE_OPTIONS = [
+  { value: 'all', label: 'All Makes' },
+  { value: 'Toyota', label: 'Toyota' },
+  { value: 'Honda', label: 'Honda' },
+  { value: 'Nissan', label: 'Nissan' },
+  { value: 'Ford', label: 'Ford' },
+  { value: 'Hyundai', label: 'Hyundai' },
+  { value: 'Kia', label: 'Kia' },
+  { value: 'Mazda', label: 'Mazda' },
+  { value: 'Mercedes', label: 'Mercedes' },
+  { value: 'BMW', label: 'BMW' },
+  { value: 'Audi', label: 'Audi' },
+  { value: 'Lexus', label: 'Lexus' }
+];
+
+const LOCATION_OPTIONS = [
+  { value: 'all', label: 'All Locations' },
+  { value: 'Main Garage', label: 'Main Garage' },
+  { value: 'Downtown', label: 'Downtown' },
+  { value: 'Airport', label: 'Airport' },
+  { value: 'North Branch', label: 'North Branch' },
+  { value: 'South Branch', label: 'South Branch' },
+  { value: 'East Branch', label: 'East Branch' },
+  { value: 'West Branch', label: 'West Branch' }
+];
+
+// Generate year options dynamically
+const YEAR_OPTIONS = useMemo(() => {
+  const currentYear = new Date().getFullYear();
+  const years = [{ value: 'all', label: 'All Years' }];
+
+  for (let year = currentYear; year >= currentYear - 10; year--) {
+    years.push({ value: year.toString(), label: year.toString() });
+  }
+
+  return years;
+}, []);
+
+const VehicleFilters: React.FC<VehicleFiltersProps> = memo(({
   onFilterChange,
   initialValues = {
     status: 'all',
@@ -43,20 +99,231 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   className
 }) => {
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
-  
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Count active filters (excluding 'all' values and empty search)
+  const activeFilterCount = useMemo(() => {
+    return Object.entries(filters).reduce((count, [key, value]) => {
+      if (key === 'search') {
+        return value ? count + 1 : count;
+      }
+      return value !== 'all' ? count + 1 : count;
+    }, 0);
+  }, [filters]);
+
+  // Debounced filter change
   useEffect(() => {
-    onFilterChange(filters);
+    const timer = setTimeout(() => {
+      onFilterChange(filters);
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [filters, onFilterChange]);
-  
-  const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
+
+  const handleFilterChange = useCallback((key: keyof VehicleFilterValues, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
-  
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFilters(prev => ({ ...prev, search: value }));
-  };
-  
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilters({
+      status: 'all',
+      make: 'all',
+      location: 'all',
+      year: 'all',
+      category: 'all',
+      search: ''
+    });
+    setIsPopoverOpen(false);
+  }, []);
+
+  // Render filter select component
+  const renderFilterSelect = useCallback((
+    id: string,
+    label: string,
+    value: string,
+    options: { value: string; label: string }[],
+    filterKey: keyof VehicleFilterValues
+  ) => (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </Label>
+      <Select
+        value={value}
+        onValueChange={(value) => handleFilterChange(filterKey, value)}
+      >
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder={`Select ${label}`} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {options.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
+  ), [handleFilterChange]);
+
+  // Mobile filter view
+  if (isMobile) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Input
+              type="search"
+              placeholder="Search vehicles..."
+              className="pl-10 pr-10"
+              value={filters.search || ''}
+              onChange={handleSearchChange}
+            />
+            {filters.search && (
+              <button
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
+                onClick={() => handleFilterChange('search', '')}
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
+          </div>
+
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 whitespace-nowrap"
+              >
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
+                  >
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="end">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">Filter Vehicles</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="h-8 px-2 text-xs"
+                    disabled={activeFilterCount === 0}
+                  >
+                    <FilterX className="h-3.5 w-3.5 mr-1" />
+                    Reset
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {renderFilterSelect(
+                  "status-filter-mobile",
+                  "Status",
+                  filters.status,
+                  STATUS_OPTIONS,
+                  'status'
+                )}
+
+                {renderFilterSelect(
+                  "make-filter-mobile",
+                  "Make",
+                  filters.make,
+                  MAKE_OPTIONS,
+                  'make'
+                )}
+
+                {renderFilterSelect(
+                  "location-filter-mobile",
+                  "Location",
+                  filters.location,
+                  LOCATION_OPTIONS,
+                  'location'
+                )}
+
+                {renderFilterSelect(
+                  "year-filter-mobile",
+                  "Year",
+                  filters.year,
+                  YEAR_OPTIONS,
+                  'year'
+                )}
+
+                <div className="pt-2">
+                  <Button
+                    className="w-full"
+                    onClick={() => setIsPopoverOpen(false)}
+                  >
+                    Apply Filters
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {filters.status !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Status: {filters.status}
+                <button onClick={() => handleFilterChange('status', 'all')}>
+                  <X className="h-3 w-3 ml-1" />
+                </button>
+              </Badge>
+            )}
+            {filters.make !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Make: {filters.make}
+                <button onClick={() => handleFilterChange('make', 'all')}>
+                  <X className="h-3 w-3 ml-1" />
+                </button>
+              </Badge>
+            )}
+            {filters.location !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Location: {filters.location}
+                <button onClick={() => handleFilterChange('location', 'all')}>
+                  <X className="h-3 w-3 ml-1" />
+                </button>
+              </Badge>
+            )}
+            {filters.year !== 'all' && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Year: {filters.year}
+                <button onClick={() => handleFilterChange('year', 'all')}>
+                  <X className="h-3 w-3 ml-1" />
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop filter view
   return (
     <div className={cn("rounded-lg", className)}>
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -66,107 +333,112 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </div>
           <Input
             type="search"
-            placeholder="Search by VIN..."
-            className="pl-10"
+            placeholder="Search by VIN, make, or model..."
+            className="pl-10 pr-10"
             value={filters.search || ''}
             onChange={handleSearchChange}
           />
+          {filters.search && (
+            <button
+              className="absolute inset-y-0 right-0 flex items-center pr-3"
+              onClick={() => handleFilterChange('search', '')}
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
         </div>
-        
+
         <div>
-          <Select 
-            value={filters.status} 
+          <Select
+            value={filters.status}
             onValueChange={(value) => handleFilterChange('status', value)}
           >
             <SelectTrigger id="status-filter">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="rented">Rented</SelectItem>
-              <SelectItem value="reserved">Reserved</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="police_station">Police Station</SelectItem>
-              <SelectItem value="accident">Accident</SelectItem>
-              <SelectItem value="stolen">Stolen</SelectItem>
-              <SelectItem value="retired">Retired</SelectItem>
+              {STATUS_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
-          <Select 
-            value={filters.make} 
+          <Select
+            value={filters.make}
             onValueChange={(value) => handleFilterChange('make', value)}
           >
             <SelectTrigger id="make-filter">
               <SelectValue placeholder="All Makes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Makes</SelectItem>
-              <SelectItem value="Toyota">Toyota</SelectItem>
-              <SelectItem value="Honda">Honda</SelectItem>
-              <SelectItem value="Nissan">Nissan</SelectItem>
-              <SelectItem value="Ford">Ford</SelectItem>
-              <SelectItem value="Hyundai">Hyundai</SelectItem>
-              <SelectItem value="Kia">Kia</SelectItem>
-              <SelectItem value="Mazda">Mazda</SelectItem>
-              <SelectItem value="Mercedes">Mercedes</SelectItem>
-              <SelectItem value="BMW">BMW</SelectItem>
-              <SelectItem value="Audi">Audi</SelectItem>
-              <SelectItem value="Lexus">Lexus</SelectItem>
+              {MAKE_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
-          <Select 
-            value={filters.location} 
+          <Select
+            value={filters.location}
             onValueChange={(value) => handleFilterChange('location', value)}
           >
             <SelectTrigger id="location-filter">
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Main Garage">Main Garage</SelectItem>
-              <SelectItem value="Downtown">Downtown</SelectItem>
-              <SelectItem value="Airport">Airport</SelectItem>
-              <SelectItem value="North Branch">North Branch</SelectItem>
-              <SelectItem value="South Branch">South Branch</SelectItem>
-              <SelectItem value="East Branch">East Branch</SelectItem>
-              <SelectItem value="West Branch">West Branch</SelectItem>
+              {LOCATION_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
-          <Select 
-            value={filters.year} 
+          <Select
+            value={filters.year}
             onValueChange={(value) => handleFilterChange('year', value)}
           >
             <SelectTrigger id="year-filter">
               <SelectValue placeholder="All Years" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2022">2022</SelectItem>
-              <SelectItem value="2021">2021</SelectItem>
-              <SelectItem value="2020">2020</SelectItem>
-              <SelectItem value="2019">2019</SelectItem>
-              <SelectItem value="2018">2018</SelectItem>
-              <SelectItem value="2017">2017</SelectItem>
-              <SelectItem value="2016">2016</SelectItem>
-              <SelectItem value="2015">2015</SelectItem>
+              {YEAR_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+
+        {activeFilterCount > 0 && (
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="h-8 px-2 text-xs"
+            >
+              <FilterX className="h-3.5 w-3.5 mr-1" />
+              Reset Filters
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
-};
+});
+
+VehicleFilters.displayName = 'VehicleFilters';
 
 export default VehicleFilters;
