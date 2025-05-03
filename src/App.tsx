@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -74,8 +75,7 @@ import initializeApp from "./utils/app-initializer";
 import errorService from "./services/error/ErrorService";
 
 function App() {
-  // Move the QueryClient initialization inside the component
-  // This ensures React hooks are called in the correct context
+  // Create a single QueryClient instance
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -100,16 +100,16 @@ function App() {
   return (
     <ErrorBoundary onError={handleGlobalError}>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <ErrorProvider>
-            {(errorHandler) => {
-              // Initialize the error service with the context handler
-              errorService.initialize(errorHandler.addError);
-              return (
-                <AuthProvider>
-                  <ProfileProvider>
-                    <SettingsProvider>
-                      <NotificationProvider>
+        <ErrorProvider>
+          {(errorHandler) => {
+            // Initialize the error service with the context handler
+            errorService.initialize(errorHandler.addError);
+            return (
+              <AuthProvider>
+                <ProfileProvider>
+                  <SettingsProvider>
+                    <NotificationProvider>
+                      <BrowserRouter>
                         <TooltipProvider>
                           <Toaster />
                           <Sonner />
@@ -198,17 +198,17 @@ function App() {
                             />
                           </Routes>
                         </TooltipProvider>
-                      </NotificationProvider>
-                    </SettingsProvider>
-                  </ProfileProvider>
-                </AuthProvider>
-              );
-            }}
-          </ErrorProvider>
-        </BrowserRouter>
+                      </BrowserRouter>
+                    </NotificationProvider>
+                  </SettingsProvider>
+                </ProfileProvider>
+              </AuthProvider>
+            );
+          }}
+        </ErrorProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
-};
+}
 
 export default App;

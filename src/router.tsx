@@ -3,11 +3,11 @@ import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 
-// Note: We're simplifying this router as the main routing is now handled in App.tsx
-// This prevents conflicts between the two routing systems
+// Create a simple browser router that just renders the App component
+// The actual routing is handled inside App.tsx
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: '*',
     element: <App />,
   },
 ]);
