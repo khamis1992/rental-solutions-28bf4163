@@ -1,5 +1,8 @@
 
 import { ServiceResponse, successResponse, errorResponse } from '@/utils/response-handler';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('promise:batch');
 
 interface BatchOptions {
   concurrency?: number;
@@ -46,6 +49,8 @@ export async function batchOperations<T, R>(
   let completed = 0;
   
   try {
+    logger.debug(`Starting batch operation with ${total} items, concurrency: ${concurrency}`);
+    
     // Process items in batches based on concurrency
     for (let i = 0; i < total; i += concurrency) {
       const batch = items.slice(i, i + concurrency);
@@ -57,8 +62,11 @@ export async function batchOperations<T, R>(
             // Process the item
             const result = await operation(item, index);
             results[index] = result;
+            logger.debug(`Item ${index} processed successfully`);
             return { success: true, index };
           } catch (error) {
+            logger.error(`Error processing item ${index}:`, error);
+            
             if (!continueOnError) {
               throw error;
             }
@@ -91,14 +99,18 @@ export async function batchOperations<T, R>(
       
       // Add delay between batches if specified
       if (delay > 0 && i + concurrency < total) {
+        logger.debug(`Adding delay of ${delay}ms before next batch`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       
       // Check if we should continue
       if (!continueOnError && errors.length > 0) {
+        logger.warn(`Stopping batch processing due to error and continueOnError=false`);
         break;
       }
     }
+    
+    logger.info(`Batch operation completed: ${completed}/${total} items processed, ${errors.length} errors`);
     
     return successResponse({
       results: results.filter(r => r !== undefined),
@@ -107,6 +119,8 @@ export async function batchOperations<T, R>(
       total
     });
   } catch (error) {
+    logger.error(`Batch operation failed:`, error);
+    
     return errorResponse(
       error instanceof Error ? error : new Error(`Batch operation failed: ${String(error)}`),
       {

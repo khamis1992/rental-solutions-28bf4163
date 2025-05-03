@@ -1,9 +1,12 @@
 
 import { trafficFineRepository } from '@/lib/database';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
+import { BaseService, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
 import { ServiceResponse, wrapOperation } from '@/utils/response-handler';
 import { asTrafficFineId, asTrafficFinePaymentStatus } from '@/types/database-common';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('service:traffic-fine');
 
 export type TrafficFine = TableRow<'traffic_fines'>;
 
@@ -20,10 +23,14 @@ export class TrafficFineService extends BaseService<'traffic_fines'> {
    */
   async findByLeaseId(leaseId: string): Promise<ServiceResponse<TrafficFine[]>> {
     return wrapOperation(async () => {
+      logger.debug(`Finding traffic fines by lease ID: ${leaseId}`);
+      
       const response = await this.repository.findByLeaseId(leaseId);
       
       if (response.error) {
-        throw new Error(`Failed to fetch traffic fines: ${response.error.message}`);
+        const errorMsg = `Failed to fetch traffic fines: ${response.error.message}`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
       
       return response.data;
@@ -35,10 +42,14 @@ export class TrafficFineService extends BaseService<'traffic_fines'> {
    */
   async findPendingByLeaseId(leaseId: string): Promise<ServiceResponse<TrafficFine[]>> {
     return wrapOperation(async () => {
+      logger.debug(`Finding pending traffic fines by lease ID: ${leaseId}`);
+      
       const response = await this.repository.findPendingByLeaseId(leaseId);
       
       if (response.error) {
-        throw new Error(`Failed to fetch pending traffic fines: ${response.error.message}`);
+        const errorMsg = `Failed to fetch pending traffic fines: ${response.error.message}`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
       
       return response.data;
@@ -53,10 +64,14 @@ export class TrafficFineService extends BaseService<'traffic_fines'> {
       const safeId = asTrafficFineId(fineId);
       const safeStatus = asTrafficFinePaymentStatus(status);
       
+      logger.debug(`Updating traffic fine payment status: ${safeId} to ${safeStatus}`);
+      
       const response = await this.repository.updatePaymentStatus(safeId, safeStatus);
       
       if (response.error) {
-        throw new Error(`Failed to update traffic fine payment status: ${response.error.message}`);
+        const errorMsg = `Failed to update traffic fine payment status: ${response.error.message}`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
       
       return response.data;
@@ -70,14 +85,47 @@ export class TrafficFineService extends BaseService<'traffic_fines'> {
     return wrapOperation(async () => {
       const safeId = asTrafficFineId(fineId);
       
+      logger.debug(`Reassigning traffic fine ${safeId} to lease ${leaseId || 'none'}`);
+      
       const response = await this.repository.reassign(safeId, leaseId);
       
       if (response.error) {
-        throw new Error(`Failed to reassign traffic fine: ${response.error.message}`);
+        const errorMsg = `Failed to reassign traffic fine: ${response.error.message}`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
       }
       
       return response.data;
     }, 'Reassigning traffic fine');
+  }
+
+  /**
+   * Batch update payment status for multiple fines
+   */
+  async batchUpdatePaymentStatus(
+    fineIds: string[], 
+    status: string
+  ): Promise<ServiceResponse<{
+    updated: number;
+    total: number;
+    errors: any[];
+  }>> {
+    return wrapOperation(async () => {
+      logger.debug(`Batch updating ${fineIds.length} traffic fines to status ${status}`);
+      
+      const safeStatus = asTrafficFinePaymentStatus(status);
+      const result = await (this.repository as any).batchUpdatePaymentStatus(fineIds, safeStatus);
+      
+      if (!result.success && result.errors.length > 0) {
+        logger.warn(`Batch update completed with ${result.errors.length} errors`);
+      }
+      
+      return {
+        updated: result.updated,
+        total: fineIds.length,
+        errors: result.errors
+      };
+    }, 'Batch updating traffic fine payment status');
   }
 }
 

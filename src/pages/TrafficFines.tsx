@@ -11,6 +11,9 @@ import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
 import TrafficFineDataQuality from "@/components/reports/TrafficFineDataQuality";
 import { useErrorNotification } from "@/hooks/use-error-notification";
 import { useEffect } from "react";
+import { createLogger } from "@/utils/error-logger";
+
+const logger = createLogger("pages:traffic-fines");
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
@@ -26,6 +29,8 @@ const TrafficFines = () => {
 
   // Error handling
   useEffect(() => {
+    logger.debug("TrafficFines page mounted");
+    
     // Clear any stale notifications when component mounts
     errorNotification.clearError("traffic-fines-error");
     
@@ -35,6 +40,8 @@ const TrafficFines = () => {
       if (event.message.includes('traffic') || 
           event.message.includes('fine') || 
           event.filename?.includes('fines')) {
+        
+        logger.error(`Caught runtime error: ${event.message}`);
         
         errorNotification.showError("Traffic Fines Error", {
           description: event.message,
@@ -54,6 +61,7 @@ const TrafficFines = () => {
       window.removeEventListener('error', handleTrafficFinesError);
       errorNotification.clearError("traffic-fines-error");
       errorNotification.clearError("traffic-fines-runtime-error");
+      logger.debug("TrafficFines page unmounted");
     };
   }, [errorNotification]);
 

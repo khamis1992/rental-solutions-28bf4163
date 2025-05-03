@@ -1,211 +1,208 @@
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { batchOperations } from '@/utils/promise/batch';
-import { findVehicleByLicensePlate } from '@/utils/vehicle';
 import { supabase } from '@/lib/supabase';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('traffic-fines:batch-validation');
+
+export interface ValidationResult {
+  licensePlate: string;
+  validationDate: string;
+  hasFine: boolean;
+  details?: string;
+}
 
 export interface BatchValidationOptions {
   batchSize?: number;
   concurrency?: number;
   continueOnError?: boolean;
+  delay?: number;
 }
 
 export interface BatchValidationResults {
-  found: {
-    licensePlate: string;
-    vehicleId: string;
-    vehicleDetails: {
-      make: string;
-      model: string;
-    };
-  }[];
-  notFound: string[];
-  errors: {
-    licensePlate: string;
-    error: string;
-  }[];
+  results: ValidationResult[];
+  errors: any[];
+  summary: {
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+  };
 }
 
 /**
- * Hook for batch validation operations for traffic fines
+ * Hook for handling batch validation operations
  */
 export function useBatchValidation() {
   const [isValidating, setIsValidating] = useState(false);
   const [validationProgress, setValidationProgress] = useState<{
-    completed: number;
+    processed: number;
     total: number;
     percentComplete: number;
   } | null>(null);
   
-  const queryClient = useQueryClient();
-  
+  /**
+   * Validate a batch of license plates
+   */
   const validateBatch = async (
     licensePlates: string[],
     options: BatchValidationOptions = {}
   ): Promise<BatchValidationResults> => {
-    const {
-      concurrency = 2,
-      continueOnError = true
-    } = options;
-    
-    if (licensePlates.length === 0) {
-      return {
-        found: [],
-        notFound: [],
-        errors: []
-      };
-    }
+    setIsValidating(true);
+    setValidationProgress({ processed: 0, total: licensePlates.length, percentComplete: 0 });
     
     try {
-      setIsValidating(true);
-      setValidationProgress({
-        completed: 0,
-        total: licensePlates.length,
-        percentComplete: 0
-      });
+      logger.info(`Starting batch validation of ${licensePlates.length} plates`);
       
-      // Clean up and deduplicate license plates
-      const uniquePlates = [...new Set(
-        licensePlates
-          .map(plate => plate.trim().toUpperCase())
-          .filter(Boolean)
-      )];
+      // Filter out empty plates
+      const validPlates = licensePlates.filter(plate => plate && plate.trim() !== '');
       
-      console.log(`Starting batch validation for ${uniquePlates.length} license plates`);
+      if (validPlates.length === 0) {
+        throw new Error('No valid license plates provided');
+      }
       
-      // Use the batchOperations utility for better concurrency control
-      const result = await batchOperations(
-        uniquePlates,
-        async (licensePlate) => {
-          const result = await findVehicleByLicensePlate(licensePlate);
+      // Set up options
+      const { 
+        batchSize = 5,
+        concurrency = 2,
+        continueOnError = true,
+        delay = 500
+      } = options;
+      
+      // Call the edge function to batch validate
+      // For larger batches, break them down
+      const results: ValidationResult[] = [];
+      const errors: any[] = [];
+      
+      // Process in smaller chunks to avoid overwhelming the edge function
+      const chunks = [];
+      for (let i = 0; i < validPlates.length; i += batchSize) {
+        chunks.push(validPlates.slice(i, i + batchSize));
+      }
+      
+      // Process each chunk with configurable concurrency
+      const { data } = await batchOperations<string[], any>(
+        chunks,
+        async (chunk) => {
+          const { data, error } = await supabase.functions.invoke('validate-traffic-fine', {
+            body: { licensePlates: chunk }
+          });
           
-          if (!result.success || !result.data) {
-            throw new Error(`Vehicle with license plate ${licensePlate} not found`);
+          if (error) {
+            logger.error(`Error in batch validation:`, error);
+            throw error;
           }
           
-          return {
-            licensePlate,
-            vehicleId: result.data.id,
-            vehicleDetails: {
-              make: result.data.make,
-              model: result.data.model
-            }
-          };
+          return data;
         },
         {
           concurrency,
           continueOnError,
+          delay,
           onProgress: (status) => {
-            console.log(`Batch validation progress: ${status.completed}/${status.total}`);
             setValidationProgress({
-              completed: status.completed,
-              total: status.total,
-              percentComplete: Math.round((status.completed / status.total) * 100)
+              processed: status.completed * batchSize > validPlates.length 
+                ? validPlates.length 
+                : status.completed * batchSize,
+              total: validPlates.length,
+              percentComplete: status.percentComplete
             });
           }
         }
       );
       
-      if (!result.success) {
-        console.error('Batch validation failed:', result.error);
-        throw result.error;
+      // Flatten and process results
+      data.results.forEach(chunkResult => {
+        if (chunkResult && chunkResult.results) {
+          results.push(...chunkResult.results);
+        }
+        if (chunkResult && chunkResult.errors) {
+          errors.push(...chunkResult.errors);
+        }
+      });
+      
+      logger.info(`Batch validation completed: ${results.length} successes, ${errors.length} errors`);
+      
+      const summary = {
+        total: validPlates.length,
+        processed: results.length + errors.length,
+        succeeded: results.length,
+        failed: errors.length
+      };
+      
+      // Show toast with results
+      if (errors.length > 0) {
+        toast.warning(`Validated ${results.length}/${validPlates.length} license plates`, {
+          description: `${errors.length} plates failed validation`
+        });
+      } else {
+        toast.success(`Successfully validated ${results.length} license plates`);
       }
       
-      const found = result.data.results;
-      
-      const notFound = result.data.errors
-        .filter(e => e.error.message.includes('not found'))
-        .map(e => e.item);
-      
-      const errors = result.data.errors
-        .filter(e => !e.error.message.includes('not found'))
-        .map(e => ({
-          licensePlate: e.item,
-          error: e.error.message
-        }));
-      
-      console.log(`Batch validation completed: ${found.length} found, ${notFound.length} not found, ${errors.length} errors`);
-      
-      return {
-        found,
-        notFound,
-        errors
-      };
+      return { results, errors, summary };
     } catch (error) {
-      console.error('Error in batch validation:', error);
+      logger.error('Batch validation failed:', error);
+      
+      toast.error('Batch validation failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       throw error;
     } finally {
       setIsValidating(false);
-      setValidationProgress(null);
+      // Clear progress after a brief delay
+      setTimeout(() => setValidationProgress(null), 2000);
     }
   };
   
-  // Mutation for processing batch operations
-  const processBatchOperations = useMutation({
-    mutationFn: async ({ 
-      operations, 
-      options = {}
-    }: {
-      operations: Array<() => Promise<any>>;
-      options?: BatchValidationOptions;
-    }) => {
-      const {
-        concurrency = 2,
-        continueOnError = true
-      } = options;
+  /**
+   * Process a batch of operations with progress tracking
+   */
+  const processBatchOperations = async <T, R>(
+    items: T[],
+    operation: (item: T, index: number) => Promise<R>,
+    options: BatchValidationOptions = {}
+  ) => {
+    setIsValidating(true);
+    setValidationProgress({ processed: 0, total: items.length, percentComplete: 0 });
+    
+    try {
+      const { concurrency = 2, continueOnError = true, delay = 300 } = options;
       
-      setIsValidating(true);
-      setValidationProgress({
-        completed: 0,
-        total: operations.length,
-        percentComplete: 0
-      });
-      
-      try {
-        const result = await batchOperations(
-          operations,
-          async (operation, index) => {
-            return await operation();
-          },
-          {
-            concurrency,
-            continueOnError,
-            onProgress: (status) => {
-              setValidationProgress({
-                completed: status.completed,
-                total: status.total,
-                percentComplete: Math.round((status.completed / status.total) * 100)
-              });
-            }
+      const { data } = await batchOperations<T, R>(
+        items,
+        operation,
+        {
+          concurrency,
+          continueOnError,
+          delay,
+          onProgress: (status) => {
+            setValidationProgress({
+              processed: status.completed,
+              total: status.total,
+              percentComplete: status.percentComplete
+            });
           }
-        );
-        
-        return result.data;
-      } catch (error) {
-        console.error('Error in batch operations:', error);
-        throw error;
-      } finally {
-        setIsValidating(false);
-        setValidationProgress(null);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Batch operations completed');
-    },
-    onError: (error) => {
-      toast.error('Batch operations failed', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
+        }
+      );
+      
+      return data;
+    } catch (error) {
+      logger.error('Batch processing failed:', error);
+      throw error;
+    } finally {
+      setIsValidating(false);
+      // Clear progress after a brief delay
+      setTimeout(() => setValidationProgress(null), 2000);
     }
-  });
+  };
   
   return {
     validateBatch,
+    processBatchOperations,
     isValidating,
-    validationProgress,
-    processBatchOperations
+    validationProgress
   };
 }

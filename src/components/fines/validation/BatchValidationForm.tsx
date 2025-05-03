@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { X, Loader2, SearchIcon, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Loader2, SearchIcon, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useBatchValidation } from '@/hooks/traffic-fines';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,12 +22,6 @@ const BatchValidationForm = ({
   onValidate,
   onHideBatchInput
 }: BatchValidationFormProps) => {
-  const [processingStats, setProcessingStats] = useState<{
-    total: number;
-    processed: number;
-    percentComplete: number;
-  } | null>(null);
-  
   const [concurrency, setConcurrency] = useState(2);
   const [continueOnError, setContinueOnError] = useState(true);
   
@@ -58,9 +52,6 @@ const BatchValidationForm = ({
       console.error('Batch validation error:', error);
     }
   };
-  
-  // Use the validation progress from the hook if available
-  const stats = validationProgress || processingStats;
   
   return (
     <div className="flex flex-col space-y-2">
@@ -116,12 +107,12 @@ const BatchValidationForm = ({
         </div>
       </div>
       
-      {stats && (
+      {validationProgress && (
         <div className="space-y-1">
-          <Progress value={stats.percentComplete} className="h-2" />
+          <Progress value={validationProgress.percentComplete} className="h-2" />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Processing batch...</span>
-            <span>{stats.processed} / {stats.total}</span>
+            <span>{validationProgress.processed} / {validationProgress.total}</span>
           </div>
         </div>
       )}

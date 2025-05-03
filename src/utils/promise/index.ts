@@ -14,4 +14,4 @@ export { batchOperations } from './batch';
 export { composeOperations, chainOperations } from './composition';
 
 // Helper utilities
-export { isDefined, safeExtract, castToUUID } from './utils';
+export { isDefined, safeExtract, castToUUID, verifyEnum } from './utils';

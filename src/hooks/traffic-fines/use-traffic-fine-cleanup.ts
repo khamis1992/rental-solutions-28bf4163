@@ -4,7 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { TrafficFine } from './use-traffic-fines-query';
 import { batchOperations } from '@/utils/promise/batch';
-import { processBatches } from '@/utils/concurrency-utils';
+import { createLogger } from '@/utils/error-logger';
+
+const logger = createLogger('traffic-fines:cleanup');
 
 /**
  * Hook for managing traffic fine data quality and cleanup operations
@@ -34,6 +36,8 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
           throw new Error('No traffic fines data available');
         }
         
+        logger.info('Starting invalid assignment cleanup...');
+        
         // Get all fines with invalid date ranges
         const invalidFines = trafficFines.filter(fine => 
           fine.leaseId && fine.violationDate && fine.leaseStartDate && 
@@ -42,24 +46,20 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
         );
         
         if (invalidFines.length === 0) {
-          toast({
-            title: 'No invalid fine assignments found',
-            description: 'All traffic fines are properly assigned to valid lease periods'
-          });
+          logger.info('No invalid fine assignments found');
           return { cleaned: 0 };
         }
         
-        console.log(`Found ${invalidFines.length} invalid fine assignments to clean up`);
+        logger.info(`Found ${invalidFines.length} invalid fine assignments to clean up`);
         
-        // Process in batches with controlled concurrency
         const { batchSize = 10, concurrency = 3 } = options;
-        let processedCount = 0;
         
-        await processBatches(
+        // Process in batches with configurable concurrency
+        const { data } = await batchOperations(
           invalidFines,
-          batchSize,
-          concurrency,
           async (fine) => {
+            logger.debug(`Cleaning up assignment for fine ${fine.id}`);
+            
             const { error } = await supabase
               .from('traffic_fines')
               .update({ 
@@ -69,25 +69,30 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
               .eq('id', fine.id);
             
             if (error) {
-              console.error(`Error updating fine ${fine.id}:`, error);
+              logger.error(`Error updating fine ${fine.id}:`, error);
               throw error;
             }
             
-            processedCount++;
             return { id: fine.id, success: true };
           },
-          (results, batchIndex) => {
-            const successCount = results.filter(r => r && r.success).length;
-            toast({
-              title: `Batch ${batchIndex + 1} processed`,
-              description: `Cleaned ${successCount}/${results.length} fine assignments in this batch`
-            });
+          {
+            batchSize,
+            concurrency,
+            continueOnError: true,
+            onProgress: (status) => {
+              if (status.completed % 5 === 0 || status.completed === invalidFines.length) {
+                logger.info(`Cleanup progress: ${status.completed}/${invalidFines.length} items processed`);
+              }
+            }
           }
         );
         
-        return { cleaned: processedCount };
+        const successCount = data.results.filter(r => r.success).length;
+        logger.info(`Cleanup completed: ${successCount}/${invalidFines.length} items successfully processed`);
+        
+        return { cleaned: successCount };
       } catch (error) {
-        console.error('Error cleaning up invalid assignments:', error);
+        logger.error('Error cleaning up invalid assignments:', error);
         throw error;
       }
     },
@@ -107,7 +112,7 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
     }
   });
   
-  // New function: Bulk process a specific action on multiple fines
+  // Bulk process a specific action on multiple fines
   const bulkProcessFines = useMutation({
     mutationFn: async ({ 
       fineIds, 
@@ -122,8 +127,13 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
     }) => {
       if (!fineIds.length) return { processed: 0, failed: 0 };
       
+      logger.info(`Starting bulk processing of ${fineIds.length} fines with action: ${action}`);
+      
+      // Create an array of async operations
       const operations = fineIds.map(id => {
         return async () => {
+          logger.debug(`Processing fine ${id} with action ${action}`);
+          
           // Define the update based on the action type
           let updateData = {};
           
@@ -149,24 +159,57 @@ export function useTrafficFineCleanup(trafficFines?: TrafficFine[]) {
             .update(updateData)
             .eq('id', id);
             
-          if (error) throw new Error(`Failed to process fine ${id}: ${error.message}`);
+          if (error) {
+            logger.error(`Error processing fine ${id}:`, error);
+            throw new Error(`Failed to process fine ${id}: ${error.message}`);
+          }
           
           return { id, success: true };
         };
       });
       
-      // Use batchOperations utility to process in groups with error handling
-      const { data, error } = await batchOperations(
-        operations,
-        continueOnError
-      );
+      // Process operations in batches
+      const results = [];
+      let processedCount = 0;
       
-      if (error) {
-        throw error;
+      // Process operations in batches with controlled concurrency
+      for (let i = 0; i < operations.length; i += batchSize) {
+        const batch = operations.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map((operation) => {
+          return (async () => {
+            try {
+              const result = await operation();
+              return { ...result, success: true };
+            } catch (error) {
+              if (!continueOnError) {
+                throw error;
+              }
+              
+              return { 
+                error: error instanceof Error ? error.message : String(error),
+                success: false
+              };
+            } finally {
+              processedCount++;
+            }
+          })();
+        });
+        
+        // Wait for this batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+        
+        // Add a small delay between batches
+        if (i + batchSize < operations.length) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
       
-      const successCount = data.filter(result => result && result.success).length;
+      const successCount = results.filter(result => result && result.success).length;
       const failedCount = fineIds.length - successCount;
+      
+      logger.info(`Bulk processing completed: ${successCount}/${fineIds.length} succeeded, ${failedCount} failed`);
       
       return {
         processed: fineIds.length,
