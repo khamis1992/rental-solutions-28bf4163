@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
@@ -644,4 +645,20 @@ const thirdPartyBeneficiariesPolicyOptions = [
 ];
 
 const timeIsOfTheEssencePolicyOptions = [
-  { value
+  { value: 'strict_compliance', label: 'Strict Compliance' },
+  { value: 'reasonable_delay_permitted', label: 'Reasonable Delay Permitted' },
+  { value: 'grace_period_provided', label: 'Grace Period Provided' },
+];
+
+// Define the actual component
+const AgreementFormWithVehicleCheck = ({ onSubmit, isSubmitting, standardTemplateExists, isCheckingTemplate }) => {
+  // Component logic would go here
+  return (
+    <div>
+      <h2>Agreement Form</h2>
+      {/* Form components would go here */}
+    </div>
+  );
+};
+
+export default AgreementFormWithVehicleCheck;
