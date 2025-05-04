@@ -1,136 +1,83 @@
 
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/lib/utils';
-import { LEASE_STATUSES } from '@/types/lease-types';
-import { LeaseStatus } from '@/lib/database/utils';
-
-interface AgreementStats {
-  totalAgreements: number;
-  activeAgreements: number;
-  pendingPayments: number;
-  overduePayments: number;
-  activeValue: number;
-}
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent } from '@/components/ui/card';
+import { asLeaseStatus, asPaymentStatus } from '@/lib/database/type-utils';
 
 export function AgreementStats() {
-  const [stats, setStats] = useState<AgreementStats>({
-    totalAgreements: 0,
-    activeAgreements: 0,
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
     pendingPayments: 0,
-    overduePayments: 0,
-    activeValue: 0
+    expiringSoon: 0
   });
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
-        setIsLoading(true);
-        
+        // Get total count
         const { count: totalCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true });
-        
+
+        // Get active agreements
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', LEASE_STATUSES.ACTIVE as LeaseStatus);
-          
+          .eq('status', asLeaseStatus('active'));
+
+        // Get agreements with pending payments
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-          
-        const { count: overduePaymentsCount } = await supabase
-          .from('unified_payments')
-          .select('*', { count: 'exact', head: true })
-          .gt('days_overdue', 0);
-          
-        const { data: activeAgreements } = await supabase
-          .from('leases')
-          .select('rent_amount')
-          .eq('status', LEASE_STATUSES.ACTIVE as LeaseStatus);
+          .eq('status', asPaymentStatus('pending'));
 
-        // Calculate active value safely
-        const activeValue = activeAgreements?.reduce((sum, agreement) => {
-          // Check if agreement is valid and has a rent_amount
-          if (agreement && 'rent_amount' in agreement) {
-            const rentAmount = typeof agreement.rent_amount === 'number' ? 
-              agreement.rent_amount : 0;
-            return sum + rentAmount;
-          }
-          return sum;
-        }, 0) || 0;
+        // Get agreements expiring within 30 days
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         
+        const { count: expiringSoonCount } = await supabase
+          .from('leases')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', asLeaseStatus('active'))
+          .lt('end_date', thirtyDaysFromNow.toISOString());
+
         setStats({
-          totalAgreements: totalCount || 0,
-          activeAgreements: activeCount || 0,
+          total: totalCount || 0,
+          active: activeCount || 0,
           pendingPayments: pendingPaymentsCount || 0,
-          overduePayments: overduePaymentsCount || 0,
-          activeValue
+          expiringSoon: expiringSoonCount || 0
         });
       } catch (error) {
-        console.error("Error fetching agreement stats:", error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error fetching agreement stats:', error);
       }
-    };
-    
+    }
+
     fetchStats();
   }, []);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="p-4 flex items-center space-x-4">
-        <div className="bg-blue-100 p-3 rounded-lg">
-          <FileText className="h-6 w-6 text-blue-600" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Total Agreements</p>
-          <h3 className="text-2xl font-bold">
-            {isLoading ? "..." : stats.totalAgreements}
-          </h3>
-        </div>
-      </Card>
-      
-      <Card className="p-4 flex items-center space-x-4">
-        <div className="bg-green-100 p-3 rounded-lg">
-          <FileCheck className="h-6 w-6 text-green-600" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Active Agreements</p>
-          <h3 className="text-2xl font-bold">
-            {isLoading ? "..." : stats.activeAgreements}
-          </h3>
-        </div>
-      </Card>
-      
-      <Card className="p-4 flex items-center space-x-4">
-        <div className="bg-yellow-100 p-3 rounded-lg">
-          <FileClock className="h-6 w-6 text-yellow-600" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Pending Payments</p>
-          <h3 className="text-2xl font-bold">
-            {isLoading ? "..." : stats.pendingPayments}
-          </h3>
-        </div>
-      </Card>
-      
-      <Card className="p-4 flex items-center space-x-4">
-        <div className="bg-red-100 p-3 rounded-lg">
-          <AlertCircle className="h-6 w-6 text-red-600" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Monthly Revenue</p>
-          <h3 className="text-2xl font-bold">
-            {isLoading ? "..." : formatCurrency(stats.activeValue)}
-          </h3>
-        </div>
-      </Card>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <StatCard title="Total Agreements" value={stats.total} />
+      <StatCard title="Active Agreements" value={stats.active} />
+      <StatCard title="Pending Payments" value={stats.pendingPayments} />
+      <StatCard title="Expiring in 30 days" value={stats.expiringSoon} />
     </div>
+  );
+}
+
+interface StatCardProps {
+  title: string;
+  value: number;
+}
+
+function StatCard({ title, value }: StatCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <p className="text-2xl font-bold">{value}</p>
+      </CardContent>
+    </Card>
   );
 }
