@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +32,7 @@ import { PaymentHistory } from './PaymentHistory';
 import TrafficFinesByLicense from '../fines/TrafficFinesByLicense';
 import { usePayment } from '@/hooks/use-payment';
 import { usePaymentGeneration } from '@/hooks/payments/use-payment-generation';
+import { PaymentEntryDialog } from '@/components/payments/PaymentEntryDialog';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -111,8 +111,15 @@ const AgreementDetail = () => {
     }
   };
 
-  // Using the hook's payment submission function
-  const handlePaymentSubmission = async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean, isPartialPayment?: boolean) => {
+  const handlePaymentSubmit = async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean, 
+    isPartialPayment?: boolean
+  ) => {
     if (!agreement?.id) return;
     
     try {
@@ -149,7 +156,6 @@ const AgreementDetail = () => {
 
   const fetchPayments = async () => {
     // This function will be called to refresh payment data
-    // The actual implementation is handled by the usePayment hook
     refreshAgreementData();
   };
 
@@ -371,16 +377,12 @@ const AgreementDetail = () => {
           <PaymentHistory 
             payments={payments || []}
             isLoading={paymentsLoading}
-            rentAmount={agreement.rent_amount}
-            contractAmount={agreement.contract_amount}
+            rentAmount={agreement?.rent_amount}
+            contractAmount={agreement?.contract_amount}
             leaseId={id as string}
-            leaseStartDate={agreement.start_date}
-            leaseEndDate={agreement.end_date}
-            onRecordPayment={(payment) => {
-              if (payment) {
-                handleSpecialAgreementPayments(payment);
-              }
-            }}
+            leaseStartDate={agreement?.start_date}
+            leaseEndDate={agreement?.end_date}
+            onRecordPayment={(payment) => handleSpecialAgreementPayments(payment)}
             onPaymentDeleted={fetchPayments}
             onPaymentUpdated={async () => {
               fetchPayments();
@@ -399,6 +401,13 @@ const AgreementDetail = () => {
           <p className="text-muted-foreground">No documents available for this agreement.</p>
         </TabsContent>
       </Tabs>
+
+      <PaymentEntryDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        rentAmount={agreement?.rent_amount}
+        onSubmit={handlePaymentSubmit}
+      />
     </div>
   );
 };

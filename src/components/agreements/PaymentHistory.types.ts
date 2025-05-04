@@ -6,7 +6,7 @@ import { PaymentStatus } from '@/types/payment';
 export interface Payment {
   id: DbId;
   amount: number;
-  payment_date: string | null;
+  payment_date: string | null; // Updated to accept null and be compatible with other Payment types
   payment_method?: string;
   reference_number?: string | null;
   transaction_id?: string | null;
