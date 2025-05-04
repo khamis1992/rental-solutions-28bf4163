@@ -1,207 +1,172 @@
+
 import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, FileUp, Download, Check, Loader2 } from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
-import { toast } from 'sonner';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { customerCSVFields, customerCSVMap } from '@/lib/validation-schemas/customer';
-import { downloadCSVTemplate } from '@/utils/csv-utils';
 
 interface CSVImportModalProps {
   open: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  onOpenChange: (open: boolean) => void;
+  onImportComplete?: () => void;
 }
 
 const CSVImportModal: React.FC<CSVImportModalProps> = ({
   open,
-  onClose,
-  onSuccess
+  onOpenChange,
+  onImportComplete
 }) => {
+  const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>('success');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.csv'],
-      'application/csv': ['.csv'],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
-        setError(null);
-      }
-    },
-  });
-
-  const handleDownloadTemplate = () => {
-    downloadCSVTemplate(customerCSVFields, 'customer_import_template.csv');
-    toast.success('Template downloaded successfully');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile && selectedFile.name.endsWith('.csv')) {
+      setFile(selectedFile);
+    } else {
+      toast({
+        title: "Invalid file format",
+        description: "Please select a CSV file",
+        variant: "destructive",
+      });
+      setFile(null);
+    }
   };
 
-  const handleImport = async () => {
+  const handleUpload = async () => {
     if (!file) {
-      setError('Please select a CSV file to import');
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to import",
+        variant: "destructive",
+      });
       return;
     }
 
-    try {
-      setUploading(true);
-      setError(null);
+    setIsUploading(true);
 
-      // Upload the file to Supabase Storage
-      const fileName = `${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+    try {
+      // Upload the file to storage
+      const fileName = `imports/customers/${Date.now()}-${file.name}`;
+      const { data: fileData, error: fileError } = await supabase.storage
         .from('customer-imports')
         .upload(fileName, file);
 
-      if (uploadError) {
-        throw new Error(`Error uploading file: ${uploadError.message}`);
+      if (fileError) {
+        throw fileError;
       }
 
-      // Create an import log
-      const importLogResult = await supabase
+      // Get the URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('customer-imports')
+        .getPublicUrl(fileName);
+
+      const fileUrl = urlData.publicUrl;
+
+      // Create a record in the database
+      const { data: importLog, error: importLogError } = await supabase
         .from('customer_import_logs')
         .insert({
-          filename: fileName,
-          original_filename: file.name,
+          file_name: fileName,
+          original_file_name: file.name,
           status: 'pending',
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          mapping_config: customerCSVMap
+          created_by: supabase.auth.getUser().data?.user?.id || null,
+          mapping_used: {
+            fullName: 'Full Name',
+            email: 'Email',
+            phoneNumber: 'Phone Number',
+          }
         })
-        .select();
+        .select()
+        .single();
 
-      if (importLogResult.error || !importLogResult.data || importLogResult.data.length === 0) {
-        setStatus('error');
-        setErrorMessage('Failed to create import log: ' +
-          (importLogResult.error?.message || 'Unknown error'));
-        return;
+      if (importLogError) {
+        throw importLogError;
       }
 
-      // Make sure we have data and it has an id property
-      const importLogData = importLogResult.data[0];
-      if (!importLogData || typeof importLogData.id === 'undefined') {
-        setStatus('error');
-        setErrorMessage('Failed to get import log ID');
-        return;
-      }
-
-      const importLogId = importLogData.id;
-
-      // Call the process-customer-imports function to start processing
-      const { error: processError } = await supabase.functions.invoke('process-customer-imports', {
-        body: { importId: importLogId }
+      toast({
+        title: "File uploaded successfully",
+        description: "Your file is being processed. You'll be notified once it's complete.",
       });
 
-      if (processError) {
-        console.warn('Error invoking function, but import is queued:', processError);
-        // Show a warning toast instead of error since the import is still queued
-        toast.error('Warning: Function invocation failed, but import is queued', {
-          description: 'Your import will still be processed by the scheduler.'
+      // Trigger the Edge Function to process the CSV
+      const { data: functionData, error: functionError } = await supabase.functions
+        .invoke('process-customer-imports', {
+          body: {
+            importId: importLog?.id,
+            fileUrl
+          }
         });
-        // We'll still consider this a success as the record is created and will be processed by scheduler
+
+      if (functionError) {
+        console.error("Error invoking function:", functionError);
       }
 
-      toast.success('File uploaded successfully', {
-        description: 'Your file is being processed. You will be notified when complete.'
-      });
+      // Close the modal and refresh the list
+      onOpenChange(false);
+      if (onImportComplete) {
+        onImportComplete();
+      }
 
-      onSuccess();
-      onClose();
-      setFile(null);
-    } catch (err) {
-      console.error('Import error:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "There was an error uploading your file",
+        variant: "destructive",
+      });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
+      setFile(null);
     }
   };
 
-  const handleCancel = () => {
-    setFile(null);
-    setError(null);
-    onClose();
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Import Customers</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to import customer data in bulk.
+            Upload a CSV file to import customer data. The file should have columns for name, email, and phone number.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <Button
-            variant="outline"
-            onClick={handleDownloadTemplate}
-            className="w-full flex items-center justify-center"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download CSV Template
-          </Button>
-
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
-              isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'
-            }`}
-          >
-            <input {...getInputProps()} />
-            <FileUp className="h-10 w-10 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              {isDragActive
-                ? 'Drop the file here...'
-                : 'Drag & drop a CSV file here, or click to select'}
-            </p>
-            {file && (
-              <div className="mt-4 flex items-center justify-center px-3 py-2 bg-muted rounded">
-                <Check className="h-4 w-4 mr-2 text-green-500" />
-                <span className="text-sm font-medium">{file.name}</span>
-              </div>
-            )}
+        <div className="grid gap-4 py-4">
+          <div className="grid w-full max-w-sm items-center gap-1.5">
+            <Label htmlFor="csvFile">CSV File</Label>
+            <Input 
+              id="csvFile"
+              type="file" 
+              accept=".csv"
+              onChange={handleFileChange}
+              disabled={isUploading}
+            />
           </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Make sure your CSV has the following columns: Full Name, Email, Phone Number
+          </p>
         </div>
-
-        <DialogFooter className="flex space-x-2 sm:justify-between">
-          <Button variant="outline" onClick={handleCancel} disabled={uploading}>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
             Cancel
           </Button>
-          <Button onClick={handleImport} disabled={!file || uploading}>
-            {uploading ? (
+          <Button onClick={handleUpload} disabled={isUploading || !file}>
+            {isUploading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Uploading...
               </>
             ) : (
-              'Import Customers'
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+              </>
             )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -17,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { DotsHorizontalIcon, PlusIcon } from 'lucide-react';
+import { MoreVertical, PlusIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -208,30 +209,30 @@ const TrafficFinesList: React.FC<TrafficFinesListProps> = ({
     const violationNumber = fine.violation_number || '';
     
     return (
-      <tr key={fine.id}>
-        <td>{violationNumber}</td>
-        <td>{licensePlate}</td>
-        <td>
+      <TableRow key={fine.id}>
+        <TableCell>{violationNumber}</TableCell>
+        <TableCell>{licensePlate}</TableCell>
+        <TableCell>
           {fine.violation_date instanceof Date 
             ? format(fine.violation_date, 'dd/MM/yyyy') 
             : format(new Date(fine.violation_date), 'dd/MM/yyyy')}
-        </td>
-        <td>{formatCurrency(fine.fine_amount)}</td>
-        <td>
+        </TableCell>
+        <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
+        <TableCell>
           <Badge
             variant={fine.payment_status === 'paid' ? 'success' : 'warning'}
             className={fine.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}
           >
             {fine.payment_status}
           </Badge>
-        </td>
-        <td>{fine.location}</td>
-        <td>
+        </TableCell>
+        <TableCell>{fine.location}</TableCell>
+        <TableCell>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
                 <span className="sr-only">Open menu</span>
-                <DotsHorizontalIcon className="h-4 w-4" />
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -248,8 +249,8 @@ const TrafficFinesList: React.FC<TrafficFinesListProps> = ({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     );
   });
 

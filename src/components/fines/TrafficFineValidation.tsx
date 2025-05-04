@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ValidationResult } from '@/hooks/traffic-fines/use-traffic-fine-validation';
+import { ValidationResult } from '@/types/validation';
 
 export function TrafficFineValidation() {
   const [licensePlate, setLicensePlate] = useState('');

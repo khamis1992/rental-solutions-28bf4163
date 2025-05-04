@@ -10,17 +10,18 @@ import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
+import AgreementTrafficFines from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { Payment, PaymentStatus } from '@/types/payment';
+import { Payment } from '@/types/payment';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
 import { DbId } from '@/types/database-common';
+import { Payment as PaymentHistoryType } from './PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -154,7 +155,7 @@ export function AgreementDetail({
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
-  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<PaymentHistoryType>) => {
     if (!agreement?.id || !updatedPayment.id) return Promise.resolve(false);
     
     try {
@@ -256,7 +257,7 @@ export function AgreementDetail({
       />
 
       {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments : []} 
+        payments={Array.isArray(payments) ? payments as unknown as PaymentHistoryType[] : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount}
         contractAmount={contractAmount}
@@ -264,10 +265,10 @@ export function AgreementDetail({
         onPaymentUpdated={handlePaymentUpdate}
         onRecordPayment={(payment) => {
           if (payment && agreement.id) {
-            const fullPayment = {
+            const fullPayment: Payment = {
               ...payment,
               lease_id: agreement.id,
-              status: 'completed' as PaymentStatus
+              status: 'completed' 
             };
             addPayment(fullPayment);
             fetchPayments();
@@ -281,15 +282,20 @@ export function AgreementDetail({
         <LegalCaseCard agreementId={agreement.id} />
       )}
 
-      {agreement.start_date && agreement.end_date && <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
-          </CardContent>
-        </Card>}
+      {agreement.start_date && agreement.end_date && 
+      <Card>
+        <CardHeader>
+          <CardTitle>Traffic Fines</CardTitle>
+          <CardDescription>Violations during the rental period</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AgreementTrafficFines 
+            agreementId={agreement.id} 
+            startDate={startDate} 
+            endDate={endDate} 
+          />
+        </CardContent>
+      </Card>}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>

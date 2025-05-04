@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { trafficFinesApi } from '@/api/trafficFinesApi';
+import { trafficFinesApi } from '@/lib/api/trafficFines';
 import { mapTrafficFineToComponentFormat } from '@/utils/traffic-fine-mapper';
-import { TrafficFine } from '@/types/traffic-fine';
 
 interface CustomerTrafficFinesProps {
   customerId?: string;

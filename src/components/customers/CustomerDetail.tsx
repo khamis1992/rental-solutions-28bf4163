@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,9 +5,8 @@ import { UserCircle, Phone, Mail, Home, AlertTriangle, Calendar, FileCheck } fro
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
+import CustomerTrafficFines from './CustomerTrafficFines';
 import { toast } from 'sonner';
-import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { supabase } from '@/lib/supabase';
 
 export const CustomerDetail = () => {
@@ -82,17 +80,19 @@ export const CustomerDetail = () => {
         const lease = leaseLookup[fine.lease_id];
         if (!lease) continue;
 
-        const validation = validateFineDate(
-          fine.violation_date,
-          lease.start_date,
-          lease.end_date
-        );
+        const violationDate = new Date(fine.violation_date);
+        const startDate = new Date(lease.start_date);
+        const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
+        
+        const isValid = violationDate >= startDate && violationDate <= endDate;
+        const reason = !isValid ? 
+          (violationDate < startDate ? 'Violation date is before lease start date' : 'Violation date is after lease end date') : '';
 
-        if (!validation.isValid) {
+        if (!isValid) {
           invalidFines.push({
             id: fine.id,
             leaseId: fine.lease_id,
-            reason: validation.reason
+            reason
           });
         }
       }

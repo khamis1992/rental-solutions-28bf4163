@@ -37,5 +37,3 @@ export const useTrafficFineValidation = () => {
     isLoading
   };
 };
-
-export type { ValidationResult };

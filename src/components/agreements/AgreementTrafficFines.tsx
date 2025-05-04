@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +21,11 @@ interface TrafficFine {
 
 interface AgreementTrafficFinesProps {
   agreementId: DbId;
+  startDate?: Date;
+  endDate?: Date;
 }
 
-const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId }) => {
+const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId, startDate, endDate }) => {
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
