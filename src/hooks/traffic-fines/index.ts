@@ -3,7 +3,7 @@
 export { useTrafficFineManagement as useTrafficFinesValidation } from './use-traffic-fine-management';
 
 // Individual hooks for specific functionality
-export { useFineValidation } from './use-fine-validation';
+export { useFineValidation, validateFineDate } from './use-fine-validation';
 export { useBatchValidation } from './use-batch-validation';
 export { useValidationHistory } from './use-validation-history';
 export { usePendingStatusUpdates } from './use-pending-status-updates';

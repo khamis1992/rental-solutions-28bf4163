@@ -1,6 +1,7 @@
 
 import { ValidationResult } from '@/types/validation';
 import { useTrafficFinesValidation } from './index';
+import { validateFineDate } from './use-fine-validation';
 
 /**
  * Adapter hook that provides a simplified interface for 
@@ -37,3 +38,6 @@ export const useTrafficFineValidation = () => {
     isLoading
   };
 };
+
+// Re-export validateFineDate for backward compatibility
+export { validateFineDate };

@@ -1,14 +1,14 @@
-
 import { useTrafficFinesQuery } from './use-traffic-fines-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { validateFineDate, findBestMatchingLease } from './use-traffic-fine-validation';
+import { validateFineDate, useFineValidation } from './use-fine-validation';
 import { TrafficFine, TrafficFineStatusType, TrafficFinePayload, TrafficFineCreatePayload } from './types';
 
 export function useTrafficFines() {
   const queryClient = useQueryClient();
   const { data: trafficFines, isLoading, error } = useTrafficFinesQuery();
+  const { validateTrafficFine } = useFineValidation();
 
   /**
    * Pay a traffic fine
@@ -279,6 +279,68 @@ export function useTrafficFines() {
       });
     }
   });
+
+  /**
+   * Find best matching lease for a traffic fine
+   */
+  const findBestMatchingLease = async (
+    licensePlate: string,
+    violationDate: string | Date
+  ): Promise<{ leaseId: string | null; reason: string }> => {
+    try {
+      // First find the vehicle with this license plate
+      const { data: vehicle, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id')
+        .eq('license_plate', licensePlate)
+        .maybeSingle();
+
+      if (vehicleError || !vehicle) {
+        return { 
+          leaseId: null, 
+          reason: vehicleError?.message || `No vehicle found with license plate ${licensePlate}` 
+        };
+      }
+
+      // Find leases for this vehicle
+      const { data: leases, error: leaseError } = await supabase
+        .from('leases')
+        .select('id, customer_id, start_date, end_date')
+        .eq('vehicle_id', vehicle.id)
+        .order('created_at', { ascending: false });
+
+      if (leaseError || !leases || leases.length === 0) {
+        return { 
+          leaseId: null, 
+          reason: leaseError?.message || `No leases found for vehicle with license plate ${licensePlate}` 
+        };
+      }
+
+      // Find a lease where violation date falls between start and end date
+      for (const lease of leases) {
+        const validationResult = validateFineDate(
+          new Date(violationDate),
+          lease.start_date,
+          lease.end_date
+        );
+
+        if (validationResult.isValid) {
+          return { leaseId: lease.id, reason: 'Matching lease found' };
+        }
+      }
+
+      return { 
+        leaseId: null, 
+        reason: `No lease covers the violation date (${new Date(violationDate).toLocaleDateString()})` 
+      };
+    } catch (error) {
+      console.error('Error finding matching lease:', error);
+      return { 
+        leaseId: null, 
+        reason: error instanceof Error ? error.message : 'Unknown error finding matching lease' 
+      };
+    }
+  };
 
   return {
     trafficFines,

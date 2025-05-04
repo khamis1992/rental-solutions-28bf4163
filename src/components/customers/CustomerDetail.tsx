@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import CustomerTrafficFines from './CustomerTrafficFines';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { validateFineDate } from '@/hooks/traffic-fines/use-fine-validation';
 
 export const CustomerDetail = () => {
   const [customer, setCustomer] = useState<any>(null);
@@ -84,7 +85,7 @@ export const CustomerDetail = () => {
         const startDate = new Date(lease.start_date);
         const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
         
-        const isValid = violationDate >= startDate && violationDate <= endDate;
+        const isValid = validateFineDate(violationDate, startDate, endDate);
         const reason = !isValid ? 
           (violationDate < startDate ? 'Violation date is before lease start date' : 'Violation date is after lease end date') : '';
 

@@ -8,6 +8,43 @@ import { ApiValidationResult, ValidationError, ValidationResult } from './types'
 import { mapToValidationError } from './validation-errors';
 
 /**
+ * Validates if a fine's date falls within the lease period
+ */
+export const validateFineDate = (
+  violationDate: Date, 
+  leaseStartDate: string | Date | null, 
+  leaseEndDate: string | Date | null
+): { isValid: boolean; message: string; reason?: string } => {
+  if (!violationDate) {
+    return { isValid: false, message: 'No violation date provided', reason: 'missing_violation_date' };
+  }
+
+  const fineDate = violationDate instanceof Date ? violationDate : new Date(violationDate);
+  
+  if (!leaseStartDate) {
+    return { isValid: false, message: 'No lease start date provided', reason: 'missing_lease_start' };
+  }
+  
+  const startDate = leaseStartDate instanceof Date ? 
+    leaseStartDate : new Date(leaseStartDate);
+  
+  // If no end date is provided, use current date (lease might still be active)
+  const endDate = leaseEndDate ? 
+    (leaseEndDate instanceof Date ? leaseEndDate : new Date(leaseEndDate)) : 
+    new Date();
+  
+  const isValid = fineDate >= startDate && fineDate <= endDate;
+  
+  return {
+    isValid,
+    message: isValid ? 
+      'Fine date is within lease period' : 
+      'Fine date is outside the lease period',
+    reason: isValid ? undefined : 'date_outside_lease_period'
+  };
+};
+
+/**
  * Hook for validating a single traffic fine
  */
 export const useFineValidation = () => {
@@ -105,42 +142,6 @@ export const useFineValidation = () => {
     }
   };
 
-  /**
-   * Validates if a fine's date falls within the lease period
-   */
-  export const validateFineDate = (
-    violationDate: Date, 
-    leaseStartDate: string | Date | null, 
-    leaseEndDate: string | Date | null
-  ): { isValid: boolean; message: string } => {
-    if (!violationDate) {
-      return { isValid: false, message: 'No violation date provided' };
-    }
-
-    const fineDate = violationDate instanceof Date ? violationDate : new Date(violationDate);
-    
-    if (!leaseStartDate) {
-      return { isValid: false, message: 'No lease start date provided' };
-    }
-    
-    const startDate = leaseStartDate instanceof Date ? 
-      leaseStartDate : new Date(leaseStartDate);
-    
-    // If no end date is provided, use current date (lease might still be active)
-    const endDate = leaseEndDate ? 
-      (leaseEndDate instanceof Date ? leaseEndDate : new Date(leaseEndDate)) : 
-      new Date();
-    
-    const isValid = fineDate >= startDate && fineDate <= endDate;
-    
-    return {
-      isValid,
-      message: isValid ? 
-        'Fine date is within lease period' : 
-        'Fine date is outside the lease period'
-    };
-  };
-
   // Clear all validation errors
   const clearValidationErrors = () => {
     setValidationErrors([]);
@@ -148,7 +149,6 @@ export const useFineValidation = () => {
 
   return {
     validateTrafficFine,
-    validateFineDate,
     validationErrors,
     clearValidationErrors
   };
