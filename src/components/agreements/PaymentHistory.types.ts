@@ -20,7 +20,7 @@ export interface Payment {
   amount_paid?: number;
   balance?: number;
   description?: string;
-  due_date?: string;
+  due_date?: string | null; // Updated to match with payment_date
   include_late_fee?: boolean;
   is_partial?: boolean;
 }

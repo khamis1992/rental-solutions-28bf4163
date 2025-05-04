@@ -33,10 +33,21 @@ import TrafficFinesByLicense from '../fines/TrafficFinesByLicense';
 import { usePayment } from '@/hooks/use-payment';
 import { usePaymentGeneration } from '@/hooks/payments/use-payment-generation';
 import { PaymentEntryDialog } from '@/components/payments/PaymentEntryDialog';
+import { Payment } from './PaymentHistory.types';
 
-const AgreementDetail = () => {
+export interface AgreementDetailProps {
+  agreement?: any;
+  onDelete?: (id: string) => void;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  onPaymentDeleted?: () => void;
+  onDataRefresh?: () => void;
+  onGenerateDocument?: () => void;
+}
+
+export const AgreementDetail = (props: AgreementDetailProps) => {
   const { id } = useParams<{ id: string }>();
-  const [agreement, setAgreement] = useState<any>(null);
+  const [agreement, setAgreement] = useState<any>(props.agreement || null);
   const [customer, setCustomer] = useState<any>(null);
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +73,13 @@ const AgreementDetail = () => {
       fetchAgreementDetails();
     }
   }, [id, refreshTrigger]);
+  
+  useEffect(() => {
+    if (props.agreement && !agreement) {
+      setAgreement(props.agreement);
+      setLoading(false);
+    }
+  }, [props.agreement]);
 
   const fetchAgreementDetails = async () => {
     setLoading(true);
@@ -111,6 +129,7 @@ const AgreementDetail = () => {
     }
   };
 
+  // Custom payment submit handler
   const handlePaymentSubmit = async (
     amount: number, 
     paymentDate: Date, 
@@ -132,7 +151,6 @@ const AgreementDetail = () => {
         description: notes,
         payment_method: paymentMethod,
         reference_number: referenceNumber,
-        // Add any other fields needed
       });
 
       if (error) throw error;
@@ -157,6 +175,9 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     // This function will be called to refresh payment data
     refreshAgreementData();
+    if (props.onDataRefresh) {
+      props.onDataRefresh();
+    }
   };
 
   if (loading) {
@@ -220,14 +241,19 @@ const AgreementDetail = () => {
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit Agreement
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={props.onGenerateDocument}>
                 <FileText className="mr-2 h-4 w-4" />
                 Generate Invoice
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
-                <Trash className="mr-2 h-4 w-4" />
-                Delete Agreement
-              </DropdownMenuItem>
+              {props.onDelete && (
+                <DropdownMenuItem 
+                  className="text-red-600"
+                  onClick={() => props.onDelete && props.onDelete(agreement.id)}
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Delete Agreement
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -375,7 +401,7 @@ const AgreementDetail = () => {
           </div>
           
           <PaymentHistory 
-            payments={payments || []}
+            payments={payments as Payment[]}
             isLoading={paymentsLoading}
             rentAmount={agreement?.rent_amount}
             contractAmount={agreement?.contract_amount}
@@ -412,4 +438,5 @@ const AgreementDetail = () => {
   );
 };
 
+// Also keep the default export to maintain compatibility with any existing code
 export default AgreementDetail;
