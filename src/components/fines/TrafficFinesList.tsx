@@ -2,382 +2,181 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table,
-  TableHeader,
-  TableRow,
-  TableHead,
   TableBody,
   TableCell,
-} from "@/components/ui/table"
-import { Button } from '@/components/ui/button';
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Search,
+  Filter,
+  MoreVertical
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreVertical, PlusIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { formatCurrency } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+} from '@/components/ui/dropdown-menu';
+import { supabase } from '@/lib/supabase';
 import { TrafficFine } from '@/types/traffic-fine';
-import { useToast } from "@/components/ui/use-toast"
-import { useTrafficFineService } from '@/hooks/use-traffic-fine-service';
-import { useAsyncAction } from '@/hooks/use-async-action';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useAgreements } from '@/hooks/use-agreements';
-import { useCustomers } from '@/hooks/use-customers';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/use-debounce';
-import { mapTrafficFineData } from '@/utils/traffic-fine-mapper';
 
-interface TrafficFinesListProps {
-  onAddFine: () => void;
-  onInvalidAssignmentsFound: (hasInvalid: boolean) => void;
-  showInvalidAssignments: boolean;
-  triggerCleanup: boolean;
-}
-
-const TrafficFinesList: React.FC<TrafficFinesListProps> = ({
-  onAddFine,
-  onInvalidAssignmentsFound,
-  showInvalidAssignments,
-  triggerCleanup
-}) => {
-  const { toast } = useToast();
+export function TrafficFinesList() {
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [isReassigning, setIsReassigning] = useState(false);
-  const [selectedFineId, setSelectedFineId] = useState<string | null>(null);
-  const [reassignLeaseId, setReassignLeaseId] = useState<string | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [invalidAssignments, setInvalidAssignments] = useState<TrafficFine[]>([]);
-  const { agreements } = useAgreements();
-  const { customers } = useCustomers();
-  const { trafficFineService } = useTrafficFineService();
-
-  const { execute: reassignFine, loading: isReassignLoading } = useAsyncAction(async () => {
-    if (!selectedFineId || !reassignLeaseId) {
-      throw new Error('Lease ID is required for reassignment.');
-    }
-    
-    await trafficFineService.reassign(selectedFineId, reassignLeaseId);
-    
-    toast({
-      title: "Fine Reassigned",
-      description: "Traffic fine reassigned successfully.",
-    });
-    
-    setReassignLeaseId(null);
-    setSelectedFineId(null);
-    setShowConfirmation(false);
-    fetchTrafficFines();
-  }, [trafficFineService, selectedFineId, reassignLeaseId, toast]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   const fetchTrafficFines = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      let query = supabase
+        .from('traffic_fines')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      let fetchedFines: TrafficFine[] = [];
-      
-      if (debouncedSearchTerm || selectedStatus) {
-        // Implement search and filter logic here
-        fetchedFines = await searchAndFilterFines(debouncedSearchTerm, selectedStatus);
-      } else {
-        // Fetch all fines
-        const response = await trafficFineService.findAll();
-        fetchedFines = response;
+      if (debouncedSearch) {
+        query = query.or(`license_plate.ilike.%${debouncedSearch}%,violation_number.ilike.%${debouncedSearch}%`);
       }
       
-      setTrafficFines(fetchedFines);
-      setLoading(false);
+      const { data, error } = await query;
       
-      // Check for invalid assignments
-      const invalid = findInvalidAssignments(fetchedFines);
-      setInvalidAssignments(invalid);
-      onInvalidAssignmentsFound(invalid.length > 0);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load traffic fines';
-      setError(message);
-      setLoading(false);
-    }
-  };
-
-  const searchAndFilterFines = async (searchTerm: string, status: string | null): Promise<TrafficFine[]> => {
-    // Placeholder for search and filter logic
-    // This should call your data fetching/filtering logic
-    const response = await trafficFineService.findAll();
-    let filteredFines = response;
-    
-    if (searchTerm) {
-      filteredFines = filteredFines.filter(fine =>
-        fine.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fine.violation_number.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (status) {
-      filteredFines = filteredFines.filter(fine => fine.payment_status === status);
-    }
-    
-    return filteredFines;
-  };
-
-  const findInvalidAssignments = (fines: TrafficFine[]): TrafficFine[] => {
-    return fines.filter(fine => {
-      if (!fine.customer_id || !fine.lease_id) return false;
+      if (error) throw error;
       
-      const lease = agreements?.find(agreement => agreement.id === fine.lease_id);
-      if (!lease) return true;
-      
-      const violationDate = new Date(fine.violation_date);
-      const startDate = new Date(lease.start_date);
-      const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
-      
-      return violationDate < startDate || violationDate > endDate;
-    });
-  };
-
-  useEffect(() => {
-    fetchTrafficFines();
-  }, [debouncedSearchTerm, selectedStatus]);
-
-  useEffect(() => {
-    if (triggerCleanup && invalidAssignments.length > 0) {
-      // Implement logic to clear invalid assignments
-      console.log('Clearing invalid assignments:', invalidAssignments);
-      setInvalidAssignments([]);
-      onInvalidAssignmentsFound(false);
-    }
-  }, [triggerCleanup, invalidAssignments, onInvalidAssignmentsFound]);
-
-  const handleReassign = (fineId: string) => {
-    setSelectedFineId(fineId);
-    setShowConfirmation(true);
-  };
-
-  const handleConfirmReassign = async () => {
-    setIsReassigning(true);
-    try {
-      await reassignFine();
-    } catch (error) {
-      console.error("Error reassigning fine:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to reassign traffic fine.",
+      // Type assertion to handle supabase result type
+      setTrafficFines(data as TrafficFine[]);
+    } catch (error: any) {
+      console.error('Error fetching traffic fines:', error);
+      toast.error('Failed to load traffic fines', {
+        description: error.message
       });
     } finally {
-      setIsReassigning(false);
+      setLoading(false);
     }
   };
 
-  const handleCancelReassign = () => {
-    setShowConfirmation(false);
-    setSelectedFineId(null);
-    setReassignLeaseId(null);
-  };
+  // Update when search query changes
+  useEffect(() => {
+    fetchTrafficFines();
+  }, [debouncedSearch]);
 
-  const handleStatusChange = (fineId: string, newStatus: string) => {
-    trafficFineService.updatePaymentStatus(fineId, newStatus)
-      .then(() => {
-        toast({
-          title: "Status Updated",
-          description: `Traffic fine status updated to ${newStatus}.`,
-        });
-        fetchTrafficFines();
-      })
-      .catch(error => {
-        console.error("Error updating status:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update traffic fine status.",
-        });
+  const handleDeleteFine = async (fineId: string) => {
+    try {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .delete()
+        .eq('id', fineId);
+
+      if (error) throw error;
+      
+      // Remove from UI state
+      setTrafficFines(trafficFines.filter(fine => fine.id !== fineId));
+      toast.success('Traffic fine deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting traffic fine:', error);
+      toast.error('Failed to delete traffic fine', {
+        description: error.message
       });
+    }
   };
-
-  const rows = trafficFines.map((fine) => {
-    const licensePlate = fine.license_plate || '';
-    const violationNumber = fine.violation_number || '';
-    
-    return (
-      <TableRow key={fine.id}>
-        <TableCell>{violationNumber}</TableCell>
-        <TableCell>{licensePlate}</TableCell>
-        <TableCell>
-          {fine.violation_date instanceof Date 
-            ? format(fine.violation_date, 'dd/MM/yyyy') 
-            : format(new Date(fine.violation_date), 'dd/MM/yyyy')}
-        </TableCell>
-        <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
-        <TableCell>
-          <Badge
-            variant={fine.payment_status === 'paid' ? 'success' : 'warning'}
-            className={fine.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}
-          >
-            {fine.payment_status}
-          </Badge>
-        </TableCell>
-        <TableCell>{fine.location}</TableCell>
-        <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleReassign(fine.id)}>
-                Reassign
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleStatusChange(fine.id, 'paid')}>
-                Mark as Paid
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleStatusChange(fine.id, 'pending')}>
-                Mark as Pending
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    );
-  });
-
-  if (loading) {
-    return <div>Loading traffic fines...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  const filteredInvalidAssignments = showInvalidAssignments ? invalidAssignments : [];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Traffic Fines</h2>
-        <Button onClick={onAddFine}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          Add Fine
-        </Button>
-      </div>
-
-      <div className="flex space-x-4 mb-4">
-        <Input
-          type="text"
-          placeholder="Search by license plate or violation number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <Select onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <ConfirmDialog
-        open={showConfirmation}
-        title="Reassign Traffic Fine"
-        description="Are you sure you want to reassign this traffic fine to a different lease?"
-        onConfirm={handleConfirmReassign}
-        onCancel={handleCancelReassign}
-        confirmButtonText="Reassign"
-        cancelButtonText="Cancel"
-        loading={isReassignLoading || isReassigning}
-      >
-        <Select value={reassignLeaseId} onValueChange={setReassignLeaseId}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select Lease" />
-          </SelectTrigger>
-          <SelectContent>
-            {agreements?.map((lease) => (
-              <SelectItem key={lease.id} value={lease.id}>
-                {lease.id}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </ConfirmDialog>
-
-      <h3 className="text-md font-semibold mt-4">Traffic Fines List</h3>
-      <div className="rounded-md border">
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Traffic Fines</CardTitle>
+          <div className="flex gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search fines..."
+                className="w-[200px] pl-8 md:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Violation #</TableHead>
               <TableHead>License Plate</TableHead>
-              <TableHead>Violation Date</TableHead>
-              <TableHead>Fine Amount</TableHead>
-              <TableHead>Payment Status</TableHead>
-              <TableHead>Location</TableHead>
+              <TableHead>Violation No.</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows}
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  Loading traffic fines...
+                </TableCell>
+              </TableRow>
+            ) : trafficFines.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  No traffic fines found
+                </TableCell>
+              </TableRow>
+            ) : (
+              trafficFines.map((fine) => (
+                <TableRow key={fine.id}>
+                  <TableCell>{fine.license_plate}</TableCell>
+                  <TableCell>{fine.violation_number || 'N/A'}</TableCell>
+                  <TableCell>
+                    {fine.violation_date ? new Date(fine.violation_date).toLocaleDateString() : 'N/A'}
+                  </TableCell>
+                  <TableCell>{fine.fine_amount ? `QAR ${fine.fine_amount.toFixed(2)}` : 'N/A'}</TableCell>
+                  <TableCell>
+                    <Badge variant={fine.payment_status === 'paid' ? 'success' : 'destructive'}>
+                      {fine.payment_status || 'Unpaid'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteFine(fine.id as string)}>
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
-      </div>
-
-      {showInvalidAssignments && filteredInvalidAssignments.length > 0 && (
-        <>
-          <h3 className="text-md font-semibold mt-4">Invalid Assignments</h3>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Violation #</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead>Violation Date</TableHead>
-                  <TableHead>Fine Amount</TableHead>
-                  <TableHead>Payment Status</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Lease</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvalidAssignments.map(fine => {
-                  const customer = customers?.find(c => c.id === fine.customer_id);
-                  const lease = agreements?.find(l => l.id === fine.lease_id);
-
-                  return (
-                    <TableRow key={fine.id}>
-                      <TableCell>{fine.violation_number}</TableCell>
-                      <TableCell>{fine.license_plate}</TableCell>
-                      <TableCell>{format(new Date(fine.violation_date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
-                      <TableCell>{fine.payment_status}</TableCell>
-                      <TableCell>{fine.location}</TableCell>
-                      <TableCell>{customer ? `${customer.first_name} ${customer.last_name}` : 'N/A'}</TableCell>
-                      <TableCell>{lease ? lease.id : 'N/A'}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
-};
+}
 
 export default TrafficFinesList;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,53 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { PaymentStatus } from '@/types/payment';
 
+interface PaymentForAgreementProps {
+  onBack: () => void;
+  onClose: () => void;
+}
+
+export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
+  const [agreementId, setAgreementId] = useState('');
+  const [paymentForm, setPaymentForm] = useState(false);
+
+  const handleAgreementSearch = () => {
+    // In a real implementation, we would verify the agreement exists
+    setPaymentForm(true);
+  };
+
+  return (
+    <div className="space-y-4">
+      {!paymentForm ? (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="agreementId">Agreement Number</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                id="agreementId"
+                placeholder="Enter agreement number"
+                value={agreementId}
+                onChange={(e) => setAgreementId(e.target.value)}
+              />
+              <Button onClick={handleAgreementSearch}>Search</Button>
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="ghost" onClick={onBack}>
+              Back
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <PaymentForm 
+          agreementId={agreementId} 
+          onSubmit={() => onClose()} 
+          onCancel={onBack}
+        />
+      )}
+    </div>
+  );
+}
+
 interface PaymentFormProps {
   agreementId: string;
   onSubmit: (payment: any) => void;
@@ -17,7 +65,7 @@ interface PaymentFormProps {
   contractAmount?: number | null;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ agreementId, onSubmit, onCancel, rentAmount, contractAmount }) => {
+function PaymentForm({ agreementId, onSubmit, onCancel, rentAmount, contractAmount }: PaymentFormProps) {
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -124,6 +172,4 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ agreementId, onSubmit, onCanc
       </div>
     </div>
   );
-};
-
-export default PaymentForm;
+}
