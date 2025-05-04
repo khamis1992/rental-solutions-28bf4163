@@ -36,6 +36,13 @@ export interface TrafficFineDataQualityResult {
     incorrectAssignments: number;
   };
   recommendations: string[];
+  status: 'success' | 'warning' | 'error';
+  totalRecords: number;
+  validRecords: number;
+  invalidRecords: number;
+  missingLicensePlateCount: number;
+  duplicateCount: number;
+  issues: string[];
 }
 
 export async function runTrafficFinesSystemHealthCheck(): Promise<SystemHealthCheckResult> {
@@ -196,7 +203,11 @@ export async function testTrafficFineDataQuality(): Promise<TrafficFineDataQuali
     
     if (error) throw error;
     
-    const issues = {
+    const totalRecords = fines?.length || 0;
+    let validRecords = totalRecords;
+    const issues: string[] = [];
+    
+    const categorizedIssues = {
       missingData: 0,
       incorrectDates: 0,
       duplicates: 0,
@@ -204,51 +215,93 @@ export async function testTrafficFineDataQuality(): Promise<TrafficFineDataQuali
     };
     
     // Check for missing data
-    fines?.forEach(fine => {
-      if (!fine.license_plate || !fine.violation_date) {
-        issues.missingData++;
-      }
-      
-      // Check for invalid dates
+    const missingLicensePlateCount = fines?.filter(fine => !fine.license_plate).length || 0;
+    if (missingLicensePlateCount > 0) {
+      categorizedIssues.missingData += missingLicensePlateCount;
+      issues.push(`${missingLicensePlateCount} fines with missing license plates`);
+      validRecords -= missingLicensePlateCount;
+    }
+    
+    // Check for invalid dates
+    const incorrectDatesCount = fines?.filter(fine => {
       const violationDate = new Date(fine.violation_date);
-      if (isNaN(violationDate.getTime()) || violationDate > new Date()) {
-        issues.incorrectDates++;
-      }
-    });
+      return isNaN(violationDate.getTime()) || violationDate > new Date();
+    }).length || 0;
+    
+    if (incorrectDatesCount > 0) {
+      categorizedIssues.incorrectDates += incorrectDatesCount;
+      issues.push(`${incorrectDatesCount} fines with invalid dates`);
+      validRecords -= incorrectDatesCount;
+    }
     
     // Check for duplicate fines (same license plate and violation date)
     const dupeMap = new Map();
     fines?.forEach(fine => {
-      const key = `${fine.license_plate}-${fine.violation_date}`;
-      dupeMap.set(key, (dupeMap.get(key) || 0) + 1);
+      if (fine.license_plate && fine.violation_date) {
+        const key = `${fine.license_plate}-${fine.violation_date}`;
+        dupeMap.set(key, (dupeMap.get(key) || 0) + 1);
+      }
     });
     
-    issues.duplicates = Array.from(dupeMap.values()).filter(count => count > 1).length;
+    const duplicateCount = Array.from(dupeMap.values()).filter(count => count > 1).length;
+    if (duplicateCount > 0) {
+      categorizedIssues.duplicates += duplicateCount;
+      issues.push(`${duplicateCount} potential duplicate fine records`);
+      validRecords -= duplicateCount;
+    }
+    
+    // Calculate incorrect assignments (simplified method)
+    const incorrectAssignments = fines?.filter(fine => 
+      fine.lease_id && fine.violation_date && 
+      new Date(fine.violation_date) > new Date() // Just a simplified example check
+    ).length || 0;
+    
+    if (incorrectAssignments > 0) {
+      categorizedIssues.incorrectAssignments += incorrectAssignments;
+      issues.push(`${incorrectAssignments} fines with potentially incorrect assignments`);
+      validRecords -= incorrectAssignments;
+    }
+    
+    const invalidRecords = totalRecords - validRecords;
     
     // Calculate severity score (0-100)
-    const totalIssues = Object.values(issues).reduce((sum, count) => sum + count, 0);
-    const severityScore = Math.min(100, Math.round((totalIssues / (fines?.length || 1)) * 100));
+    const severityScore = Math.min(100, Math.round((invalidRecords / (totalRecords || 1)) * 100));
     
     // Generate recommendations
     const recommendations = [];
-    if (issues.missingData > 0) {
-      recommendations.push(`Complete missing data for ${issues.missingData} traffic fines`);
+    if (categorizedIssues.missingData > 0) {
+      recommendations.push(`Complete missing data for ${categorizedIssues.missingData} traffic fines`);
     }
-    if (issues.incorrectDates > 0) {
-      recommendations.push(`Fix incorrect dates for ${issues.incorrectDates} traffic fines`);
+    if (categorizedIssues.incorrectDates > 0) {
+      recommendations.push(`Fix incorrect dates for ${categorizedIssues.incorrectDates} traffic fines`);
     }
-    if (issues.duplicates > 0) {
-      recommendations.push(`Review ${issues.duplicates} potential duplicate fine records`);
+    if (categorizedIssues.duplicates > 0) {
+      recommendations.push(`Review ${categorizedIssues.duplicates} potential duplicate fine records`);
     }
-    if (issues.incorrectAssignments > 0) {
-      recommendations.push(`Fix ${issues.incorrectAssignments} incorrect customer assignments`);
+    if (categorizedIssues.incorrectAssignments > 0) {
+      recommendations.push(`Fix ${categorizedIssues.incorrectAssignments} incorrect customer assignments`);
+    }
+    
+    // Determine status based on severity
+    let status: 'success' | 'warning' | 'error' = 'success';
+    if (severityScore > 30) {
+      status = 'error';
+    } else if (severityScore > 10) {
+      status = 'warning';
     }
     
     return {
-      issueCount: totalIssues,
+      issueCount: invalidRecords,
       severityScore,
-      categorizedIssues: issues,
-      recommendations
+      categorizedIssues,
+      recommendations,
+      status,
+      totalRecords,
+      validRecords,
+      invalidRecords,
+      missingLicensePlateCount,
+      duplicateCount,
+      issues
     };
   } catch (error) {
     console.error('Error checking traffic fine data quality:', error);
@@ -263,7 +316,14 @@ export async function testTrafficFineDataQuality(): Promise<TrafficFineDataQuali
       },
       recommendations: [
         'An error occurred during quality check. Please try again.'
-      ]
+      ],
+      status: 'error',
+      totalRecords: 0,
+      validRecords: 0,
+      invalidRecords: 0,
+      missingLicensePlateCount: 0,
+      duplicateCount: 0,
+      issues: ['An error occurred during quality check. Please try again.']
     };
   }
 }
@@ -274,7 +334,7 @@ export async function fixTrafficFineDataQualityIssues(
     fixDuplicates?: boolean;
     fixAssignments?: boolean;
   } = {}
-): Promise<{ fixed: number; errors: number; details: string[] }> {
+): Promise<{ fixed: number; errors: number; details: string[]; success?: boolean }> {
   const details: string[] = [];
   let fixed = 0;
   let errors = 0;
@@ -309,13 +369,19 @@ export async function fixTrafficFineDataQualityIssues(
 
     // Handle other fixes as needed...
 
-    return { fixed, errors, details };
+    return { 
+      fixed, 
+      errors, 
+      details,
+      success: errors === 0 && fixed > 0
+    };
   } catch (error) {
     console.error('Error fixing traffic fine data quality issues:', error);
     return { 
       fixed, 
       errors: errors + 1, 
-      details: [...details, error instanceof Error ? error.message : 'Unknown error during fix operation']
+      details: [...details, error instanceof Error ? error.message : 'Unknown error during fix operation'],
+      success: false
     };
   }
 }

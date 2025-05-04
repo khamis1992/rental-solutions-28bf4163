@@ -107,3 +107,6 @@ export function TrafficFineValidation() {
     </Card>
   );
 }
+
+// Add default export to fix the import issue in TrafficFines.tsx
+export default TrafficFineValidation;
