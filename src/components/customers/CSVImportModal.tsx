@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import {
   Dialog,
@@ -12,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useDropzone } from 'react-dropzone';
 import { FileText, Upload } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 import * as Papa from 'papaparse';
 
@@ -37,7 +37,6 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
   });
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const { toast } = useToast();
-  const { data: session } = useSession();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -96,14 +95,18 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
     try {
       setUploading(true);
       
+      // Get the current user's ID from Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'anonymous';
+
       // Create import log
       const { data: importLog, error: importLogError } = await supabase
         .from('customer_import_logs')
         .insert({
-          file_name: selectedFile!.name,
-          original_file_name: selectedFile!.name,
+          file_name: selectedFile.name,
+          original_file_name: selectedFile.name,
           status: 'pending',
-          created_by: session?.user.id,
+          created_by: userId,
           mapping_used: {
             fullName: mappings.fullName,
             email: mappings.email,
@@ -114,7 +117,6 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
         .single();
       
       if (importLogError) throw importLogError;
-      if (!importLog?.id) throw new Error('Failed to create import log');
       
       // Process the CSV file
       Papa.parse(selectedFile, {
@@ -125,6 +127,11 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
           const totalRecords = csvData.length;
           let processedRecords = 0;
           let failedRecords = 0;
+          const importId = importLog?.id;
+          
+          if (!importId) {
+            throw new Error('Failed to get import log ID');
+          }
           
           for (const row of csvData) {
             try {
@@ -144,7 +151,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
                   full_name: fullName,
                   email: email,
                   phone: phoneNumber,
-                  created_by: session?.user.id,
+                  created_by: userId,
                 });
               
               if (insertError) {
@@ -164,7 +171,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
                   processed_records: processedRecords,
                   failed_records: failedRecords,
                 })
-                .eq('id', importLog.id);
+                .eq('id', importId);
             }
           }
           
@@ -178,7 +185,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
               processed_records: processedRecords,
               failed_records: failedRecords,
             })
-            .eq('id', importLog.id);
+            .eq('id', importId);
             
           toast({
             title: "Import Complete",
@@ -197,11 +204,15 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       });
       
       // Upload the file to storage
-      const { data: fileUpload, error: fileUploadError } = await supabase.storage
-        .from('import-files')
-        .upload(`customers/${importLog.id}/${selectedFile!.name}`, selectedFile as File);
-        
-      if (fileUploadError) throw fileUploadError;
+      if (importLog?.id) {
+        const { error: fileUploadError } = await supabase.storage
+          .from('import-files')
+          .upload(`customers/${importLog.id}/${selectedFile.name}`, selectedFile);
+          
+        if (fileUploadError) {
+          console.error('File upload error:', fileUploadError);
+        }
+      }
       
     } catch (error: any) {
       console.error('Import error:', error);

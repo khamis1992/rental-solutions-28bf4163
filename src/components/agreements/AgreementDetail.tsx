@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,9 +29,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PaymentEntryDialog } from '@/components/payments/PaymentEntryDialog';
 import { PaymentHistory } from './PaymentHistory';
-import CustomerTrafficFines from './CustomerTrafficFines';
+import TrafficFinesByLicense from '../fines/TrafficFinesByLicense';
 import { usePayment } from '@/hooks/use-payment';
 import { usePaymentGeneration } from '@/hooks/payments/use-payment-generation';
 
@@ -47,7 +47,7 @@ const AgreementDetail = () => {
   const { 
     payments, 
     isLoading: paymentsLoading,
-    handlePaymentSubmit
+    handlePaymentSubmit: hookHandlePayment
   } = usePayment(id);
   
   const {
@@ -111,8 +111,8 @@ const AgreementDetail = () => {
     }
   };
 
-  // Handle recording a payment
-  const handlePaymentSubmit = async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean, isPartialPayment?: boolean) => {
+  // Using the hook's payment submission function
+  const handlePaymentSubmission = async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean, isPartialPayment?: boolean) => {
     if (!agreement?.id) return;
     
     try {
@@ -369,20 +369,29 @@ const AgreementDetail = () => {
           </div>
           
           <PaymentHistory 
-            payments={payments}
+            payments={payments || []}
             isLoading={paymentsLoading}
             rentAmount={agreement.rent_amount}
             contractAmount={agreement.contract_amount}
-            leaseId={id}
+            leaseId={id as string}
             leaseStartDate={agreement.start_date}
             leaseEndDate={agreement.end_date}
-            onRecordPayment={handleSpecialAgreementPayments}
+            onRecordPayment={(payment) => {
+              if (payment) {
+                handleSpecialAgreementPayments(payment);
+              }
+            }}
+            onPaymentDeleted={fetchPayments}
+            onPaymentUpdated={async () => {
+              fetchPayments();
+              return true;
+            }}
           />
         </TabsContent>
 
         <TabsContent value="fines" className="space-y-4">
           <h2 className="text-xl font-semibold">Traffic Fines</h2>
-          {vehicle && <CustomerTrafficFines licensePlate={vehicle.license_plate} />}
+          {vehicle && <TrafficFinesByLicense licensePlate={vehicle.license_plate} />}
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
@@ -390,13 +399,6 @@ const AgreementDetail = () => {
           <p className="text-muted-foreground">No documents available for this agreement.</p>
         </TabsContent>
       </Tabs>
-
-      <PaymentEntryDialog
-        open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
-        rentAmount={agreement?.rent_amount}
-        onSubmit={handlePaymentSubmit}
-      />
     </div>
   );
 };

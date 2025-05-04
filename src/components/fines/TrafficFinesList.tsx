@@ -31,7 +31,23 @@ import {
 import { supabase } from '@/lib/supabase';
 import { TrafficFine } from '@/types/traffic-fine';
 import { toast } from 'sonner';
-import { useDebounce } from '@/hooks/use-debounce';
+
+// Simple debounce hook implementation
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export function TrafficFinesList() {
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
@@ -55,7 +71,6 @@ export function TrafficFinesList() {
       
       if (error) throw error;
       
-      // Type assertion to handle supabase result type
       setTrafficFines(data as TrafficFine[]);
     } catch (error: any) {
       console.error('Error fetching traffic fines:', error);
@@ -73,6 +88,10 @@ export function TrafficFinesList() {
   }, [debouncedSearch]);
 
   const handleDeleteFine = async (fineId: string) => {
+    if (!confirm('Are you sure you want to delete this traffic fine?')) {
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('traffic_fines')
@@ -87,6 +106,29 @@ export function TrafficFinesList() {
     } catch (error: any) {
       console.error('Error deleting traffic fine:', error);
       toast.error('Failed to delete traffic fine', {
+        description: error.message
+      });
+    }
+  };
+
+  const handleMarkAsPaid = async (fineId: string) => {
+    try {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
+        .eq('id', fineId);
+
+      if (error) throw error;
+      
+      // Update UI state
+      setTrafficFines(trafficFines.map(fine => 
+        fine.id === fineId ? { ...fine, payment_status: 'paid', payment_date: new Date() } : fine
+      ));
+      
+      toast.success('Traffic fine marked as paid');
+    } catch (error: any) {
+      console.error('Error updating traffic fine:', error);
+      toast.error('Failed to update traffic fine', {
         description: error.message
       });
     }
@@ -162,8 +204,15 @@ export function TrafficFinesList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteFine(fine.id as string)}>
+                        {fine.payment_status !== 'paid' && (
+                          <DropdownMenuItem onClick={() => handleMarkAsPaid(fine.id as string)}>
+                            Mark as Paid
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          className="text-red-600" 
+                          onClick={() => handleDeleteFine(fine.id as string)}
+                        >
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>

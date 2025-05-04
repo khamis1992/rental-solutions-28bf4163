@@ -15,7 +15,7 @@ interface PaymentForAgreementProps {
   onClose: () => void;
 }
 
-export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
+export default function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
   const [agreementId, setAgreementId] = useState('');
   const [paymentForm, setPaymentForm] = useState(false);
 
