@@ -1,199 +1,254 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { testTrafficFineDataQuality, fixTrafficFineDataQualityIssues, TrafficFineDataQualityResult } from '@/utils/traffic-fines-test-utils';
 
-const TrafficFineDataQuality: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [fixing, setFixing] = useState(false);
-  const [results, setResults] = useState<TrafficFineDataQualityResult | null>(null);
-
-  const fetchDataQuality = async () => {
-    setLoading(true);
-    try {
-      const qualityResults = await testTrafficFineDataQuality();
-      setResults(qualityResults);
-    } catch (error) {
-      console.error('Error fetching data quality:', error);
-      toast.error('Failed to analyze data quality');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function TrafficFineDataQuality() {
+  const [qualityData, setQualityData] = useState<TrafficFineDataQualityResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fixResults, setFixResults] = useState<{ fixed: number; errors: number; details: string[]; success?: boolean; } | null>(null);
+  const [showFixDialog, setShowFixDialog] = useState(false);
+  
   useEffect(() => {
-    fetchDataQuality();
+    loadQualityData();
   }, []);
-
-  const handleFixIssues = async () => {
-    setFixing(true);
+  
+  const loadQualityData = async () => {
+    setIsLoading(true);
     try {
-      const fixResults = await fixTrafficFineDataQualityIssues();
-      
-      if (fixResults.success) {
-        toast.success(`Fixed ${fixResults.fixed} data quality issues`, {
-          description: fixResults.issues.join(', ')
-        });
-        await fetchDataQuality();
-      } else {
-        toast.error('Failed to fix some data issues', {
-          description: fixResults.issues.join(', ')
-        });
-      }
+      const results = await testTrafficFineDataQuality();
+      setQualityData(results);
     } catch (error) {
-      console.error('Error fixing issues:', error);
-      toast.error('Error fixing data quality issues');
+      console.error("Error testing data quality:", error);
     } finally {
-      setFixing(false);
+      setIsLoading(false);
     }
   };
-
-  const getStatusIcon = () => {
-    if (!results) return <Skeleton className="h-10 w-10" />;
-    
-    switch (results.status) {
-      case 'success':
-        return <CheckCircle className="h-10 w-10 text-green-500" />;
-      case 'warning':
-        return <AlertTriangle className="h-10 w-10 text-amber-500" />;
-      case 'error':
-        return <AlertCircle className="h-10 w-10 text-destructive" />;
-      default:
-        return null;
+  
+  const handleFixIssues = async () => {
+    setIsLoading(true);
+    try {
+      const results = await fixTrafficFineDataQualityIssues({
+        fixDates: true,
+        fixDuplicates: true
+      });
+      setFixResults(results);
+      
+      if (results.success) {
+        // If fix was successful, reload quality data to reflect changes
+        await loadQualityData();
+      }
+      
+      // Show the results dialog regardless of success/failure
+      setShowFixDialog(true);
+    } catch (error) {
+      console.error("Error fixing issues:", error);
+      setFixResults({
+        fixed: 0,
+        errors: 1,
+        details: [(error as Error).message || "Unknown error occurred"],
+        success: false
+      });
+      setShowFixDialog(true);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const getStatusColor = () => {
-    if (!results) return 'bg-gray-200';
-    
-    switch (results.status) {
-      case 'success':
-        return 'bg-green-500';
-      case 'warning':
-        return 'bg-amber-500';
-      case 'error':
-        return 'bg-destructive';
-      default:
-        return 'bg-gray-200';
+  
+  const getStatusBadgeVariant = (status: string) => {
+    switch(status) {
+      case 'success': return "success";
+      case 'warning': return "warning";
+      case 'error': return "destructive";
+      default: return "secondary";
     }
   };
-
+  
+  // In case the TrafficFineDataQualityResult doesn't have all the expected fields,
+  // let's provide defaults
+  const totalRecords = qualityData?.totalRecords ?? 0;
+  const validRecords = qualityData?.validRecords ?? 0;
+  const invalidRecords = qualityData?.invalidRecords ?? 0;
+  const issues = qualityData?.issues ?? [];
+  const status = qualityData?.status ?? 'error';
+  const missingLicensePlateCount = qualityData?.missingLicensePlateCount ?? 0;
+  const duplicateCount = qualityData?.duplicateCount ?? 0;
+  const categorizedIssues = qualityData?.categorizedIssues ?? {
+    missingData: 0,
+    incorrectDates: 0,
+    duplicates: 0,
+    incorrectAssignments: 0
+  };
+  
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Traffic Fine Data Quality</CardTitle>
+          <CardDescription>Analyzing data quality...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-10">
+          <div className="space-y-4 text-center">
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Please wait while we analyze the data quality...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!qualityData) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Traffic Fine Data Quality</CardTitle>
+          <CardDescription>Error analyzing data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to analyze traffic fine data quality. Please try again.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={loadQualityData}>Retry Analysis</Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {getStatusIcon()}
-          Traffic Fine Data Quality
-        </CardTitle>
-        <CardDescription>
-          Analysis of data quality and validation issues for traffic fines
-        </CardDescription>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Traffic Fine Data Quality</CardTitle>
+          <CardDescription>Analysis of your traffic fine data quality</CardDescription>
+        </div>
+        <Badge variant={getStatusBadgeVariant(status)}>
+          {totalRecords} Records
+        </Badge>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+        {/* Quality Score */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">Valid Records</h3>
+            <span className="text-sm">{Math.round((validRecords / (totalRecords || 1)) * 100)}%</span>
           </div>
-        ) : results ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold">{results.totalRecords}</div>
-                <div className="text-sm text-muted-foreground">Total Records</div>
-              </div>
-              
-              <div className="border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-green-500">{results.validRecords}</div>
-                <div className="text-sm text-muted-foreground">Valid Records</div>
-              </div>
-              
-              <div className="border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-destructive">{results.invalidRecords}</div>
-                <div className="text-sm text-muted-foreground">Invalid Records</div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Data Quality Score</span>
-                <span className="font-medium">
-                  {results.totalRecords === 0 ? '0%' : 
-                   `${Math.round((results.validRecords / results.totalRecords) * 100)}%`}
-                </span>
-              </div>
-              <Progress 
-                value={results.totalRecords === 0 ? 0 : 
-                       Math.round((results.validRecords / results.totalRecords) * 100)} 
-                className="h-2"
-                indicatorClassName={getStatusColor()}
-              />
-            </div>
-            
-            {results.issues.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium mb-2">Issues Detected</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  {results.issues.map((issue, index) => (
-                    <li key={index} className="text-sm text-muted-foreground">
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              <div className="border rounded-lg p-4">
-                <div className="text-sm font-medium mb-1">Missing License Plates</div>
-                <div className="flex justify-between items-center">
-                  <div className="text-2xl font-bold">{results.missingLicensePlateCount}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {results.totalRecords === 0 ? '0%' : 
-                     `${Math.round((results.missingLicensePlateCount / results.totalRecords) * 100)}%`}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <div className="text-sm font-medium mb-1">Potential Duplicates</div>
-                <div className="flex justify-between items-center">
-                  <div className="text-2xl font-bold">{results.duplicateCount}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {results.totalRecords === 0 ? '0%' : 
-                     `${Math.round((results.duplicateCount / results.totalRecords) * 100)}%`}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            No data quality information available
+          
+          <Progress
+            value={totalRecords ? (validRecords / totalRecords) * 100 : 0}
+            className={`h-2 ${status === 'error' ? 'bg-red-200' : status === 'warning' ? 'bg-amber-200' : 'bg-muted'}`}
+          />
+          
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Total: {totalRecords}</span>
+            <span>Valid: {validRecords} | Invalid: {invalidRecords}</span>
           </div>
+        </div>
+        
+        {/* Issues Summary */}
+        {issues && issues.length > 0 && (
+          <Alert variant={status === 'error' ? 'destructive' : 'warning'}>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Data Quality Issues Detected</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                {issues.map((issue, idx) => (
+                  <li key={idx} className="text-sm">{issue}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
         )}
+        
+        {/* Missing License Plate */}
+        <Card className="border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+              Missing License Plates
+            </CardTitle>
+            <Badge variant="outline">{missingLicensePlateCount} Records</Badge>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              {totalRecords ? 
+                `${Math.round((missingLicensePlateCount / totalRecords) * 100)}% of records have missing license plates.` : 
+                'No records with missing license plates.'} 
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Duplicate Records */}
+        <Card className="border shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+              Duplicate Records
+            </CardTitle>
+            <Badge variant="outline">{duplicateCount} Records</Badge>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              {totalRecords ? 
+                `${Math.round((duplicateCount / totalRecords) * 100)}% of records are potential duplicates.` : 
+                'No duplicate records found.'} 
+            </p>
+          </CardContent>
+        </Card>
       </CardContent>
       
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={fetchDataQuality} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Analysis
-        </Button>
-        {results && (results.status === 'warning' || results.status === 'error') && (
-          <Button onClick={handleFixIssues} disabled={fixing || loading}>
-            {fixing ? 'Fixing Issues...' : 'Fix Common Issues'}
+      <CardFooter className="flex flex-col items-start space-y-4">
+        <div className="w-full pt-4 border-t flex justify-between items-center">
+          <span className="text-sm font-medium flex items-center">
+            {status === 'success' ? 
+              <CheckCircle className="h-4 w-4 text-green-500 mr-2" /> : 
+              <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
+            }
+            Data Quality: {status === 'success' ? 'Good' : status === 'warning' ? 'Needs Attention' : 'Poor'}
+          </span>
+          
+          <Button 
+            onClick={handleFixIssues} 
+            variant="default"
+            disabled={isLoading || status === 'success' || invalidRecords === 0}
+          >
+            Fix Issues Automatically
           </Button>
+        </div>
+        
+        {showFixDialog && fixResults && (
+          <Alert variant={fixResults.success ? "success" : "destructive"} className="w-full">
+            <CheckCircle className="h-4 w-4" />
+            <AlertTitle>
+              {fixResults.success ? "Issues Fixed Successfully" : "Fix Completed with Errors"}
+            </AlertTitle>
+            <AlertDescription>
+              <p className="mb-1">
+                Fixed {fixResults.fixed} issues. {fixResults.errors > 0 && `Failed to fix ${fixResults.errors} issues.`}
+              </p>
+              {fixResults.details && fixResults.details.length > 0 && (
+                <ul className="list-disc list-inside text-xs mt-2">
+                  {fixResults.details.slice(0, 5).map((detail, idx) => (
+                    <li key={idx}>{detail}</li>
+                  ))}
+                  {fixResults.details.length > 5 && <li>...and {fixResults.details.length - 5} more</li>}
+                </ul>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
       </CardFooter>
     </Card>
   );
-};
-
-export default TrafficFineDataQuality;
+}

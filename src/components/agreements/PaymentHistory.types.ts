@@ -38,5 +38,5 @@ export interface PaymentHistoryProps {
   leaseEndDate?: string | Date | null;
   onRecordPayment?: (payment: Partial<Payment>) => void;
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
-  leaseId?: DbId;
+  leaseId?: DbId; // Added leaseId to the interface
 }

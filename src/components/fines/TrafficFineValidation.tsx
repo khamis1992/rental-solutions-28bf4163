@@ -108,5 +108,5 @@ export function TrafficFineValidation() {
   );
 }
 
-// Add default export to fix the import issue in TrafficFines.tsx
+// Export the component as default
 export default TrafficFineValidation;

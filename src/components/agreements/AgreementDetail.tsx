@@ -129,15 +129,15 @@ export const AgreementDetail = (props: AgreementDetailProps) => {
     }
   };
 
-  // Custom payment submit handler
+  // Fix the handlePaymentSubmit function to match expected parameters
   const handlePaymentSubmit = async (
     amount: number, 
     paymentDate: Date, 
     notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
-    includeLatePaymentFee?: boolean, 
-    isPartialPayment?: boolean
+    paymentMethod: string = 'cash',
+    referenceNumber?: string,
+    includeLatePaymentFee: boolean = false,
+    isPartialPayment: boolean = false
   ) => {
     if (!agreement?.id) return;
     
@@ -405,7 +405,6 @@ export const AgreementDetail = (props: AgreementDetailProps) => {
             isLoading={paymentsLoading}
             rentAmount={agreement?.rent_amount}
             contractAmount={agreement?.contract_amount}
-            leaseId={id as string}
             leaseStartDate={agreement?.start_date}
             leaseEndDate={agreement?.end_date}
             onRecordPayment={(payment: Partial<Payment>) => handleSpecialAgreementPayments(payment)}

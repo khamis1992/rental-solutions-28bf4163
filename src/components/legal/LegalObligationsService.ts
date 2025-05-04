@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -60,8 +61,14 @@ export const fetchOverduePayments = async (): Promise<{
 
     // Map payments to obligations
     const paymentObligations = (overduePayments || []).map(payment => {
-      const customerId = payment.leases?.customer_id;
-      const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
+      // Check if leases property exists and is an object (not an array)
+      const customerId = payment.leases && typeof payment.leases === 'object' ? payment.leases.customer_id : '';
+      const customerName = payment.leases && 
+                           typeof payment.leases === 'object' && 
+                           payment.leases.profiles && 
+                           typeof payment.leases.profiles === 'object' ? 
+                           payment.leases.profiles.full_name || 'Unknown Customer' : 
+                           'Unknown Customer';
 
       return {
         id: payment.id,
@@ -122,8 +129,13 @@ export const fetchLegalObligations = async (customerId?: string): Promise<{
 
     // Map payments to obligations
     const paymentObligations = (overduePayments || []).map(payment => {
-      const paymentCustomerId = payment.leases?.customer_id;
-      const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
+      const paymentCustomerId = payment.leases && typeof payment.leases === 'object' ? payment.leases.customer_id : '';
+      const customerName = payment.leases && 
+                          typeof payment.leases === 'object' && 
+                          payment.leases.profiles && 
+                          typeof payment.leases.profiles === 'object' ? 
+                          payment.leases.profiles.full_name || 'Unknown Customer' : 
+                          'Unknown Customer';
 
       // Skip if we're filtering by customer ID and this isn't a match
       if (customerId && paymentCustomerId !== customerId) {
@@ -200,8 +212,13 @@ export const useLegalObligations = (customerId?: string) => {
 
         // Map payments to obligations
         const paymentObligations = (overduePayments || []).map(payment => {
-          const paymentCustomerId = payment.leases?.customer_id;
-          const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
+          const paymentCustomerId = payment.leases && typeof payment.leases === 'object' ? payment.leases.customer_id : '';
+          const customerName = payment.leases && 
+                              typeof payment.leases === 'object' && 
+                              payment.leases.profiles && 
+                              typeof payment.leases.profiles === 'object' ? 
+                              payment.leases.profiles.full_name || 'Unknown Customer' : 
+                              'Unknown Customer';
 
           // Skip if we're filtering by customer ID and this isn't a match
           if (customerId && paymentCustomerId !== customerId) {
