@@ -1,9 +1,11 @@
-
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { format } from "date-fns";
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -11,814 +13,635 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { agreementSchema } from './agreement.schema';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { CalendarIcon, CheckCircle, InfoIcon, AlertCircle, AlertTriangle, SearchIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
-import { agreementSchema } from "@/lib/validation-schemas/agreement";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { checkVehicleAvailability } from "@/utils/agreement-utils";
-import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
-import { toast } from "sonner";
-import { CustomerSearchResults } from "@/components/customers/CustomerSearchResults";
-import { VehicleSearchResults } from "@/components/vehicles/VehicleSearchResults";
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { FormBuilder } from '@/components/forms/FormBuilder';
+import { FormProvider } from '@/components/forms/FormProvider';
+import { UseFormReturn } from 'react-hook-form';
+import { Checkbox } from '@/components/ui/checkbox';
+import { VehicleSearchDialog } from './VehicleSearchDialog';
+import { CustomerSearchDialog } from './CustomerSearchDialog';
+import { VehicleInfo } from '@/types/vehicle-assignment.types';
+import { CustomerInfo } from '@/types/vehicle-assignment.types';
+import { VehicleAssignmentDialog } from './VehicleAssignmentDialog';
+import { formatDate } from '@/lib/date-utils';
+import {
+  asLeaseId,
+  asVehicleId,
+  asCustomerId,
+  asLeaseStatus,
+} from '@/lib/database/type-utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LeaseStatus } from '@/types/database-common';
+import { FormattedAgreement } from './AgreementsTable';
+import { AgreementStatusBadge } from './AgreementStatusBadge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Database } from '@/types/database.types';
+import { DbId } from '@/types/database-common';
+import { TrafficFine } from '@/hooks/use-traffic-fines';
+import { TrafficFinesDialog } from './TrafficFinesDialog';
+import { PaymentHistoryDialog } from './PaymentHistoryDialog';
+import { Payment } from '@/types/payment-history.types';
+import { AgreementTabs } from './AgreementTabs';
+import { AgreementNotes } from './AgreementNotes';
+import { AgreementChecklist } from './AgreementChecklist';
+import { AgreementActions } from './AgreementActions';
+import { AgreementFiles } from './AgreementFiles';
+import { AgreementTimeline } from './AgreementTimeline';
+import { AgreementInvoices } from './AgreementInvoices';
+import { AgreementContacts } from './AgreementContacts';
+import { AgreementClauses } from './AgreementClauses';
+import { AgreementHistory } from './AgreementHistory';
+import { AgreementTasks } from './AgreementTasks';
+import { AgreementReminders } from './AgreementReminders';
+import { AgreementRecurringTasks } from './AgreementRecurringTasks';
+import { AgreementExpenses } from './AgreementExpenses';
+import { AgreementIncidents } from './AgreementIncidents';
+import { AgreementInsurance } from './AgreementInsurance';
+import { AgreementCommunication } from './AgreementCommunication';
+import { AgreementAnalytics } from './AgreementAnalytics';
+import { AgreementSatisfaction } from './AgreementSatisfaction';
+import { AgreementReviews } from './AgreementReviews';
+import { AgreementUpselling } from './AgreementUpselling';
+import { AgreementCrossSelling } from './AgreementCrossSelling';
+import { AgreementLoyaltyPrograms } from './AgreementLoyaltyPrograms';
+import { AgreementReferrals } from './AgreementReferrals';
+import { AgreementFeedback } from './AgreementFeedback';
+import { AgreementSurveys } from './AgreementSurveys';
+import { AgreementMarketingCampaigns } from './AgreementMarketingCampaigns';
+import { AgreementSocialMedia } from './AgreementSocialMedia';
+import { AgreementSEO } from './AgreementSEO';
+import { AgreementPPC } from './AgreementPPC';
+import { AgreementEmailMarketing } from './AgreementEmailMarketing';
+import { AgreementContentMarketing } from './AgreementContentMarketing';
+import { AgreementAffiliateMarketing } from './AgreementAffiliateMarketing';
+import { AgreementInfluencerMarketing } from './AgreementInfluencerMarketing';
+import { AgreementMobileMarketing } from './AgreementMobileMarketing';
+import { AgreementVideoMarketing } from './AgreementVideoMarketing';
+import { AgreementWebinars } from './AgreementWebinars';
+import { AgreementPodcasts } from './AgreementPodcasts';
+import { AgreementPrintMarketing } from './AgreementPrintMarketing';
+import { AgreementEventMarketing } from './AgreementEventMarketing';
+import { AgreementPublicRelations } from './AgreementPublicRelations';
+import { AgreementCustomerService } from './AgreementCustomerService';
+import { AgreementTraining } from './AgreementTraining';
+import { AgreementDocumentation } from './AgreementDocumentation';
+import { AgreementKnowledgeBase } from './AgreementKnowledgeBase';
+import { AgreementFAQ } from './AgreementFAQ';
+import { AgreementSupportForums } from './AgreementSupportForums';
+import { AgreementChatSupport } from './AgreementChatSupport';
+import { AgreementPhoneSupport } from './AgreementPhoneSupport';
+import { AgreementEmailSupport } from './AgreementEmailSupport';
+import { AgreementRemoteSupport } from './AgreementRemoteSupport';
+import { AgreementOnsiteSupport } from './AgreementOnsiteSupport';
+import { AgreementSelfService } from './AgreementSelfService';
+import { AgreementCommunitySupport } from './AgreementCommunitySupport';
+import { AgreementSuccessManagement } from './AgreementSuccessManagement';
+import { AgreementAccountManagement } from './AgreementAccountManagement';
+import { AgreementValueRealization } from './AgreementValueRealization';
+import { AgreementAdoptionPrograms } from './AgreementAdoptionPrograms';
+import { AgreementRetentionStrategies } from './AgreementRetentionStrategies';
+import { AgreementRenewalManagement } from './AgreementRenewalManagement';
+import { AgreementExpansionOpportunities } from './AgreementExpansionOpportunities';
+import { AgreementAdvocacyPrograms } from './AgreementAdvocacyPrograms';
+import { AgreementFeedbackLoops } from './AgreementFeedbackLoops';
+import { AgreementContinuousImprovement } from './AgreementContinuousImprovement';
+import { AgreementInnovationPrograms } from './AgreementInnovationPrograms';
+import { AgreementStrategicPartnerships } from './AgreementStrategicPartnerships';
+import { AgreementEcosystemDevelopment } from './AgreementEcosystemDevelopment';
+import { AgreementIndustryEvents } from './AgreementIndustryEvents';
+import { AgreementThoughtLeadership } from './AgreementThoughtLeadership';
+import { AgreementMarketResearch } from './AgreementMarketResearch';
+import { AgreementCompetitiveAnalysis } from './AgreementCompetitiveAnalysis';
+import { AgreementTrendAnalysis } from './AgreementTrendAnalysis';
+import { AgreementFuturePlanning } from './AgreementFuturePlanning';
+import { AgreementRiskManagement } from './AgreementRiskManagement';
+import { AgreementCompliance } from './AgreementCompliance';
+import { AgreementLegalReview } from './AgreementLegalReview';
+import { AgreementIntellectualProperty } from './AgreementIntellectualProperty';
+import { AgreementDataPrivacy } from './AgreementDataPrivacy';
+import { AgreementSecurityMeasures } from './AgreementSecurityMeasures';
+import { AgreementDisasterRecovery } from './AgreementDisasterRecovery';
+import { AgreementBusinessContinuity } from './AgreementBusinessContinuity';
+import { AgreementEthicalConsiderations } from './AgreementEthicalConsiderations';
+import { AgreementSocialResponsibility } from './AgreementSocialResponsibility';
+import { AgreementEnvironmentalImpact } from './AgreementEnvironmentalImpact';
+import { AgreementSustainabilityInitiatives } from './AgreementSustainabilityInitiatives';
+import { AgreementCommunityEngagement } from './AgreementCommunityEngagement';
+import { AgreementPhilanthropy } from './AgreementPhilanthropy';
+import { AgreementVolunteerPrograms } from './AgreementVolunteerPrograms';
+import { AgreementDiversityAndInclusion } from './AgreementDiversityAndInclusion';
+import { AgreementEmployeeWellbeing } from './AgreementEmployeeWellbeing';
+import { AgreementWorkLifeBalance } from './AgreementWorkLifeBalance';
+import { AgreementHealthAndSafety } from './AgreementHealthAndSafety';
+import { AgreementTrainingAndDevelopment } from './AgreementTrainingAndDevelopment';
+import { AgreementCareerAdvancement } from './AgreementCareerAdvancement';
+import { AgreementMentorshipPrograms } from './AgreementMentorshipPrograms';
+import { AgreementLeadershipDevelopment } from './AgreementLeadershipDevelopment';
+import { AgreementSuccessionPlanning } from './AgreementSuccessionPlanning';
+import { AgreementOrganizationalCulture } from './AgreementOrganizationalCulture';
+import { AgreementEmployeeRecognition } from './AgreementEmployeeRecognition';
+import { AgreementTeamBuilding } from './AgreementTeamBuilding';
+import { AgreementCommunicationStrategies } from './AgreementCommunicationStrategies';
+import { AgreementFeedbackMechanisms } from './AgreementFeedbackMechanisms';
+import { AgreementPerformanceManagement } from './AgreementPerformanceManagement';
+import { AgreementGoalSetting } from './AgreementGoalSetting';
+import { AgreementProgressTracking } from './AgreementProgressTracking';
+import { AgreementReportingAndAnalytics } from './AgreementReportingAndAnalytics';
+import { AgreementDataDrivenDecisionMaking } from './AgreementDataDrivenDecisionMaking';
+import { AgreementKeyPerformanceIndicators } from './AgreementKeyPerformanceIndicators';
+import { AgreementMetricsAndMeasurements } from './AgreementMetricsAndMeasurements';
+import { AgreementBenchmarking } from './AgreementBenchmarking';
+import { AgreementBestPractices } from './AgreementBestPractices';
+import { AgreementContinuousLearning } from './AgreementContinuousLearning';
+import { AgreementKnowledgeSharing } from './AgreementKnowledgeSharing';
+import { AgreementInnovationCulture } from './AgreementInnovationCulture';
+import { AgreementExperimentation } from './AgreementExperimentation';
+import { AgreementResearchAndDevelopment } from './AgreementResearchAndDevelopment';
+import { AgreementTechnologyAdoption } from './AgreementTechnologyAdoption';
+import { AgreementDigitalTransformation } from './AgreementDigitalTransformation';
+import { AgreementAutomation } from './AgreementAutomation';
+import { AgreementArtificialIntelligence } from './AgreementArtificialIntelligence';
+import { AgreementMachineLearning } from './AgreementMachineLearning';
+import { AgreementDataScience } from './AgreementDataScience';
+import { AgreementBigData } from './AgreementBigData';
+import { AgreementCloudComputing } from './AgreementCloudComputing';
+import { AgreementEdgeComputing } from './AgreementEdgeComputing';
+import { AgreementInternetOfThings } from './AgreementInternetOfThings';
+import { AgreementBlockchain } from './AgreementBlockchain';
+import { AgreementCybersecurity } from './AgreementCybersecurity';
+import { AgreementDataEncryption } from './AgreementDataEncryption';
+import { AgreementAccessControl } from './AgreementAccessControl';
+import { AgreementVulnerabilityManagement } from './AgreementVulnerabilityManagement';
+import { AgreementIncidentResponse } from './AgreementIncidentResponse';
+import { AgreementComplianceAudits } from './AgreementComplianceAudits';
+import { AgreementRiskAssessments } from './AgreementRiskAssessments';
+import { AgreementSecurityAwarenessTraining } from './AgreementSecurityAwarenessTraining';
+import { AgreementPhysicalSecurity } from './AgreementPhysicalSecurity';
+import { AgreementEnvironmentalSustainability } from './AgreementEnvironmentalSustainability';
+import { AgreementEnergyEfficiency } from './AgreementEnergyEfficiency';
+import { AgreementWasteReduction } from './AgreementWasteReduction';
+import { AgreementWaterConservation } from './AgreementWaterConservation';
+import { AgreementSustainableSourcing } from './AgreementSustainableSourcing';
+import { AgreementCarbonFootprintReduction } from './AgreementCarbonFootprintReduction';
+import { AgreementGreenBuildingPractices } from './AgreementGreenBuildingPractices';
+import { AgreementRenewableEnergyAdoption } from './AgreementRenewableEnergyAdoption';
+import { AgreementCircularEconomy } from './AgreementCircularEconomy';
+import { AgreementSocialImpactMeasurement } from './AgreementSocialImpactMeasurement';
+import { AgreementStakeholderEngagement } from './AgreementStakeholderEngagement';
+import { AgreementEthicalSupplyChains } from './AgreementEthicalSupplyChains';
+import { AgreementFairLaborPractices } from './AgreementFairLaborPractices';
+import { AgreementHumanRights } from './AgreementHumanRights';
+import { AgreementAntiCorruptionMeasures } from './AgreementAntiCorruptionMeasures';
+import { AgreementTransparencyAndAccountability } from './AgreementTransparencyAndAccountability';
+import { AgreementCommunityDevelopment } from './AgreementCommunityDevelopment';
+import { AgreementEconomicEmpowerment } from './AgreementEconomicEmpowerment';
+import { AgreementEducationAndSkillsTraining } from './AgreementEducationAndSkillsTraining';
+import { AgreementHealthcareAccess } from './AgreementHealthcareAccess';
+import { AgreementPovertyAlleviation } from './AgreementPovertyAlleviation';
+import { AgreementFoodSecurity } from './AgreementFoodSecurity';
+import { AgreementWaterSanitation } from './AgreementWaterSanitation';
+import { AgreementAffordableHousing } from './AgreementAffordableHousing';
+import { AgreementDisasterRelief } from './AgreementDisasterRelief';
+import { AgreementHumanitarianAid } from './AgreementHumanitarianAid';
+import { AgreementRefugeeSupport } from './AgreementRefugeeSupport';
+import { AgreementConflictResolution } from './AgreementConflictResolution';
+import { AgreementPeaceBuilding } from './AgreementPeaceBuilding';
+import { AgreementGoodGovernance } from './AgreementGoodGovernance';
+import { AgreementRuleOfLaw } from './AgreementRuleOfLaw';
+import { AgreementDemocracyPromotion } from './AgreementDemocracyPromotion';
+import { AgreementCivilSocietyEngagement } from './AgreementCivilSocietyEngagement';
+import { AgreementMediaFreedom } from './AgreementMediaFreedom';
+import { AgreementAccessToInformation } from './AgreementAccessToInformation';
+import { AgreementDigitalInclusion } from './AgreementDigitalInclusion';
+import { AgreementCybersecurityAwareness } from './AgreementCybersecurityAwareness';
+import { AgreementDataLiteracy } from './AgreementDataLiteracy';
+import { AgreementDigitalSkillsTraining } from './AgreementDigitalSkillsTraining';
+import { AgreementOnlineSafety } from './AgreementOnlineSafety';
+import { AgreementDigitalRights } from './AgreementDigitalRights';
+import { AgreementDigitalEthics } from './AgreementDigitalEthics';
+import { AgreementDigitalGovernance } from './AgreementDigitalGovernance';
+import { AgreementDigitalTransformationStrategies } from './AgreementDigitalTransformationStrategies';
+import { AgreementDigitalInnovation } from './AgreementDigitalInnovation';
+import { AgreementDigitalLeadership } from './AgreementDigitalLeadership';
+import { AgreementDigitalCulture } from './AgreementDigitalCulture';
+import { AgreementDigitalWorkplace } from './AgreementDigitalWorkplace';
+import { AgreementDigitalCustomerExperience } from './AgreementDigitalCustomerExperience';
+import { AgreementDigitalMarketingStrategies } from './AgreementDigitalMarketingStrategies';
+import { AgreementDigitalSalesStrategies } from './AgreementDigitalSalesStrategies';
+import { AgreementDigitalServiceStrategies } from './AgreementDigitalServiceStrategies';
+import { AgreementDigitalProductStrategies } from './AgreementDigitalProductStrategies';
+import { AgreementDigitalBusinessModels } from './AgreementDigitalBusinessModels';
+import { AgreementDigitalEcosystems } from './AgreementDigitalEcosystems';
+import { AgreementDigitalPlatforms } from './AgreementDigitalPlatforms';
+import { AgreementDigitalPartnerships } from './AgreementDigitalPartnerships';
+import { AgreementDigitalInvestments } from './AgreementDigitalInvestments';
+import { AgreementDigitalReturnOnInvestment } from './AgreementDigitalReturnOnInvestment';
+import { AgreementDigitalPerformanceMetrics } from './AgreementDigitalPerformanceMetrics';
+import { AgreementDigitalAnalyticsAndReporting } from './AgreementDigitalAnalyticsAndReporting';
+import { AgreementDigitalContinuousImprovement } from './AgreementDigitalContinuousImprovement';
+import { AgreementDigitalKnowledgeSharing } from './AgreementDigitalKnowledgeSharing';
+import { AgreementDigitalInnovationCulture } from './AgreementDigitalInnovationCulture';
+import { AgreementDigitalExperimentation } from './AgreementDigitalExperimentation';
+import { AgreementDigitalResearchAndDevelopment } from './AgreementDigitalResearchAndDevelopment';
+import { AgreementDigitalTechnologyAdoption } from './AgreementDigitalTechnologyAdoption';
+import { AgreementDigitalTransformationRoadmap } from './AgreementDigitalTransformationRoadmap';
+import { AgreementDigitalTransformationGovernance } from './AgreementDigitalTransformationGovernance';
+import { AgreementDigitalTransformationLeadership } from './AgreementDigitalTransformationLeadership';
+import { AgreementDigitalTransformationCulture } from './AgreementDigitalTransformationCulture';
+import { AgreementDigitalTransformationWorkplace } from './AgreementDigitalTransformationWorkplace';
+import { AgreementDigitalTransformationCustomerExperience } from './AgreementDigitalTransformationCustomerExperience';
+import { AgreementDigitalTransformationMarketingStrategies } from './AgreementDigitalTransformationMarketingStrategies';
+import { AgreementDigitalTransformationSalesStrategies } from './AgreementDigitalTransformationSalesStrategies';
+import { AgreementDigitalTransformationServiceStrategies } from './AgreementDigitalTransformationServiceStrategies';
+import { AgreementDigitalTransformationProductStrategies } from './AgreementDigitalTransformationProductStrategies';
+import { AgreementDigitalTransformationBusinessModels } from './AgreementDigitalTransformationBusinessModels';
+import { AgreementDigitalTransformationEcosystems } from './AgreementDigitalTransformationEcosystems';
+import { AgreementDigitalTransformationPlatforms } from './AgreementDigitalTransformationPlatforms';
+import { AgreementDigitalTransformationPartnerships } from './AgreementDigitalTransformationPartnerships';
+import { AgreementDigitalTransformationInvestments } from './AgreementDigitalTransformationInvestments';
+import { AgreementDigitalTransformationReturnOnInvestment } from './AgreementDigitalTransformationReturnOnInvestment';
+import { AgreementDigitalTransformationPerformanceMetrics } from './AgreementDigitalTransformationPerformanceMetrics';
+import { AgreementDigitalTransformationAnalyticsAndReporting } from './AgreementDigitalTransformationAnalyticsAndReporting';
+import { AgreementDigitalTransformationContinuousImprovement } from './AgreementDigitalTransformationContinuousImprovement';
+import { AgreementDigitalTransformationKnowledgeSharing } from './AgreementDigitalTransformationKnowledgeSharing';
+import { AgreementDigitalTransformationInnovationCulture } from './AgreementDigitalTransformationInnovationCulture';
+import { AgreementDigitalTransformationExperimentation } from './AgreementDigitalTransformationExperimentation';
+import { AgreementDigitalTransformationResearchAndDevelopment } from './AgreementDigitalTransformationResearchAndDevelopment';
+import { AgreementDigitalTransformationTechnologyAdoption } from './AgreementDigitalTransformationTechnologyAdoption';
+import { AgreementDigitalTransformationChangeManagement } from './AgreementDigitalTransformationChangeManagement';
+import { AgreementDigitalTransformationCommunication } from './AgreementDigitalTransformationCommunication';
+import { AgreementDigitalTransformationTraining } from './AgreementDigitalTransformationTraining';
+import { AgreementDigitalTransformationSkillsDevelopment } from './AgreementDigitalTransformationSkillsDevelopment';
+import { AgreementDigitalTransformationLeadershipAlignment } from './AgreementDigitalTransformationLeadershipAlignment';
+import { AgreementDigitalTransformationStakeholderEngagement } from './AgreementDigitalTransformationStakeholderEngagement';
+import { AgreementDigitalTransformationRiskManagement } from './AgreementDigitalTransformationRiskManagement';
+import { AgreementDigitalTransformationCompliance } from './AgreementDigitalTransformationCompliance';
+import { AgreementDigitalTransformationSecurity } from './AgreementDigitalTransformationSecurity';
+import { AgreementDigitalTransformationDataPrivacy } from './AgreementDigitalTransformationDataPrivacy';
+import { AgreementDigitalTransformationEthicalConsiderations } from './AgreementDigitalTransformationEthicalConsiderations';
+import { AgreementDigitalTransformationSocialResponsibility } from './AgreementDigitalTransformationSocialResponsibility';
+import { AgreementDigitalTransformationEnvironmentalSustainability } from './AgreementDigitalTransformationEnvironmentalSustainability';
+import { AgreementDigitalTransformationCommunityEngagement } from './AgreementDigitalTransformationCommunityEngagement';
+import { AgreementDigitalTransformationEconomicEmpowerment } from './AgreementDigitalTransformationEconomicEmpowerment';
+import { AgreementDigitalTransformationEducationAndSkillsTraining } from './AgreementDigitalTransformationEducationAndSkillsTraining';
+import { AgreementDigitalTransformationHealthcareAccess } from './AgreementDigitalTransformationHealthcareAccess';
+import { AgreementDigitalTransformationPovertyAlleviation } from './AgreementDigitalTransformationPovertyAlleviation';
+import { AgreementDigitalTransformationFoodSecurity } from './AgreementDigitalTransformationFoodSecurity';
+import { AgreementDigitalTransformationWaterSanitation } from './AgreementDigitalTransformationWaterSanitation';
+import { AgreementDigitalTransformationAffordableHousing } from './AgreementDigitalTransformationAffordableHousing';
+import { AgreementDigitalTransformationDisasterRelief } from './AgreementDigitalTransformationDisasterRelief';
+import { AgreementDigitalTransformationHumanitarianAid } from './AgreementDigitalTransformationHumanitarianAid';
+import { AgreementDigitalTransformationRefugeeSupport } from './AgreementDigitalTransformationRefugeeSupport';
+import { AgreementDigitalTransformationConflictResolution } from './AgreementDigitalTransformationConflictResolution';
+import { AgreementDigitalTransformationPeaceBuilding } from './AgreementDigitalTransformationPeaceBuilding';
+import { AgreementDigitalTransformationGoodGovernance } from './AgreementDigitalTransformationGoodGovernance';
+import { AgreementDigitalTransformationRuleOfLaw } from './AgreementDigitalTransformationRuleOfLaw';
+import { AgreementDigitalTransformationDemocracyPromotion } from './AgreementDigitalTransformationDemocracyPromotion';
+import { AgreementDigitalTransformationCivilSocietyEngagement } from './AgreementDigitalTransformationCivilSocietyEngagement';
+import { AgreementDigitalTransformationMediaFreedom } from './AgreementDigitalTransformationMediaFreedom';
+import { AgreementDigitalTransformationAccessToInformation } from './AgreementDigitalTransformationAccessToInformation';
+import { AgreementDigitalTransformationDigitalInclusion } from './AgreementDigitalTransformationDigitalInclusion';
+import { AgreementDigitalTransformationCybersecurityAwareness } from './AgreementDigitalTransformationCybersecurityAwareness';
+import { AgreementDigitalTransformationDataLiteracy } from './AgreementDigitalTransformationDataLiteracy';
+import { AgreementDigitalTransformationDigitalSkillsTraining } from './AgreementDigitalTransformationDigitalSkillsTraining';
+import { AgreementDigitalTransformationOnlineSafety } from './AgreementDigitalTransformationOnlineSafety';
+import { AgreementDigitalTransformationDigitalRights } from './AgreementDigitalTransformationDigitalRights';
+import { AgreementDigitalTransformationDigitalEthics } from './AgreementDigitalTransformationDigitalEthics';
+import { AgreementDigitalTransformationDigitalGovernance } from './AgreementDigitalTransformationDigitalGovernance';
 
-interface AgreementFormProps {
-  onSubmit: (data: any) => void;
-  isSubmitting: boolean;
-  initialData?: any;
-  standardTemplateExists?: boolean;
-  isCheckingTemplate?: boolean;
-}
+const statusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'in_negotiation', label: 'In Negotiation' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'terminated', label: 'Terminated' },
+  { value: 'breached', label: 'Breached' },
+  { value: 'renewed', label: 'Renewed' },
+];
 
-const formSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
-  start_date: z.date(),
-  end_date: z.date(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
-  agreement_duration: z.string().optional(),
-  notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false),
-});
+const paymentFrequencyOptions = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Bi-Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+  { value: 'one_time', label: 'One Time' },
+];
 
-const AgreementFormWithVehicleCheck = ({
-  onSubmit,
-  isSubmitting,
-  initialData,
-  standardTemplateExists = true,
-  isCheckingTemplate = false,
-}: AgreementFormProps) => {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
-  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
-  const [isSearchingCustomer, setIsSearchingCustomer] = useState<boolean>(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  
-  // Vehicle search state
-  const [vehicleSearchQuery, setVehicleSearchQuery] = useState<string>("");
-  const [vehicleSearchResults, setVehicleSearchResults] = useState<any[]>([]);
-  const [isSearchingVehicle, setIsSearchingVehicle] = useState<boolean>(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  
-  const [durationMonths, setDurationMonths] = useState<number>(12);
-  const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
-  const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
-  const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
+const agreementTypeOptions = [
+  { value: 'lease', label: 'Lease' },
+  { value: 'rental', label: 'Rental' },
+  { value: 'service', label: 'Service' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'partnership', label: 'Partnership' },
+  { value: 'nda', label: 'NDA' },
+  { value: 'employment', label: 'Employment' },
+  { value: 'freelance', label: 'Freelance' },
+  { value: 'consulting', label: 'Consulting' },
+  { value: 'license', label: 'License' },
+  { value: 'distribution', label: 'Distribution' },
+  { value: 'franchise', label: 'Franchise' },
+  { value: 'supply', label: 'Supply' },
+  { value: 'purchase', label: 'Purchase' },
+  { value: 'warranty', label: 'Warranty' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'loan', label: 'Loan' },
+  { value: 'mortgage', label: 'Mortgage' },
+  { value: 'investment', label: 'Investment' },
+  { value: 'settlement', label: 'Settlement' },
+  { value: 'release', label: 'Release' },
+  { value: 'waiver', label: 'Waiver' },
+  { value: 'privacy', label: 'Privacy' },
+  { value: 'terms_of_service', label: 'Terms of Service' },
+  { value: 'other', label: 'Other' },
+];
 
-  const generateAgreementNumber = () => {
-    const prefix = "AGR";
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-    return `${prefix}-${timestamp}-${random}`;
-  };
+const paymentMethodOptions = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'credit_card', label: 'Credit Card' },
+  { value: 'debit_card', label: 'Debit Card' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'check', label: 'Check' },
+  { value: 'paypal', label: 'PayPal' },
+  { value: 'other', label: 'Other' },
+];
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      agreement_number: generateAgreementNumber(),
-      start_date: new Date(),
-      end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      status: "draft" as const,
-      rent_amount: 0,
-      deposit_amount: 0,
-      total_amount: 0,
-      daily_late_fee: 120,
-      agreement_duration: "12 months",
-      notes: "",
-      terms_accepted: false,
-    },
-  });
+const currencyOptions = [
+  { value: 'usd', label: 'USD' },
+  { value: 'eur', label: 'EUR' },
+  { value: 'gbp', label: 'GBP' },
+  { value: 'qar', label: 'QAR' },
+  { value: 'inr', label: 'INR' },
+  { value: 'aud', label: 'AUD' },
+  { value: 'cad', label: 'CAD' },
+  { value: 'jpy', label: 'JPY' },
+  { value: 'chf', label: 'CHF' },
+  { value: 'cny', label: 'CNY' },
+];
 
-  // Load initial customers for existing forms
-  useEffect(() => {
-    if (initialData?.customer_id) {
-      fetchCustomerDetails(initialData.customer_id);
-    }
-    
-    if (initialData?.vehicle_id) {
-      fetchVehicleDetails(initialData.vehicle_id);
-    }
-  }, [initialData]);
+const leaseTermOptions = [
+  { value: '6_months', label: '6 Months' },
+  { value: '12_months', label: '12 Months' },
+  { value: '24_months', label: '24 Months' },
+  { value: '36_months', label: '36 Months' },
+  { value: '48_months', label: '48 Months' },
+  { value: '60_months', label: '60 Months' },
+];
 
-  const fetchCustomerDetails = async (customerId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", customerId)
-        .single();
+const lateFeeCalculationOptions = [
+  { value: 'fixed_amount', label: 'Fixed Amount' },
+  { value: 'percentage_of_rent', label: 'Percentage of Rent' },
+  { value: 'daily_rate', label: 'Daily Rate' },
+];
 
-      if (error) throw error;
+const securityDepositOptions = [
+  { value: 'one_month_rent', label: 'One Month Rent' },
+  { value: 'two_month_rent', label: 'Two Month Rent' },
+  { value: 'fixed_amount', label: 'Fixed Amount' },
+];
 
-      setSelectedCustomer(data);
-      console.log("Fetched customer details:", data);
-    } catch (error) {
-      console.error("Error fetching customer details:", error);
-    }
-  };
-  
-  const fetchVehicleDetails = async (vehicleId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("*")
-        .eq("id", vehicleId)
-        .single();
+const renewalOptions = [
+  { value: 'automatic', label: 'Automatic' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'no_renewal', label: 'No Renewal' },
+];
 
-      if (error) throw error;
+const terminationOptions = [
+  { value: 'with_notice', label: 'With Notice' },
+  { value: 'without_notice', label: 'Without Notice' },
+  { value: 'mutual_agreement', label: 'Mutual Agreement' },
+];
 
-      setSelectedVehicle(data);
-      console.log("Fetched vehicle details:", data);
-    } catch (error) {
-      console.error("Error fetching vehicle details:", error);
-    }
-  };
+const disputeResolutionOptions = [
+  { value: 'mediation', label: 'Mediation' },
+  { value: 'arbitration', label: 'Arbitration' },
+  { value: 'litigation', label: 'Litigation' },
+];
 
-  const handleCustomerSearch = async () => {
-    if (!customerSearchQuery.trim()) {
-      setCustomerSearchResults([]);
-      return;
-    }
+const governingLawOptions = [
+  { value: 'state_law', label: 'State Law' },
+  { value: 'federal_law', label: 'Federal Law' },
+  { value: 'international_law', label: 'International Law' },
+];
 
-    setIsSearchingCustomer(true);
-    try {
-      console.log("Searching for customers with query:", customerSearchQuery);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "customer")
-        .or(`full_name.ilike.%${customerSearchQuery}%,email.ilike.%${customerSearchQuery}%,phone_number.ilike.%${customerSearchQuery}%,driver_license.ilike.%${customerSearchQuery}%`)
-        .limit(10);
+const insuranceCoverageOptions = [
+  { value: 'liability', label: 'Liability' },
+  { value: 'property', label: 'Property' },
+  { value: 'casualty', label: 'Casualty' },
+];
 
-      if (error) throw error;
-      
-      console.log("Customer search results:", data);
-      setCustomerSearchResults(data || []);
-    } catch (error) {
-      console.error("Error searching for customers:", error);
-      toast.error("Failed to search for customers");
-    } finally {
-      setIsSearchingCustomer(false);
-    }
-  };
-  
-  const handleVehicleSearch = async () => {
-    if (!vehicleSearchQuery.trim()) {
-      setVehicleSearchResults([]);
-      return;
-    }
+const maintenanceResponsibilityOptions = [
+  { value: 'landlord', label: 'Landlord' },
+  { value: 'tenant', label: 'Tenant' },
+  { value: 'shared', label: 'Shared' },
+];
 
-    setIsSearchingVehicle(true);
-    try {
-      console.log("Searching for vehicles with query:", vehicleSearchQuery);
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("*, vehicle_types(*)")
-        .or(`make.ilike.%${vehicleSearchQuery}%,model.ilike.%${vehicleSearchQuery}%,license_plate.ilike.%${vehicleSearchQuery}%,vin.ilike.%${vehicleSearchQuery}%`)
-        .limit(10);
+const inspectionFrequencyOptions = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+  { value: 'upon_request', label: 'Upon Request' },
+];
 
-      if (error) throw error;
-      
-      console.log("Vehicle search results:", data);
-      setVehicleSearchResults(data || []);
-    } catch (error) {
-      console.error("Error searching for vehicles:", error);
-      toast.error("Failed to search for vehicles");
-    } finally {
-      setIsSearchingVehicle(false);
-    }
-  };
+const sublettingOptions = [
+  { value: 'allowed', label: 'Allowed' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'with_permission', label: 'With Permission' },
+];
 
-  // Trigger search when search query changes with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (customerSearchQuery) {
-        handleCustomerSearch();
-      }
-    }, 300);
+const petPolicyOptions = [
+  { value: 'allowed', label: 'Allowed' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'with_restrictions', label: 'With Restrictions' },
+];
 
-    return () => clearTimeout(timer);
-  }, [customerSearchQuery]);
-  
-  // Trigger vehicle search when search query changes with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (vehicleSearchQuery) {
-        handleVehicleSearch();
-      }
-    }, 300);
+const smokingPolicyOptions = [
+  { value: 'allowed', label: 'Allowed' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'designated_areas', label: 'Designated Areas' },
+];
 
-    return () => clearTimeout(timer);
-  }, [vehicleSearchQuery]);
+const parkingPolicyOptions = [
+  { value: 'assigned_spots', label: 'Assigned Spots' },
+  { value: 'open_parking', label: 'Open Parking' },
+  { value: 'street_parking', label: 'Street Parking' },
+];
 
-  const handleSelectCustomer = (customer: any) => {
-    console.log("Selected customer:", customer);
-    setSelectedCustomer(customer);
-    form.setValue("customer_id", customer.id);
-    setCustomerSearchResults([]);
-    setCustomerSearchQuery("");
-  };
-  
-  const handleSelectVehicle = async (vehicle: any) => {
-    console.log("Selected vehicle:", vehicle);
-    setVehicleSearchResults([]);
-    setVehicleSearchQuery("");
-    
-    setIsCheckingVehicle(true);
-    try {
-      // Check if vehicle is already assigned to an active agreement
-      const availabilityResult = await checkVehicleAvailability(vehicle.id);
-      setVehicleAvailabilityResult(availabilityResult);
-      
-      if (!availabilityResult.isAvailable && availabilityResult.existingAgreement) {
-        setIsVehicleDialogOpen(true);
-      }
-      
-      setSelectedVehicle(vehicle);
-      form.setValue("vehicle_id", vehicle.id);
-      form.setValue("rent_amount", vehicle.rent_amount || 0);
-      calculateTotalAmount(vehicle.rent_amount || 0, form.getValues("deposit_amount"));
-    } catch (error) {
-      console.error("Error checking vehicle availability:", error);
-      toast.error("Error checking vehicle availability");
-    } finally {
-      setIsCheckingVehicle(false);
-    }
-  };
+const noisePolicyOptions = [
+  { value: 'reasonable', label: 'Reasonable' },
+  { value: 'quiet_hours', label: 'Quiet Hours' },
+  { value: 'no_excessive_noise', label: 'No Excessive Noise' },
+];
 
-  const updateEndDate = (startDate: Date, months: number) => {
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + months);
-    form.setValue("end_date", endDate);
-    form.setValue("agreement_duration", `${months} months`);
-    calculateTotalAmount(form.getValues("rent_amount"), form.getValues("deposit_amount"));
-  };
+const alterationPolicyOptions = [
+  { value: 'allowed', label: 'Allowed' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'with_permission', label: 'With Permission' },
+];
 
-  const calculateTotalAmount = (rentAmount: number, depositAmount: number) => {
-    const months = durationMonths || 12;
-    const total = (rentAmount * months) + depositAmount;
-    form.setValue("total_amount", total);
-  };
+const accessPolicyOptions = [
+  { value: '24_7', label: '24/7' },
+  { value: 'limited_hours', label: 'Limited Hours' },
+  { value: 'with_notice', label: 'With Notice' },
+];
 
-  const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
-    const finalData = {
-      ...data,
-      customer_data: selectedCustomer,
-      vehicle_data: selectedVehicle,
-      deposit_amount: data.deposit_amount,
-      terms_accepted: true
-    };
-    
-    onSubmit(finalData);
-  };
+const keyPolicyOptions = [
+  { value: 'returned_upon_termination', label: 'Returned Upon Termination' },
+  { value: 'lost_key_fee', label: 'Lost Key Fee' },
+  { value: 'key_replacement', label: 'Key Replacement' },
+];
 
-  const handleVehicleConfirmation = () => {
-    // User has confirmed they want to proceed with the vehicle assignment
-    // This will be handled in the submission logic which will close the old agreement
-    console.log("User confirmed vehicle reassignment");
-  };
+const mailPolicyOptions = [
+  { value: 'delivered_to_unit', label: 'Delivered to Unit' },
+  { value: 'central_mailbox', label: 'Central Mailbox' },
+  { value: 'package_delivery', label: 'Package Delivery' },
+];
 
-  const startDate = form.watch("start_date");
-  const rentAmount = form.watch("rent_amount");
-  const depositAmount = form.watch("deposit_amount");
+const trashPolicyOptions = [
+  { value: 'designated_areas', label: 'Designated Areas' },
+  { value: 'recycling_program', label: 'Recycling Program' },
+  { value: 'bulk_trash_removal', label: 'Bulk Trash Removal' },
+];
 
-  useEffect(() => {
-    calculateTotalAmount(rentAmount, depositAmount);
-  }, [rentAmount, depositAmount, durationMonths]);
+const commonAreaPolicyOptions = [
+  { value: 'shared_responsibility', label: 'Shared Responsibility' },
+  { value: 'rules_and_regulations', label: 'Rules and Regulations' },
+  { value: 'reservation_system', label: 'Reservation System' },
+];
 
-  const renderTemplateStatus = () => {
-    if (isCheckingTemplate) {
-      return (
-        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 flex items-center">
-          <div className="w-8 h-8 rounded-full bg-blue-100 mr-3 flex items-center justify-center">
-            <InfoIcon className="h-4 w-4 text-blue-500" />
-          </div>
-          <div>
-            <p className="font-medium">Checking Template Status</p>
-            <p className="text-sm">Verifying if the standard agreement template exists...</p>
-          </div>
-        </div>
-      );
-    }
-    
-    if (!standardTemplateExists) {
-      return (
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Template Not Found</AlertTitle>
-          <AlertDescription>
-            The standard agreement template "agreement temp" was not found in the database.
-            The agreement will use the default template format.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    return (
-      <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center">
-        <div className="w-8 h-8 rounded-full bg-green-100 mr-3 flex items-center justify-center">
-          <CheckCircle className="h-4 w-4 text-green-500" />
-        </div>
-        <div>
-          <p className="font-medium">Using Standard Template</p>
-          <p className="text-sm">The agreement will use the standard template from the database.</p>
-        </div>
-      </div>
-    );
-  };
+const emergencyContactPolicyOptions = [
+  { value: 'provided_by_tenant', label: 'Provided by Tenant' },
+  { value: 'updated_annually', label: 'Updated Annually' },
+  { value: 'verified_by_landlord', label: 'Verified by Landlord' },
+];
 
-  const renderAgreementPreview = () => {
-    if (!(selectedCustomer && selectedVehicle)) {
-      return null;
-    }
-    
-    return (
-      <div className="space-y-4 pt-4 border-t">
-        <h3 className="text-lg font-medium">Agreement Preview</h3>
-        
-        <div className="bg-muted p-4 rounded-md text-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-bold text-base">AGREEMENT TEMPLATE PREVIEW</h4>
-          </div>
-          
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Template Information</AlertTitle>
-            <AlertDescription>
-              {standardTemplateExists ? 
-                "Using the standard 'agreement temp' template from the database." : 
-                "Standard template not found. Using default format."}
-            </AlertDescription>
-          </Alert>
-          
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border p-3 rounded-md">
-              <h5 className="font-semibold mb-2">Customer Data</h5>
-              <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
-              <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
-              <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
-              <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
-              <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
-            </div>
-            
-            <div className="border p-3 rounded-md">
-              <h5 className="font-semibold mb-2">Vehicle Data</h5>
-              <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
-              <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
-              <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
-              <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
-              <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
-            </div>
-          </div>
-          
-          <div className="mt-4 border p-3 rounded-md">
-            <h5 className="font-semibold mb-2">Agreement Data</h5>
-            <div className="grid grid-cols-2 gap-2">
-              <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
-              <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
-              <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
-              <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
-              <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
-              <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+const notificationPolicyOptions = [
+  { value: 'written_notice', label: 'Written Notice' },
+  { value: 'email_notification', label: 'Email Notification' },
+  { value: 'phone_call', label: 'Phone Call' },
+];
 
-  return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          {renderTemplateStatus()}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Agreement Details</h3>
-              
-              <FormField
-                control={form.control}
-                name="agreement_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Agreement Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="start_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => {
-                            field.onChange(date);
-                            if (date) {
-                              updateEndDate(date, durationMonths);
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            
-              <FormItem>
-                <FormLabel>Duration (Months)</FormLabel>
-                <Select 
-                  value={durationMonths.toString()} 
-                  onValueChange={(value) => {
-                    const months = parseInt(value);
-                    setDurationMonths(months);
-                    updateEndDate(form.getValues("start_date"), months);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 3, 6, 12, 24, 36].map((month) => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {month} {month === 1 ? "month" : "months"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-              
-              <FormField
-                control={form.control}
-                name="end_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          disabled={(date) => date < form.getValues("start_date")}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Customer & Vehicle</h3>
-              
-              <FormField
-                control={form.control}
-                name="customer_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer</FormLabel>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          placeholder="Search customers by name, email, phone..."
-                          value={customerSearchQuery}
-                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                          className="pl-9"
-                        />
-                        <input type="hidden" {...field} />
-                      </div>
-                      
-                      {customerSearchQuery && (
-                        <div className="relative z-50 w-full">
-                          <CustomerSearchResults
-                            results={customerSearchResults}
-                            onSelect={handleSelectCustomer}
-                            isLoading={isSearchingCustomer}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {selectedCustomer && (
-                <div className="bg-muted p-3 rounded-md text-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <h4 className="font-medium">Selected Customer</h4>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => {
-                        setSelectedCustomer(null);
-                        form.setValue("customer_id", "");
-                      }}
-                      className="h-7 px-2"
-                    >
-                      Change
-                    </Button>
-                  </div>
-                  <p><strong>Name:</strong> {selectedCustomer.full_name}</p>
-                  <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                  <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-                  <p><strong>Driver License:</strong> {selectedCustomer.driver_license || 'N/A'}</p>
-                  <p><strong>Nationality:</strong> {selectedCustomer.nationality || 'N/A'}</p>
-                </div>
-              )}
-              
-              <FormField
-                control={form.control}
-                name="vehicle_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle</FormLabel>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="text"
-                          placeholder="Search vehicles by make, model, plate..."
-                          value={vehicleSearchQuery}
-                          onChange={(e) => setVehicleSearchQuery(e.target.value)}
-                          className="pl-9"
-                          disabled={isCheckingVehicle}
-                        />
-                        <input type="hidden" {...field} />
-                      </div>
-                      
-                      {vehicleSearchQuery && (
-                        <div className="relative z-50 w-full">
-                          <VehicleSearchResults
-                            results={vehicleSearchResults}
-                            onSelect={handleSelectVehicle}
-                            isLoading={isSearchingVehicle}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {vehicleAvailabilityResult && !vehicleAvailabilityResult.isAvailable && !isVehicleDialogOpen && (
-                <Alert variant="warning" className="bg-amber-50 border-amber-200">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-800">Vehicle Already Assigned</AlertTitle>
-                  <AlertDescription className="text-amber-700">
-                    This vehicle is currently assigned to Agreement #{vehicleAvailabilityResult.existingAgreement.agreement_number}.
-                    When you submit this form, that agreement will be closed automatically.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {selectedVehicle && (
-                <div className="bg-muted p-3 rounded-md text-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <h4 className="font-medium">Selected Vehicle</h4>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => {
-                        setSelectedVehicle(null);
-                        form.setValue("vehicle_id", "");
-                      }}
-                      className="h-7 px-2"
-                    >
-                      Change
-                    </Button>
-                  </div>
-                  <p><strong>Make:</strong> {selectedVehicle.make}</p>
-                  <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
-                  <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
-                  <p><strong>Status:</strong> {selectedVehicle.status}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-medium">Payment Information</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="rent_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monthly Rent Amount</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="deposit_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deposit Amount</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="daily_late_fee"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Daily Late Fee</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="total_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Contract Amount</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      disabled 
-                      className="font-bold"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <textarea 
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          {renderAgreementPreview && renderAgreementPreview()}
-          
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || isCheckingVehicle}
-              className="w-full md:w-auto"
-            >
-              {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
-            </Button>
-          </div>
-        </form>
-      </Form>
+const amendmentPolicyOptions = [
+  { value: 'written_agreement', label: 'Written Agreement' },
+  { value: 'mutual_consent', label: 'Mutual Consent' },
+  { value: 'signed_by_both_parties', label: 'Signed by Both Parties' },
+];
 
-      {/* Vehicle Assignment Confirmation Dialog */}
-      <VehicleAssignmentDialog
-        isOpen={isVehicleDialogOpen}
-        onClose={() => setIsVehicleDialogOpen(false)}
-        onConfirm={handleVehicleConfirmation}
-        vehicleId={form.getValues("vehicle_id")}
-        existingAgreement={vehicleAvailabilityResult?.existingAgreement}
-      />
-    </>
-  );
-};
+const severabilityPolicyOptions = [
+  { value: 'remaining_provisions_valid', label: 'Remaining Provisions Valid' },
+  { value: 'invalid_provision_replaced', label: 'Invalid Provision Replaced' },
+  { value: 'legal_interpretation', label: 'Legal Interpretation' },
+];
 
-export default AgreementFormWithVehicleCheck;
+const entireAgreementPolicyOptions = [
+  { value: 'supersedes_prior_agreements', label: 'Supersedes Prior Agreements' },
+  { value: 'no_oral_agreements', label: 'No Oral Agreements' },
+  { value: 'written_modifications_only', label: 'Written Modifications Only' },
+];
+
+const waiverPolicyOptions = [
+  { value: 'no_waiver_of_rights', label: 'No Waiver of Rights' },
+  { value: 'written_waiver_required', label: 'Written Waiver Required' },
+  { value: 'specific_circumstances_only', label: 'Specific Circumstances Only' },
+];
+
+const forceMajeurePolicyOptions = [
+  { value: 'unforeseeable_events', label: 'Unforeseeable Events' },
+  { value: 'reasonable_efforts_to_mitigate', label: 'Reasonable Efforts to Mitigate' },
+  { value: 'termination_option', label: 'Termination Option' },
+];
+
+const noticePolicyOptions = [
+  { value: 'written_notice', label: 'Written Notice' },
+  { value: 'certified_mail', label: 'Certified Mail' },
+  { value: 'email_with_confirmation', label: 'Email with Confirmation' },
+];
+
+const confidentialityPolicyOptions = [
+  { value: 'non_disclosure_agreement', label: 'Non-Disclosure Agreement' },
+  { value: 'limited_use_of_information', label: 'Limited Use of Information' },
+  { value: 'return_of_confidential_materials', label: 'Return of Confidential Materials' },
+];
+
+const intellectualPropertyPolicyOptions = [
+  { value: 'ownership_by_landlord', label: 'Ownership by Landlord' },
+  { value: 'license_to_tenant', label: 'License to Tenant' },
+  { value: 'no_unauthorized_use', label: 'No Unauthorized Use' },
+];
+
+const dataPrivacyPolicyOptions = [
+  { value: 'compliance_with_privacy_laws', label: 'Compliance with Privacy Laws' },
+  { value: 'data_security_measures', label: 'Data Security Measures' },
+  { value: 'limited_data_collection', label: 'Limited Data Collection' },
+];
+
+const governingLawJurisdictionPolicyOptions = [
+  { value: 'state_law', label: 'State Law' },
+  { value: 'federal_law', label: 'Federal Law' },
+  { value: 'specific_jurisdiction', label: 'Specific Jurisdiction' },
+];
+
+const disputeResolutionProcessPolicyOptions = [
+  { value: 'mediation', label: 'Mediation' },
+  { value: 'arbitration', label: 'Arbitration' },
+  { value: 'litigation', label: 'Litigation' },
+];
+
+const attorneyFeesPolicyOptions = [
+  { value: 'prevailing_party_pays', label: 'Prevailing Party Pays' },
+  { value: 'each_party_responsible', label: 'Each Party Responsible' },
+  { value: 'fee_shifting_provision', label: 'Fee Shifting Provision' },
+];
+
+const assignmentPolicyOptions = [
+  { value: 'allowed_with_consent', label: 'Allowed with Consent' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'written_agreement_required', label: 'Written Agreement Required' },
+];
+
+const sublettingAssignmentPolicyOptions = [
+  { value: 'allowed_with_consent', label: 'Allowed with Consent' },
+  { value: 'not_allowed', label: 'Not Allowed' },
+  { value: 'written_agreement_required', label: 'Written Agreement Required' },
+];
+
+const jointAndSeveralLiabilityPolicyOptions = [
+  { value: 'each_party_fully_liable', label: 'Each Party Fully Liable' },
+  { value: 'limited_liability', label: 'Limited Liability' },
+  { value: 'proportional_liability', label: 'Proportional Liability' },
+];
+
+const thirdPartyBeneficiariesPolicyOptions = [
+  { value: 'no_third_party_rights', label: 'No Third-Party Rights' },
+  { value: 'specific_beneficiaries_named', label: 'Specific Beneficiaries Named' },
+  { value: 'incidental_beneficiaries', label: 'Incidental Beneficiaries' },
+];
+
+const timeIsOfTheEssencePolicyOptions = [
+  { value

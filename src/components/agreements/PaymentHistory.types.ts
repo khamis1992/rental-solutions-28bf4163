@@ -15,7 +15,7 @@ export interface Payment {
   late_fine_amount?: number;
   days_overdue?: number;
   lease_id?: DbId;
-  original_due_date?: string | null;  // Added this field
+  original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
   description?: string;
