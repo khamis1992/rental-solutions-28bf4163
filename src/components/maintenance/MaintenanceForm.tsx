@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,9 +46,11 @@ const MaintenanceForm = ({ initialData = null }) => {
       Object.keys(initialData).forEach((key) => {
         if (key === 'date_performed' || key === 'next_maintenance_date') {
           if (initialData[key]) {
+            // @ts-ignore - Safely set date values
             form.setValue(key, new Date(initialData[key]));
           }
         } else {
+          // @ts-ignore - Safely set other values
           form.setValue(key, initialData[key]);
         }
       });

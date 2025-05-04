@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTrafficFines } from "@/hooks/use-traffic-fines";
@@ -181,6 +180,7 @@ const TrafficFinesList = ({
       setIsProcessing(false);
     }
   };
+
   const handleBulkProcess = async () => {
     const unassignedFines = fines.filter(fine => !fine.customerId);
 

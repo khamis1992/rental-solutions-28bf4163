@@ -77,15 +77,15 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       const importLogResult = await supabase
         .from('customer_import_logs')
         .insert({
-          file_name: fileName,
-          original_file_name: file.name,
+          filename: fileName,
+          original_filename: file.name,
           status: 'pending',
           created_by: (await supabase.auth.getUser()).data.user?.id,
-          mapping_used: customerCSVMap
+          mapping_config: customerCSVMap
         })
         .select();
 
-      if (!importLogResult.data || importLogResult.error) {
+      if (importLogResult.error || !importLogResult.data || importLogResult.data.length === 0) {
         setStatus('error');
         setErrorMessage('Failed to create import log: ' +
           (importLogResult.error?.message || 'Unknown error'));
@@ -93,13 +93,14 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       }
 
       // Make sure we have data and it has an id property
-      if (!importLogResult.data[0] || typeof importLogResult.data[0].id === 'undefined') {
+      const importLogData = importLogResult.data[0];
+      if (!importLogData || typeof importLogData.id === 'undefined') {
         setStatus('error');
         setErrorMessage('Failed to get import log ID');
         return;
       }
 
-      const importLogId = importLogResult.data[0].id;
+      const importLogId = importLogData.id;
 
       // Call the process-customer-imports function to start processing
       const { error: processError } = await supabase.functions.invoke('process-customer-imports', {

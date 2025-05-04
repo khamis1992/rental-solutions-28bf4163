@@ -3,7 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { TrafficFine } from '@/types/traffic-fine';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -14,6 +17,17 @@ interface AgreementTrafficFinesProps {
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
   const { isLoading, trafficFines } = useTrafficFines();
   const [showLoader, setShowLoader] = useState(false);
+  const [fines, setFines] = useState<TrafficFine[]>([]);
+
+  useEffect(() => {
+    // Filter fines to only show those related to this agreement
+    if (trafficFines) {
+      const relatedFines = trafficFines.filter(
+        (fine) => fine.lease_id === agreementId
+      );
+      setFines(relatedFines);
+    }
+  }, [trafficFines, agreementId]);
 
   useEffect(() => {
     // Initial loading state is managed by the hook
@@ -30,86 +44,82 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   if (isLoading || showLoader) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Filter traffic fines for this agreement if needed
-  const filteredFines = trafficFines ? trafficFines.filter(fine => 
-    fine.leaseId === agreementId
-  ) : [];
-
-  if (!filteredFines || filteredFines.length === 0) {
+  if (fines.length === 0) {
     return (
-      <div className="space-y-4">
-        <p className="text-center py-4 text-muted-foreground">
-          No traffic fines recorded for this rental period.
+      <div className="text-center p-12 border rounded-md bg-background">
+        <p className="text-muted-foreground">
+          No traffic fines found for this agreement.
         </p>
-        <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            Check for new fines
-          </Button>
-        </div>
+        <Button variant="outline" className="mt-4" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4">Date</th>
-              <th className="text-left py-3 px-4">Location</th>
-              <th className="text-left py-3 px-4">Violation</th>
-              <th className="text-right py-3 px-4">Amount</th>
-              <th className="text-right py-3 px-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFines.map((fine) => (
-              <tr key={fine.id} className="border-b hover:bg-muted/50">
-                <td className="py-3 px-4">
-                  {fine.violationDate 
-                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
-                <td className="py-3 px-4 text-right">
-                  {fine.fineAmount 
-                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.paymentStatus === 'paid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      <div className="flex justify-between items-center pt-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredFines.length} fine{filteredFines.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        
-        <Button onClick={handleRefresh} variant="outline" size="sm">
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-sm text-muted-foreground">
+          Showing {fines.length} traffic fines
+        </span>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Violation #</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>License Plate</TableHead>
+            <TableHead>Charge</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fines.map((fine) => (
+            <TableRow key={fine.id}>
+              <TableCell>{fine.violation_number}</TableCell>
+              <TableCell>
+                {fine.violation_date 
+                  ? format(new Date(fine.violation_date), "dd MMM yyyy") 
+                  : "N/A"}
+              </TableCell>
+              <TableCell>{fine.license_plate}</TableCell>
+              <TableCell>{fine.violation_charge}</TableCell>
+              <TableCell>
+                {typeof fine.fine_amount === "number" 
+                  ? `QAR ${fine.fine_amount.toLocaleString()}`
+                  : "N/A"}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    fine.payment_status === "paid"
+                      ? "success"
+                      : fine.payment_status === "disputed"
+                      ? "warning"
+                      : "destructive"
+                  }
+                >
+                  {fine.payment_status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

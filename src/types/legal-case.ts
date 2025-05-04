@@ -1,43 +1,53 @@
 
+import { DbId } from './database-common';
+
+export type LegalCaseStatus = 
+  | 'open'
+  | 'pending'
+  | 'resolved'
+  | 'cancelled'
+  | 'closed';
+
+export type LegalCaseType =
+  | 'payment_default'
+  | 'contract_breach'
+  | 'vehicle_damage'
+  | 'insurance_claim'
+  | 'traffic_violation'
+  | 'other';
+
+export type CasePriority =
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'critical';
+
 export interface LegalCase {
   id: string;
   customer_id: string;
-  case_type: LegalCaseType;
-  status: LegalCaseStatus | null;
   amount_owed: number;
-  priority: CasePriority | null;
-  assigned_to: string | null;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-  resolution_date: string | null;
-  resolution_notes: string | null;
-  profiles?: {
-    full_name: string;
-    email: string | null;
-    phone_number: string | null;
-  };
+  description: string;
+  status: LegalCaseStatus;
+  created_at?: string;
+  updated_at?: string;
+  resolution_date?: string | null;
+  resolution_notes?: string | null;
+  case_type?: LegalCaseType;
+  priority?: CasePriority;
+  assigned_to?: string;
 }
 
-export enum LegalCaseType {
-  PAYMENT_DEFAULT = 'payment_default',
-  CONTRACT_BREACH = 'contract_breach',
-  VEHICLE_DAMAGE = 'vehicle_damage',
-  TRAFFIC_VIOLATION = 'traffic_violation',
-  DOCUMENT_FRAUD = 'document_fraud',
-  INSURANCE_CLAIM = 'insurance_claim',
-  OTHER = 'other'
+// Helper function to safely cast legal case status
+export function asLegalCaseStatus(status: string): LegalCaseStatus {
+  return status as LegalCaseStatus;
 }
 
-export enum LegalCaseStatus {
-  ACTIVE = 'active',
-  PENDING = 'pending',
-  RESOLVED = 'resolved',
-  ESCALATED = 'escalated'
+// Helper function to safely cast legal case type
+export function asLegalCaseType(type: string): LegalCaseType {
+  return type as LegalCaseType;
 }
 
-export enum CasePriority {
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
+// Helper function to safely cast case priority
+export function asCasePriority(priority: string): CasePriority {
+  return priority as CasePriority;
 }

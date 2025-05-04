@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -16,11 +15,12 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { Payment } from './PaymentHistory.types';
+import { Payment, PaymentStatus } from '@/types/payment';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
+import { DbId } from '@/types/database-common';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -267,7 +267,7 @@ export function AgreementDetail({
             const fullPayment = {
               ...payment,
               lease_id: agreement.id,
-              status: 'completed'
+              status: 'completed' as PaymentStatus
             };
             addPayment(fullPayment);
             fetchPayments();

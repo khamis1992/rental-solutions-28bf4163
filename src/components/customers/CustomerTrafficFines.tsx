@@ -1,256 +1,123 @@
-
+// Import the TrafficFine type
+import { TrafficFine, mapTrafficFineResponse } from '@/types/traffic-fine';
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { useTrafficFines, type TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { validateFineDate } from '@/hooks/traffic-fines/use-traffic-fine-validation';
-import { supabase } from '@/lib/supabase';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
-interface AgreementTrafficFinesProps {
+interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
-export function CustomerTrafficFines({ customerId }: AgreementTrafficFinesProps) {
-  const { isLoading: isHookLoading } = useTrafficFines();
+export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
+  const { isLoading, trafficFines } = useTrafficFines();
+  const [showLoader, setShowLoader] = useState(false);
   const [fines, setFines] = useState<TrafficFine[]>([]);
-  const [showLoader, setShowLoader] = useState(true);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!customerId) return;
-    loadCustomerFines();
-  }, [customerId]);
-
-  async function loadCustomerFines() {
-    setLoading(true);
-    try {
-      // First, get all leases for this customer
-      const { data: leases, error: leaseError } = await supabase
-        .from('leases')
-        .select('id, start_date, end_date')
-        .eq('customer_id', customerId);
-
-      if (leaseError) {
-        console.error('Error fetching leases:', leaseError);
-        setLoading(false);
-        return;
-      }
-
-      if (!leases || leases.length === 0) {
-        // If no leases, check for direct fine assignments
-        const { data: directFines, error: directFinesError } = await supabase
-          .from('traffic_fines')
-          .select(`
-            id,
-            violation_number,
-            license_plate,
-            violation_date,
-            fine_amount,
-            violation_charge,
-            payment_status,
-            fine_location,
-            lease_id
-          `)
-          .eq('customer_id', customerId);
-
-        if (directFinesError) {
-          console.error('Error fetching direct fines:', directFinesError);
-        }
-
-        setFines(directFines?.map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violation_number,
-          licensePlate: fine.license_plate,
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine.fine_amount,
-          violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status,
-          location: fine.fine_location,
-          leaseId: fine.lease_id
-        })) || []);
-        
-        setLoading(false);
-        return;
-      }
-
-      // Get all fines for these leases
-      const leaseIds = leases.map(lease => lease.id);
-      const { data: leaseFines, error: finesError } = await supabase
-        .from('traffic_fines')
-        .select(`
-          id,
-          violation_number,
-          license_plate,
-          violation_date,
-          fine_amount,
-          violation_charge,
-          payment_status,
-          fine_location,
-          lease_id
-        `)
-        .in('lease_id', leaseIds);
-
-      if (finesError) {
-        console.error('Error fetching lease fines:', finesError);
-        setLoading(false);
-        return;
-      }
-
-      // Transform and validate fines data
-      const transformedFines = leaseFines?.map(fine => {
-        const relatedLease = leases.find(lease => lease.id === fine.lease_id);
-        let isValid = false;
-        let validationMessage = '';
-        
-        if (relatedLease && fine.violation_date && relatedLease.start_date) {
-          const validationResult = validateFineDate(
-            new Date(fine.violation_date),
-            new Date(relatedLease.start_date),
-            relatedLease.end_date ? new Date(relatedLease.end_date) : undefined
-          );
-          
-          isValid = validationResult.isValid;
-          validationMessage = validationResult.reason || '';
-        }
-        
-        return {
-          id: fine.id,
-          violationNumber: fine.violation_number,
-          licensePlate: fine.license_plate,
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine.fine_amount,
-          violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status,
-          location: fine.fine_location,
-          leaseId: fine.lease_id,
-          isValid,
-          validationMessage
-        };
-      }) || [];
-
-      setFines(transformedFines);
-    } catch (error) {
-      console.error('Error in loadCustomerFines:', error);
-    } finally {
-      setLoading(false);
+    // Filter fines to only show those related to this customer
+    if (trafficFines) {
+      const relatedFines = trafficFines.filter(
+        (fine) => fine.customer_id === customerId
+      );
+      setFines(relatedFines);
     }
-  }
+  }, [trafficFines, customerId]);
 
-  const handleReassignFine = async (fineId: string) => {
-    try {
-      // Unassign the fine from the current lease
-      const { error } = await supabase
-        .from('traffic_fines')
-        .update({ 
-          lease_id: null, 
-          assignment_status: 'pending' 
-        })
-        .eq('id', fineId);
-      
-      if (error) {
-        console.error('Error reassigning fine:', error);
-        return;
-      }
-      
-      // Refresh fines
-      loadCustomerFines();
-      
-    } catch (error) {
-      console.error('Error in handleReassignFine:', error);
-    }
-  };
+  useEffect(() => {
+    // Initial loading state is managed by the hook
+    setShowLoader(isLoading);
+  }, [isLoading]);
 
   const handleRefresh = async () => {
     setShowLoader(true);
-    await loadCustomerFines();
     // Wait a moment for visual feedback
     setTimeout(() => {
       setShowLoader(false);
     }, 1000);
   };
 
-  if (isHookLoading || loading || showLoader) {
+  if (isLoading || showLoader) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (fines.length === 0) {
+    return (
+      <div className="text-center p-12 border rounded-md bg-background">
+        <p className="text-muted-foreground">
+          No traffic fines found for this customer.
+        </p>
+        <Button variant="outline" className="mt-4" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {fines && fines.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4">Date</th>
-                <th className="text-left py-3 px-4">Location</th>
-                <th className="text-left py-3 px-4">Violation</th>
-                <th className="text-right py-3 px-4">Amount</th>
-                <th className="text-right py-3 px-4">Status</th>
-                <th className="text-right py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {fines.map((fine) => (
-                <tr key={fine.id} className="border-b hover:bg-muted/50">
-                  <td className="py-3 px-4">
-                    {fine.violationDate 
-                      ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
-                      : 'N/A'}
-                  </td>
-                  <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                  <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
-                  <td className="py-3 px-4 text-right">
-                    {fine.fineAmount 
-                      ? `QAR ${fine.fineAmount.toLocaleString()}` 
-                      : 'N/A'}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      fine.paymentStatus === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleReassignFine(fine.id)}
-                      className="text-xs"
-                    >
-                      Reassign
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p className="text-center py-4 text-muted-foreground">
-          No traffic fines found for this customer.
-        </p>
-      )}
-      
-      <div className="flex justify-between items-center pt-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {fines?.length > 0 ? 
-              `Showing ${fines.length} fine${fines.length !== 1 ? 's' : ''}` :
-              'No fines found'}
-          </p>
-        </div>
-        
-        <Button onClick={handleRefresh} variant="outline" size="sm">
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-sm text-muted-foreground">
+          Showing {fines.length} traffic fines
+        </span>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Violation #</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>License Plate</TableHead>
+            <TableHead>Charge</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fines.map((fine) => (
+            <TableRow key={fine.id}>
+              <TableCell>{fine.violation_number}</TableCell>
+              <TableCell>
+                {fine.violation_date
+                  ? format(new Date(fine.violation_date), "dd MMM yyyy")
+                  : "N/A"}
+              </TableCell>
+              <TableCell>{fine.license_plate}</TableCell>
+              <TableCell>{fine.violation_charge}</TableCell>
+              <TableCell>
+                {typeof fine.fine_amount === "number"
+                  ? `QAR ${fine.fine_amount.toLocaleString()}`
+                  : "N/A"}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    fine.payment_status === "paid"
+                      ? "success"
+                      : fine.payment_status === "disputed"
+                      ? "warning"
+                      : "destructive"
+                  }
+                >
+                  {fine.payment_status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

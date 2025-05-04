@@ -8,18 +8,18 @@ import {
   DialogFooter,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from 'sonner';
-import { useUser } from '@clerk/clerk-react';
+// import { useUser } from '@clerk/clerk-react'; // Replace with your auth solution
 import { supabase } from '@/integrations/supabase/client';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { FileUp, X } from 'lucide-react';
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -28,9 +28,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
 import { withTimeoutAndRetry } from '@/utils/promise-utils';
 
@@ -44,10 +44,12 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChan
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<any[]>([]);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [status, setStatus<'idle' | 'loading' | 'success' | 'error'>( 'idle');
   const [error, setError] = useState<string | null>(null);
-  const [importType, setImportType] = useState<'customers' | 'vehicles'>('customers');
-  const { user } = useUser();
+  const [importType, setImportType<"customers" | "vehicles">('customers');
+  // const { user } = useUser(); // Replace with your auth solution
+  // For now, use a dummy user id
+  const user = { id: 'placeholder-user-id' };
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -105,129 +107,143 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChan
       const invalidRows = rows.length - validRows.length;
       
       if (invalidRows > 0) {
-        toast.warn(`${invalidRows} rows were invalid and will be skipped`);
+        toast.error(`${invalidRows} rows were invalid and will be skipped`);
       }
       
       // Create import batch record with optimized error handling
-      const importBatchResult = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() =>
-          supabase
-            .from('import_batches')
-            .insert({
-              original_filename: file.name,
-              processed_by: user?.id,
-              status: 'processing',
-              import_type: importType,
-              record_count: validRows.length,
-              metadata: {
-                columns: headers,
-                preview: validRows.slice(0, 5)
-              }
-            })
-            .select()
-            .single()
-        ),
-        {
-          timeoutMs: 10000,
-          operationName: 'Create import batch',
-          retries: 1
-        }
-      );
-      
-      if (!importBatchResult.success || !importBatchResult.data) {
-        setError(`Failed to create import batch: ${importBatchResult.message || 'Unknown error'}`);
-        setStatus('error');
-        return;
-      }
-      
-      const batchId = importBatchResult.data.id;
-      
-      // Process each row with improved error handling
-      for (const row of validRows) {
-        try {
-          // Transform row data based on import type
-          let dbPayload: any = row;
-          
-          if (importType === 'customers') {
-            dbPayload = {
-              full_name: row.full_name,
-              email: row.email,
-              phone_number: row.phone_number,
-              address: row.address,
-              city: row.city,
-              state: row.state,
-              zip_code: row.zip_code,
-            };
-          } else if (importType === 'vehicles') {
-            dbPayload = {
-              make: row.make,
-              model: row.model,
-              year: row.year,
-              license_plate: row.license_plate,
-              vin: row.vin,
-            };
-          }
-          
-          // Insert data into the database with retry and timeout
-          const insertResult = await withTimeoutAndRetry(
-            () => safeQueryToServiceResponse(() =>
-              supabase
-                .from(importType)
-                .insert({
-                  ...dbPayload,
-                  import_batch_id: batchId
-                })
-                .select()
-                .single()
-            ),
-            {
-              timeoutMs: 5000,
-              operationName: `Insert ${importType} record`,
-              retries: 1
+      try {
+        const importBatchResult = await withTimeoutAndRetry(
+          async () => {
+            const response = await supabase
+              .from('import_batches')
+              .insert({
+                filename: file.name,
+                processed_by: user?.id,
+                status: 'processing',
+                import_type: importType,
+                record_count: validRows.length,
+                metadata: {
+                  columns: headers,
+                  preview: validRows.slice(0, 5)
+                }
+              })
+              .select();
+              
+            if (response.error || !response.data || response.data.length === 0) {
+              return { success: false, message: response.error?.message || 'Unknown error', data: null };
             }
-          );
-          
-          if (!insertResult.success) {
-            console.error(`Failed to insert record: ${insertResult.message}`);
-            toast.error(`Failed to insert record: ${insertResult.message}`);
+            return { success: true, data: response.data[0], message: 'Success' };
+          },
+          {
+            timeoutMs: 10000,
+            operationName: 'Create import batch',
+            retries: 1
           }
-        } catch (dbError) {
-          console.error('Database insert error:', dbError);
-          toast.error(`Database insert error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+        );
+        
+        if (!importBatchResult.success || !importBatchResult.data) {
+          setError(`Failed to create import batch: ${importBatchResult.message || 'Unknown error'}`);
+          setStatus('error');
+          return;
         }
-      }
-      
-      // Update import batch status to completed
-      const updateBatchResult = await withTimeoutAndRetry(
-        () => safeQueryToServiceResponse(() =>
-          supabase
-            .from('import_batches')
-            .update({ status: 'completed' })
-            .eq('id', batchId)
-            .select()
-            .single()
-        ),
-        {
-          timeoutMs: 10000,
-          operationName: 'Update import batch status',
-          retries: 1
+        
+        const batchId = importBatchResult.data.id;
+        
+        // Process each row with improved error handling
+        for (const row of validRows) {
+          try {
+            // Transform row data based on import type
+            let dbPayload: any = row;
+            
+            if (importType === 'customers') {
+              dbPayload = {
+                full_name: row.full_name,
+                email: row.email,
+                phone_number: row.phone_number,
+                address: row.address,
+                city: row.city,
+                state: row.state,
+                zip_code: row.zip_code,
+              };
+            } else if (importType === 'vehicles') {
+              dbPayload = {
+                make: row.make,
+                model: row.model,
+                year: row.year,
+                license_plate: row.license_plate,
+                vin: row.vin,
+              };
+            }
+            
+            // Insert data into the database with retry and timeout
+            const insertResult = await withTimeoutAndRetry(
+              async () => {
+                const response = await supabase
+                  .from(importType)
+                  .insert({
+                    ...dbPayload,
+                    import_batch_id: batchId
+                  })
+                  .select();
+                  
+                if (response.error) {
+                  return { success: false, message: response.error.message, data: null };
+                }
+                return { success: true, data: response.data, message: 'Success' };
+              },
+              {
+                timeoutMs: 5000,
+                operationName: `Insert ${importType} record`,
+                retries: 1
+              }
+            );
+            
+            if (!insertResult.success) {
+              console.error(`Failed to insert record: ${insertResult.message}`);
+              toast.error(`Failed to insert record: ${insertResult.message}`);
+            }
+          } catch (dbError) {
+            console.error('Database insert error:', dbError);
+            toast.error(`Database insert error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+          }
         }
-      );
-      
-      if (!updateBatchResult.success) {
-        console.error(`Failed to update import batch status: ${updateBatchResult.message}`);
-        toast.error(`Failed to update import batch status: ${updateBatchResult.message}`);
+        
+        // Update import batch status to completed
+        const updateBatchResult = await withTimeoutAndRetry(
+          async () => {
+            const response = await supabase
+              .from('import_batches')
+              .update({ status: 'completed' })
+              .eq('id', batchId)
+              .select();
+              
+            if (response.error) {
+              return { success: false, message: response.error.message, data: null };
+            }
+            return { success: true, data: response.data, message: 'Success' };
+          },
+          {
+            timeoutMs: 10000,
+            operationName: 'Update import batch status',
+            retries: 1
+          }
+        );
+        
+        if (!updateBatchResult.success) {
+          console.error(`Failed to update import batch status: ${updateBatchResult.message}`);
+          toast.error(`Failed to update import batch status: ${updateBatchResult.message}`);
+        }
+        
+        setStatus('success');
+        toast.success('Data imported successfully');
+        onImportComplete();
+        onOpenChange(false);
+      } catch (error) {
+        console.error('Import error:', error);
+        setError(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setStatus('error');
+        toast.error(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-      
-      setStatus('success');
-      toast.success('Data imported successfully');
-      onImportComplete();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Import error:', error);
-      setError(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setStatus('error');
-      toast.error(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

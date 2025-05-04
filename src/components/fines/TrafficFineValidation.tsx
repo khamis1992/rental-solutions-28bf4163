@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { useTrafficFinesValidation } from "@/hooks/use-traffic-fines-validation"
 import { useBatchValidation } from "@/hooks/traffic-fines/use-batch-validation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ValidationResult as ValidationResultType } from "@/types/validation";
 
 interface ValidationResultType {
   licensePlate: string;
@@ -92,7 +92,7 @@ const TrafficFineValidation = () => {
       validationDate: new Date(),
       validationSource: 'batch',
       hasFine: false
-    }));
+    } as ValidationResultType));
 
     try {
       await validateBatch(plates);
@@ -175,7 +175,7 @@ const TrafficFineValidation = () => {
 
           <TabsContent value="history" className="space-y-4">
             <ValidationHistory
-              history={validationHistory || []}
+              history={validationHistory as ValidationResultType[] || []}
             />
           </TabsContent>
         </Tabs>
