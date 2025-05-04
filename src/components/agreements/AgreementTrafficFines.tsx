@@ -25,7 +25,7 @@ interface AgreementTrafficFinesProps {
   endDate?: Date;
 }
 
-const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId, startDate, endDate }) => {
+export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId, startDate, endDate }) => {
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

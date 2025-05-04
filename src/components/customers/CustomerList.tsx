@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useCustomers } from '@/hooks/use-customers';
+import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
 
@@ -27,12 +27,26 @@ const ITEMS_PER_PAGE = 10;
 
 export function CustomerList({ searchParams }: CustomerListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Use customer service hook with the provided search parameters
   const {
     customers,
     isLoading,
     error,
     deleteCustomer,
-  } = useCustomers();
+    filters,
+    setFilters,
+  } = useCustomerService();
+  
+  // Update filters when search params change
+  useEffect(() => {
+    if (searchParams) {
+      setFilters({
+        query: searchParams.query || '',
+        status: searchParams.status === 'all' ? undefined : searchParams.status,
+      });
+    }
+  }, [searchParams, setFilters]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
@@ -132,7 +146,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
                             if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                              deleteCustomer.mutate(customer.id);
+                              deleteCustomer(customer.id);
                             }
                           }}
                         >
