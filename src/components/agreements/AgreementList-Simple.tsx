@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { FilePlus, Filter, Trash2 } from 'lucide-react';
+import { FilePlus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementTable } from './table/AgreementTable';
+import { Agreement } from '@/types/agreement';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,13 @@ export function AgreementList() {
 
   const selectedCount = Object.keys(rowSelection).length;
 
+  // Cast agreements to the correct type with the required fields
+  const typedAgreements = agreements?.map(agreement => ({
+    ...agreement,
+    payment_frequency: 'monthly', // Default value for type compatibility
+    payment_day: 1, // Default value for type compatibility
+  })) as Agreement[];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -55,7 +63,7 @@ export function AgreementList() {
       </div>
 
       <AgreementTable
-        agreements={agreements}
+        agreements={typedAgreements}
         isLoading={isLoading}
         rowSelection={rowSelection}
         setRowSelection={setRowSelection}
