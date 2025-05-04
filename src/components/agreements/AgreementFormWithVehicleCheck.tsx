@@ -36,6 +36,7 @@ import { checkVehicleAvailability } from "@/utils/agreement-utils";
 import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
 import { CustomerSearchResults } from "@/components/customers/CustomerSearchResults";
+import { VehicleSearchResults } from "@/components/vehicles/VehicleSearchResults";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -69,12 +70,17 @@ const AgreementFormWithVehicleCheck = ({
   isCheckingTemplate = false,
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState<boolean>(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  
+  // Vehicle search state
+  const [vehicleSearchQuery, setVehicleSearchQuery] = useState<string>("");
+  const [vehicleSearchResults, setVehicleSearchResults] = useState<any[]>([]);
+  const [isSearchingVehicle, setIsSearchingVehicle] = useState<boolean>(false);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  
   const [durationMonths, setDurationMonths] = useState<number>(12);
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
   const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
@@ -109,6 +115,10 @@ const AgreementFormWithVehicleCheck = ({
     if (initialData?.customer_id) {
       fetchCustomerDetails(initialData.customer_id);
     }
+    
+    if (initialData?.vehicle_id) {
+      fetchVehicleDetails(initialData.vehicle_id);
+    }
   }, [initialData]);
 
   const fetchCustomerDetails = async (customerId: string) => {
@@ -127,100 +137,128 @@ const AgreementFormWithVehicleCheck = ({
       console.error("Error fetching customer details:", error);
     }
   };
-
-  const handleCustomerSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
+  
+  const fetchVehicleDetails = async (vehicleId: string) => {
     try {
-      console.log("Searching for customers with query:", searchQuery);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "customer")
-        .or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,driver_license.ilike.%${searchQuery}%`)
-        .limit(10);
-
-      if (error) throw error;
-      
-      console.log("Customer search results:", data);
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error("Error searching for customers:", error);
-      toast.error("Failed to search for customers");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Trigger search when search query changes with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery) {
-        handleCustomerSearch();
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const handleSelectCustomer = (customer: any) => {
-    console.log("Selected customer:", customer);
-    setSelectedCustomer(customer);
-    form.setValue("customer_id", customer.id);
-    setSearchResults([]);
-    setSearchQuery("");
-  };
-
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        // Fetch all vehicles, not just available ones, so we can show assigned vehicles too
-        const { data, error } = await supabase
-          .from("vehicles")
-          .select("*");
-
-        if (error) {
-          throw error;
-        }
-
-        setVehicles(data || []);
-      } catch (error) {
-        console.error("Error fetching vehicles:", error);
-      }
-    };
-
-    fetchVehicles();
-  }, []);
-
-  const handleVehicleChange = async (vehicleId: string) => {
-    setIsCheckingVehicle(true);
-    try {
-      // Check if vehicle is already assigned to an active agreement
-      const availabilityResult = await checkVehicleAvailability(vehicleId);
-      setVehicleAvailabilityResult(availabilityResult);
-      
-      if (!availabilityResult.isAvailable && availabilityResult.existingAgreement) {
-        setIsVehicleDialogOpen(true);
-      }
-      
-      // Get vehicle details regardless of availability
       const { data, error } = await supabase
         .from("vehicles")
         .select("*")
         .eq("id", vehicleId)
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setSelectedVehicle(data);
-      form.setValue("rent_amount", data.rent_amount || 0);
-      calculateTotalAmount(data.rent_amount || 0, form.getValues("deposit_amount"));
+      console.log("Fetched vehicle details:", data);
+    } catch (error) {
+      console.error("Error fetching vehicle details:", error);
+    }
+  };
+
+  const handleCustomerSearch = async () => {
+    if (!customerSearchQuery.trim()) {
+      setCustomerSearchResults([]);
+      return;
+    }
+
+    setIsSearchingCustomer(true);
+    try {
+      console.log("Searching for customers with query:", customerSearchQuery);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "customer")
+        .or(`full_name.ilike.%${customerSearchQuery}%,email.ilike.%${customerSearchQuery}%,phone_number.ilike.%${customerSearchQuery}%,driver_license.ilike.%${customerSearchQuery}%`)
+        .limit(10);
+
+      if (error) throw error;
+      
+      console.log("Customer search results:", data);
+      setCustomerSearchResults(data || []);
+    } catch (error) {
+      console.error("Error searching for customers:", error);
+      toast.error("Failed to search for customers");
+    } finally {
+      setIsSearchingCustomer(false);
+    }
+  };
+  
+  const handleVehicleSearch = async () => {
+    if (!vehicleSearchQuery.trim()) {
+      setVehicleSearchResults([]);
+      return;
+    }
+
+    setIsSearchingVehicle(true);
+    try {
+      console.log("Searching for vehicles with query:", vehicleSearchQuery);
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*, vehicle_types(*)")
+        .or(`make.ilike.%${vehicleSearchQuery}%,model.ilike.%${vehicleSearchQuery}%,license_plate.ilike.%${vehicleSearchQuery}%,vin.ilike.%${vehicleSearchQuery}%`)
+        .limit(10);
+
+      if (error) throw error;
+      
+      console.log("Vehicle search results:", data);
+      setVehicleSearchResults(data || []);
+    } catch (error) {
+      console.error("Error searching for vehicles:", error);
+      toast.error("Failed to search for vehicles");
+    } finally {
+      setIsSearchingVehicle(false);
+    }
+  };
+
+  // Trigger search when search query changes with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (customerSearchQuery) {
+        handleCustomerSearch();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [customerSearchQuery]);
+  
+  // Trigger vehicle search when search query changes with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (vehicleSearchQuery) {
+        handleVehicleSearch();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [vehicleSearchQuery]);
+
+  const handleSelectCustomer = (customer: any) => {
+    console.log("Selected customer:", customer);
+    setSelectedCustomer(customer);
+    form.setValue("customer_id", customer.id);
+    setCustomerSearchResults([]);
+    setCustomerSearchQuery("");
+  };
+  
+  const handleSelectVehicle = async (vehicle: any) => {
+    console.log("Selected vehicle:", vehicle);
+    setVehicleSearchResults([]);
+    setVehicleSearchQuery("");
+    
+    setIsCheckingVehicle(true);
+    try {
+      // Check if vehicle is already assigned to an active agreement
+      const availabilityResult = await checkVehicleAvailability(vehicle.id);
+      setVehicleAvailabilityResult(availabilityResult);
+      
+      if (!availabilityResult.isAvailable && availabilityResult.existingAgreement) {
+        setIsVehicleDialogOpen(true);
+      }
+      
+      setSelectedVehicle(vehicle);
+      form.setValue("vehicle_id", vehicle.id);
+      form.setValue("rent_amount", vehicle.rent_amount || 0);
+      calculateTotalAmount(vehicle.rent_amount || 0, form.getValues("deposit_amount"));
     } catch (error) {
       console.error("Error checking vehicle availability:", error);
       toast.error("Error checking vehicle availability");
@@ -543,38 +581,21 @@ const AgreementFormWithVehicleCheck = ({
                         <Input
                           type="text"
                           placeholder="Search customers by name, email, phone..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          value={customerSearchQuery}
+                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
                           className="pl-9"
                         />
                         <input type="hidden" {...field} />
                       </div>
                       
-                      {searchQuery && searchResults.length > 0 && (
-                        <div className="absolute z-50 bg-white border rounded-md shadow-md mt-1 w-full max-w-md max-h-64 overflow-auto">
-                          {searchResults.map(customer => (
-                            <div 
-                              key={customer.id} 
-                              className="p-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
-                              onClick={() => handleSelectCustomer(customer)}
-                            >
-                              <div className="font-medium">{customer.full_name}</div>
-                              <div className="text-sm text-gray-500 flex items-center gap-2">
-                                <span>{customer.email}</span>
-                                <span>•</span>
-                                <span>{customer.phone_number}</span>
-                              </div>
-                            </div>
-                          ))}
+                      {customerSearchQuery && (
+                        <div className="relative z-50 w-full">
+                          <CustomerSearchResults
+                            results={customerSearchResults}
+                            onSelect={handleSelectCustomer}
+                            isLoading={isSearchingCustomer}
+                          />
                         </div>
-                      )}
-                      
-                      {searchQuery && isSearching && (
-                        <div className="text-sm text-muted-foreground">Searching...</div>
-                      )}
-                      
-                      {searchQuery && !isSearching && searchResults.length === 0 && (
-                        <div className="text-sm text-muted-foreground">No customers found</div>
                       )}
                     </div>
                     <FormMessage />
@@ -612,35 +633,30 @@ const AgreementFormWithVehicleCheck = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleVehicleChange(value);
-                      }} 
-                      defaultValue={field.value}
-                      disabled={isCheckingVehicle}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={isCheckingVehicle ? "Checking vehicle..." : "Select vehicle"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicles.map((vehicle) => {
-                          const isAvailable = vehicle.status === 'available';
-                          return (
-                            <SelectItem 
-                              key={vehicle.id} 
-                              value={vehicle.id}
-                              className={!isAvailable ? "text-amber-500" : ""}
-                            >
-                              {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                              {!isAvailable && " [Assigned]"}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Search vehicles by make, model, plate..."
+                          value={vehicleSearchQuery}
+                          onChange={(e) => setVehicleSearchQuery(e.target.value)}
+                          className="pl-9"
+                          disabled={isCheckingVehicle}
+                        />
+                        <input type="hidden" {...field} />
+                      </div>
+                      
+                      {vehicleSearchQuery && (
+                        <div className="relative z-50 w-full">
+                          <VehicleSearchResults
+                            results={vehicleSearchResults}
+                            onSelect={handleSelectVehicle}
+                            isLoading={isSearchingVehicle}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -659,10 +675,25 @@ const AgreementFormWithVehicleCheck = ({
               
               {selectedVehicle && (
                 <div className="bg-muted p-3 rounded-md text-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-medium">Selected Vehicle</h4>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedVehicle(null);
+                        form.setValue("vehicle_id", "");
+                      }}
+                      className="h-7 px-2"
+                    >
+                      Change
+                    </Button>
+                  </div>
                   <p><strong>Make:</strong> {selectedVehicle.make}</p>
                   <p><strong>Model:</strong> {selectedVehicle.model}</p>
                   <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
                   <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+                  <p><strong>Status:</strong> {selectedVehicle.status}</p>
                 </div>
               )}
             </div>
