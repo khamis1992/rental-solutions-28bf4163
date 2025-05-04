@@ -5,6 +5,7 @@ import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { LEASE_STATUSES } from '@/types/lease-types';
+import { safeColumnFilter } from '@/lib/database/utils';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -36,12 +37,12 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', LEASE_STATUSES.ACTIVE);
+          .eq('status', safeColumnFilter(LEASE_STATUSES.ACTIVE));
           
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+          .eq('status', safeColumnFilter('pending'));
           
         const { count: overduePaymentsCount } = await supabase
           .from('unified_payments')
@@ -51,13 +52,17 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', LEASE_STATUSES.ACTIVE);
+          .eq('status', safeColumnFilter(LEASE_STATUSES.ACTIVE));
 
         // Calculate active value safely
         const activeValue = activeAgreements?.reduce((sum, agreement) => {
-          const rentAmount = agreement && typeof agreement.rent_amount === 'number' ? 
-            agreement.rent_amount : 0;
-          return sum + rentAmount;
+          // Check if agreement is valid and has a rent_amount
+          if (agreement && 'rent_amount' in agreement) {
+            const rentAmount = typeof agreement.rent_amount === 'number' ? 
+              agreement.rent_amount : 0;
+            return sum + rentAmount;
+          }
+          return sum;
         }, 0) || 0;
         
         setStats({

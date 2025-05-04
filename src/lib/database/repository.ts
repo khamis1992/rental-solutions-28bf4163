@@ -5,7 +5,7 @@ import { mapDbResponse, asTableId } from './utils';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 export class Repository<T extends keyof Tables> {
-  private tableName: T;
+  tableName: T; // Changed from private to allow access from derived classes
 
   constructor(tableName: T) {
     this.tableName = tableName;
@@ -26,8 +26,10 @@ export class Repository<T extends keyof Tables> {
 
   /**
    * Find multiple records by a filter
+   * @param filters - Type-safe filters to apply to the query
+   * @param select - Fields to select
    */
-  async findMany(filters?: Record<string, any>, select: string = '*'): Promise<DbListResponse<TableRow<T>>> {
+  async findMany(filters?: Partial<Record<keyof TableRow<T>, unknown>>, select: string = '*'): Promise<DbListResponse<TableRow<T>>> {
     let query = supabase
       .from(this.tableName)
       .select(select);
@@ -47,6 +49,7 @@ export class Repository<T extends keyof Tables> {
 
   /**
    * Create a new record
+   * @param data - Data to insert
    */
   async create(data: TableInsert<T>): Promise<DbSingleResponse<TableRow<T>>> {
     const response = await supabase
@@ -60,6 +63,8 @@ export class Repository<T extends keyof Tables> {
 
   /**
    * Update an existing record
+   * @param id - Record ID
+   * @param data - Data to update
    */
   async update(id: string, data: TableUpdate<T>): Promise<DbSingleResponse<TableRow<T>>> {
     const response = await supabase

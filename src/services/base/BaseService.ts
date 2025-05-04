@@ -1,6 +1,5 @@
-
 import { Repository } from '@/lib/database/repository';
-import { DbListResponse, DbSingleResponse, TableRow } from '@/lib/database/types';
+import { DbListResponse, DbSingleResponse, TableRow, TableInsert, TableUpdate } from '@/lib/database/types';
 
 /**
  * Base service class that provides common functionality for all services
@@ -38,8 +37,9 @@ export abstract class BaseService<T extends string> {
 
   /**
    * Create a new entity
+   * @param data Data to create entity with
    */
-  async create(data: any): Promise<TableRow<T>> {
+  async create(data: TableInsert<T>): Promise<TableRow<T>> {
     const response = await this.repository.create(data);
     if (response.error) {
       console.error(`Error creating ${this.repository.tableName}:`, response.error);
@@ -50,8 +50,10 @@ export abstract class BaseService<T extends string> {
 
   /**
    * Update an existing entity
+   * @param id Entity ID
+   * @param data Data to update entity with
    */
-  async update(id: string, data: any): Promise<TableRow<T>> {
+  async update(id: string, data: TableUpdate<T>): Promise<TableRow<T>> {
     const response = await this.repository.update(id, data);
     if (response.error) {
       console.error(`Error updating ${this.repository.tableName}:`, response.error);
