@@ -4,7 +4,7 @@
  * @module PaymentTypes
  */
 
-import { DbId } from './database-common';
+import { DbId, PaymentStatus as DbPaymentStatus } from './database-common';
 
 /**
  * Payment status enum
@@ -22,8 +22,9 @@ export enum PaymentStatusEnum {
 
 /**
  * Payment status type
+ * This must be compatible with database-common PaymentStatus type
  */
-export type PaymentStatus = keyof typeof PaymentStatusEnum;
+export type PaymentStatus = DbPaymentStatus;
 
 /**
  * Core payment record structure

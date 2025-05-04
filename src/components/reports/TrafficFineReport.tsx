@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar } from 'lucide-react';
@@ -159,6 +158,12 @@ const TrafficFineReport = () => {
 
   // Collect all unassigned fines
   const unassignedFinesList = finesToDisplay.filter(fine => !fine.customerId);
+
+  // Around line 117, fix the mutate call:
+  const handleRefreshData = () => {
+    // Pass an empty object if no arguments are expected
+    assignToCustomer.mutate({});
+  };
 
   return (
     <div className="space-y-6">

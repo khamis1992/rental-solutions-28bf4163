@@ -8,6 +8,7 @@ import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
 import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
+import { PaymentStatus } from '@/types/payment.types'; 
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -49,7 +50,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         lease_id: leaseData.id, // Use the actual UUID from the leases table
         payment_method: 'cash',
         description: `Monthly rent payment for ${data.agreementNumber}`,
-        status: 'completed',
+        status: 'completed' as PaymentStatus,
         type: 'Income',
         late_fine_amount: data.lateFeeAmount || 0
       };

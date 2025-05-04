@@ -1,9 +1,10 @@
-
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from '@/types/payment.types';
 import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
 
-export const usePayments = (agreementId?: string) => {
+export { Payment };
+
+export function usePayments(agreementId?: string) {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     ['payments', agreementId],
     async () => {
@@ -76,4 +77,4 @@ export const usePayments = (agreementId?: string) => {
     deletePayment: deletePayment.mutateAsync,
     fetchPayments,
   };
-};
+}

@@ -7,6 +7,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { TrafficFine } from '@/types/traffic-fine';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { mapTrafficFineData } from '@/utils/traffic-fine-mapper';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -22,9 +23,9 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
   useEffect(() => {
     // Filter fines to only show those related to this agreement
     if (trafficFines) {
-      const relatedFines = trafficFines.filter(
-        (fine) => fine.lease_id === agreementId
-      );
+      const relatedFines = trafficFines
+        .filter(fine => fine.lease_id === agreementId)
+        .map(mapTrafficFineData);
       setFines(relatedFines);
     }
   }, [trafficFines, agreementId]);

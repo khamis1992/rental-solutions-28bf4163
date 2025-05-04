@@ -1,5 +1,6 @@
+
 // Import the TrafficFine type
-import { TrafficFine, mapTrafficFineResponse } from '@/types/traffic-fine';
+import { TrafficFine } from '@/types/traffic-fine';
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { mapTrafficFineData } from '@/utils/traffic-fine-mapper';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -20,9 +22,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   useEffect(() => {
     // Filter fines to only show those related to this customer
     if (trafficFines) {
-      const relatedFines = trafficFines.filter(
-        (fine) => fine.customer_id === customerId
-      );
+      const relatedFines = trafficFines
+        .filter(fine => fine.customer_id === customerId)
+        .map(mapTrafficFineData);
       setFines(relatedFines);
     }
   }, [trafficFines, customerId]);
