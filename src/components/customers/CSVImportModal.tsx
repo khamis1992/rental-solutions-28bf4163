@@ -19,15 +19,11 @@ import * as Papa from 'papaparse';
 interface CSVImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onImportComplete?: () => void;
 }
 
-interface CSVRow {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-}
-
-export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
+// Change from named export to default export
+const CSVImportModal = ({ open, onOpenChange, onImportComplete }: CSVImportModalProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [mappings, setMappings] = useState({
@@ -191,6 +187,11 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
             title: "Import Complete",
             description: `Successfully imported ${processedRecords} customers. ${failedRecords} records failed.`,
           });
+          
+          if (onImportComplete) {
+            onImportComplete();
+          }
+          
           onOpenChange(false);
         },
         error: (error) => {
@@ -335,4 +336,9 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+// Add this default export
+export default CSVImportModal;
+// Also maintain the named export for flexibility
+export { CSVImportModal };
