@@ -1,126 +1,135 @@
-
 import React, { useState, useEffect } from 'react';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { TrafficFine } from '@/types/traffic-fine';
-import { mapTrafficFineData } from '@/utils/traffic-fine-mapper';
+import { formatCurrency } from '@/lib/utils';
+import { trafficFinesApi } from '@/lib/api/trafficFines';
+import { DbId } from '@/types/database-common';
+import { mapTrafficFineToComponentFormat } from '@/utils/traffic-fine-mapper';
 
-interface AgreementTrafficFinesProps {
-  agreementId: string;
-  startDate: Date;
-  endDate: Date;
+interface TrafficFine {
+  id: string;
+  violationNumber: string;
+  licensePlate: string;
+  violationDate: Date | string;
+  fineAmount: number;
+  violationCharge: string;
+  paymentStatus: string;
+  location: string;
 }
 
-export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines } = useTrafficFines();
-  const [showLoader, setShowLoader] = useState(false);
-  const [fines, setFines] = useState<TrafficFine[]>([]);
+interface AgreementTrafficFinesProps {
+  agreementId: DbId;
+}
 
-  useEffect(() => {
-    // Filter fines to only show those related to this agreement
-    if (trafficFines) {
-      const relatedFines = trafficFines
-        .filter(fine => fine.leaseId === agreementId || fine.lease_id === agreementId)
-        .map(mapTrafficFineData);
-      setFines(relatedFines);
+const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId }) => {
+  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTrafficFines = async () => {
+    try {
+      setLoading(true);
+      const response = await trafficFinesApi.fetchByLeaseId(agreementId);
+      // Use the mapper to ensure consistent property naming
+      const mappedFines = response.map(mapTrafficFineToComponentFormat);
+      setTrafficFines(mappedFines);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching traffic fines:", error);
+      setError("Failed to load traffic fines");
+      setLoading(false);
     }
-  }, [trafficFines, agreementId]);
-
-  useEffect(() => {
-    // Initial loading state is managed by the hook
-    setShowLoader(isLoading);
-  }, [isLoading]);
-
-  const handleRefresh = async () => {
-    setShowLoader(true);
-    // Wait a moment for visual feedback
-    setTimeout(() => {
-      setShowLoader(false);
-    }, 1000);
   };
 
-  if (isLoading || showLoader) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  useEffect(() => {
+    if (agreementId) {
+      fetchTrafficFines();
+    }
+  }, [agreementId]);
+
+  if (loading) {
+    return <Card>Loading traffic fines...</Card>;
   }
 
-  if (fines.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          No traffic fines reported during this rental period.
-        </p>
-        <Button variant="outline" className="mt-4" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-    );
+  if (error) {
+    return <Card>Error: {error}</Card>;
+  }
+
+  if (!trafficFines || trafficFines.length === 0) {
+    return <Card>No traffic fines found for this agreement.</Card>;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm text-muted-foreground">
-          Showing {fines.length} traffic fines from {format(startDate, "PP")} to {format(endDate, "PP")}
-        </span>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Violation #</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>License Plate</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {fines.map((fine) => (
-            <TableRow key={fine.id}>
-              <TableCell>{fine.violation_number}</TableCell>
-              <TableCell>
-                {fine.violation_date
-                  ? format(new Date(fine.violation_date), "dd MMM yyyy")
-                  : "N/A"}
-              </TableCell>
-              <TableCell>{fine.license_plate}</TableCell>
-              <TableCell>{fine.location}</TableCell>
-              <TableCell>
-                {typeof fine.fine_amount === "number"
-                  ? `QAR ${fine.fine_amount.toLocaleString()}`
-                  : "N/A"}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    fine.payment_status === "paid"
-                      ? "success"
-                      : fine.payment_status === "disputed"
-                      ? "warning"
-                      : "destructive"
-                  }
-                >
-                  {fine.payment_status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Traffic Fines</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Violation #
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  License Plate
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {trafficFines.map((fine) => (
+                <tr key={fine.id}>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-900">
+                    {fine.violationNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-900">
+                    {fine.licensePlate}
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-900">
+                    {fine.violationDate instanceof Date
+                      ? format(fine.violationDate, 'dd/MM/yyyy')
+                      : format(new Date(fine.violationDate), 'dd/MM/yyyy')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-900">
+                    {formatCurrency(fine.fineAmount)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5">
+                    <Badge
+                      variant={fine.paymentStatus === 'paid' ? 'success' : 'warning'}
+                      className={
+                        fine.paymentStatus === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }
+                    >
+                      {fine.paymentStatus}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-no-wrap text-sm leading-5 text-gray-900">
+                    {fine.location}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default AgreementTrafficFines;

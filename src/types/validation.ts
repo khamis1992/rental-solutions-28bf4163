@@ -10,4 +10,7 @@ export interface ValidationResult {
   validationSource?: string;
   hasFine?: boolean;
   validationId?: string;
+  environment?: string;
 }
+
+export type ValidationResultType = ValidationResult;

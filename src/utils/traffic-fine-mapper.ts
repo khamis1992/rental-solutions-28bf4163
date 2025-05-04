@@ -19,8 +19,29 @@ export function mapTrafficFineData(fineData: any): TrafficFine {
     location: fineData.location || fineData.fine_location,
     lease_id: fineData.leaseId || fineData.lease_id,
     customer_id: fineData.customerId || fineData.customer_id,
-    serial_number: fineData.serialNumber || fineData.serial_number,
     validation_status: fineData.validationStatus || fineData.validation_status,
-    payment_date: fineData.paymentDate || fineData.payment_date
+    created_at: fineData.created_at,
+    updated_at: fineData.updated_at
+  };
+}
+
+/**
+ * Maps TrafficFine object to the format expected by components
+ */
+export function mapTrafficFineToComponentFormat(fine: TrafficFine): any {
+  return {
+    id: fine.id,
+    violationNumber: fine.violation_number,
+    licensePlate: fine.license_plate,
+    violationDate: fine.violation_date instanceof Date 
+      ? fine.violation_date 
+      : new Date(fine.violation_date),
+    fineAmount: fine.fine_amount,
+    violationCharge: fine.violation_charge,
+    paymentStatus: fine.payment_status,
+    location: fine.location,
+    leaseId: fine.lease_id,
+    customerId: fine.customer_id,
+    validationStatus: fine.validation_status
   };
 }

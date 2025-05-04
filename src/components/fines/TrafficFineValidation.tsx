@@ -1,18 +1,18 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTrafficFineValidation } from '@/hooks/traffic-fines/use-traffic-fine-validation';
+import { useTrafficFinesValidation } from '@/hooks/use-traffic-fines-validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ValidationResultType } from '@/hooks/traffic-fines/types';
+import { ValidationResult } from '@/types/validation';
 
 export function TrafficFineValidation() {
   const [licensePlate, setLicensePlate] = useState('');
-  const [validationResult, setValidationResult] = useState<ValidationResultType | null>(null);
-  const { validateTrafficFine, isLoading } = useTrafficFineValidation();
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const { validateTrafficFine, isLoading } = useTrafficFinesValidation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +25,7 @@ export function TrafficFineValidation() {
     } catch (error) {
       console.error("Error validating traffic fine:", error);
       setValidationResult({
+        licensePlate,
         isValid: false,
         message: 'An error occurred during validation. Please try again.'
       });
