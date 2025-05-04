@@ -1,334 +1,352 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from 'sonner';
-// import { useUser } from '@clerk/clerk-react'; // Replace with your auth solution
-import { supabase } from '@/integrations/supabase/client';
+
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Button } from '../ui/button';
 import { useDropzone } from 'react-dropzone';
-import Papa from 'papaparse';
-import { FileUp, X } from 'lucide-react';
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Upload, File, AlertTriangle, Check } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card } from '../ui/card';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { safeQueryToServiceResponse } from '@/utils/supabase-type-helpers';
-import { withTimeoutAndRetry } from '@/utils/promise-utils';
+  TableRow
+} from '../ui/table';
+import { Progress } from '../ui/progress';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import Papa from 'papaparse';
+import { useNavigate } from 'react-router-dom';
 
-interface CSVImportModalProps {
+interface DataImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImportComplete: () => void;
+  importType: 'vehicles' | 'customers';
 }
 
-export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChange, onImportComplete }) => {
+interface ImportBatchData {
+  original_filename: string;
+  processed_by: string;
+  status: string;
+  import_type: 'vehicles' | 'customers';
+  record_count: number;
+  metadata: {
+    columns: string[];
+    preview: any[];
+  };
+}
+
+interface ImportResponse {
+  id?: string;
+  status: string;
+  message?: string;
+}
+
+const DataImportModal: React.FC<DataImportModalProps> = ({
+  open,
+  onOpenChange,
+  importType
+}) => {
   const [file, setFile] = useState<File | null>(null);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [rows, setRows] = useState<any[]>([]);
-  const [status, setStatus<'idle' | 'loading' | 'success' | 'error'>( 'idle');
-  const [error, setError] = useState<string | null>(null);
-  const [importType, setImportType<"customers" | "vehicles">('customers');
-  // const { user } = useUser(); // Replace with your auth solution
-  // For now, use a dummy user id
-  const user = { id: 'placeholder-user-id' };
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [mappedFields, setMappedFields] = useState<Record<string, string>>({});
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [progress, setProgress] = useState(0);
+  const navigate = useNavigate();
   
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    setFile(file);
-    
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.xls', '.xlsx']
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      const selectedFile = acceptedFiles[0];
+      if (selectedFile) {
+        setFile(selectedFile);
+        parseCSV(selectedFile);
+      }
+    }
+  });
+  
+  const parseCSV = (file: File) => {
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      preview: 5, // Parse only a few rows for preview
       complete: (results) => {
-        setHeaders(results.meta.fields || []);
-        setRows(results.data);
+        if (results.data && results.data.length > 0) {
+          setPreviewData(results.data);
+          
+          // Extract column headers
+          if (results.meta && results.meta.fields) {
+            setColumns(results.meta.fields);
+            
+            // Initialize field mappings with empty values
+            const initialMapping: Record<string, string> = {};
+            results.meta.fields.forEach(field => {
+              initialMapping[field] = '';
+            });
+            setMappedFields(initialMapping);
+          }
+        }
       },
       error: (error) => {
-        console.error('CSV parsing error:', error);
-        setError(`CSV parsing error: ${error.message}`);
-        setStatus('error');
+        toast.error(`Error parsing CSV: ${error.message}`);
       }
     });
-  }, []);
-  
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
-  
-  const clearData = () => {
-    setFile(null);
-    setHeaders([]);
-    setRows([]);
-    setStatus('idle');
-    setError(null);
   };
-
-  const validateRow = (row: any, headers: string[]) => {
-    if (!row) return false;
-    return headers.every(header => row[header] !== undefined);
-  };
-
-  const importDataHandler = async () => {
+  
+  const handleImport = async () => {
     if (!file) {
-      setError('No file selected');
-      setStatus('error');
+      toast.error('Please select a file to import');
       return;
     }
     
-    if (rows.length === 0) {
-      setError('No data to import');
-      setStatus('error');
-      return;
-    }
-    
-    setStatus('loading');
-    setError(null);
+    setImportStatus('loading');
+    setProgress(10);
     
     try {
-      // Validate import batch
-      const validRows = rows.filter(row => validateRow(row, headers));
-      const invalidRows = rows.length - validRows.length;
+      // First create an import batch record
+      const metadata = {
+        columns,
+        preview: previewData.slice(0, 2) // Just store a couple of rows for reference
+      };
       
-      if (invalidRows > 0) {
-        toast.error(`${invalidRows} rows were invalid and will be skipped`);
+      // Prepare the import batch data
+      const batchData: ImportBatchData = {
+        original_filename: file.name,
+        processed_by: "current-user", // This would normally come from auth context
+        status: 'processing',
+        import_type: importType,
+        record_count: 0, // Will be updated after processing
+        metadata
+      };
+      
+      setProgress(30);
+      
+      // Create a new import batch
+      const { data: batchResponse, error: batchError } = await supabase
+        .from('import_batches')
+        .insert(batchData)
+        .select();
+      
+      if (batchError || !batchResponse || batchResponse.length === 0) {
+        throw new Error(`Failed to create import batch: ${batchError?.message || 'Unknown error'}`);
       }
       
-      // Create import batch record with optimized error handling
-      try {
-        const importBatchResult = await withTimeoutAndRetry(
-          async () => {
-            const response = await supabase
-              .from('import_batches')
-              .insert({
-                filename: file.name,
-                processed_by: user?.id,
-                status: 'processing',
-                import_type: importType,
-                record_count: validRows.length,
-                metadata: {
-                  columns: headers,
-                  preview: validRows.slice(0, 5)
-                }
-              })
-              .select();
+      const batchId = batchResponse[0].id;
+      
+      setProgress(50);
+      
+      // Now parse the full CSV for import
+      const importPromise = new Promise<ImportResponse>((resolve, reject) => {
+        Papa.parse(file, {
+          header: true,
+          complete: async (results) => {
+            try {
+              setProgress(70);
               
-            if (response.error || !response.data || response.data.length === 0) {
-              return { success: false, message: response.error?.message || 'Unknown error', data: null };
-            }
-            return { success: true, data: response.data[0], message: 'Success' };
-          },
-          {
-            timeoutMs: 10000,
-            operationName: 'Create import batch',
-            retries: 1
-          }
-        );
-        
-        if (!importBatchResult.success || !importBatchResult.data) {
-          setError(`Failed to create import batch: ${importBatchResult.message || 'Unknown error'}`);
-          setStatus('error');
-          return;
-        }
-        
-        const batchId = importBatchResult.data.id;
-        
-        // Process each row with improved error handling
-        for (const row of validRows) {
-          try {
-            // Transform row data based on import type
-            let dbPayload: any = row;
-            
-            if (importType === 'customers') {
-              dbPayload = {
-                full_name: row.full_name,
-                email: row.email,
-                phone_number: row.phone_number,
-                address: row.address,
-                city: row.city,
-                state: row.state,
-                zip_code: row.zip_code,
-              };
-            } else if (importType === 'vehicles') {
-              dbPayload = {
-                make: row.make,
-                model: row.model,
-                year: row.year,
-                license_plate: row.license_plate,
-                vin: row.vin,
-              };
-            }
-            
-            // Insert data into the database with retry and timeout
-            const insertResult = await withTimeoutAndRetry(
-              async () => {
-                const response = await supabase
-                  .from(importType)
-                  .insert({
-                    ...dbPayload,
-                    import_batch_id: batchId
-                  })
-                  .select();
-                  
-                if (response.error) {
-                  return { success: false, message: response.error.message, data: null };
-                }
-                return { success: true, data: response.data, message: 'Success' };
-              },
-              {
-                timeoutMs: 5000,
-                operationName: `Insert ${importType} record`,
-                retries: 1
+              if (results.errors && results.errors.length > 0) {
+                throw new Error(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`);
               }
-            );
-            
-            if (!insertResult.success) {
-              console.error(`Failed to insert record: ${insertResult.message}`);
-              toast.error(`Failed to insert record: ${insertResult.message}`);
-            }
-          } catch (dbError) {
-            console.error('Database insert error:', dbError);
-            toast.error(`Database insert error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
-          }
-        }
-        
-        // Update import batch status to completed
-        const updateBatchResult = await withTimeoutAndRetry(
-          async () => {
-            const response = await supabase
-              .from('import_batches')
-              .update({ status: 'completed' })
-              .eq('id', batchId)
-              .select();
               
-            if (response.error) {
-              return { success: false, message: response.error.message, data: null };
+              const { data: importResult, error: importError } = await supabase
+                .from(importType) // 'vehicles' or 'customers'
+                .insert(results.data)
+                .select('id');
+              
+              if (importError) {
+                throw new Error(`Failed to import data: ${importError.message}`);
+              }
+              
+              // Update the batch with the final count and status
+              await supabase
+                .from('import_batches')
+                .update({
+                  status: 'completed',
+                  record_count: results.data.length
+                })
+                .eq('id', batchId);
+              
+              resolve({
+                id: batchId,
+                status: 'success',
+                message: `Successfully imported ${results.data.length} records`
+              });
+            } catch (error: any) {
+              // Update batch with error status
+              await supabase
+                .from('import_batches')
+                .update({
+                  status: 'failed',
+                  notes: error.message
+                })
+                .eq('id', batchId);
+              
+              reject({
+                status: 'error',
+                message: error.message
+              });
             }
-            return { success: true, data: response.data, message: 'Success' };
           },
-          {
-            timeoutMs: 10000,
-            operationName: 'Update import batch status',
-            retries: 1
+          error: (error) => {
+            reject({
+              status: 'error',
+              message: error.message
+            });
           }
-        );
-        
-        if (!updateBatchResult.success) {
-          console.error(`Failed to update import batch status: ${updateBatchResult.message}`);
-          toast.error(`Failed to update import batch status: ${updateBatchResult.message}`);
-        }
-        
-        setStatus('success');
-        toast.success('Data imported successfully');
-        onImportComplete();
+        });
+      });
+      
+      // Wait for import to complete
+      const importResult = await importPromise;
+      
+      setProgress(100);
+      setImportStatus('success');
+      
+      toast.success(`Import successful: ${importResult.message}`);
+      
+      // Close modal and refresh data after a short delay
+      setTimeout(() => {
         onOpenChange(false);
-      } catch (error) {
-        console.error('Import error:', error);
-        setError(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setStatus('error');
-        toast.error(`Import error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+        // Refresh the relevant page
+        navigate(`/${importType}`, { replace: true });
+      }, 1500);
+    } catch (error: any) {
+      setImportStatus('error');
+      toast.error(`Import failed: ${error.message}`);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Import Data from CSV</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file to import data into the system.
-          </DialogDescription>
+          <DialogTitle>
+            Import {importType === 'vehicles' ? 'Vehicle' : 'Customer'} Data
+          </DialogTitle>
         </DialogHeader>
-
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="importType" className="text-right">
-              Import Type
-            </Label>
-            <select 
-              id="importType" 
-              className="col-span-3 rounded-md border shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              value={importType}
-              onChange={(e) => setImportType(e.target.value as 'customers' | 'vehicles')}
+        
+        <div className="space-y-4">
+          {/* File Upload Area */}
+          {!file && (
+            <div 
+              {...getRootProps()}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
             >
-              <option value="customers">Customers</option>
-              <option value="vehicles">Vehicles</option>
-            </select>
-          </div>
-
-          <div {...getRootProps()} className="rounded-md border-2 border-dashed p-4 text-center">
-            <input {...getInputProps()} />
-            {
-              isDragActive ?
-                <p>Drop the files here ...</p> :
-                <>
-                  <FileUp className="mx-auto h-6 w-6 text-gray-400" />
-                  <p>Drag 'n' drop some files here, or click to select files</p>
-                </>
-            }
-          </div>
-
-          {file && (
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">File Preview: {file.name}</h3>
-              <p className="text-sm text-gray-500">
-                Columns: {headers.join(', ') || 'N/A'}
+              <input {...getInputProps()} />
+              <Upload className="h-10 w-10 mx-auto mb-4 text-gray-400" />
+              <p className="text-sm text-gray-600">
+                Drag & drop a CSV file here, or click to select
               </p>
-              
-              <ScrollArea className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    {headers.map((header) => (
-                      <TableHead key={header}>{header}</TableHead>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {rows.slice(0, 5).map((row, index) => (
-                      <TableRow key={index}>
-                        {headers.map((header) => (
-                          <TableCell key={header}>{row[header] || 'N/A'}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
+              <p className="text-xs text-gray-500 mt-2">
+                Supported formats: .csv
+              </p>
             </div>
           )}
-
-          {status === 'error' && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-              <p>Error: {error}</p>
+          
+          {/* File Preview */}
+          {file && importStatus === 'idle' && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <File className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {(file.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFile(null);
+                    setPreviewData([]);
+                    setColumns([]);
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+              
+              {previewData.length > 0 && (
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {columns.map((column, index) => (
+                            <TableHead key={index}>{column}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row, rowIndex) => (
+                          <TableRow key={rowIndex}>
+                            {columns.map((column, colIndex) => (
+                              <TableCell key={colIndex}>
+                                {row[column] || '-'}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+              )}
+              
+              <Button onClick={handleImport} className="w-full">
+                Import Data
+              </Button>
+            </div>
+          )}
+          
+          {/* Import Progress */}
+          {importStatus === 'loading' && (
+            <div className="space-y-4 py-4">
+              <Progress value={progress} className="h-2" />
+              <p className="text-center text-sm">
+                Importing data... {progress}%
+              </p>
+            </div>
+          )}
+          
+          {/* Import Result */}
+          {importStatus === 'success' && (
+            <div className="py-8 text-center space-y-4">
+              <div className="bg-green-100 p-3 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-medium">Import Successful</h3>
+              <p className="text-gray-500">
+                Your data has been successfully imported.
+              </p>
+            </div>
+          )}
+          
+          {importStatus === 'error' && (
+            <div className="py-8 text-center space-y-4">
+              <div className="bg-red-100 p-3 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-medium">Import Failed</h3>
+              <p className="text-gray-500">
+                There was an error importing your data. Please try again.
+              </p>
+              <Button onClick={() => setImportStatus('idle')}>
+                Try Again
+              </Button>
             </div>
           )}
         </div>
-
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={clearData}>
-            Clear
-          </Button>
-          <Button type="submit" onClick={importDataHandler} disabled={status === 'loading'}>
-            {status === 'loading' ? 'Importing...' : 'Import Data'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default DataImportModal;

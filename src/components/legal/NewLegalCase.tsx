@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,8 +33,8 @@ const formSchema = z.object({
   case_type: z.nativeEnum(LegalCaseType, {
     required_error: 'Please select a case type',
   }),
-  description: z.string().optional(),
-  amount_owed: z.coerce.number().min(0, 'Amount must be a positive number').optional(),
+  description: z.string().min(1, 'Description is required'),
+  amount_owed: z.coerce.number().min(0, 'Amount must be a positive number'),
   priority: z.nativeEnum(CasePriority).optional(),
   status: z.nativeEnum(LegalCaseStatus).optional(),
   assigned_to: z.string().optional(),
@@ -63,12 +64,15 @@ const NewLegalCase = () => {
     try {
       setIsSubmitting(true);
 
-      // Create a properly typed object without resolution_date
+      // Create the case data with required fields
       const caseData = {
-        ...data,
+        customer_id: data.customer_id,
+        case_type: data.case_type,
+        description: data.description,
         amount_owed: data.amount_owed || 0,
-        // Don't include resolution_date or resolution_notes if they're not in the type
-        // They will be set to null in the database by default
+        priority: data.priority,
+        status: data.status,
+        assigned_to: data.assigned_to,
       };
 
       await createLegalCase(caseData);

@@ -1,40 +1,50 @@
 
 import { DbId } from './database-common';
 
-export type LegalCaseStatus = 
-  | 'open'
-  | 'pending'
-  | 'resolved'
-  | 'cancelled'
-  | 'closed';
+export enum LegalCaseStatus {
+  OPEN = 'open',
+  PENDING = 'pending',
+  RESOLVED = 'resolved',
+  CANCELLED = 'cancelled',
+  CLOSED = 'closed',
+  ACTIVE = 'active',
+  ESCALATED = 'escalated'
+}
 
-export type LegalCaseType =
-  | 'payment_default'
-  | 'contract_breach'
-  | 'vehicle_damage'
-  | 'insurance_claim'
-  | 'traffic_violation'
-  | 'other';
+export enum LegalCaseType {
+  PAYMENT_DEFAULT = 'payment_default',
+  CONTRACT_BREACH = 'contract_breach',
+  VEHICLE_DAMAGE = 'vehicle_damage',
+  INSURANCE_CLAIM = 'insurance_claim',
+  TRAFFIC_VIOLATION = 'traffic_violation',
+  OTHER = 'other'
+}
 
-export type CasePriority =
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'critical';
+export enum CasePriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
 
 export interface LegalCase {
   id: string;
   customer_id: string;
   amount_owed: number;
   description: string;
-  status: LegalCaseStatus;
+  status: LegalCaseStatus | string;
   created_at?: string;
   updated_at?: string;
   resolution_date?: string | null;
   resolution_notes?: string | null;
-  case_type?: LegalCaseType;
-  priority?: CasePriority;
+  case_type?: LegalCaseType | string;
+  priority?: CasePriority | string;
   assigned_to?: string;
+  profiles?: {
+    full_name: string;
+    email: string | null;
+    phone_number: string | null;
+  };
 }
 
 // Helper function to safely cast legal case status
