@@ -2,6 +2,9 @@
 // Main integrated hook for traffic fine validation
 export { useTrafficFineManagement as useTrafficFinesValidation } from './use-traffic-fine-management';
 
+// Export the main hook that was previously missing
+export { useTrafficFines } from './use-traffic-fines';
+
 // Individual hooks for specific functionality
 export { useFineValidation, validateFineDate } from './use-fine-validation';
 export { useBatchValidation } from './use-batch-validation';

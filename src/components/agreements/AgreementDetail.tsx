@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -408,7 +409,7 @@ export const AgreementDetail = (props: AgreementDetailProps) => {
             leaseId={id as string}
             leaseStartDate={agreement?.start_date}
             leaseEndDate={agreement?.end_date}
-            onRecordPayment={(payment) => handleSpecialAgreementPayments(payment)}
+            onRecordPayment={handleSpecialAgreementPayments}
             onPaymentDeleted={fetchPayments}
             onPaymentUpdated={async () => {
               fetchPayments();

@@ -122,7 +122,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                     </Link>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.phone_number}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
