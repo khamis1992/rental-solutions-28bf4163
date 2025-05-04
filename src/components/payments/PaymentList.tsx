@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { Payment } from '@/types/payment';
+import { Payment } from '@/hooks/use-payments';
 
 interface PaymentListProps {
   payments: Payment[];

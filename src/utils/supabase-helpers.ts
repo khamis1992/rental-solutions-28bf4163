@@ -1,93 +1,109 @@
 
-import { Database } from '@/types/database.types';
-import { asTableId } from '@/lib/database-helpers';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
-// Type-safe helpers for working with Supabase tables
-export type TableName = keyof Database['public']['Tables'];
-export type Row<T extends TableName> = Database['public']['Tables'][T]['Row'];
-export type RowColumn<T extends TableName, K extends keyof Row<T>> = Row<T>[K];
+/**
+ * Type guard to check if response data is valid and has the expected property
+ * @param response - The Supabase response
+ * @param property - The property to check for
+ */
+export function isValidResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: NonNullable<T>; error: null } {
+  return Boolean(response && !response.error && response.data);
+}
 
-// Status types with proper typing
-export type LeaseStatusType = Row<'leases'>['status'];
-export type VehicleStatusType = Row<'vehicles'>['status'];
-export type PaymentStatusType = Row<'unified_payments'>['status'];
-export type ProfileStatusType = Row<'profiles'>['status'];
-export type TrafficFinePaymentStatusType = Row<'traffic_fines'>['payment_status'];
+/**
+ * Type guard to check if an object has a specific property
+ * @param obj - The object to check
+ * @param prop - The property to check for
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T, 
+  prop: K
+): obj is T & Record<K, unknown> {
+  return obj !== null && typeof obj === 'object' && prop in obj;
+}
 
-// Type-safe status casting functions for common tables
-export const asLeaseStatus = (status: string): LeaseStatusType => status as LeaseStatusType;
-export const asVehicleStatus = (status: string): VehicleStatusType => status as VehicleStatusType;
-export const asPaymentStatus = (status: string): PaymentStatusType => status as PaymentStatusType;
-export const asProfileStatus = (status: string): ProfileStatusType => status as ProfileStatusType;
-export const asTrafficFinePaymentStatus = (status: string): TrafficFinePaymentStatusType => status as TrafficFinePaymentStatusType;
+/**
+ * Safe access to response data
+ * @param response - The Supabase response
+ * @param defaultValue - Default value if the response is invalid
+ */
+export function safeResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  defaultValue: T | null = null
+): T | null {
+  if (isValidResponse(response)) {
+    return response.data;
+  }
+  return defaultValue;
+}
 
-// Helper for handling Supabase response data safely
-export function handleSupabaseResponse<T>(response: { data: T | null; error: any }): T | null {
-  if (response.error) {
-    console.error("Supabase response error:", response.error);
+/**
+ * Safe property access with fallback
+ * @param obj - The object to access
+ * @param prop - The property to access
+ * @param fallback - Fallback value if property doesn't exist
+ */
+export function safeProperty<T, K extends keyof T>(obj: T | null | undefined, prop: K, fallback: T[K]): T[K] {
+  if (obj !== null && obj !== undefined && prop in obj) {
+    return obj[prop];
+  }
+  return fallback;
+}
+
+/**
+ * Safe type casting with error checking
+ * @param response - Supabase response to check
+ * @param transform - Function to transform response data if valid
+ */
+export function safeTransform<T, R>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  transform: (data: T) => R
+): R | null {
+  if (isValidResponse(response)) {
+    return transform(response.data);
+  }
+  return null;
+}
+
+/**
+ * Type guard to check if a response is an error
+ */
+export function isErrorResponse(response: any): response is { error: Error } {
+  return response && response.error !== null && response.error !== undefined;
+}
+
+/**
+ * Safe database query execution that handles errors
+ */
+export async function safeQueryExecution<T>(
+  queryFn: () => Promise<PostgrestSingleResponse<T> | PostgrestResponse<T>>,
+  errorHandler?: (error: any) => void
+): Promise<T | null> {
+  try {
+    const response = await queryFn();
+    
+    if (response.error) {
+      console.error("Database query error:", response.error);
+      errorHandler?.(response.error);
+      return null;
+    }
+    
+    return response.data as T;
+  } catch (error) {
+    console.error("Unexpected error during query execution:", error);
+    errorHandler?.(error);
     return null;
   }
-  return response.data;
 }
 
-// Safe type casting for IDs to help with TypeScript errors
-export function castId(id: string, table: TableName): any {
-  return id as any; // This helps circumvent TypeScript's strict checking when we know the ID is valid
-}
-
-// Constants for agreement statuses to ensure consistency
-export const AGREEMENT_STATUSES = {
-  ACTIVE: 'active',
-  PENDING: 'pending',
-  PENDING_PAYMENT: 'pending_payment',
-  PENDING_DEPOSIT: 'pending_deposit',
-  DRAFT: 'draft', 
-  CANCELLED: 'cancelled',
-  COMPLETED: 'completed',
-  TERMINATED: 'terminated',
-  CLOSED: 'closed',
-  ARCHIVED: 'archived',
-  EXPIRED: 'expired'
-} as const;
-
-// Constants for payment statuses
-export const PAYMENT_STATUSES = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  PARTIALLY_PAID: 'partially_paid',
-  OVERDUE: 'overdue',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
-  PROCESSING: 'processing'
-} as const;
-
-// Helper functions for handling type-safe database queries
-export function safelyGetProperty<T, K extends keyof T>(obj: T | null, key: K): T[K] | undefined {
-  return obj ? obj[key] : undefined;
-}
-
-// Helper to safely extract data from Supabase responses
-export function safelyExtractData<T>(response: { data: T | null, error: any }): T | null {
-  if (response.error) {
-    console.error("Database error:", response.error);
-    return null;
+/**
+ * Type-safe error extraction
+ */
+export function getErrorMessage(error: any): string {
+  if (typeof error === 'object' && error !== null) {
+    return error.message || error.toString() || 'Unknown error';
   }
-  return response.data;
-}
-
-// Helper to safely handle data from responses that may have errors
-export function safelyMapData<T, R>(data: T | null, mapFn: (item: T) => R): R | null {
-  if (!data) return null;
-  return mapFn(data);
-}
-
-// Type guard to check if a response has valid data
-export function isValidResponse<T>(response: { data: T | null, error: any }): response is { data: T, error: null } {
-  return !response.error && response.data !== null;
-}
-
-// Safe data access for potentially null responses
-export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
-  if (!obj) return undefined;
-  return obj[key];
+  return String(error || 'Unknown error');
 }

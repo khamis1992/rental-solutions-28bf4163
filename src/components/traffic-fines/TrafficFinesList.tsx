@@ -35,8 +35,6 @@ import {
   UserCheck,
   DollarSign,
   Users,
-  Loader2,
-  AlertCircle
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
@@ -44,46 +42,21 @@ import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'; 
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
 }
 
-interface AssignmentResult {
-  id: string;
-  licensePlate?: string;
-  success: boolean;
-  error?: string;
-  message?: string;
-}
-
 const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer, cleanupInvalidAssignments } = useTrafficFines();
+  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
-  const [assignmentResults, setAssignmentResults] = useState<AssignmentResult[]>([]);
-  const [showAssignmentResults, setShowAssignmentResults] = useState(false);
-  const [showInvalidAssignments, setShowInvalidAssignments] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   ) : [];
-
-  // Check for invalid date ranges in fine assignments
-  const invalidAssignments = filteredFines.filter(fine => {
-    if (!fine.leaseId || !fine.leaseStartDate || !fine.violationDate) return false;
-    
-    const violationDate = new Date(fine.violationDate);
-    const leaseStartDate = new Date(fine.leaseStartDate);
-    const leaseEndDate = fine.leaseEndDate ? new Date(fine.leaseEndDate) : new Date();
-    
-    return violationDate < leaseStartDate || violationDate > leaseEndDate;
-  });
-  
-  const hasInvalidAssignments = invalidAssignments.length > 0;
 
   const assignedFines = filteredFines.filter(fine => fine.customerId);
   const unassignedFines = filteredFines.filter(fine => !fine.customerId);
@@ -102,9 +75,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
-      setAssignmentResults([]);
-      setShowAssignmentResults(false);
-      
       toast.info("Auto-assigning fines", {
         description: "Please wait while fines are assigned to customers..."
       });
@@ -112,7 +82,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
       let assignedCount = 0;
       let failedCount = 0;
       const pendingFines = filteredFines.filter(fine => !fine.customerId);
-      const results: AssignmentResult[] = [];
 
       if (pendingFines.length === 0) {
         toast.info("No unassigned fines to process");
@@ -123,37 +92,20 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
       console.log(`Attempting to auto-assign ${pendingFines.length} fines`);
 
       for (const fine of pendingFines) {
-        const result: AssignmentResult = {
-          id: fine.id,
-          licensePlate: fine.licensePlate,
-          success: false
-        };
-        
         if (!fine.licensePlate) {
-          result.error = 'Missing license plate';
-          results.push(result);
-          failedCount++;
+          console.log(`Skipping fine ${fine.id} - missing license plate`);
           continue;
         }
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutateAsync({ id: fine.id });
-          result.success = true;
-          result.message = 'Successfully assigned';
+          await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
-          result.error = error instanceof Error ? error.message : String(error);
           failedCount++;
         }
-        
-        results.push(result);
       }
-
-      // Store the results for detailed reporting
-      setAssignmentResults(results);
-      setShowAssignmentResults(true);
 
       if (assignedCount > 0) {
         toast.success(`Successfully assigned ${assignedCount} out of ${pendingFines.length} fines to customers`);
@@ -171,10 +123,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
       setAssigningFines(false);
     }
   };
-  
-  const handleFixInvalidAssignments = () => {
-    cleanupInvalidAssignments.mutate();
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -190,19 +138,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
   const getCustomerAssignmentStatus = (fine: any) => {
     if (fine.customerId) {
-      const isInvalidAssignment = fine.leaseId && fine.violationDate && fine.leaseStartDate && (
-        new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
-        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate))
-      );
-      
-      if (isInvalidAssignment) {
-        return (
-          <Badge className="bg-orange-500 text-white border-orange-600">
-            <AlertTriangle className="mr-1 h-3 w-3" /> Invalid Assignment
-          </Badge>
-        );
-      }
-      
       return (
         <Badge className="bg-blue-500 text-white border-blue-600">
           <UserCheck className="mr-1 h-3 w-3" /> Assigned
@@ -237,93 +172,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
           iconColor="text-red-500"
         />
       </div>
-
-      {hasInvalidAssignments && (
-        <Alert variant={showInvalidAssignments ? "default" : "destructive"} className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
-          <AlertDescription className="flex flex-col gap-2">
-            <p>
-              {invalidAssignments.length} traffic {invalidAssignments.length === 1 ? 'fine is' : 'fines are'} assigned to customers 
-              but the violation dates fall outside the lease periods.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => setShowInvalidAssignments(!showInvalidAssignments)}
-              >
-                {showInvalidAssignments ? 'Hide' : 'Show'} Invalid Assignments
-              </Button>
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                onClick={handleFixInvalidAssignments}
-                disabled={cleanupInvalidAssignments.isPending}
-              >
-                {cleanupInvalidAssignments.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Fixing...
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="mr-2 h-3 w-3" />
-                    Fix Invalid Assignments
-                  </>
-                )}
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {showAssignmentResults && assignmentResults.length > 0 && (
-        <Alert variant="default" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Auto-Assignment Results</AlertTitle>
-          <AlertDescription>
-            <div className="max-h-40 overflow-y-auto mt-2">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr>
-                    <th className="text-left">License Plate</th>
-                    <th className="text-left">Status</th>
-                    <th className="text-left">Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignmentResults.map((result) => (
-                    <tr key={result.id} className="border-t">
-                      <td className="py-1">{result.licensePlate || 'N/A'}</td>
-                      <td className="py-1">
-                        {result.success ? (
-                          <span className="text-green-500 flex items-center">
-                            <CheckCircle className="h-3 w-3 mr-1" /> Success
-                          </span>
-                        ) : (
-                          <span className="text-red-500 flex items-center">
-                            <X className="h-3 w-3 mr-1" /> Failed
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-1 truncate max-w-[250px]">{result.message || result.error || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="mt-2"
-              onClick={() => setShowAssignmentResults(false)}
-            >
-              Hide Details
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <Card>
         <CardHeader>
@@ -385,15 +233,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                     </TableCell>
                   </TableRow>
                 ) : filteredFines.length > 0 ? (
-                  filteredFines.filter(fine => {
-                    // Filter out invalid assignments if not showing them
-                    if (!showInvalidAssignments && fine.customerId && fine.leaseId && fine.violationDate && fine.leaseStartDate) {
-                      const isInvalid = new Date(fine.violationDate) < new Date(fine.leaseStartDate) || 
-                        (fine.leaseEndDate && new Date(fine.violationDate) > new Date(fine.leaseEndDate));
-                      return !isInvalid;
-                    }
-                    return true;
-                  }).map((fine) => (
+                  filteredFines.map((fine) => (
                     <TableRow key={fine.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">

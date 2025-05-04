@@ -33,8 +33,8 @@ const formSchema = z.object({
   case_type: z.nativeEnum(LegalCaseType, {
     required_error: 'Please select a case type',
   }),
-  description: z.string().min(1, 'Description is required'),
-  amount_owed: z.coerce.number().min(0, 'Amount must be a positive number'),
+  description: z.string().optional(),
+  amount_owed: z.coerce.number().min(0, 'Amount must be a positive number').optional(),
   priority: z.nativeEnum(CasePriority).optional(),
   status: z.nativeEnum(LegalCaseStatus).optional(),
   assigned_to: z.string().optional(),
@@ -46,7 +46,7 @@ const NewLegalCase = () => {
   const navigate = useNavigate();
   const { createLegalCase, caseTypes, caseStatuses, casePriorities } = useLegalCases();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,24 +59,18 @@ const NewLegalCase = () => {
       assigned_to: '',
     },
   });
-
+  
   const onSubmit = async (data: FormValues) => {
     try {
       setIsSubmitting(true);
-
-      // Create the case data with required fields
-      const caseData = {
-        customer_id: data.customer_id,
-        case_type: data.case_type,
-        description: data.description,
+      
+      await createLegalCase({
+        ...data,
         amount_owed: data.amount_owed || 0,
-        priority: data.priority,
-        status: data.status,
-        assigned_to: data.assigned_to,
-      };
-
-      await createLegalCase(caseData);
-
+        resolution_date: null,
+        resolution_notes: null
+      });
+      
       toast.success('Legal case created successfully');
       navigate('/legal');
     } catch (error) {
@@ -86,7 +80,7 @@ const NewLegalCase = () => {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
     <Card>
       <CardContent className="p-6">
@@ -106,7 +100,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="case_type"
@@ -131,7 +125,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="amount_owed"
@@ -146,7 +140,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="priority"
@@ -171,7 +165,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="status"
@@ -196,7 +190,7 @@ const NewLegalCase = () => {
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="assigned_to"
@@ -211,7 +205,7 @@ const NewLegalCase = () => {
                 )}
               />
             </div>
-
+            
             <FormField
               control={form.control}
               name="description"
@@ -219,17 +213,17 @@ const NewLegalCase = () => {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Describe the legal case"
-                      className="min-h-[120px]"
-                      {...field}
+                    <Textarea 
+                      placeholder="Describe the legal case" 
+                      className="min-h-[120px]" 
+                      {...field} 
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
             <div className="flex gap-4 justify-end">
               <Button type="button" variant="outline" onClick={() => navigate('/legal')}>
                 Cancel

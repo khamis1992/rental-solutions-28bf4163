@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -12,7 +11,7 @@ import { AlertTriangle, Calendar, RefreshCcw, FileText, User, Car, Gavel, BarCha
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement'; // Updated import path
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { supabase } from '@/lib/supabase';
 import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';

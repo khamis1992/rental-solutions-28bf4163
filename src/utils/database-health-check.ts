@@ -1,6 +1,6 @@
 
 import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
-import { showErrorNotification } from './notification/error-notification-manager';
+import { toast } from 'sonner';
 
 /**
  * Check the health of the Supabase connection using the client's built-in health check
@@ -13,12 +13,6 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
     
     if (!result.isHealthy) {
       console.error('Database health check failed:', result.error);
-      
-      // Show a notification with our anti-fatigue system
-      showErrorNotification('Database health check failed', {
-        description: result.error,
-        id: 'db-health-check-failed'
-      });
     } else {
       console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
     }
@@ -30,13 +24,6 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
     console.error('Database connection error:', errorMessage);
-    
-    // Show a notification with our anti-fatigue system
-    showErrorNotification('Database connection error', {
-      description: errorMessage,
-      id: 'db-connection-error-check'
-    });
-    
     return { isHealthy: false, error: errorMessage };
   }
 };

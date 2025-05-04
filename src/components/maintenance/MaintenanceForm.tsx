@@ -1,135 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
+import React from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { maintenanceSchema } from '@/lib/validation-schemas/maintenance';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { DatePicker } from "@/components/ui/date-picker";
-import { useVehicle } from '@/hooks/use-vehicle';
-import { supabase } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import * as z from 'zod';
+import { 
+  Maintenance, 
+  maintenanceSchema, 
+  MaintenanceStatus, 
+  MaintenanceType 
+} from '@/lib/validation-schemas/maintenance';
+import { useVehicles } from '@/hooks/use-vehicles';
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CustomButton } from '@/components/ui/custom-button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
-const MaintenanceForm = ({ initialData = null }) => {
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const { vehicles } = useVehicle();
-  
-  const form = useForm({
+// Create form schema type
+type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;
+
+interface MaintenanceFormProps {
+  initialData?: Partial<Maintenance>;
+  onSubmit: (data: MaintenanceFormSchema) => void;
+  isLoading?: boolean;
+  isEditMode?: boolean;
+  submitLabel?: string;
+}
+
+const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
+  initialData,
+  onSubmit,
+  isLoading = false,
+  isEditMode = false,
+  submitLabel,
+}) => {
+  // Setup form with validation
+  const form = useForm<MaintenanceFormSchema>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
-      vehicle_id: initialData?.vehicle_id || "",
-      maintenance_type: initialData?.maintenance_type || "",
-      description: initialData?.description || "",
-      cost: initialData?.cost || "",
-      date_performed: initialData?.date_performed ? new Date(initialData.date_performed) : null,
-      next_maintenance_date: initialData?.next_maintenance_date ? new Date(initialData.next_maintenance_date) : null,
-      service_provider: initialData?.service_provider || "",
-      notes: initialData?.notes || "",
-      status: initialData?.status || "completed",
-    }
+      vehicle_id: initialData?.vehicle_id || '',
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
+      status: (initialData?.status as "scheduled" | "in_progress" | "completed" | "cancelled") || MaintenanceStatus.SCHEDULED,
+      scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
+      completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
+      description: initialData?.description || '',
+      cost: initialData?.cost || 0,
+      service_provider: initialData?.service_provider || '',
+      invoice_number: initialData?.invoice_number || '',
+      odometer_reading: initialData?.odometer_reading || 0,
+      notes: initialData?.notes || '',
+    },
   });
 
-  useEffect(() => {
-    if (initialData) {
-      Object.keys(initialData).forEach((key) => {
-        if (key === 'date_performed' || key === 'next_maintenance_date') {
-          if (initialData[key]) {
-            // @ts-ignore - Safely set date values
-            form.setValue(key, new Date(initialData[key]));
-          }
-        } else {
-          // @ts-ignore - Safely set other values
-          form.setValue(key, initialData[key]);
-        }
-      });
-    }
-  }, [initialData, form]);
+  // Get vehicles for the dropdown
+  const { useList } = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useList();
 
-  const onSubmit = async (data) => {
-    setIsLoading(true);
-    try {
-      const formattedData = {
-        ...data,
-        date_performed: data.date_performed?.toISOString(),
-        next_maintenance_date: data.next_maintenance_date?.toISOString(),
-        cost: parseFloat(data.cost)
-      };
-
-      if (initialData?.id) {
-        // Update existing maintenance record
-        const { error } = await supabase
-          .from('maintenance')
-          .update(formattedData)
-          .eq('id', initialData.id);
-          
-        if (error) {
-          throw error;
-        }
-        
-        toast.success("Maintenance record updated successfully!");
-        navigate('/maintenance');
-      } else {
-        // Create new maintenance record
-        const { error } = await supabase
-          .from('maintenance')
-          .insert(formattedData);
-          
-        if (error) {
-          throw error;
-        }
-        
-        toast.success("Maintenance record created successfully!");
-        navigate('/maintenance');
-      }
-    } catch (error) {
-      console.error("Error submitting maintenance form:", error);
-      toast.error("Failed to save maintenance record. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  // Format the maintenance type value
+  const formatMaintenanceType = (type: string) => {
+    if (!type) return 'Unknown Type';
+    return type
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
-  const vehicleOptions = vehicles && Array.isArray(vehicles) 
-    ? vehicles 
-    : [];
+  // Make sure vehicles has a default value if it's undefined
+  const vehiclesList = vehicles || [];
+
+  // Filter out invalid vehicle data to prevent select errors
+  const validVehicles = vehiclesList.filter(vehicle => 
+    vehicle && 
+    vehicle.id && 
+    vehicle.make && 
+    vehicle.model && 
+    vehicle.license_plate
+  );
+
+  // Check if there are any vehicles available
+  const hasVehicles = validVehicles.length > 0;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{initialData ? "Edit Maintenance Record" : "Add New Maintenance Record"}</CardTitle>
+        <CardTitle>{isEditMode ? 'Edit Maintenance Record' : 'Add Maintenance Record'}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Vehicle Selection */}
               <FormField
                 control={form.control}
                 name="vehicle_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value || undefined}
+                      disabled={isLoadingVehicles}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a vehicle" />
+                          <SelectValue placeholder="Select vehicle" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicleOptions.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.make} {vehicle.model} - {vehicle.license_plate}
+                        {hasVehicles ? (
+                          validVehicles.map(vehicle => (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id}
+                            >
+                              {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Maintenance Type */}
+              <FormField
+                control={form.control}
+                name="maintenance_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maintenance Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select maintenance type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(MaintenanceType).map(([key, value]) => (
+                          <SelectItem 
+                            key={key} 
+                            value={value}
+                          >
+                            {formatMaintenanceType(value)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -138,87 +168,18 @@ const MaintenanceForm = ({ initialData = null }) => {
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="maintenance_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maintenance Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select maintenance type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="oil_change">Oil Change</SelectItem>
-                        <SelectItem value="tire_rotation">Tire Rotation</SelectItem>
-                        <SelectItem value="brake_service">Brake Service</SelectItem>
-                        <SelectItem value="inspection">Inspection</SelectItem>
-                        <SelectItem value="engine_repair">Engine Repair</SelectItem>
-                        <SelectItem value="transmission_service">Transmission Service</SelectItem>
-                        <SelectItem value="body_repair">Body Repair</SelectItem>
-                        <SelectItem value="electrical">Electrical System</SelectItem>
-                        <SelectItem value="air_conditioning">Air Conditioning</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="date_performed"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date Performed</FormLabel>
-                    <DatePicker
-                      date={field.value}
-                      setDate={field.onChange}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cost</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="service_provider"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service Provider</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter service provider" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+
+              {/* Status */}
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value || MaintenanceStatus.SCHEDULED}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -235,23 +196,160 @@ const MaintenanceForm = ({ initialData = null }) => {
                   </FormItem>
                 )}
               />
-              
+
+              {/* Scheduled Date */}
               <FormField
                 control={form.control}
-                name="next_maintenance_date"
+                name="scheduled_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Next Maintenance Date</FormLabel>
-                    <DatePicker
-                      date={field.value}
-                      setDate={field.onChange}
-                    />
+                    <FormLabel>Scheduled Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <CustomButton
+                            variant={"outline"}
+                            className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </CustomButton>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date("1900-01-01")}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Completion Date - only show if status is completed */}
+              {form.watch('status') === 'completed' && (
+                <FormField
+                  control={form.control}
+                  name="completion_date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Completion Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <CustomButton
+                              variant={"outline"}
+                              className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </CustomButton>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value || undefined}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date("1900-01-01")}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Cost */}
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost ($)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00" 
+                        {...field}
+                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Service Provider */}
+              <FormField
+                control={form.control}
+                name="service_provider"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Provider</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Auto Shop Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Invoice Number */}
+              <FormField
+                control={form.control}
+                name="invoice_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invoice Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="INV-12345" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Odometer Reading */}
+              <FormField
+                control={form.control}
+                name="odometer_reading"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Odometer Reading (km)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="0" 
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
+
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -259,35 +357,53 @@ const MaintenanceForm = ({ initialData = null }) => {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter maintenance description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Enter additional notes" {...field} />
+                    <Textarea 
+                      placeholder="Describe the maintenance work required or performed" 
+                      {...field}
+                      rows={3}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <CardFooter className="px-0 pb-0">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Saving..." : initialData ? "Update Maintenance Record" : "Create Maintenance Record"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </CardContent>
+            {/* Notes */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Notes</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Add any additional information or notes" 
+                      {...field}
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          
+          <CardFooter className="flex justify-between">
+            <CustomButton
+              type="button"
+              variant="outline"
+              onClick={() => window.history.back()}
+            >
+              Cancel
+            </CustomButton>
+            
+            <CustomButton type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitLabel || (isEditMode ? 'Update Record' : 'Create Record')}
+            </CustomButton>
+          </CardFooter>
+        </form>
+      </Form>
     </Card>
   );
 };

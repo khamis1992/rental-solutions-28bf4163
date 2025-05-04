@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { checkAndCreateMissingPaymentSchedules } from '@/utils/payment-maintenance';
+import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';

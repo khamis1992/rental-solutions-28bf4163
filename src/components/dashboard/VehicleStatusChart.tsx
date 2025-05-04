@@ -114,7 +114,6 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                     key={status.key}
                     status={status}
                     count={count}
-                    totalVehicles={data.total}
                     onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
                   />
                 );

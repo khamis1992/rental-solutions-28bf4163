@@ -1,92 +1,77 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useTrafficFines, TrafficFineCreatePayload } from "@/hooks/use-traffic-fines";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Loader2, CalendarIcon } from "lucide-react";
-import { toast } from "sonner";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import React from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle, Calendar } from 'lucide-react';
+import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
+import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
-const fineSchema = z.object({
-  violationNumber: z.string().min(1, "Required"),
-  licensePlate: z.string().min(1, "Required"),
+// Define the schema for traffic fine entry form
+const trafficFineSchema = z.object({
+  violationNumber: z.string().min(1, 'Violation number is required'),
+  licensePlate: z.string().min(1, 'License plate is required'),
   violationDate: z.date({
-    required_error: "Please select a date",
+    required_error: 'Violation date is required',
   }),
-  fineAmount: z.coerce
-    .number()
-    .min(0.01, "Amount must be greater than 0")
-    .refine((amount) => !isNaN(amount), {
-      message: "Must be a valid number",
-    }),
+  fineAmount: z.coerce.number().min(0, 'Fine amount must be a positive number'),
   violationCharge: z.string().optional(),
   location: z.string().optional(),
+  paymentStatus: z.enum(['pending', 'paid', 'disputed']).default('pending'),
 });
+
+type TrafficFineFormData = z.infer<typeof trafficFineSchema>;
 
 interface TrafficFineEntryProps {
   onFineSaved?: () => void;
 }
 
-const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
+const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
   const { createTrafficFine } = useTrafficFines();
-  const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof fineSchema>>({
-    resolver: zodResolver(fineSchema),
+  const form = useForm<TrafficFineFormData>({
+    resolver: zodResolver(trafficFineSchema),
     defaultValues: {
-      violationNumber: "",
-      licensePlate: "",
-      violationCharge: "",
-      location: "",
-      fineAmount: undefined,
+      violationNumber: `TF-${Math.floor(Math.random() * 10000)}`,
+      licensePlate: '',
+      violationDate: new Date(),
+      fineAmount: 0,
+      violationCharge: '',
+      location: '',
+      paymentStatus: 'pending',
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof fineSchema>) => {
-    setLoading(true);
+  const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      // Ensure all required fields are present and properly typed
-      const payload: TrafficFineCreatePayload = {
-        violationNumber: values.violationNumber,
-        licensePlate: values.licensePlate,
-        violationDate: values.violationDate,
-        fineAmount: values.fineAmount,
-        violationCharge: values.violationCharge || undefined,
-        location: values.location || undefined,
-        paymentStatus: 'pending'
-      };
-
-      await createTrafficFine.mutateAsync(payload);
-
-      // Reset form on successful save
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload);
+      toast.success("Traffic fine created successfully");
       form.reset();
-
       if (onFineSaved) {
         onFineSaved();
       }
     } catch (error) {
-      console.error("Error creating traffic fine:", error);
       toast.error("Failed to create traffic fine", {
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error ? error.message : "An unknown error occurred"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -95,12 +80,17 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
       <CardHeader>
         <CardTitle>Record New Traffic Fine</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Important</AlertTitle>
+              <AlertDescription>
+                Make sure to enter the correct license plate to ensure proper customer assignment.
+              </AlertDescription>
+            </Alert>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -109,7 +99,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                   <FormItem>
                     <FormLabel>Violation Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter violation number" {...field} />
+                      <Input {...field} placeholder="e.g., TF-12345" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -121,10 +111,13 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                 name="licensePlate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>License Plate</FormLabel>
+                    <FormLabel>License Plate *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter license plate" {...field} />
+                      <Input {...field} placeholder="e.g., ABC123" />
                     </FormControl>
+                    <FormDescription>
+                      License plate is required to match the fine to a vehicle
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -143,28 +136,23 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                         <FormControl>
                           <Button
                             variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            className={`w-full pl-3 text-left font-normal ${!field.value && "text-muted-foreground"}`}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
                             ) : (
                               <span>Pick a date</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
+                        <CalendarComponent
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("2000-01-01")
-                          }
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                           initialFocus
                         />
                       </PopoverContent>
@@ -179,16 +167,14 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                 name="fineAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>Fine Amount</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter fine amount"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(value === "" ? undefined : Number(value));
-                        }}
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        step="0.01" 
+                        {...field} 
+                        placeholder="0.00" 
                       />
                     </FormControl>
                     <FormMessage />
@@ -205,11 +191,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                   <FormItem>
                     <FormLabel>Violation Charge</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Enter violation type (optional)"
-                        {...field}
-                        value={field.value || ""}
-                      />
+                      <Input {...field} placeholder="e.g., Speeding" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -218,38 +200,48 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
 
               <FormField
                 control={form.control}
-                name="location"
+                name="paymentStatus"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter location (optional)"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
+                    <FormLabel>Payment Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="disputed">Disputed</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Fine"
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder="Enter violation location details" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+
+          <CardFooter>
+            <Button type="submit" className="w-full">Create Traffic Fine</Button>
+          </CardFooter>
+        </form>
+      </Form>
     </Card>
   );
 };

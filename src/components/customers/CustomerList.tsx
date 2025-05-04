@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Table, TableBody, TableCell, TableHead, 
@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useCustomerService } from '@/hooks/services/useCustomerService';
+import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
 
@@ -27,26 +27,12 @@ const ITEMS_PER_PAGE = 10;
 
 export function CustomerList({ searchParams }: CustomerListProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Use customer service hook with the provided search parameters
   const {
     customers,
     isLoading,
     error,
     deleteCustomer,
-    filters,
-    setFilters,
-  } = useCustomerService();
-  
-  // Update filters when search params change
-  useEffect(() => {
-    if (searchParams) {
-      setFilters({
-        query: searchParams.query || '',
-        status: searchParams.status === 'all' ? undefined : searchParams.status,
-      });
-    }
-  }, [searchParams, setFilters]);
+  } = useCustomers();
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
@@ -122,7 +108,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                     </Link>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone_number}</TableCell>
+                  <TableCell>{customer.phone}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -146,7 +132,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
                             if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                              deleteCustomer(customer.id);
+                              deleteCustomer.mutate(customer.id);
                             }
                           }}
                         >

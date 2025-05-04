@@ -160,12 +160,6 @@ const TrafficFineReport = () => {
   // Collect all unassigned fines
   const unassignedFinesList = finesToDisplay.filter(fine => !fine.customerId);
 
-  // Around line 117, fix the mutate call:
-  const handleRefreshData = () => {
-    // Pass an empty object if no arguments are expected
-    assignToCustomer.mutate({});
-  };
-
   return (
     <div className="space-y-6">
       {/* Summary Cards */}

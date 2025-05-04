@@ -1,169 +1,126 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { LEASE_STATUSES, PAYMENT_STATUSES } from '@/types/database-common';
-import { useTypedErrorHandling } from '@/hooks/use-typed-error-handling';
-import { formatTypedErrorMessage } from '@/utils/type-safe-errors';
-import { withTimeoutAndRetry } from '@/utils/promise-utils';
+import { LEASE_STATUSES } from '@/types/lease-types';
+import { asLeaseStatus, asPaymentStatus } from '@/types/database-common';
 
-interface Stats {
+interface AgreementStats {
+  totalAgreements: number;
   activeAgreements: number;
   pendingPayments: number;
-  expiredAgreements: number;
-  averageRentAmount: string;
+  overduePayments: number;
+  activeValue: number;
 }
 
-interface CountResult {
-  count: number;
-}
-
-interface AvgRentResult {
-  rent_amount: number;
-}
-
-export default function AgreementStats() {
-  const [stats, setStats] = React.useState<Stats>({
+export function AgreementStats() {
+  const [stats, setStats] = useState<AgreementStats>({
+    totalAgreements: 0,
     activeAgreements: 0,
     pendingPayments: 0,
-    expiredAgreements: 0,
-    averageRentAmount: '$0'
+    overduePayments: 0,
+    activeValue: 0
   });
-  
-  const { 
-    isLoading, 
-    runWithErrorHandling, 
-    errorState 
-  } = useTypedErrorHandling({
-    showToast: true,
-    captureErrors: true
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        
+        const { count: totalCount } = await supabase
+          .from('leases')
+          .select('*', { count: 'exact', head: true });
+        
+        const { count: activeCount } = await supabase
+          .from('leases')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
+          
+        const { count: pendingPaymentsCount } = await supabase
+          .from('unified_payments')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', asPaymentStatus('pending'));
+          
+        const { count: overduePaymentsCount } = await supabase
+          .from('unified_payments')
+          .select('*', { count: 'exact', head: true })
+          .gt('days_overdue', 0);
+          
+        const { data: activeAgreements } = await supabase
+          .from('leases')
+          .select('rent_amount')
+          .eq('status', asLeaseStatus(LEASE_STATUSES.ACTIVE));
+
+        const activeValue = activeAgreements?.reduce((sum, agreement) => 
+          sum + (Number(agreement?.rent_amount) || 0), 0) || 0;
+        
+        setStats({
+          totalAgreements: totalCount || 0,
+          activeAgreements: activeCount || 0,
+          pendingPayments: pendingPaymentsCount || 0,
+          overduePayments: overduePaymentsCount || 0,
+          activeValue
+        });
+      } catch (error) {
+        console.error("Error fetching agreement stats:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
     fetchStats();
   }, []);
 
-  async function fetchStats() {
-    await runWithErrorHandling(async () => {
-      // Use our improved timeout handling for potentially hanging DB queries
-      const result = await withTimeoutAndRetry(
-        async () => {
-          // Create the queries
-          const activeAgreementsPromise = supabase
-            .from('leases')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', LEASE_STATUSES.ACTIVE);
-
-          const pendingPaymentsPromise = supabase
-            .from('unified_payments')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', PAYMENT_STATUSES.PENDING);
-
-          const expiredAgreementsPromise = supabase
-            .from('leases')
-            .select('count', { count: 'exact', head: true })
-            .eq('status', LEASE_STATUSES.EXPIRED);
-
-          const avgRentPromise = supabase.rpc('get_average_rent_amount');
-
-          // Execute all queries in parallel and handle with type-safe error handling
-          const [activeResult, pendingResult, expiredResult, avgRentResult] = await Promise.all([
-            activeAgreementsPromise,
-            pendingPaymentsPromise,
-            expiredAgreementsPromise,
-            avgRentPromise
-          ]);
-
-          // Handle errors and extract data safely
-          if (activeResult.error) {
-            console.error('Error fetching active agreements count:', formatTypedErrorMessage(activeResult.error));
-          }
-
-          if (pendingResult.error) {
-            console.error('Error fetching pending payments count:', formatTypedErrorMessage(pendingResult.error));
-          }
-
-          if (expiredResult.error) {
-            console.error('Error fetching expired agreements count:', formatTypedErrorMessage(expiredResult.error));
-          }
-
-          if (avgRentResult.error) {
-            console.error('Error fetching average rent amount:', formatTypedErrorMessage(avgRentResult.error));
-          }
-          
-          // Handle average rent amount if available
-          let averageRent = '$0';
-          if (avgRentResult.data && avgRentResult.data.rent_amount !== null) {
-            averageRent = formatCurrency(avgRentResult.data.rent_amount || 0);
-          }
-          
-          // Extract counts safely with fallbacks to 0
-          const activeCount = activeResult.data?.[0]?.count || 0;
-          const pendingCount = pendingResult.data?.[0]?.count || 0;
-          const expiredCount = expiredResult.data?.[0]?.count || 0;
-          
-          return { activeCount, pendingCount, expiredCount, averageRent };
-        },
-        {
-          operationName: "Agreement stats fetch",
-          timeoutMs: 8000
-        }
-      );
-
-      if (result.success && result.data) {
-        const { activeCount, pendingCount, expiredCount, averageRent } = result.data;
-        
-        setStats({
-          activeAgreements: activeCount,
-          pendingPayments: pendingCount,
-          expiredAgreements: expiredCount,
-          averageRentAmount: averageRent
-        });
-      }
-
-      // Return data for potential chaining
-      return result;
-    });
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Agreements</CardTitle>
-        </CardHeader>
-        <CardContent className="text-2xl font-bold">
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.activeAgreements}
-        </CardContent>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-blue-100 p-3 rounded-lg">
+          <FileText className="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Total Agreements</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.totalAgreements}
+          </h3>
+        </div>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Payments</CardTitle>
-        </CardHeader>
-        <CardContent className="text-2xl font-bold">
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.pendingPayments}
-        </CardContent>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-green-100 p-3 rounded-lg">
+          <FileCheck className="h-6 w-6 text-green-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Active Agreements</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.activeAgreements}
+          </h3>
+        </div>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Expired Agreements</CardTitle>
-        </CardHeader>
-        <CardContent className="text-2xl font-bold">
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.expiredAgreements}
-        </CardContent>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-yellow-100 p-3 rounded-lg">
+          <FileClock className="h-6 w-6 text-yellow-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Pending Payments</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : stats.pendingPayments}
+          </h3>
+        </div>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Average Rent Amount</CardTitle>
-        </CardHeader>
-        <CardContent className="text-2xl font-bold">
-          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.averageRentAmount}
-        </CardContent>
+      
+      <Card className="p-4 flex items-center space-x-4">
+        <div className="bg-red-100 p-3 rounded-lg">
+          <AlertCircle className="h-6 w-6 text-red-600" />
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Monthly Revenue</p>
+          <h3 className="text-2xl font-bold">
+            {isLoading ? "..." : formatCurrency(stats.activeValue)}
+          </h3>
+        </div>
       </Card>
     </div>
   );

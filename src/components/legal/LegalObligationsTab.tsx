@@ -104,8 +104,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       <CardContent>
         <div className="space-y-4">
           {obligations.map((obligation) => (
-            <div
-              key={obligation.id}
+            <div 
+              key={obligation.id} 
               className={`p-4 rounded-md border ${
                 obligation.urgency === 'critical' ? 'border-l-4 border-l-red-500' :
                 obligation.urgency === 'high' ? 'border-l-4 border-l-orange-500' :
@@ -127,11 +127,11 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                     )}
                     <h4 className="font-medium">{obligation.description}</h4>
                   </div>
-
+                  
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Amount Due:</span> {formatCurrency(obligation.amount)}
-                      {obligation.lateFine !== undefined && obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+                      {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
                         <span className="text-xs text-red-500 block">
                           Includes late fine: {formatCurrency(obligation.lateFine)}
                         </span>
@@ -153,9 +153,9 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                     </div>
                   </div>
                 </div>
-
+                
                 <div className="flex space-x-2">
-                  {obligation.agreementId !== undefined && (
+                  {obligation.agreementId && (
                     <Button variant="outline" size="sm" asChild>
                       <Link to={`/agreements/${obligation.agreementId}`}>
                         <FileText className="mr-2 h-4 w-4" />
@@ -163,7 +163,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                       </Link>
                     </Button>
                   )}
-
+                  
                   {obligation.obligationType === 'payment' && (
                     <Button variant="default" size="sm" onClick={() => handleProcessPayment(obligation)}>
                       <CreditCard className="mr-2 h-4 w-4" />

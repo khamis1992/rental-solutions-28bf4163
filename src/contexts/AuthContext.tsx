@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const isInitialMount = useRef(true);
   const hasToasted = useRef(false);
 
@@ -64,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Navigation will be handled by the router where this is used
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(`Sign in failed: ${error.message}`);
       throw error;
@@ -82,7 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) throw error;
       toast.success('Registration successful! Please check your email for verification.');
-      // Navigation will be handled by the router where this is used
     } catch (error: any) {
       toast.error(`Registration failed: ${error.message}`);
       throw error;
@@ -93,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      // Navigation will be handled by the router where this is used
+      navigate('/');
     } catch (error: any) {
       toast.error(`Sign out failed: ${error.message}`);
       throw error;

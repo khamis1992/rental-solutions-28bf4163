@@ -4,27 +4,18 @@
  * @module PaymentTypes
  */
 
-import { DbId, PaymentStatus as DbPaymentStatus } from './database-common';
+import { DbId } from './database-common';
 
 /**
- * Payment status enum
+ * Payment status tracking the lifecycle of a payment
+ * - pending: Payment is scheduled but not processed
+ * - processing: Payment is being processed
+ * - completed: Payment successfully processed
+ * - failed: Payment processing failed
+ * - refunded: Payment was refunded
+ * - cancelled: Payment was cancelled before processing
  */
-export enum PaymentStatusEnum {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-  CANCELLED = 'cancelled',
-  OVERDUE = 'overdue',
-  PARTIALLY_PAID = 'partially_paid',
-}
-
-/**
- * Payment status type
- * This must be compatible with database-common PaymentStatus type
- */
-export type PaymentStatus = DbPaymentStatus;
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
 /**
  * Core payment record structure
@@ -41,9 +32,9 @@ export interface Payment {
   /** Remaining balance */
   balance?: number;
   /** When payment was made */
-  payment_date?: string | Date | null;
+  payment_date?: string | null;
   /** Original due date */
-  due_date?: string | Date;
+  due_date?: string;
   /** Days payment is overdue */
   days_overdue?: number;
   /** Late fee amount if applicable */
@@ -58,25 +49,20 @@ export interface Payment {
   status?: PaymentStatus;
   /** Payment type (rent, deposit, fine, etc) */
   type?: string;
-  /** Notes about the payment */
-  notes?: string;
-  /** Reference number for external systems */
-  reference_number?: string;
 }
 
 /**
- * Input for recording a new payment
+ * Payment processing configuration and rules
  */
-export interface PaymentInput {
-  lease_id: DbId;
-  amount: number;
-  payment_date?: Date;
-  payment_method?: string;
-  notes?: string;
-  transaction_id?: string;
-  reference_number?: string;
-  include_late_fee?: boolean;
-  is_partial_payment?: boolean;
+export interface PaymentConfig {
+  /** Grace period in days before late fees apply */
+  gracePeriod: number;
+  /** Daily late fee amount */
+  dailyLateFee: number;
+  /** Maximum late fee cap */
+  maxLateFee: number;
+  /** Minimum partial payment percentage allowed */
+  minPartialPayment: number;
 }
 
 /**
@@ -90,17 +76,6 @@ export interface PaymentResult {
 }
 
 /**
- * Payment handler options
- */
-export interface PaymentHandlerOptions {
-  notes?: string;
-  paymentMethod?: string;
-  referenceNumber?: string;
-  includeLatePaymentFee?: boolean;
-  isPartialPayment?: boolean;
-}
-
-/**
  * Payment schedule for recurring payments
  */
 export interface PaymentSchedule {
@@ -108,6 +83,6 @@ export interface PaymentSchedule {
   lease_id: string;
   frequency: 'weekly' | 'monthly' | 'quarterly';
   amount: number;
-  next_date: string | Date;
-  end_date?: string | Date;
+  next_date: string;
+  end_date?: string;
 }

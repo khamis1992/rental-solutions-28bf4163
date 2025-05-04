@@ -1,8 +1,7 @@
 
 import { usePaymentService } from './services/usePaymentService';
 import { useQuery } from '@tanstack/react-query';
-import { Payment } from '@/types/payment.types';
-import { safeAsync } from '@/utils/error-handling';
+import type { Payment } from '@/types/agreement-types';
 
 export function usePayment(agreementId?: string) {
   const {
@@ -23,53 +22,33 @@ export function usePayment(agreementId?: string) {
     enabled: !!agreementId,
   });
 
-  interface PaymentSubmitParams {
-    amount: number;
-    paymentDate: Date;
-    notes?: string;
-    paymentMethod?: string;
-    referenceNumber?: string;
-    includeLatePaymentFee?: boolean;
-    isPartialPayment?: boolean;
-  }
-
-  const handlePaymentSubmit = async (params: PaymentSubmitParams): Promise<void> => {
+  const handlePaymentSubmit = async (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
+  ) => {
     if (!agreementId) return;
 
-    const {
-      amount,
-      paymentDate,
-      notes,
-      paymentMethod,
-      referenceNumber,
-      includeLatePaymentFee,
-      isPartialPayment
-    } = params;
-
-    // Using safeAsync for better error handling
-    const { error } = await safeAsync(
-      handleSpecialPayment(
-        agreementId, 
-        amount, 
-        paymentDate, 
-        {
-          notes,
-          paymentMethod,
-          referenceNumber,
-          includeLatePaymentFee,
-          isPartialPayment,
-        }
-      ), 
-      (err) => console.error("Payment submission failed:", err)
+    await handleSpecialPayment(
+      agreementId, 
+      amount, 
+      paymentDate, 
+      {
+        notes,
+        paymentMethod,
+        referenceNumber,
+        includeLatePaymentFee,
+        isPartialPayment,
+      }
     );
-
-    if (error) {
-      throw error; // Re-throw to allow caller to handle the error
-    }
   };
 
   return {
-    payments: paymentHistory as Payment[] | undefined,
+    payments: paymentHistory,
     isLoading,
     error,
     recordPayment,

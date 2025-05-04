@@ -11,10 +11,6 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import LicensePlateChangeAlert from '@/components/vehicles/LicensePlateChangeAlert';
-import { createLogger } from '@/utils/error-logger';
-
-const logger = createLogger('edit-vehicle');
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,8 +19,6 @@ const EditVehicle = () => {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [updateCompleted, setUpdateCompleted] = useState(false);
   const [statusUpdateInProgress, setStatusUpdateInProgress] = useState(false);
-  const [originalLicensePlate, setOriginalLicensePlate] = useState<string | null>(null);
-  const [showLicensePlateAlert, setShowLicensePlateAlert] = useState(false);
   
   // Local loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -44,19 +38,13 @@ const EditVehicle = () => {
     isPending: isUpdating,
   } = useUpdate();
   
-  // Store original license plate when vehicle is loaded
+  // Sync fetched data with local state, forcing an update when status changes
   useEffect(() => {
     if (fetchedVehicle) {
-      logger.debug("Vehicle data received from API:", fetchedVehicle);
+      console.log("Vehicle data received from API:", fetchedVehicle);
       setVehicle(fetchedVehicle);
       setIsLoading(false);
       setLoadError(null);
-      
-      // Store original license plate for comparison
-      if (!originalLicensePlate) {
-        setOriginalLicensePlate(fetchedVehicle.license_plate);
-        logger.debug(`Stored original license plate: ${fetchedVehicle.license_plate}`);
-      }
     }
     
     if (isFetching) {
@@ -66,7 +54,7 @@ const EditVehicle = () => {
     if (fetchError) {
       setIsLoading(false);
       setLoadError(fetchError instanceof Error ? fetchError : new Error('Failed to fetch vehicle'));
-      logger.error('Vehicle fetch error:', fetchError);
+      console.error('Vehicle fetch error:', fetchError);
     }
   }, [fetchedVehicle, isFetching, fetchError]);
 
@@ -88,22 +76,17 @@ const EditVehicle = () => {
     
     try {
       setIsSubmitting(true);
-      logger.debug("Submitting form data:", formData);
-      
-      // Check for license plate change
-      if (originalLicensePlate && formData.license_plate !== originalLicensePlate) {
-        logger.info(`License plate change detected: ${originalLicensePlate} → ${formData.license_plate}`);
-      }
+      console.log("Submitting form data:", formData);
       
       // Make sure to preserve the current status if not changed in the form
       if (!formData.status && vehicle.status) {
-        logger.debug(`Preserving current status: ${vehicle.status}`);
+        console.log(`Preserving current status: ${vehicle.status}`);
         formData.status = vehicle.status;
       }
       
       // Make sure status is properly handled
       if (formData.status) {
-        logger.debug(`EditVehicle: Status being submitted: ${formData.status}`);
+        console.log(`EditVehicle: Status being submitted: ${formData.status}`);
       }
       
       await new Promise<void>((resolve, reject) => {
@@ -111,28 +94,20 @@ const EditVehicle = () => {
           { id, data: formData },
           {
             onSuccess: async () => {
-              logger.debug("Update successful, refreshing data");
+              console.log("Update successful, refreshing data");
               try {
                 // Force data refresh from server before navigating
                 await refetch();
                 toast.success('Vehicle updated successfully');
-                
-                // Check if license plate changed
-                if (originalLicensePlate && formData.license_plate !== originalLicensePlate) {
-                  // Show license plate change alert instead of navigating immediately
-                  setShowLicensePlateAlert(true);
-                } else {
-                  setUpdateCompleted(true);
-                }
-                
+                setUpdateCompleted(true);
                 resolve();
               } catch (refreshError) {
-                logger.error('Error refreshing data:', refreshError);
+                console.error('Error refreshing data:', refreshError);
                 reject(refreshError);
               }
             },
             onError: (error) => {
-              logger.error('Update vehicle error:', error);
+              console.error('Update vehicle error:', error);
               toast.error('Failed to update vehicle', {
                 description: error instanceof Error ? error.message : 'Unknown error occurred',
               });
@@ -146,7 +121,7 @@ const EditVehicle = () => {
       });
     } catch (error) {
       setIsSubmitting(false);
-      logger.error('Edit vehicle submission error:', error);
+      console.error('Edit vehicle submission error:', error);
       toast.error('Error submitting form', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
@@ -155,14 +130,14 @@ const EditVehicle = () => {
   
   // Handle status update completion with forced refresh
   const handleStatusUpdated = async (): Promise<boolean> => {
-    logger.debug('Status updated, refreshing vehicle data');
+    console.log('Status updated, refreshing vehicle data');
     setStatusUpdateInProgress(true);
     
     try {
       // Force cache invalidation and get fresh data
       const refreshResult = await refetch();
       
-      logger.debug(`Data refresh completed:`, refreshResult);
+      console.log(`Data refresh completed:`, refreshResult);
       
       if (refreshResult.error) {
         throw refreshResult.error;
@@ -171,7 +146,7 @@ const EditVehicle = () => {
       if (refreshResult.data) {
         // Update local state to ensure UI reflects the latest status
         setVehicle(refreshResult.data);
-        logger.debug('Local vehicle state updated with new data:', refreshResult.data);
+        console.log('Local vehicle state updated with new data:', refreshResult.data);
       }
       
       // Add a small delay to ensure database consistency
@@ -180,18 +155,12 @@ const EditVehicle = () => {
       // Return success to the caller
       return true;
     } catch (error) {
-      logger.error('Error refreshing data after status update:', error);
+      console.error('Error refreshing data after status update:', error);
       toast.error('Failed to refresh data after status update');
       throw error;
     } finally {
       setStatusUpdateInProgress(false);
     }
-  };
-
-  // Handle when license plate alert is completed
-  const handleLicensePlateAlertComplete = () => {
-    setShowLicensePlateAlert(false);
-    setUpdateCompleted(true);
   };
   
   if (isLoading) {
@@ -235,7 +204,7 @@ const EditVehicle = () => {
         ? vehicleStatus as VehicleStatus 
         : 'available';
   
-  logger.debug(`Rendering vehicle with status: ${validatedStatus}`);
+  console.log(`Rendering vehicle with status: ${validatedStatus}`);
   
   return (
     <PageContainer>
@@ -249,7 +218,7 @@ const EditVehicle = () => {
               size="sm" 
               variant="outline"
               onClick={() => {
-                logger.debug("Opening status update dialog with status:", validatedStatus);
+                console.log("Opening status update dialog with status:", validatedStatus);
                 setShowStatusDialog(true);
               }}
               disabled={statusUpdateInProgress}
@@ -268,18 +237,6 @@ const EditVehicle = () => {
         }
       />
       
-      {/* License plate change alert */}
-      {showLicensePlateAlert && originalLicensePlate && vehicle && (
-        <div className="mb-6">
-          <LicensePlateChangeAlert
-            oldLicensePlate={originalLicensePlate}
-            newLicensePlate={vehicle.license_plate}
-            vehicleId={vehicle.id}
-            onComplete={handleLicensePlateAlertComplete}
-          />
-        </div>
-      )}
-      
       <div className="section-transition">
         <VehicleForm 
           key={`vehicle-form-${vehicle.id}-${vehicle.updated_at}-${vehicle.status}`}
@@ -294,7 +251,7 @@ const EditVehicle = () => {
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => {
-          logger.debug("Closing status update dialog");
+          console.log("Closing status update dialog");
           setShowStatusDialog(false);
         }}
         currentStatus={validatedStatus}

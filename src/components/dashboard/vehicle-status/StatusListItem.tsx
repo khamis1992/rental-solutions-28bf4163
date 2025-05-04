@@ -1,52 +1,48 @@
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 import { StatusConfig } from './types';
-import { LucideIcon } from 'lucide-react';
 
 interface StatusListItemProps {
   status: StatusConfig;
   count: number;
-  totalVehicles?: number;
-  onClick?: () => void;
+  onClick: () => void;
 }
 
-export const StatusListItem = ({ status, count, totalVehicles = 0, onClick }: StatusListItemProps) => {
-  const percentage = totalVehicles > 0 ? Math.round((count / totalVehicles) * 100) : 0;
-  
-  const handleClick = () => {
-    if (onClick) onClick();
-  };
-  
-  const Icon = status.icon as LucideIcon;
+export const StatusListItem: React.FC<StatusListItemProps> = ({
+  status,
+  count,
+  onClick
+}) => {
+  const Icon = status.icon;
   
   return (
     <div 
-      className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer" 
-      onClick={handleClick}
+      key={status.key} 
+      className={cn(
+        "flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100",
+        status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
+          ? "bg-red-50 hover:bg-red-100" 
+          : "bg-slate-50 hover:bg-slate-100"
+      )}
+      onClick={onClick}
     >
-      <div className="mr-3">
-        <Icon className="h-6 w-6" style={{ color: status.color }} />
+      <div 
+        className="p-1.5 rounded-md" 
+        style={{ backgroundColor: `${status.color}20` }}
+      >
+        <Icon 
+          size={16} 
+          style={{ color: status.color }} 
+        />
       </div>
       <div className="flex-grow">
         <div className="flex justify-between items-center">
-          <span className="font-medium">{status.name}</span>
-          <span className="text-sm text-gray-600">{count}</span>
+          <span className="text-sm font-medium">{status.name}</span>
+          <span className="text-sm font-semibold">{count}</span>
         </div>
-        <div className="text-xs text-gray-500">{status.description}</div>
-        {totalVehicles > 0 && (
-          <div className="mt-1 h-1.5 w-full bg-gray-200 rounded-full">
-            <div 
-              className="h-full rounded-full" 
-              style={{ 
-                width: `${percentage}%`,
-                backgroundColor: status.color
-              }}
-            ></div>
-          </div>
-        )}
+        <p className="text-xs text-muted-foreground">{status.description}</p>
       </div>
     </div>
   );
 };
-
-export default StatusListItem;
