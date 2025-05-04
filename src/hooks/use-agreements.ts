@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -67,9 +68,9 @@ export function useAgreements(initialFilters = {}) {
     data: agreements,
     isLoading,
     error,
-  } = useQuery<SimpleAgreement[]>(
-    ['agreements', filters],
-    async () => {
+  } = useQuery({
+    queryKey: ['agreements', filters],
+    queryFn: async () => {
       let query = supabase
         .from('leases')
         .select(`
@@ -98,11 +99,9 @@ export function useAgreements(initialFilters = {}) {
 
       return data || [];
     },
-    {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    }
-  );
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 
   const updateAgreement = async ({ id, data }: { id: string; data: Partial<Agreement> }) => {
     const { data: updatedAgreement, error } = await supabase
@@ -118,7 +117,7 @@ export function useAgreements(initialFilters = {}) {
     }
   
     // Invalidate the cache for agreements to refetch the updated data
-    await queryClient.invalidateQueries(['agreements']);
+    await queryClient.invalidateQueries({ queryKey: ['agreements'] });
   
     return updatedAgreement;
   };
@@ -135,7 +134,7 @@ export function useAgreements(initialFilters = {}) {
     }
   
     // Invalidate the cache for agreements to refetch the updated data
-    await queryClient.invalidateQueries(['agreements']);
+    await queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
   return {
