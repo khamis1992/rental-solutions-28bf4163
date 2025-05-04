@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { Search, FilterX, Filter, ChevronDown, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -34,7 +35,57 @@ interface VehicleFiltersProps {
   className?: string;
 }
 
-// Define filter options inside the component to avoid incorrect hook usage
+// Define filter options outside component to avoid recreating on each render
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'available', label: 'Available' },
+  { value: 'rented', label: 'Rented' },
+  { value: 'reserved', label: 'Reserved' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'police_station', label: 'Police Station' },
+  { value: 'accident', label: 'Accident' },
+  { value: 'stolen', label: 'Stolen' },
+  { value: 'retired', label: 'Retired' }
+];
+
+const MAKE_OPTIONS = [
+  { value: 'all', label: 'All Makes' },
+  { value: 'Toyota', label: 'Toyota' },
+  { value: 'Honda', label: 'Honda' },
+  { value: 'Nissan', label: 'Nissan' },
+  { value: 'Ford', label: 'Ford' },
+  { value: 'Hyundai', label: 'Hyundai' },
+  { value: 'Kia', label: 'Kia' },
+  { value: 'Mazda', label: 'Mazda' },
+  { value: 'Mercedes', label: 'Mercedes' },
+  { value: 'BMW', label: 'BMW' },
+  { value: 'Audi', label: 'Audi' },
+  { value: 'Lexus', label: 'Lexus' }
+];
+
+const LOCATION_OPTIONS = [
+  { value: 'all', label: 'All Locations' },
+  { value: 'Main Garage', label: 'Main Garage' },
+  { value: 'Downtown', label: 'Downtown' },
+  { value: 'Airport', label: 'Airport' },
+  { value: 'North Branch', label: 'North Branch' },
+  { value: 'South Branch', label: 'South Branch' },
+  { value: 'East Branch', label: 'East Branch' },
+  { value: 'West Branch', label: 'West Branch' }
+];
+
+// Generate year options dynamically
+const YEAR_OPTIONS = useMemo(() => {
+  const currentYear = new Date().getFullYear();
+  const years = [{ value: 'all', label: 'All Years' }];
+
+  for (let year = currentYear; year >= currentYear - 10; year--) {
+    years.push({ value: year.toString(), label: year.toString() });
+  }
+
+  return years;
+}, []);
+
 const VehicleFilters: React.FC<VehicleFiltersProps> = memo(({
   onFilterChange,
   initialValues = {
@@ -50,57 +101,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = memo(({
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
-
-  // Generate year options dynamically inside the component
-  const YEAR_OPTIONS = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const years = [{ value: 'all', label: 'All Years' }];
-  
-    for (let year = currentYear; year >= currentYear - 10; year--) {
-      years.push({ value: year.toString(), label: year.toString() });
-    }
-  
-    return years;
-  }, []);
-
-  // Define filter options within the component to avoid hooks outside component error
-  const STATUS_OPTIONS = useMemo(() => [
-    { value: 'all', label: 'All Statuses' },
-    { value: 'available', label: 'Available' },
-    { value: 'rented', label: 'Rented' },
-    { value: 'reserved', label: 'Reserved' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'police_station', label: 'Police Station' },
-    { value: 'accident', label: 'Accident' },
-    { value: 'stolen', label: 'Stolen' },
-    { value: 'retired', label: 'Retired' }
-  ], []);
-
-  const MAKE_OPTIONS = useMemo(() => [
-    { value: 'all', label: 'All Makes' },
-    { value: 'Toyota', label: 'Toyota' },
-    { value: 'Honda', label: 'Honda' },
-    { value: 'Nissan', label: 'Nissan' },
-    { value: 'Ford', label: 'Ford' },
-    { value: 'Hyundai', label: 'Hyundai' },
-    { value: 'Kia', label: 'Kia' },
-    { value: 'Mazda', label: 'Mazda' },
-    { value: 'Mercedes', label: 'Mercedes' },
-    { value: 'BMW', label: 'BMW' },
-    { value: 'Audi', label: 'Audi' },
-    { value: 'Lexus', label: 'Lexus' }
-  ], []);
-
-  const LOCATION_OPTIONS = useMemo(() => [
-    { value: 'all', label: 'All Locations' },
-    { value: 'Main Garage', label: 'Main Garage' },
-    { value: 'Downtown', label: 'Downtown' },
-    { value: 'Airport', label: 'Airport' },
-    { value: 'North Branch', label: 'North Branch' },
-    { value: 'South Branch', label: 'South Branch' },
-    { value: 'East Branch', label: 'East Branch' },
-    { value: 'West Branch', label: 'West Branch' }
-  ], []);
 
   // Count active filters (excluding 'all' values and empty search)
   const activeFilterCount = useMemo(() => {

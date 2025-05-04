@@ -1,41 +1,40 @@
 
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/contexts/ProfileContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  roles?: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
+  const { user, loading, session } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const location = useLocation();
 
-  useEffect(() => {
-    // Wait until auth is loaded before making routing decisions
-    if (!loading) {
-      if (!user) {
-        // Redirect to login if not authenticated
-        navigate('/auth/login', { 
-          replace: true, 
-          state: { from: location } // Remember where they were trying to go
-        });
-      }
+  if (loading || profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Not authenticated
+  if (!user || !session) {
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
+  }
+
+  // Role-based access control (if roles are specified)
+  if (roles && roles.length > 0) {
+    const userRole = profile?.role || 'staff';
+    if (!roles.includes(userRole)) {
+      return <Navigate to="/unauthorized" replace />;
     }
-  }, [user, loading, navigate, location]);
-
-  // Show nothing while loading
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // If not logged in, return nothing (redirect will happen in useEffect)
-  if (!user) {
-    return null;
-  }
-
-  // If logged in, show the protected content
   return <>{children}</>;
 };
 

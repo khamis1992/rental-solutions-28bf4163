@@ -3,12 +3,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
 import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
-import { asPaymentStatus } from '@/types/database-common';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -18,6 +17,7 @@ interface PaymentForAgreementProps {
 export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
   const [carNumber, setCarNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const { data, isLoading, error } = usePaymentDetails(carNumber);
   const { addPayment } = usePayments();
 
@@ -49,21 +49,24 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         lease_id: leaseData.id, // Use the actual UUID from the leases table
         payment_method: 'cash',
         description: `Monthly rent payment for ${data.agreementNumber}`,
-        status: asPaymentStatus('completed'), // Use the type-safe function to cast the status
+        status: 'completed',
         type: 'Income',
         late_fine_amount: data.lateFeeAmount || 0
       };
 
       await addPayment(paymentData);
       
-      toast.success("Payment Recorded", {
-        description: "The payment has been successfully recorded."
+      toast({
+        title: "Payment Recorded",
+        description: "The payment has been successfully recorded.",
       });
       onClose();
     } catch (error) {
       console.error('Error recording payment:', error);
-      toast.error("Error", {
-        description: "Failed to record payment. Please try again."
+      toast({
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);

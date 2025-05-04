@@ -1,6 +1,6 @@
 
 import { createRoot } from 'react-dom/client';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { RouterProvider } from 'react-router-dom';
 import './index.css';
 import router from './router';
 import App from './App';

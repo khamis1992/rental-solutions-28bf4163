@@ -33,10 +33,10 @@ const LegalDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Calculate statistics
-  const activeCases = !isLoading && legalCases ? legalCases.filter(c => c.status === 'active').length : 0;
-  const pendingCases = !isLoading && legalCases ? legalCases.filter(c => c.status === 'pending').length : 0;
-  const resolvedCases = !isLoading && legalCases ? legalCases.filter(c => c.status === 'resolved').length : 0;
-  const highPriorityCases = !isLoading && legalCases ? legalCases.filter(c => c.priority === 'high').length : 0;
+  const activeCases = !isLoading ? legalCases.filter(c => c.status === 'active').length : 0;
+  const pendingCases = !isLoading ? legalCases.filter(c => c.status === 'pending').length : 0;
+  const resolvedCases = !isLoading ? legalCases.filter(c => c.status === 'resolved').length : 0;
+  const highPriorityCases = !isLoading ? legalCases.filter(c => c.priority === 'high').length : 0;
   
   const handleNewCase = () => {
     navigate('/legal/cases/new');

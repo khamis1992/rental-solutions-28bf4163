@@ -61,19 +61,17 @@ export const fetchOverduePayments = async (): Promise<{
 
     // Map payments to obligations
     const paymentObligations = (overduePayments || []).map(payment => {
-      const leaseInfo = payment.leases as any;
-      const customerId = leaseInfo?.customer_id || '';
-      const profileInfo = leaseInfo?.profiles as any;
-      const customerName = profileInfo?.full_name || 'Unknown Customer';
+      const customerId = payment.leases?.customer_id;
+      const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
 
       return {
         id: payment.id,
-        customerId: customerId,
+        customerId: customerId || '',
         customerName,
         obligationType: ObligationType.LatePayment,
         description: `Overdue payment of QAR ${payment.amount}`,
         dueDate: payment.due_date ? new Date(payment.due_date) : null,
-        status: 'pending' as const,
+        status: 'pending',
         urgency: UrgencyLevel.High,
         amount: payment.amount,
         agreementId: payment.lease_id
@@ -125,10 +123,8 @@ export const fetchLegalObligations = async (customerId?: string): Promise<{
 
     // Map payments to obligations
     const paymentObligations = (overduePayments || []).map(payment => {
-      const leaseInfo = payment.leases as any;
-      const paymentCustomerId = leaseInfo?.customer_id || '';
-      const profileInfo = leaseInfo?.profiles as any;
-      const customerName = profileInfo?.full_name || 'Unknown Customer';
+      const paymentCustomerId = payment.leases?.customer_id;
+      const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
 
       // Skip if we're filtering by customer ID and this isn't a match
       if (customerId && paymentCustomerId !== customerId) {
@@ -205,10 +201,8 @@ export const useLegalObligations = (customerId?: string) => {
 
         // Map payments to obligations
         const paymentObligations = (overduePayments || []).map(payment => {
-          const leaseInfo = payment.leases as any;
-          const paymentCustomerId = leaseInfo?.customer_id || '';
-          const profileInfo = leaseInfo?.profiles as any;
-          const customerName = profileInfo?.full_name || 'Unknown Customer';
+          const paymentCustomerId = payment.leases?.customer_id;
+          const customerName = payment.leases?.profiles?.full_name || 'Unknown Customer';
 
           // Skip if we're filtering by customer ID and this isn't a match
           if (customerId && paymentCustomerId !== customerId) {
@@ -222,7 +216,7 @@ export const useLegalObligations = (customerId?: string) => {
             obligationType: ObligationType.LatePayment,
             description: `Overdue payment of QAR ${payment.amount}`,
             dueDate: payment.due_date ? new Date(payment.due_date) : null,
-            status: 'pending' as const,
+            status: 'pending',
             urgency: UrgencyLevel.High,
             amount: payment.amount,
             agreementId: payment.lease_id
