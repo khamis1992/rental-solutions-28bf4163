@@ -4,38 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateFineDate, findBestMatchingLease } from './use-traffic-fine-validation';
-
-export type TrafficFine = {
-  id: string;
-  violationNumber: string;
-  licensePlate?: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  paymentStatus: string;
-  location?: string;
-  vehicleId?: string;
-  customerId?: string;
-  customerName?: string;
-  leaseId?: string;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
-};
-
-export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
-
-export type TrafficFinePayload = {
-  id: string;
-};
-
-export type TrafficFineCreatePayload = {
-  violationNumber: string;
-  licensePlate: string;
-  violationDate: Date | string;
-  fineAmount: number;
-  violationCharge?: string;
-  location?: string;
-};
+import { TrafficFine, TrafficFineStatusType, TrafficFinePayload, TrafficFineCreatePayload } from './types';
 
 export function useTrafficFines() {
   const queryClient = useQueryClient();
@@ -52,7 +21,7 @@ export function useTrafficFines() {
         .eq('id', payload.id)
         .select()
         .single();
-        
+
       if (error) throw error;
       return data;
     },
@@ -78,7 +47,7 @@ export function useTrafficFines() {
         .eq('id', payload.id)
         .select()
         .single();
-        
+
       if (error) throw error;
       return data;
     },
@@ -103,7 +72,7 @@ export function useTrafficFines() {
         payload.licensePlate,
         payload.violationDate
       );
-      
+
       // Prepare the fine data
       const fineData = {
         violation_number: payload.violationNumber,
@@ -116,31 +85,31 @@ export function useTrafficFines() {
         lease_id: leaseId,
         assignment_status: leaseId ? 'assigned' : 'pending'
       };
-      
+
       // Insert the fine
       const { data, error } = await supabase
         .from('traffic_fines')
         .insert(fineData)
         .select()
         .single();
-        
+
       if (error) throw error;
-      
+
       // Return the result with assignment info
       return {
         fine: data,
         assigned: !!leaseId,
-        assignmentMessage: leaseId 
-          ? 'Fine automatically assigned to customer' 
+        assignmentMessage: leaseId
+          ? 'Fine automatically assigned to customer'
           : `Fine not assigned: ${reason}`
       };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      
+
       toast.success('Traffic fine created successfully', {
-        description: result.assigned 
-          ? 'Fine was automatically assigned to a customer' 
+        description: result.assigned
+          ? 'Fine was automatically assigned to a customer'
           : 'Fine was recorded but couldn\'t be assigned automatically'
       });
     },
@@ -162,64 +131,64 @@ export function useTrafficFines() {
         .select('id, license_plate, violation_date')
         .eq('id', payload.id)
         .single();
-        
+
       if (fineError || !fine) {
         throw new Error(`Failed to retrieve fine details: ${fineError?.message || 'Fine not found'}`);
       }
-      
+
       if (!fine.license_plate) {
         throw new Error('Fine record is missing license plate information');
       }
-      
+
       // Find the best matching lease
       const { leaseId, reason } = await findBestMatchingLease(
         fine.license_plate,
         fine.violation_date
       );
-      
+
       if (!leaseId) {
         throw new Error(`Cannot assign fine: ${reason}`);
       }
-      
+
       // Get lease information for validation
       const { data: lease, error: leaseError } = await supabase
         .from('leases')
         .select('id, start_date, end_date, customer_id')
         .eq('id', leaseId)
         .single();
-        
+
       if (leaseError || !lease) {
         throw new Error(`Failed to retrieve lease details: ${leaseError?.message || 'Lease not found'}`);
       }
-      
+
       // Double check with the improved validation logic
       const validation = validateFineDate(
         fine.violation_date,
         lease.start_date,
         lease.end_date
       );
-      
+
       if (!validation.isValid) {
         throw new Error(`Cannot assign fine: ${validation.reason}`);
       }
-      
+
       // Update the fine with the validated lease assignment
       const { data: updatedFine, error: updateError } = await supabase
         .from('traffic_fines')
-        .update({ 
+        .update({
           lease_id: leaseId,
           assignment_status: 'assigned'
         })
         .eq('id', payload.id)
         .select()
         .single();
-        
+
       if (updateError) {
         throw new Error(`Failed to update fine assignment: ${updateError.message}`);
       }
-      
-      return { 
-        fine: updatedFine, 
+
+      return {
+        fine: updatedFine,
         customer_id: lease.customer_id
       };
     },
@@ -240,10 +209,10 @@ export function useTrafficFines() {
   const cleanupInvalidAssignments = useMutation({
     mutationFn: async () => {
       // Only process fines that have both lease and violation dates
-      const fines = trafficFines?.filter(fine => 
+      const fines = trafficFines?.filter(fine =>
         fine.leaseId && fine.violationDate && fine.leaseStartDate
       ) || [];
-      
+
       const invalidFines = fines.filter(fine => {
         const validation = validateFineDate(
           fine.violationDate,
@@ -252,31 +221,31 @@ export function useTrafficFines() {
         );
         return !validation.isValid;
       });
-      
+
       if (invalidFines.length === 0) {
         return { processed: 0, message: 'No invalid assignments found' };
       }
-      
+
       const results = [];
-      
+
       // Process each invalid assignment
       for (const fine of invalidFines) {
         try {
           // Unassign the fine from the current lease
           const { error } = await supabase
             .from('traffic_fines')
-            .update({ 
+            .update({
               lease_id: null,
               assignment_status: 'pending'
             })
             .eq('id', fine.id);
-          
+
           results.push({
             id: fine.id,
             success: !error,
             error: error?.message
           });
-          
+
         } catch (error) {
           results.push({
             id: fine.id,
@@ -285,7 +254,7 @@ export function useTrafficFines() {
           });
         }
       }
-      
+
       return {
         processed: invalidFines.length,
         fixed: results.filter(r => r.success).length,
@@ -295,7 +264,7 @@ export function useTrafficFines() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      
+
       if (result.fixed > 0) {
         toast.success(`Fixed ${result.fixed} invalid assignments`, {
           description: `${result.failed} assignments failed to be fixed`
@@ -323,5 +292,4 @@ export function useTrafficFines() {
   };
 }
 
-// Export types for external use
-export { TrafficFineStatusType, TrafficFine, TrafficFinePayload, TrafficFineCreatePayload };
+// Types are now exported from the types.ts file

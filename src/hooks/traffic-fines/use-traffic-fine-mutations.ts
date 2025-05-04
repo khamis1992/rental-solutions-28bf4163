@@ -4,20 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { validationPatterns } from '@/lib/validation';
 import { normalizeLicensePlate } from '@/utils/searchUtils';
-
-export interface TrafficFinePayload {
-  id: string;
-}
-
-export interface TrafficFineCreatePayload {
-  violationNumber: string;
-  licensePlate: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  location?: string;
-  paymentStatus?: string;
-}
+import { TrafficFinePayload, TrafficFineCreatePayload } from './types';
 
 /**
  * Validates a license plate for traffic fines

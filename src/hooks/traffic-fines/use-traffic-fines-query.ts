@@ -2,27 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { hasData } from '@/utils/supabase-type-helpers';
-
-export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
-
-export interface TrafficFine {
-  id: string;
-  violationNumber: string;
-  licensePlate?: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  paymentStatus: TrafficFineStatusType;
-  location?: string;
-  vehicleId?: string;
-  vehicleModel?: string;
-  customerId?: string;
-  customerName?: string;
-  paymentDate?: Date;
-  leaseId?: string;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
-}
+import { TrafficFine, TrafficFineStatusType } from './types';
 
 /**
  * Hook to fetch traffic fines with additional customer information
@@ -49,7 +29,7 @@ export function useTrafficFinesQuery() {
             assignment_status
           `)
           .order('violation_date', { ascending: false });
-        
+
         if (error) {
           console.error('Error fetching traffic fines:', error);
           throw new Error(`Failed to fetch traffic fines: ${error.message}`);
@@ -58,23 +38,23 @@ export function useTrafficFinesQuery() {
         if (!data) {
           return [];
         }
-        
+
         // Get customer information for assigned fines
         const finesWithLeaseIds = data.filter(fine => fine.lease_id);
-        let customerAndLeaseInfo: Record<string, { 
-          customer_id: string; 
+        let customerAndLeaseInfo: Record<string, {
+          customer_id: string;
           customer_name?: string;
           start_date?: string;
           end_date?: string;
         }> = {};
-        
+
         if (finesWithLeaseIds.length > 0) {
           const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
           const { data: leases, error: leaseError } = await supabase
             .from('leases')
             .select('id, customer_id, start_date, end_date, profiles(full_name)')
             .in('id', leaseIds as string[]);
-            
+
           if (leaseError) {
             console.error('Error fetching lease information:', leaseError);
           } else if (leases) {
@@ -91,7 +71,7 @@ export function useTrafficFinesQuery() {
             });
           }
         }
-        
+
         // Transform the data to match our TrafficFine interface
         return data.map(fine => ({
           id: fine.id,
@@ -109,7 +89,7 @@ export function useTrafficFinesQuery() {
           customerId: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_id : undefined,
           customerName: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_name : undefined,
           // Add lease dates for validation
-          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
+          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ?
             new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,
           leaseEndDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.end_date ?
             new Date(customerAndLeaseInfo[fine.lease_id].end_date as string) : undefined

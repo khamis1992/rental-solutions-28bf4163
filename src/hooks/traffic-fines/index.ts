@@ -1,9 +1,10 @@
 
-import { useTrafficFinesQuery, TrafficFine, TrafficFineStatusType } from './use-traffic-fines-query';
-import { useTrafficFineMutations, TrafficFinePayload, TrafficFineCreatePayload } from './use-traffic-fine-mutations';
+import { useTrafficFinesQuery } from './use-traffic-fines-query';
+import { useTrafficFineMutations } from './use-traffic-fine-mutations';
 import { useTrafficFineCleanup } from './use-traffic-fine-cleanup';
 import { useBatchValidation, BatchValidationOptions, BatchValidationResults } from './use-batch-validation';
 import { useLicensePlateChangeHandler } from './use-license-plate-change-handler';
+import { TrafficFine, TrafficFineStatusType, TrafficFinePayload, TrafficFineCreatePayload } from './types';
 
 /**
  * Main traffic fines hook that combines query, mutations, and cleanup functionality
