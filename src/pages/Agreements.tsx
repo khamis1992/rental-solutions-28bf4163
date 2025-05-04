@@ -10,14 +10,16 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { 
   FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
 } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CustomerInfo } from '@/types/customer';
+import { CustomerSearchResults } from '@/components/customers/CustomerSearchResults';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -25,6 +27,11 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Add new state for customer search functionality
+  const [searchResults, setSearchResults] = useState<CustomerInfo[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -82,18 +89,62 @@ const Agreements = () => {
     });
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleApplySearch = () => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleApplySearch();
+  // Handle search input changes
+  const handleSearchInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
     }
+
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone_number')
+        .eq('role', 'customer')
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone_number.ilike.%${query}%`)
+        .limit(10);
+
+      if (error) {
+        console.error('Error searching customers:', error);
+        setSearchResults([]);
+      } else {
+        setSearchResults(data as CustomerInfo[]);
+      }
+    } catch (error) {
+      console.error('Error in customer search:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer: CustomerInfo) => {
+    setSelectedCustomer(customer);
+    setSearchQuery('');
+    setSearchResults([]);
+    
+    // Update search params to filter agreements by selected customer
+    setSearchParams(prev => ({
+      ...prev,
+      customer_id: customer.id
+    }));
+  };
+
+  // Clear selected customer
+  const clearSelectedCustomer = () => {
+    setSelectedCustomer(null);
+    
+    // Remove customer_id filter
+    setSearchParams(prev => {
+      const newParams = { ...prev };
+      delete newParams.customer_id;
+      return newParams;
+    });
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
@@ -102,7 +153,7 @@ const Agreements = () => {
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -117,24 +168,61 @@ const Agreements = () => {
       {/* Search and Action Buttons */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex flex-grow max-w-md relative">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search agreements, customers, or vehicles..." 
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onKeyPress={handleKeyPress}
-              className="pl-10 pr-16"
-            />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleApplySearch}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2"
-            >
-              Search
-            </Button>
-          </div>
+          {selectedCustomer ? (
+            <Card className="w-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Selected Customer</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearSelectedCustomer}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <h3 className="font-semibold text-base">{selectedCustomer.full_name}</h3>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <p>{selectedCustomer.email}</p>
+                    <p>{selectedCustomer.phone_number}</p>
+                  </div>
+                  <div className="mt-2">
+                    <Link 
+                      to={`/customers/${selectedCustomer.id}`} 
+                      className="text-primary text-xs hover:underline"
+                    >
+                      View Customer Details
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="relative w-full">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input 
+                  type="search" 
+                  placeholder="Search for customers..." 
+                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={searchQuery}
+                  onChange={handleSearchInputChange}
+                />
+              </div>
+              {searchQuery.trim().length > 0 && (
+                <div className="absolute w-full z-20 mt-1">
+                  <CustomerSearchResults 
+                    results={searchResults} 
+                    onSelect={handleCustomerSelect} 
+                    isLoading={isSearching}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <Button
             variant="outline"
             size="icon"
@@ -197,7 +285,10 @@ const Agreements = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setSearchParams({ status: 'all' })}
+            onClick={() => {
+              setSearchParams({ status: 'all' });
+              setSelectedCustomer(null);
+            }}
             className="text-xs h-7 px-2"
           >
             Clear All

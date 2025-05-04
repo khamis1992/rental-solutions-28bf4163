@@ -11,8 +11,9 @@ const AgreementList: React.FC = () => {
     isLoading,
     error,
     updateAgreement,
-    pagination,
-    setPagination,
+    deleteAgreement,
+    rowSelection,
+    setRowSelection,
     sorting,
     setSorting,
     globalFilter,
@@ -35,12 +36,9 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={typedAgreements}
         isLoading={isLoading}
-        pagination={pagination}
-        setPagination={setPagination}
-        sorting={sorting}
-        setSorting={setSorting}
-        globalFilter={globalFilter}
-        setGlobalFilter={setGlobalFilter}
+        rowSelection={rowSelection}
+        setRowSelection={setRowSelection}
+        deleteAgreement={deleteAgreement}
       />
     </div>
   );
