@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, AlertTriangle, UserPlus, RefreshCw } from 'lucide-react';
+import { FileUp, AlertTriangle, UserPlus } from 'lucide-react';
 import { CustomerList } from '@/components/customers/CustomerList';
 import { ImportHistoryList } from '@/components/customers/ImportHistoryList';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
@@ -26,6 +26,14 @@ const Customers = () => {
     
     checkAvailability();
   }, []);
+
+  const handleSearchChange = (query: string) => {
+    setSearchParams(prev => ({ ...prev, query }));
+  };
+
+  const handleStatusChange = (status: string) => {
+    setSearchParams(prev => ({ ...prev, status }));
+  };
 
   return (
     <PageContainer 
@@ -59,8 +67,8 @@ const Customers = () => {
           <CustomerSearchBar
             searchQuery={searchParams.query}
             status={searchParams.status}
-            onSearchChange={(query) => setSearchParams(prev => ({ ...prev, query }))}
-            onStatusChange={(status) => setSearchParams(prev => ({ ...prev, status }))}
+            onSearchChange={handleSearchChange}
+            onStatusChange={handleStatusChange}
           />
           
           <div className="mt-6">
