@@ -16,12 +16,15 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { customerCSVFields, customerCSVMap } from '@/lib/validation-schemas/customer';
 import { downloadCSVTemplate } from '@/utils/csv-utils';
+import { Database } from '@/types/database.types';
 
 interface CSVImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImportComplete: () => void;
 }
+
+type ImportStatus = Database['public']['Tables']['customer_import_logs']['Row']['status'];
 
 export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -68,16 +71,22 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         throw new Error(`Error uploading file: ${uploadError.message}`);
       }
 
+      // Get current user ID
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
       // Create import log entry
+      const insertData = {
+        file_name: fileName,
+        original_file_name: file.name,
+        status: 'pending' as ImportStatus,
+        created_by: userId,
+        mapping_used: customerCSVMap
+      };
+
       const { data: importLog, error: logError } = await supabase
-        .from('customer_import_logs')
-        .insert({
-          file_name: fileName,
-          original_file_name: file.name,
-          status: 'pending',
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          mapping_used: customerCSVMap
-        })
+        .from("customer_import_logs")
+        .insert(insertData)
         .select()
         .single();
 

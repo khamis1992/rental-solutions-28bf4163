@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { UserRole } from "@/types/user-types";
 
 interface UserRoleManagerProps {
   userId: string;
@@ -36,8 +37,8 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
       
       const { data, error } = await supabase
         .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId)
+        .update({ role: newRole as UserRole } as any)
+        .eq("id", userId as any)
         .select("role");
       
       if (error) {
