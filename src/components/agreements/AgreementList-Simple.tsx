@@ -33,16 +33,37 @@ export function AgreementList() {
 
   const selectedCount = Object.keys(rowSelection).length;
 
+  // For debugging
+  React.useEffect(() => {
+    if (agreements && agreements.length > 0) {
+      console.log("Sample agreement data structure:", agreements[0]);
+    }
+  }, [agreements]);
+
   // Cast agreements to the correct type with the required fields
-  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
-    ...agreement,
-    payment_frequency: 'monthly', // Default value for type compatibility
-    payment_day: 1, // Default value for type compatibility
-    customers: {
-      full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
-      id: agreement.customers?.id || agreement.customer_id
-    },
-  })) as Agreement[];
+  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => {
+    // Check if data is coming from "profiles" or "customers" property
+    const customerData = agreement.profiles || agreement.customers;
+    const customerName = 
+      customerData?.full_name || // From profiles/customers object
+      agreement.customer_name || // From flattened data
+      'N/A';  // Fallback
+    
+    const customerId = 
+      customerData?.id || // From profiles/customers object
+      agreement.customer_id || // From flattened data
+      '';
+      
+    return {
+      ...agreement,
+      payment_frequency: 'monthly', // Default value for type compatibility
+      payment_day: 1, // Default value for type compatibility
+      customers: {
+        full_name: customerName,
+        id: customerId
+      },
+    };
+  }) as Agreement[];
 
   return (
     <div className="space-y-4">
