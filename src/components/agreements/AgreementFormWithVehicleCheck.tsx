@@ -644,4 +644,7 @@ const thirdPartyBeneficiariesPolicyOptions = [
 ];
 
 const timeIsOfTheEssencePolicyOptions = [
-  { value
+  { value: 'strict_compliance', label: 'Strict Compliance' },
+  { value: 'reasonable_delay_permitted', label: 'Reasonable Delay Permitted' },
+  { value: 'grace_period_provided', label: 'Grace Period Provided' },
+];
