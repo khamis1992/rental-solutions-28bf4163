@@ -5,10 +5,8 @@ import PageContainer from '@/components/layout/PageContainer';
 import {
   Copy,
   Download,
-  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search, Database
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
 } from 'lucide-react';
-import { runDatabaseConnectionTest } from '@/utils/test-database-connection';
-import { runCreateSampleAgreement } from '@/utils/create-sample-agreement';
 import AgreementStats from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Input } from '@/components/ui/input';
@@ -209,18 +207,6 @@ const AgreementsPage = () => {
     });
   };
 
-  // Function to test database connection
-  const handleTestConnection = async () => {
-    await runDatabaseConnectionTest();
-  };
-
-  // Function to create a sample agreement
-  const handleCreateSample = async () => {
-    await runCreateSampleAgreement();
-    // Refresh the list after creating a sample
-    handleRefetch();
-  };
-
   return (
     <PageContainer
       title="Agreements"
@@ -247,12 +233,6 @@ const AgreementsPage = () => {
           </Button>
           <Button onClick={() => navigate('/create-agreement')}>
             Create Agreement <FilePlus className="ml-2 h-4 w-4" />
-          </Button>
-          <Button variant="secondary" onClick={handleTestConnection}>
-            Test DB <Database className="ml-2 h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={handleCreateSample}>
-            Create Sample
           </Button>
         </div>
       </div>
@@ -382,23 +362,7 @@ const AgreementsPage = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="text-center">
-                  <div className="py-8">
-                    <p className="text-lg font-medium mb-2">No agreements found</p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      There are no agreements in the system yet. You can create a new agreement or use the "Create Sample" button to add a test agreement.
-                    </p>
-                    <div className="flex justify-center gap-4">
-                      <Button onClick={() => navigate('/create-agreement')}>
-                        Create Agreement <FilePlus className="ml-2 h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" onClick={handleCreateSample}>
-                        Create Sample Agreement
-                      </Button>
-                      <Button variant="secondary" onClick={handleTestConnection}>
-                        Test Database Connection
-                      </Button>
-                    </div>
-                  </div>
+                  No agreements found.
                 </TableCell>
               </TableRow>
             )}
