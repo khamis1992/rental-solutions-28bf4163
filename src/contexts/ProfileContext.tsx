@@ -23,7 +23,17 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  // Get auth context safely with error handling
+  const auth = (() => {
+    try {
+      return useAuth();
+    } catch (error) {
+      console.warn("Auth context not available yet. Profile features will be limited.");
+      return { user: null, loading: true };
+    }
+  })();
+  
+  const { user } = auth;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 

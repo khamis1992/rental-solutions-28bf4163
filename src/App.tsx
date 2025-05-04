@@ -48,17 +48,11 @@ function App({ children }) {
             // Initialize the error service with the context handler
             errorService.initialize(errorHandler.addError);
             return (
-              <ProfileProvider>
-                <SettingsProvider>
-                  <NotificationProvider>
-                    <TooltipProvider>
-                      <Toaster />
-                      <Sonner />
-                      {children}
-                    </TooltipProvider>
-                  </NotificationProvider>
-                </SettingsProvider>
-              </ProfileProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                {children}
+              </TooltipProvider>
             );
           }}
         </ErrorProvider>

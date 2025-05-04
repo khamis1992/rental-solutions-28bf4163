@@ -10,11 +10,13 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { user, loading, session } = useAuth();
+  const { user, loading: authLoading, session } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const location = useLocation();
 
-  if (loading || profileLoading) {
+  const isLoading = authLoading || profileLoading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
