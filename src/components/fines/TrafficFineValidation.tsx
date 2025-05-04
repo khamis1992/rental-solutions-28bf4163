@@ -1,174 +1,108 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useTrafficFineValidation } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Refresh, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-// Remove the conflicting import
-// import { ValidationResultType } from '@/services/traffic-fine/types';
+import { ValidationResultType } from '@/hooks/traffic-fines/types';
 
-// Define the type locally to avoid conflicts
-export interface ValidationResultType {
-  isValid: boolean;
-  message: string;
-  licensePlate?: string;
-  validationDate?: Date;
-  validationSource?: string;
-  hasFine?: boolean;
-  details?: string;
-  validationId?: string;
-}
-
-export const TrafficFineValidation = () => {
+export function TrafficFineValidation() {
   const [licensePlate, setLicensePlate] = useState('');
-  const [validationSource, setValidationSource] = useState('metrash');
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResultType>({
-    isValid: false,
-    message: '',
-    hasFine: false
-  });
-  
-  const handleValidation = async () => {
-    if (!licensePlate.trim()) {
-      toast.error('Please enter a license plate number');
-      return;
-    }
+  const [validationResult, setValidationResult] = useState<ValidationResultType | null>(null);
+  const { validateTrafficFine, isLoading } = useTrafficFineValidation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setIsValidating(true);
+    if (!licensePlate.trim()) return;
     
     try {
-      // Simulate validation process - replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      // Example result - replace with actual validation logic
-      const result: ValidationResultType = {
-        isValid: true,
-        message: 'Validation completed successfully',
-        licensePlate,
-        validationDate: new Date(),
-        validationSource,
-        hasFine: Math.random() > 0.5,
-        details: Math.random() > 0.5 ? 'Speed violation detected' : undefined,
-        validationId: Math.random().toString(36).substring(2, 11)
-      };
-      
+      const result = await validateTrafficFine(licensePlate);
       setValidationResult(result);
-      
-      if (result.hasFine) {
-        toast.warning(`Fine found for ${licensePlate}`);
-      } else {
-        toast.success(`No fines found for ${licensePlate}`);
-      }
     } catch (error) {
-      console.error('Validation error:', error);
-      toast.error('Error during validation. Please try again.');
-      
+      console.error("Error validating traffic fine:", error);
       setValidationResult({
         isValid: false,
-        message: 'Validation failed due to an error',
-        licensePlate,
-        validationDate: new Date(),
-        validationSource
+        message: 'An error occurred during validation. Please try again.'
       });
-    } finally {
-      setIsValidating(false);
     }
   };
 
+  const handleReset = () => {
+    setLicensePlate('');
+    setValidationResult(null);
+  };
+
   return (
-    <Card className="w-[400px]">
+    <Card>
       <CardHeader>
-        <CardTitle>Validate Traffic Fines</CardTitle>
-        <CardDescription>Check license plate for outstanding fines</CardDescription>
+        <CardTitle>Traffic Fine Validation</CardTitle>
+        <CardDescription>
+          Check if a vehicle has any outstanding traffic fines
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="licensePlate">License Plate</Label>
-          <Input 
-            id="licensePlate"
-            placeholder="Enter license plate number"
-            value={licensePlate}
-            onChange={(e) => setLicensePlate(e.target.value)}
-            disabled={isValidating}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="source">Validation Source</Label>
-          <Select 
-            value={validationSource} 
-            onValueChange={setValidationSource}
-            disabled={isValidating}
-          >
-            <SelectTrigger id="source">
-              <SelectValue placeholder="Select validation source" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="metrash">Metrash</SelectItem>
-              <SelectItem value="moi">Ministry of Interior</SelectItem>
-              <SelectItem value="traffic_dept">Traffic Department</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {validationResult.isValid && (
-          <div className="mt-4 rounded-md border p-4">
-            <div className="text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Validation Date:</span>
-                <span>{validationResult.validationDate ? format(validationResult.validationDate, 'MMM dd, yyyy HH:mm') : 'N/A'}</span>
+      
+      <CardContent>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="licensePlate">License Plate Number</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  id="licensePlate"
+                  placeholder="Enter license plate"
+                  value={licensePlate}
+                  onChange={(e) => setLicensePlate(e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading || !licensePlate.trim()}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Validate
+                </Button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Validation ID:</span>
-                <span>{validationResult.validationId || 'Not available'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <Badge variant={validationResult.hasFine ? 'destructive' : 'success'}>
-                  {validationResult.hasFine ? 'Fine Found' : 'No Fines'}
-                </Badge>
-              </div>
-              {validationResult.details && (
-                <div className="border-t pt-2 mt-2">
-                  <p className="text-sm font-medium">Details:</p>
-                  <p className="text-sm text-muted-foreground">{validationResult.details}</p>
-                </div>
-              )}
             </div>
+
+            {validationResult && (
+              <div className={`mt-4 p-4 border rounded-md ${
+                validationResult.isValid ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
+              }`}>
+                {validationResult.isValid ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center">
+                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+                        Valid
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-green-800">{validationResult.message}</p>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-red-700">Validation Error</p>
+                      <p className="text-sm text-red-600">{validationResult.message}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
-        
-        {validationResult.isValid === false && validationResult.message && (
-          <div className="flex items-center text-amber-500 gap-2 text-sm mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <span>{validationResult.message}</span>
-          </div>
-        )}
+        </form>
       </CardContent>
-      <CardFooter>
-        <Button 
-          className="w-full" 
-          onClick={handleValidation}
-          disabled={isValidating || !licensePlate.trim()}
-        >
-          {isValidating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Validating...
-            </>
-          ) : (
-            <>
-              <Refresh className="mr-2 h-4 w-4" />
-              Validate
-            </>
-          )}
+      
+      <CardFooter className="border-t pt-4">
+        <Button variant="outline" onClick={handleReset}>
+          Reset
         </Button>
       </CardFooter>
     </Card>
   );
-};
+}

@@ -13,4 +13,3 @@ export interface PaymentMetrics {
   delivered: number;
   conversion: number;
 }
-

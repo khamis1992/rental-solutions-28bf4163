@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
-import { TrafficFine } from '@/types/traffic-fine';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { TrafficFine } from '@/types/traffic-fine';
 import { mapTrafficFineData } from '@/utils/traffic-fine-mapper';
 
 interface AgreementTrafficFinesProps {
@@ -24,7 +24,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     // Filter fines to only show those related to this agreement
     if (trafficFines) {
       const relatedFines = trafficFines
-        .filter(fine => fine.lease_id === agreementId)
+        .filter(fine => fine.leaseId === agreementId || fine.lease_id === agreementId)
         .map(mapTrafficFineData);
       setFines(relatedFines);
     }
@@ -53,9 +53,9 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   if (fines.length === 0) {
     return (
-      <div className="text-center p-12 border rounded-md bg-background">
+      <div className="text-center py-8">
         <p className="text-muted-foreground">
-          No traffic fines found for this agreement.
+          No traffic fines reported during this rental period.
         </p>
         <Button variant="outline" className="mt-4" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -69,7 +69,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <span className="text-sm text-muted-foreground">
-          Showing {fines.length} traffic fines
+          Showing {fines.length} traffic fines from {format(startDate, "PP")} to {format(endDate, "PP")}
         </span>
         <Button variant="outline" size="sm" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -83,7 +83,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             <TableHead>Violation #</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>License Plate</TableHead>
-            <TableHead>Charge</TableHead>
+            <TableHead>Location</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -93,14 +93,14 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             <TableRow key={fine.id}>
               <TableCell>{fine.violation_number}</TableCell>
               <TableCell>
-                {fine.violation_date 
-                  ? format(new Date(fine.violation_date), "dd MMM yyyy") 
+                {fine.violation_date
+                  ? format(new Date(fine.violation_date), "dd MMM yyyy")
                   : "N/A"}
               </TableCell>
               <TableCell>{fine.license_plate}</TableCell>
-              <TableCell>{fine.violation_charge}</TableCell>
+              <TableCell>{fine.location}</TableCell>
               <TableCell>
-                {typeof fine.fine_amount === "number" 
+                {typeof fine.fine_amount === "number"
                   ? `QAR ${fine.fine_amount.toLocaleString()}`
                   : "N/A"}
               </TableCell>

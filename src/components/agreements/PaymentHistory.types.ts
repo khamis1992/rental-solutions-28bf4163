@@ -1,9 +1,7 @@
 
 import { Database } from '@/types/database.types';
 import { DbId } from '@/types/database-common';
-import { PaymentStatus as CommonPaymentStatus } from '@/types/payment.types';
-
-export type PaymentStatus = CommonPaymentStatus;
+import { PaymentStatus } from '@/types/payment';
 
 export interface Payment {
   id: DbId;

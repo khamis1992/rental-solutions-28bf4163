@@ -1,8 +1,9 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { Payment } from '@/types/payment.types';
+import { Payment } from '@/types/payment';
 import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
 
-export { Payment };
+export type { Payment };
 
 export function usePayments(agreementId?: string) {
   const { data, isLoading, error, refetch } = useSupabaseQuery(

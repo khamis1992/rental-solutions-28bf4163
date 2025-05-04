@@ -1,5 +1,4 @@
 
-// Import the TrafficFine type
 import { TrafficFine } from '@/types/traffic-fine';
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -23,7 +22,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     // Filter fines to only show those related to this customer
     if (trafficFines) {
       const relatedFines = trafficFines
-        .filter(fine => fine.customer_id === customerId)
+        .filter(fine => fine.customerId === customerId || fine.customer_id === customerId)
         .map(mapTrafficFineData);
       setFines(relatedFines);
     }

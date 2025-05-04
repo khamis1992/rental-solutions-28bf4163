@@ -8,7 +8,7 @@ import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
 import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
-import { PaymentStatus } from '@/types/payment.types'; 
+import type { Payment, PaymentStatus } from '@/types/payment';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -44,7 +44,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         throw new Error('Could not find lease ID for this agreement');
       }
 
-      const paymentData = {
+      const paymentData: Partial<Payment> = {
         amount: data.rentAmount,
         payment_date: new Date().toISOString(),
         lease_id: leaseData.id, // Use the actual UUID from the leases table
