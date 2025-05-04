@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useCustomers } from '@/hooks/use-customers';
+import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Customer } from '@/lib/validation-schemas/customer';
 
@@ -27,12 +27,21 @@ const ITEMS_PER_PAGE = 10;
 
 export function CustomerList({ searchParams }: CustomerListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Use the useCustomerService hook with search filters
   const {
     customers,
     isLoading,
     error,
-    deleteCustomer,
-  } = useCustomers();
+    deleteCustomer
+  } = useCustomerService({
+    status: searchParams.status !== 'all' ? searchParams.status : undefined,
+    searchTerm: searchParams.query || undefined
+  });
+
+  // For debugging
+  console.log('CustomerList - search params:', searchParams);
+  console.log('CustomerList - fetched customers:', customers);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
@@ -108,7 +117,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                     </Link>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.phone_number}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -132,7 +141,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
                             if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                              deleteCustomer.mutate(customer.id);
+                              deleteCustomer(customer.id);
                             }
                           }}
                         >
