@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, CheckCircle, InfoIcon, AlertCircle, AlertTriangle } from "lucide-react";
+import { CalendarIcon, CheckCircle, InfoIcon, AlertCircle, AlertTriangle, SearchIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
@@ -35,6 +35,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
 import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
+import { CustomerSearchResults } from "@/components/customers/CustomerSearchResults";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -68,8 +69,11 @@ const AgreementFormWithVehicleCheck = ({
   isCheckingTemplate = false,
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [vehicles, setVehicles] = useState<any[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [durationMonths, setDurationMonths] = useState<number>(12);
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
@@ -100,26 +104,76 @@ const AgreementFormWithVehicleCheck = ({
     },
   });
 
+  // Load initial customers for existing forms
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("role", "customer");
+    if (initialData?.customer_id) {
+      fetchCustomerDetails(initialData.customer_id);
+    }
+  }, [initialData]);
 
-        if (error) {
-          throw error;
-        }
+  const fetchCustomerDetails = async (customerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", customerId)
+        .single();
 
-        setCustomers(data || []);
-      } catch (error) {
-        console.error("Error fetching customers:", error);
+      if (error) throw error;
+
+      setSelectedCustomer(data);
+      console.log("Fetched customer details:", data);
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+    }
+  };
+
+  const handleCustomerSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      console.log("Searching for customers with query:", searchQuery);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "customer")
+        .or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,driver_license.ilike.%${searchQuery}%`)
+        .limit(10);
+
+      if (error) throw error;
+      
+      console.log("Customer search results:", data);
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error("Error searching for customers:", error);
+      toast.error("Failed to search for customers");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Trigger search when search query changes with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        handleCustomerSearch();
       }
-    };
+    }, 300);
 
-    fetchCustomers();
-  }, []);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectCustomer = (customer: any) => {
+    console.log("Selected customer:", customer);
+    setSelectedCustomer(customer);
+    form.setValue("customer_id", customer.id);
+    setSearchResults([]);
+    setSearchQuery("");
+  };
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -141,24 +195,6 @@ const AgreementFormWithVehicleCheck = ({
 
     fetchVehicles();
   }, []);
-
-  const handleCustomerChange = async (customerId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", customerId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setSelectedCustomer(data);
-    } catch (error) {
-      console.error("Error fetching customer details:", error);
-    }
-  };
 
   const handleVehicleChange = async (vehicleId: string) => {
     setIsCheckingVehicle(true);
@@ -501,26 +537,46 @@ const AgreementFormWithVehicleCheck = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Customer</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleCustomerChange(value);
-                      }} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Search customers by name, email, phone..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
+                        <input type="hidden" {...field} />
+                      </div>
+                      
+                      {searchQuery && searchResults.length > 0 && (
+                        <div className="absolute z-50 bg-white border rounded-md shadow-md mt-1 w-full max-w-md max-h-64 overflow-auto">
+                          {searchResults.map(customer => (
+                            <div 
+                              key={customer.id} 
+                              className="p-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                              onClick={() => handleSelectCustomer(customer)}
+                            >
+                              <div className="font-medium">{customer.full_name}</div>
+                              <div className="text-sm text-gray-500 flex items-center gap-2">
+                                <span>{customer.email}</span>
+                                <span>•</span>
+                                <span>{customer.phone_number}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {searchQuery && isSearching && (
+                        <div className="text-sm text-muted-foreground">Searching...</div>
+                      )}
+                      
+                      {searchQuery && !isSearching && searchResults.length === 0 && (
+                        <div className="text-sm text-muted-foreground">No customers found</div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -528,10 +584,25 @@ const AgreementFormWithVehicleCheck = ({
               
               {selectedCustomer && (
                 <div className="bg-muted p-3 rounded-md text-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-medium">Selected Customer</h4>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedCustomer(null);
+                        form.setValue("customer_id", "");
+                      }}
+                      className="h-7 px-2"
+                    >
+                      Change
+                    </Button>
+                  </div>
+                  <p><strong>Name:</strong> {selectedCustomer.full_name}</p>
                   <p><strong>Email:</strong> {selectedCustomer.email}</p>
                   <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-                  <p><strong>Driver License:</strong> {selectedCustomer.driver_license}</p>
-                  <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
+                  <p><strong>Driver License:</strong> {selectedCustomer.driver_license || 'N/A'}</p>
+                  <p><strong>Nationality:</strong> {selectedCustomer.nationality || 'N/A'}</p>
                 </div>
               )}
               
@@ -693,7 +764,7 @@ const AgreementFormWithVehicleCheck = ({
             />
           </div>
           
-          {renderAgreementPreview()}
+          {renderAgreementPreview && renderAgreementPreview()}
           
           <div className="flex justify-end">
             <Button 
