@@ -20,20 +20,21 @@ export interface Agreement {
   next_payment_date?: string;
   last_payment_date?: string;
   notes?: string;
-  customer?: {
-    id: string;
+  customers: {
+    id?: string;
     full_name?: string;
     email?: string;
     phone_number?: string;
   };
-  vehicle?: {
-    id: string;
+  vehicles?: {
+    id?: string;
     make?: string;
     model?: string;
     year?: number;
     license_plate?: string;
     color?: string;
   };
+  customer_name?: string;
   payments?: any[];
   daily_late_fee?: number;
   deposit_amount?: number;
