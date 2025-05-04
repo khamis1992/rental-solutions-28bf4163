@@ -1,505 +1,227 @@
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTrafficFines } from "@/hooks/use-traffic-fines";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, Plus, FilterX, FileSpreadsheet } from "lucide-react";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import React, { useState } from 'react';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
+import { 
+  Search, RefreshCw, Check, AlertCircle, Receipt, FileText 
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
-interface TrafficFinesListProps {
-  onAddFine: () => void;
-  onInvalidAssignmentsFound?: (hasInvalid: boolean) => void;
-  showInvalidAssignments?: boolean;
-  triggerCleanup?: boolean;
-}
+export function TrafficFinesList() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-const TrafficFinesList = ({
-  onAddFine,
-  onInvalidAssignmentsFound,
-  showInvalidAssignments = false,
-  triggerCleanup = false,
-}: TrafficFinesListProps) => {
-
-  const {
-    trafficFines,
-    isLoading,
-    error,
-    payTrafficFine,
-    disputeTrafficFine,
-    assignToCustomer,
-    cleanupInvalidAssignments,
-    isValidFine,
-    bulkProcessFines,
+  const { 
+    trafficFines, 
+    isLoading, 
+    updateTrafficFineStatus, 
+    validateTrafficFine,
+    refetchTrafficFines
   } = useTrafficFines();
-
-  const [fines, setFines] = useState<any[]>([]);
-  const [filteredFines, setFilteredFines] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [assignmentFilter, setAssignmentFilter] = useState("all");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
-  const [showPaidOnly, setShowPaidOnly] = useState(false);
-  const [hasInvalidAssignments, setHasInvalidAssignments] = useState(false);
-
-  // Handle cleanup trigger from parent
-  useEffect(() => {
-    if (triggerCleanup) {
-      handleCleanupInvalidAssignments();
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+  
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+  
+  const handleMarkAsPaid = async (fineId: string) => {
+    try {
+      await updateTrafficFineStatus(fineId, 'paid');
+      toast.success('Traffic fine marked as paid');
+    } catch (error) {
+      toast.error('Failed to update traffic fine status');
     }
-  }, [triggerCleanup]);
-
-  // Process fines data
-  useEffect(() => {
-    if (trafficFines) {
-      const processedFines = trafficFines.map((fine) => {
-        const valid = isValidFine(fine);
-        return {
-          ...fine,
-          valid,
-        };
-      });
-
-      setFines(processedFines);
-
-      // Check for invalid assignments
-      const invalidAssignments = processedFines.filter(
-        (fine) => fine.customerId && !fine.valid
-      );
-      setHasInvalidAssignments(invalidAssignments.length > 0);
-
-      if (onInvalidAssignmentsFound) {
-        onInvalidAssignmentsFound(invalidAssignments.length > 0);
+  };
+  
+  const handleValidate = async (fineId: string, licensePlate: string) => {
+    try {
+      const result = await validateTrafficFine(fineId, licensePlate);
+      if (result.isValid) {
+        toast.success('Validation completed successfully');
+      } else {
+        toast.error('Validation failed');
       }
-    }
-  }, [trafficFines, isValidFine, onInvalidAssignmentsFound]);
-
-  // Apply filters
-  useEffect(() => {
-    if (!fines) return;
-
-    let result = [...fines];
-
-    // Search filter
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      result = result.filter(
-        (fine) =>
-          (fine.licensePlate || "").toLowerCase().includes(search) ||
-          (fine.violationNumber || "").toLowerCase().includes(search) ||
-          (fine.customerName || "").toLowerCase().includes(search) ||
-          (fine.location || "").toLowerCase().includes(search)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      result = result.filter((fine) => fine.paymentStatus === statusFilter);
-    }
-
-    // Assignment filter
-    if (assignmentFilter !== "all") {
-      if (assignmentFilter === "assigned") {
-        result = result.filter((fine) => !!fine.customerId);
-      } else if (assignmentFilter === "unassigned") {
-        result = result.filter((fine) => !fine.customerId);
-      } else if (assignmentFilter === "invalid") {
-        result = result.filter((fine) => fine.customerId && !fine.valid);
-      }
-    }
-
-    // Show unassigned only
-    if (showUnassignedOnly) {
-      result = result.filter((fine) => !fine.customerId);
-    }
-
-    // Show paid only
-    if (showPaidOnly) {
-      result = result.filter((fine) => fine.paymentStatus === "paid");
-    }
-
-    // Show invalid assignments explicitly
-    if (showInvalidAssignments) {
-      result = result.filter((fine) => fine.customerId && !fine.valid);
-    }
-
-    setFilteredFines(result);
-  }, [
-    fines,
-    searchTerm,
-    statusFilter,
-    assignmentFilter,
-    showUnassignedOnly,
-    showPaidOnly,
-    showInvalidAssignments,
-  ]);
-
-  const handlePayFine = async (id: string) => {
-    try {
-      await payTrafficFine.mutateAsync({ id });
     } catch (error) {
-      console.error("Error paying fine:", error);
+      toast.error('Failed to validate traffic fine');
     }
   };
 
-  const handleDisputeFine = async (id: string) => {
-    try {
-      await disputeTrafficFine.mutateAsync({ id });
-    } catch (error) {
-      console.error("Error disputing fine:", error);
-    }
-  };
-
-  const handleAssignToCustomer = async (id: string) => {
-    try {
-      await assignToCustomer.mutateAsync({ id });
-      toast.success("Fine assigned to customer successfully");
-    } catch (error) {
-      console.error("Error assigning fine:", error);
-      toast.error("Failed to assign fine", {
-        description: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  };
-
-  const handleCleanupInvalidAssignments = async () => {
-    setIsProcessing(true);
-    try {
-      await cleanupInvalidAssignments.mutateAsync();
-      // Success message handled by the hook
-    } catch (error) {
-      console.error("Error cleaning up invalid assignments:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  const handleBulkProcess = async () => {
-    const unassignedFines = fines.filter(fine => !fine.customerId);
-
-    if (unassignedFines.length === 0) {
-      toast.warning("No unassigned fines to process");
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      // Get the IDs of unassigned fines
-      const fineIds = unassignedFines.map(fine => fine.id);
-
-      // Call bulkProcessFines with the correct parameters
-      const result = await bulkProcessFines.mutateAsync({
-        fineIds,
-        action: 'reassign',
-        batchSize: 5,
-        continueOnError: true
-      });
-
-      toast.success(`Processed ${result.processed || 0} fines`, {
-        description: `Successfully assigned: ${result.processed || 0}, Failed: ${result.failed || 0}`
-      });
-    } catch (error) {
-      console.error("Error in bulk processing:", error);
-      toast.error("Bulk processing failed", {
-        description: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const columns = [
-    {
-      accessorKey: "violationNumber",
-      header: "Violation #",
-    },
-    {
-      accessorKey: "licensePlate",
-      header: "License Plate",
-    },
-    {
-      accessorKey: "violationDate",
-      header: "Date",
-      cell: ({ row }: any) => {
-        const date = row.getValue("violationDate");
-        return date ? format(new Date(date), "dd MMM yyyy") : "N/A";
-      },
-    },
-    {
-      accessorKey: "location",
-      header: "Location",
-    },
-    {
-      accessorKey: "fineAmount",
-      header: "Amount",
-      cell: ({ row }: any) => {
-        const amount = parseFloat(row.getValue("fineAmount"));
-        return !isNaN(amount) ? `QAR ${amount.toLocaleString()}` : "N/A";
-      },
-    },
-    {
-      accessorKey: "customerName",
-      header: "Customer",
-      cell: ({ row }: any) => {
-        const customerName = row.getValue("customerName");
-        const valid = row.original.valid;
-        const hasCustomer = !!row.original.customerId;
-
-        if (!hasCustomer) return <span className="text-muted-foreground">Unassigned</span>;
-        return (
-          <div className="flex items-center">
-            <span>{customerName || "Unknown"}</span>
-            {hasCustomer && !valid && (
-              <Badge variant="destructive" className="ml-2">Invalid</Badge>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "paymentStatus",
-      header: "Status",
-      cell: ({ row }: any) => {
-        const status = row.getValue("paymentStatus");
-        return (
-          <Badge
-            className={
-              status === "paid"
-                ? "bg-green-500"
-                : status === "disputed"
-                ? "bg-yellow-500"
-                : "bg-red-500"
-            }
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }: any) => {
-        const fine = row.original;
-        return (
-          <div className="flex items-center gap-2">
-            {!fine.customerId ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleAssignToCustomer(fine.id)}
-              >
-                Assign
-              </Button>
-            ) : (
-              <>
-                {fine.paymentStatus === "pending" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePayFine(fine.id)}
-                    >
-                      Pay
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDisputeFine(fine.id)}
-                    >
-                      Dispute
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Error loading traffic fines</AlertTitle>
-        <AlertDescription>
-          {error instanceof Error ? error.message : "Unknown error occurred"}
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // Filter the fines based on search term and status filter
+  const filteredFines = trafficFines.filter(fine => {
+    const matchesSearch = 
+      fine.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fine.violation_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fine.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || fine.payment_status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredFines.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedFines = filteredFines.slice(startIndex, startIndex + pageSize);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Traffic Fines</CardTitle>
-        <div className="flex items-center space-x-2">
-          <Button onClick={onAddFine} className="h-8">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Fine
-          </Button>
-          <Button
-            onClick={handleBulkProcess}
-            variant="outline"
-            className="h-8"
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Traffic Fines</h2>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => refetchTrafficFines('all')}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by license plate or fine number"
+            value={searchTerm}
+            onChange={handleSearch}
+            className="pl-8"
+          />
+        </div>
+        <Select 
+          value={statusFilter} 
+          onValueChange={handleStatusChange}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="disputed">Disputed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>License Plate</TableHead>
+              <TableHead>Violation Date</TableHead>
+              <TableHead>Fine Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Validation</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  <RefreshCw className="h-5 w-5 animate-spin mx-auto" />
+                  <span className="block mt-2">Loading traffic fines...</span>
+                </TableCell>
+              </TableRow>
+            ) : paginatedFines.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">No traffic fines found</TableCell>
+              </TableRow>
             ) : (
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              paginatedFines.map(fine => (
+                <TableRow key={fine.id}>
+                  <TableCell className="font-medium">{fine.license_plate}</TableCell>
+                  <TableCell>
+                    {fine.violation_date ? format(new Date(fine.violation_date), 'MMM d, yyyy') : 'Unknown'}
+                  </TableCell>
+                  <TableCell>
+                    {typeof fine.fine_amount === 'number' ? `QAR ${fine.fine_amount.toFixed(2)}` : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {fine.payment_status === 'paid' && (
+                      <Badge variant="outline" className="bg-green-100">Paid</Badge>
+                    )}
+                    {fine.payment_status === 'pending' && (
+                      <Badge variant="secondary">Pending</Badge>
+                    )}
+                    {fine.payment_status === 'disputed' && (
+                      <Badge variant="outline" className="bg-orange-100">Disputed</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {fine.validation_status === 'pending' && (
+                      <Badge variant="outline">Not Validated</Badge>
+                    )}
+                    {fine.validation_status === 'validated' && (
+                      <Badge variant="outline" className="bg-green-100">
+                        <Check className="h-3 w-3 mr-1" />
+                        Validated
+                      </Badge>
+                    )}
+                    {fine.validation_status === 'failed' && (
+                      <Badge variant="outline" className="bg-red-100">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Failed
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleValidate(fine.id, fine.license_plate || '')}
+                        disabled={!fine.license_plate}
+                      >
+                        Validate
+                      </Button>
+                      {fine.payment_status === 'pending' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleMarkAsPaid(fine.id)}
+                        >
+                          <Receipt className="h-4 w-4 mr-1" />
+                          Mark Paid
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm">
+                        <FileText className="h-4 w-4 mr-1" />
+                        Details
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-            Bulk Process
-          </Button>
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Input
-                placeholder="Search fines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="disputed">Disputed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Select
-                value={assignmentFilter}
-                onValueChange={setAssignmentFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by assignment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Assignments</SelectItem>
-                  <SelectItem value="assigned">Assigned</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  <SelectItem value="invalid">Invalid Assignments</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-end space-x-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="unassigned"
-                  checked={showUnassignedOnly}
-                  onCheckedChange={setShowUnassignedOnly}
-                />
-                <Label htmlFor="unassigned" className="text-sm">Unassigned</Label>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                  setAssignmentFilter("all");
-                  setShowUnassignedOnly(false);
-                  setShowPaidOnly(false);
-                }}
-                className="h-8"
-              >
-                <FilterX className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          {hasInvalidAssignments && (
-            <Alert variant="warning">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Invalid Assignments Detected</AlertTitle>
-              <AlertDescription className="flex justify-between items-center">
-                <span>
-                  Some traffic fines are assigned to customers but the violation dates
-                  fall outside the lease periods.
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCleanupInvalidAssignments}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Fixing...
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="mr-2 h-3 w-3" />
-                      Fix Invalid Assignments
-                    </>
-                  )}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Table */}
-          <DataTable columns={columns} data={filteredFines} />
-
-          {filteredFines.length === 0 && (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No traffic fines match your filters</p>
-              {searchTerm || statusFilter !== "all" || assignmentFilter !== "all" || showUnassignedOnly || showPaidOnly ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setAssignmentFilter("all");
-                    setShowUnassignedOnly(false);
-                    setShowPaidOnly(false);
-                  }}
-                  className="mt-2"
-                >
-                  <FilterX className="h-4 w-4 mr-1" />
-                  Clear Filters
-                </Button>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
-};
-
-export default TrafficFinesList;
+}

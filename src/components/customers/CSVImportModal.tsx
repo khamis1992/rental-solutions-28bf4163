@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, FileUp, Download, Check, Loader2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { customerCSVFields, customerCSVMap } from '@/lib/validation-schemas/customer';
 import { downloadCSVTemplate } from '@/utils/csv-utils';
 
@@ -81,7 +82,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
           original_file_name: file.name,
           status: 'pending',
           created_by: (await supabase.auth.getUser()).data.user?.id,
-          mapping_used: customerCSVMap
+          mapping_used: JSON.stringify(customerCSVMap)
         })
         .select();
 
