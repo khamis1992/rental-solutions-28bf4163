@@ -74,8 +74,8 @@ const LOCATION_OPTIONS = [
   { value: 'West Branch', label: 'West Branch' }
 ];
 
-// Generate year options dynamically
-const YEAR_OPTIONS = useMemo(() => {
+// Generate year options dynamically without useMemo
+const generateYearOptions = () => {
   const currentYear = new Date().getFullYear();
   const years = [{ value: 'all', label: 'All Years' }];
 
@@ -84,7 +84,10 @@ const YEAR_OPTIONS = useMemo(() => {
   }
 
   return years;
-}, []);
+};
+
+// Create year options once outside the component
+const YEAR_OPTIONS = generateYearOptions();
 
 const VehicleFilters: React.FC<VehicleFiltersProps> = memo(({
   onFilterChange,
