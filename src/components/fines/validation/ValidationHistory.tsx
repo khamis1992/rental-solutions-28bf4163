@@ -1,75 +1,55 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge'; 
+import { ValidationResultType } from './types';
 
-export interface ValidationResult {
-  id?: string;
-  licensePlate: string;
-  isValid: boolean;
-  message: string;
-  details?: any;
-  timestamp?: Date;
-  validationDate?: Date;
-  validationSource?: string;
-  hasFine?: boolean;
+interface ValidationHistoryProps {
+  validationHistory: ValidationResultType[];
+  isLoading?: boolean;
 }
 
-export interface ValidationHistoryProps {
-  history: ValidationResult[];
-}
+export function ValidationHistory({ validationHistory, isLoading = false }: ValidationHistoryProps) {
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading validation history...</div>;
+  }
 
-const ValidationHistory: React.FC<ValidationHistoryProps> = ({ history }) => {
-  if (!history || history.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">
-            No validation history available. Validate some license plates to see them here.
-          </p>
-        </CardContent>
-      </Card>
-    );
+  if (!validationHistory || validationHistory.length === 0) {
+    return <div className="text-sm text-muted-foreground">No validation history found.</div>;
   }
 
   return (
-    <div className="space-y-4">
-      {history.map((item, index) => (
-        <Card key={item.id || index} className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="flex items-center p-4">
-              <div className="mr-4">
-                {item.isValid ? (
-                  <CheckCircle className="h-6 w-6 text-green-500" />
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold mb-2">Validation History</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>License Plate</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead>Result</TableHead>
+            <TableHead>Details</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {validationHistory.map((item, index) => (
+            <TableRow key={item.validationId || index}>
+              <TableCell>{item.licensePlate}</TableCell>
+              <TableCell>{item.validationDate ? format(new Date(item.validationDate), 'dd MMM yyyy HH:mm') : 'N/A'}</TableCell>
+              <TableCell>{item.validationSource || 'System'}</TableCell>
+              <TableCell>
+                {item.hasFine ? (
+                  <Badge variant="destructive">Has Fine</Badge>
                 ) : (
-                  <XCircle className="h-6 w-6 text-red-500" />
+                  <Badge variant="outline" className="bg-green-100">No Fine</Badge>
                 )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">
-                    License Plate: <span className="font-bold">{item.licensePlate}</span>
-                  </div>
-                  <Badge variant={item.isValid ? "success" : "destructive"}>
-                    {item.isValid ? 'Valid' : 'Invalid'}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {item.message}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {item.timestamp ? format(new Date(item.timestamp), 'PPp') :
-                   item.validationDate ? format(new Date(item.validationDate), 'PPp') : 'Unknown time'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </TableCell>
+              <TableCell className="max-w-xs truncate">{item.details || 'No details'}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
-};
-
-export default ValidationHistory;
+}

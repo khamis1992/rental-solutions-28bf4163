@@ -12,6 +12,21 @@ import { profileRepository } from './repositories/profile-repository';
 import { paymentRepository } from './repositories/payment-repository';
 import { trafficFineRepository } from './repositories/traffic-fine-repository';
 
+// Import the necessary utilities
+import {
+  asLeaseId,
+  asVehicleId,
+  asProfileId,
+  asPaymentId,
+  asTrafficFineId,
+  asMaintenanceId,
+  asLeaseStatus,
+  asPaymentStatus,
+  asVehicleStatus,
+  asTrafficFinePaymentStatus,
+  asEntityStatus
+} from '@/types/database-common';
+
 // Export repositories
 export { 
   leaseRepository, 
@@ -53,7 +68,6 @@ export const asTrafficFineIdColumn = asTrafficFineId;
 export const asMaintenanceIdColumn = asMaintenanceId;
 
 // Alias for legacy code
-import { asEntityStatus } from '@/types/database-common';
 export const asStatusColumn = asEntityStatus;
 
 // Safe utility for string to enum casting (will be provided by new system)
