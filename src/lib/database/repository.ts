@@ -25,6 +25,17 @@ export class Repository<T extends keyof Tables> {
   }
 
   /**
+   * Find all records
+   */
+  async findAll(): Promise<DbListResponse<TableRow<T>>> {
+    const response = await supabase
+      .from(this.tableName)
+      .select('*');
+    
+    return mapDbResponse(response);
+  }
+
+  /**
    * Find multiple records by a filter
    * @param filters - Type-safe filters to apply to the query
    * @param select - Fields to select
@@ -45,6 +56,28 @@ export class Repository<T extends keyof Tables> {
 
     const response = await query;
     return mapDbResponse(response);
+  }
+
+  /**
+   * Find records by status
+   * @param status - Status to filter by
+   */
+  async findByStatus(status: string): Promise<DbListResponse<TableRow<T>>> {
+    const response = await supabase
+      .from(this.tableName)
+      .select('*')
+      .eq('status', status);
+    
+    return mapDbResponse(response);
+  }
+
+  /**
+   * Get detailed view of entity with related data
+   * @param id - Entity ID
+   */
+  async findWithDetails(id: string): Promise<DbSingleResponse<TableRow<T> & { [key: string]: any }>> {
+    // This is a placeholder that derived repositories should override
+    return this.findById(id);
   }
 
   /**
@@ -75,6 +108,15 @@ export class Repository<T extends keyof Tables> {
       .single();
     
     return mapDbResponse(response);
+  }
+
+  /**
+   * Update entity status
+   * @param id - Entity ID
+   * @param status - New status
+   */
+  async updateStatus(id: string, status: string): Promise<DbSingleResponse<TableRow<T>>> {
+    return this.update(id, { status } as any);
   }
 
   /**

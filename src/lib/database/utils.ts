@@ -1,3 +1,4 @@
+
 import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { Database } from '@/types/database.types';
 import { DbResponse, DbListResponse, DbSingleResponse } from './types';
@@ -52,7 +53,7 @@ export function asVehicleStatus(status: string): VehicleStatus {
 }
 
 export function asPaymentStatus(status: string): PaymentStatus {
-  return status as PaymentStatus;
+  return status;
 }
 
 export function asProfileStatus(status: string): ProfileStatus {
@@ -61,6 +62,11 @@ export function asProfileStatus(status: string): ProfileStatus {
 
 export function asMaintenanceStatus(status: string): MaintenanceStatus {
   return status as MaintenanceStatus;
+}
+
+// Column value helper for filtering
+export function safeColumnFilter<T = string>(value: string): T {
+  return value as T;
 }
 
 // Add the function that was referenced but missing
@@ -128,13 +134,5 @@ export function asTableId(table: string, id: string): string {
  * Use this for string values that need to be cast to specific enum or column types
  */
 export function asColumnValue<T extends string>(value: string): T {
-  return value as T;
-}
-
-/**
- * Type-safe query filter builder for string column values
- * Use this for status values in .eq() or .in() operations
- */
-export function safeColumnFilter<T extends string>(value: string): T {
   return value as T;
 }

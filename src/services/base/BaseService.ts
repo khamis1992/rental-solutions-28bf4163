@@ -1,3 +1,4 @@
+
 import { Repository } from '@/lib/database/repository';
 import { DbListResponse, DbSingleResponse, TableRow, TableInsert, TableUpdate } from '@/lib/database/types';
 
@@ -14,38 +15,41 @@ export abstract class BaseService<T extends string> {
   /**
    * Find all entities
    */
-  async findAll(): Promise<TableRow<T>[]> {
-    const response = await this.repository.findAll();
-    if (response.error) {
-      console.error(`Error finding all ${this.repository.tableName}:`, response.error);
-      throw new Error(`Failed to fetch ${this.repository.tableName}`);
-    }
-    return response.data;
+  async findAll(): Promise<ServiceResult<TableRow<T>[]>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.findAll();
+      if (response.error) {
+        throw new Error(`Failed to fetch ${this.repository.tableName}: ${response.error.message}`);
+      }
+      return response.data;
+    });
   }
 
   /**
    * Find entity by ID
    */
-  async findById(id: string): Promise<TableRow<T>> {
-    const response = await this.repository.findById(id);
-    if (response.error) {
-      console.error(`Error finding ${this.repository.tableName} by ID:`, response.error);
-      throw new Error(`Failed to fetch ${this.repository.tableName} with ID ${id}`);
-    }
-    return response.data;
+  async findById(id: string): Promise<ServiceResult<TableRow<T>>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.findById(id);
+      if (response.error) {
+        throw new Error(`Failed to fetch ${this.repository.tableName} with ID ${id}: ${response.error.message}`);
+      }
+      return response.data;
+    });
   }
 
   /**
    * Create a new entity
    * @param data Data to create entity with
    */
-  async create(data: TableInsert<T>): Promise<TableRow<T>> {
-    const response = await this.repository.create(data);
-    if (response.error) {
-      console.error(`Error creating ${this.repository.tableName}:`, response.error);
-      throw new Error(`Failed to create ${this.repository.tableName}`);
-    }
-    return response.data;
+  async create(data: TableInsert<T>): Promise<ServiceResult<TableRow<T>>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.create(data);
+      if (response.error) {
+        throw new Error(`Failed to create ${this.repository.tableName}: ${response.error.message}`);
+      }
+      return response.data;
+    });
   }
 
   /**
@@ -53,24 +57,26 @@ export abstract class BaseService<T extends string> {
    * @param id Entity ID
    * @param data Data to update entity with
    */
-  async update(id: string, data: TableUpdate<T>): Promise<TableRow<T>> {
-    const response = await this.repository.update(id, data);
-    if (response.error) {
-      console.error(`Error updating ${this.repository.tableName}:`, response.error);
-      throw new Error(`Failed to update ${this.repository.tableName} with ID ${id}`);
-    }
-    return response.data;
+  async update(id: string, data: TableUpdate<T>): Promise<ServiceResult<TableRow<T>>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.update(id, data);
+      if (response.error) {
+        throw new Error(`Failed to update ${this.repository.tableName} with ID ${id}: ${response.error.message}`);
+      }
+      return response.data;
+    });
   }
 
   /**
    * Delete an entity
    */
-  async delete(id: string): Promise<void> {
-    const response = await this.repository.delete(id);
-    if (response.error) {
-      console.error(`Error deleting ${this.repository.tableName}:`, response.error);
-      throw new Error(`Failed to delete ${this.repository.tableName} with ID ${id}`);
-    }
+  async delete(id: string): Promise<ServiceResult<void>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.delete(id);
+      if (response.error) {
+        throw new Error(`Failed to delete ${this.repository.tableName} with ID ${id}: ${response.error.message}`);
+      }
+    });
   }
 }
 
