@@ -31,6 +31,9 @@ const AgreementList: React.FC = () => {
     ...agreement,
     payment_frequency: 'monthly', // Default value for type compatibility
     payment_day: 1, // Default value for type compatibility
+    customers: agreement.customers || { // Make sure customers property exists
+      full_name: agreement.customer_name || 'N/A'
+    },
   })) as Agreement[];
 
   return (
