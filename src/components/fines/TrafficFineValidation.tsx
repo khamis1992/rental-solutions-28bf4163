@@ -1,18 +1,18 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTrafficFinesValidation } from '@/hooks/use-traffic-fines-validation';
+import { useTrafficFineValidation } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ValidationResult } from '@/types/validation';
+import { ValidationResult } from '@/hooks/traffic-fines/use-traffic-fine-validation';
 
 export function TrafficFineValidation() {
   const [licensePlate, setLicensePlate] = useState('');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const { validateTrafficFine, isLoading } = useTrafficFinesValidation();
+  const { validateTrafficFine, isLoading } = useTrafficFineValidation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

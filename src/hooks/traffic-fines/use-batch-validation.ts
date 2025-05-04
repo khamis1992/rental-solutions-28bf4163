@@ -1,208 +1,178 @@
 
 import { useState } from 'react';
-import { batchOperations } from '@/utils/promise/batch';
-import { supabase } from '@/lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createLogger } from '@/utils/error-logger';
-
-const logger = createLogger('traffic-fines:batch-validation');
-
-export interface ValidationResult {
-  licensePlate: string;
-  validationDate: string;
-  hasFine: boolean;
-  details?: string;
-}
-
-export interface BatchValidationOptions {
-  batchSize?: number;
-  concurrency?: number;
-  continueOnError?: boolean;
-  delay?: number;
-}
-
-export interface BatchValidationResults {
-  results: ValidationResult[];
-  errors: any[];
-  summary: {
-    total: number;
-    processed: number;
-    succeeded: number;
-    failed: number;
-  };
-}
+import { useErrorNotification } from '@/hooks/use-error-notification';
+import { 
+  ApiValidationResult, 
+  BatchValidationOptions, 
+  BatchValidationResult, 
+  ValidationError, 
+  ValidationProgress 
+} from './types';
+import { useFineValidation } from './use-fine-validation';
+import { groupValidationErrors, generateErrorSummary } from './validation-errors';
 
 /**
- * Hook for handling batch validation operations
+ * Hook for batch validating multiple traffic fines
  */
-export function useBatchValidation() {
+export const useBatchValidation = () => {
+  const queryClient = useQueryClient();
+  const errorNotification = useErrorNotification();
+  const { validateTrafficFine } = useFineValidation();
   const [isValidating, setIsValidating] = useState(false);
-  const [validationProgress, setValidationProgress] = useState<{
-    processed: number;
-    total: number;
-    percentComplete: number;
-  } | null>(null);
-  
+  const [validationProgress, setValidationProgress] = useState<ValidationProgress | null>(null);
+
   /**
-   * Validate a batch of license plates
+   * Batch validate multiple license plates
    */
   const validateBatch = async (
     licensePlates: string[],
     options: BatchValidationOptions = {}
-  ): Promise<BatchValidationResults> => {
-    setIsValidating(true);
-    setValidationProgress({ processed: 0, total: licensePlates.length, percentComplete: 0 });
+  ): Promise<BatchValidationResult> => {
+    const { 
+      batchSize = 5, 
+      concurrency = 2, 
+      continueOnError = true 
+    } = options;
     
+    const results: ApiValidationResult[] = [];
+    const errors: ValidationError[] = [];
+    
+    setIsValidating(true);
+    setValidationProgress({
+      total: licensePlates.length,
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      percentComplete: 0
+    });
+
     try {
-      logger.info(`Starting batch validation of ${licensePlates.length} plates`);
-      
-      // Filter out empty plates
-      const validPlates = licensePlates.filter(plate => plate && plate.trim() !== '');
-      
-      if (validPlates.length === 0) {
-        throw new Error('No valid license plates provided');
-      }
-      
-      // Set up options
-      const { 
-        batchSize = 5,
-        concurrency = 2,
-        continueOnError = true,
-        delay = 500
-      } = options;
-      
-      // Call the edge function to batch validate
-      // For larger batches, break them down
-      const results: ValidationResult[] = [];
-      const errors: any[] = [];
-      
-      // Process in smaller chunks to avoid overwhelming the edge function
-      const chunks = [];
-      for (let i = 0; i < validPlates.length; i += batchSize) {
-        chunks.push(validPlates.slice(i, i + batchSize));
-      }
-      
-      // Process each chunk with configurable concurrency
-      const { data } = await batchOperations<string[], any>(
-        chunks,
-        async (chunk) => {
-          const { data, error } = await supabase.functions.invoke('validate-traffic-fine', {
-            body: { licensePlates: chunk }
-          });
-          
-          if (error) {
-            logger.error(`Error in batch validation:`, error);
-            throw error;
-          }
-          
-          return data;
-        },
-        {
-          concurrency,
-          continueOnError,
-          delay,
-          onProgress: (status) => {
-            setValidationProgress({
-              processed: status.completed * batchSize > validPlates.length 
-                ? validPlates.length 
-                : status.completed * batchSize,
-              total: validPlates.length,
-              percentComplete: status.percentComplete
+      // Process in batches to avoid overwhelming the API
+      for (let i = 0; i < licensePlates.length; i += batchSize) {
+        const batch = licensePlates.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (plate) => {
+          try {
+            const result = await validateTrafficFine(plate);
+            results.push(result);
+            
+            setValidationProgress(prev => {
+              if (!prev) return null;
+              const successful = prev.successful + 1;
+              const processed = prev.processed + 1;
+              return {
+                ...prev,
+                processed,
+                successful,
+                percentComplete: Math.round((processed / prev.total) * 100)
+              };
             });
+            
+            return { success: true, result };
+          } catch (error: any) {
+            if (!continueOnError) throw error;
+            
+            errors.push(error);
+            
+            setValidationProgress(prev => {
+              if (!prev) return null;
+              const failed = prev.failed + 1;
+              const processed = prev.processed + 1;
+              return {
+                ...prev,
+                processed,
+                failed,
+                percentComplete: Math.round((processed / prev.total) * 100)
+              };
+            });
+            
+            return { success: false, error };
           }
-        }
-      );
-      
-      // Flatten and process results
-      data.results.forEach(chunkResult => {
-        if (chunkResult && chunkResult.results) {
-          results.push(...chunkResult.results);
-        }
-        if (chunkResult && chunkResult.errors) {
-          errors.push(...chunkResult.errors);
-        }
-      });
-      
-      logger.info(`Batch validation completed: ${results.length} successes, ${errors.length} errors`);
-      
-      const summary = {
-        total: validPlates.length,
-        processed: results.length + errors.length,
-        succeeded: results.length,
-        failed: errors.length
-      };
-      
-      // Show toast with results
-      if (errors.length > 0) {
-        toast.warning(`Validated ${results.length}/${validPlates.length} license plates`, {
-          description: `${errors.length} plates failed validation`
         });
-      } else {
-        toast.success(`Successfully validated ${results.length} license plates`);
+        
+        // Execute batch with limited concurrency
+        for (let j = 0; j < batch.length; j += concurrency) {
+          const concurrentBatch = batchPromises.slice(j, j + concurrency);
+          await Promise.all(concurrentBatch);
+          
+          // Add a small delay between concurrent batches
+          if (j + concurrency < batch.length) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        }
+        
+        // Add a delay between batches
+        if (i + batchSize < licensePlates.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
       
-      return { results, errors, summary };
-    } catch (error) {
-      logger.error('Batch validation failed:', error);
+      // Process and group errors for better reporting
+      const groupedErrors = groupValidationErrors(errors);
+      const errorSummary = generateErrorSummary(groupedErrors);
       
-      toast.error('Batch validation failed', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
-      throw error;
-    } finally {
-      setIsValidating(false);
-      // Clear progress after a brief delay
-      setTimeout(() => setValidationProgress(null), 2000);
-    }
-  };
-  
-  /**
-   * Process a batch of operations with progress tracking
-   */
-  const processBatchOperations = async <T, R>(
-    items: T[],
-    operation: (item: T, index: number) => Promise<R>,
-    options: BatchValidationOptions = {}
-  ) => {
-    setIsValidating(true);
-    setValidationProgress({ processed: 0, total: items.length, percentComplete: 0 });
-    
-    try {
-      const { concurrency = 2, continueOnError = true, delay = 300 } = options;
-      
-      const { data } = await batchOperations<T, R>(
-        items,
-        operation,
-        {
-          concurrency,
-          continueOnError,
-          delay,
-          onProgress: (status) => {
-            setValidationProgress({
-              processed: status.completed,
-              total: status.total,
-              percentComplete: status.percentComplete
-            });
+      // Show summary notification
+      if (results.length > 0) {
+        if (errors.length > 0) {
+          // Partial success
+          toast.warning(
+            `Validated ${results.length}/${licensePlates.length} license plates`,
+            {
+              description: `Failed: ${errors.length} plates. ${errorSummary}`,
+              duration: 5000
+            }
+          );
+        } else {
+          // Complete success
+          toast.success(
+            `Validated ${results.length}/${licensePlates.length} license plates`,
+            {
+              description: 'All validations completed successfully'
+            }
+          );
+        }
+      } else if (errors.length > 0) {
+        // Complete failure
+        errorNotification.showError(
+          `Validation Failed`,
+          {
+            description: errorSummary,
+            id: 'batch-validation-error'
           }
+        );
+      }
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['trafficFineValidations'] });
+      
+      return {
+        results,
+        errors,
+        summary: {
+          total: licensePlates.length,
+          succeeded: results.length,
+          failed: errors.length
+        }
+      };
+    } catch (error: any) {
+      errorNotification.showError(
+        'Batch Validation Failed',
+        {
+          description: error instanceof Error ? error.message : 'An unexpected error occurred',
+          id: 'batch-validation-critical-error'
         }
       );
       
-      return data;
-    } catch (error) {
-      logger.error('Batch processing failed:', error);
       throw error;
     } finally {
       setIsValidating(false);
-      // Clear progress after a brief delay
-      setTimeout(() => setValidationProgress(null), 2000);
     }
   };
   
   return {
     validateBatch,
-    processBatchOperations,
     isValidating,
     validationProgress
   };
-}
+};

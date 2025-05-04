@@ -1,7 +1,12 @@
 
-import { useTrafficFinesValidation } from '../use-traffic-fines-validation';
 import { ValidationResult } from '@/types/validation';
+import { useTrafficFinesValidation } from './index';
 
+/**
+ * Adapter hook that provides a simplified interface for 
+ * the traffic fine validation functionality for components
+ * that expect the original API
+ */
 export const useTrafficFineValidation = () => {
   const { validateTrafficFine, isLoading } = useTrafficFinesValidation();
   

@@ -1,42 +1,75 @@
+
 /**
- * Shared types for traffic fines
+ * Types for traffic fine validation functionality
  */
 
-// Status types
-export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
-
-// Traffic fine model
-export interface TrafficFine {
-  id: string;
-  violationNumber: string;
-  licensePlate?: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  paymentStatus: TrafficFineStatusType;
-  location?: string;
-  vehicleId?: string;
-  vehicleModel?: string;
-  customerId?: string;
-  customerName?: string;
-  paymentDate?: Date;
-  leaseId?: string;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
-}
-
-// Payload for operations on existing fines
-export interface TrafficFinePayload {
-  id: string;
-}
-
-// Payload for creating new fines
-export interface TrafficFineCreatePayload {
-  violationNumber: string;
+export interface ValidationResult {
   licensePlate: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  location?: string;
-  paymentStatus?: string;
+  isValid: boolean;
+  message: string;
+  validationDate?: Date;
+  validationSource?: string;
+  hasFine?: boolean;
+  details?: string;
+  validationId?: string;
+  environment?: string;
+}
+
+export interface ApiValidationResult {
+  licensePlate: string;
+  validationDate: Date;
+  validationSource: string;
+  hasFine: boolean;
+  details?: string;
+  validationId?: string;
+}
+
+export interface PendingStatusUpdate {
+  id: string;
+  licensePlate: string;
+  validationResult: ApiValidationResult;
+  timestamp: Date;
+}
+
+export interface ValidationError {
+  code: string;
+  message: string;
+  licensePlate: string;
+  timestamp: Date;
+  details?: any;
+}
+
+export interface BatchValidationOptions {
+  batchSize?: number;
+  concurrency?: number;
+  continueOnError?: boolean;
+}
+
+export interface ValidationProgress {
+  total: number;
+  processed: number;
+  successful: number;
+  failed: number;
+  percentComplete: number;
+}
+
+export interface BatchValidationResult {
+  results: ApiValidationResult[];
+  errors: ValidationError[];
+  summary: {
+    total: number;
+    succeeded: number;
+    failed: number;
+  }
+}
+
+export interface ConfirmStatusUpdateProps {
+  id: string;
+}
+
+export interface BasicMutationResult<T = any> {
+  success: boolean;
+  data?: T;
+  error?: Error;
+  message?: string;
 }
