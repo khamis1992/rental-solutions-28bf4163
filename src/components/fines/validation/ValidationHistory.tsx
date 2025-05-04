@@ -5,10 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'; 
 import { ValidationResultType } from './types';
 
-export interface ValidationResult extends ValidationResultType {}
-
 interface ValidationHistoryProps {
-  validationHistory: ValidationResult[];
+  validationHistory: ValidationResultType[];
   isLoading?: boolean;
 }
 

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTrafficFines, TrafficFineCreatePayload } from "@/hooks/use-traffic-fines";
+import { useTrafficFines } from "@/hooks/use-traffic-fines";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,22 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-
-const fineSchema = z.object({
-  violationNumber: z.string().min(1, "Required"),
-  licensePlate: z.string().min(1, "Required"),
-  violationDate: z.date({
-    required_error: "Please select a date",
-  }),
-  fineAmount: z.coerce
-    .number()
-    .min(0.01, "Amount must be greater than 0")
-    .refine((amount) => !isNaN(amount), {
-      message: "Must be a valid number",
-    }),
-  violationCharge: z.string().optional(),
-  location: z.string().optional(),
-});
+import { TrafficFineCreatePayload } from "@/hooks/use-traffic-fines";
 
 interface TrafficFineEntryProps {
   onFineSaved?: () => void;
@@ -46,6 +31,22 @@ interface TrafficFineEntryProps {
 const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
   const { createTrafficFine } = useTrafficFines();
   const [loading, setLoading] = useState(false);
+
+  const fineSchema = z.object({
+    violationNumber: z.string().min(1, "Required"),
+    licensePlate: z.string().min(1, "Required"),
+    violationDate: z.date({
+      required_error: "Please select a date",
+    }),
+    fineAmount: z.coerce
+      .number()
+      .min(0.01, "Amount must be greater than 0")
+      .refine((amount) => !isNaN(amount), {
+        message: "Must be a valid number",
+      }),
+    violationCharge: z.string().optional(),
+    location: z.string().optional(),
+  });
 
   const form = useForm<z.infer<typeof fineSchema>>({
     resolver: zodResolver(fineSchema),
@@ -72,11 +73,13 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
         paymentStatus: 'pending'
       };
 
-      await createTrafficFine.mutateAsync(payload);
+      await createTrafficFine(payload);
 
       // Reset form on successful save
       form.reset();
 
+      toast.success("Traffic fine recorded successfully");
+      
       if (onFineSaved) {
         onFineSaved();
       }
@@ -242,9 +245,7 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
-                ) : (
-                  "Save Fine"
-                )}
+                ) : "Record Fine"}
               </Button>
             </div>
           </form>

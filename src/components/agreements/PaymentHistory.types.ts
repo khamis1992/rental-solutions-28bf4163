@@ -11,7 +11,7 @@ export interface Payment {
   transaction_id?: string | null;
   notes?: string;
   type?: string;
-  status: PaymentStatus; // Changed from optional to required to match the expected type
+  status: PaymentStatus; // Changed from optional to required
   late_fine_amount?: number;
   days_overdue?: number;
   lease_id?: DbId;

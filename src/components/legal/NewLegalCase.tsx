@@ -36,7 +36,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   amount_owed: z.coerce.number().min(0, 'Amount must be a positive number').optional(),
   priority: z.nativeEnum(CasePriority).optional(),
-  status: z.nativeEnum(LegalCaseStatus).optional(),
+  status: z.nativeEnum(LegalCaseStatus),
   assigned_to: z.string().optional(),
 });
 
@@ -64,12 +64,11 @@ const NewLegalCase = () => {
     try {
       setIsSubmitting(true);
 
-      // Create a properly typed object without resolution_date
+      // Create a properly typed object with required status
       const caseData = {
         ...data,
         amount_owed: data.amount_owed || 0,
-        // Don't include resolution_date or resolution_notes if they're not in the type
-        // They will be set to null in the database by default
+        status: data.status // Ensure status is always included
       };
 
       await createLegalCase(caseData);

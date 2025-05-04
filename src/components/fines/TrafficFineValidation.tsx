@@ -134,9 +134,11 @@ export function TrafficFineValidation() {
             )}
           </div>
         ) : (
-          <ValidationHistory validationHistory={validationHistory} />
+          <ValidationHistory validationHistory={validationHistory as any} isLoading={isValidating} />
         )}
       </CardContent>
     </Card>
   );
 }
+
+export default TrafficFineValidation;

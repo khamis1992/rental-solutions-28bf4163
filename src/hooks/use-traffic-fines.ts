@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ValidationResultType } from '@/components/fines/validation/types';
 
-interface TrafficFine {
+export interface TrafficFine {
   id: string;
   license_plate?: string;
   fine_amount?: number;
@@ -15,6 +15,9 @@ interface TrafficFine {
   validation_result?: any;
   violation_number?: string;
   serial_number?: string;
+  location?: string;
+  violation_charge?: string;
+  lease_id?: string;
 }
 
 export function useTrafficFines() {
@@ -156,6 +159,46 @@ export function useTrafficFines() {
       throw err;
     }
   };
+
+  // Create a new traffic fine
+  export interface TrafficFineCreatePayload {
+    violationNumber: string;
+    licensePlate: string;
+    violationDate: Date;
+    fineAmount: number;
+    violationCharge?: string;
+    location?: string;
+    paymentStatus: 'pending' | 'paid' | 'disputed';
+  }
+
+  const createTrafficFine = async (data: TrafficFineCreatePayload) => {
+    try {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .insert({
+          violation_number: data.violationNumber,
+          license_plate: data.licensePlate,
+          violation_date: data.violationDate.toISOString(),
+          fine_amount: data.fineAmount,
+          violation_charge: data.violationCharge,
+          location: data.location,
+          payment_status: data.paymentStatus,
+          validation_status: 'pending'
+        });
+      
+      if (error) {
+        throw new Error(`Failed to create traffic fine: ${error.message}`);
+      }
+      
+      // Refresh the fines list
+      fetchTrafficFines();
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error creating traffic fine:', err);
+      throw err;
+    }
+  };
   
   // Load traffic fines on component mount
   useEffect(() => {
@@ -168,6 +211,9 @@ export function useTrafficFines() {
     error,
     refetchTrafficFines: fetchTrafficFines,
     updateTrafficFineStatus,
-    validateTrafficFine
+    validateTrafficFine,
+    createTrafficFine
   };
 }
+
+export type { TrafficFineCreatePayload };
