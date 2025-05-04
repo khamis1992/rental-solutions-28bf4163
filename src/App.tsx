@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
 // Context Providers
-import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -49,19 +48,17 @@ function App({ children }) {
             // Initialize the error service with the context handler
             errorService.initialize(errorHandler.addError);
             return (
-              <AuthProvider>
-                <ProfileProvider>
-                  <SettingsProvider>
-                    <NotificationProvider>
-                      <TooltipProvider>
-                        <Toaster />
-                        <Sonner />
-                        {children}
-                      </TooltipProvider>
-                    </NotificationProvider>
-                  </SettingsProvider>
-                </ProfileProvider>
-              </AuthProvider>
+              <ProfileProvider>
+                <SettingsProvider>
+                  <NotificationProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <Sonner />
+                      {children}
+                    </TooltipProvider>
+                  </NotificationProvider>
+                </SettingsProvider>
+              </ProfileProvider>
             );
           }}
         </ErrorProvider>
