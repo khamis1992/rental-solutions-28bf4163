@@ -1,7 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { Tables, TableRow, TableInsert, TableUpdate, DbResponse, DbListResponse, DbSingleResponse } from './types';
-import { mapDbResponse, asTableId } from './utils';
+import { mapDbResponse } from './utils';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 export class Repository<T extends keyof Tables> {
@@ -40,7 +40,10 @@ export class Repository<T extends keyof Tables> {
    * @param filters - Type-safe filters to apply to the query
    * @param select - Fields to select
    */
-  async findMany(filters?: Partial<Record<keyof TableRow<T>, unknown>>, select: string = '*'): Promise<DbListResponse<TableRow<T>>> {
+  async findMany(
+    filters?: Partial<Record<keyof TableRow<T>, unknown>>, 
+    select: string = '*'
+  ): Promise<DbListResponse<TableRow<T>>> {
     let query = supabase
       .from(this.tableName)
       .select(select);

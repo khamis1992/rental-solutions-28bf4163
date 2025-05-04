@@ -5,7 +5,7 @@ import { FileCheck, FileText, FileClock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { LEASE_STATUSES } from '@/types/lease-types';
-import { safeColumnFilter } from '@/lib/database/utils';
+import { LeaseStatus } from '@/lib/database/utils';
 
 interface AgreementStats {
   totalAgreements: number;
@@ -37,7 +37,7 @@ export function AgreementStats() {
         const { count: activeCount } = await supabase
           .from('leases')
           .select('*', { count: 'exact', head: true })
-          .eq('status', LEASE_STATUSES.ACTIVE);
+          .eq('status', LEASE_STATUSES.ACTIVE as LeaseStatus);
           
         const { count: pendingPaymentsCount } = await supabase
           .from('unified_payments')
@@ -52,7 +52,7 @@ export function AgreementStats() {
         const { data: activeAgreements } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('status', LEASE_STATUSES.ACTIVE);
+          .eq('status', LEASE_STATUSES.ACTIVE as LeaseStatus);
 
         // Calculate active value safely
         const activeValue = activeAgreements?.reduce((sum, agreement) => {

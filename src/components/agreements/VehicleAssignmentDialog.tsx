@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSect
 import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
 import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
 import { TrafficFine } from "@/hooks/use-traffic-fines";
-import { safeColumnFilter } from "@/lib/database/utils";
+import { LeaseId, VehicleId } from '@/lib/database/utils';
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -46,7 +47,7 @@ export function VehicleAssignmentDialog({
       const { data: vehicleData } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleId as string)
+        .eq('id', vehicleId)
         .single();
       
       if (vehicleData) {
@@ -58,7 +59,7 @@ export function VehicleAssignmentDialog({
         .from('unified_payments')
         .select('*')
         .eq('lease_id', existingAgreement.id)
-        .in('status', [safeColumnFilter('pending'), safeColumnFilter('overdue')]);
+        .in('status', ['pending', 'overdue']);
         
       if (paymentsData) {
         setPendingPayments(paymentsData as unknown as Payment[]);
@@ -69,7 +70,7 @@ export function VehicleAssignmentDialog({
         .from('traffic_fines')
         .select('*')
         .eq('lease_id', existingAgreement.id)
-        .eq('payment_status', safeColumnFilter('pending'));
+        .eq('payment_status', 'pending');
         
       if (finesData) {
         setTrafficFines(finesData as unknown as TrafficFine[]);
@@ -82,7 +83,7 @@ export function VehicleAssignmentDialog({
         .eq('id', existingAgreement.id)
         .single();
         
-      if (leaseData?.customer_id) {
+      if (leaseData && leaseData.customer_id) {
         const { data: customerData } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')

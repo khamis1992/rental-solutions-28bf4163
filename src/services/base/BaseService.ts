@@ -34,6 +34,11 @@ export abstract class BaseService<T extends string> {
       if (response.error) {
         throw new Error(`Failed to fetch ${this.repository.tableName} with ID ${id}: ${response.error.message}`);
       }
+      
+      if (!response.data) {
+        throw new Error(`${this.repository.tableName} with ID ${id} not found`);
+      }
+      
       return response.data;
     });
   }
@@ -78,6 +83,20 @@ export abstract class BaseService<T extends string> {
       }
     });
   }
+  
+  /**
+   * Find entities by status
+   * @param status Status to filter by
+   */
+  async findByStatus(status: string): Promise<ServiceResult<TableRow<T>[]>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.findByStatus(status);
+      if (response.error) {
+        throw new Error(`Failed to fetch ${this.repository.tableName} with status ${status}: ${response.error.message}`);
+      }
+      return response.data;
+    });
+  }
 }
 
 /**
@@ -87,39 +106,63 @@ export interface ServiceResult<T> {
   data?: T;
   error?: Error | string;
   success: boolean;
+  meta?: Record<string, any>; // Optional metadata for additional context
 }
 
 /**
  * Helper function to create a successful service result
  */
-export function successResult<T>(data: T): ServiceResult<T> {
+export function successResult<T>(data: T, meta?: Record<string, any>): ServiceResult<T> {
   return {
     data,
-    success: true
+    success: true,
+    meta
   };
 }
 
 /**
  * Helper function to create an error service result
  */
-export function errorResult<T>(error: Error | string): ServiceResult<T> {
+export function errorResult<T>(error: Error | string, meta?: Record<string, any>): ServiceResult<T> {
   return {
     error: typeof error === 'string' ? new Error(error) : error,
-    success: false
+    success: false,
+    meta
   };
+}
+
+/**
+ * Helper function to enhance an error with additional context
+ */
+export function enhanceError(error: Error, context: string): Error {
+  const enhanced = new Error(`${context}: ${error.message}`);
+  enhanced.stack = error.stack;
+  return enhanced;
 }
 
 /**
  * Wrapper function to handle service operations with standardized error handling
  */
 export async function handleServiceOperation<T>(
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
+  operationContext?: string
 ): Promise<ServiceResult<T>> {
   try {
     const data = await operation();
     return successResult(data);
   } catch (error) {
-    console.error('Service operation error:', error);
-    return errorResult<T>(error instanceof Error ? error : new Error(String(error)));
+    console.error(`Service operation ${operationContext ? `(${operationContext})` : ''} error:`, error);
+    
+    let enhancedError: Error;
+    if (error instanceof Error) {
+      enhancedError = operationContext ? enhanceError(error, operationContext) : error;
+    } else {
+      enhancedError = new Error(String(error));
+      if (operationContext) {
+        enhancedError = enhanceError(enhancedError, operationContext);
+      }
+    }
+    
+    return errorResult<T>(enhancedError);
   }
 }

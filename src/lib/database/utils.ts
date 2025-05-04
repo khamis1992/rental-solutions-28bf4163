@@ -64,18 +64,23 @@ export function asMaintenanceStatus(status: string): MaintenanceStatus {
   return status as MaintenanceStatus;
 }
 
-// Column value helper for filtering
+// Safe column values for various common columns
+export function asColumnEqualsValue(value: string): string {
+  return value;
+}
+
+// Column value helpers for filtering
 export function safeColumnFilter<T = string>(value: string): T {
   return value as T;
 }
 
-// Add the function that was referenced but missing
+// Type-safe column value conversion for specific tables and columns
 export function asStatusColumn<T extends keyof Database['public']['Tables']>(
   status: string,
-  _table?: T,
-  _column?: string
-): string {
-  return status;
+  tableName: T,
+  columnName: string = 'status'
+): Database['public']['Tables'][T]['Row'][keyof Database['public']['Tables'][T]['Row']] {
+  return status as Database['public']['Tables'][T]['Row'][keyof Database['public']['Tables'][T]['Row']];
 }
 
 // Type-safe column value conversion
