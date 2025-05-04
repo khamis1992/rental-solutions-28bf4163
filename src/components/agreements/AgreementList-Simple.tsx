@@ -80,12 +80,7 @@ export function AgreementList() {
             </Button>
           )}
         </div>
-        <Button asChild>
-          <Link to="/agreements/add">
-            <FilePlus className="h-4 w-4 mr-2" />
-            New Agreement
-          </Link>
-        </Button>
+        {/* Removed the duplicate New Agreement button from here */}
       </div>
 
       <AgreementTable
@@ -130,3 +125,4 @@ export function AgreementList() {
     </div>
   );
 }
+
