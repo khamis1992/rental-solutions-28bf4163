@@ -1,9 +1,10 @@
 
 import React from 'react';
+import { CustomerInfo } from '@/types/customer';
 
 interface CustomerSearchResultsProps {
-  results: any[];
-  onSelect: (customer: any) => void;
+  results: CustomerInfo[];
+  onSelect: (customer: CustomerInfo) => void;
   isLoading: boolean;
 }
 
@@ -14,7 +15,7 @@ export const CustomerSearchResults: React.FC<CustomerSearchResultsProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="border rounded-md p-4">
+      <div className="border rounded-md p-4 bg-background shadow-md">
         <div className="flex items-center space-x-2">
           <div className="h-4 w-4 bg-gray-200 rounded-full animate-pulse"></div>
           <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
@@ -25,14 +26,14 @@ export const CustomerSearchResults: React.FC<CustomerSearchResultsProps> = ({
 
   if (results.length === 0) {
     return (
-      <div className="border rounded-md p-4 text-center text-gray-500">
+      <div className="border rounded-md p-4 text-center text-gray-500 bg-background shadow-md">
         No customers found
       </div>
     );
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-md overflow-hidden bg-background shadow-md">
       {results.map((customer) => (
         <div 
           key={customer.id}
