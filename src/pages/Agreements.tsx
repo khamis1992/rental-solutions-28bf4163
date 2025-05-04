@@ -4,12 +4,11 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { Button } from '@/components/ui/button';
 import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { RefreshCw, BarChart4, Filter } from 'lucide-react';
+import { BarChart4, RefreshCw } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Card } from '@/components/ui/card';
@@ -17,6 +16,7 @@ import { CustomerInfo } from '@/types/customer';
 import { AgreementSearch } from '@/components/agreements/page/AgreementSearch';
 import { AgreementActionButtons } from '@/components/agreements/page/AgreementActionButtons';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -24,6 +24,7 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -87,6 +88,15 @@ const Agreements = () => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'all') {
+      setSearchParams({ status: undefined });
+    } else {
+      setSearchParams({ status: value });
+    }
+  };
+
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
@@ -94,72 +104,86 @@ const Agreements = () => {
   return (
     <PageContainer 
       title="Rental Agreements" 
-      description="Manage customer rental agreements and contracts"
+      description="Manage your rental agreements and contracts with customers"
+      className="max-w-full"
     >
       {/* Stats Overview */}
       <div className="mb-6">
         <AgreementStats />
       </div>
 
-      {/* Search and Action Buttons */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="flex flex-grow max-w-md relative">
-          <AgreementSearch
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            selectedCustomer={selectedCustomer}
-            setSelectedCustomer={setSelectedCustomer}
-            setSearchParams={setSearchParams}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="ml-2"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
+      <Tabs 
+        defaultValue="agreements"
+        className="space-y-6"
+      >
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <TabsList>
+            <TabsTrigger value="agreements">Agreements</TabsTrigger>
+            <TabsTrigger value="history">Import History</TabsTrigger>
+          </TabsList>
 
-        <AgreementActionButtons
-          isImportModalOpen={isImportModalOpen}
-          setIsImportModalOpen={setIsImportModalOpen}
-          isEdgeFunctionAvailable={isEdgeFunctionAvailable}
-        />
-      </div>
+          {/* Search and Action Buttons */}
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="flex flex-grow relative w-full sm:w-auto max-w-md">
+              <AgreementSearch
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedCustomer={selectedCustomer}
+                setSelectedCustomer={setSelectedCustomer}
+                setSearchParams={setSearchParams}
+              />
+            </div>
 
-      {/* Active Filters */}
-      <ActiveFilters
-        activeFilters={activeFilters}
-        setSearchParams={setSearchParams}
-      />
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <Card className="mb-6 p-4">
-          <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
-        </Card>
-      )}
-      
-      {/* Main Content */}
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center space-x-2">
-            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-lg font-medium">Loading agreements...</span>
+            <AgreementActionButtons
+              isImportModalOpen={isImportModalOpen}
+              setIsImportModalOpen={setIsImportModalOpen}
+              isEdgeFunctionAvailable={isEdgeFunctionAvailable}
+            />
           </div>
         </div>
-      }>
-        <AgreementList />
-      </Suspense>
-      
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center">
-          <BarChart4 className="h-5 w-5 mr-2" />
-          Import History
-        </h2>
-        <ImportHistoryList />
-      </div>
+        
+        {/* Active Filters */}
+        <ActiveFilters
+          activeFilters={activeFilters}
+          setSearchParams={setSearchParams}
+        />
+
+        <TabsContent value="agreements" className="space-y-6">
+          {/* Filter Panel */}
+          <Card className="p-4 cursor-pointer" onClick={() => setShowFilters(!showFilters)}>
+            <h3 className="text-sm font-medium flex items-center">
+              {showFilters ? "Hide Filters" : "Show Advanced Filters"}
+            </h3>
+            {showFilters && (
+              <div className="mt-4">
+                <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
+              </div>
+            )}
+          </Card>
+          
+          {/* Main Content */}
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center space-x-2">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-lg font-medium">Loading agreements...</span>
+              </div>
+            </div>
+          }>
+            <AgreementList />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <BarChart4 className="h-5 w-5 mr-2" />
+              Import History
+            </h2>
+            <ImportHistoryList />
+          </div>
+        </TabsContent>
+      </Tabs>
       
       <CSVImportModal 
         open={isImportModalOpen}

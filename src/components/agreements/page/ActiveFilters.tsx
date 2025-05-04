@@ -1,57 +1,76 @@
 
 import React from 'react';
+import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface ActiveFiltersProps {
-  activeFilters: [string, any][];
+  activeFilters: [string, string][];
   setSearchParams: (params: Record<string, any>) => void;
 }
 
-export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
-  activeFilters,
-  setSearchParams
-}) => {
-  if (activeFilters.length === 0) {
-    return null;
-  }
+export function ActiveFilters({ activeFilters, setSearchParams }: ActiveFiltersProps) {
+  if (!activeFilters.length) return null;
+
+  const handleRemoveFilter = (key: string) => {
+    setSearchParams({ [key]: undefined });
+  };
+
+  const handleClearAllFilters = () => {
+    const clearedParams: Record<string, undefined> = {};
+    activeFilters.forEach(([key]) => {
+      clearedParams[key] = undefined;
+    });
+    setSearchParams(clearedParams);
+  };
+
+  const getLabelForFilter = (key: string, value: string): string => {
+    switch (key) {
+      case 'agreement_number':
+        return `Agreement #: ${value}`;
+      case 'status':
+        return `Status: ${value.charAt(0).toUpperCase() + value.slice(1)}`;
+      case 'start_date_after':
+        return `Start Date After: ${new Date(value).toLocaleDateString()}`;
+      case 'start_date_before':
+        return `Start Date Before: ${new Date(value).toLocaleDateString()}`;
+      case 'end_date_after':
+        return `End Date After: ${new Date(value).toLocaleDateString()}`;
+      case 'end_date_before':
+        return `End Date Before: ${new Date(value).toLocaleDateString()}`;
+      case 'rent_min':
+        return `Min Rent: $${value}`;
+      case 'rent_max':
+        return `Max Rent: $${value}`;
+      case 'query':
+        return `Search: ${value}`;
+      default:
+        return `${key}: ${value}`;
+    }
+  };
 
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
+    <div className="flex flex-wrap items-center gap-2 mb-4 mt-1">
+      <span className="text-sm text-muted-foreground">Active filters:</span>
       {activeFilters.map(([key, value]) => (
-        <Badge 
-          key={key} 
-          variant="outline" 
-          className="flex gap-1 items-center px-3 py-1"
-        >
-          <span className="font-medium">{key}:</span> {value}
-          <button 
+        <Badge key={key} variant="outline" className="flex items-center gap-1 py-1">
+          {getLabelForFilter(key, value)}
+          <button
+            onClick={() => handleRemoveFilter(key)}
             className="ml-1 rounded-full hover:bg-muted p-0.5"
-            onClick={() => {
-              setSearchParams(prev => {
-                const newParams = { ...prev };
-                delete newParams[key];
-                return newParams;
-              });
-            }}
+            aria-label={`Remove ${key} filter`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18"></path>
-              <path d="m6 6 12 12"></path>
-            </svg>
+            <X className="h-3 w-3" />
           </button>
         </Badge>
       ))}
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        onClick={() => {
-          setSearchParams({ status: 'all' });
-        }}
-        className="text-xs h-7 px-2"
-      >
-        Clear All
-      </Button>
+      {activeFilters.length > 1 && (
+        <button
+          onClick={handleClearAllFilters}
+          className="text-xs text-muted-foreground hover:text-destructive underline"
+        >
+          Clear all
+        </button>
+      )}
     </div>
   );
-};
+}
