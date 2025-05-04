@@ -5,7 +5,7 @@ import { DbId, PaymentStatus } from '@/types/database-common';
 export interface Payment {
   id: DbId;
   amount: number;
-  payment_date: string | null;
+  payment_date?: string | null;
   payment_method?: string;
   reference_number?: string | null;
   transaction_id?: string | null;
