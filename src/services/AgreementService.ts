@@ -32,6 +32,8 @@ export class AgreementService extends BaseService<'leases'> {
    */
   async findAgreements(filters?: AgreementFilters): Promise<ServiceResult<Agreement[]>> {
     return handleServiceOperation(async () => {
+      console.log("Finding agreements with filters:", filters);
+
       // Basic query builder
       let query = supabase
         .from('leases')
@@ -44,6 +46,7 @@ export class AgreementService extends BaseService<'leases'> {
       // Apply filters if provided
       if (filters) {
         if (filters.status && filters.status !== 'all') {
+          console.log(`Applying status filter: ${filters.status}`);
           switch (filters.status) {
             case AgreementStatus.ACTIVE:
               query = query.eq('status', 'active');
@@ -73,7 +76,8 @@ export class AgreementService extends BaseService<'leases'> {
         // Search query
         if (filters.query) {
           const searchQuery = filters.query.trim().toLowerCase();
-          
+          console.log(`Applying search query: ${searchQuery}`);
+
           query = query.or(`
             agreement_number.ilike.%${searchQuery}%,
             profiles.full_name.ilike.%${searchQuery}%,
@@ -85,20 +89,40 @@ export class AgreementService extends BaseService<'leases'> {
 
         // Filter by vehicle
         if (filters.vehicle_id) {
+          console.log(`Filtering by vehicle: ${filters.vehicle_id}`);
           query = query.eq('vehicle_id', filters.vehicle_id);
         }
 
         // Filter by customer
         if (filters.customer_id) {
+          console.log(`Filtering by customer: ${filters.customer_id}`);
           query = query.eq('customer_id', filters.customer_id);
         }
       }
 
+      console.log("Executing agreement query...");
       const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching agreements:", error);
         throw new Error(`Failed to fetch agreements: ${error.message}`);
+      }
+
+      console.log(`Found ${data?.length || 0} agreements`);
+
+      // If no data, try a simpler query to check if the table exists and has data
+      if (!data || data.length === 0) {
+        console.log("No agreements found with filters, trying a simple query...");
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('leases')
+          .select('id')
+          .limit(5);
+
+        if (simpleError) {
+          console.error("Error with simple leases query:", simpleError);
+        } else {
+          console.log(`Simple query found ${simpleData?.length || 0} lease records`);
+        }
       }
 
       return data || [];
@@ -136,14 +160,14 @@ export class AgreementService extends BaseService<'leases'> {
     return handleServiceOperation(async () => {
       // Convert status to correct format for database
       const dbStatus = asLeaseStatus(newStatus);
-      
+
       // Update agreement status
       const response = await this.repository.update(id, { status: dbStatus });
-      
+
       if (response.error) {
         throw new Error(`Failed to update agreement status: ${response.error.message}`);
       }
-      
+
       return response.data;
     });
   }
@@ -155,7 +179,7 @@ export class AgreementService extends BaseService<'leases'> {
     return handleServiceOperation(async () => {
       const currentDate = new Date();
       const yearMonth = currentDate.toISOString().slice(0, 7).replace('-', '');
-      
+
       // Get the highest agreement number with this prefix
       const { data, error } = await supabase
         .from('leases')
@@ -163,20 +187,20 @@ export class AgreementService extends BaseService<'leases'> {
         .ilike('agreement_number', `AGR-${yearMonth}-%`)
         .order('agreement_number', { ascending: false })
         .limit(1);
-      
+
       if (error) {
         throw new Error(`Error generating agreement number: ${error.message}`);
       }
-      
+
       let nextNumber = 1;
-      
+
       if (data && data.length > 0) {
         const lastNumber = parseInt(data[0].agreement_number.split('-')[2]);
         if (!isNaN(lastNumber)) {
           nextNumber = lastNumber + 1;
         }
       }
-      
+
       // Format with leading zeros
       const agreementNumber = `AGR-${yearMonth}-${nextNumber.toString().padStart(4, '0')}`;
       return agreementNumber;
@@ -192,61 +216,61 @@ export class AgreementService extends BaseService<'leases'> {
         .from('overdue_payments')
         .delete()
         .eq('agreement_id', id);
-        
+
       if (overduePaymentsDeleteError) {
         console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
       }
-      
+
       const { error: paymentDeleteError } = await supabase
         .from('unified_payments')
         .delete()
         .eq('lease_id', id);
-        
+
       if (paymentDeleteError) {
         console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
       }
-      
+
       const { data: relatedReverts } = await supabase
         .from('agreement_import_reverts')
         .select('id')
         .eq('import_id', id);
-        
+
       if (relatedReverts && relatedReverts.length > 0) {
         const { error: revertDeleteError } = await supabase
           .from('agreement_import_reverts')
           .delete()
           .eq('import_id', id);
-          
+
         if (revertDeleteError) {
           console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
         }
       }
-      
+
       const { data: trafficFines, error: trafficFinesError } = await supabase
         .from('traffic_fines')
         .select('id')
         .eq('agreement_id', id);
-        
+
       if (!trafficFinesError && trafficFines && trafficFines.length > 0) {
         const { error: finesDeleteError } = await supabase
           .from('traffic_fines')
           .delete()
           .eq('agreement_id', id);
-          
+
         if (finesDeleteError) {
           console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
         }
       }
-      
+
       const { error } = await supabase
         .from('leases')
         .delete()
         .eq('id', id);
-        
+
       if (error) {
         throw new Error(`Failed to delete agreement: ${error.message}`);
       }
-      
+
       return true;
     });
   }
@@ -261,24 +285,24 @@ export class AgreementService extends BaseService<'leases'> {
       if (agreementResponse.error) {
         throw new Error(`Failed to fetch agreement: ${agreementResponse.error.message}`);
       }
-      
+
       const agreement = agreementResponse.data;
-      
+
       // Get all payments for this agreement
       const paymentsResponse = await paymentRepository.findByLeaseId(agreementId);
       if (paymentsResponse.error) {
         throw new Error(`Failed to fetch payments: ${paymentsResponse.error.message}`);
       }
-      
+
       // Calculate total paid amount
       const totalPaid = paymentsResponse.data.reduce((sum, payment) => {
         return sum + (payment.amount_paid || 0);
       }, 0);
-      
+
       // Calculate remaining amount
       const totalAmount = agreement.total_amount || 0;
       const remainingAmount = Math.max(0, totalAmount - totalPaid);
-      
+
       return remainingAmount;
     });
   }
