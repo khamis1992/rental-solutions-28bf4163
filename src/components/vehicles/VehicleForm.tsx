@@ -1,20 +1,23 @@
-Here's the full code for src/components/vehicles/VehicleForm.tsx:
 
-```typescript
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { Vehicle } from '@/types/vehicle';
 
 // Fix the error with instanceof File check
 interface VehicleFormProps {
-  initialData?: any;
+  initialData?: Partial<Vehicle>;
   onSubmit: (data: any) => void;
   isSubmitting?: boolean;
+  isEditMode?: boolean;
+  isLoading?: boolean;
 }
 
 const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  isEditMode = false,
+  isLoading = false
 }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   
@@ -37,14 +40,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     try {
       // Handle the file upload correctly
       const dataToSubmit = {
-        ...formData,
-        // Don't include image in the form data directly
+        ...formData
       };
       
       // If there's a selected image, handle it separately
       if (selectedImage) {
-        // Image handling would go here
-        // This is just a placeholder to fix the type error
+        // Add the image to the submitted data
+        dataToSubmit.image = selectedImage;
         console.log("Image selected:", selectedImage.name);
       }
       
@@ -54,12 +56,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  // Fix the VehicleImageUpload props
+  // Fix the image upload handling
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
       {/* Form fields */}
       
-      {/* Fix the image upload props */}
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Vehicle Image</label>
         <input
@@ -84,9 +85,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         <button 
           type="submit" 
           className="px-4 py-2 bg-blue-600 text-white rounded-md"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoading}
         >
-          {isSubmitting ? 'Saving...' : 'Save Vehicle'}
+          {isSubmitting ? 'Saving...' : isEditMode ? 'Update Vehicle' : 'Save Vehicle'}
         </button>
       </div>
     </form>
@@ -94,4 +95,3 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 };
 
 export default VehicleForm;
-```
