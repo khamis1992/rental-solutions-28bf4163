@@ -19,8 +19,8 @@ export const LegalCaseDescription: React.FC<LegalCaseDescriptionProps> = ({ form
           <FormLabel>Description</FormLabel>
           <FormControl>
             <Textarea 
-              placeholder="Describe the legal case" 
-              className="min-h-[120px]" 
+              placeholder="Provide details about the case"
+              className="min-h-[120px]"
               {...field} 
             />
           </FormControl>

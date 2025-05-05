@@ -18,6 +18,13 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Checks if the value is a string
+ */
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
  * Checks if the value has a specific property
  */
 export function hasProperty<K extends string>(

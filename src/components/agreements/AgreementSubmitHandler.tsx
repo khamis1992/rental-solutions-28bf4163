@@ -3,7 +3,7 @@ import React from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { AgreementService } from '@/services/AgreementService';
+import { agreementService } from '@/services/AgreementService';
 
 // Type declaration for validation result
 type ValidationResult = 
@@ -37,7 +37,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       }
       
       // Save agreement
-      const saveResult = await AgreementService.save(validationResult.data);
+      const saveResult = await agreementService.save(validationResult.data);
       
       if (!saveResult.success) {
         // Handle API errors

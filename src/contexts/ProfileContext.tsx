@@ -1,113 +1,105 @@
 
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client"; // Make sure we're using the correct client
-import { useAuth } from "./AuthContext";
-import { toast } from "sonner";
+// Fix for ProfileContext type conversion issues
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
-export interface Profile {
+// Define proper Profile type
+interface Profile {
   id: string;
-  full_name: string;
-  role: "admin" | "manager" | "user" | "staff" | "customer" | string;
-  email: string;
-  status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted" | "pending_payment";
-  created_at: string;
-  updated_at: string;
+  full_name?: string;
+  email?: string;
+  phone_number?: string;
+  address?: string;
+  driver_license?: string;
+  notes?: string;
+  status?: string;
+  role?: string;
+  // Add other profile properties as needed
 }
 
 interface ProfileContextType {
   profile: Profile | null;
   loading: boolean;
-  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  updateProfile: (data: Partial<Profile>) => Promise<void>;
+  error: Error | null;
 }
 
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+const ProfileContext = createContext<ProfileContextType>({
+  profile: null,
+  loading: true,
+  updateProfile: async () => {},
+  error: null
+});
 
-export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+export const ProfileProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
-    } else {
-      setProfile(null);
-      setLoading(false);
-    }
-  }, [user]);
+    const fetchProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
-  const fetchProfile = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      console.log("Fetching profile for user:", user.id);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+        // Use maybeSingle instead of single to avoid errors when no profile is found
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          setProfile(data as Profile);
+        } else {
+          console.log('No profile found for user:', user.id);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setError(error instanceof Error ? error : new Error('Failed to fetch profile'));
+      } finally {
+        setLoading(false);
       }
-      
-      console.log("Fetched profile:", data);
-      setProfile(data);
-    } catch (error: any) {
-      console.error("Error fetching profile:", error.message);
-      toast.error(`Failed to load profile: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return;
-    
+    fetchProfile();
+  }, []);
+
+  const updateProfile = async (data: Partial<Profile>) => {
     try {
-      // Ensure status is one of the allowed values if it's being updated
-      if (updates.status && !["active", "inactive", "suspended", "pending_review", "blacklisted", "pending_payment"].includes(updates.status)) {
-        throw new Error(`Invalid status value: ${updates.status}`);
+      if (!profile?.id) {
+        throw new Error('No profile ID available');
       }
-      
+
       const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", user.id);
+        .from('profiles')
+        .update(data as any)
+        .eq('id', profile.id);
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
-      toast.success("Profile updated successfully");
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error(`Failed to update profile: ${error.message}`);
+      // Update local state
+      setProfile(prevProfile => prevProfile ? { ...prevProfile, ...data } : null);
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
       throw error;
     }
   };
 
   return (
-    <ProfileContext.Provider
-      value={{
-        profile,
-        loading,
-        updateProfile,
-      }}
-    >
+    <ProfileContext.Provider value={{ profile, loading, updateProfile, error }}>
       {children}
     </ProfileContext.Provider>
   );
 };
 
-export const useProfile = () => {
-  const context = useContext(ProfileContext);
-  if (context === undefined) {
-    throw new Error("useProfile must be used within a ProfileProvider");
-  }
-  return context;
-};
+export const useProfile = () => useContext(ProfileContext);
