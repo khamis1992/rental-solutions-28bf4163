@@ -1,10 +1,7 @@
-
 /**
- * Database validation utilities
+ * Export all validation utilities from the validation directory
  */
-import * as typeGuards from './typeGuards';
-
-export { typeGuards };
+export * from './typeGuards';
 
 /**
  * Validates and converts lease status to database-compatible format

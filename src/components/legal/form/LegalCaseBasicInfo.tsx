@@ -33,7 +33,14 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
           <FormItem>
             <FormLabel>Amount Owed</FormLabel>
             <FormControl>
-              <Input type="number" min="0" step="0.01" placeholder="0.00" {...field} />
+              <Input 
+                type="number" 
+                min="0" 
+                step="0.01" 
+                placeholder="0.00" 
+                {...field} 
+                onChange={event => field.onChange(parseFloat(event.target.value))}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

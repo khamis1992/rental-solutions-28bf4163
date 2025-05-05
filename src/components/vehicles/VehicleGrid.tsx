@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
@@ -8,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hasLength, hasMapFunction } from '@/lib/database/validation/typeGuards';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
@@ -92,7 +92,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
-      {vehicles.map(vehicle => (
+      {hasMapFunction(vehicles) ? vehicles.map((vehicle) => (
         <VehicleCard
           key={vehicle.id}
           id={vehicle.id}
@@ -107,7 +107,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           mileage={vehicle.mileage || 0}
           onSelect={() => handleSelect(vehicle.id)}
         />
-      ))}
+      )) : null}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { leaseRepository, paymentRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
@@ -280,6 +279,31 @@ export class AgreementService extends BaseService<'leases'> {
       const remainingAmount = Math.max(0, totalAmount - totalPaid);
       
       return remainingAmount;
+    });
+  }
+
+    /**
+   * Create a new agreement
+   */
+  async save(agreement: any): Promise<ServiceResult<Agreement>> {
+    return handleServiceOperation(async () => {
+      const response = await this.repository.create({
+        status: asLeaseStatus(agreement.status || 'pending'),
+        customer_id: agreement.customer_id,
+        vehicle_id: agreement.vehicle_id,
+        agreement_number: agreement.agreement_number,
+        start_date: agreement.start_date as string | null,
+        end_date: agreement.end_date as string | null,
+        total_amount: agreement.total_amount,
+        rent_amount: agreement.rent_amount || 0,
+        agreement_type: agreement.agreement_type || 'short_term'
+      });
+
+      if (response.error) {
+        throw new Error(`Failed to create agreement: ${response.error.message}`);
+      }
+
+      return agreement;
     });
   }
 }

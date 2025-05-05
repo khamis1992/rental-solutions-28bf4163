@@ -1,88 +1,75 @@
 
 /**
- * Type guards for runtime type checking
+ * Type guards for validating data structures
  */
 
 /**
- * Check if value is a string
+ * Checks if the provided value is an array
  */
-export function isString(value: unknown): value is string {
-  return typeof value === 'string';
-}
-
-/**
- * Check if value is a number
- */
-export function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && !isNaN(value);
-}
-
-/**
- * Check if value is a boolean
- */
-export function isBoolean(value: unknown): value is boolean {
-  return typeof value === 'boolean';
-}
-
-/**
- * Check if value is an object
- */
-export function isObject(value: unknown): value is object {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Check if value is an array
- */
-export function isArray(value: unknown): value is unknown[] {
+export function isArray<T = any>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 
 /**
- * Check if value is a date
+ * Checks if the value is a non-null object
  */
-export function isDate(value: unknown): value is Date {
-  return value instanceof Date && !isNaN(value.getTime());
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
- * Type guard to check if an object has a specific property
+ * Checks if the value has a specific property
  */
-export function hasProperty<T extends object, K extends string>(
-  obj: T, 
-  key: K
-): obj is T & Record<K, unknown> {
-  return key in obj;
+export function hasProperty<K extends string>(
+  value: unknown, 
+  prop: K
+): value is { [key in K]: unknown } {
+  return isObject(value) && prop in value;
 }
 
 /**
- * Check if value is a valid UUID
+ * Checks if the value has a length property (like arrays or strings)
  */
-export function isUuid(value: unknown): value is string {
-  if (!isString(value)) return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
+export function hasLength(value: unknown): value is { length: number } {
+  return hasProperty(value, 'length') && typeof value.length === 'number';
 }
 
 /**
- * Check if value is a non-empty string
+ * Checks if the value has map function (like arrays)
  */
-export function isNonEmptyString(value: unknown): value is string {
-  return isString(value) && value.trim() !== '';
+export function hasMapFunction<T = any>(value: unknown): value is { map: (fn: (item: T) => any) => any[] } {
+  return hasProperty(value, 'map') && typeof value.map === 'function';
 }
 
 /**
- * Check if value is a valid ISO date string
+ * Checks if the value has filter function (like arrays)
  */
-export function isIsoDateString(value: unknown): value is string {
-  if (!isString(value)) return false;
-  const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
-  return isoDateRegex.test(value);
+export function hasFilterFunction<T = any>(value: unknown): value is { filter: (fn: (item: T) => boolean) => T[] } {
+  return hasProperty(value, 'filter') && typeof value.filter === 'function';
 }
 
 /**
- * Check if value is a function
+ * Checks if the value has find function (like arrays)
  */
-export function isFunction(value: unknown): value is Function {
-  return typeof value === 'function';
+export function hasFindFunction<T = any>(value: unknown): value is { find: (fn: (item: T) => boolean) => T | undefined } {
+  return hasProperty(value, 'find') && typeof value.find === 'function';
+}
+
+/**
+ * Check if the value is a specific database entity
+ */
+export function isEntity<T extends Record<string, any>>(
+  value: unknown, 
+  requiredProps: Array<keyof T>
+): value is T {
+  if (!isObject(value)) return false;
+  
+  return requiredProps.every(prop => prop in value);
+}
+
+/**
+ * Type guard for success responses
+ */
+export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
 }

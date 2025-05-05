@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -36,14 +37,12 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       }
       
       // Save agreement
-      const saveResult = await AgreementService.createAgreement(validationResult.data);
+      const saveResult = await AgreementService.save(validationResult.data);
       
       if (!saveResult.success) {
         // Handle API errors
-        if ('errors' in saveResult) { 
-          const firstErrorKey = Object.keys(saveResult.errors)[0];
-          const errorMessage = saveResult.errors[firstErrorKey];
-          toast.error(errorMessage);
+        if ('error' in saveResult) { 
+          toast.error(saveResult.error?.toString() || "Failed to save agreement");
         } else {
           toast.error("Failed to save agreement");
         }

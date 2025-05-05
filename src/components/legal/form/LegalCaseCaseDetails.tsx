@@ -3,10 +3,9 @@ import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LegalCaseFormValues } from './LegalCaseForm';
-import { LegalCaseType, LegalCaseStatus, CasePriority } from '@/types/legal-case';
+import { LegalCaseFormValues, LegalCaseType, LegalCaseStatus, CasePriority } from './LegalCaseForm';
 
-interface LegalCaseCaseDetailsProps {
+export interface LegalCaseCaseDetailsProps {
   form: UseFormReturn<LegalCaseFormValues>;
   caseTypes: LegalCaseType[];
   casePriorities: CasePriority[];
@@ -86,7 +85,7 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
               <SelectContent>
                 {caseStatuses.map(status => (
                   <SelectItem key={status} value={status}>
-                    {status}
+                    {status.replace(/_/g, ' ')}
                   </SelectItem>
                 ))}
               </SelectContent>

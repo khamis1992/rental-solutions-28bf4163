@@ -32,10 +32,7 @@ export { vehicleRepository as vehicleRepo };
 export { profileRepository as profileRepo };
 
 // Export common utility functions for database responses
-export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
-  return !response?.error && response?.data !== null;
-}
+export { isSuccessResponse } from './validation/typeGuards';
 
 // Export common types
 export type { ProfileId } from './database-types';
-

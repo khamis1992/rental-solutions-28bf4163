@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { hasFindFunction } from '@/lib/database/validation/typeGuards';
 
 export const MaintenanceList = () => {
   

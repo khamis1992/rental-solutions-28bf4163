@@ -26,6 +26,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { hasFilterFunction } from '@/lib/database/validation/typeGuards';
 
 // Create form schema type
 type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;

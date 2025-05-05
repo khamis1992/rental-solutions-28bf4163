@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { UploadCloud } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { hasLength } from '@/lib/database/validation/typeGuards';
 
 type ImportStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -62,6 +63,15 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!values.file) {
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file to import.",
+      });
+      return;
+    }
+
+    // Use type guard to check if files has length
+    if (!hasLength(values.file) || values.file.length === 0) {
       toast({
         title: "No file selected",
         description: "Please select a CSV file to import.",
@@ -125,9 +135,11 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       return;
     }
 
-    // Safe access with type assertion
-    const importLogId = data && Array.isArray(data) && data.length > 0 ? 
-      (data[0] as any).id : null;
+    // Safe access with type assertion and use the type guard
+    let importLogId: string | null = null;
+    if (data && hasLength(data) && data.length > 0) {
+      importLogId = (data[0] as any).id; 
+    }
 
     if (!importLogId) {
       toast({

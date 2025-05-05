@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 
-interface LegalCaseFormActionsProps {
+export interface LegalCaseFormActionsProps {
   onCancel: () => void;
   isSubmitting: boolean;
 }

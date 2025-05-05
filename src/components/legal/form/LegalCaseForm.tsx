@@ -37,8 +37,8 @@ export type CasePriority = 'low' | 'medium' | 'high' | 'urgent';
 export type LegalCaseStatus = 'pending_reminder' | 'reminder_sent' | 'escalated' | 'in_progress' | 'resolved' | 'closed';
 export type LegalCaseType = 'payment_default' | 'contract_breach' | 'property_damage' | 'insurance_claim' | 'other';
 
-// Define form schema
-const formSchema = z.object({
+// Define form schema and export the form values type
+export const legalCaseFormSchema = z.object({
   customer_id: z.string().min(1, "Customer is required"),
   case_type: z.string().optional(),
   description: z.string().optional(),
@@ -47,6 +47,8 @@ const formSchema = z.object({
   priority: z.string().min(1, "Priority is required"),
   assigned_to: z.string().optional(),
 });
+
+export type LegalCaseFormValues = z.infer<typeof legalCaseFormSchema>;
 
 type LegalCaseFormProps = {
   onSubmit?: (data: LegalCase) => void;
@@ -62,8 +64,33 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  // Define the case types, priorities, and statuses
+  const caseTypes: LegalCaseType[] = [
+    'payment_default', 
+    'contract_breach', 
+    'property_damage', 
+    'insurance_claim', 
+    'other'
+  ];
+  
+  const casePriorities: CasePriority[] = [
+    'low', 
+    'medium', 
+    'high', 
+    'urgent'
+  ];
+  
+  const caseStatuses: LegalCaseStatus[] = [
+    'pending_reminder', 
+    'reminder_sent', 
+    'escalated', 
+    'in_progress', 
+    'resolved', 
+    'closed'
+  ];
+  
+  const form = useForm<LegalCaseFormValues>({
+    resolver: zodResolver(legalCaseFormSchema),
     defaultValues: {
       customer_id: initialValues.customer_id || "",
       case_type: initialValues.case_type || "payment_default",
@@ -75,19 +102,22 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
     },
   });
 
-  const handleFormSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleFormSubmit = async (values: LegalCaseFormValues) => {
     try {
       setIsSubmitting(true);
       
       // Convert form values to LegalCase format
       const legalCaseData = {
+        id: initialValues.id || '', // This will be empty for new cases
         amount_owed: values.amount_owed,
-        priority: values.priority as CasePriority,
-        status: values.status as LegalCaseStatus,
+        priority: values.priority,
+        status: values.status,
         customer_id: values.customer_id,
         description: values.description,
         assigned_to: values.assigned_to,
-        case_type: values.case_type as LegalCaseType,
+        case_type: values.case_type || 'payment_default',
+        created_at: initialValues.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       } as LegalCase;
       
       if (onSubmit) {
@@ -105,6 +135,10 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
     }
   };
 
+  const handleCancel = () => {
+    navigate("/legal");
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -119,9 +153,17 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <LegalCaseBasicInfo form={form} />
-            <LegalCaseCaseDetails form={form} />
+            <LegalCaseCaseDetails 
+              form={form} 
+              caseTypes={caseTypes} 
+              casePriorities={casePriorities} 
+              caseStatuses={caseStatuses} 
+            />
             <LegalCaseDescription form={form} />
-            <LegalCaseFormActions isSubmitting={isSubmitting} isEdit={isEdit} />
+            <LegalCaseFormActions 
+              isSubmitting={isSubmitting} 
+              onCancel={handleCancel} 
+            />
           </form>
         </Form>
       </CardContent>
