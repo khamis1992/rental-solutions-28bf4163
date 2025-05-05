@@ -50,3 +50,4 @@ export interface AgreementDetail extends Agreement {
     status: string;
   }[];
 }
+

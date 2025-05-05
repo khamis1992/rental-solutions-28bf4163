@@ -90,3 +90,4 @@ To add a new entity:
 2. Add validation functions to `validation.ts`
 3. Create a new repository file (e.g., `new-entity-repository.ts`)
 4. Export from `index.ts`
+

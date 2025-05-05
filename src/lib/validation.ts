@@ -160,3 +160,4 @@ export function createRentalSchema() {
     notes: rentalSchemas.notes,
   });
 }
+

@@ -29,7 +29,16 @@ export const agreementSchema = z.object({
   notes: z.string().optional(),
   // Mark as optional with a default value so it's available in the UI but not sent to DB
   terms_accepted: z.boolean().default(false).optional(),
-});
+}).refine(
+  (data) => {
+    // Ensure end_date is after start_date
+    return data.end_date > data.start_date;
+  },
+  {
+    message: "End date must be after start date",
+    path: ["end_date"],
+  }
+);
 
 // Enum for payment status
 export const PaymentStatus = {
@@ -179,3 +188,4 @@ export const forceGeneratePaymentForAgreement = async (
     };
   }
 };
+

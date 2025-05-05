@@ -12,6 +12,8 @@ import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRentAmount } from '@/hooks/use-rent-amount'; 
 import { supabase } from '@/integrations/supabase/client';
+import { validateData } from '@/lib/validation-utils';
+import { agreementSchema } from '@/lib/validation-schemas/agreement';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,7 @@ const EditAgreement = () => {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updateProgress, setUpdateProgress] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);
   const { user } = useAuth();
   const { rentAmount } = useRentAmount(agreement, id);
   const [vehicleData, setVehicleData] = useState<any>(null);
@@ -112,6 +115,20 @@ const EditAgreement = () => {
 
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
+    
+    // Reset validation errors
+    setValidationErrors(null);
+    
+    // Validate the data before submitting
+    const validationResult = validateData(agreementSchema, updatedAgreement);
+    if (!validationResult.success) {
+      setValidationErrors(validationResult.errors);
+      
+      // Show the first error in a toast
+      const firstError = Object.values(validationResult.errors)[0];
+      toast.error(firstError || "Please check the form for errors");
+      return;
+    }
     
     try {
       setIsSubmitting(true);
@@ -207,6 +224,18 @@ const EditAgreement = () => {
               </p>
             </div>
           )}
+          
+          {validationErrors && Object.keys(validationErrors).length > 0 && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4">
+              <p className="font-medium">Please correct the following errors:</p>
+              <ul className="list-disc pl-5 mt-2 text-sm">
+                {Object.entries(validationErrors).map(([field, message]) => (
+                  <li key={field}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
           <AgreementForm 
             initialData={{
               ...agreement,
@@ -214,6 +243,7 @@ const EditAgreement = () => {
             }} 
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            validationErrors={validationErrors}
           />
         </>
       ) : (

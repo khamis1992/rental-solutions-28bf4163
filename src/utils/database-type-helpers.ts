@@ -1,3 +1,4 @@
+
 /**
  * Database type helper utilities
  * Provides type conversion and validation functions for database operations
@@ -16,7 +17,7 @@ import {
   asVehicleStatus, 
   asPaymentStatus,
   asEntityStatus
-} from '@/types/database-common';
+} from '@/lib/database/validation';
 
 // Define a UUID type for backward compatibility
 export type uuid = string;
@@ -73,3 +74,9 @@ export function hasData<T>(
 ): response is { data: T; error: null } {
   return !response?.error && response?.data !== null;
 }
+
+// Add missing asVehicleId function
+export function asVehicleId(id: string): string {
+  return asTableId('vehicles', id);
+}
+
