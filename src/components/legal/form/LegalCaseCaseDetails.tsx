@@ -1,0 +1,100 @@
+
+import React from 'react';
+import { UseFormReturn } from 'react-hook-form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LegalCaseFormValues } from './LegalCaseForm';
+import { LegalCaseType, LegalCaseStatus, CasePriority } from '@/types/legal-case';
+
+interface LegalCaseCaseDetailsProps {
+  form: UseFormReturn<LegalCaseFormValues>;
+  caseTypes: LegalCaseType[];
+  casePriorities: CasePriority[];
+  caseStatuses: LegalCaseStatus[];
+}
+
+export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({ 
+  form, 
+  caseTypes, 
+  casePriorities, 
+  caseStatuses 
+}) => {
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name="case_type"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Case Type</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select case type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {caseTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="priority"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Priority</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {casePriorities.map(priority => (
+                  <SelectItem key={priority} value={priority}>
+                    {priority}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="status"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Status</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {caseStatuses.map(status => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  );
+};

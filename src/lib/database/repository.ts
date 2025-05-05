@@ -1,75 +1,98 @@
 
 /**
- * Base repository interface for database operations
+ * Base repository class for database operations
  */
 
-import { GenericSchema, SupabaseClient } from '@supabase/supabase-js';
-import { DbListResponse, DbSingleResponse } from './types';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { DbListResponse, DbSingleResponse, Tables, TableRow } from './types';
 
-export interface Repository<T, CreateT, UpdateT> {
-  getById(id: string): Promise<DbSingleResponse<T>>;
-  getAll(options?: any): Promise<DbListResponse<T>>;
-  create(data: CreateT): Promise<DbSingleResponse<T>>;
-  update(id: string, data: UpdateT): Promise<DbSingleResponse<T>>;
-  delete(id: string): Promise<DbSingleResponse<T>>;
-}
-
-export class BaseRepository<T, CreateT = Partial<T>, UpdateT = Partial<T>> implements Repository<T, CreateT, UpdateT> {
+/**
+ * Generic repository interface for CRUD operations
+ */
+export abstract class Repository<T extends keyof Tables> {
   protected client: SupabaseClient;
-  protected table: string;
+  protected tableName: T;
 
-  constructor(client: SupabaseClient, table: string) {
+  constructor(client: SupabaseClient, tableName: T) {
     this.client = client;
-    this.table = table;
+    this.tableName = tableName;
   }
 
-  async getById(id: string): Promise<DbSingleResponse<T>> {
+  /**
+   * Find all records
+   */
+  async findAll(): Promise<DbListResponse<TableRow<T>>> {
     const { data, error } = await this.client
-      .from(this.table)
+      .from(this.tableName)
+      .select('*');
+
+    return { data, error };
+  }
+
+  /**
+   * Find record by ID
+   */
+  async findById(id: string): Promise<DbSingleResponse<TableRow<T>>> {
+    const { data, error } = await this.client
+      .from(this.tableName)
       .select('*')
       .eq('id', id)
       .single();
-      
-    return { data: data as T, error };
+
+    return { data, error };
   }
 
-  async getAll(options?: any): Promise<DbListResponse<T>> {
+  /**
+   * Create a new record
+   */
+  async create(values: Tables[T]['Insert']): Promise<DbSingleResponse<TableRow<T>>> {
     const { data, error } = await this.client
-      .from(this.table)
-      .select('*');
-      
-    return { data: data as T[], error };
-  }
-
-  async create(data: CreateT): Promise<DbSingleResponse<T>> {
-    const { data: created, error } = await this.client
-      .from(this.table)
-      .insert(data as any)
+      .from(this.tableName)
+      .insert(values)
       .select()
       .single();
-      
-    return { data: created as T, error };
+
+    return { data, error };
   }
 
-  async update(id: string, data: UpdateT): Promise<DbSingleResponse<T>> {
-    const { data: updated, error } = await this.client
-      .from(this.table)
-      .update(data as any)
+  /**
+   * Update a record
+   */
+  async update(id: string, values: Tables[T]['Update']): Promise<DbSingleResponse<TableRow<T>>> {
+    const { data, error } = await this.client
+      .from(this.tableName)
+      .update(values)
       .eq('id', id)
       .select()
       .single();
-      
-    return { data: updated as T, error };
+
+    return { data, error };
   }
 
-  async delete(id: string): Promise<DbSingleResponse<T>> {
-    const { data: deleted, error } = await this.client
-      .from(this.table)
+  /**
+   * Delete a record
+   */
+  async delete(id: string): Promise<{ error: Error | null }> {
+    const { error } = await this.client
+      .from(this.tableName)
       .delete()
-      .eq('id', id)
-      .select()
-      .single();
-      
-    return { data: deleted as T, error };
+      .eq('id', id);
+
+    return { error };
+  }
+
+  /**
+   * Find records by a specific column value
+   */
+  async findBy<K extends keyof TableRow<T> & string>(
+    column: K, 
+    value: TableRow<T>[K]
+  ): Promise<DbListResponse<TableRow<T>>> {
+    const { data, error } = await this.client
+      .from(this.tableName)
+      .select('*')
+      .eq(column, value);
+
+    return { data, error };
   }
 }

@@ -1,40 +1,27 @@
 
 /**
- * Central export for all validation utility functions
- * Import validation functions from this file instead of individual validators
+ * Root validation module that re-exports all validation functions
  */
 
-// Re-export all validators
+// Re-export all validation functions from specific categories
+export * from './array-validators';
 export * from './basic-validators';
-export * from './type-validators';
-export * from './payment-validators';
-export * from './user-input-validators';
+export * from './date-validators';
 export * from './file-validators';
 export * from './geo-validators';
-export * from './date-validators';
-export * from './array-validators';
+export * from './payment-validators';
+export * from './type-validators';
+export * from './user-input-validators';
 
-// Create a validator object for easy access to all validation functions
-import * as basicValidators from './basic-validators';
-import * as typeValidators from './type-validators';
-import * as paymentValidators from './payment-validators';
-import * as userInputValidators from './user-input-validators';
-import * as fileValidators from './file-validators';
-import * as geoValidators from './geo-validators';
-import * as dateValidators from './date-validators';
-import * as arrayValidators from './array-validators';
-
-// Combined validators object
-export const validators = {
-  ...basicValidators,
-  ...typeValidators,
-  ...paymentValidators,
-  ...userInputValidators,
-  ...fileValidators,
-  ...geoValidators,
-  ...dateValidators,
-  ...arrayValidators
+// Additional utility functions for object validation
+export const isObject = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
-// Legacy export (deprecated, use direct imports instead)
-export { validators as dataValidation };
+// Additional utilities for type checking
+export const isArrayOfType = <T>(
+  arr: unknown, 
+  typeCheck: (item: unknown) => item is T
+): arr is T[] => {
+  return Array.isArray(arr) && arr.every(item => typeCheck(item));
+};
