@@ -8,7 +8,7 @@ import { agreementService } from '@/services/AgreementService';
 // Updated type declaration for validation result
 type ValidationResult = 
   | { success: true; data: Agreement }
-  | { success: false; errors: Record<string, string> };
+  | { success: false; error?: Error; errors: Record<string, string> };
 
 interface AgreementSubmitHandlerProps {
   children: React.ReactNode;
