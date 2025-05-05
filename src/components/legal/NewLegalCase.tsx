@@ -1,14 +1,17 @@
 
 import React from 'react';
 import LegalCaseCard from './LegalCaseCard';
+import { useParams } from 'react-router-dom';
 
 /**
  * NewLegalCase component for creating new legal cases
+ * If an agreementId is not provided in URL params, it passes an empty string
  */
 const NewLegalCase = () => {
-  // Providing a default empty string value for agreementId
-  // since it's required in LegalCaseCard
-  return <LegalCaseCard agreementId="" />;
+  // Get agreementId from URL params if available
+  const { agreementId } = useParams<{ agreementId?: string }>();
+  
+  return <LegalCaseCard agreementId={agreementId || ""} />;
 };
 
 export default NewLegalCase;

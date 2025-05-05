@@ -29,7 +29,9 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
     }
   };
 
-  const refetch = fetchVehicle;
+  const refetch = () => {
+    fetchVehicle();
+  };
 
   useEffect(() => {
     fetchVehicle();

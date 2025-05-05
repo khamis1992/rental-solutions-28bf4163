@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +12,7 @@ import {
   InstallmentStatus
 } from '@/types/car-installment';
 import { useToast } from './use-toast';
+import { PaymentStatus } from '@/lib/database/types';
 
 export function useCarInstallments() {
   const { toast } = useToast();
@@ -48,8 +50,8 @@ export function useCarInstallments() {
           .select('amount')
           .lte('payment_date', thirtyDaysFromNow.toISOString())
           .gt('payment_date', new Date().toISOString())
-          // Use type casting for enum values
-          .eq('status', 'pending' as InstallmentStatus);
+          // Cast to the expected type for the status
+          .eq('status', 'pending' as PaymentStatus);
         
         if (paymentsError) throw paymentsError;
         
@@ -57,14 +59,21 @@ export function useCarInstallments() {
           throw new Error('Failed to fetch contract data');
         }
         
-        const totalPortfolioValue = contracts.reduce((sum, contract) => 
-          sum + (contract.total_contract_value || 0), 0);
+        // Check if contracts array exists before reducing
+        const totalPortfolioValue = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
+          // Safely access properties with null checks
+          return sum + (contract?.total_contract_value || 0);
+        }, 0) : 0;
           
-        const totalCollections = contracts.reduce((sum, contract) => 
-          sum + (contract.amount_paid || 0), 0);
+        const totalCollections = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
+          // Safely access properties with null checks
+          return sum + (contract?.amount_paid || 0);
+        }, 0) : 0;
           
-        const upcomingPaymentsTotal = upcomingPayments?.reduce((sum, payment) => 
-          sum + (payment.amount || 0), 0) || 0;
+        const upcomingPaymentsTotal = Array.isArray(upcomingPayments) ? upcomingPayments.reduce((sum, payment) => {
+          // Safely access properties with null checks
+          return sum + (payment?.amount || 0);
+        }, 0) : 0;
         
         return {
           totalContracts: contracts.length,
@@ -114,8 +123,8 @@ export function useCarInstallments() {
           throw error;
         }
         
-        // Type guard to ensure we return the right type
-        return (data || []) as CarInstallmentContract[];
+        // Cast the response data to our type
+        return data as unknown as CarInstallmentContract[];
       } catch (error) {
         console.error('Error fetching car installment contracts:', error);
         throw error;
@@ -136,8 +145,8 @@ export function useCarInstallments() {
         throw error;
       }
       
-      // Make sure to return the data with the right type
-      return data as CarInstallmentContract;
+      // Cast the response data to our type
+      return data as unknown as CarInstallmentContract;
     } catch (error) {
       console.error('Error fetching contract:', error);
       throw error;
@@ -156,9 +165,10 @@ export function useCarInstallments() {
         .eq('contract_id', contractId)
         .order('payment_date', { ascending: true });
       
-      // Apply filters
+      // Apply filters with proper type casting
       if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status as InstallmentStatus);
+        // Use type assertion to handle the PaymentStatus type
+        query = query.eq('status', filters.status as PaymentStatus);
       }
       
       if (filters.dateFrom) {
@@ -175,8 +185,8 @@ export function useCarInstallments() {
         throw error;
       }
       
-      // Type guard to ensure we return the right type
-      return (data || []) as CarInstallmentPayment[];
+      // Cast the response data to our type
+      return (data || []) as unknown as CarInstallmentPayment[];
     } catch (error) {
       console.error('Error fetching contract payments:', error);
       throw error;
@@ -208,7 +218,7 @@ export function useCarInstallments() {
         
         const { data, error } = await supabase
           .from('car_installment_contracts')
-          .insert([contractToInsert]) // Use array for insertion
+          .insert(contractToInsert) // Single object without array
           .select()
           .single();
           
@@ -217,7 +227,7 @@ export function useCarInstallments() {
         }
         
         // Type casting to ensure the return type is correct
-        return data as CarInstallmentContract;
+        return data as unknown as CarInstallmentContract;
       } catch (error) {
         console.error('Error creating car installment contract:', error);
         throw error;
@@ -255,7 +265,7 @@ export function useCarInstallments() {
         
         const { data, error } = await supabase
           .from('car_installment_payments')
-          .insert([paymentToInsert]) // Use array for insertion
+          .insert(paymentToInsert) // Single object without array
           .select()
           .single();
           
@@ -263,7 +273,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data as CarInstallmentPayment;
+        return data as unknown as CarInstallmentPayment;
       } catch (error) {
         console.error('Error adding car installment payment:', error);
         throw error;
@@ -297,7 +307,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return updatedPayment as CarInstallmentPayment;
+        return updatedPayment as unknown as CarInstallmentPayment;
       } catch (error) {
         console.error('Error updating car installment payment:', error);
         throw error;
@@ -336,7 +346,7 @@ export function useCarInstallments() {
         const newRemainingAmount = payment.amount - newPaidAmount;
         
         // Determine the new status
-        let newStatus: InstallmentStatus = payment.status;
+        let newStatus: InstallmentStatus = payment.status as unknown as InstallmentStatus;
         if (newRemainingAmount <= 0) {
           newStatus = 'paid';
         } else if (newStatus === 'overdue') {
@@ -395,7 +405,7 @@ export function useCarInstallments() {
           }
         }
         
-        return updatedPayment;
+        return updatedPayment as unknown as CarInstallmentPayment;
       } catch (error) {
         console.error('Error recording payment:', error);
         throw error;
@@ -428,11 +438,11 @@ export function useCarInstallments() {
           paid_amount: 0,
           remaining_amount: payment.amount,
           payment_date: payment.payment_date,
-          status: 'pending' as InstallmentStatus,
+          status: 'pending',
           payment_notes: payment.notes || ''
         }));
         
-        // Use individual inserts instead of bulk insert to avoid type issues
+        // Use individual inserts to avoid type issues
         for (const payment of formattedPayments) {
           const { error } = await supabase
             .from('car_installment_payments')
