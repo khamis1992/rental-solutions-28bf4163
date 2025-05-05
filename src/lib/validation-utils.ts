@@ -1,11 +1,9 @@
 
 import { z } from 'zod';
+import { validators } from '@/utils/validation';
 
 /**
- * Validates data against a Zod schema with consistent error handling
- * @param schema The Zod schema to validate against
- * @param data Data to validate
- * @returns Object with validation result and data or errors
+ * Enhanced validateData function that properly types and formats errors
  */
 export function validateData<T>(schema: z.ZodType<T>, data: unknown): { 
   success: true; 
@@ -39,9 +37,6 @@ export function validateData<T>(schema: z.ZodType<T>, data: unknown): {
 
 /**
  * Helper to create a typed API response with validation
- * @param schema Zod schema for validating request body
- * @param handler Handler function for processing valid data
- * @returns API handler function with validation
  */
 export function withValidation<T, R>(
   schema: z.ZodType<T>,
@@ -67,3 +62,5 @@ export function withValidation<T, R>(
   };
 }
 
+// Re-export validation functions for convenience
+export { validators };

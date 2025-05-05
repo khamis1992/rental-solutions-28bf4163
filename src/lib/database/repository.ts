@@ -1,133 +1,75 @@
 
-import { supabase } from '@/lib/supabase';
-import { Tables, TableRow, TableInsert, TableUpdate, isSuccessResponse, UUID } from './types';
-import { isValidDatabaseId } from './validation';
-
 /**
- * Generic Repository interface for type-safe database operations
+ * Base repository interface for database operations
  */
-export interface Repository<T extends keyof Tables> {
-  findById(id: UUID): Promise<TableRow<T> | null>;
-  findAll(): Promise<TableRow<T>[] | null>;
-  findBy(column: string, value: any): Promise<TableRow<T>[] | null>;
-  create(data: TableInsert<T>): Promise<TableRow<T> | null>;
-  update(id: UUID, data: TableUpdate<T>): Promise<TableRow<T> | null>;
-  delete(id: UUID): Promise<boolean>;
+
+import { GenericSchema, SupabaseClient } from '@supabase/supabase-js';
+import { DbListResponse, DbSingleResponse } from './types';
+
+export interface Repository<T, CreateT, UpdateT> {
+  getById(id: string): Promise<DbSingleResponse<T>>;
+  getAll(options?: any): Promise<DbListResponse<T>>;
+  create(data: CreateT): Promise<DbSingleResponse<T>>;
+  update(id: string, data: UpdateT): Promise<DbSingleResponse<T>>;
+  delete(id: string): Promise<DbSingleResponse<T>>;
 }
 
-/**
- * Create a type-safe repository for a specific table
- */
-export function createRepository<T extends keyof Tables>(tableName: T): Repository<T> {
-  return {
-    async findById(id: UUID): Promise<TableRow<T> | null> {
-      if (!isValidDatabaseId(id)) {
-        console.error(`Invalid ID format: ${id}`);
-        return null;
-      }
-      
-      const response = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (!isSuccessResponse(response)) {
-        console.error(`Failed to fetch ${tableName} with ID ${id}:`, response.error);
-        return null;
-      }
-      
-      return response.data as TableRow<T>;
-    },
-    
-    async findAll(): Promise<TableRow<T>[] | null> {
-      const response = await supabase
-        .from(tableName)
-        .select('*');
-      
-      if (!isSuccessResponse(response)) {
-        console.error(`Failed to fetch all ${tableName}:`, response.error);
-        return null;
-      }
-      
-      return response.data as TableRow<T>[];
-    },
-    
-    async findBy(column: string, value: any): Promise<TableRow<T>[] | null> {
-      const response = await supabase
-        .from(tableName)
-        .select('*')
-        .eq(column, value);
-      
-      if (!isSuccessResponse(response)) {
-        console.error(`Failed to fetch ${tableName} where ${column}=${value}:`, response.error);
-        return null;
-      }
-      
-      return response.data as TableRow<T>[];
-    },
-    
-    async create(data: TableInsert<T>): Promise<TableRow<T> | null> {
-      const response = await supabase
-        .from(tableName)
-        .insert(data)
-        .select()
-        .single();
-      
-      if (!isSuccessResponse(response)) {
-        console.error(`Failed to create ${tableName}:`, response.error);
-        return null;
-      }
-      
-      return response.data as TableRow<T>;
-    },
-    
-    async update(id: UUID, data: TableUpdate<T>): Promise<TableRow<T> | null> {
-      if (!isValidDatabaseId(id)) {
-        console.error(`Invalid ID format: ${id}`);
-        return null;
-      }
-      
-      const response = await supabase
-        .from(tableName)
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (!isSuccessResponse(response)) {
-        console.error(`Failed to update ${tableName} with ID ${id}:`, response.error);
-        return null;
-      }
-      
-      return response.data as TableRow<T>;
-    },
-    
-    async delete(id: UUID): Promise<boolean> {
-      if (!isValidDatabaseId(id)) {
-        console.error(`Invalid ID format: ${id}`);
-        return false;
-      }
-      
-      const response = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id);
-      
-      if (response.error) {
-        console.error(`Failed to delete ${tableName} with ID ${id}:`, response.error);
-        return false;
-      }
-      
-      return true;
-    }
-  };
-}
+export class BaseRepository<T, CreateT = Partial<T>, UpdateT = Partial<T>> implements Repository<T, CreateT, UpdateT> {
+  protected client: SupabaseClient;
+  protected table: string;
 
-// Export commonly used repositories
-export const vehicleRepository = createRepository('vehicles');
-export const leaseRepository = createRepository('leases');
-export const paymentRepository = createRepository('unified_payments');
-export const profileRepository = createRepository('profiles');
-export const legalCaseRepository = createRepository('legal_cases');
-export const trafficFineRepository = createRepository('traffic_fines');
+  constructor(client: SupabaseClient, table: string) {
+    this.client = client;
+    this.table = table;
+  }
+
+  async getById(id: string): Promise<DbSingleResponse<T>> {
+    const { data, error } = await this.client
+      .from(this.table)
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    return { data: data as T, error };
+  }
+
+  async getAll(options?: any): Promise<DbListResponse<T>> {
+    const { data, error } = await this.client
+      .from(this.table)
+      .select('*');
+      
+    return { data: data as T[], error };
+  }
+
+  async create(data: CreateT): Promise<DbSingleResponse<T>> {
+    const { data: created, error } = await this.client
+      .from(this.table)
+      .insert(data as any)
+      .select()
+      .single();
+      
+    return { data: created as T, error };
+  }
+
+  async update(id: string, data: UpdateT): Promise<DbSingleResponse<T>> {
+    const { data: updated, error } = await this.client
+      .from(this.table)
+      .update(data as any)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    return { data: updated as T, error };
+  }
+
+  async delete(id: string): Promise<DbSingleResponse<T>> {
+    const { data: deleted, error } = await this.client
+      .from(this.table)
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+      
+    return { data: deleted as T, error };
+  }
+}

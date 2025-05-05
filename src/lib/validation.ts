@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { validators } from '@/utils/validation';
 
 // Type guards for common data types
 export const typeGuards = {
@@ -161,3 +162,5 @@ export function createRentalSchema() {
   });
 }
 
+// Export validators from the new validation system for convenience
+export { validators };
