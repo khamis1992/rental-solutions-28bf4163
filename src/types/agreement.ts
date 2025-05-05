@@ -51,13 +51,3 @@ export interface AgreementDetail extends Agreement {
     status: string;
   }[];
 }
-
-// Table filters
-export interface TableFilters {
-  status?: string[];
-  date?: [Date | null, Date | null];
-  search?: string;
-  vehicleId?: string;
-  customerId?: string;
-  [key: string]: any;
-}

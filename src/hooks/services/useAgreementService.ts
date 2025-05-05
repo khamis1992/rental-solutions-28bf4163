@@ -30,14 +30,16 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     gcTime: 900000, // 15 minutes
   });
 
-  // Function for getting agreement details
-  const getAgreementDetails = async (id: string) => {
-    const result = await agreementService.getAgreementDetails(id);
-    if (!result.success) {
-      throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
+  // Mutation for getting agreement details
+  const getAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await agreementService.getAgreementDetails(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
+      }
+      return result.data;
     }
-    return result.data;
-  };
+  });
 
   // Mutation for updating an agreement
   const updateAgreement = useMutation({
@@ -111,14 +113,14 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     searchParams,
     setSearchParams,
     refetch,
-    getAgreementDetails,
+    getAgreement: getAgreement.mutateAsync,
     updateAgreement: updateAgreement.mutateAsync,
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
     // Expose isPending states for UI loading indicators
     isPending: {
-      getAgreement: false,
+      getAgreement: getAgreement.isPending,
       updateAgreement: updateAgreement.isPending,
       changeStatus: changeStatus.isPending,
       deleteAgreement: deleteAgreement.isPending,

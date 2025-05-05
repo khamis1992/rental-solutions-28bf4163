@@ -1,13 +1,14 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Building, Upload, Save } from 'lucide-react';
 
 interface CompanySettingsProps {
@@ -15,6 +16,7 @@ interface CompanySettingsProps {
 }
 
 const CompanySettings = ({ initialData }: CompanySettingsProps) => {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Company settings state
@@ -38,27 +40,34 @@ const CompanySettings = ({ initialData }: CompanySettingsProps) => {
   // Save company settings mutation
   const saveCompanySettingsMutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
-      // Use a simpler approach without specifying shape of data
       const { error } = await supabase
         .from('company_settings')
-        .upsert({
-          id: initialData?.id || undefined,
-          company_name: data.company_name,
-          business_email: data.business_email,
-          phone: data.phone,
-          address: data.address,
-          logo_url: data.logo_url,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          { 
+            company_name: data.company_name,
+            business_email: data.business_email,
+            phone: data.phone,
+            address: data.address,
+            logo_url: data.logo_url
+          },
+          { onConflict: 'id' }
+        );
         
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-settings'] });
-      toast.success("Company settings saved successfully");
+      toast({
+        title: "Company settings saved",
+        description: "Your company settings have been updated successfully.",
+      });
     },
     onError: (error) => {
-      toast.error(`Failed to save company settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast({
+        title: "Error",
+        description: "Failed to save company settings. Please try again.",
+        variant: "destructive",
+      });
       console.error("Error saving company settings:", error);
     }
   });
@@ -96,10 +105,17 @@ const CompanySettings = ({ initialData }: CompanySettingsProps) => {
         logo_url: publicUrl.publicUrl
       }));
       
-      toast.success("Company logo uploaded successfully");
+      toast({
+        title: "Logo uploaded",
+        description: "Company logo has been uploaded successfully.",
+      });
     } catch (error) {
       console.error("Error uploading logo:", error);
-      toast.error("Failed to upload company logo");
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload company logo. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

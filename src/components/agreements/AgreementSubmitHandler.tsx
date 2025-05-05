@@ -5,10 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { agreementService } from '@/services/AgreementService';
 
-// Updated type declaration for validation result with proper conditional type
+// Updated type declaration for validation result
 type ValidationResult = 
   | { success: true; data: Agreement }
-  | { success: false; error?: Error; errors: Record<string, string> };
+  | { success: false; errors: Record<string, string> };
 
 interface AgreementSubmitHandlerProps {
   children: React.ReactNode;
@@ -29,15 +29,10 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       const validationResult = validateAgreementData(formData) as ValidationResult;
       
       if (!validationResult.success) {
-        // Type guard to ensure errors exists on the validation result
-        if ('errors' in validationResult) {
-          // Show validation errors
-          const firstErrorKey = Object.keys(validationResult.errors)[0];
-          const errorMessage = validationResult.errors[firstErrorKey];
-          toast.error(errorMessage);
-        } else {
-          toast.error("Validation failed");
-        }
+        // Show validation errors
+        const firstErrorKey = Object.keys(validationResult.errors)[0];
+        const errorMessage = validationResult.errors[firstErrorKey];
+        toast.error(errorMessage);
         return;
       }
       

@@ -30,8 +30,8 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
               </FormControl>
               <SelectContent>
                 {caseTypes.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                  <SelectItem key={type} value={type}>
+                    {type}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -58,8 +58,8 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
               </FormControl>
               <SelectContent>
                 {casePriorities.map(priority => (
-                  <SelectItem key={priority.value} value={priority.value}>
-                    {priority.label}
+                  <SelectItem key={priority} value={priority}>
+                    {priority}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -86,8 +86,8 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
               </FormControl>
               <SelectContent>
                 {caseStatuses.map(status => (
-                  <SelectItem key={status.value} value={status.value}>
-                    {status.label}
+                  <SelectItem key={status} value={status}>
+                    {status}
                   </SelectItem>
                 ))}
               </SelectContent>

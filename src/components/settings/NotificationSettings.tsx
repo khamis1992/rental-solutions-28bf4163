@@ -1,12 +1,13 @@
+
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Bell, Save } from 'lucide-react';
 
 interface NotificationSettingsProps {
@@ -14,6 +15,7 @@ interface NotificationSettingsProps {
 }
 
 const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Notification settings state
@@ -41,13 +43,10 @@ const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
   // Save notification settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
-      // Process each setting individually
       for (const [key, value] of Object.entries(data)) {
-        // Use a more generic approach for inserting data
         const { error } = await supabase
           .from('system_settings')
           .upsert({ 
-            id: initialData?.[key]?.id || undefined,
             setting_key: key, 
             setting_value: value 
           }, {
@@ -59,10 +58,17 @@ const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
-      toast.success("Your notification preferences have been updated successfully");
+      toast({
+        title: "Notification settings saved",
+        description: "Your notification preferences have been updated successfully.",
+      });
     },
     onError: (error) => {
-      toast.error("Failed to save notification settings");
+      toast({
+        title: "Error",
+        description: "Failed to save notification settings. Please try again.",
+        variant: "destructive",
+      });
       console.error("Error saving notification settings:", error);
     }
   });

@@ -10,7 +10,7 @@ import { SortingState } from '@tanstack/react-table';
 export function useAgreement(agreementId?: string) {
   const queryClient = useQueryClient();
   const {
-    getAgreementDetails,
+    getAgreement,
     updateAgreement: updateAgreementService,
     deleteAgreement,
     calculateRemainingAmount,
@@ -18,7 +18,7 @@ export function useAgreement(agreementId?: string) {
 
   const { data: agreement, isLoading, error } = useQuery({
     queryKey: ['agreement', agreementId],
-    queryFn: () => getAgreementDetails(agreementId!),
+    queryFn: () => getAgreement(agreementId!),
     enabled: !!agreementId,
   });
 
