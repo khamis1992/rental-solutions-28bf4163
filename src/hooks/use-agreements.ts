@@ -42,26 +42,36 @@ export function useAgreements(initialFilters = {}) {
 
   // Function to get initial filters from URL parameters
   const getInitialFilters = () => {
-    const filters: { [key: string]: string } = {};
+    const params: { [key: string]: string } = {};
     searchParams.forEach((value, key) => {
-      filters[key] = value;
+      params[key] = value;
     });
-    return filters;
+    return params;
   };
 
-  const [filters, setFilters] = useState(getInitialFilters());
+  // Initialize filters with URL params first, then override with initialFilters
+  // This ensures direct initialFilters (like customer_id) take precedence
+  const [filters, setFilters] = useState({
+    ...getInitialFilters(),
+    ...initialFilters // This ensures initialFilters (like customer_id) take precedence over URL params
+  });
 
   // Function to update URL parameters based on filters
-  const updateSearchParams = (newFilters: { [key: string]: string }) => {
-    for (const key in newFilters) {
-      if (newFilters[key] === undefined) {
+  const updateSearchParams = (newFilters: { [key: string]: string | undefined }) => {
+    const updatedFilters = { ...filters, ...newFilters };
+    
+    // Update the URL parameters
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value === undefined) {
         searchParams.delete(key);
+        // Also remove from current filters
+        delete updatedFilters[key];
       } else {
-        searchParams.set(key, newFilters[key]);
+        searchParams.set(key, value);
       }
-    }
+    });
     setSearchParams(searchParams);
-    setFilters(newFilters);
+    setFilters(updatedFilters);
   };
 
   const {
@@ -71,6 +81,8 @@ export function useAgreements(initialFilters = {}) {
   } = useQuery({
     queryKey: ['agreements', filters],
     queryFn: async () => {
+      console.log('Fetching agreements with filters:', filters);
+      
       let query = supabase
         .from('leases')
         .select(`
@@ -79,14 +91,17 @@ export function useAgreements(initialFilters = {}) {
           vehicles(*)
         `);
 
-      // Apply filters from URL parameters
+      // Apply filters, giving priority to direct filters (like customer_id)
       Object.entries(filters).forEach(([key, value]) => {
-        if (key === 'customer_id') {
-          query = query.eq('customer_id', value);
-        } else if (key === 'status' && value !== 'all') {
-          query = query.eq('status', value);
-        } else if (key === 'agreement_number') {
-          query = query.ilike('agreement_number', `%${value}%`);
+        if (value) {
+          if (key === 'customer_id') {
+            query = query.eq('customer_id', value);
+            console.log('Applied customer_id filter:', value);
+          } else if (key === 'status' && value !== 'all') {
+            query = query.eq('status', value);
+          } else if (key === 'agreement_number') {
+            query = query.ilike('agreement_number', `%${value}%`);
+          }
         }
       });
 
@@ -97,6 +112,7 @@ export function useAgreements(initialFilters = {}) {
         throw new Error(`Failed to fetch agreements: ${error.message}`);
       }
 
+      console.log(`Fetched ${data?.length || 0} agreements`);
       return data || [];
     },
     retry: 1,
