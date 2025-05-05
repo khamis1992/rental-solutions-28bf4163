@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useProfile, Profile } from "@/contexts/ProfileContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -19,7 +19,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const UserProfile = () => {
-  const { profile, updateProfile, loading } = useProfile();
+  const { profile, updateProfile, isLoading } = useProfile();
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -55,7 +55,7 @@ const UserProfile = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -107,7 +107,7 @@ const UserProfile = () => {
             <div className="flex items-center space-x-2">
               <div className="font-medium">Account Status:</div>
               <div className="text-muted-foreground">
-                {profile?.status || "Active"}
+                {profile?.role ? "Active" : "Pending"}
               </div>
             </div>
             <Button type="submit" disabled={isUpdating}>

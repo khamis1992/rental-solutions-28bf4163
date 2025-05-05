@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useVehicle } from '@/hooks/use-vehicle';
+import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { useVehicleStatus } from '@/hooks/use-vehicle-status';
 import { useVehicleDelete } from '@/hooks/use-vehicle-delete';
 import { useVehicleMaintenanceHistory } from '@/hooks/use-vehicle-maintenance';
@@ -20,14 +21,15 @@ import { VehicleImageGallery } from '@/components/vehicles/VehicleImageGallery';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Calendar, Car, FileText, Tool, AlertTriangle, Edit, Trash, Plus, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar, Car, FileText, Wrench, AlertTriangle, Edit, Trash, Plus, ArrowLeft } from 'lucide-react';
 
 const VehicleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const { vehicle, isLoading, error, refetch } = useVehicle(id);
+  // Use the new hook for vehicle details
+  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
   const { updateStatus, isUpdating } = useVehicleStatus(id);
   const { deleteVehicle, isDeleting } = useVehicleDelete();
   const { maintenanceRecords, isLoading: isLoadingMaintenance } = useVehicleMaintenanceHistory(id);
@@ -249,7 +251,7 @@ const VehicleDetail = () => {
               )}
               {!isInMaintenance && (
                 <Button variant="outline" onClick={() => handleStatusChange('maintenance')}>
-                  <Tool className="mr-2 h-4 w-4" />
+                  <Wrench className="mr-2 h-4 w-4" />
                   Mark for Maintenance
                 </Button>
               )}
@@ -323,7 +325,7 @@ const VehicleDetail = () => {
                         className="w-full"
                         onClick={() => navigate(`/maintenance/add?vehicle_id=${vehicle.id}`)}
                       >
-                        <Tool className="mr-2 h-4 w-4" />
+                        <Wrench className="mr-2 h-4 w-4" />
                         Add Maintenance Record
                       </Button>
                     </div>
@@ -343,7 +345,7 @@ const VehicleDetail = () => {
                 className="w-full justify-start"
                 onClick={() => navigate(`/maintenance/add?vehicle_id=${vehicle.id}`)}
               >
-                <Tool className="mr-2 h-4 w-4" />
+                <Wrench className="mr-2 h-4 w-4" />
                 Add Maintenance Record
               </Button>
               <Button 
@@ -375,7 +377,7 @@ const VehicleDetail = () => {
             Agreements
           </TabsTrigger>
           <TabsTrigger value="maintenance" className="flex items-center">
-            <Tool className="mr-2 h-4 w-4" />
+            <Wrench className="mr-2 h-4 w-4" />
             Maintenance History
           </TabsTrigger>
           <TabsTrigger value="schedule" className="flex items-center">
