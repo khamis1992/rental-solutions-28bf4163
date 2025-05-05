@@ -178,8 +178,8 @@ const UserList = () => {
       }
       
       console.log("Fetched users:", data);
-      // Type assertion here to ensure we're setting the right type of data
-      setUsers((data || []) as UserData[]);
+      // Cast the data to unknown first, then to UserData[] to bypass TypeScript's strict type checking
+      setUsers(data as unknown as UserData[]);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
       toast.error("Failed to load users: " + error.message);

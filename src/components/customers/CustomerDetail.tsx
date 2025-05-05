@@ -138,7 +138,7 @@ export function CustomerDetail() {
     if (!customer?.id) return;
     
     try {
-      await getCustomer.update({
+      await getCustomer.mutateAsync({
         id: customer.id,
         notes: localNotes
       });

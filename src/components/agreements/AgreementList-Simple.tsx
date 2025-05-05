@@ -44,7 +44,7 @@ export const AgreementList: React.FC = () => {
   const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
     ...agreement,
     payment_frequency: agreement.payment_frequency || 'monthly',
-    payment_day: 1, 
+    payment_day: agreement.payment_day || 1, 
     customers: {
       full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
       id: agreement.customers?.id || agreement.customer_id

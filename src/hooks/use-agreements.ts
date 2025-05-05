@@ -19,6 +19,8 @@ export interface SimpleAgreement {
   agreement_number?: string;
   agreement_type?: string;
   customer_name?: string;
+  payment_frequency?: string; // Added missing property
+  payment_day?: number; // Added missing property
   customers?: {
     id?: string;
     full_name?: string;

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -117,7 +116,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
                     </Link>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone_number}</TableCell>
+                  <TableCell>{customer.phone || 'N/A'}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
