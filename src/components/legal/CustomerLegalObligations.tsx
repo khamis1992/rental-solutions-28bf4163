@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -100,6 +99,7 @@ const mockObligations: CustomerObligation[] = [
   }
 ];
 
+// Changed to export named component to match how we re-export in the .ts file
 export const CustomerLegalObligations = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
@@ -444,4 +444,4 @@ export const CustomerLegalObligations = () => {
   );
 };
 
-export default CustomerLegalObligations;
+// No default export here since we're using named exports

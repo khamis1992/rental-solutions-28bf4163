@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import LegalDashboard from '@/components/legal/LegalDashboard';
+// Import using the default export from the .ts file which re-exports from .tsx
 import CustomerLegalObligations from '@/components/legal/CustomerLegalObligations';
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';

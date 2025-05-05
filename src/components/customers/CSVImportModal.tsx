@@ -106,7 +106,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
     const savedFilename = uploadData.path;
     setSavedFilename(savedFilename);
 
-    // Using as any to bypass the TypeScript error until we have proper types
+    // Using as any to bypass the TypeScript error
     const { data, error } = await supabase
       .from('customer_import_logs' as any)
       .insert({

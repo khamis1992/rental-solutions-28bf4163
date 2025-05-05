@@ -34,7 +34,7 @@ export const StatusListItem: React.FC<StatusListItemProps> = ({
       >
         <Icon 
           className="text-primary"
-          size={16}
+          size={16} 
           color={status.color}
         />
       </div>

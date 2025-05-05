@@ -19,3 +19,7 @@ export interface CustomerObligation {
   agreementNumber?: string;
   lateFine?: number;
 }
+
+// Export the CustomerLegalObligations component as default
+import { CustomerLegalObligations } from './CustomerLegalObligations.tsx';
+export default CustomerLegalObligations;
