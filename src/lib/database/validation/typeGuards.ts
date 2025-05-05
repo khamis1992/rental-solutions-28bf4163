@@ -1,59 +1,62 @@
 
 /**
- * Type guard utilities for database validation
+ * Type guards for runtime type checking
  */
 
 /**
- * Checks if a value is undefined
- */
-export function isUndefined(value: unknown): value is undefined {
-  return typeof value === 'undefined';
-}
-
-/**
- * Checks if a value is null
- */
-export function isNull(value: unknown): value is null {
-  return value === null;
-}
-
-/**
- * Checks if a value is a string
+ * Check if value is a string
  */
 export function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
 
 /**
- * Checks if a value is a number
+ * Check if value is a number
  */
 export function isNumber(value: unknown): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
 
 /**
- * Checks if a value is a boolean
+ * Check if value is a boolean
  */
 export function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
 
 /**
- * Checks if a value is an object
+ * Check if value is an object
  */
-export function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is object {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
- * Checks if a value is an array
+ * Check if value is an array
  */
-export function isArray<T = unknown>(value: unknown): value is Array<T> {
+export function isArray(value: unknown): value is unknown[] {
   return Array.isArray(value);
 }
 
 /**
- * Checks if a value is a valid UUID
+ * Check if value is a date
+ */
+export function isDate(value: unknown): value is Date {
+  return value instanceof Date && !isNaN(value.getTime());
+}
+
+/**
+ * Type guard to check if an object has a specific property
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T, 
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
+
+/**
+ * Check if value is a valid UUID
  */
 export function isUuid(value: unknown): value is string {
   if (!isString(value)) return false;
@@ -62,38 +65,24 @@ export function isUuid(value: unknown): value is string {
 }
 
 /**
- * Checks if a value is a valid date
- */
-export function isDate(value: unknown): value is Date {
-  return value instanceof Date && !isNaN(value.getTime());
-}
-
-/**
- * Checks if a value is a valid email
- */
-export function isEmail(value: unknown): value is string {
-  if (!isString(value)) return false;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(value);
-}
-
-/**
- * Checks if a value is a non-empty string
+ * Check if value is a non-empty string
  */
 export function isNonEmptyString(value: unknown): value is string {
   return isString(value) && value.trim() !== '';
 }
 
 /**
- * Checks if a value is a positive number
+ * Check if value is a valid ISO date string
  */
-export function isPositiveNumber(value: unknown): value is number {
-  return isNumber(value) && value > 0;
+export function isIsoDateString(value: unknown): value is string {
+  if (!isString(value)) return false;
+  const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+  return isoDateRegex.test(value);
 }
 
 /**
- * Checks if a value is a non-negative number (zero or positive)
+ * Check if value is a function
  */
-export function isNonNegativeNumber(value: unknown): value is number {
-  return isNumber(value) && value >= 0;
+export function isFunction(value: unknown): value is Function {
+  return typeof value === 'function';
 }

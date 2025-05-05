@@ -3,7 +3,7 @@
  * Database module entrypoint
  * Re-exports all repositories and utility functions
  */
-import { getSupabaseClient } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import * as utils from './utils';
 import * as validation from './validation';
 import * as typeGuards from './validation/typeGuards';
@@ -12,14 +12,11 @@ import { createPaymentRepository } from './repositories/payment-repository';
 import { createVehicleRepository } from './repositories/vehicle-repository';
 import { createProfileRepository } from './repositories/profile-repository';
 
-// Initialize client
-const client = getSupabaseClient();
-
-// Create repositories
-export const leaseRepository = createLeaseRepository(client);
-export const paymentRepository = createPaymentRepository(client);
-export const vehicleRepository = createVehicleRepository(client);
-export const profileRepository = createProfileRepository(client);
+// Create repositories using the supabase client
+export const leaseRepository = createLeaseRepository(supabase);
+export const paymentRepository = createPaymentRepository(supabase);
+export const vehicleRepository = createVehicleRepository(supabase);
+export const profileRepository = createProfileRepository(supabase);
 
 // Re-export utils and validation
 export { utils, validation, typeGuards };

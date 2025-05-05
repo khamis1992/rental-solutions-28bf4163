@@ -95,4 +95,11 @@ export abstract class Repository<T extends keyof Tables> {
 
     return { data, error };
   }
+
+  /**
+   * Map database response to standardized format
+   */
+  protected mapDbResponse<R>(response: { data: R | null, error: any }): { data: R | null, error: any } {
+    return { data: response.data, error: response.error };
+  }
 }
