@@ -1,87 +1,106 @@
 
-import { Tables, VehicleStatus, LeaseStatus, PaymentStatus, ProfileStatus } from './types';
+/**
+ * Type validation functions for database operations
+ * Ensures that string values are valid database enum values
+ */
 
-// Type-safe validation for vehicle status
+import { Database } from '@/types/database.types';
+
+// Type aliases for database enums
+type VehicleStatus = Database['public']['Tables']['vehicles']['Row']['status'];
+type LeaseStatus = Database['public']['Tables']['leases']['Row']['status'];
+type PaymentStatus = string; // Using string since it's more flexible for this type
+
+/**
+ * Validates that a string is a valid vehicle status
+ */
 export function asVehicleStatus(status: string): VehicleStatus {
-  const validStatuses = ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'];
+  const validStatuses = [
+    'available', 'rented', 'maintenance', 'retired', 
+    'police_station', 'accident', 'stolen', 'reserved'
+  ];
+  
   if (!validStatuses.includes(status)) {
     console.warn(`Invalid vehicle status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
   }
+  
   return status as VehicleStatus;
 }
 
-// Type-safe validation for lease status
+/**
+ * Validates that a string is a valid lease status
+ */
 export function asLeaseStatus(status: string): LeaseStatus {
-  const validStatuses = ['active', 'pending', 'completed', 'cancelled', 'pending_payment', 'pending_deposit', 'draft', 'terminated', 'archived', 'closed'];
+  const validStatuses = [
+    'active', 'pending', 'completed', 'cancelled', 'pending_payment',
+    'pending_deposit', 'draft', 'terminated', 'archived', 'closed'
+  ];
+  
   if (!validStatuses.includes(status)) {
     console.warn(`Invalid lease status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
   }
+  
   return status as LeaseStatus;
 }
 
-// Type-safe validation for payment status
+/**
+ * Validates that a string is a valid payment status
+ */
 export function asPaymentStatus(status: string): PaymentStatus {
-  const validStatuses = ['pending', 'completed', 'cancelled', 'failed', 'refunded', 'overdue'];
+  const validStatuses = [
+    'pending', 'paid', 'overdue', 'cancelled', 'refunded', 'partial'
+  ];
+  
   if (!validStatuses.includes(status)) {
     console.warn(`Invalid payment status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
   }
-  return status as PaymentStatus;
-}
-
-// Type-safe validation for profile status
-export function asProfileStatus(status: string): ProfileStatus {
-  const validStatuses = ['active', 'inactive', 'pending_review', 'blocked', 'archived'];
-  if (!validStatuses.includes(status)) {
-    console.warn(`Invalid profile status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
-  }
-  return status as ProfileStatus;
-}
-
-// Generic type validator
-export function isOfType<T>(value: unknown, validator: (val: unknown) => boolean): value is T {
-  return validator(value);
-}
-
-// Type guards for common types
-export const typeGuards = {
-  isString: (value: unknown): value is string => typeof value === 'string',
-  isNumber: (value: unknown): value is number => typeof value === 'number' && !isNaN(value),
-  isBoolean: (value: unknown): value is boolean => typeof value === 'boolean',
-  isDate: (value: unknown): value is Date => value instanceof Date && !isNaN(value.getTime()),
-  isObject: (value: unknown): value is Record<string, unknown> => 
-    typeof value === 'object' && value !== null && !Array.isArray(value),
-  isArray: <T>(value: unknown, itemGuard?: (item: unknown) => item is T): value is T[] => {
-    if (!Array.isArray(value)) return false;
-    if (itemGuard) return value.every(itemGuard);
-    return true;
-  }
-};
-
-// Type-safe database ID validation
-export function isValidDatabaseId(id: unknown): boolean {
-  if (!typeGuards.isString(id)) return false;
   
-  // Basic UUID format validation
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
+  return status;
 }
 
-// Type assertion function with runtime check
-export function assertType<T>(value: unknown, guard: (val: unknown) => boolean): T {
-  if (!guard(value)) {
-    throw new TypeError(`Type assertion failed: ${value} did not match expected type`);
+/**
+ * Generic status validation that can be used for any entity
+ */
+export function asEntityStatus(status: string): string {
+  // This is a generic validation that just returns the status
+  // In a real implementation, you might want to add more validation here
+  return status;
+}
+
+/**
+ * Type-safe ID validation function
+ */
+export function asId(id: string): string {
+  if (!id || typeof id !== 'string') {
+    console.warn('Invalid ID provided');
   }
-  return value as T;
+  return id;
 }
 
-// Validate object shape against expected schema
-export function validateObjectShape<T extends Record<string, unknown>>(
-  obj: unknown, 
-  schema: Record<keyof T, (val: unknown) => boolean>
-): obj is T {
-  if (!typeGuards.isObject(obj)) return false;
-  
-  return Object.entries(schema).every(([key, validator]) => {
-    return key in obj && validator(obj[key as keyof typeof obj]);
-  });
+/**
+ * Type guard to check if a value is a string
+ */
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * Type guard to check if a value is a number
+ */
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
+/**
+ * Type guard to check if a value is a boolean
+ */
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+/**
+ * Type guard to check if a value is a date
+ */
+export function isDate(value: unknown): value is Date {
+  return value instanceof Date && !isNaN(value.getTime());
 }

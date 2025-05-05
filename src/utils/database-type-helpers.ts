@@ -79,4 +79,3 @@ export function hasData<T>(
 export function asVehicleId(id: string): string {
   return asTableId('vehicles', id);
 }
-
