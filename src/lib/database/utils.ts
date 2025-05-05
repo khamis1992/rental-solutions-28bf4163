@@ -45,22 +45,41 @@ export function asMaintenanceId(id: string): MaintenanceId {
 
 // Type-safe status conversion functions
 export function asLeaseStatus(status: string): LeaseStatus {
+  const validStatuses = ['active', 'pending', 'completed', 'cancelled', 'pending_payment', 
+                        'pending_deposit', 'draft', 'terminated', 'archived', 'closed'];
+  if (!validStatuses.includes(status)) {
+    console.warn(`Invalid lease status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
+  }
   return status as LeaseStatus;
 }
 
 export function asVehicleStatus(status: string): VehicleStatus {
+  const validStatuses = ['available', 'rented', 'reserved', 'maintenance', 
+                         'police_station', 'accident', 'stolen', 'retired'];
+  if (!validStatuses.includes(status)) {
+    console.warn(`Invalid vehicle status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
+  }
   return status as VehicleStatus;
 }
 
 export function asPaymentStatus(status: string): PaymentStatus {
+  // Add validation if needed
   return status;
 }
 
 export function asProfileStatus(status: string): ProfileStatus {
+  const validStatuses = ['active', 'inactive', 'pending_review', 'blocked', 'archived'];
+  if (!validStatuses.includes(status)) {
+    console.warn(`Invalid profile status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
+  }
   return status as ProfileStatus;
 }
 
 export function asMaintenanceStatus(status: string): MaintenanceStatus {
+  const validStatuses = ['scheduled', 'in_progress', 'completed', 'cancelled'];
+  if (!validStatuses.includes(status)) {
+    console.warn(`Invalid maintenance status: '${status}'. Expected one of: ${validStatuses.join(', ')}`);
+  }
   return status as MaintenanceStatus;
 }
 

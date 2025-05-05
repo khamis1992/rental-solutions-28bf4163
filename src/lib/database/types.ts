@@ -2,54 +2,70 @@
 import { Database } from '@/types/database.types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
-// Core database types
+// Helper type for easy table access
 export type Tables = Database['public']['Tables'];
 export type Schema = keyof Database;
-export type DbId = string;
 
 // Table row types
 export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
 export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
 export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
 
-// Common entity types
-export type LeaseRow = TableRow<'leases'>;
-export type VehicleRow = TableRow<'vehicles'>;
-export type ProfileRow = TableRow<'profiles'>;
-export type PaymentRow = TableRow<'unified_payments'>;
-export type TrafficFineRow = TableRow<'traffic_fines'>;
-export type LegalCaseRow = TableRow<'legal_cases'>;
-export type MaintenanceRow = TableRow<'maintenance'>;
+// Common ID type
+export type DatabaseId = string;
+export type UUID = string;
 
-// Status types
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = string; // Using string as the database type is text
-export type VehicleStatus = VehicleRow['status'];
-export type ProfileStatus = ProfileRow['status'];
-export type MaintenanceStatus = MaintenanceRow['status'];
-
-// Response types for better error handling
-export type DbResponse<T> = {
-  data: T | null;
-  error: Error | null;
-  status: 'success' | 'error';
-  message?: string;
-};
-
-export type DbListResponse<T> = DbResponse<T[]>;
-export type DbSingleResponse<T> = DbResponse<T>;
-
-// PostgreSQL response type guards
-export type PostgrestResult<T> = PostgrestSingleResponse<T> | PostgrestResponse<T>;
-
-// Type guards for checking if a value exists
-export function exists<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
+// Generic response handler with strong typing
+export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
+  if (response.error) {
+    console.error('Database error:', response.error);
+    return null;
+  }
+  return response.data || null;
 }
 
-// Type guard for valid database responses
-export function isSuccessResponse<T>(
-  response: PostgrestResult<T>
-): response is { data: T; error: null } {
-  return !response.error && exists(response.data);
+// Type guard for responses
+export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
+}
+
+// Type safe ID converter
+export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
+
+// Type guard for checking if response has data
+export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
+}
+
+// Type-safe column selector
+export function selectColumn<T extends keyof Tables, K extends keyof Tables[T]['Row']>(
+  table: T,
+  column: K
+): K {
+  return column;
+}
+
+// Type-safe status check
+export function isValidStatus<T extends { status: string }>(record: T, status: T['status']): boolean {
+  return record.status === status;
+}
+
+// Export commonly used table types
+export type LeaseRow = Tables['leases']['Row'];
+export type PaymentRow = Tables['unified_payments']['Row'];
+export type VehicleRow = Tables['vehicles']['Row'];
+export type ProfileRow = Tables['profiles']['Row'];
+export type TrafficFineRow = Tables['traffic_fines']['Row'];
+export type LegalCaseRow = Tables['legal_cases']['Row'];
+
+// Common status types
+export type VehicleStatus = VehicleRow['status']; 
+export type LeaseStatus = LeaseRow['status'];
+export type PaymentStatus = PaymentRow['status']; 
+export type ProfileStatus = ProfileRow['status'];
+
+export function asStatus<T extends { status: string }>(status: string): T['status'] {
+  return status as T['status'];
 }

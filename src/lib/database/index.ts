@@ -1,75 +1,30 @@
 
-// Export types
+// Database layer entry point - exports all functionality from the database layer
+
+// Export base types and interfaces
 export * from './types';
-export * from './utils';
+
+// Export validation functions
+export * from './validation';
+
+// Export repository functionality
 export * from './repository';
-export * from '@/types/database-common';
 
-// Import repositories first before exporting them
-import { leaseRepository } from './repositories/lease-repository';
-import { vehicleRepository } from './repositories/vehicle-repository';
-import { profileRepository } from './repositories/profile-repository';
-import { paymentRepository } from './repositories/payment-repository';
+// Export entity-specific repositories
+export * from './vehicle-repository';
+export * from './lease-repository';
 
-// Export repositories
-export { leaseRepository, vehicleRepository, profileRepository, paymentRepository };
+// Export utility functions
+export * from './utils';
 
-// Legacy type casting functions for backward compatibility
-import { 
-  asLeaseId, 
-  asVehicleId, 
-  asProfileId, 
-  asPaymentId, 
-  asTrafficFineId, 
-  asMaintenanceId,
-  asLeaseStatus,
-  asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus,
-  asEntityStatus
-} from '@/types/database-common';
-
-// Export with legacy names for backward compatibility
-export {
-  asLeaseId,
-  asVehicleId,
-  asProfileId,
-  asPaymentId,
-  asTrafficFineId,
-  asMaintenanceId,
-  asLeaseStatus,
-  asPaymentStatus,
-  asVehicleStatus,
-  asProfileStatus,
-  asMaintenanceStatus
-};
-
-// Fix common ID column errors by providing direct casting functions
-export const asLeaseIdColumn = asLeaseId;
-export const asVehicleIdColumn = asVehicleId;
-export const asProfileIdColumn = asProfileId;
-export const asPaymentIdColumn = asPaymentId;
-export const asTrafficFineIdColumn = asTrafficFineId;
-export const asMaintenanceIdColumn = asMaintenanceId;
-
-// Alias for legacy code
-export const asStatusColumn = asEntityStatus;
-
-// Special function to handle type errors in legacy code
-export function castLeaseUpdate(data: any): any {
-  return data;
-}
-
-// Handle type errors in legacy code
-export function castRowData<T>(data: T): T {
-  return data;
-}
-
-// Export collection of repository instances for easy access
-export const repositories = {
-  lease: leaseRepository,
-  vehicle: vehicleRepository,
-  profile: profileRepository,
-  payment: paymentRepository
-};
+/**
+ * This file provides a central export point for all database related 
+ * functionality. It helps maintain a clean import structure throughout
+ * the application code by allowing imports like:
+ * 
+ * ```typescript
+ * import { vehicleRepository, asVehicleStatus } from '@/lib/database';
+ * ```
+ * 
+ * Instead of having to import from multiple files.
+ */

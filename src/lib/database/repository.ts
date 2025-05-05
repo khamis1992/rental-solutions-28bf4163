@@ -1,166 +1,133 @@
 
 import { supabase } from '@/lib/supabase';
-import { Tables, TableRow, TableInsert, TableUpdate, DbResponse, DbListResponse, DbSingleResponse } from './types';
-import { mapDbResponse } from './utils';
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import { Tables, TableRow, TableInsert, TableUpdate, isSuccessResponse, UUID } from './types';
+import { isValidDatabaseId } from './validation';
 
-export class Repository<T extends keyof Tables> {
-  tableName: T; // Changed from private to allow access from derived classes
-
-  constructor(tableName: T) {
-    this.tableName = tableName;
-  }
-
-  /**
-   * Find a record by ID
-   */
-  async findById(id: string): Promise<DbSingleResponse<TableRow<T>>> {
-    const response = await supabase
-      .from(this.tableName)
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Find all records
-   */
-  async findAll(): Promise<DbListResponse<TableRow<T>>> {
-    const response = await supabase
-      .from(this.tableName)
-      .select('*');
-    
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Find multiple records by a filter
-   * @param filters - Type-safe filters to apply to the query
-   * @param select - Fields to select
-   */
-  async findMany(
-    filters?: Partial<Record<keyof TableRow<T>, unknown>>, 
-    select: string = '*'
-  ): Promise<DbListResponse<TableRow<T>>> {
-    let query = supabase
-      .from(this.tableName)
-      .select(select);
-
-    // Apply filters if provided
-    if (filters) {
-      for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      }
-    }
-
-    const response = await query;
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Find records by status
-   * @param status - Status to filter by
-   */
-  async findByStatus(status: string): Promise<DbListResponse<TableRow<T>>> {
-    const response = await supabase
-      .from(this.tableName)
-      .select('*')
-      .eq('status', status);
-    
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Get detailed view of entity with related data
-   * @param id - Entity ID
-   */
-  async findWithDetails(id: string): Promise<DbSingleResponse<TableRow<T> & { [key: string]: any }>> {
-    // This is a placeholder that derived repositories should override
-    return this.findById(id);
-  }
-
-  /**
-   * Create a new record
-   * @param data - Data to insert
-   */
-  async create(data: TableInsert<T>): Promise<DbSingleResponse<TableRow<T>>> {
-    const response = await supabase
-      .from(this.tableName)
-      .insert(data as any)
-      .select()
-      .single();
-    
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Update an existing record
-   * @param id - Record ID
-   * @param data - Data to update
-   */
-  async update(id: string, data: TableUpdate<T>): Promise<DbSingleResponse<TableRow<T>>> {
-    const response = await supabase
-      .from(this.tableName)
-      .update(data as any)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    return mapDbResponse(response);
-  }
-
-  /**
-   * Update entity status
-   * @param id - Entity ID
-   * @param status - New status
-   */
-  async updateStatus(id: string, status: string): Promise<DbSingleResponse<TableRow<T>>> {
-    return this.update(id, { status } as any);
-  }
-
-  /**
-   * Delete a record
-   */
-  async delete(id: string): Promise<DbSingleResponse<null>> {
-    const response = await supabase
-      .from(this.tableName)
-      .delete()
-      .eq('id', id);
-    
-    // Return our standardized response format
-    if (response.error) {
-      return {
-        data: null,
-        error: response.error,
-        status: 'error',
-        message: response.error.message
-      };
-    }
-    
-    return {
-      data: null,
-      error: null,
-      status: 'success'
-    };
-  }
-
-  /**
-   * Create a custom query
-   */
-  query(): PostgrestFilterBuilder<any, any, any> {
-    return supabase.from(this.tableName).select();
-  }
+/**
+ * Generic Repository interface for type-safe database operations
+ */
+export interface Repository<T extends keyof Tables> {
+  findById(id: UUID): Promise<TableRow<T> | null>;
+  findAll(): Promise<TableRow<T>[] | null>;
+  findBy(column: string, value: any): Promise<TableRow<T>[] | null>;
+  create(data: TableInsert<T>): Promise<TableRow<T> | null>;
+  update(id: UUID, data: TableUpdate<T>): Promise<TableRow<T> | null>;
+  delete(id: UUID): Promise<boolean>;
 }
 
-// Create repositories for each major entity
-export const leaseRepository = new Repository('leases');
-export const vehicleRepository = new Repository('vehicles');
-export const profileRepository = new Repository('profiles');
-export const paymentRepository = new Repository('unified_payments');
-export const trafficFineRepository = new Repository('traffic_fines');
-export const legalCaseRepository = new Repository('legal_cases');
-export const maintenanceRepository = new Repository('maintenance');
+/**
+ * Create a type-safe repository for a specific table
+ */
+export function createRepository<T extends keyof Tables>(tableName: T): Repository<T> {
+  return {
+    async findById(id: UUID): Promise<TableRow<T> | null> {
+      if (!isValidDatabaseId(id)) {
+        console.error(`Invalid ID format: ${id}`);
+        return null;
+      }
+      
+      const response = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (!isSuccessResponse(response)) {
+        console.error(`Failed to fetch ${tableName} with ID ${id}:`, response.error);
+        return null;
+      }
+      
+      return response.data as TableRow<T>;
+    },
+    
+    async findAll(): Promise<TableRow<T>[] | null> {
+      const response = await supabase
+        .from(tableName)
+        .select('*');
+      
+      if (!isSuccessResponse(response)) {
+        console.error(`Failed to fetch all ${tableName}:`, response.error);
+        return null;
+      }
+      
+      return response.data as TableRow<T>[];
+    },
+    
+    async findBy(column: string, value: any): Promise<TableRow<T>[] | null> {
+      const response = await supabase
+        .from(tableName)
+        .select('*')
+        .eq(column, value);
+      
+      if (!isSuccessResponse(response)) {
+        console.error(`Failed to fetch ${tableName} where ${column}=${value}:`, response.error);
+        return null;
+      }
+      
+      return response.data as TableRow<T>[];
+    },
+    
+    async create(data: TableInsert<T>): Promise<TableRow<T> | null> {
+      const response = await supabase
+        .from(tableName)
+        .insert(data)
+        .select()
+        .single();
+      
+      if (!isSuccessResponse(response)) {
+        console.error(`Failed to create ${tableName}:`, response.error);
+        return null;
+      }
+      
+      return response.data as TableRow<T>;
+    },
+    
+    async update(id: UUID, data: TableUpdate<T>): Promise<TableRow<T> | null> {
+      if (!isValidDatabaseId(id)) {
+        console.error(`Invalid ID format: ${id}`);
+        return null;
+      }
+      
+      const response = await supabase
+        .from(tableName)
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (!isSuccessResponse(response)) {
+        console.error(`Failed to update ${tableName} with ID ${id}:`, response.error);
+        return null;
+      }
+      
+      return response.data as TableRow<T>;
+    },
+    
+    async delete(id: UUID): Promise<boolean> {
+      if (!isValidDatabaseId(id)) {
+        console.error(`Invalid ID format: ${id}`);
+        return false;
+      }
+      
+      const response = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id);
+      
+      if (response.error) {
+        console.error(`Failed to delete ${tableName} with ID ${id}:`, response.error);
+        return false;
+      }
+      
+      return true;
+    }
+  };
+}
+
+// Export commonly used repositories
+export const vehicleRepository = createRepository('vehicles');
+export const leaseRepository = createRepository('leases');
+export const paymentRepository = createRepository('unified_payments');
+export const profileRepository = createRepository('profiles');
+export const legalCaseRepository = createRepository('legal_cases');
+export const trafficFineRepository = createRepository('traffic_fines');
