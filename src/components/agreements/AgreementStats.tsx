@@ -2,9 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
-import { asLeaseStatus, asPaymentStatus } from '@/lib/database/utils';
 import { TrendingDown, TrendingUp, Users, FileCheck, AlertCircle, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Import the utility functions from database utils
+import { utils } from '@/lib/database';
+const { asLeaseStatus, asPaymentStatus } = utils;
 
 interface StatData {
   value: number;

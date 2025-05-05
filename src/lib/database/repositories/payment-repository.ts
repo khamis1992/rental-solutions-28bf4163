@@ -1,7 +1,7 @@
 
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asPaymentId, asLeaseId, asPaymentStatus } from '../utils';
+import { asPaymentId, asLeaseId } from '../database-types';
 import { supabase } from '@/lib/supabase';
 
 type PaymentRow = TableRow<'unified_payments'>;
@@ -66,3 +66,4 @@ class PaymentRepository extends Repository<'unified_payments'> {
 }
 
 export const paymentRepository = new PaymentRepository();
+export const createPaymentRepository = () => new PaymentRepository();

@@ -4,6 +4,9 @@
  */
 import { Tables, TableRow } from './types';
 
+// Export everything from type-utils
+export * from './type-utils';
+
 /**
  * Converts a table ID to its proper type
  */
@@ -37,6 +40,13 @@ export function asVehicleStatus(status: string): TableRow<'vehicles'>['status'] 
 }
 
 /**
+ * Type-safe conversion for payment status values
+ */
+export function asPaymentStatus(status: string): TableRow<'unified_payments'>['status'] {
+  return status as TableRow<'unified_payments'>['status'];
+}
+
+/**
  * Type-safe conversion for lease ID values
  */
 export function asLeaseId(id: string): TableRow<'leases'>['id'] {
@@ -55,4 +65,11 @@ export function asVehicleId(id: string): TableRow<'vehicles'>['id'] {
  */
 export function asProfileId(id: string): TableRow<'profiles'>['id'] {
   return id as TableRow<'profiles'>['id'];
+}
+
+/**
+ * Type-safe conversion for payment ID values
+ */
+export function asPaymentId(id: string): TableRow<'unified_payments'>['id'] {
+  return id as TableRow<'unified_payments'>['id'];
 }

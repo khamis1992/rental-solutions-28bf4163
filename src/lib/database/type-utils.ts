@@ -45,3 +45,6 @@ export const asLeaseId = (value: string): LeaseId =>
 
 export const asCustomerId = (value: string): CustomerId => 
   asColumnValue('profiles', 'id', value);
+
+export const asPaymentId = (value: string): PaymentId =>
+  asColumnValue('unified_payments', 'id', value);

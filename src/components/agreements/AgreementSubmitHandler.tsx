@@ -40,10 +40,10 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
     const validationResult = validateData(agreementSchema, updatedAgreement);
     
     if (!validationResult.success) {
-      setValidationErrors(validationResult.errors);
+      setValidationErrors(validationResult.errors || {});
       
       // Show the first error in a toast
-      const firstError = Object.values(validationResult.errors)[0];
+      const firstError = validationResult.errors ? Object.values(validationResult.errors)[0] : "Validation error";
       toast.error(firstError || "Please check the form for errors");
       return;
     }

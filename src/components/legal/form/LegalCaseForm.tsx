@@ -54,9 +54,12 @@ const LegalCaseForm: React.FC<LegalCaseFormProps> = ({ onCancel }) => {
     try {
       setIsSubmitting(true);
       
+      // Create the legal case with required fields
       await createLegalCase({
         ...data,
         amount_owed: data.amount_owed || 0,
+        priority: data.priority || CasePriority.MEDIUM,
+        status: data.status || LegalCaseStatus.PENDING,
       });
       
       toast.success('Legal case created successfully');

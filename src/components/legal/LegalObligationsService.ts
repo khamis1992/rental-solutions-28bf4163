@@ -1,8 +1,8 @@
 
 import { supabase } from '@/lib/supabase';
 import { CustomerObligation } from './CustomerLegalObligations';
-import { isSuccessResponse, ProfileId } from '@/lib/database';
-import { typeGuards } from '@/lib/database/validation';
+import { typeGuards } from '@/lib/database';
+import { ProfileId } from '@/lib/database/database-types';
 
 /**
  * Service to fetch legal obligations for a customer with type safety
