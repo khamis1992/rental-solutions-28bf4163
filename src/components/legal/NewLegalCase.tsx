@@ -11,6 +11,7 @@ const NewLegalCase = () => {
   // Get agreementId from URL params if available
   const { agreementId } = useParams<{ agreementId?: string }>();
   
+  // Pass the agreementId to the LegalCaseCard component with a fallback to empty string
   return <LegalCaseCard agreementId={agreementId || ""} />;
 };
 

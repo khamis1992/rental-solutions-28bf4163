@@ -13,6 +13,21 @@ import {
 } from '@/types/car-installment';
 import { useToast } from './use-toast';
 import { PaymentStatus } from '@/lib/database/types';
+import { Database } from '@/types/database.types';
+
+type DbTables = Database['public']['Tables'];
+type ContractInsert = DbTables['car_installment_contracts']['Insert'];
+type PaymentInsert = DbTables['car_installment_payments']['Insert'];
+type PaymentUpdate = DbTables['car_installment_payments']['Update'];
+
+// Helper function to safely handle and cast Supabase responses
+function safelyHandleResponse<T>(response: any, defaultValue: T): T {
+  if (response?.error) {
+    console.error('Supabase query error:', response.error);
+    return defaultValue;
+  }
+  return (response?.data || defaultValue) as T;
+}
 
 export function useCarInstallments() {
   const { toast } = useToast();
@@ -50,7 +65,6 @@ export function useCarInstallments() {
           .select('amount')
           .lte('payment_date', thirtyDaysFromNow.toISOString())
           .gt('payment_date', new Date().toISOString())
-          // Cast to the expected type for the status
           .eq('status', 'pending' as PaymentStatus);
         
         if (paymentsError) throw paymentsError;
@@ -61,17 +75,14 @@ export function useCarInstallments() {
         
         // Check if contracts array exists before reducing
         const totalPortfolioValue = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
-          // Safely access properties with null checks
           return sum + (contract?.total_contract_value || 0);
         }, 0) : 0;
           
         const totalCollections = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
-          // Safely access properties with null checks
           return sum + (contract?.amount_paid || 0);
         }, 0) : 0;
           
         const upcomingPaymentsTotal = Array.isArray(upcomingPayments) ? upcomingPayments.reduce((sum, payment) => {
-          // Safely access properties with null checks
           return sum + (payment?.amount || 0);
         }, 0) : 0;
         
@@ -123,8 +134,10 @@ export function useCarInstallments() {
           throw error;
         }
         
-        // Cast the response data to our type
-        return data as unknown as CarInstallmentContract[];
+        return safelyHandleResponse<CarInstallmentContract[]>(
+          { data, error }, 
+          []
+        );
       } catch (error) {
         console.error('Error fetching car installment contracts:', error);
         throw error;
@@ -145,8 +158,7 @@ export function useCarInstallments() {
         throw error;
       }
       
-      // Cast the response data to our type
-      return data as unknown as CarInstallmentContract;
+      return data as CarInstallmentContract;
     } catch (error) {
       console.error('Error fetching contract:', error);
       throw error;
@@ -165,10 +177,10 @@ export function useCarInstallments() {
         .eq('contract_id', contractId)
         .order('payment_date', { ascending: true });
       
-      // Apply filters with proper type casting
+      // Apply filters
       if (filters.status && filters.status !== 'all') {
-        // Use type assertion to handle the PaymentStatus type
-        query = query.eq('status', filters.status as PaymentStatus);
+        // Cast the status to string for the comparison
+        query = query.eq('status', filters.status.toString());
       }
       
       if (filters.dateFrom) {
@@ -185,8 +197,10 @@ export function useCarInstallments() {
         throw error;
       }
       
-      // Cast the response data to our type
-      return (data || []) as unknown as CarInstallmentPayment[];
+      return safelyHandleResponse<CarInstallmentPayment[]>(
+        { data, error }, 
+        []
+      );
     } catch (error) {
       console.error('Error fetching contract payments:', error);
       throw error;
@@ -201,7 +215,7 @@ export function useCarInstallments() {
     async (contractData) => {
       try {
         // Include all required fields
-        const contractToInsert = {
+        const contractToInsert: ContractInsert = {
           car_type: contractData.car_type,
           model_year: contractData.model_year,
           number_of_cars: contractData.number_of_cars,
@@ -227,7 +241,7 @@ export function useCarInstallments() {
         }
         
         // Type casting to ensure the return type is correct
-        return data as unknown as CarInstallmentContract;
+        return data as CarInstallmentContract;
       } catch (error) {
         console.error('Error creating car installment contract:', error);
         throw error;
@@ -252,13 +266,13 @@ export function useCarInstallments() {
   >(
     async (paymentData) => {
       try {
-        const paymentToInsert = {
+        const paymentToInsert: PaymentInsert = {
           contract_id: paymentData.contract_id,
           cheque_number: paymentData.cheque_number,
           drawee_bank: paymentData.drawee_bank,
           amount: paymentData.amount,
           payment_date: paymentData.payment_date,
-          status: paymentData.status || 'pending',
+          status: paymentData.status as string || 'pending',
           paid_amount: 0,
           remaining_amount: paymentData.amount
         };
@@ -273,7 +287,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data as unknown as CarInstallmentPayment;
+        return data as CarInstallmentPayment;
       } catch (error) {
         console.error('Error adding car installment payment:', error);
         throw error;
@@ -296,9 +310,14 @@ export function useCarInstallments() {
   >(
     async ({ id, data }) => {
       try {
+        // Cast to the database update type
+        const updateData: PaymentUpdate = {
+          ...(data as PaymentUpdate)
+        };
+        
         const { data: updatedPayment, error } = await supabase
           .from('car_installment_payments')
-          .update(data)
+          .update(updateData)
           .eq('id', id)
           .select()
           .single();
@@ -307,7 +326,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return updatedPayment as unknown as CarInstallmentPayment;
+        return updatedPayment as CarInstallmentPayment;
       } catch (error) {
         console.error('Error updating car installment payment:', error);
         throw error;
@@ -357,13 +376,15 @@ export function useCarInstallments() {
         }
         
         // Update the payment
+        const updateData: PaymentUpdate = {
+          paid_amount: newPaidAmount,
+          remaining_amount: Math.max(0, newRemainingAmount),
+          status: newStatus.toString()
+        };
+        
         const { data: updatedPayment, error } = await supabase
           .from('car_installment_payments')
-          .update({
-            paid_amount: newPaidAmount,
-            remaining_amount: Math.max(0, newRemainingAmount),
-            status: newStatus
-          })
+          .update(updateData)
           .eq('id', id)
           .select()
           .single();
@@ -405,7 +426,7 @@ export function useCarInstallments() {
           }
         }
         
-        return updatedPayment as unknown as CarInstallmentPayment;
+        return updatedPayment as CarInstallmentPayment;
       } catch (error) {
         console.error('Error recording payment:', error);
         throw error;
