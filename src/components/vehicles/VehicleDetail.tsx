@@ -20,7 +20,7 @@ import { VehicleImageGallery } from '@/components/vehicles/VehicleImageGallery';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Calendar, Car, FileText, Wrench, AlertTriangle, Edit, Trash, Plus, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar, Car, FileText, Tool, AlertTriangle, Edit, Trash, Plus, ArrowLeft } from 'lucide-react';
 
 const VehicleDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -249,7 +249,7 @@ const VehicleDetail = () => {
               )}
               {!isInMaintenance && (
                 <Button variant="outline" onClick={() => handleStatusChange('maintenance')}>
-                  <Wrench className="mr-2 h-4 w-4" />
+                  <Tool className="mr-2 h-4 w-4" />
                   Mark for Maintenance
                 </Button>
               )}
@@ -323,7 +323,7 @@ const VehicleDetail = () => {
                         className="w-full"
                         onClick={() => navigate(`/maintenance/add?vehicle_id=${vehicle.id}`)}
                       >
-                        <Wrench className="mr-2 h-4 w-4" />
+                        <Tool className="mr-2 h-4 w-4" />
                         Add Maintenance Record
                       </Button>
                     </div>
@@ -343,7 +343,7 @@ const VehicleDetail = () => {
                 className="w-full justify-start"
                 onClick={() => navigate(`/maintenance/add?vehicle_id=${vehicle.id}`)}
               >
-                <Wrench className="mr-2 h-4 w-4" />
+                <Tool className="mr-2 h-4 w-4" />
                 Add Maintenance Record
               </Button>
               <Button 
@@ -375,7 +375,7 @@ const VehicleDetail = () => {
             Agreements
           </TabsTrigger>
           <TabsTrigger value="maintenance" className="flex items-center">
-            <Wrench className="mr-2 h-4 w-4" />
+            <Tool className="mr-2 h-4 w-4" />
             Maintenance History
           </TabsTrigger>
           <TabsTrigger value="schedule" className="flex items-center">
