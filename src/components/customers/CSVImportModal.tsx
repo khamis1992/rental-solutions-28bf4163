@@ -6,11 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from "@/components/ui/use-toast";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,8 +40,8 @@ interface CSVImportModalProps {
 
 export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
   const [savedFilename, setSavedFilename] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Get the current user on component mount
   React.useEffect(() => {
@@ -53,9 +51,6 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
     };
     fetchUser();
   }, []);
-
-  // Reference customer_import_logs table with type assertion for TypeScript
-  const importLogsTable = supabase.from('customer_import_logs' as any);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -111,14 +106,16 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
     const savedFilename = uploadData.path;
     setSavedFilename(savedFilename);
 
-    // Adjust the insert call to match what the API expects
-    const { data, error } = await importLogsTable.insert({
-      file_name: savedFilename,
-      original_file_name: file.name,
-      status: 'pending' as any,
-      created_by: user.id || null,
-      mapping_used: values.fieldMapping
-    } as any);
+    // Using as any to bypass the TypeScript error until we have proper types
+    const { data, error } = await supabase
+      .from('customer_import_logs' as any)
+      .insert({
+        file_name: savedFilename,
+        original_file_name: file.name,
+        status: 'pending' as any,
+        created_by: user?.id || null,
+        mapping_used: values.fieldMapping
+      } as any);
 
     if (error) {
       toast({
@@ -128,8 +125,9 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       return;
     }
 
-    // Ensure we safely access the id property
-    const importLogId = data && Array.isArray(data) && data.length > 0 && 'id' in data[0] ? data[0].id : null;
+    // Safe access with type assertion
+    const importLogId = data && Array.isArray(data) && data.length > 0 ? 
+      (data[0] as any).id : null;
 
     if (!importLogId) {
       toast({

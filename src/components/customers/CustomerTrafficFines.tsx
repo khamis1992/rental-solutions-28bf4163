@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,30 +41,38 @@ export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ cust
     const fetchCustomerAndFines = async () => {
       setIsLoading(true);
       try {
-        // Use type assertion to handle the customer ID type
-        const { data: customer } = await supabase.from('profiles').select('*').eq('id', customerId as any).single();
+        // Fix: Use type assertion to handle type issues
+        const { data: customer } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', customerId as any)
+          .single();
 
-        // Use safe type checking before accessing properties
+        // Fix: Safely access properties with null checks
         if (customer) {
+          const safeCustomer = customer as any;
           setCustomerDetails({
-            id: customer.id || '',
-            full_name: customer.full_name || '',
-            email: customer.email || '', 
-            phone_number: customer.phone_number || '',
-            driver_license: customer.driver_license,
+            id: safeCustomer.id || '',
+            full_name: safeCustomer.full_name || '',
+            email: safeCustomer.email || '', 
+            phone_number: safeCustomer.phone_number || '',
+            driver_license: safeCustomer.driver_license,
           });
 
-          // Get leases for this customer
-          const { data: leases } = await supabase.from('leases').select('*').eq('customer_id', customerId as any);
+          // Get leases for this customer with type assertion
+          const { data: leases } = await supabase
+            .from('leases')
+            .select('*')
+            .eq('customer_id', customerId as any);
 
           if (leases && leases.length > 0) {
-            const leaseIds = leases.map(lease => lease.id);
+            const leaseIds = leases.map((lease: any) => lease.id);
             const { data: fines } = await supabase
               .from('traffic_fines')
               .select('*')
               .in('lease_id', leaseIds);
 
-            setTrafficFines(fines || []);
+            setTrafficFines(fines as any[] || []);
           } else {
             setTrafficFines([]);
           }

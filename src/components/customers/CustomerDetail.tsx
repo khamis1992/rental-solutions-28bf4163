@@ -1,538 +1,544 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, 
-  FileText, Phone, Mail, User, ChevronRight
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { MoreVertical, Edit, Copy, User, Mail, Phone, MapPin, Calendar, Book, CheckCheck, Check, AlertTriangle } from 'lucide-react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { useCustomers } from '@/hooks/use-customers';
-import { Customer } from '@/lib/validation-schemas/customer';
-import { toast } from 'sonner';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from '@/lib/supabase';
+import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Separator } from "@/components/ui/separator"
+import { useAgreements } from '@/hooks/use-agreements';
+import { useUser } from '@/hooks/use-auth';
 
-export function CustomerDetail() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [localNotes, setLocalNotes] = useState('');
-
-  const fetchCustomer = useCallback(async () => {
-    if (!id || hasLoaded) return;
-    
-    setLoading(true);
-    setFetchError(null);
-    
-    try {
-      const data = await getCustomer(id);
-      if (data) {
-        setCustomer(data);
-        setHasLoaded(true);
-      } else {
-        setFetchError("Customer not found");
-      }
-    } catch (error) {
-      console.error("Error fetching customer:", error);
-      setFetchError("Failed to load customer details");
-      toast.error("Error loading customer details");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, getCustomer, hasLoaded]);
-
-  useEffect(() => {
-    fetchCustomer();
-  }, [fetchCustomer]);
-
-  useEffect(() => {
-    if (customer?.notes) {
-      setLocalNotes(customer.notes);
-    }
-  }, [customer?.notes]);
-
-  const handleDelete = async () => {
-    if (!customer?.id || isDeleting) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteCustomer.mutateAsync(customer.id, {
-        onSuccess: () => {
-          toast.success("Customer deleted successfully");
-          navigate('/customers');
-        },
-        onError: (error) => {
-          console.error("Delete error:", error);
-          toast.error("Failed to delete customer");
-          setIsDeleting(false);
-        }
-      });
-    } catch (error) {
-      console.error("Unexpected error during delete:", error);
-      toast.error("An unexpected error occurred");
-      setIsDeleting(false);
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string): "default" | "outline" | "secondary" | "destructive" => {
-    switch (status) {
-      case "active": return "default";
-      case "inactive": return "secondary";
-      case "blacklisted": return "destructive";
-      case "pending_review": 
-      case "pending_payment": 
-        return "outline";
-      default: return "outline";
-    }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const handleSaveNotes = async () => {
-    if (!customer?.id) return;
-    
-    try {
-      await getCustomer.mutateAsync({
-        id: customer.id,
-        notes: localNotes
-      });
-      setIsEditingNotes(false);
-      toast.success('Notes updated successfully');
-    } catch (error) {
-      console.error('Error updating notes:', error);
-      toast.error('Failed to update notes');
-    }
-  };
-
-  if (loading && !hasLoaded) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-12 w-[250px] rounded-md" />
-          <Skeleton className="h-10 w-[150px] rounded-md" />
-        </div>
-        <Skeleton className="h-[200px] w-full rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-[300px] rounded-lg" />
-          <Skeleton className="h-[300px] rounded-lg" />
-        </div>
-      </div>
-    );
-  }
-
-  if (fetchError || !customer) {
-    return (
-      <Card className="mx-auto max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle>Customer Not Found</CardTitle>
-          <CardDescription>
-            {fetchError || "The customer you're looking for doesn't exist or has been removed."}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-center">
-          <Button asChild>
-            <Link to="/customers">Back to Customers</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  const activeAgreements = agreements?.filter(a => a.status === 'ACTIVE') || [];
-  const totalAgreements = agreements?.length || 0;
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-start p-6 pb-0 md:pb-6 gap-6">
-          <Avatar className="h-24 w-24 border-4 border-background">
-            <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-              {getInitials(customer.full_name)}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                  {customer.full_name}
-                  <Badge 
-                    variant={getStatusBadgeVariant(customer.status)} 
-                    className="capitalize ml-2"
-                  >
-                    {customer.status.replace('_', ' ')}
-                  </Badge>
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Customer since {formatDate(customer.created_at || '')}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button asChild variant="outline">
-                  <Link to={`/customers/edit/${customer.id}`}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                  </Link>
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={isDeleting}>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the customer record for {customer.full_name}.
-                        This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-4 mt-2">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
-                <a href={`mailto:${customer.email}`}>
-                  <Mail className="h-4 w-4" />{customer.email}
-                </a>
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
-                <a href={`tel:+974${customer.phone}`}>
-                  <Phone className="h-4 w-4" />+974 {customer.phone}
-                </a>
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
-                <span>
-                  <User className="h-4 w-4" />{customer.nationality || 'Not specified'}
-                </span>
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px border-t mt-6 bg-muted">
-          <div className="bg-background p-6 flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Total Agreements</span>
-            <span className="text-3xl font-bold">{totalAgreements}</span>
-          </div>
-          <div className="bg-background p-6 flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Active Agreements</span>
-            <span className="text-3xl font-bold">{activeAgreements.length}</span>
-          </div>
-          <div className="bg-background p-6 flex flex-col">
-            <span className="text-sm font-medium text-muted-foreground">Last Updated</span>
-            <span className="text-medium">
-              {customer.updated_at 
-                ? formatDate(customer.updated_at)
-                : 'Never updated'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="agreements">Agreements</TabsTrigger>
-          <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <UserCog className="mr-2 h-5 w-5" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Email Address</h4>
-                  <p className="text-foreground">{customer.email}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Phone Number</h4>
-                  <p className="text-foreground">+974 {customer.phone}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Address</h4>
-                  <p className="text-foreground whitespace-pre-line">{customer.address || 'No address provided'}</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CalendarClock className="mr-2 h-5 w-5" />
-                  Customer Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Status</h4>
-                  <Badge
-                    variant={getStatusBadgeVariant(customer.status)}
-                    className="capitalize"
-                  >
-                    {customer.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Driver License</h4>
-                  <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                    {customer.driver_license}
-                  </code>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Last Updated</h4>
-                  <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {customer.updated_at 
-                      ? formatDateTime(customer.updated_at) 
-                      : 'Never updated'}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Additional Notes</CardTitle>
-                {!isEditingNotes ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setIsEditingNotes(true)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Notes
-                  </Button>
-                ) : (
-                  <div className="space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setIsEditingNotes(false);
-                        setLocalNotes(customer?.notes || '');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={handleSaveNotes}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none">
-                {isEditingNotes ? (
-                  <Textarea
-                    value={localNotes}
-                    onChange={(e) => setLocalNotes(e.target.value)}
-                    placeholder="Add notes about this customer..."
-                    className="min-h-[100px]"
-                  />
-                ) : (
-                  customer?.notes ? (
-                    <p className="whitespace-pre-line">{customer.notes}</p>
-                  ) : (
-                    <p className="text-muted-foreground italic">No additional notes for this customer.</p>
-                  )
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="agreements" className="space-y-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <FileText className="mr-2 h-5 w-5" />
-                  Agreement History
-                </CardTitle>
-                <CardDescription>
-                  List of rental agreements associated with this customer
-                </CardDescription>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/agreements/new?customerId=${customer.id}`}>
-                  Create Agreement
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Agreement Number</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Total Amount</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoadingAgreements ? (
-                      Array.from({ length: 3 }).map((_, i) => (
-                        <TableRow key={`skeleton-${i}`}>
-                          {Array.from({ length: 7 }).map((_, j) => (
-                            <TableCell key={`skeleton-cell-${i}-${j}`}>
-                              <Skeleton className="h-6 w-full" />
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    ) : agreements && agreements.length > 0 ? (
-                      agreements.map((agreement) => (
-                        <TableRow key={agreement.id}>
-                          <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
-                          <TableCell>
-                            {agreement.vehicles ? (
-                              <span>
-                                {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
-                              </span>
-                            ) : (
-                              'Unknown vehicle'
-                            )}
-                          </TableCell>
-                          <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : 'N/A'}</TableCell>
-                          <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : 'N/A'}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                agreement.status === 'ACTIVE' ? 'default' :
-                                agreement.status === 'PENDING' ? 'outline' :
-                                agreement.status === 'CANCELLED' ? 'destructive' :
-                                agreement.status === 'CLOSED' ? 'outline' :
-                                agreement.status === 'EXPIRED' ? 'secondary' :
-                                'default'
-                              }
-                              className="capitalize"
-                            >
-                              {agreement.status?.toLowerCase().replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</TableCell>
-                          <TableCell>
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={`/agreements/${agreement.id}`}>
-                                View
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                          <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                            <p className="text-muted-foreground">No agreements found for this customer.</p>
-                            <Button asChild variant="outline" size="sm">
-                              <Link to={`/agreements/new?customerId=${customer.id}`}>
-                                Create Agreement
-                              </Link>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="traffic-fines" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="mr-2 h-5 w-5" />
-                Traffic Fines
-              </CardTitle>
-              <CardDescription>
-                Traffic violations associated with this customer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {customer.id && <CustomerTrafficFines customerId={customer.id} />}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+interface CustomerDetails {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number: string;
+  address: string;
+  driver_license: string;
+  nationality: string;
+  role: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  notes: string | null;
 }
 
-export default CustomerDetail;
+const customerSchema = z.object({
+  full_name: z.string().min(2, {
+    message: "Full name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Invalid email address.",
+  }),
+  phone_number: z.string().min(10, {
+    message: "Phone number must be at least 10 characters.",
+  }),
+  address: z.string().min(2, {
+    message: "Address must be at least 2 characters.",
+  }),
+  driver_license: z.string().min(2, {
+    message: "Driver license must be at least 2 characters.",
+  }),
+  nationality: z.string().min(2, {
+    message: "Nationality must be at least 2 characters.",
+  }),
+  role: z.string().min(2, {
+    message: "Role must be at least 2 characters.",
+  }),
+  status: z.string().min(2, {
+    message: "Status must be at least 2 characters.",
+  }),
+  notes: z.string().optional(),
+})
+
+export function CustomerDetail() {
+  const [customer, setCustomer] = useState<CustomerDetails | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [notes, setNotes] = useState<string>("");
+  const { toast } = useToast()
+  const { customerId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { setCustomer: setSelectedCustomer } = useAgreements();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (customerId) {
+      fetchCustomerDetails(customerId);
+    }
+  }, [customerId]);
+
+  const fetchCustomerDetails = async (customerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', customerId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching customer details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch customer details",
+          variant: "destructive",
+        });
+      }
+
+      if (data) {
+        setCustomer(data);
+        setNotes(data.notes || "");
+        setSelectedCustomer({
+          id: data.id,
+          full_name: data.full_name || '',
+          email: data.email || '',
+          phone_number: data.phone_number || '',
+        });
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateCustomer = useMutation(
+    async ({ id, data }: { id: string; data: Partial<CustomerDetails> }) => {
+      const { data: updatedCustomer, error } = await supabase
+        .from('profiles')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+  
+      if (error) {
+        console.error('Error updating customer:', error);
+        throw error;
+      }
+  
+      return updatedCustomer;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+      },
+    }
+  );
+
+  const handleSaveNotes = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Fix: Ensure the updateCustomer function can handle the mutation
+      // Instead of using updateCustomer.update which doesn't exist,
+      // directly call updateCustomer with the customer id and data
+      const updatedCustomer = await updateCustomer({
+        id: customer.id,
+        data: { notes: notes }
+      });
+      
+      if (updatedCustomer) {
+        toast({
+          title: "Notes updated",
+          description: "Customer notes have been updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating notes:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update customer notes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!customer?.id) {
+      toast({
+        title: "Error",
+        description: "Customer ID is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', customer.id);
+
+      if (error) {
+        console.error("Error deleting customer:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete customer.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Customer deleted successfully.",
+        });
+        navigate('/customers');
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const form = useForm<z.infer<typeof customerSchema>>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      full_name: customer?.full_name || "",
+      email: customer?.email || "",
+      phone_number: customer?.phone_number || "",
+      address: customer?.address || "",
+      driver_license: customer?.driver_license || "",
+      nationality: customer?.nationality || "",
+      role: customer?.role || "",
+      status: customer?.status || "",
+      notes: customer?.notes || "",
+    },
+    mode: "onChange",
+  });
+
+  const [open, setOpen] = React.useState(false)
+
+  const onSubmit = async (values: z.infer<typeof customerSchema>) => {
+    try {
+      setIsSaving(true);
+      
+      // Ensure customer and customer.id are valid before proceeding
+      if (!customer || !customer.id) {
+        toast({
+          title: "Error",
+          description: "Customer data is not loaded properly.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
+      // Call the updateCustomer mutation with the customer id and form values
+      const updatedCustomer = await updateCustomer({
+        id: customer.id,
+        data: values
+      });
+  
+      if (updatedCustomer) {
+        toast({
+          title: "Customer updated",
+          description: "Customer details have been updated successfully",
+        });
+        setOpen(false);
+        // Refresh customer details after successful update
+        fetchCustomerDetails(customer.id);
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Failed to update customer details",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update customer details",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!customer) {
+    return <div>Loading customer details...</div>;
+  }
+
+  return (
+    <Card className="w-[75%]">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Avatar className="mr-2 h-8 w-8">
+            <AvatarImage src="https://github.com/shadcn.png" alt="Avatar" />
+            <AvatarFallback>{customer.full_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          {customer.full_name}
+          <Badge className="ml-2">{customer.role}</Badge>
+        </CardTitle>
+        <CardDescription>
+          <div className="flex items-center text-muted-foreground">
+            <Calendar className="mr-2 h-4 w-4" />
+            Joined {format(new Date(customer.created_at), 'MMMM dd, yyyy')}
+          </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+          <div className="grid gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Full Name:</span> {customer.full_name}
+                </div>
+                <div className="flex items-center">
+                  <Mail className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Email:</span> {customer.email}
+                </div>
+                <div className="flex items-center">
+                  <Phone className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Phone:</span> {customer.phone_number}
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Address:</span> {customer.address}
+                </div>
+                <div className="flex items-center">
+                  <Book className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Driver License:</span> {customer.driver_license}
+                </div>
+                <div className="flex items-center">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Nationality:</span> {customer.nationality}
+                </div>
+                <div className="flex items-center">
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  <span className="font-semibold">Status:</span> {customer.status}
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Notes</h3>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add customer notes..."
+                className="w-full"
+              />
+              <Button
+                onClick={handleSaveNotes}
+                disabled={isSaving}
+                className="mt-2"
+              >
+                {isSaving ? "Saving..." : "Save Notes"}
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Traffic Fines</h3>
+              <CustomerTrafficFines customerId={customer.id} />
+            </div>
+          </div>
+        </ScrollArea>
+      </CardContent>
+      <CardContent>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="ml-auto flex h-8 w-8 p-0 data-[state=open]:bg-muted">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(customer.id)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy customer ID
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {user?.app_metadata?.role === 'admin' && (
+              <DropdownMenuItem onClick={handleDeleteCustomer} className="text-red-500">
+                Delete Customer
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Edit Customer</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit customer</DialogTitle>
+              <DialogDescription>
+                Make changes to customer here. Click save when you're done.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="full_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Full Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Phone Number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Address" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="driver_license"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Driver License</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Driver License" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nationality"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nationality</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nationality" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Role" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Status" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
