@@ -1,30 +1,33 @@
 
-// Database layer entry point - exports all functionality from the database layer
+/**
+ * Database module entrypoint
+ * Re-exports all repositories and utility functions
+ */
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import * as utils from './utils';
+import * as validation from './validation';
+import { createLeaseRepository } from './repositories/lease-repository';
+import { createPaymentRepository } from './repositories/payment-repository';
+import { createVehicleRepository } from './repositories/vehicle-repository';
+import { createProfileRepository } from './repositories/profile-repository';
 
-// Export base types and interfaces
+// Initialize client
+const client = getSupabaseClient();
+
+// Create repositories
+export const leaseRepository = createLeaseRepository(client);
+export const paymentRepository = createPaymentRepository(client);
+export const vehicleRepository = createVehicleRepository(client);
+export const profileRepository = createProfileRepository(client);
+
+// Re-export utils and validation
+export { utils, validation };
+
+// Export types
 export * from './types';
 
-// Export validation functions
-export * from './validation';
-
-// Export repository functionality
-export * from './repository';
-
-// Export entity-specific repositories
-export * from './vehicle-repository';
-export * from './lease-repository';
-
-// Export utility functions
-export * from './utils';
-
-/**
- * This file provides a central export point for all database related 
- * functionality. It helps maintain a clean import structure throughout
- * the application code by allowing imports like:
- * 
- * ```typescript
- * import { vehicleRepository, asVehicleStatus } from '@/lib/database';
- * ```
- * 
- * Instead of having to import from multiple files.
- */
+// Export repositories for backwards compatibility
+export { leaseRepository as leaseRepo };
+export { paymentRepository as paymentRepo };
+export { vehicleRepository as vehicleRepo };
+export { profileRepository as profileRepo };

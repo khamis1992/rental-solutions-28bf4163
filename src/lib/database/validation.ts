@@ -113,3 +113,12 @@ export function isBoolean(value: unknown): value is boolean {
 export function isDate(value: unknown): value is Date {
   return value instanceof Date && !isNaN(value.getTime());
 }
+
+// Export a typeGuards object for convenience
+export const typeGuards = {
+  isString,
+  isNumber,
+  isBoolean,
+  isDate,
+  isValidDatabaseId
+};

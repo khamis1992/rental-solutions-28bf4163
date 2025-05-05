@@ -75,7 +75,11 @@ export function hasData<T>(
   return !response?.error && response?.data !== null;
 }
 
-// Add missing asVehicleId function
+/**
+ * Validates and converts vehicle ID to database-compatible format
+ * @param id - Vehicle ID string
+ * @returns Validated vehicle ID
+ */
 export function asVehicleId(id: string): string {
   return asTableId('vehicles', id);
 }
