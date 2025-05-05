@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 
 interface ProtectedRouteProps {
@@ -10,8 +10,8 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { user, isLoading: authLoading, session } = useAuth();
-  const { profile, isLoading: profileLoading } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const location = useLocation();
 
   if (authLoading || profileLoading) {
@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   }
 
   // Not authenticated
-  if (!user || !session) {
+  if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
