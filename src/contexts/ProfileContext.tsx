@@ -1,105 +1,112 @@
 
-// Fix for ProfileContext type conversion issues
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
-// Define proper Profile type
-interface Profile {
+// Export the Profile interface
+export interface Profile {
   id: string;
   full_name?: string;
   email?: string;
+  avatar_url?: string;
   phone_number?: string;
-  address?: string;
-  driver_license?: string;
-  notes?: string;
-  status?: string;
   role?: string;
-  // Add other profile properties as needed
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface ProfileContextType {
   profile: Profile | null;
-  loading: boolean;
-  updateProfile: (data: Partial<Profile>) => Promise<void>;
+  isLoading: boolean;
   error: Error | null;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType>({
   profile: null,
-  loading: true,
-  updateProfile: async () => {},
-  error: null
+  isLoading: true,
+  error: null,
+  updateProfile: async () => {}
 });
 
-export const ProfileProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const useProfile = () => useContext(ProfileContext);
+
+interface ProfileProviderProps {
+  children: ReactNode;
+}
+
+export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
+      setIsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
         if (!user) {
-          setLoading(false);
+          setProfile(null);
           return;
         }
 
-        // Use maybeSingle instead of single to avoid errors when no profile is found
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .maybeSingle();
+          .single();
 
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          setProfile(data as Profile);
-        } else {
-          console.log('No profile found for user:', user.id);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        setError(error instanceof Error ? error : new Error('Failed to fetch profile'));
+        if (error) throw error;
+        
+        // Use type assertion to ensure data conforms to Profile interface
+        setProfile(data as Profile);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
+        toast.error('Failed to load user profile');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchProfile();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        fetchProfile();
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const updateProfile = async (data: Partial<Profile>) => {
+  const updateProfile = async (updates: Partial<Profile>) => {
     try {
-      if (!profile?.id) {
-        throw new Error('No profile ID available');
-      }
+      if (!profile?.id) throw new Error('No user profile found');
 
       const { error } = await supabase
         .from('profiles')
-        .update(data as any)
+        .update(updates as any)
         .eq('id', profile.id);
 
       if (error) throw error;
-      
-      // Update local state
-      setProfile(prevProfile => prevProfile ? { ...prevProfile, ...data } : null);
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
+
+      setProfile({ ...profile, ...updates });
+      toast.success('Profile updated successfully');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
+      throw err;
     }
   };
 
   return (
-    <ProfileContext.Provider value={{ profile, loading, updateProfile, error }}>
+    <ProfileContext.Provider value={{ profile, isLoading, error, updateProfile }}>
       {children}
     </ProfileContext.Provider>
   );
 };
-
-export const useProfile = () => useContext(ProfileContext);

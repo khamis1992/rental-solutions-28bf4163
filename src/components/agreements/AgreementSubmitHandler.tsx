@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { agreementService } from '@/services/AgreementService';
 
-// Type declaration for validation result
+// Updated type declaration for validation result
 type ValidationResult = 
   | { success: true; data: Agreement }
   | { success: false; errors: Record<string, string> };
@@ -81,9 +81,32 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
   );
 };
 
-// Validation function
+// Updated validation function that returns the correct type
 function validateAgreementData(data: any): ValidationResult {
   // Implement validation logic here
-  // For now, we'll return a success result
+  const errors: Record<string, string> = {};
+  
+  // Example validations
+  if (!data.customer_id) {
+    errors.customer_id = 'Customer is required';
+  }
+  
+  if (!data.vehicle_id) {
+    errors.vehicle_id = 'Vehicle is required';
+  }
+  
+  if (!data.start_date) {
+    errors.start_date = 'Start date is required';
+  }
+  
+  if (!data.end_date) {
+    errors.end_date = 'End date is required';
+  }
+  
+  // Return validation result
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors };
+  }
+  
   return { success: true, data };
 }
