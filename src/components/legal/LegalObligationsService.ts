@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { ObligationType, UrgencyLevel, CustomerObligation } from './CustomerLegalObligations';
 
@@ -85,7 +84,7 @@ export class LegalObligationsService {
         if (payment.lease_id && payment.id) {
           obligations.push({
             id: payment.id,
-            customerId: customer.id,
+            customerId: customer.id || '',
             customerName: customer.full_name || 'Unknown Customer',
             obligationType: 'payment',
             amount: payment.amount || 0,
@@ -269,5 +268,19 @@ export class LegalObligationsService {
     if (daysOverdue > 30) return 'high';
     if (daysOverdue > 15) return 'medium';
     return 'low';
+  }
+}
+
+/**
+ * Fetches legal obligations for customers
+ * @returns The result of the operation with either obligations or an error
+ */
+export async function fetchLegalObligations() {
+  try {
+    const obligations = await LegalObligationsService.getAllObligations();
+    return { obligations, error: null };
+  } catch (error) {
+    console.error("Error fetching legal obligations:", error);
+    return { obligations: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

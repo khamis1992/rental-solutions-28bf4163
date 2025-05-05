@@ -20,6 +20,16 @@ export interface CustomerObligation {
   lateFine?: number;
 }
 
-// Export the CustomerLegalObligations component as default
-import { CustomerLegalObligations } from './CustomerLegalObligations.tsx';
+// Export the CustomerLegalObligations component
+import React from 'react';
+import LegalObligationsTab from './LegalObligationsTab';
+
+interface CustomerLegalObligationsProps {
+  customerId: string;
+}
+
+export function CustomerLegalObligations({ customerId }: CustomerLegalObligationsProps) {
+  return <LegalObligationsTab customerId={customerId} />;
+}
+
 export default CustomerLegalObligations;

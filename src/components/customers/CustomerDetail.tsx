@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -90,7 +91,7 @@ export const CustomerDetail = () => {
 
   // Handler for form submission
   const handleUpdateCustomer = async (data: any) => {
-    // Use the mutate method correctly
+    // Use the mutate method instead of mutateAsync
     updateMutation.mutate({ id: customerId, data });
   };
 
