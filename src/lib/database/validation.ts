@@ -78,6 +78,15 @@ export function asId(id: string): string {
 }
 
 /**
+ * Validates if a string is a valid database ID
+ */
+export function isValidDatabaseId(id: string): boolean {
+  // Check if ID is a valid UUID format
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return typeof id === 'string' && uuidPattern.test(id);
+}
+
+/**
  * Type guard to check if a value is a string
  */
 export function isString(value: unknown): value is string {

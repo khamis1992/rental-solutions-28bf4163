@@ -38,6 +38,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
     
     // Validate the data before submitting
     const validationResult = validateData(agreementSchema, updatedAgreement);
+    
     if (!validationResult.success) {
       setValidationErrors(validationResult.errors);
       
@@ -68,7 +69,12 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
         setUpdateProgress("Updating agreement...");
       }
       
-      const { terms_accepted, additional_drivers, ...agreementData } = updatedAgreement;
+      // Handle optional fields that shouldn't be sent to the database
+      const { 
+        terms_accepted, 
+        additional_drivers, 
+        ...agreementData 
+      } = updatedAgreement as any; // Use type assertion to handle optional fields
       
       const updateData = {
         ...agreementData,

@@ -1,26 +1,25 @@
 
-// If the file doesn't exist yet, let's create it with a proper Agreement interface
-import { LeaseStatus } from '@/lib/database/utils';
+import { LeaseStatus } from '@/types/lease-types';
 
 export interface Agreement {
   id: string;
   status: LeaseStatus;
   customer_id: string;
   vehicle_id: string;
-  start_date?: string;
-  end_date?: string;
+  start_date?: string | Date;
+  end_date?: string | Date;
   total_amount: number;
   rent_amount?: number;
-  payment_frequency: string;
-  payment_day: number;
-  created_at: string;
-  updated_at: string;
+  payment_frequency?: string;
+  payment_day?: number;
+  created_at?: string;
+  updated_at?: string;
   agreement_number?: string;
   agreement_type?: string;
   next_payment_date?: string;
   last_payment_date?: string;
   notes?: string;
-  customers: {
+  customers?: {
     id?: string;
     full_name?: string;
     email?: string;
@@ -39,6 +38,8 @@ export interface Agreement {
   daily_late_fee?: number;
   deposit_amount?: number;
   remaining_amount?: number;
+  terms_accepted?: boolean;
+  additional_drivers?: string[];
 }
 
 // Add any other agreement-related types here
@@ -50,4 +51,3 @@ export interface AgreementDetail extends Agreement {
     status: string;
   }[];
 }
-
