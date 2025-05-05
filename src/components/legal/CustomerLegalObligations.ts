@@ -1,6 +1,6 @@
 
 // Define the types used in LegalObligationsService
-export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
+export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case' | 'document' | 'contract' | 'service';
 
 export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
 
@@ -20,6 +20,10 @@ export interface CustomerObligation {
   lateFine?: number;
 }
 
-// Export the CustomerLegalObligations component
-export { CustomerLegalObligations } from './CustomerLegalObligations.tsx';
-export default { CustomerLegalObligations };
+export interface CustomerLegalObligationsProps {
+  customerId?: string;
+}
+
+// Import and re-export the component to maintain compatibility with existing imports
+import { CustomerLegalObligations } from './CustomerLegalObligations.tsx';
+export { CustomerLegalObligations };
