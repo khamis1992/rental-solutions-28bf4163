@@ -33,20 +33,25 @@ export function useCarInstallments() {
     async () => {
       try {
         // Get all contracts for total calculation
-        const { data: contracts } = await supabase
+        const { data: contracts, error: contractsError } = await supabase
           .from('car_installment_contracts')
           .select('total_contract_value, amount_paid');
+          
+        if (contractsError) throw contractsError;
           
         // Calculate upcoming payments (due in 30 days)
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         
-        const { data: upcomingPayments } = await supabase
+        const { data: upcomingPayments, error: paymentsError } = await supabase
           .from('car_installment_payments')
           .select('amount')
           .lte('payment_date', thirtyDaysFromNow.toISOString())
           .gt('payment_date', new Date().toISOString())
-          .eq('status', 'pending');
+          // Use type casting for enum values
+          .eq('status', 'pending' as InstallmentStatus);
+        
+        if (paymentsError) throw paymentsError;
         
         if (!contracts) {
           throw new Error('Failed to fetch contract data');
@@ -109,7 +114,8 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data || [];
+        // Type guard to ensure we return the right type
+        return (data || []) as CarInstallmentContract[];
       } catch (error) {
         console.error('Error fetching car installment contracts:', error);
         throw error;
@@ -119,17 +125,23 @@ export function useCarInstallments() {
 
   // Fetch a single contract
   const fetchContract = async (id: string): Promise<CarInstallmentContract> => {
-    const { data, error } = await supabase
-      .from('car_installment_contracts')
-      .select('*')
-      .eq('id', id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('car_installment_contracts')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        throw error;
+      }
       
-    if (error) {
+      // Make sure to return the data with the right type
+      return data as CarInstallmentContract;
+    } catch (error) {
+      console.error('Error fetching contract:', error);
       throw error;
     }
-    
-    return data;
   };
 
   // Fetch payments for a contract
@@ -146,7 +158,7 @@ export function useCarInstallments() {
       
       // Apply filters
       if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', filters.status as InstallmentStatus);
       }
       
       if (filters.dateFrom) {
@@ -163,7 +175,8 @@ export function useCarInstallments() {
         throw error;
       }
       
-      return data || [];
+      // Type guard to ensure we return the right type
+      return (data || []) as CarInstallmentPayment[];
     } catch (error) {
       console.error('Error fetching contract payments:', error);
       throw error;
@@ -195,7 +208,7 @@ export function useCarInstallments() {
         
         const { data, error } = await supabase
           .from('car_installment_contracts')
-          .insert(contractToInsert)
+          .insert([contractToInsert]) // Use array for insertion
           .select()
           .single();
           
@@ -203,7 +216,8 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data;
+        // Type casting to ensure the return type is correct
+        return data as CarInstallmentContract;
       } catch (error) {
         console.error('Error creating car installment contract:', error);
         throw error;
@@ -241,7 +255,7 @@ export function useCarInstallments() {
         
         const { data, error } = await supabase
           .from('car_installment_payments')
-          .insert(paymentToInsert)
+          .insert([paymentToInsert]) // Use array for insertion
           .select()
           .single();
           
@@ -249,7 +263,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data;
+        return data as CarInstallmentPayment;
       } catch (error) {
         console.error('Error adding car installment payment:', error);
         throw error;
@@ -283,7 +297,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return updatedPayment;
+        return updatedPayment as CarInstallmentPayment;
       } catch (error) {
         console.error('Error updating car installment payment:', error);
         throw error;

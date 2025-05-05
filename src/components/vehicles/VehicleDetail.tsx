@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useVehicle } from '@/hooks/use-vehicle';
+import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { useVehicleStatus } from '@/hooks/use-vehicle-status';
 import { useVehicleDelete } from '@/hooks/use-vehicle-delete';
 import { useVehicleMaintenanceHistory } from '@/hooks/use-vehicle-maintenance';
@@ -27,7 +28,8 @@ const VehicleDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const { vehicle, isLoading, error, refetch } = useVehicle(id);
+  // Use the new hook for vehicle details
+  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
   const { updateStatus, isUpdating } = useVehicleStatus(id);
   const { deleteVehicle, isDeleting } = useVehicleDelete();
   const { maintenanceRecords, isLoading: isLoadingMaintenance } = useVehicleMaintenanceHistory(id);
