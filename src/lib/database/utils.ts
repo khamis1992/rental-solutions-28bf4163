@@ -47,6 +47,21 @@ export function asPaymentStatus(status: string): TableRow<'unified_payments'>['s
 }
 
 /**
+ * Type-safe conversion for profile status values
+ */
+export function asProfileStatus(status: string): TableRow<'profiles'>['status'] {
+  return status as TableRow<'profiles'>['status'];
+}
+
+/**
+ * Type-safe conversion for entity status values
+ * Generic function for any entity with a status field
+ */
+export function asEntityStatus(status: string): string {
+  return status;
+}
+
+/**
  * Type-safe conversion for lease ID values
  */
 export function asLeaseId(id: string): TableRow<'leases'>['id'] {

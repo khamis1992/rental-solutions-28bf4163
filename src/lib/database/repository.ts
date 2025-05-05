@@ -1,105 +1,103 @@
 
-/**
- * Base repository class for database operations
- */
-
-import { SupabaseClient } from '@supabase/supabase-js';
-import { DbListResponse, DbSingleResponse, Tables, TableRow } from './types';
+import { Tables, DbListResponse, DbSingleResponse } from './types';
 
 /**
- * Generic repository interface for CRUD operations
+ * Base Repository class for database operations
  */
-export abstract class Repository<T extends keyof Tables> {
-  protected client: SupabaseClient;
+export class Repository<T extends keyof Tables> {
+  protected client: any;
   protected tableName: T;
 
-  constructor(client: SupabaseClient, tableName: T) {
+  constructor(client: any, tableName: T) {
     this.client = client;
     this.tableName = tableName;
   }
 
   /**
-   * Find all records
+   * Find all records in the table
    */
-  async findAll(): Promise<DbListResponse<TableRow<T>>> {
-    const { data, error } = await this.client
+  async findAll(): Promise<DbListResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
       .select('*');
-
-    return { data, error };
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
-   * Find record by ID
+   * Find a record by ID
    */
-  async findById(id: string): Promise<DbSingleResponse<TableRow<T>>> {
-    const { data, error } = await this.client
+  async findById(id: string): Promise<DbSingleResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
       .select('*')
       .eq('id', id)
       .single();
-
-    return { data, error };
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
    * Create a new record
    */
-  async create(values: Tables[T]['Insert']): Promise<DbSingleResponse<TableRow<T>>> {
-    const { data, error } = await this.client
+  async create(data: Tables[T]['Insert']): Promise<DbSingleResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
-      .insert(values)
+      .insert([data])
       .select()
       .single();
-
-    return { data, error };
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
    * Update a record
    */
-  async update(id: string, values: Tables[T]['Update']): Promise<DbSingleResponse<TableRow<T>>> {
-    const { data, error } = await this.client
+  async update(id: string, data: Tables[T]['Update']): Promise<DbSingleResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
-      .update(values)
+      .update(data)
       .eq('id', id)
       .select()
       .single();
-
-    return { data, error };
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
    * Delete a record
    */
-  async delete(id: string): Promise<{ error: Error | null }> {
-    const { error } = await this.client
+  async delete(id: string): Promise<DbSingleResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
       .delete()
-      .eq('id', id);
-
-    return { error };
+      .eq('id', id)
+      .select()
+      .single();
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
-   * Find records by a specific column value
+   * Find records by a field value
    */
-  async findBy<K extends keyof TableRow<T> & string>(
-    column: K, 
-    value: TableRow<T>[K]
-  ): Promise<DbListResponse<TableRow<T>>> {
-    const { data, error } = await this.client
+  async findByField(field: keyof Tables[T]['Row'], value: any): Promise<DbListResponse<Tables[T]['Row']>> {
+    const response = await this.client
       .from(this.tableName)
       .select('*')
-      .eq(column, value);
-
-    return { data, error };
+      .eq(field as string, value);
+    
+    return { data: response.data, error: response.error };
   }
 
   /**
-   * Map database response to standardized format
+   * Count records in the table
    */
-  protected mapDbResponse<R>(response: { data: R | null, error: any }): { data: R | null, error: any } {
-    return { data: response.data, error: response.error };
+  async count(): Promise<number> {
+    const response = await this.client
+      .from(this.tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    return response.count || 0;
   }
 }

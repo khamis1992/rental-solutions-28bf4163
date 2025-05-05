@@ -38,3 +38,4 @@ export function isSuccessResponse<T>(response: any): response is { data: T; erro
 
 // Export common types
 export type { ProfileId } from './database-types';
+
