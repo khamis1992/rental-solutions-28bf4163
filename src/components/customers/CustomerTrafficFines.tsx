@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Table, TableBody, TableCell, TableCaption, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -41,34 +42,33 @@ export const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ cust
     const fetchCustomerAndFines = async () => {
       setIsLoading(true);
       try {
-        // Fix for the first error on line 77 - cast the ID to its proper type
-        // Cast the customerId parameter to the correct type expected by the Supabase query
+        // Use type assertion to handle the customer ID type
         const { data: customer } = await supabase.from('profiles').select('*').eq('id', customerId as any).single();
 
-        // Fix type issues for customer properties on line 83-87
-        // Add proper type checking and fallbacks
-        setCustomerDetails({
-          id: customer && 'id' in customer ? customer.id : '',
-          full_name: customer && 'full_name' in customer ? customer.full_name : '',
-          email: customer && 'email' in customer ? customer.email : '', 
-          phone_number: customer && 'phone_number' in customer ? customer.phone_number : '',
-          driver_license: customer && 'driver_license' in customer ? customer.driver_license : '',
-        });
+        // Use safe type checking before accessing properties
+        if (customer) {
+          setCustomerDetails({
+            id: customer.id || '',
+            full_name: customer.full_name || '',
+            email: customer.email || '', 
+            phone_number: customer.phone_number || '',
+            driver_license: customer.driver_license,
+          });
 
-        // Fix for customer_id parameter in line 102
-        // Cast customerId to any to bypass the type checking issue
-        const { data: leases } = await supabase.from('leases').select('*').eq('customer_id', customerId as any);
+          // Get leases for this customer
+          const { data: leases } = await supabase.from('leases').select('*').eq('customer_id', customerId as any);
 
-        if (leases && leases.length > 0) {
-          const leaseIds = leases.map(lease => lease.id);
-          const { data: fines } = await supabase
-            .from('traffic_fines')
-            .select('*')
-            .in('lease_id', leaseIds);
+          if (leases && leases.length > 0) {
+            const leaseIds = leases.map(lease => lease.id);
+            const { data: fines } = await supabase
+              .from('traffic_fines')
+              .select('*')
+              .in('lease_id', leaseIds);
 
-          setTrafficFines(fines || []);
-        } else {
-          setTrafficFines([]);
+            setTrafficFines(fines || []);
+          } else {
+            setTrafficFines([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);

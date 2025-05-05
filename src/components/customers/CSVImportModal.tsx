@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,13 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from "@/components/ui/use-toast"
-import { useUser } from '@/hooks/use-auth';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { useMutation } from '@tanstack/react-query';
+import { useToast } from "@/components/ui/use-toast";
 import { useForm } from 'react-hook-form';
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Form,
   FormField,
@@ -24,13 +22,9 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
 import { UploadCloud } from 'lucide-react';
-import Papa from 'papaparse';
-import {
-  baseObjectOutputType,
-  optionalKeys,
-} from 'zod-class-transformer/metadata';
+import { supabase } from '@/lib/supabase';
 
 type ImportStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -47,12 +41,20 @@ interface CSVImportModalProps {
 }
 
 export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
-  const { toast } = useToast()
-  const { user } = useUser();
-  const supabase = useSupabaseClient();
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
   const [savedFilename, setSavedFilename] = useState<string | null>(null);
 
-  // Fix on line 27: Use as any to bypass the type checking since the table might exist but TypeScript doesn't know about it
+  // Get the current user on component mount
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    fetchUser();
+  }, []);
+
+  // Reference customer_import_logs table with type assertion for TypeScript
   const importLogsTable = supabase.from('customer_import_logs' as any);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,14 +63,14 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       file: null,
       fieldMapping: {},
     },
-  })
+  });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!values.file) {
       toast({
         title: "No file selected",
         description: "Please select a CSV file to import.",
-      })
+      });
       return;
     }
 
@@ -78,13 +80,22 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       toast({
         title: "Invalid file type",
         description: "Please select a CSV file.",
-      })
+      });
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to import customers.",
+      });
       return;
     }
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('customer-csv-imports')
-      .upload(`${user?.id}/${file.name}`, file, {
+      .upload(`${user.id}/${file.name}`, file, {
         cacheControl: '3600',
         upsert: false
       });
@@ -93,7 +104,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       toast({
         title: "Upload failed",
         description: uploadError.message,
-      })
+      });
       return;
     }
 
@@ -105,7 +116,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       file_name: savedFilename,
       original_file_name: file.name,
       status: 'pending' as any,
-      created_by: user?.id || null,
+      created_by: user.id || null,
       mapping_used: values.fieldMapping
     } as any);
 
@@ -113,7 +124,7 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       toast({
         title: "Failed to create import log",
         description: error.message,
-      })
+      });
       return;
     }
 
@@ -124,16 +135,16 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
       toast({
         title: "Failed to retrieve import log ID",
         description: "Could not retrieve the import log ID.",
-      })
+      });
       return;
     }
 
     toast({
       title: "Import started",
       description: "Your customer import has started and you'll be notified when it's complete.",
-    })
+    });
     onOpenChange(false);
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,5 +186,5 @@ export function CSVImportModal({ open, onOpenChange }: CSVImportModalProps) {
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
