@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from '@/lib/date-utils';
 import { Loader2, AlertTriangle, FileText, Scale, CalendarClock } from 'lucide-react';
 import { CustomerObligation, UrgencyLevel } from './CustomerLegalObligations';
-import { useLegalCases } from '@/hooks/use-legal-cases';
+import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 
@@ -38,9 +38,20 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
       try {
         setLoading(true);
         
-        // Get legal cases for this customer
-        if (customerId) {
+        // Ensure we have a valid customerId before proceeding
+        if (!customerId) {
+          console.error("No customer ID provided");
+          setError("No customer ID provided");
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Fetching legal cases for customer:", customerId);
+        
+        try {
+          // Get legal cases for this customer
           const legalCases = await getLegalCasesByCustomerId(customerId);
+          console.log("Legal cases fetched:", legalCases);
           
           // Transform legal cases to obligations format
           const customerObligations: CustomerObligation[] = legalCases.map(legalCase => ({
@@ -59,6 +70,9 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
           }));
           
           setObligations(customerObligations);
+        } catch (error) {
+          console.error("Error fetching legal cases:", error);
+          setError("Failed to fetch legal cases. Please try again later.");
         }
       } catch (err: any) {
         console.error("Failed to load legal obligations:", err);

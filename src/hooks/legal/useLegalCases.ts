@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { LegalCase, LegalCaseType, LegalCaseStatus, CasePriority } from '@/types/legal-case';
 import { toast } from 'sonner';
-import { asTableId } from '@/lib/database-helpers';
 
 export const useLegalCases = () => {
   const queryClient = useQueryClient();
@@ -151,25 +150,34 @@ export const useLegalCases = () => {
   };
 
   const getLegalCasesByCustomerId = async (customerId: string): Promise<LegalCase[]> => {
-    const { data, error } = await supabase
-      .from('legal_cases')
-      .select(`
-        *,
-        profiles:customer_id (
-          full_name,
-          email,
-          phone_number
-        )
-      `)
-      .eq('customer_id', asTableId('legal_cases', customerId))
-      .order('created_at', { ascending: false });
+    try {
+      console.log("Fetching legal cases for customer ID:", customerId);
+      
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .select(`
+          *,
+          profiles:customer_id (
+            full_name,
+            email,
+            phone_number
+          )
+        `)
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching legal cases for customer ${customerId}:`, error);
-      throw new Error(error.message);
+      if (error) {
+        console.error(`Error fetching legal cases for customer ${customerId}:`, error);
+        throw new Error(error.message);
+      }
+
+      console.log(`Found ${data?.length || 0} legal cases for customer ${customerId}`);
+      return data || [];
+    } catch (error) {
+      console.error(`Failed to get legal cases for customer ${customerId}:`, error);
+      // Return empty array instead of throwing to handle gracefully
+      return [];
     }
-
-    return data as LegalCase[];
   };
 
   const resolveLegalCase = async ({ id, resolution_notes }: { id: string, resolution_notes: string }): Promise<LegalCase> => {
