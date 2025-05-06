@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService, CustomerFilters } from '@/services/CustomerService';
 import { toast } from 'sonner';
+import { Customer } from '@/lib/validation-schemas/customer';
 
 /**
  * Hook for working with the Customer Service
@@ -10,6 +11,8 @@ import { toast } from 'sonner';
 export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
   const [filters, setFilters] = useState<CustomerFilters>(initialFilters);
   const queryClient = useQueryClient();
+
+  console.log('useCustomerService - filters:', filters);
 
   // Query for fetching customers with filters
   const {
@@ -20,14 +23,30 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
   } = useQuery({
     queryKey: ['customers', filters],
     queryFn: async () => {
+      console.log('Fetching customers with filters:', filters);
       const result = await customerService.findCustomers(filters);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch customers');
       }
-      return result.data;
-    },
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+      
+      // Map the response to match the expected Customer type structure
+      const mappedCustomers = result.data.map((customer: any): Customer => ({
+        id: customer.id,
+        full_name: customer.full_name || '',
+        email: customer.email || '',
+        phone: customer.phone_number?.replace(/^\+974/, '') || '',
+        driver_license: customer.driver_license || '',
+        nationality: customer.nationality || '',
+        address: customer.address || '',
+        notes: customer.notes || '',
+        status: customer.status || 'active',
+        created_at: customer.created_at,
+        updated_at: customer.updated_at,
+      }));
+      
+      console.log('Mapped customers:', mappedCustomers);
+      return mappedCustomers;
+    }
   });
 
   // Mutation for getting customer details
@@ -59,24 +78,6 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
     }
   });
 
-  // Mutation for updating customer status
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const result = await customerService.updateStatus(id, status);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to update customer status');
-      }
-      return result.data;
-    },
-    onSuccess: () => {
-      toast.success('Status updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    },
-    onError: (error) => {
-      toast.error(`Status update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
-
   // Mutation for deleting a customer
   const deleteCustomer = useMutation({
     mutationFn: async (id: string) => {
@@ -95,28 +96,6 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
     }
   });
 
-  // Mutation for checking document expiration
-  const checkDocumentExpiration = useMutation({
-    mutationFn: async (id: string) => {
-      const result = await customerService.checkDocumentExpiration(id);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to check document expiration');
-      }
-      return result.data;
-    }
-  });
-
-  // Mutation for getting payment history
-  const getPaymentHistory = useMutation({
-    mutationFn: async (id: string) => {
-      const result = await customerService.getPaymentHistory(id);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch payment history');
-      }
-      return result.data;
-    }
-  });
-
   return {
     customers,
     isLoading,
@@ -124,20 +103,13 @@ export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
     filters,
     setFilters,
     refetch,
-    getCustomerDetails: getCustomerDetails.mutateAsync,
-    updateCustomer: updateCustomer.mutateAsync,
-    updateStatus: updateStatus.mutateAsync,
-    deleteCustomer: deleteCustomer.mutateAsync,
-    checkDocumentExpiration: checkDocumentExpiration.mutateAsync,
-    getPaymentHistory: getPaymentHistory.mutateAsync,
-    // Expose isPending states for UI loading indicators
+    getCustomerDetails: getCustomerDetails.mutate,
+    updateCustomer: updateCustomer.mutate,
+    deleteCustomer: deleteCustomer.mutate,
     isPending: {
       getCustomerDetails: getCustomerDetails.isPending,
       updateCustomer: updateCustomer.isPending,
-      updateStatus: updateStatus.isPending,
-      deleteCustomer: deleteCustomer.isPending,
-      checkDocumentExpiration: checkDocumentExpiration.isPending,
-      getPaymentHistory: getPaymentHistory.isPending,
+      deleteCustomer: deleteCustomer.isPending
     }
   };
 };

@@ -1,262 +1,232 @@
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { Spinner } from '@/components/ui/spinner';
+import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
+import { formatDate } from '@/lib/date-utils';
+import { asLeaseId, asVehicleId, asPaymentStatus, asTrafficFineStatus } from '@/lib/database/type-utils';
 
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Info } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { supabase } from '@/integrations/supabase/client';
-import { Payment } from '@/types/payment-history.types';
-import { CustomerInfo, VehicleInfo, VehicleAssignmentDialogProps } from '@/types/vehicle-assignment.types';
-import { CustomerDetailsSection } from "./vehicle-assignment/CustomerDetailsSection";
-import { VehicleDetailsSection } from "./vehicle-assignment/VehicleDetailsSection";
-import { PaymentWarningSection } from "./vehicle-assignment/PaymentWarningSection";
-import { TrafficFine } from "@/hooks/use-traffic-fines";
-import { asLeaseId } from "@/lib/database";
+interface VehicleAssignmentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  leaseId?: string;
+  vehicleId?: string;
+  onAssign: () => void;
+}
 
 export function VehicleAssignmentDialog({
-  isOpen,
-  onClose,
-  onConfirm,
+  open,
+  onOpenChange,
+  leaseId,
   vehicleId,
-  existingAgreement
+  onAssign
 }: VehicleAssignmentDialogProps) {
-  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
-  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
-  const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [assigning, setAssigning] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
-  const [acknowledgedFines, setAcknowledgedFines] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [vehicleDetails, setVehicleDetails] = useState<any>(null);
+  const [customerDetails, setCustomerDetails] = useState<any>(null);
 
   useEffect(() => {
-    if (isOpen && existingAgreement) {
-      fetchAssociatedData();
+    if (open && vehicleId) {
+      fetchVehicleDetails();
+      fetchPendingPayments();
     }
-  }, [isOpen, existingAgreement]);
+  }, [open, vehicleId, leaseId]);
 
-  const fetchAssociatedData = async () => {
-    if (!existingAgreement) return;
+  const fetchVehicleDetails = async () => {
+    if (!vehicleId) return;
     
-    setIsLoading(true);
+    setLoading(true);
+    
     try {
-      // Fetch vehicle information
-      const { data: vehicleData } = await supabase
+      const { data: vehicle } = await supabase
         .from('vehicles')
-        .select('id, make, model, license_plate, year, color')
-        .eq('id', vehicleId)
+        .select('*')
+        .eq('id', asVehicleId(vehicleId))
         .single();
       
-      if (vehicleData) {
-        setVehicleInfo(vehicleData as VehicleInfo);
-      }
+      setVehicleDetails(vehicle);
       
-      // Fetch pending payments
-      const { data: paymentsData } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
-        .in('status', ['pending', 'overdue']);
+      // If we have a lease ID, fetch pending payments
+      if (leaseId) {
+        const { data: payments } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', asLeaseId(leaseId))
+          .eq('status', asPaymentStatus('pending'));
         
-      if (paymentsData) {
-        setPendingPayments(paymentsData as Payment[]);
-      }
-      
-      // Fetch traffic fines
-      const { data: finesData } = await supabase
-        .from('traffic_fines')
-        .select('*')
-        .eq('lease_id', asLeaseId(existingAgreement.id))
-        .eq('payment_status', 'pending');
+        setPendingPayments(payments || []);
         
-      if (finesData) {
-        setTrafficFines(finesData as TrafficFine[]);
-      }
-      
-      // Fetch customer information through lease
-      const { data: leaseData } = await supabase
-        .from('leases')
-        .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
-        .single();
+        // Also check for unpaid traffic fines
+        const { data: trafficFines } = await supabase
+          .from('traffic_fines')
+          .select('*')
+          .eq('lease_id', asLeaseId(leaseId))
+          .eq('payment_status', asTrafficFineStatus('pending'));
         
-      if (leaseData?.customer_id) {
-        const { data: customerData } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, phone_number')
-          .eq('id', leaseData.customer_id)
+        if (trafficFines && trafficFines.length > 0) {
+          // Add traffic fines to pending payments display
+          // This is a simplified example - you might want to format these differently
+          setPendingPayments(prev => [
+            ...prev,
+            ...trafficFines.map((fine: any) => ({
+              id: fine.id,
+              amount: fine.fine_amount,
+              type: 'Traffic Fine',
+              status: 'pending',
+              due_date: new Date()
+            }))
+          ]);
+        }
+        
+        // Get customer details for the lease
+        const { data: lease } = await supabase
+          .from('leases')
+          .select('customer_id')
+          .eq('id', asLeaseId(leaseId))
           .single();
+        
+        if (lease && lease.customer_id) {
+          const { data: customer } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', lease.customer_id)
+            .single();
           
-        if (customerData) {
-          setCustomerInfo(customerData as CustomerInfo);
+          setCustomerDetails(customer);
         }
       }
     } catch (error) {
-      console.error("Error fetching associated data:", error);
+      console.error('Error fetching details:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch vehicle and payment details.',
+        variant: 'destructive'
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }).format(date);
+  const fetchPendingPayments = async () => {
+    // Implementation as needed
   };
 
-  // Check if we need acknowledgments
-  const needsPaymentAcknowledgment = pendingPayments.length > 0;
-  const needsFinesAcknowledgment = trafficFines.length > 0;
-  
-  // Can proceed if no acknowledgments needed, or all are acknowledged
-  const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
-                    (!needsFinesAcknowledgment || acknowledgedFines);
-
-  if (!isOpen || !existingAgreement) return null;
-
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const handleAssign = async () => {
+    if (!leaseId || !vehicleId) return;
+    
+    setAssigning(true);
+    
+    try {
+      // Update the lease with the new vehicle ID
+      const { error } = await supabase
+        .from('leases')
+        .update({ vehicle_id: vehicleId })
+        .eq('id', leaseId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Vehicle successfully assigned to agreement.',
+      });
+      
+      onAssign();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error assigning vehicle:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to assign vehicle.',
+        variant: 'destructive'
+      });
+    } finally {
+      setAssigning(false);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <DialogTitle>Vehicle Already Assigned</DialogTitle>
-          </div>
+          <DialogTitle>Assign Vehicle to Agreement</DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
-          <p className="text-sm">
-            This vehicle is currently assigned to Agreement <strong>#{existingAgreement.agreement_number}</strong>.
-          </p>
-          <p className="text-sm mt-2">
-            If you proceed, the existing agreement will be closed automatically, and the vehicle will be assigned to your new agreement.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        {loading ? (
+          <div className="py-8 flex justify-center">
+            <Spinner />
           </div>
         ) : (
-          <>
-            {/* Vehicle and Customer Information Section */}
-            {vehicleInfo && (
-              <Collapsible
-                open={isDetailsOpen}
-                onOpenChange={setIsDetailsOpen}
-                className="border rounded-md overflow-hidden mb-3"
-              >
-                <div className="bg-slate-50 p-3">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
-                      <Info className="h-4 w-4 text-slate-500" />
-                      <h3 className="text-sm font-medium">Vehicle & Agreement Details</h3>
-                    </div>
-                    {isDetailsOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="p-3 bg-white">
-                  <div className="space-y-4">
-                    <VehicleDetailsSection vehicleInfo={vehicleInfo} isDetailsOpen={isDetailsOpen} />
-                    <CustomerDetailsSection customerInfo={customerInfo} isDetailsOpen={isDetailsOpen} />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {/* Payment History Section */}
-            {pendingPayments.length > 0 && (
-              <Collapsible
-                open={isPaymentHistoryOpen}
-                onOpenChange={setIsPaymentHistoryOpen}
-                className="border rounded-md overflow-hidden mb-3"
-              >
-                <div className="bg-slate-50 p-3">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
-                      <Info className="h-4 w-4 text-slate-500" />
-                      <h3 className="text-sm font-medium">Payment History</h3>
-                    </div>
-                    {isPaymentHistoryOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="p-3 bg-white">
-                  <PaymentWarningSection
-                    pendingPayments={pendingPayments}
-                    acknowledgedPayments={acknowledgedPayments}
-                    onAcknowledgePayments={setAcknowledgedPayments}
-                    isPaymentHistoryOpen={isPaymentHistoryOpen}
-                    formatDate={formatDate}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {trafficFines.length > 0 && (
-              <div className="mt-2 border rounded-md p-3 bg-amber-50">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-medium">Outstanding Traffic Fines</h3>
-                </div>
-                <p className="text-sm mt-1 text-gray-600">
-                  There {trafficFines.length === 1 ? 'is' : 'are'} {trafficFines.length} unpaid traffic {trafficFines.length === 1 ? 'fine' : 'fines'} associated with this vehicle.
-                </p>
-                <div className="mt-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={acknowledgedFines}
-                      onChange={(e) => setAcknowledgedFines(e.target.checked)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">I acknowledge the outstanding traffic fines</span>
-                  </label>
+          <div className="space-y-4">
+            {vehicleDetails && (
+              <div className="space-y-2 border rounded p-3 bg-slate-50">
+                <h3 className="font-medium">Vehicle Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">Make:</span> {vehicleDetails.make}</div>
+                  <div><span className="font-medium">Model:</span> {vehicleDetails.model}</div>
+                  <div><span className="font-medium">Year:</span> {vehicleDetails.year}</div>
+                  <div><span className="font-medium">Plate:</span> {vehicleDetails.license_plate}</div>
                 </div>
               </div>
             )}
-          </>
-        )}
-
-        <Separator />
-        
-        <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleConfirm} 
-            disabled={isLoading || !canProceed}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="mr-2 h-4 w-4" />
+            
+            {customerDetails && (
+              <div className="space-y-2 border rounded p-3">
+                <h3 className="font-medium">Customer Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">Name:</span> {customerDetails.full_name}</div>
+                  <div><span className="font-medium">Phone:</span> {customerDetails.phone_number}</div>
+                  {customerDetails.email && <div><span className="font-medium">Email:</span> {customerDetails.email}</div>}
+                </div>
+              </div>
             )}
-            Close Old Agreement & Reassign
-          </Button>
-        </DialogFooter>
+            
+            {pendingPayments.length > 0 && (
+              <>
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium">Payment Status</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsPaymentHistoryOpen(!isPaymentHistoryOpen)}
+                  >
+                    {isPaymentHistoryOpen ? 'Hide Details' : 'Show Details'}
+                  </Button>
+                </div>
+                
+                <PaymentWarningSection
+                  pendingPayments={pendingPayments}
+                  acknowledgedPayments={acknowledgedPayments}
+                  onAcknowledgePayments={setAcknowledgedPayments}
+                  isPaymentHistoryOpen={isPaymentHistoryOpen}
+                  formatDate={formatDate}
+                />
+              </>
+            )}
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssign}
+                disabled={pendingPayments.length > 0 && !acknowledgedPayments || assigning}
+              >
+                {assigning ? 'Assigning...' : 'Assign Vehicle'}
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-

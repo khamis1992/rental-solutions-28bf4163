@@ -10,11 +10,11 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { user, loading, session } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
   const location = useLocation();
 
-  if (loading || profileLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   }
 
   // Not authenticated
-  if (!user || !session) {
+  if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 

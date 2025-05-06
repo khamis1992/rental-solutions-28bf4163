@@ -1,98 +1,180 @@
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { FilePlus, Filter, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
+import { Agreement } from '@/types/agreement';
+import { SimpleAgreement } from '@/hooks/use-agreements';
 import { AgreementTable } from './table/AgreementTable';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AgreementCardView } from './AgreementCardView';
+import { Button } from '@/components/ui/button';
+import { LayoutGrid, LayoutList, Loader2 } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
-export function AgreementList() {
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
-  
+export const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
     error,
     rowSelection,
     setRowSelection,
-    isDeleting,
+    sorting,
+    setSorting,
+    globalFilter,
+    setGlobalFilter,
     handleBulkDelete,
+    pagination,
+    setPagination,
+    totalItems,
+    statusCounts
   } = useAgreementTable();
 
-  const selectedCount = Object.keys(rowSelection).length;
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [activeTab, setActiveTab] = useState('all');
+
+  if (error) {
+    return (
+      <div className="rounded-md bg-red-50 p-4 my-4 text-sm text-red-700">
+        Error loading agreements: {error.message}
+      </div>
+    );
+  }
+
+  // Cast agreements to the correct type with the required fields
+  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
+    ...agreement,
+    payment_frequency: agreement.payment_frequency || 'monthly',
+    payment_day: agreement.payment_day || 1, 
+    customers: {
+      full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
+      id: agreement.customers?.id || agreement.customer_id
+    },
+  })) as Agreement[];
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, pageIndex: page - 1 }));
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Apply status filter based on tab
+    // This would need to be connected to your filter system
+  };
+
+  // Calculate total pages
+  const totalPages = Math.ceil((totalItems || 0) / pagination.pageSize);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-lg font-medium">Loading agreements...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {selectedCount > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={() => setBulkDeleteDialogOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete ({selectedCount})
-            </Button>
-          )}
+      <div className="flex justify-between items-center">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={handleTabChange}
+          className="w-full sm:w-auto"
+        >
+          <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto">
+            <TabsTrigger value="all" className="relative">
+              All
+              <Badge variant="secondary" className="ml-2 text-xs py-0 px-1.5">
+                {statusCounts?.total || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="active" className="relative">
+              Active
+              <Badge variant="secondary" className="ml-2 text-xs py-0 px-1.5">
+                {statusCounts?.active || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="relative">
+              Pending
+              <Badge variant="secondary" className="ml-2 text-xs py-0 px-1.5">
+                {statusCounts?.pending || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="expired" className="relative">
+              Expired
+              <Badge variant="secondary" className="ml-2 text-xs py-0 px-1.5">
+                {statusCounts?.expired || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="relative">
+              Cancelled
+              <Badge variant="secondary" className="ml-2 text-xs py-0 px-1.5">
+                {statusCounts?.cancelled || 0}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <div className="flex space-x-2">
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="hidden sm:flex"
+          >
+            <LayoutList className="h-4 w-4 mr-1" />
+            Table
+          </Button>
+          <Button
+            variant={viewMode === 'cards' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('cards')}
+            className="hidden sm:flex"
+          >
+            <LayoutGrid className="h-4 w-4 mr-1" />
+            Cards
+          </Button>
+          {/* Mobile view toggle */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+            className="sm:hidden"
+          >
+            {viewMode === 'table' ? (
+              <LayoutGrid className="h-4 w-4" />
+            ) : (
+              <LayoutList className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-        <Button asChild>
-          <Link to="/agreements/add">
-            <FilePlus className="h-4 w-4 mr-2" />
-            New Agreement
-          </Link>
-        </Button>
       </div>
 
-      <AgreementTable
-        agreements={agreements}
-        isLoading={isLoading}
-        rowSelection={rowSelection}
-        setRowSelection={setRowSelection}
-        deleteAgreement={handleBulkDelete}
-      />
+      {viewMode === 'table' ? (
+        <AgreementTable
+          agreements={typedAgreements}
+          isLoading={isLoading}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+          deleteAgreement={handleBulkDelete}
+        />
+      ) : (
+        <AgreementCardView
+          agreements={typedAgreements}
+          isLoading={isLoading}
+          onDeleteAgreement={handleBulkDelete}
+        />
+      )}
 
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedCount} selected agreements? 
-              This action cannot be undone and will permanently remove the selected agreements from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleBulkDelete();
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? (
-                <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete Agreements'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.pageIndex + 1}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
-}
+};

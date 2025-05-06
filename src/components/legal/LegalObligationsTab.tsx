@@ -1,18 +1,42 @@
+
 import React, { useState, useEffect } from 'react';
-import { CustomerObligation } from './CustomerLegalObligations';
-import { fetchLegalObligations } from './LegalObligationsService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ObligationType, UrgencyLevel, CustomerObligation } from './CustomerLegalObligations';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { FileDown, FileText, AlertTriangle, RefreshCw, CreditCard } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 interface LegalObligationsTabProps {
   customerId: string;
 }
+
+// Mock function to simulate fetching legal obligations
+const fetchLegalObligations = async (customerId: string): Promise<CustomerObligation[]> => {
+  // In a real implementation, this would fetch from your API or database
+  console.log(`Fetching legal obligations for customer: ${customerId}`);
+  
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Return mock data for now
+  return [
+    {
+      id: "ob-1",
+      customerId: customerId,
+      customerName: "Customer Name", // Would be fetched from actual data
+      description: "Monthly vehicle lease payment",
+      obligationType: "payment",
+      amount: 2500,
+      dueDate: new Date(),
+      urgency: "high",
+      status: "overdue",
+      daysOverdue: 5,
+      agreementId: "agr-123",
+      agreementNumber: "AGR-2024-0001"
+    }
+  ];
+};
 
 const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId }) => {
   const [obligations, setObligations] = useState<CustomerObligation[]>([]);
@@ -21,31 +45,26 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
 
   useEffect(() => {
     const loadObligations = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const result = await fetchLegalObligations();
-        if (result.error) {
-          setError(result.error);
-          toast.error('Error loading legal obligations');
-        } else {
-          const customerObligations = result.obligations.filter(
-            obligation => obligation.customerId === customerId
-          );
-          setObligations(customerObligations);
-        }
-      } catch (err) {
-        setError('Failed to load obligations');
-        toast.error('Failed to load obligations');
+        setLoading(true);
+        const data = await fetchLegalObligations(customerId);
+        setObligations(data);
+        setError(null);
+      } catch (err: any) {
+        console.error("Failed to load legal obligations:", err);
+        setError(err.message || "Failed to load legal obligations");
       } finally {
         setLoading(false);
       }
     };
 
-    loadObligations();
+    if (customerId) {
+      loadObligations();
+    }
   }, [customerId]);
 
-  const getUrgencyBadge = (urgency: string) => {
+  // Get urgency badge
+  const getUrgencyBadge = (urgency: UrgencyLevel) => {
     switch (urgency) {
       case 'critical':
         return <Badge variant="destructive">Critical</Badge>;
@@ -59,34 +78,48 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     }
   };
 
-  const handleProcessPayment = (obligation: CustomerObligation) => {
-    toast.info(`Processing payment for ${obligation.description}...`);
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      case 'pending':
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Pending</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Overdue</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-        <span>Loading legal obligations...</span>
-      </div>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Customer Obligations</CardTitle>
+          <CardDescription>Loading customer legal obligations...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-muted-foreground">Loading obligations...</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 text-red-800 p-4 rounded-md border border-red-200">
-        <h3 className="font-medium">Error loading legal obligations</h3>
-        <p className="mt-1 text-sm">{error}</p>
-      </div>
-    );
-  }
-
-  if (obligations.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-8 text-muted-foreground">
-            No legal obligations found for this customer.
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Customer Obligations</CardTitle>
+          <CardDescription>An error occurred</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center text-destructive">
+            <AlertTriangle className="mr-2" />
+            <p>{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -94,87 +127,50 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   }
 
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>Legal Obligations</CardTitle>
-        <CardDescription>
-          Pending legal matters that require attention
-        </CardDescription>
+        <CardDescription>Customer's current legal and financial obligations</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {obligations.map((obligation) => (
-            <div 
-              key={obligation.id} 
-              className={`p-4 rounded-md border ${
-                obligation.urgency === 'critical' ? 'border-l-4 border-l-red-500' :
-                obligation.urgency === 'high' ? 'border-l-4 border-l-orange-500' :
-                obligation.urgency === 'medium' ? 'border-l-4 border-l-yellow-500' :
-                'border-l-4 border-l-gray-300'
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    {obligation.obligationType === 'payment' && (
-                      <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" />
-                    )}
-                    {obligation.obligationType === 'traffic_fine' && (
-                      <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
-                    )}
-                    {obligation.obligationType === 'legal_case' && (
-                      <FileText className="mr-2 h-4 w-4 text-blue-500" />
-                    )}
-                    <h4 className="font-medium">{obligation.description}</h4>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <div>
-                      <span className="font-medium">Amount Due:</span> {formatCurrency(obligation.amount)}
-                      {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
-                        <span className="text-xs text-red-500 block">
-                          Includes late fine: {formatCurrency(obligation.lateFine)}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="font-medium">Due Date:</span> {formatDate(obligation.dueDate)}
-                    </div>
-                    <div>
-                      <span className="font-medium">Days Overdue:</span> {obligation.daysOverdue}
-                      {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
-                        <span className="text-xs text-red-500 block">
-                          Late fee: {formatCurrency(120)}/day (max {formatCurrency(3000)})
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <span className="font-medium">Urgency:</span> {getUrgencyBadge(obligation.urgency)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex space-x-2">
-                  {obligation.agreementId && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/agreements/${obligation.agreementId}`}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Agreement
-                      </Link>
-                    </Button>
-                  )}
-                  
-                  {obligation.obligationType === 'payment' && (
-                    <Button variant="default" size="sm" onClick={() => handleProcessPayment(obligation)}>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Process Payment
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {obligations.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Description</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {obligations.map((obligation) => (
+                <TableRow key={obligation.id}>
+                  <TableCell>{obligation.description}</TableCell>
+                  <TableCell>
+                    {obligation.amount === 0 ? 
+                      'N/A' : 
+                      obligation.amount.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'QAR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                      })
+                    }
+                  </TableCell>
+                  <TableCell>{formatDate(obligation.dueDate)}</TableCell>
+                  <TableCell>{getUrgencyBadge(obligation.urgency)}</TableCell>
+                  <TableCell>{getStatusBadge(obligation.status)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No legal obligations found for this customer
+          </div>
+        )}
       </CardContent>
     </Card>
   );
