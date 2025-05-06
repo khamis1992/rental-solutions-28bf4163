@@ -47,6 +47,26 @@ export function PaymentEntryDialog({
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(false);
 
+  // Update form values when selected payment changes
+  React.useEffect(() => {
+    if (selectedPayment) {
+      setAmount(selectedPayment.amount || 0);
+      setPaymentDate(selectedPayment.payment_date ? new Date(selectedPayment.payment_date) : new Date());
+      setNotes(selectedPayment.notes || selectedPayment.description || '');
+      setPaymentMethod(selectedPayment.payment_method || 'cash');
+      setReferenceNumber(selectedPayment.reference_number || selectedPayment.transaction_id || '');
+    } else {
+      // Reset form when no payment is selected
+      setAmount(defaultAmount || 0);
+      setPaymentDate(new Date());
+      setNotes('');
+      setPaymentMethod('cash');
+      setReferenceNumber('');
+      setIncludeLatePaymentFee(false);
+      setIsPartialPayment(false);
+    }
+  }, [selectedPayment, defaultAmount]);
+
   const handleSubmit = async () => {
     await onSubmit(
       amount,
@@ -155,7 +175,7 @@ export function PaymentEntryDialog({
             onClick={handleSubmit}
             className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
           >
-            Submit Payment
+            {selectedPayment ? 'Update Payment' : 'Submit Payment'}
           </button>
         </FormSection>
       </DialogContent>

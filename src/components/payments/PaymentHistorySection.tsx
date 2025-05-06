@@ -31,6 +31,7 @@ export function PaymentHistorySection({
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
 
   // Calculate payment statistics
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -48,6 +49,11 @@ export function PaymentHistorySection({
       onRecordPayment(payment);
       setIsPaymentDialogOpen(false);
     }
+  };
+
+  const handleEditPayment = (payment: PaymentHistoryItem) => {
+    setSelectedPayment(payment);
+    setIsPaymentDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -79,7 +85,10 @@ export function PaymentHistorySection({
         <div className="text-center py-12 border rounded-md">
           <p className="text-muted-foreground">No payment history available</p>
           <p className="text-sm text-muted-foreground mt-2 mb-4">Record a payment to get started</p>
-          <Button onClick={() => setIsPaymentDialogOpen(true)}>
+          <Button onClick={() => {
+            setSelectedPayment(null);
+            setIsPaymentDialogOpen(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Record Payment
           </Button>
@@ -152,7 +161,10 @@ export function PaymentHistorySection({
           <div className="flex items-center text-sm font-medium">
             {rentAmount && <span className="text-muted-foreground">Monthly Rent: QAR {formatCurrency(rentAmount)}</span>}
           </div>
-          <Button onClick={() => setIsPaymentDialogOpen(true)}>
+          <Button onClick={() => {
+            setSelectedPayment(null);
+            setIsPaymentDialogOpen(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Record Payment
           </Button>
@@ -197,12 +209,23 @@ export function PaymentHistorySection({
                       {payment.late_fine_amount ? `QAR ${formatCurrency(payment.late_fine_amount)}` : '-'}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleEditPayment(payment)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-red-500">
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                      {onPaymentDeleted && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-500" 
+                          onClick={onPaymentDeleted}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -242,7 +265,7 @@ export function PaymentHistorySection({
           open={isPaymentDialogOpen}
           onOpenChange={setIsPaymentDialogOpen}
           onSubmit={(amount, date, notes, method, reference, includeLatePaymentFee) => {
-            handlePaymentCreated({
+            const paymentData: Partial<PaymentHistoryItem> = {
               amount,
               payment_date: date.toISOString(),
               description: notes,
@@ -250,15 +273,21 @@ export function PaymentHistorySection({
               transaction_id: reference,
               lease_id: leaseId,
               status: 'completed'
-            });
+            };
+            
+            if (selectedPayment) {
+              paymentData.id = selectedPayment.id;
+            }
+            
+            handlePaymentCreated(paymentData);
             return Promise.resolve();
           }}
-          title="Record Payment"
-          description="Add a new payment to this agreement"
-          defaultAmount={rentAmount}
+          title={selectedPayment ? "Edit Payment" : "Record Payment"}
+          description={selectedPayment ? "Update payment details" : "Add a new payment to this agreement"}
+          defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount}
           leaseId={leaseId}
           rentAmount={rentAmount}
-          selectedPayment={null}
+          selectedPayment={selectedPayment}
         />
       )}
       
