@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +17,7 @@ interface PaymentHistoryProps {
   leaseId?: string;
   onPaymentDeleted?: () => void;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
-  showAnalytics?: boolean; // New prop to control if analytics section is shown
+  showAnalytics?: boolean; // Prop to control if analytics section is shown
 }
 
 export function PaymentHistorySection({

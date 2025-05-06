@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Payment } from '@/types/payment-history.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
@@ -27,8 +28,6 @@ export function PaymentHistory({
   leaseEndDate,
   leaseId
 }: PaymentHistoryProps) {
-  // Use our PaymentHistorySection component
-  // Pass showAnalytics=true to show the analytics section in this component
   return (
     <PaymentHistorySection 
       payments={payments} 
