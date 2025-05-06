@@ -1,7 +1,7 @@
 
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asVehicleId, asVehicleStatus } from '../database-types';
+import { asVehicleId, asVehicleStatus } from '../utils';
 import { supabase } from '@/lib/supabase';
 
 type VehicleRow = TableRow<'vehicles'>;
@@ -18,53 +18,123 @@ export class VehicleRepository extends Repository<'vehicles'> {
    * Find vehicles by status
    */
   async findByStatus(status: string): Promise<DbListResponse<VehicleRow>> {
-    const response = await this.client
-      .from('vehicles')
-      .select('*')
-      .eq('status', asVehicleStatus(status))
-      .order('created_at', { ascending: false });
-    
-    return { data: response.data, error: response.error };
+    console.log(`VehicleRepository.findByStatus called with status: ${status}`);
+    try {
+      const response = await this.client
+        .from('vehicles')
+        .select('*')
+        .eq('status', asVehicleStatus(status))
+        .order('created_at', { ascending: false });
+      
+      console.log(`findByStatus response:`, response);
+      return { 
+        data: response.data || [], 
+        error: response.error 
+      };
+    } catch (error) {
+      console.error("Error in findByStatus:", error);
+      return {
+        data: [],
+        error: error instanceof Error ? error : new Error('Unknown error in findByStatus')
+      };
+    }
   }
 
   /**
    * Find available vehicles (those not currently assigned)
    */
   async findAvailable(): Promise<DbListResponse<VehicleRow>> {
-    const response = await this.client
-      .from('vehicles')
-      .select('*')
-      .eq('status', asVehicleStatus('available'))
-      .order('created_at', { ascending: false });
-    
-    return { data: response.data, error: response.error };
+    try {
+      const response = await this.client
+        .from('vehicles')
+        .select('*')
+        .eq('status', asVehicleStatus('available'))
+        .order('created_at', { ascending: false });
+      
+      return { 
+        data: response.data || [], 
+        error: response.error 
+      };
+    } catch (error) {
+      console.error("Error in findAvailable:", error);
+      return {
+        data: [],
+        error: error instanceof Error ? error : new Error('Unknown error in findAvailable')
+      };
+    }
   }
 
   /**
    * Update vehicle status
    */
   async updateStatus(vehicleId: string, status: string): Promise<DbSingleResponse<VehicleRow>> {
-    const response = await this.client
-      .from('vehicles')
-      .update({ status: asVehicleStatus(status) })
-      .eq('id', asVehicleId(vehicleId))
-      .select()
-      .single();
-    
-    return { data: response.data, error: response.error };
+    try {
+      const response = await this.client
+        .from('vehicles')
+        .update({ status: asVehicleStatus(status) })
+        .eq('id', asVehicleId(vehicleId))
+        .select()
+        .single();
+      
+      return { 
+        data: response.data || null, 
+        error: response.error 
+      };
+    } catch (error) {
+      console.error("Error in updateStatus:", error);
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error in updateStatus')
+      };
+    }
   }
 
   /**
    * Get vehicle with current lease information
    */
   async getWithLease(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { leases: any[] }>> {
-    const response = await this.client
-      .from('vehicles')
-      .select('*, leases(*)')
-      .eq('id', asVehicleId(vehicleId))
-      .single();
-    
-    return { data: response.data, error: response.error };
+    try {
+      const response = await this.client
+        .from('vehicles')
+        .select('*, leases(*)')
+        .eq('id', asVehicleId(vehicleId))
+        .single();
+      
+      return { 
+        data: response.data || null, 
+        error: response.error 
+      };
+    } catch (error) {
+      console.error("Error in getWithLease:", error);
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error in getWithLease')
+      };
+    }
+  }
+
+  /**
+   * Get vehicle with details including maintenance history
+   */
+  async findWithDetails(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { maintenance: any[] }>> {
+    try {
+      const response = await this.client
+        .from('vehicles')
+        .select('*, maintenance:vehicle_maintenance(*)')
+        .eq('id', asVehicleId(vehicleId))
+        .single();
+      
+      return { 
+        data: response.data || null, 
+        error: response.error 
+      };
+    } catch (error) {
+      console.error("Error in findWithDetails:", error);
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error in findWithDetails')
+      };
+    }
   }
 }
 

@@ -18,8 +18,10 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
       setIsLoading(true);
       setError(null);
       try {
+        console.log("Fetching vehicles with filters:", filters);
         const result = await vehicleService.findVehicles(filters);
         if (result && result.success) {
+          console.log("Vehicles fetched successfully:", result.data);
           setVehicles(result.data || []);
         } else {
           console.error("Failed to fetch vehicles:", result?.error || "Unknown error");

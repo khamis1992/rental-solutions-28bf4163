@@ -1,90 +1,67 @@
 
 /**
- * Database utility functions
+ * Utility functions for database operations
  */
-import { Tables, TableRow } from './types';
-
-// Export everything from type-utils
-export * from './type-utils';
 
 /**
- * Converts a table ID to its proper type
+ * Validates and normalizes vehicle status for database operations
+ * @param status - Status string to validate
+ * @returns Validated vehicle status string
  */
-export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+export function asVehicleStatus(status: string): string {
+  // Convert application status strings to database status strings
+  switch (status.toLowerCase()) {
+    case 'available':
+    case 'rented':
+    case 'maintenance':
+    case 'sold':
+    case 'damaged':
+      return status.toLowerCase();
+    case 'reserved': // Application may use 'reserved' but DB uses 'reserve'
+      return 'reserve';
+    default:
+      console.warn(`Unknown vehicle status '${status}', defaulting to 'available'`);
+      return 'available';
+  }
 }
 
 /**
- * Selects a column from a table with proper typing
+ * Validates and normalizes vehicle ID for database operations
+ * @param id - ID string to validate
+ * @returns Validated vehicle ID string
  */
-export function asTableColumn<T extends keyof Tables, K extends keyof Tables[T]['Row']>(
-  table: T,
-  column: K,
-  value: any
-): Tables[T]['Row'][K] {
-  return value as Tables[T]['Row'][K];
+export function asVehicleId(id: string): string {
+  // Basic validation to ensure ID is not empty
+  if (!id || id.trim() === '') {
+    throw new Error('Invalid vehicle ID: empty ID provided');
+  }
+  return id.trim();
 }
 
 /**
- * Type-safe conversion for lease status values
+ * Safely converts data to JSON string
+ * @param data - Data to convert to JSON
+ * @returns JSON string
  */
-export function asLeaseStatus(status: string): TableRow<'leases'>['status'] {
-  return status as TableRow<'leases'>['status'];
+export function safeJsonify(data: any): string {
+  try {
+    return JSON.stringify(data);
+  } catch (error) {
+    console.error('Error converting data to JSON:', error);
+    return '{}';
+  }
 }
 
 /**
- * Type-safe conversion for vehicle status values
+ * Safely parses JSON string
+ * @param json - JSON string to parse
+ * @returns Parsed object or null if invalid
  */
-export function asVehicleStatus(status: string): TableRow<'vehicles'>['status'] {
-  return status as TableRow<'vehicles'>['status'];
-}
-
-/**
- * Type-safe conversion for payment status values
- */
-export function asPaymentStatus(status: string): TableRow<'unified_payments'>['status'] {
-  return status as TableRow<'unified_payments'>['status'];
-}
-
-/**
- * Type-safe conversion for profile status values
- */
-export function asProfileStatus(status: string): TableRow<'profiles'>['status'] {
-  return status as TableRow<'profiles'>['status'];
-}
-
-/**
- * Type-safe conversion for entity status values
- * Generic function for any entity with a status field
- */
-export function asEntityStatus(status: string): string {
-  return status;
-}
-
-/**
- * Type-safe conversion for lease ID values
- */
-export function asLeaseId(id: string): TableRow<'leases'>['id'] {
-  return id as TableRow<'leases'>['id'];
-}
-
-/**
- * Type-safe conversion for vehicle ID values
- */
-export function asVehicleId(id: string): TableRow<'vehicles'>['id'] {
-  return id as TableRow<'vehicles'>['id'];
-}
-
-/**
- * Type-safe conversion for profile (customer) ID values
- */
-export function asProfileId(id: string): TableRow<'profiles'>['id'] {
-  return id as TableRow<'profiles'>['id'];
-}
-
-/**
- * Type-safe conversion for payment ID values
- */
-export function asPaymentId(id: string): TableRow<'unified_payments'>['id'] {
-  return id as TableRow<'unified_payments'>['id'];
+export function safeParse(json: string): any {
+  try {
+    return JSON.parse(json);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return null;
+  }
 }

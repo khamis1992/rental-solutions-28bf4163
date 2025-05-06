@@ -32,7 +32,7 @@ const VehicleSelector = ({
   disabled = false
 }: VehicleSelectorProps) => {
   const [open, setOpen] = useState(false);
-  const { vehicles = [], isLoading, error, setFilters } = useVehicleService({
+  const { vehicles, isLoading, error, setFilters } = useVehicleService({
     statuses: ['available']
   });
 
@@ -47,6 +47,9 @@ const VehicleSelector = ({
     onVehicleSelect(vehicle);
     setOpen(false);
   };
+
+  // Ensure vehicles is always an array, even if the service returns undefined
+  const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -76,7 +79,7 @@ const VehicleSelector = ({
               </CommandEmpty>
               <ScrollArea className="h-72">
                 <CommandGroup>
-                  {(Array.isArray(vehicles) ? vehicles : []).map((vehicle) => (
+                  {safeVehicles.map((vehicle) => (
                     <CommandItem
                       key={vehicle.id}
                       value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}

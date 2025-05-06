@@ -39,45 +39,29 @@ export class VehicleService extends BaseService<'vehicles'> {
    */
   async findVehicles(filters?: VehicleFilterParams): Promise<ServiceResult<Vehicle[]>> {
     return handleServiceOperation(async () => {
+      console.log("VehicleService.findVehicles called with filters:", filters);
       let query = supabase.from('vehicles')
         .select('*, vehicle_types(*)');
       
       if (filters) {
         if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+          console.log("Filtering by statuses:", filters.statuses);
+          // Map each status to its database representation
           const dbStatuses = filters.statuses.map(status => asVehicleStatus(status));
           query = query.in('status', dbStatuses);
+          console.log("Mapped to DB statuses:", dbStatuses);
         } else if (filters.status) {
+          console.log("Filtering by single status:", filters.status);
           const dbStatus = asVehicleStatus(filters.status);
           query = query.eq('status', dbStatus);
         }
         
-        if (filters.make) {
-          query = query.eq('make', filters.make);
-        }
-        
-        if (filters.model) {
-          query = query.eq('model', filters.model);
-        }
-        
-        if (filters.year) {
-          query = query.eq('year', filters.year);
-        }
-        
-        if (filters.minYear && filters.maxYear) {
-          query = query.gte('year', filters.minYear).lte('year', filters.maxYear);
-        } else if (filters.minYear) {
-          query = query.gte('year', filters.minYear);
-        } else if (filters.maxYear) {
-          query = query.lte('year', filters.maxYear);
-        }
-        
-        if (filters.location) {
-          query = query.eq('location', filters.location);
-        }
-
-        if (filters.vehicle_type_id) {
-          query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-        }
+        // Apply other filters
+        if (filters.make) query = query.eq('make', filters.make);
+        if (filters.model) query = query.eq('model', filters.model);
+        if (filters.year) query = query.eq('year', filters.year);
+        if (filters.location) query = query.eq('location', filters.location);
+        if (filters.vehicle_type_id) query = query.eq('vehicle_type_id', filters.vehicle_type_id);
         
         if (filters.searchTerm) {
           query = query.or(
@@ -89,14 +73,19 @@ export class VehicleService extends BaseService<'vehicles'> {
           const direction = filters.sortDirection || 'asc';
           query = query.order(filters.sortBy, { ascending: direction === 'asc' });
         }
+      } else {
+        console.log("No filters provided, fetching all vehicles");
       }
       
+      console.log("Executing Supabase query");
       const { data, error } = await query;
       
       if (error) {
-        throw new Error(`Failed to fetch vehicles with filters ${JSON.stringify(filters)}: ${error.message}`);
+        console.error("Supabase query error:", error);
+        throw new Error(`Failed to fetch vehicles: ${error.message}`);
       }
       
+      console.log(`Retrieved ${data?.length || 0} vehicles`);
       return data || [];
     });
   }
@@ -108,13 +97,15 @@ export class VehicleService extends BaseService<'vehicles'> {
    */
   async findAvailableVehicles(): Promise<ServiceResult<Vehicle[]>> {
     return handleServiceOperation(async () => {
+      console.log("Finding available vehicles");
       const response = await this.repository.findByStatus(asVehicleStatus('available'));
       
       if (response.error) {
+        console.error("Error finding available vehicles:", response.error);
         throw new Error(`Failed to fetch available vehicles: ${response.error.message}`);
       }
       
-      return response.data;
+      return response.data || [];
     });
   }
 
