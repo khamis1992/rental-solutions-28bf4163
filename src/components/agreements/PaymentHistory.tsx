@@ -35,7 +35,8 @@ export function PaymentHistory({
   leaseEndDate,
   leaseId
 }: PaymentHistoryProps) {
-  // Use our new PaymentHistorySection component
+  // Use our PaymentHistorySection component
+  // Pass showAnalytics=true to show the analytics section in this component
   return (
     <PaymentHistorySection 
       payments={payments} 
@@ -44,6 +45,7 @@ export function PaymentHistory({
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted}
       onRecordPayment={onRecordPayment}
+      showAnalytics={true} // Show analytics in this component
     />
   );
 }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -446,6 +445,7 @@ const AgreementDetailPage = () => {
                 payments={payments}
                 isLoading={isLoadingPayments} 
                 rentAmount={rentAmount} 
+                contractAmount={agreement?.total_amount || null}
                 onPaymentDeleted={fetchPayments}
                 leaseStartDate={agreement.start_date}
                 leaseEndDate={agreement.end_date}
@@ -460,39 +460,11 @@ const AgreementDetailPage = () => {
                     fetchPayments();
                   }
                 }}
+                leaseId={id}
               />
             }
           </CardContent>
         </Card>
-        
-        {Array.isArray(payments) && payments.length > 0 && <Card>
-            <CardHeader>
-              <CardTitle>Payment Analytics</CardTitle>
-              <CardDescription>Financial metrics for this agreement</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
-                  <p className="text-2xl font-bold">
-                    QAR {payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0).toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Remaining Balance</p>
-                  <p className="text-2xl font-bold">
-                    QAR {((agreement?.total_amount || 0) - payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0)).toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Late Fees</p>
-                  <p className="text-2xl font-bold">
-                    QAR {payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>}
       </TabsContent>
       
       <TabsContent value="details" className="space-y-6">

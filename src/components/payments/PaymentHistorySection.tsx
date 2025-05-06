@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +16,7 @@ interface PaymentHistoryProps {
   leaseId?: string;
   onPaymentDeleted?: () => void;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
+  showAnalytics?: boolean; // New prop to control if analytics section is shown
 }
 
 export function PaymentHistorySection({
@@ -25,7 +25,8 @@ export function PaymentHistorySection({
   rentAmount,
   leaseId,
   onPaymentDeleted,
-  onRecordPayment
+  onRecordPayment,
+  showAnalytics = true // Default to true to maintain backward compatibility
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
@@ -260,28 +261,31 @@ export function PaymentHistorySection({
         />
       )}
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Analytics</CardTitle>
-          <CardDescription>Financial metrics for this agreement</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
-              <p className="text-2xl font-bold">QAR {formatCurrency(amountPaid)}</p>
+      {/* Only render the analytics section if showAnalytics is true */}
+      {showAnalytics && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Analytics</CardTitle>
+            <CardDescription>Financial metrics for this agreement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
+                <p className="text-2xl font-bold">QAR {formatCurrency(amountPaid)}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <p className="text-sm font-medium text-muted-foreground">Remaining Balance</p>
+                <p className="text-2xl font-bold">QAR {formatCurrency(balance)}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <p className="text-sm font-medium text-muted-foreground">Late Fees</p>
+                <p className="text-2xl font-bold">QAR {formatCurrency(lateFees)}</p>
+              </div>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm font-medium text-muted-foreground">Remaining Balance</p>
-              <p className="text-2xl font-bold">QAR {formatCurrency(balance)}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm font-medium text-muted-foreground">Late Fees</p>
-              <p className="text-2xl font-bold">QAR {formatCurrency(lateFees)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
