@@ -27,11 +27,13 @@ const CustomerSelector = ({
   const [customers, setCustomers] = useState<CustomerInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch customers when the component mounts or when search query changes
   useEffect(() => {
     const fetchCustomers = async () => {
       setLoading(true);
+      setError(null);
       try {
         let query = supabase
           .from('profiles')
@@ -47,12 +49,22 @@ const CustomerSelector = ({
         
         if (error) {
           console.error('Error fetching customers:', error);
+          setError('Failed to load customers');
+          setCustomers([]);
           return;
         }
         
-        setCustomers(data as CustomerInfo[]);
+        // Ensure data is an array before setting state
+        if (Array.isArray(data)) {
+          setCustomers(data as CustomerInfo[]);
+        } else {
+          console.warn('Customer data is not an array:', data);
+          setCustomers([]);
+        }
       } catch (error) {
         console.error('Error in fetchCustomers:', error);
+        setError('An unexpected error occurred');
+        setCustomers([]);
       } finally {
         setLoading(false);
       }
@@ -77,13 +89,13 @@ const CustomerSelector = ({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn("justify-between", inputClassName)}
+          className={cn("justify-between w-full", inputClassName)}
         >
           {selectedCustomer ? selectedCustomer.full_name : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" align="start" sideOffset={4} style={{ width: '350px' }}>
+      <PopoverContent className="p-0 w-full min-w-[300px]" align="start" sideOffset={4}>
         <Command>
           <CommandInput 
             placeholder="Search for customers..." 
@@ -95,11 +107,16 @@ const CustomerSelector = ({
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
-          {!loading && (
+          {error && (
+            <div className="flex items-center justify-center py-4 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          {!loading && !error && customers.length === 0 && (
             <CommandEmpty>No customers found.</CommandEmpty>
           )}
           <CommandGroup>
-            {customers.map((customer) => (
+            {!loading && !error && Array.isArray(customers) && customers.map((customer) => (
               <CommandItem
                 key={customer.id}
                 value={customer.id}
