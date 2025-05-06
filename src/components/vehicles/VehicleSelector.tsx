@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,7 @@ const VehicleSelector = ({
   disabled = false
 }: VehicleSelectorProps) => {
   const [open, setOpen] = useState(false);
-  const { vehicles, isLoading, error, setFilters } = useVehicleService({
+  const { vehicles = [], isLoading, error, setFilters } = useVehicleService({
     statuses: ['available']
   });
 
@@ -65,28 +65,36 @@ const VehicleSelector = ({
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder="Search vehicles..." />
-          <CommandEmpty>
-            {isLoading ? "Loading vehicles..." : error ? "Error loading vehicles" : "No vehicles found."}
-          </CommandEmpty>
-          <ScrollArea className="h-72">
-            <CommandGroup>
-              {vehicles && vehicles.map((vehicle) => (
-                <CommandItem
-                  key={vehicle.id}
-                  value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
-                  onSelect={() => handleSelect(vehicle)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </ScrollArea>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <CommandEmpty>
+                {error ? "Error loading vehicles" : "No vehicles found."}
+              </CommandEmpty>
+              <ScrollArea className="h-72">
+                <CommandGroup>
+                  {Array.isArray(vehicles) && vehicles.map((vehicle) => (
+                    <CommandItem
+                      key={vehicle.id}
+                      value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
+                      onSelect={() => handleSelect(vehicle)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </ScrollArea>
+            </>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

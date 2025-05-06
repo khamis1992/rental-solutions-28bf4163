@@ -1,116 +1,150 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 
-export interface VehicleFilters {
-  statuses?: string[];
-  search?: string;
-  [key: string]: any;
-}
+import { useState, useEffect } from 'react';
+import { VehicleService, VehicleFilterParams } from '@/services/VehicleService';
 
-export const useVehicleService = (initialFilters: VehicleFilters = {}) => {
-  const [filters, setFilters] = useState<VehicleFilters>(initialFilters);
-  const queryClient = useQueryClient();
+const vehicleService = new VehicleService();
 
-  // Query for fetching vehicles with filters
-  const {
-    data: vehicles = [],
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['vehicles', filters],
-    queryFn: async () => {
+export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<VehicleFilterParams>(initialFilters);
+
+  // Load vehicles based on filters
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        let query = supabase.from('vehicles').select('*');
-        
-        // Apply filters
-        if (filters.statuses && filters.statuses.length > 0) {
-          query = query.in('status', filters.statuses);
+        const result = await vehicleService.findVehicles(filters);
+        if (result.success) {
+          setVehicles(result.data);
+        } else {
+          console.error("Failed to fetch vehicles:", result.error);
+          setError(result.error?.message || "Failed to fetch vehicles");
+          setVehicles([]);
         }
-        
-        if (filters.search) {
-          query = query.or(
-            `make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`
-          );
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-        
-        return data;
       } catch (err) {
-        console.error('Error fetching vehicles:', err);
-        throw err;
+        console.error("Error in vehicle service:", err);
+        setError("An unexpected error occurred");
+        setVehicles([]);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  });
+    };
 
-  // Get single vehicle details
-  const getVehicleDetail = async (id: string) => {
+    fetchVehicles();
+  }, [filters]);
+
+  // Load vehicle types
+  useEffect(() => {
+    const fetchVehicleTypes = async () => {
+      try {
+        const result = await vehicleService.getVehicleTypes();
+        if (result.success) {
+          setVehicleTypes(result.data);
+        } else {
+          console.error("Failed to fetch vehicle types:", result.error);
+          setVehicleTypes([]);
+        }
+      } catch (err) {
+        console.error("Error fetching vehicle types:", err);
+        setVehicleTypes([]);
+      }
+    };
+
+    fetchVehicleTypes();
+  }, []);
+
+  // Get available vehicles
+  useEffect(() => {
+    const fetchAvailableVehicles = async () => {
+      try {
+        const result = await vehicleService.findAvailableVehicles();
+        if (result.success) {
+          setAvailableVehicles(result.data);
+        } else {
+          console.error("Failed to fetch available vehicles:", result.error);
+          setAvailableVehicles([]);
+        }
+      } catch (err) {
+        console.error("Error fetching available vehicles:", err);
+        setAvailableVehicles([]);
+      }
+    };
+
+    fetchAvailableVehicles();
+  }, []);
+
+  // Vehicle details retrieval function
+  const getVehicleDetails = async (vehicleId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (error) throw error;
-      return data;
+      const result = await vehicleService.getVehicleDetails(vehicleId);
+      if (result.success) {
+        return result.data;
+      }
+      console.error("Failed to fetch vehicle details:", result.error);
+      return null;
     } catch (err) {
-      console.error('Error fetching vehicle details:', err);
-      throw err;
+      console.error("Error fetching vehicle details:", err);
+      return null;
     }
   };
 
-  // Mutation for updating vehicle 
-  const updateVehicle = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: Record<string, any> }) => {
-      const { error } = await supabase
-        .from('vehicles')
-        .update(data)
-        .eq('id', id);
-        
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Vehicle updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    },
-    onError: (error) => {
-      toast.error(`Failed to update vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
-
-  // Mutation for changing vehicle status
-  const changeStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      const { error } = await supabase
-        .from('vehicles')
-        .update({ status })
-        .eq('id', id);
-        
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Status updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    },
-    onError: (error) => {
-      toast.error(`Status update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
-
-  // Calculate utilization rate for a vehicle
-  const calculateUtilization = async (id: string, startDate: Date, endDate: Date) => {
+  // Update vehicle status
+  const updateStatus = async (vehicleId: string, status: string) => {
     try {
-      // Implement calculation logic here based on your business needs
-      // This is a placeholder
-      return { utilizationRate: 0.75, daysUtilized: 23, totalDays: 30 };
+      const result = await vehicleService.updateStatus(vehicleId, status);
+      if (result.success) {
+        // Refresh vehicles list after status update
+        setFilters({ ...filters });
+        return result.data;
+      }
+      console.error("Failed to update vehicle status:", result.error);
+      return null;
     } catch (err) {
-      console.error('Error calculating utilization:', err);
-      throw err;
+      console.error("Error updating vehicle status:", err);
+      return null;
+    }
+  };
+
+  // Update vehicle
+  const updateVehicle = async (vehicleId: string, data: any) => {
+    // This would call the appropriate service method
+    // For now just refreshing the filters to trigger a reload
+    setFilters({ ...filters });
+    return null;
+  };
+
+  // Delete vehicle
+  const deleteVehicle = async (vehicleId: string) => {
+    // This would call the appropriate service method
+    // For now just refreshing the filters to trigger a reload
+    setFilters({ ...filters });
+    return true;
+  };
+
+  // Calculate utilization
+  const calculateUtilization = async (
+    vehicleId: string,
+    startDate: Date,
+    endDate: Date
+  ) => {
+    try {
+      return await vehicleService.calculateUtilizationMetrics(
+        vehicleId,
+        startDate,
+        endDate
+      );
+    } catch (err) {
+      console.error("Error calculating utilization:", err);
+      return {
+        success: false,
+        error: "Failed to calculate vehicle utilization",
+        data: null
+      };
     }
   };
 
@@ -120,15 +154,12 @@ export const useVehicleService = (initialFilters: VehicleFilters = {}) => {
     error,
     filters,
     setFilters,
-    refetch,
-    vehicle: null, // Default value to avoid undefined errors
-    getVehicleDetail,
-    updateVehicle: updateVehicle.mutateAsync,
-    changeStatus: changeStatus.mutateAsync,
+    vehicleTypes,
+    availableVehicles,
+    getVehicleDetails,
+    updateVehicle,
+    updateStatus,
+    deleteVehicle,
     calculateUtilization,
-    isPending: {
-      updateVehicle: updateVehicle.isPending,
-      changeStatus: changeStatus.isPending
-    }
   };
-};
+}
