@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "@/lib/utils";
 
 interface DatePickerProps {
   date?: Date;
@@ -50,7 +50,7 @@ export function DatePicker({
           selected={date}
           onSelect={setDate}
           initialFocus
-          className="pointer-events-auto rounded-md border"
+          className={cn("p-3 pointer-events-auto")}
         />
       </PopoverContent>
     </Popover>
