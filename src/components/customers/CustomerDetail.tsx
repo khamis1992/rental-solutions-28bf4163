@@ -9,8 +9,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock } from 'lucide-react';
-import { CustomerLegalObligations } from '../legal/CustomerLegalObligations';
 import { formatDate } from '@/lib/date-utils';
+import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
+import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
 
 interface CustomerDetailProps {
   customerId?: string;
@@ -220,6 +221,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         <TabsList className="mb-4">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="agreements">Agreements</TabsTrigger>
+          <TabsTrigger value="legal">Legal Obligations</TabsTrigger>
           <TabsTrigger value="fines">Traffic Fines</TabsTrigger>
         </TabsList>
         
@@ -346,9 +348,13 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="legal">
+          {customerId && <CustomerLegalObligationsPage customerId={customerId} />}
+        </TabsContent>
         
         <TabsContent value="fines">
-          {customerId && <CustomerLegalObligations customerId={customerId} />}
+          {customerId && <CustomerTrafficFines customerId={customerId} />}
         </TabsContent>
       </Tabs>
     </div>
