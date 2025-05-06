@@ -122,7 +122,7 @@ export function PaymentHistorySection({
         <PaymentEntryDialog
           open={isPaymentDialogOpen}
           onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={(amount, date, notes, method, reference, includeLatePaymentFee) => {
+          onSubmit={(amount, date, notes, method, reference, includeLatePaymentFee, isPartial, paymentType) => {
             const paymentData: Partial<PaymentHistoryItem> = {
               amount,
               payment_date: date.toISOString(),
@@ -130,7 +130,8 @@ export function PaymentHistorySection({
               payment_method: method,
               transaction_id: reference,
               lease_id: leaseId,
-              status: 'completed'
+              status: 'completed',
+              type: paymentType || 'rent'
             };
             
             if (selectedPayment) {

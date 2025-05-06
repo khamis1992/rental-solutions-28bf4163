@@ -4,6 +4,13 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
 import { Payment } from './PaymentHistory.types';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
 
 export interface PaymentEntryDialogProps {
   open: boolean;
@@ -16,7 +23,8 @@ export interface PaymentEntryDialogProps {
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    paymentType?: string
   ) => Promise<void>;
   defaultAmount?: number | null;
   leaseId?: string;
@@ -28,6 +36,17 @@ export interface PaymentEntryDialogProps {
     daysLate: number;
   } | null;
 }
+
+// Define common payment types
+const PAYMENT_TYPES = [
+  { value: 'rent', label: 'Rent' },
+  { value: 'deposit', label: 'Security Deposit' },
+  { value: 'late_fee', label: 'Late Fee' },
+  { value: 'damage', label: 'Damage Fee' },
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'refund', label: 'Refund' },
+  { value: 'other', label: 'Other' }
+];
 
 export function PaymentEntryDialog({
   open,
@@ -46,6 +65,7 @@ export function PaymentEntryDialog({
   const [referenceNumber, setReferenceNumber] = React.useState<string>(selectedPayment?.reference_number || selectedPayment?.transaction_id || '');
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(false);
+  const [paymentType, setPaymentType] = React.useState<string>(selectedPayment?.type || 'rent');
 
   // Update form values when selected payment changes
   React.useEffect(() => {
@@ -55,6 +75,7 @@ export function PaymentEntryDialog({
       setNotes(selectedPayment.notes || selectedPayment.description || '');
       setPaymentMethod(selectedPayment.payment_method || 'cash');
       setReferenceNumber(selectedPayment.reference_number || selectedPayment.transaction_id || '');
+      setPaymentType(selectedPayment.type || 'rent');
     } else {
       // Reset form when no payment is selected
       setAmount(defaultAmount || 0);
@@ -64,6 +85,7 @@ export function PaymentEntryDialog({
       setReferenceNumber('');
       setIncludeLatePaymentFee(false);
       setIsPartialPayment(false);
+      setPaymentType('rent');
     }
   }, [selectedPayment, defaultAmount]);
 
@@ -75,7 +97,8 @@ export function PaymentEntryDialog({
       paymentMethod,
       referenceNumber,
       includeLatePaymentFee,
-      isPartialPayment
+      isPartialPayment,
+      paymentType
     );
     onOpenChange(false);
   };
@@ -108,18 +131,40 @@ export function PaymentEntryDialog({
           </FormGroup>
           <FormGroup>
             <FormRow>
-              <FormField label="Payment Method" htmlFor="paymentMethod">
-                <select
-                  id="paymentMethod"
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
+              <FormField label="Payment Type" htmlFor="paymentType">
+                <Select
+                  value={paymentType}
+                  onValueChange={(value) => setPaymentType(value)}
                 >
-                  <option value="cash">Cash</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="other">Other</option>
-                </select>
+                  <SelectTrigger id="paymentType">
+                    <SelectValue placeholder="Select payment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </FormRow>
+            <FormRow>
+              <FormField label="Payment Method" htmlFor="paymentMethod">
+                <Select
+                  value={paymentMethod}
+                  onValueChange={(value) => setPaymentMethod(value)}
+                >
+                  <SelectTrigger id="paymentMethod">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormField>
             </FormRow>
             <FormRow>
