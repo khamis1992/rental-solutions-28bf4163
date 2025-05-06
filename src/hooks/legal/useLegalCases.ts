@@ -25,7 +25,7 @@ export const useLegalCases = () => {
       throw new Error(error.message);
     }
 
-    return data as LegalCase[];
+    return data || [];
   };
 
   const fetchLegalCaseById = async (id: string): Promise<LegalCase> => {
@@ -173,7 +173,7 @@ export const useLegalCases = () => {
 
       console.log(`Found ${data?.length || 0} legal cases for customer ${customerId}`);
       return data || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to get legal cases for customer ${customerId}:`, error);
       // Return empty array instead of throwing to handle gracefully
       return [];

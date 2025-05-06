@@ -73,11 +73,14 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
         } catch (error) {
           console.error("Error fetching legal cases:", error);
           setError("Failed to fetch legal cases. Please try again later.");
+        } finally {
+          // Important: Always set loading to false after fetch completes, regardless of result
+          setLoading(false);
         }
       } catch (err: any) {
         console.error("Failed to load legal obligations:", err);
         setError(err.message || "Failed to load legal obligations");
-      } finally {
+        // Also ensure loading is set to false on error
         setLoading(false);
       }
     };
