@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from '@/lib/date-utils';
-import { Loader2, AlertTriangle, FileText, Scale, CalendarClock } from 'lucide-react';
+import { Loader2, AlertTriangle, FileText, Scale, CalendarClock, Plus } from 'lucide-react';
 import { CustomerObligation, UrgencyLevel } from './CustomerLegalObligations';
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Button } from '../ui/button';
@@ -35,52 +35,44 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
 
   useEffect(() => {
     const loadLegalObligations = async () => {
+      if (!customerId) {
+        console.error("No customer ID provided");
+        setError("No customer ID provided");
+        setLoading(false);
+        return;
+      }
+      
       try {
-        setLoading(true);
-        
-        // Ensure we have a valid customerId before proceeding
-        if (!customerId) {
-          console.error("No customer ID provided");
-          setError("No customer ID provided");
-          setLoading(false);
-          return;
-        }
-        
         console.log("Fetching legal cases for customer:", customerId);
+        setLoading(true);
+        setError(null);
         
-        try {
-          // Get legal cases for this customer
-          const legalCases = await getLegalCasesByCustomerId(customerId);
-          console.log("Legal cases fetched:", legalCases);
-          
-          // Transform legal cases to obligations format
-          const customerObligations: CustomerObligation[] = legalCases.map(legalCase => ({
-            id: legalCase.id,
-            customerId: legalCase.customer_id,
-            customerName: legalCase.profiles?.full_name || 'Unknown',
-            obligationType: 'legal_case',
-            amount: legalCase.amount_owed || 0,
-            dueDate: legalCase.resolution_date ? new Date(legalCase.resolution_date) : new Date(),
-            description: legalCase.description || 'Legal case',
-            urgency: (legalCase.priority as UrgencyLevel) || 'medium',
-            status: legalCase.status || 'pending',
-            daysOverdue: calculateDaysOverdue(legalCase.resolution_date),
-            agreementId: undefined,
-            lateFine: 0,
-          }));
-          
-          setObligations(customerObligations);
-        } catch (error) {
-          console.error("Error fetching legal cases:", error);
-          setError("Failed to fetch legal cases. Please try again later.");
-        } finally {
-          // Important: Always set loading to false after fetch completes, regardless of result
-          setLoading(false);
-        }
+        // Get legal cases for this customer
+        const legalCases = await getLegalCasesByCustomerId(customerId);
+        console.log("Legal cases fetched:", legalCases);
+        
+        // Transform legal cases to obligations format
+        const customerObligations: CustomerObligation[] = legalCases.map(legalCase => ({
+          id: legalCase.id,
+          customerId: legalCase.customer_id,
+          customerName: legalCase.profiles?.full_name || 'Unknown',
+          obligationType: 'legal_case',
+          amount: legalCase.amount_owed || 0,
+          dueDate: legalCase.resolution_date ? new Date(legalCase.resolution_date) : new Date(),
+          description: legalCase.description || 'Legal case',
+          urgency: (legalCase.priority as UrgencyLevel) || 'medium',
+          status: legalCase.status || 'pending',
+          daysOverdue: calculateDaysOverdue(legalCase.resolution_date),
+          agreementId: undefined,
+          lateFine: 0,
+        }));
+        
+        setObligations(customerObligations);
       } catch (err: any) {
         console.error("Failed to load legal obligations:", err);
-        setError(err.message || "Failed to load legal obligations");
-        // Also ensure loading is set to false on error
+        setError(err?.message || "Failed to load legal obligations");
+      } finally {
+        // Always set loading to false after fetch completes
         setLoading(false);
       }
     };
@@ -181,7 +173,7 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
           </p>
         </div>
         <Button onClick={handleCreateNewCase}>
-          <FileText className="mr-2 h-4 w-4" /> Create New Case
+          <Plus className="mr-2 h-4 w-4" /> Create New Case
         </Button>
       </div>
 
@@ -273,8 +265,19 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No legal obligations found for this customer
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4">
+              <div className="rounded-full bg-blue-50 p-3">
+                <FileText className="h-8 w-8 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium">No legal cases found</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This customer does not have any legal obligations or cases.
+                </p>
+              </div>
+              <Button onClick={handleCreateNewCase} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Create New Case
+              </Button>
             </div>
           )}
         </CardContent>
