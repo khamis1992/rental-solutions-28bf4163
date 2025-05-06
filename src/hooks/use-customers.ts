@@ -1,8 +1,15 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { Database } from '@/types/database.types';
+
+// Create a Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -42,11 +49,11 @@ export const useCustomers = () => {
         let query = supabase
           .from(PROFILES_TABLE)
           .select('*')
-          .eq('role', CUSTOMER_ROLE)
+          .eq('role', CUSTOMER_ROLE as any)
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          query = query.eq('status', searchParams.status as any);
         }
 
         if (searchParams.query) {
@@ -65,17 +72,17 @@ export const useCustomers = () => {
         console.log('Raw customer data from profiles table:', data);
         
         const processedCustomers = (data || []).map(profile => ({
-          id: profile.id,
+          id: profile.id || '',
           full_name: profile.full_name || '',
           email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''),
+          phone: profile.phone_number ? stripCountryCode(profile.phone_number) : '',
           driver_license: profile.driver_license || '',
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
+          status: (profile.status || 'active') as any,
+          created_at: profile.created_at || '',
+          updated_at: profile.updated_at || '',
         }));
         
         console.log('Processed customers from profiles:', processedCustomers);
@@ -122,10 +129,14 @@ export const useCustomers = () => {
       }
       
       console.log('Created customer:', data);
-      return {
+      const result = {
         ...data,
-        phone: stripCountryCode(data.phone_number || '')
+        id: data?.id || '',
+        phone: stripCountryCode(data?.phone_number || ''),
+        status: data?.status || 'active',
       } as Customer;
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -159,9 +170,15 @@ export const useCustomers = () => {
 
       if (error) throw new Error(error.message);
       
+      if (!data || data.length === 0) {
+        throw new Error('Failed to update customer: No data returned');
+      }
+      
       return {
         ...data[0],
-        phone: stripCountryCode(data[0].phone_number || '')
+        id: data[0].id || '',
+        phone: stripCountryCode(data[0].phone_number || ''),
+        status: data[0].status || 'active',
       } as Customer;
     },
     onSuccess: () => {
@@ -216,17 +233,17 @@ export const useCustomers = () => {
       console.log('Raw customer data from profiles:', data);
 
       const customerData: Customer = {
-        id: data.id,
+        id: data.id || '',
         full_name: data.full_name || '',
         email: data.email || '',
-        phone: stripCountryCode(data.phone_number || ''),
+        phone: data.phone_number ? stripCountryCode(data.phone_number) : '',
         driver_license: data.driver_license || '',
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+        status: (data.status || 'active') as any,
+        created_at: data.created_at || '',
+        updated_at: data.updated_at || '',
       };
       
       return customerData;
