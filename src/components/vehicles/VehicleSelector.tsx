@@ -48,7 +48,7 @@ const VehicleSelector = ({
     setOpen(false);
   };
 
-  // Ensure vehicles is always an array, even if the service returns undefined
+  // Always ensure we have an array to work with
   const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
 
   return (
@@ -59,7 +59,7 @@ const VehicleSelector = ({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled}
+          disabled={disabled || isLoading}
         >
           {selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})` : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -77,25 +77,31 @@ const VehicleSelector = ({
               <CommandEmpty>
                 {error ? "Error loading vehicles" : "No vehicles found."}
               </CommandEmpty>
-              <ScrollArea className="h-72">
-                <CommandGroup>
-                  {safeVehicles.map((vehicle) => (
-                    <CommandItem
-                      key={vehicle.id}
-                      value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
-                      onSelect={() => handleSelect(vehicle)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </ScrollArea>
+              <CommandGroup>
+                {safeVehicles.length > 0 ? (
+                  <ScrollArea className="h-72">
+                    {safeVehicles.map((vehicle) => (
+                      <CommandItem
+                        key={vehicle.id}
+                        value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
+                        onSelect={() => handleSelect(vehicle)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                      </CommandItem>
+                    ))}
+                  </ScrollArea>
+                ) : (
+                  <div className="py-6 text-center text-sm">
+                    No available vehicles found
+                  </div>
+                )}
+              </CommandGroup>
             </>
           )}
         </Command>

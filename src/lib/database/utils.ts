@@ -47,6 +47,54 @@ export function asProfileStatus(status: string): string {
 }
 
 /**
+ * Validates and normalizes lease status for database operations
+ * @param status - Status string to validate
+ * @returns Validated lease status string
+ */
+export function asLeaseStatus(status: string): string {
+  // Convert application status strings to database status strings
+  switch (status.toLowerCase()) {
+    case 'active':
+    case 'pending':
+    case 'cancelled':
+    case 'completed':
+    case 'pending_payment':
+    case 'closed':
+    case 'draft':
+    case 'pending_deposit':
+    case 'terminated':
+    case 'archived':
+      return status.toLowerCase();
+    default:
+      console.warn(`Unknown lease status '${status}', defaulting to 'pending'`);
+      return 'pending';
+  }
+}
+
+/**
+ * Validates and normalizes payment status for database operations
+ * @param status - Status string to validate
+ * @returns Validated payment status string
+ */
+export function asPaymentStatus(status: string): string {
+  // Convert application status strings to database status strings
+  switch (status.toLowerCase()) {
+    case 'pending':
+    case 'paid':
+    case 'late':
+    case 'overdue':
+    case 'refunded':
+    case 'partial':
+    case 'cancelled':
+    case 'scheduled':
+      return status.toLowerCase();
+    default:
+      console.warn(`Unknown payment status '${status}', defaulting to 'pending'`);
+      return 'pending';
+  }
+}
+
+/**
  * Validates and normalizes vehicle ID for database operations
  * @param id - ID string to validate
  * @returns Validated vehicle ID string

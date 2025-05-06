@@ -5,6 +5,7 @@ import { VehicleService, VehicleFilterParams } from '@/services/VehicleService';
 const vehicleService = new VehicleService();
 
 export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
+  // Initialize vehicles as empty array to avoid undefined issues
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<any[]>([]);
@@ -22,15 +23,18 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
         const result = await vehicleService.findVehicles(filters);
         if (result && result.success) {
           console.log("Vehicles fetched successfully:", result.data);
-          setVehicles(result.data || []);
+          // Ensure we always have an array, even if result.data is null/undefined
+          setVehicles(Array.isArray(result.data) ? result.data : []);
         } else {
           console.error("Failed to fetch vehicles:", result?.error || "Unknown error");
           setError(result?.error?.message || "Failed to fetch vehicles");
+          // Reset to empty array on error
           setVehicles([]);
         }
       } catch (err) {
         console.error("Error in vehicle service:", err);
         setError("An unexpected error occurred");
+        // Reset to empty array on error
         setVehicles([]);
       } finally {
         setIsLoading(false);
@@ -46,7 +50,8 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
       try {
         const result = await vehicleService.getVehicleTypes();
         if (result && result.success) {
-          setVehicleTypes(result.data || []);
+          // Ensure we always have an array
+          setVehicleTypes(Array.isArray(result.data) ? result.data : []);
         } else {
           console.error("Failed to fetch vehicle types:", result?.error || "Unknown error");
           setVehicleTypes([]);
@@ -66,7 +71,8 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
       try {
         const result = await vehicleService.findAvailableVehicles();
         if (result && result.success) {
-          setAvailableVehicles(result.data || []);
+          // Ensure we always have an array
+          setAvailableVehicles(Array.isArray(result.data) ? result.data : []);
         } else {
           console.error("Failed to fetch available vehicles:", result?.error || "Unknown error");
           setAvailableVehicles([]);
@@ -82,6 +88,11 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
 
   // Vehicle details retrieval function
   const getVehicleDetails = async (vehicleId: string) => {
+    if (!vehicleId) {
+      console.error("Cannot fetch vehicle details: No vehicle ID provided");
+      return null;
+    }
+    
     try {
       const result = await vehicleService.getVehicleDetails(vehicleId);
       if (result && result.success) {
@@ -97,6 +108,11 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
 
   // Update vehicle status
   const updateStatus = async (vehicleId: string, status: string) => {
+    if (!vehicleId) {
+      console.error("Cannot update vehicle status: No vehicle ID provided");
+      return null;
+    }
+    
     try {
       const result = await vehicleService.updateStatus(vehicleId, status);
       if (result && result.success) {
@@ -114,6 +130,11 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
 
   // Update vehicle
   const updateVehicle = async (vehicleId: string, data: any) => {
+    if (!vehicleId) {
+      console.error("Cannot update vehicle: No vehicle ID provided");
+      return null;
+    }
+    
     // This would call the appropriate service method
     // For now just refreshing the filters to trigger a reload
     setFilters({ ...filters });
@@ -122,6 +143,11 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
 
   // Delete vehicle
   const deleteVehicle = async (vehicleId: string) => {
+    if (!vehicleId) {
+      console.error("Cannot delete vehicle: No vehicle ID provided");
+      return false;
+    }
+    
     // This would call the appropriate service method
     // For now just refreshing the filters to trigger a reload
     setFilters({ ...filters });
@@ -134,6 +160,15 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
     startDate: Date,
     endDate: Date
   ) => {
+    if (!vehicleId) {
+      console.error("Cannot calculate utilization: No vehicle ID provided");
+      return {
+        success: false,
+        error: "Vehicle ID is required",
+        data: null
+      };
+    }
+    
     try {
       return await vehicleService.calculateUtilizationMetrics(
         vehicleId,

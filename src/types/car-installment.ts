@@ -24,6 +24,7 @@ export interface CarInstallmentContract {
 
 // Define the car installment payment status type
 export type PaymentStatusType = 'pending' | 'paid' | 'overdue' | 'cancelled' | 'scheduled';
+export type InstallmentStatus = PaymentStatusType; // Alias for backward compatibility
 
 // Define the car installment payment type
 export interface CarInstallmentPayment {
@@ -47,6 +48,37 @@ export interface CarInstallmentPayment {
   last_status_change?: string;
   created_at: string;
   updated_at: string;
+}
+
+// Define the contract summary type
+export interface ContractSummary {
+  totalContracts: number;
+  totalPortfolioValue: number;
+  totalCollections: number;
+  upcomingPayments: number;
+}
+
+// Define the imported payment type
+export interface ImportedPayment {
+  cheque_number: string;
+  drawee_bank: string;
+  amount: number;
+  payment_date: string;
+  contract_id?: string;
+  notes?: string;
+}
+
+// Define the contract filters type
+export interface ContractFilters {
+  search: string;
+  status?: string;
+}
+
+// Define the payment filters type
+export interface PaymentFilters {
+  status?: PaymentStatusType | 'all';
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 // Mock data helper for car installment services

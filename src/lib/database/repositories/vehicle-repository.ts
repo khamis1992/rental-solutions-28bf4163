@@ -69,6 +69,20 @@ export class VehicleRepository extends Repository<'vehicles'> {
    */
   async updateStatus(vehicleId: string, status: string): Promise<DbSingleResponse<VehicleRow>> {
     try {
+      if (!vehicleId) {
+        return {
+          data: null,
+          error: new Error('Vehicle ID is required')
+        };
+      }
+      
+      if (!status) {
+        return {
+          data: null,
+          error: new Error('Status is required')
+        };
+      }
+      
       const response = await this.client
         .from('vehicles')
         .update({ status: asVehicleStatus(status) })
@@ -94,11 +108,23 @@ export class VehicleRepository extends Repository<'vehicles'> {
    */
   async getWithLease(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { leases: any[] }>> {
     try {
+      if (!vehicleId) {
+        return {
+          data: null,
+          error: new Error('Vehicle ID is required')
+        };
+      }
+      
       const response = await this.client
         .from('vehicles')
         .select('*, leases(*)')
         .eq('id', asVehicleId(vehicleId))
         .single();
+      
+      // Ensure leases is always an array
+      if (response.data && !Array.isArray(response.data.leases)) {
+        response.data.leases = [];
+      }
       
       return { 
         data: response.data || null, 
@@ -118,11 +144,23 @@ export class VehicleRepository extends Repository<'vehicles'> {
    */
   async findWithDetails(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { maintenance: any[] }>> {
     try {
+      if (!vehicleId) {
+        return {
+          data: null,
+          error: new Error('Vehicle ID is required')
+        };
+      }
+      
       const response = await this.client
         .from('vehicles')
         .select('*, maintenance:vehicle_maintenance(*)')
         .eq('id', asVehicleId(vehicleId))
         .single();
+      
+      // Ensure maintenance is always an array
+      if (response.data && !Array.isArray(response.data.maintenance)) {
+        response.data.maintenance = [];
+      }
       
       return { 
         data: response.data || null, 

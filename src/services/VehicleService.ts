@@ -1,3 +1,4 @@
+
 import { vehicleRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
@@ -86,6 +87,7 @@ export class VehicleService extends BaseService<'vehicles'> {
       }
       
       console.log(`Retrieved ${data?.length || 0} vehicles`);
+      // Always return an array, even if data is null
       return data || [];
     });
   }
@@ -105,6 +107,7 @@ export class VehicleService extends BaseService<'vehicles'> {
         throw new Error(`Failed to fetch available vehicles: ${response.error.message}`);
       }
       
+      // Always return an array, even if data is null
       return response.data || [];
     });
   }
@@ -116,10 +119,23 @@ export class VehicleService extends BaseService<'vehicles'> {
    */
   async getVehicleDetails(id: string): Promise<ServiceResult<Vehicle & { maintenance: any[] }>> {
     return handleServiceOperation(async () => {
+      if (!id) {
+        throw new Error("Vehicle ID is required for getVehicleDetails");
+      }
+      
       const response = await this.repository.findWithDetails(id);
       
       if (response.error) {
         throw new Error(`Failed to fetch vehicle details for ID ${id}: ${response.error.message}`);
+      }
+      
+      if (!response.data) {
+        throw new Error(`No vehicle found with ID ${id}`);
+      }
+      
+      // Ensure maintenance is always an array
+      if (!response.data.maintenance) {
+        response.data.maintenance = [];
       }
       
       return response.data;
@@ -134,11 +150,23 @@ export class VehicleService extends BaseService<'vehicles'> {
    */
   async updateStatus(id: string, status: string): Promise<ServiceResult<Vehicle>> {
     return handleServiceOperation(async () => {
+      if (!id) {
+        throw new Error("Vehicle ID is required for updateStatus");
+      }
+      
+      if (!status) {
+        throw new Error("Status value is required for updateStatus");
+      }
+      
       const dbStatus = asVehicleStatus(status);
       const response = await this.repository.updateStatus(id, dbStatus);
       
       if (response.error) {
         throw new Error(`Failed to update vehicle status to ${status} for vehicle ID ${id}: ${response.error.message}`);
+      }
+      
+      if (!response.data) {
+        throw new Error(`Vehicle with ID ${id} not found`);
       }
       
       return response.data;
@@ -161,6 +189,7 @@ export class VehicleService extends BaseService<'vehicles'> {
         throw new Error(`Failed to fetch vehicle types: ${error.message}`);
       }
       
+      // Always return an array, even if data is null
       return data || [];
     });
   }
@@ -178,6 +207,14 @@ export class VehicleService extends BaseService<'vehicles'> {
     endDate: Date
   ): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
+      if (!vehicleId) {
+        throw new Error("Vehicle ID is required for calculateUtilizationMetrics");
+      }
+      
+      if (!startDate || !endDate) {
+        throw new Error("Both startDate and endDate are required for calculateUtilizationMetrics");
+      }
+      
       const { data: leases, error } = await supabase
         .from('leases')
         .select('*')
@@ -192,7 +229,8 @@ export class VehicleService extends BaseService<'vehicles'> {
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       
       let daysRented = 0;
-      leases?.forEach(lease => {
+      const safeLeases = leases || [];
+      safeLeases.forEach(lease => {
         const leaseStart = new Date(lease.start_date || startDate);
         const leaseEnd = new Date(lease.end_date || endDate);
         
@@ -209,7 +247,7 @@ export class VehicleService extends BaseService<'vehicles'> {
         totalDays,
         daysRented,
         utilizationRate: Math.round(utilizationRate * 100) / 100,
-        leasesCount: leases?.length || 0
+        leasesCount: safeLeases.length || 0
       };
     });
   }
