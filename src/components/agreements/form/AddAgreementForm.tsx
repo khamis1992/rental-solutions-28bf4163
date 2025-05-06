@@ -34,6 +34,11 @@ const AddAgreementForm = () => {
   const [dailyLateFee, setDailyLateFee] = useState<string>("120");
   const [totalContractAmount, setTotalContractAmount] = useState<string>("0");
   const [notes, setNotes] = useState<string>("");
+  
+  // Form validation state
+  const [customerError, setCustomerError] = useState<string>("");
+  const [vehicleError, setVehicleError] = useState<string>("");
+  const [rentError, setRentError] = useState<string>("");
 
   // Generate unique agreement number on component mount
   useEffect(() => {
@@ -64,27 +69,29 @@ const AddAgreementForm = () => {
   }, [rentAmount, durationMonths]);
 
   const validateForm = () => {
+    let isValid = true;
+    
+    // Reset validation errors
+    setCustomerError("");
+    setVehicleError("");
+    setRentError("");
+    
     if (!selectedCustomer) {
-      toast.error("Please select a customer");
-      return false;
+      setCustomerError("Please select a customer");
+      isValid = false;
     }
     
     if (!selectedVehicle) {
-      toast.error("Please select a vehicle");
-      return false;
-    }
-    
-    if (!startDate) {
-      toast.error("Please select a start date");
-      return false;
+      setVehicleError("Please select a vehicle");
+      isValid = false;
     }
     
     if (parseFloat(rentAmount) <= 0) {
-      toast.error("Rent amount must be greater than zero");
-      return false;
+      setRentError("Rent amount must be greater than zero");
+      isValid = false;
     }
     
-    return true;
+    return isValid;
   };
 
   const generatePaymentSchedule = async (leaseId: string) => {
@@ -100,7 +107,10 @@ const AddAgreementForm = () => {
         paymentDates.push({
           lease_id: leaseId,
           amount: rentAmountNum,
+          amount_paid: 0,
+          balance: rentAmountNum,
           due_date: paymentDate.toISOString(),
+          original_due_date: paymentDate.toISOString(),
           status: i === 0 ? 'pending' : 'pending',
           type: 'rent',
           description: `Month ${i + 1} payment`
@@ -184,7 +194,11 @@ const AddAgreementForm = () => {
     setIsSubmitting(true);
     
     try {
-      let vehicleId = selectedVehicle?.id;
+      if (!selectedCustomer || !selectedVehicle) {
+        throw new Error("Customer and vehicle must be selected");
+      }
+      
+      let vehicleId = selectedVehicle.id;
       
       // Check if vehicle is available if status is active
       if (vehicleId && status === 'active') {
@@ -205,7 +219,7 @@ const AddAgreementForm = () => {
       // Create agreement
       const leaseData = {
         agreement_number: agreementNumber,
-        customer_id: selectedCustomer!.id,
+        customer_id: selectedCustomer.id,
         vehicle_id: vehicleId,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -284,6 +298,8 @@ const AddAgreementForm = () => {
                 setSelectedCustomer={setSelectedCustomer}
                 selectedVehicle={selectedVehicle}
                 setSelectedVehicle={setSelectedVehicle}
+                customerError={customerError}
+                vehicleError={vehicleError}
               />
             </div>
             
@@ -299,6 +315,7 @@ const AddAgreementForm = () => {
               setTotalContractAmount={setTotalContractAmount}
               notes={notes}
               setNotes={setNotes}
+              rentError={rentError}
             />
             
             {/* Submit Button */}

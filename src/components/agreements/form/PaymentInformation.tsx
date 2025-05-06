@@ -2,6 +2,8 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface PaymentInformationProps {
   rentAmount: string;
@@ -14,6 +16,7 @@ interface PaymentInformationProps {
   setTotalContractAmount: (value: string) => void;
   notes: string;
   setNotes: (value: string) => void;
+  rentError?: string;
 }
 
 export const PaymentInformation: React.FC<PaymentInformationProps> = ({
@@ -26,7 +29,8 @@ export const PaymentInformation: React.FC<PaymentInformationProps> = ({
   totalContractAmount,
   setTotalContractAmount,
   notes,
-  setNotes
+  setNotes,
+  rentError
 }) => {
   return (
     <div className="mt-8 space-y-4">
@@ -42,8 +46,16 @@ export const PaymentInformation: React.FC<PaymentInformationProps> = ({
             type="number"
             value={rentAmount}
             onChange={(e) => setRentAmount(e.target.value)}
-            className="w-full"
+            className={`w-full ${rentError ? 'border-red-500' : ''}`}
           />
+          {rentError && (
+            <Alert variant="destructive" className="py-2 mt-1">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm ml-2">
+                {rentError}
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         
         <div className="space-y-2">

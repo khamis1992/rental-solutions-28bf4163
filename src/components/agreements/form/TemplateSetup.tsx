@@ -24,6 +24,8 @@ export const useTemplateSetup = (): TemplateSetupResult => {
     const checkTemplateExists = async () => {
       try {
         // Check if agreement templates exist
+        setCheckingTemplate(true);
+        
         const { data, error } = await supabase
           .from('agreement_templates')
           .select('id')
@@ -32,10 +34,12 @@ export const useTemplateSetup = (): TemplateSetupResult => {
         if (error) {
           console.error("Error checking templates:", error);
           setTemplateError("Error checking templates: " + error.message);
+          setStandardTemplateExists(false);
           return;
         }
         
         const exists = Array.isArray(data) && data.length > 0;
+        console.log("Template check result:", exists ? "Templates found" : "No templates found");
         setStandardTemplateExists(exists);
         
         // For demo purposes, simulate a specific URL check
@@ -45,9 +49,10 @@ export const useTemplateSetup = (): TemplateSetupResult => {
         });
         
         setTemplateError(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in template setup:", error);
-        setTemplateError("Error in template setup");
+        setTemplateError("Error in template setup: " + (error.message || "Unknown error"));
+        setStandardTemplateExists(false);
       } finally {
         setCheckingTemplate(false);
       }
