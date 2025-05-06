@@ -19,11 +19,11 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
       setError(null);
       try {
         const result = await vehicleService.findVehicles(filters);
-        if (result.success) {
-          setVehicles(result.data);
+        if (result && result.success) {
+          setVehicles(result.data || []);
         } else {
-          console.error("Failed to fetch vehicles:", result.error);
-          setError(result.error?.message || "Failed to fetch vehicles");
+          console.error("Failed to fetch vehicles:", result?.error || "Unknown error");
+          setError(result?.error?.message || "Failed to fetch vehicles");
           setVehicles([]);
         }
       } catch (err) {
@@ -43,10 +43,10 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
     const fetchVehicleTypes = async () => {
       try {
         const result = await vehicleService.getVehicleTypes();
-        if (result.success) {
-          setVehicleTypes(result.data);
+        if (result && result.success) {
+          setVehicleTypes(result.data || []);
         } else {
-          console.error("Failed to fetch vehicle types:", result.error);
+          console.error("Failed to fetch vehicle types:", result?.error || "Unknown error");
           setVehicleTypes([]);
         }
       } catch (err) {
@@ -63,10 +63,10 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
     const fetchAvailableVehicles = async () => {
       try {
         const result = await vehicleService.findAvailableVehicles();
-        if (result.success) {
-          setAvailableVehicles(result.data);
+        if (result && result.success) {
+          setAvailableVehicles(result.data || []);
         } else {
-          console.error("Failed to fetch available vehicles:", result.error);
+          console.error("Failed to fetch available vehicles:", result?.error || "Unknown error");
           setAvailableVehicles([]);
         }
       } catch (err) {
@@ -82,10 +82,10 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
   const getVehicleDetails = async (vehicleId: string) => {
     try {
       const result = await vehicleService.getVehicleDetails(vehicleId);
-      if (result.success) {
+      if (result && result.success) {
         return result.data;
       }
-      console.error("Failed to fetch vehicle details:", result.error);
+      console.error("Failed to fetch vehicle details:", result?.error || "Unknown error");
       return null;
     } catch (err) {
       console.error("Error fetching vehicle details:", err);
@@ -97,12 +97,12 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
   const updateStatus = async (vehicleId: string, status: string) => {
     try {
       const result = await vehicleService.updateStatus(vehicleId, status);
-      if (result.success) {
+      if (result && result.success) {
         // Refresh vehicles list after status update
         setFilters({ ...filters });
         return result.data;
       }
-      console.error("Failed to update vehicle status:", result.error);
+      console.error("Failed to update vehicle status:", result?.error || "Unknown error");
       return null;
     } catch (err) {
       console.error("Error updating vehicle status:", err);

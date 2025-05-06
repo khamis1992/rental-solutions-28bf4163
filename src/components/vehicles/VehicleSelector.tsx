@@ -76,7 +76,7 @@ const VehicleSelector = ({
               </CommandEmpty>
               <ScrollArea className="h-72">
                 <CommandGroup>
-                  {Array.isArray(vehicles) && vehicles.map((vehicle) => (
+                  {(Array.isArray(vehicles) ? vehicles : []).map((vehicle) => (
                     <CommandItem
                       key={vehicle.id}
                       value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}

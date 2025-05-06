@@ -62,6 +62,10 @@ export abstract class BaseService<T extends string> {
    */
   async findById(id: string): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
+      if (!id) {
+        throw new Error('ID is required');
+      }
+      
       const response = await this.repository.findById(id);
       if (response.error) {
         throw new Error(`Failed to find item with ID ${id}: ${response.error.message}`);
@@ -80,6 +84,10 @@ export abstract class BaseService<T extends string> {
    */
   async create(data: any): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
+      if (!data) {
+        throw new Error('Data is required for creating a new item');
+      }
+      
       const response = await this.repository.create(data);
       if (response.error) {
         throw new Error(`Failed to create item: ${response.error.message}`);
@@ -96,6 +104,14 @@ export abstract class BaseService<T extends string> {
    */
   async update(id: string, data: any): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
+      if (!id) {
+        throw new Error('ID is required for updating an item');
+      }
+      
+      if (!data) {
+        throw new Error('Data is required for updating an item');
+      }
+      
       const response = await this.repository.update(id, data);
       if (response.error) {
         throw new Error(`Failed to update item with ID ${id}: ${response.error.message}`);
@@ -111,6 +127,10 @@ export abstract class BaseService<T extends string> {
    */
   async delete(id: string): Promise<ServiceResult<boolean>> {
     return handleServiceOperation(async () => {
+      if (!id) {
+        throw new Error('ID is required for deleting an item');
+      }
+      
       const response = await this.repository.delete(id);
       if (response.error) {
         throw new Error(`Failed to delete item with ID ${id}: ${response.error.message}`);
