@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,22 +11,6 @@ import {
   InstallmentStatus
 } from '@/types/car-installment';
 import { useToast } from './use-toast';
-import { PaymentStatus } from '@/lib/database/types';
-import { Database } from '@/types/database.types';
-
-type DbTables = Database['public']['Tables'];
-type ContractInsert = DbTables['car_installment_contracts']['Insert'];
-type PaymentInsert = DbTables['car_installment_payments']['Insert'];
-type PaymentUpdate = DbTables['car_installment_payments']['Update'];
-
-// Helper function to safely handle and cast Supabase responses
-function safelyHandleResponse<T>(response: any, defaultValue: T): T {
-  if (response?.error) {
-    console.error('Supabase query error:', response.error);
-    return defaultValue;
-  }
-  return (response?.data || defaultValue) as T;
-}
 
 export function useCarInstallments() {
   const { toast } = useToast();
@@ -50,41 +33,33 @@ export function useCarInstallments() {
     async () => {
       try {
         // Get all contracts for total calculation
-        const { data: contracts, error: contractsError } = await supabase
+        const { data: contracts } = await supabase
           .from('car_installment_contracts')
           .select('total_contract_value, amount_paid');
-          
-        if (contractsError) throw contractsError;
           
         // Calculate upcoming payments (due in 30 days)
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
         
-        const { data: upcomingPayments, error: paymentsError } = await supabase
+        const { data: upcomingPayments } = await supabase
           .from('car_installment_payments')
           .select('amount')
           .lte('payment_date', thirtyDaysFromNow.toISOString())
           .gt('payment_date', new Date().toISOString())
-          .eq('status', 'pending' as PaymentStatus);
-        
-        if (paymentsError) throw paymentsError;
+          .eq('status', 'pending');
         
         if (!contracts) {
           throw new Error('Failed to fetch contract data');
         }
         
-        // Check if contracts array exists before reducing
-        const totalPortfolioValue = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
-          return sum + (contract?.total_contract_value || 0);
-        }, 0) : 0;
+        const totalPortfolioValue = contracts.reduce((sum, contract) => 
+          sum + (contract.total_contract_value || 0), 0);
           
-        const totalCollections = Array.isArray(contracts) ? contracts.reduce((sum, contract) => {
-          return sum + (contract?.amount_paid || 0);
-        }, 0) : 0;
+        const totalCollections = contracts.reduce((sum, contract) => 
+          sum + (contract.amount_paid || 0), 0);
           
-        const upcomingPaymentsTotal = Array.isArray(upcomingPayments) ? upcomingPayments.reduce((sum, payment) => {
-          return sum + (payment?.amount || 0);
-        }, 0) : 0;
+        const upcomingPaymentsTotal = upcomingPayments?.reduce((sum, payment) => 
+          sum + (payment.amount || 0), 0) || 0;
         
         return {
           totalContracts: contracts.length,
@@ -134,10 +109,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return safelyHandleResponse<CarInstallmentContract[]>(
-          { data, error }, 
-          []
-        );
+        return data || [];
       } catch (error) {
         console.error('Error fetching car installment contracts:', error);
         throw error;
@@ -147,22 +119,17 @@ export function useCarInstallments() {
 
   // Fetch a single contract
   const fetchContract = async (id: string): Promise<CarInstallmentContract> => {
-    try {
-      const { data, error } = await supabase
-        .from('car_installment_contracts')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
+    const { data, error } = await supabase
+      .from('car_installment_contracts')
+      .select('*')
+      .eq('id', id)
+      .single();
       
-      return data as CarInstallmentContract;
-    } catch (error) {
-      console.error('Error fetching contract:', error);
+    if (error) {
       throw error;
     }
+    
+    return data;
   };
 
   // Fetch payments for a contract
@@ -179,8 +146,7 @@ export function useCarInstallments() {
       
       // Apply filters
       if (filters.status && filters.status !== 'all') {
-        // Cast the status to string for the comparison
-        query = query.eq('status', filters.status.toString());
+        query = query.eq('status', filters.status);
       }
       
       if (filters.dateFrom) {
@@ -197,10 +163,7 @@ export function useCarInstallments() {
         throw error;
       }
       
-      return safelyHandleResponse<CarInstallmentPayment[]>(
-        { data, error }, 
-        []
-      );
+      return data || [];
     } catch (error) {
       console.error('Error fetching contract payments:', error);
       throw error;
@@ -215,7 +178,7 @@ export function useCarInstallments() {
     async (contractData) => {
       try {
         // Include all required fields
-        const contractToInsert: ContractInsert = {
+        const contractToInsert = {
           car_type: contractData.car_type,
           model_year: contractData.model_year,
           number_of_cars: contractData.number_of_cars,
@@ -232,7 +195,7 @@ export function useCarInstallments() {
         
         const { data, error } = await supabase
           .from('car_installment_contracts')
-          .insert(contractToInsert) // Single object without array
+          .insert(contractToInsert)
           .select()
           .single();
           
@@ -240,8 +203,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        // Type casting to ensure the return type is correct
-        return data as CarInstallmentContract;
+        return data;
       } catch (error) {
         console.error('Error creating car installment contract:', error);
         throw error;
@@ -266,20 +228,20 @@ export function useCarInstallments() {
   >(
     async (paymentData) => {
       try {
-        const paymentToInsert: PaymentInsert = {
+        const paymentToInsert = {
           contract_id: paymentData.contract_id,
           cheque_number: paymentData.cheque_number,
           drawee_bank: paymentData.drawee_bank,
           amount: paymentData.amount,
           payment_date: paymentData.payment_date,
-          status: paymentData.status as string || 'pending',
+          status: paymentData.status || 'pending',
           paid_amount: 0,
           remaining_amount: paymentData.amount
         };
         
         const { data, error } = await supabase
           .from('car_installment_payments')
-          .insert(paymentToInsert) // Single object without array
+          .insert(paymentToInsert)
           .select()
           .single();
           
@@ -287,7 +249,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return data as CarInstallmentPayment;
+        return data;
       } catch (error) {
         console.error('Error adding car installment payment:', error);
         throw error;
@@ -310,14 +272,9 @@ export function useCarInstallments() {
   >(
     async ({ id, data }) => {
       try {
-        // Cast to the database update type
-        const updateData: PaymentUpdate = {
-          ...(data as PaymentUpdate)
-        };
-        
         const { data: updatedPayment, error } = await supabase
           .from('car_installment_payments')
-          .update(updateData)
+          .update(data)
           .eq('id', id)
           .select()
           .single();
@@ -326,7 +283,7 @@ export function useCarInstallments() {
           throw error;
         }
         
-        return updatedPayment as CarInstallmentPayment;
+        return updatedPayment;
       } catch (error) {
         console.error('Error updating car installment payment:', error);
         throw error;
@@ -365,7 +322,7 @@ export function useCarInstallments() {
         const newRemainingAmount = payment.amount - newPaidAmount;
         
         // Determine the new status
-        let newStatus: InstallmentStatus = payment.status as unknown as InstallmentStatus;
+        let newStatus: InstallmentStatus = payment.status;
         if (newRemainingAmount <= 0) {
           newStatus = 'paid';
         } else if (newStatus === 'overdue') {
@@ -376,15 +333,13 @@ export function useCarInstallments() {
         }
         
         // Update the payment
-        const updateData: PaymentUpdate = {
-          paid_amount: newPaidAmount,
-          remaining_amount: Math.max(0, newRemainingAmount),
-          status: newStatus.toString()
-        };
-        
         const { data: updatedPayment, error } = await supabase
           .from('car_installment_payments')
-          .update(updateData)
+          .update({
+            paid_amount: newPaidAmount,
+            remaining_amount: Math.max(0, newRemainingAmount),
+            status: newStatus
+          })
           .eq('id', id)
           .select()
           .single();
@@ -426,7 +381,7 @@ export function useCarInstallments() {
           }
         }
         
-        return updatedPayment as CarInstallmentPayment;
+        return updatedPayment;
       } catch (error) {
         console.error('Error recording payment:', error);
         throw error;
@@ -459,11 +414,11 @@ export function useCarInstallments() {
           paid_amount: 0,
           remaining_amount: payment.amount,
           payment_date: payment.payment_date,
-          status: 'pending',
+          status: 'pending' as InstallmentStatus,
           payment_notes: payment.notes || ''
         }));
         
-        // Use individual inserts to avoid type issues
+        // Use individual inserts instead of bulk insert to avoid type issues
         for (const payment of formattedPayments) {
           const { error } = await supabase
             .from('car_installment_payments')

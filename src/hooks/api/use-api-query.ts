@@ -1,45 +1,43 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { handleApiError } from '@/lib/api/error-handlers';
+import { createQueryConfig } from '@/lib/api/query-config';
 
-// Define generic types for the hook
-interface ApiResponse<T> {
-  data: T | null;
-  error: any | null;
-}
-
-export function useApiQuery<TData = any, TError = any>(
-  queryKey: string[],
-  queryFn: () => Promise<any>,
-  options?: any
-) {
-  return useQuery<TData, TError>({
+export function useApiQuery<TData>(
+  queryKey: unknown[],
+  queryFn: () => Promise<TData>,
+  options?: {
+    enabled?: boolean;
+    refetchOnMount?: boolean;
+    refetchOnWindowFocus?: boolean;
+    refetchOnReconnect?: boolean;
+    retry?: boolean | number;
+  }
+): UseQueryResult<TData | null, Error> {
+  return useQuery({
     queryKey,
     queryFn: async () => {
       try {
         const response = await queryFn();
         
-        // Handle response format correctly
-        if (response && 'error' in response && response.error) {
-          // Convert to expected error format
-          const errorResult = {
-            error: response.error,
-            data: null
-          } as ApiResponse<TData>;
-          return Promise.reject(errorResult);
+        if (response === null || response === undefined) {
+          throw new Error('No data received from the server');
         }
         
-        // Make sure we return the data in the expected format
-        return response?.data || null;
+        if (typeof response === 'object' && 'error' in response) {
+          const supabaseResponse = response as { error: any; data: TData };
+          if (supabaseResponse.error) {
+            throw supabaseResponse.error;
+          }
+          return supabaseResponse.data;
+        }
+        
+        return response;
       } catch (error) {
-        console.error(`API query error for ${queryKey.join('/')}:`, error);
-        // Convert error to expected format before rejecting
-        const errorResult = { 
-          error: error instanceof Error ? error : new Error(String(error)),
-          data: null
-        } as ApiResponse<TData>;
-        return Promise.reject(errorResult);
+        handleApiError(error, `Error fetching ${queryKey[0]}`);
+        throw error;
       }
     },
-    ...options
+    ...createQueryConfig(options)
   });
 }

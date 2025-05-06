@@ -1,22 +1,23 @@
 
 import React, { Suspense, useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
+import { Button } from '@/components/ui/button';
 import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, RefreshCw } from 'lucide-react';
+import { 
+  FileUp, AlertTriangle, FilePlus, RefreshCw, BarChart4, Filter, Search
+} from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { AgreementFilters } from '@/components/agreements/AgreementFilters';
+import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { CustomerInfo } from '@/types/customer';
-import { AgreementSearch } from '@/components/agreements/page/AgreementSearch';
-import { AgreementActionButtons } from '@/components/agreements/page/AgreementActionButtons';
-import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -24,10 +25,6 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  
-  // Add state for customer search functionality
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -67,6 +64,7 @@ const Agreements = () => {
         await runPaymentScheduleMaintenanceJob();
       } catch (error) {
         console.error("Error running payment maintenance job:", error);
+        // We don't show a toast here since this is a background task
       }
     };
     
@@ -84,106 +82,155 @@ const Agreements = () => {
     });
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleApplySearch = () => {
+    setSearchParams(prev => ({ ...prev, query: searchQuery }));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleApplySearch();
+    }
+  };
+
   const handleFilterChange = (filters: Record<string, any>) => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === 'all') {
-      setSearchParams({ status: undefined });
-    } else {
-      setSearchParams({ status: value });
-    }
-  };
-
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
       title="Rental Agreements" 
-      description="Manage your rental agreements and contracts with customers"
-      className="max-w-full"
+      description="Manage customer rental agreements and contracts"
     >
       {/* Stats Overview */}
       <div className="mb-6">
         <AgreementStats />
       </div>
 
-      <Tabs 
-        defaultValue="agreements"
-        className="space-y-6"
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList>
-            <TabsTrigger value="agreements">Agreements</TabsTrigger>
-            <TabsTrigger value="history">Import History</TabsTrigger>
-          </TabsList>
-
-          {/* Search and Action Buttons */}
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="flex flex-grow relative w-full sm:w-auto max-w-md">
-              <AgreementSearch
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedCustomer={selectedCustomer}
-                setSelectedCustomer={setSelectedCustomer}
-                setSearchParams={setSearchParams}
-              />
-            </div>
-
-            <AgreementActionButtons
-              isImportModalOpen={isImportModalOpen}
-              setIsImportModalOpen={setIsImportModalOpen}
-              isEdgeFunctionAvailable={isEdgeFunctionAvailable}
+      {/* Search and Action Buttons */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex flex-grow max-w-md relative">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search agreements, customers, or vehicles..." 
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyPress={handleKeyPress}
+              className="pl-10 pr-16"
             />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleApplySearch}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2"
+            >
+              Search
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="ml-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2"
+            disabled={!isEdgeFunctionAvailable}
+          >
+            {!isEdgeFunctionAvailable && (
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            )}
+            <FileUp className="h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button asChild className="bg-primary hover:bg-primary/90">
+            <Link to="/agreements/add">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Agreement
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Active Filters */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {activeFilters.map(([key, value]) => (
+            <Badge 
+              key={key} 
+              variant="outline" 
+              className="flex gap-1 items-center px-3 py-1"
+            >
+              <span className="font-medium">{key}:</span> {value}
+              <button 
+                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                onClick={() => {
+                  setSearchParams(prev => {
+                    const newParams = { ...prev };
+                    delete newParams[key];
+                    return newParams;
+                  });
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
+              </button>
+            </Badge>
+          ))}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setSearchParams({ status: 'all' })}
+            className="text-xs h-7 px-2"
+          >
+            Clear All
+          </Button>
+        </div>
+      )}
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <Card className="mb-6 p-4">
+          <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
+        </Card>
+      )}
+      
+      {/* Main Content */}
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center space-x-2">
+            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-lg font-medium">Loading agreements...</span>
           </div>
         </div>
-        
-        {/* Active Filters */}
-        <ActiveFilters
-          activeFilters={activeFilters}
-          setSearchParams={setSearchParams}
-        />
-
-        <TabsContent value="agreements" className="space-y-6">
-          {/* Filter Panel */}
-          <Card className="p-4 cursor-pointer" onClick={() => setShowFilters(!showFilters)}>
-            <h3 className="text-sm font-medium flex items-center">
-              {showFilters ? "Hide Filters" : "Show Advanced Filters"}
-            </h3>
-            {showFilters && (
-              <div className="mt-4">
-                <AgreementFilters onFilterChange={handleFilterChange} currentFilters={searchParams} />
-              </div>
-            )}
-          </Card>
-          
-          {/* Main Content */}
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-64">
-              <div className="flex items-center space-x-2">
-                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                <span className="text-lg font-medium">Loading agreements...</span>
-              </div>
-            </div>
-          }>
-            <AgreementList />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="history">
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center">
-              <BarChart4 className="h-5 w-5 mr-2" />
-              Import History
-            </h2>
-            <ImportHistoryList />
-          </div>
-        </TabsContent>
-      </Tabs>
+      }>
+        <AgreementList />
+      </Suspense>
+      
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center">
+          <BarChart4 className="h-5 w-5 mr-2" />
+          Import History
+        </h2>
+        <ImportHistoryList />
+      </div>
       
       <CSVImportModal 
         open={isImportModalOpen}

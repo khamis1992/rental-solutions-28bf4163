@@ -1,14 +1,13 @@
 
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from '@/types/payment-history.types';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle } from 'lucide-react';
 
 interface PaymentWarningSectionProps {
   pendingPayments: Payment[];
   acknowledgedPayments: boolean;
   onAcknowledgePayments: (value: boolean) => void;
   isPaymentHistoryOpen: boolean;
-  formatDate: (date: Date | undefined | string | null) => string;
+  formatDate: (date: Date | undefined) => string;
 }
 
 export function PaymentWarningSection({
@@ -52,9 +51,7 @@ export function PaymentWarningSection({
                   <tr key={payment.id} className="border-b">
                     <td className="p-2">{payment.amount} QAR</td>
                     <td className="p-2">{getStatusBadge(payment.status || '')}</td>
-                    <td className="p-2">
-                      {formatDate(payment.due_date || payment.original_due_date)}
-                    </td>
+                    <td className="p-2">{formatDate(payment.due_date ? new Date(payment.due_date) : undefined)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -86,3 +83,4 @@ export function PaymentWarningSection({
     </>
   );
 }
+

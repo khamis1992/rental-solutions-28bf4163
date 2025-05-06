@@ -8,10 +8,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: [
-      "3443e083-f60b-43c2-aa17-354a2369068f.lovableproject.com",
-      "localhost"
-    ],
   },
   plugins: [
     react(),

@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ImportHistoryItem } from '@/types/import-types';
 import {
   Table,
   TableHeader,
@@ -13,17 +13,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
-// Define proper type for import history items
-interface ImportHistoryItem {
-  id: string;
-  file_name: string;
-  status: string;
-  total_records?: number;
-  processed_records?: number;
-  failed_records?: number;
-  created_at: string;
-}
-
 export function ImportHistoryList() {
   const { data: imports, isLoading } = useQuery({
     queryKey: ['agreement-imports'],
@@ -34,7 +23,7 @@ export function ImportHistoryList() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as unknown as ImportHistoryItem[];
+      return data as ImportHistoryItem[];
     }
   });
 

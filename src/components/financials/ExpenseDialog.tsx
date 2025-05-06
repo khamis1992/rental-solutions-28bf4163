@@ -39,7 +39,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, addMonths, addWeeks, addDays } from 'date-fns';
 import { FinancialTransaction } from '@/hooks/use-financials';
-import ReceiptScanner from '../financials/ReceiptScanner';
 
 // Schema for expense form validation
 const expenseSchema = z.object({

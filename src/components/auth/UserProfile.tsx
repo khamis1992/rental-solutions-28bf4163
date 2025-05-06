@@ -19,7 +19,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const UserProfile = () => {
-  const { profile, updateProfile, isLoading } = useProfile();
+  const { profile, updateProfile, loading } = useProfile();
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = React.useState(false);
 
@@ -55,7 +55,7 @@ const UserProfile = () => {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -107,7 +107,7 @@ const UserProfile = () => {
             <div className="flex items-center space-x-2">
               <div className="font-medium">Account Status:</div>
               <div className="text-muted-foreground">
-                {profile?.role ? "Active" : "Pending"}
+                {profile?.status || "Active"}
               </div>
             </div>
             <Button type="submit" disabled={isUpdating}>

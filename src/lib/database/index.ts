@@ -1,38 +1,75 @@
 
-/**
- * Database module entrypoint
- * Re-exports all repositories and utility functions
- */
-import { supabase } from '@/lib/supabase';
-import * as utils from './utils';
-import * as validation from './validation';
-import * as typeGuards from './validation/typeGuards';
-import { createLeaseRepository } from './repositories/lease-repository';
-import { createPaymentRepository } from './repositories/payment-repository';
-import { createVehicleRepository } from './repositories/vehicle-repository';
-import { createProfileRepository } from './repositories/profile-repository';
-
-// Create repositories using the supabase client
-export const leaseRepository = createLeaseRepository(supabase);
-export const paymentRepository = createPaymentRepository(supabase);
-export const vehicleRepository = createVehicleRepository(supabase);
-export const profileRepository = createProfileRepository(supabase);
-
-// Re-export utils and validation
-export { utils, validation, typeGuards };
-
 // Export types
 export * from './types';
-export * from './database-types';
+export * from './utils';
+export * from './repository';
+export * from '@/types/database-common';
 
-// Export repositories for backwards compatibility
-export { leaseRepository as leaseRepo };
-export { paymentRepository as paymentRepo };
-export { vehicleRepository as vehicleRepo };
-export { profileRepository as profileRepo };
+// Import repositories first before exporting them
+import { leaseRepository } from './repositories/lease-repository';
+import { vehicleRepository } from './repositories/vehicle-repository';
+import { profileRepository } from './repositories/profile-repository';
+import { paymentRepository } from './repositories/payment-repository';
 
-// Export common utility functions for database responses
-export { isSuccessResponse } from './validation/typeGuards';
+// Export repositories
+export { leaseRepository, vehicleRepository, profileRepository, paymentRepository };
 
-// Export common types
-export type { ProfileId } from './database-types';
+// Legacy type casting functions for backward compatibility
+import { 
+  asLeaseId, 
+  asVehicleId, 
+  asProfileId, 
+  asPaymentId, 
+  asTrafficFineId, 
+  asMaintenanceId,
+  asLeaseStatus,
+  asPaymentStatus,
+  asVehicleStatus,
+  asProfileStatus,
+  asMaintenanceStatus,
+  asEntityStatus
+} from '@/types/database-common';
+
+// Export with legacy names for backward compatibility
+export {
+  asLeaseId,
+  asVehicleId,
+  asProfileId,
+  asPaymentId,
+  asTrafficFineId,
+  asMaintenanceId,
+  asLeaseStatus,
+  asPaymentStatus,
+  asVehicleStatus,
+  asProfileStatus,
+  asMaintenanceStatus
+};
+
+// Fix common ID column errors by providing direct casting functions
+export const asLeaseIdColumn = asLeaseId;
+export const asVehicleIdColumn = asVehicleId;
+export const asProfileIdColumn = asProfileId;
+export const asPaymentIdColumn = asPaymentId;
+export const asTrafficFineIdColumn = asTrafficFineId;
+export const asMaintenanceIdColumn = asMaintenanceId;
+
+// Alias for legacy code
+export const asStatusColumn = asEntityStatus;
+
+// Special function to handle type errors in legacy code
+export function castLeaseUpdate(data: any): any {
+  return data;
+}
+
+// Handle type errors in legacy code
+export function castRowData<T>(data: T): T {
+  return data;
+}
+
+// Export collection of repository instances for easy access
+export const repositories = {
+  lease: leaseRepository,
+  vehicle: vehicleRepository,
+  profile: profileRepository,
+  payment: paymentRepository
+};

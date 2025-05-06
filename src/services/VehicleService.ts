@@ -94,7 +94,7 @@ export class VehicleService extends BaseService<'vehicles'> {
       const { data, error } = await query;
       
       if (error) {
-        throw new Error(`Failed to fetch vehicles with filters ${JSON.stringify(filters)}: ${error.message}`);
+        throw new Error(`Failed to fetch vehicles: ${error.message}`);
       }
       
       return data || [];
@@ -128,7 +128,7 @@ export class VehicleService extends BaseService<'vehicles'> {
       const response = await this.repository.findWithDetails(id);
       
       if (response.error) {
-        throw new Error(`Failed to fetch vehicle details for ID ${id}: ${response.error.message}`);
+        throw new Error(`Failed to fetch vehicle details: ${response.error.message}`);
       }
       
       return response.data;
@@ -147,7 +147,7 @@ export class VehicleService extends BaseService<'vehicles'> {
       const response = await this.repository.updateStatus(id, dbStatus);
       
       if (response.error) {
-        throw new Error(`Failed to update vehicle status to ${status} for vehicle ID ${id}: ${response.error.message}`);
+        throw new Error(`Failed to update vehicle status: ${response.error.message}`);
       }
       
       return response.data;
@@ -195,7 +195,7 @@ export class VehicleService extends BaseService<'vehicles'> {
         .lte('end_date', endDate.toISOString());
         
       if (error) {
-        throw new Error(`Failed to calculate vehicle utilization for vehicle ID ${vehicleId} from ${startDate.toISOString()} to ${endDate.toISOString()}: ${error.message}`);
+        throw new Error(`Failed to calculate vehicle utilization: ${error.message}`);
       }
       
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

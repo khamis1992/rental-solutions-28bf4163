@@ -1,59 +1,79 @@
 
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asProfileId } from '../database-types';
+import { asProfileId, asProfileStatus } from '../utils';
 import { supabase } from '@/lib/supabase';
 
 type ProfileRow = TableRow<'profiles'>;
 
-/**
- * Repository for customer profile related database operations
- */
-export class ProfileRepository extends Repository<'profiles'> {
-  constructor(client: any) {
-    super(client, 'profiles');
+class ProfileRepository extends Repository<'profiles'> {
+  constructor() {
+    super('profiles');
   }
 
   /**
-   * Find active customer profiles
+   * Find profiles by role
    */
-  async findActive(): Promise<DbListResponse<ProfileRow>> {
-    const response = await this.client
+  async findByRole(role: string): Promise<DbListResponse<ProfileRow>> {
+    const response = await supabase
       .from('profiles')
       .select('*')
-      .eq('status', 'active')
-      .order('full_name', { ascending: true });
+      .eq('role', role);
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
   }
 
   /**
-   * Search profiles by name or other fields
+   * Find customers
    */
-  async search(query: string): Promise<DbListResponse<ProfileRow>> {
-    const response = await this.client
+  async findCustomers(): Promise<DbListResponse<ProfileRow>> {
+    return this.findByRole('customer');
+  }
+
+  /**
+   * Find customer with agreements
+   */
+  async findCustomerWithAgreements(customerId: string): Promise<DbSingleResponse<ProfileRow & { agreements: any[] }>> {
+    const response = await supabase
       .from('profiles')
-      .select('*')
-      .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone_number.ilike.%${query}%`)
-      .order('full_name', { ascending: true });
+      .select(`
+        *,
+        agreements:leases(*)
+      `)
+      .eq('id', asProfileId(customerId))
+      .eq('role', 'customer')
+      .single();
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
+  }
+
+  /**
+   * Update profile status
+   */
+  async updateStatus(profileId: string, status: Tables['profiles']['Row']['status']): Promise<DbSingleResponse<ProfileRow>> {
+    const response = await supabase
+      .from('profiles')
+      .update({ status })
+      .eq('id', asProfileId(profileId))
+      .select()
+      .single();
+    
+    return this.mapDbResponse(response);
   }
   
   /**
-   * Get profile with related leases
+   * Update profile role
    */
-  async getWithLeases(profileId: string): Promise<DbSingleResponse<ProfileRow & { leases: any[] }>> {
-    const response = await this.client
+  async updateRole(profileId: string, role: string): Promise<DbSingleResponse<ProfileRow>> {
+    const response = await supabase
       .from('profiles')
-      .select('*, leases(*)')
+      .update({ role })
       .eq('id', asProfileId(profileId))
+      .select()
       .single();
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
   }
 }
 
-// Export the repository instance and the factory function
-export const profileRepository = new ProfileRepository(supabase);
-export const createProfileRepository = (client: any) => new ProfileRepository(client);
+export const profileRepository = new ProfileRepository();

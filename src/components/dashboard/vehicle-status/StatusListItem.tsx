@@ -2,7 +2,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { StatusConfig } from './types';
-import { LucideIcon } from 'lucide-react';
 
 interface StatusListItemProps {
   status: StatusConfig;
@@ -15,7 +14,7 @@ export const StatusListItem: React.FC<StatusListItemProps> = ({
   count,
   onClick
 }) => {
-  const Icon = status.icon as LucideIcon;
+  const Icon = status.icon;
   
   return (
     <div 
@@ -33,9 +32,8 @@ export const StatusListItem: React.FC<StatusListItemProps> = ({
         style={{ backgroundColor: `${status.color}20` }}
       >
         <Icon 
-          className="text-primary"
-          size={16}
-          color={status.color}
+          size={16} 
+          style={{ color: status.color }} 
         />
       </div>
       <div className="flex-grow">

@@ -1,9 +1,8 @@
 
 import { useState, useCallback } from 'react';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { typeGuards } from '@/lib/database';
 
 /**
  * Custom hook for managing agreement status changes
@@ -38,22 +37,22 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const isActivation = newStatus === 'active';
       const isClosure = newStatus === 'closed';
       
-      // Create update data with proper typing
+      // Create update data
       const updateData = {
         status: newStatus,
         updated_at: new Date().toISOString(),
-        notes: notes || agreement?.notes || ''
+        notes: notes || agreement?.notes
       };
       
       // Track timing if needed for debugging
       const startTime = Date.now();
       
-      // Update agreement status with any to bypass the typing issue
+      // Update agreement status
       setStatusUpdateProgress("Updating agreement status...");
       const { error: updateError } = await supabase
         .from('leases')
-        .update(updateData as any)
-        .eq('id', id as any);
+        .update(updateData)
+        .eq('id', id);
         
       if (updateError) {
         console.error("Error updating agreement status:", updateError);
@@ -139,7 +138,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const { data, error } = await supabase
         .from('leases')
         .select('*')
-        .eq('id', id as any)
+        .eq('id', id)
         .single();
         
       if (error || !data) {
@@ -154,7 +153,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const { data: existingPayments, error: checkError } = await supabase
         .from('unified_payments')
         .select('id')
-        .eq('lease_id', id as any)
+        .eq('lease_id', id)
         .limit(1);
         
       if (!checkError && existingPayments && existingPayments.length > 0) {
@@ -187,7 +186,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
           status: 'pending',
           due_date: dueDate.toISOString(),
           is_recurring: false
-        } as any);
+        });
         
       if (insertError) {
         console.error("Error creating payment:", insertError);

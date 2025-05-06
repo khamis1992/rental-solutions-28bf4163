@@ -1,26 +1,14 @@
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { format } from 'date-fns';
-import { CalendarIcon, Filter, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { format } from 'date-fns';
 
 interface AgreementFiltersProps {
   onFilterChange: (filters: Record<string, any>) => void;
@@ -28,378 +16,191 @@ interface AgreementFiltersProps {
 }
 
 export function AgreementFilters({ onFilterChange, currentFilters = {} }: AgreementFiltersProps) {
-  const [agreementNumber, setAgreementNumber] = useState(currentFilters?.agreement_number || '');
-  const [dateRange, setDateRange] = useState<'rental_period' | 'creation_date'>('rental_period');
-  const [startDateFrom, setStartDateFrom] = useState<Date | undefined>(
-    currentFilters?.start_date_after ? new Date(currentFilters.start_date_after) : undefined
-  );
-  const [startDateTo, setStartDateTo] = useState<Date | undefined>(
-    currentFilters?.start_date_before ? new Date(currentFilters.start_date_before) : undefined
-  );
-  const [endDateFrom, setEndDateFrom] = useState<Date | undefined>(
-    currentFilters?.end_date_after ? new Date(currentFilters.end_date_after) : undefined
-  );
-  const [endDateTo, setEndDateTo] = useState<Date | undefined>(
-    currentFilters?.end_date_before ? new Date(currentFilters.end_date_before) : undefined
-  );
-  const [minRent, setMinRent] = useState(currentFilters?.rent_min || '');
-  const [maxRent, setMaxRent] = useState(currentFilters?.rent_max || '');
-  const [status, setStatus] = useState(currentFilters?.status || 'all');
+  const [filters, setFilters] = useState({
+    status: currentFilters.status || 'all',
+    startDateFrom: currentFilters.startDateFrom || '',
+    startDateTo: currentFilters.startDateTo || '',
+    endDateFrom: currentFilters.endDateFrom || '',
+    endDateTo: currentFilters.endDateTo || '',
+    minRent: currentFilters.minRent || '',
+    maxRent: currentFilters.maxRent || '',
+    vehicleId: currentFilters.vehicleId || '',
+    customerId: currentFilters.customerId || '',
+  });
 
-  const handleApplyFilters = () => {
-    const filters: Record<string, any> = {};
-    
-    if (agreementNumber) filters.agreement_number = agreementNumber;
-    if (status && status !== 'all') filters.status = status;
-    
-    // Date filters
-    if (startDateFrom) filters.start_date_after = startDateFrom.toISOString();
-    if (startDateTo) filters.start_date_before = startDateTo.toISOString();
-    if (endDateFrom) filters.end_date_after = endDateFrom.toISOString();
-    if (endDateTo) filters.end_date_before = endDateTo.toISOString();
-    
-    // Rent range
-    if (minRent) filters.rent_min = minRent;
-    if (maxRent) filters.rent_max = maxRent;
-    
-    onFilterChange(filters);
+  useEffect(() => {
+    // Update internal state when props change
+    setFilters(prev => ({
+      ...prev,
+      ...currentFilters
+    }));
+  }, [currentFilters]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleResetFilters = () => {
-    setAgreementNumber('');
-    setStartDateFrom(undefined);
-    setStartDateTo(undefined);
-    setEndDateFrom(undefined);
-    setEndDateTo(undefined);
-    setMinRent('');
-    setMaxRent('');
-    setStatus('all');
+  const handleSelectChange = (name: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleDateChange = (name: string, date: Date | null) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: date ? format(date, 'yyyy-MM-dd') : ''
+    }));
+  };
+
+  const handleFilterApply = () => {
+    // Filter out empty values
+    const appliedFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== '' && value !== 'all')
+    );
     
-    onFilterChange({
-      agreement_number: undefined,
-      status: undefined,
-      start_date_after: undefined,
-      start_date_before: undefined,
-      end_date_after: undefined,
-      end_date_before: undefined,
-      rent_min: undefined,
-      rent_max: undefined,
+    onFilterChange(appliedFilters);
+  };
+
+  const handleFilterReset = () => {
+    setFilters({
+      status: 'all',
+      startDateFrom: '',
+      startDateTo: '',
+      endDateFrom: '',
+      endDateTo: '',
+      minRent: '',
+      maxRent: '',
+      vehicleId: '',
+      customerId: '',
     });
+    onFilterChange({ status: 'all' });
   };
 
-  const handleApplyQuickFilter = (quickFilter: Record<string, any>) => {
-    onFilterChange(quickFilter);
-  };
-
-  // Generate today and date ranges for quick filters
-  const today = new Date();
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-  const next30Days = new Date();
-  next30Days.setDate(next30Days.getDate() + 30);
-  
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* Quick Filters */}
-        <Card className="p-4">
-          <h3 className="text-sm font-medium mb-3 flex items-center">
-            <Filter className="h-4 w-4 mr-1.5" /> Quick Filters
-          </h3>
-          <div className="space-y-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start text-left" 
-              onClick={() => handleApplyQuickFilter({ status: 'active' })}
-            >
-              Active Agreements
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start text-left" 
-              onClick={() => handleApplyQuickFilter({ 
-                end_date_after: today.toISOString(),
-                end_date_before: next30Days.toISOString()
-              })}
-            >
-              Expiring in 30 Days
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start text-left"
-              onClick={() => handleApplyQuickFilter({ 
-                start_date_after: lastMonth.toISOString(),
-                start_date_before: today.toISOString()
-              })}
-            >
-              Created in Last Month
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start text-left"
-              onClick={() => handleApplyQuickFilter({ status: 'pending' })}
-            >
-              Pending Agreements
-            </Button>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Status Filter */}
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={filters.status}
+            onValueChange={(value) => handleSelectChange('status', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
+              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Main Filter Form */}
-        <div className="md:col-span-2 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="agreement-number">Agreement Number</Label>
+        {/* Date Range Filters */}
+        <div className="space-y-2">
+          <Label>Start Date Range</Label>
+          <div className="flex space-x-2">
+            <DatePicker
+              date={filters.startDateFrom ? new Date(filters.startDateFrom) : undefined}
+              onDateChange={(date) => handleDateChange('startDateFrom', date)}
+              placeholder="From"
+            />
+            <DatePicker
+              date={filters.startDateTo ? new Date(filters.startDateTo) : undefined}
+              onDateChange={(date) => handleDateChange('startDateTo', date)}
+              placeholder="To"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>End Date Range</Label>
+          <div className="flex space-x-2">
+            <DatePicker
+              date={filters.endDateFrom ? new Date(filters.endDateFrom) : undefined}
+              onDateChange={(date) => handleDateChange('endDateFrom', date)}
+              placeholder="From"
+            />
+            <DatePicker
+              date={filters.endDateTo ? new Date(filters.endDateTo) : undefined}
+              onDateChange={(date) => handleDateChange('endDateTo', date)}
+              placeholder="To"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Rent Amount Range */}
+        <div className="space-y-2">
+          <Label>Monthly Rent Range</Label>
+          <div className="flex space-x-2">
+            <div className="flex-1">
               <Input
-                id="agreement-number"
-                placeholder="Filter by number"
-                value={agreementNumber}
-                onChange={(e) => setAgreementNumber(e.target.value)}
+                type="number"
+                name="minRent"
+                placeholder="Min"
+                value={filters.minRent}
+                onChange={handleInputChange}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select 
-                value={status} 
-                onValueChange={setStatus}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Date Range Type</Label>
-            <RadioGroup
-              defaultValue="rental_period"
-              value={dateRange}
-              onValueChange={(value) => setDateRange(value as 'rental_period' | 'creation_date')}
-              className="flex space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="rental_period" id="rental_period" />
-                <Label htmlFor="rental_period" className="cursor-pointer">Rental Period</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="creation_date" id="creation_date" />
-                <Label htmlFor="creation_date" className="cursor-pointer">Creation Date</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {dateRange === 'rental_period' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date Range</Label>
-                <div className="flex items-center space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDateFrom ? (
-                          format(startDateFrom, "MMM d, yyyy")
-                        ) : (
-                          "From Date"
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDateFrom}
-                        onSelect={setStartDateFrom}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDateTo ? (
-                          format(startDateTo, "MMM d, yyyy")
-                        ) : (
-                          "To Date"
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={startDateTo}
-                        onSelect={setStartDateTo}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>End Date Range</Label>
-                <div className="flex items-center space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDateFrom ? (
-                          format(endDateFrom, "MMM d, yyyy")
-                        ) : (
-                          "From Date"
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={endDateFrom}
-                        onSelect={setEndDateFrom}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDateTo ? (
-                          format(endDateTo, "MMM d, yyyy")
-                        ) : (
-                          "To Date"
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={endDateTo}
-                        onSelect={setEndDateTo}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>Creation Date Range</Label>
-              <div className="flex items-center space-x-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDateFrom ? (
-                        format(startDateFrom, "MMM d, yyyy")
-                      ) : (
-                        "From Date"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDateFrom}
-                      onSelect={setStartDateFrom}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDateTo ? (
-                        format(startDateTo, "MMM d, yyyy")
-                      ) : (
-                        "To Date"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDateTo}
-                      onSelect={setStartDateTo}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="min-rent">Minimum Rent</Label>
+            <div className="flex-1">
               <Input
-                id="min-rent"
-                placeholder="Enter minimum"
                 type="number"
-                value={minRent}
-                onChange={(e) => setMinRent(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max-rent">Maximum Rent</Label>
-              <Input
-                id="max-rent"
-                placeholder="Enter maximum"
-                type="number"
-                value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
+                name="maxRent"
+                placeholder="Max"
+                value={filters.maxRent}
+                onChange={handleInputChange}
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button 
-          variant="outline" 
-          onClick={handleResetFilters}
-          className="flex items-center"
-        >
-          <X className="mr-1 h-4 w-4" />
-          Reset Filters
-        </Button>
-        <Button onClick={handleApplyFilters}>Apply Filters</Button>
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button variant="outline" onClick={handleFilterReset}>Reset</Button>
+        <Button onClick={handleFilterApply}>Apply Filters</Button>
       </div>
     </div>
+  );
+}
+
+interface DatePickerProps {
+  date: Date | undefined;
+  onDateChange: (date: Date | null) => void;
+  placeholder: string;
+}
+
+function DatePicker({ date, onDateChange, placeholder }: DatePickerProps) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-start text-left font-normal"
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {date ? format(date, 'PPP') : <span className="text-muted-foreground">{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={onDateChange}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -17,8 +17,3 @@ export interface CustomerListItem {
   status: string;
   created_at: string;
 }
-
-export interface CustomerSearchParams {
-  query: string;
-  status: string;
-}

@@ -29,8 +29,7 @@ export function usePayment(agreementId?: string) {
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    paymentType?: string
+    isPartialPayment?: boolean
   ) => {
     if (!agreementId) return;
 
@@ -44,7 +43,6 @@ export function usePayment(agreementId?: string) {
         referenceNumber,
         includeLatePaymentFee,
         isPartialPayment,
-        paymentType,
       }
     );
   };

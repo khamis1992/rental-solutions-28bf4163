@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
-import LegalObligationsTab from './LegalObligationsTab';
 import { Search, AlertTriangle, Loader2, Plus, Filter, FileText, CalendarDays } from 'lucide-react';
 import { 
   Select,
@@ -14,23 +14,93 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs";
+} from "@/components/ui/tabs"
 import { Separator } from '@/components/ui/separator';
-import { ObligationType, UrgencyLevel, CustomerObligation, CustomerLegalObligationsProps } from './CustomerLegalObligations';
 
-// Customer legal obligations component that can be reused in other contexts
-export function CustomerLegalObligations({ customerId }: CustomerLegalObligationsProps) {
-  if (customerId) {
-    return <LegalObligationsTab customerId={customerId} />;
+export interface CustomerObligation {
+  id: string;
+  customerId: string;
+  customerName: string;
+  description: string;
+  obligationType: string;
+  amount: number;
+  dueDate: Date;
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  status: string;
+  daysOverdue: number;
+}
+
+// Mock data for demonstration
+const mockObligations: CustomerObligation[] = [
+  {
+    id: "ob-1",
+    customerId: "cust-1",
+    customerName: "Ahmed Al-Mansoori",
+    description: "Monthly vehicle lease payment",
+    obligationType: "payment",
+    amount: 2500,
+    dueDate: new Date(2024, 3, 15),
+    urgency: "high",
+    status: "overdue",
+    daysOverdue: 12
+  },
+  {
+    id: "ob-2",
+    customerId: "cust-2",
+    customerName: "Fatima Al-Qasimi",
+    description: "Insurance documentation submission",
+    obligationType: "document",
+    amount: 0,
+    dueDate: new Date(2024, 3, 25),
+    urgency: "medium",
+    status: "pending",
+    daysOverdue: 0
+  },
+  {
+    id: "ob-3",
+    customerId: "cust-3",
+    customerName: "Mohammed Al-Hashimi",
+    description: "Contract renewal signature",
+    obligationType: "contract",
+    amount: 0,
+    dueDate: new Date(2024, 3, 20),
+    urgency: "critical",
+    status: "overdue",
+    daysOverdue: 7
+  },
+  {
+    id: "ob-4",
+    customerId: "cust-4",
+    customerName: "Layla Al-Farsi",
+    description: "Vehicle maintenance check",
+    obligationType: "service",
+    amount: 450,
+    dueDate: new Date(2024, 4, 5),
+    urgency: "low",
+    status: "pending",
+    daysOverdue: 0
+  },
+  {
+    id: "ob-5",
+    customerId: "cust-1",
+    customerName: "Ahmed Al-Mansoori",
+    description: "Late fee payment",
+    obligationType: "payment",
+    amount: 250,
+    dueDate: new Date(2024, 3, 18),
+    urgency: "high",
+    status: "overdue",
+    daysOverdue: 9
   }
-  
-  // If no customerId is provided, render the full obligations management UI
+];
+
+export const CustomerLegalObligations = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +143,6 @@ export function CustomerLegalObligations({ customerId }: CustomerLegalObligation
     setFilterStatus(status);
   };
 
-  // Get urgency badge
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
       case 'critical':
@@ -88,7 +157,6 @@ export function CustomerLegalObligations({ customerId }: CustomerLegalObligation
     }
   };
 
-  // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -107,10 +175,8 @@ export function CustomerLegalObligations({ customerId }: CustomerLegalObligation
     switch (type) {
       case 'payment':
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100">Payment</Badge>;
-      case 'traffic_fine':
       case 'document':
         return <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-100">Document</Badge>;
-      case 'legal_case':
       case 'contract':
         return <Badge variant="outline" className="bg-purple-50 text-purple-700 hover:bg-purple-100">Contract</Badge>;
       case 'service':
@@ -263,8 +329,9 @@ export function CustomerLegalObligations({ customerId }: CustomerLegalObligation
                     <SelectContent>
                       <SelectItem value="">All Types</SelectItem>
                       <SelectItem value="payment">Payment</SelectItem>
-                      <SelectItem value="traffic_fine">Traffic Fine</SelectItem>
-                      <SelectItem value="legal_case">Legal Case</SelectItem>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -375,74 +442,6 @@ export function CustomerLegalObligations({ customerId }: CustomerLegalObligation
       )}
     </div>
   );
-}
+};
 
-// Mock data for demonstration - we'll maintain this in the component for now
-const mockObligations: CustomerObligation[] = [
-  {
-    id: "ob-1",
-    customerId: "cust-1",
-    customerName: "Ahmed Al-Mansoori",
-    description: "Monthly vehicle lease payment",
-    obligationType: "payment",
-    amount: 2500,
-    dueDate: new Date(2024, 3, 15),
-    urgency: "high",
-    status: "overdue",
-    daysOverdue: 12
-  },
-  {
-    id: "ob-2",
-    customerId: "cust-2",
-    customerName: "Fatima Al-Qasimi",
-    description: "Insurance documentation submission",
-    obligationType: "document",
-    amount: 0,
-    dueDate: new Date(2024, 3, 25),
-    urgency: "medium",
-    status: "pending",
-    daysOverdue: 0
-  },
-  {
-    id: "ob-3",
-    customerId: "cust-3",
-    customerName: "Mohammed Al-Hashimi",
-    description: "Contract renewal signature",
-    obligationType: "legal_case",
-    amount: 0,
-    dueDate: new Date(2024, 3, 20),
-    urgency: "critical",
-    status: "overdue",
-    daysOverdue: 7
-  },
-  {
-    id: "ob-4",
-    customerId: "cust-4",
-    customerName: "Layla Al-Farsi",
-    description: "Vehicle maintenance check",
-    obligationType: "payment",
-    amount: 450,
-    dueDate: new Date(2024, 4, 5),
-    urgency: "low",
-    status: "pending",
-    daysOverdue: 0
-  },
-  {
-    id: "ob-5",
-    customerId: "cust-1",
-    customerName: "Ahmed Al-Mansoori",
-    description: "Late fee payment",
-    obligationType: "payment",
-    amount: 250,
-    dueDate: new Date(2024, 3, 18),
-    urgency: "high",
-    status: "overdue",
-    daysOverdue: 9
-  }
-];
-
-// We need the handleCloseObligation function that was referenced above
-function handleCloseObligation() {
-  // Implementation would set selectedObligation to null
-  // Already handled above in the component
-}
+export default CustomerLegalObligations;

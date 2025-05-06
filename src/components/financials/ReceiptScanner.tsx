@@ -1,179 +1,106 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
-import { Camera, Upload, X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Camera, Upload, RefreshCw } from 'lucide-react';
+import { Client } from '@/lib/supabase';
 
 interface ReceiptScannerProps {
-  onScanComplete?: (extractedData: any) => void;
+  onScanComplete: (data: {
+    amount: number;
+    date: Date;
+    description: string;
+    vendor?: string;
+  }) => void;
 }
 
-export const ReceiptScanner = ({ onScanComplete }: ReceiptScannerProps) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [results, setResults] = useState<any | null>(null);
+const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onScanComplete }) => {
+  const [scanning, setScanning] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
+    try {
+      setScanning(true);
       
       // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImagePreview(e.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-      
-      // Reset results when a new file is selected
-      setResults(null);
-    }
-  };
+      setPreview(URL.createObjectURL(file));
 
-  const handleScanReceipt = async () => {
-    if (!selectedFile) return;
-    
-    setIsScanning(true);
-    
-    try {
-      // Upload file to storage
-      const filename = `receipt-scan-${Date.now()}-${selectedFile.name}`;
-      const { data: fileData, error: uploadError } = await supabase.storage
-        .from('receipt-scans')
-        .upload(filename, selectedFile);
-        
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data: urlData } = await supabase.storage
-        .from('receipt-scans')
-        .getPublicUrl(filename);
-        
-      if (!urlData?.publicUrl) throw new Error('Failed to get public URL');
-      
-      // Mock OCR functionality (in a real app, you'd call an API)
-      // Wait for 2 seconds to simulate processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Sample extracted data (in a real app, this would come from your OCR API)
-      const extractedData = {
-        merchantName: "Sample Store",
-        date: new Date().toISOString().split('T')[0],
-        total: Math.floor(Math.random() * 10000) / 100,
-        items: [
-          { description: "Item 1", amount: Math.floor(Math.random() * 1000) / 100 },
-          { description: "Item 2", amount: Math.floor(Math.random() * 1000) / 100 },
-        ],
-        taxAmount: Math.floor(Math.random() * 500) / 100,
-        receiptNumber: `R-${Math.floor(Math.random() * 100000)}`,
-        receiptImageUrl: urlData.publicUrl
+      // Upload to storage
+      const timestamp = Date.now();
+      const filename = `receipts/${timestamp}-${file.name}`;
+      const { data, error } = await Client.storage
+        .from('receipts')
+        .upload(filename, file);
+
+      if (error) throw error;
+
+      // TODO: In production, integrate with OCR service
+      // For now, simulate OCR with dummy data
+      const mockOCRData = {
+        amount: parseFloat((Math.random() * 1000).toFixed(2)),
+        date: new Date(),
+        description: "Business Expense",
+        vendor: "Sample Vendor"
       };
-      
-      setResults(extractedData);
-      if (onScanComplete) {
-        onScanComplete(extractedData);
-      }
-      
+
+      onScanComplete(mockOCRData);
     } catch (error) {
-      console.error('Error scanning receipt:', error);
+      console.error('Error processing receipt:', error);
     } finally {
-      setIsScanning(false);
+      setScanning(false);
     }
-  };
-
-  const handleClearSelection = () => {
-    setSelectedFile(null);
-    setImagePreview(null);
-    setResults(null);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Camera className="mr-2 h-5 w-5" />
-          Receipt Scanner
-        </CardTitle>
-        <CardDescription>
-          Upload a receipt image to extract expense details
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col items-center">
-          {!imagePreview ? (
-            <div className="w-full">
-              <label 
-                htmlFor="receipt-upload" 
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md border-gray-300 cursor-pointer bg-gray-50 hover:bg-gray-100"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-8 h-8 mb-2 text-gray-500" />
-                  <p className="mb-1 text-sm text-gray-500">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">PNG, JPG or PDF (max 10MB)</p>
-                </div>
-                <Input 
-                  id="receipt-upload"
-                  type="file" 
-                  accept="image/*,.pdf" 
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-            </div>
-          ) : (
-            <div className="relative w-full flex justify-center mb-4">
-              <img 
-                src={imagePreview} 
-                alt="Receipt preview" 
-                className="max-h-64 rounded-md shadow-sm" 
+    <Card className="w-full max-w-sm">
+      <CardContent className="p-4">
+        <div className="flex flex-col items-center gap-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="receipt-upload"
+            capture="environment"
+          />
+          
+          {preview && (
+            <div className="relative w-full aspect-[3/4]">
+              <img
+                src={preview}
+                alt="Receipt preview"
+                className="w-full h-full object-cover rounded-lg"
               />
-              <button 
-                onClick={handleClearSelection}
-                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
           )}
-          
-          {selectedFile && !results && (
-            <Button 
-              onClick={handleScanReceipt}
-              disabled={isScanning}
-              className="mt-4"
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('receipt-upload')?.click()}
+              disabled={scanning}
             >
-              {isScanning ? "Scanning..." : "Scan Receipt"}
+              <Upload className="w-4 h-4 mr-2" />
+              Upload
             </Button>
-          )}
-          
-          {results && (
-            <div className="w-full mt-4 p-4 border rounded-md bg-gray-50">
-              <h3 className="font-medium mb-2">Extracted Data</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Merchant:</span>
-                  <span className="font-medium">{results.merchantName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date:</span>
-                  <span className="font-medium">{results.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Receipt #:</span>
-                  <span className="font-medium">{results.receiptNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-medium">${results.total.toFixed(2)}</span>
-                </div>
-              </div>
+            
+            <Button
+              variant="default"
+              onClick={() => document.getElementById('receipt-upload')?.click()}
+              disabled={scanning}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Scan
+            </Button>
+          </div>
+
+          {scanning && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Processing receipt...
             </div>
           )}
         </div>

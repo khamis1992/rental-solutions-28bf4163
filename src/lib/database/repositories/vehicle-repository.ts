@@ -1,73 +1,64 @@
 
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asVehicleId, asVehicleStatus } from '../database-types';
+import { asVehicleId, asVehicleStatus } from '../utils';
 import { supabase } from '@/lib/supabase';
 
 type VehicleRow = TableRow<'vehicles'>;
 
-/**
- * Repository for vehicle-related database operations
- */
-export class VehicleRepository extends Repository<'vehicles'> {
-  constructor(client: any) {
-    super(client, 'vehicles');
+class VehicleRepository extends Repository<'vehicles'> {
+  constructor() {
+    super('vehicles');
   }
 
   /**
    * Find vehicles by status
    */
-  async findByStatus(status: string): Promise<DbListResponse<VehicleRow>> {
-    const response = await this.client
+  async findByStatus(status: Tables['vehicles']['Row']['status']): Promise<DbListResponse<VehicleRow>> {
+    const response = await supabase
       .from('vehicles')
       .select('*')
-      .eq('status', asVehicleStatus(status))
-      .order('created_at', { ascending: false });
+      .eq('status', status);
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
   }
 
   /**
-   * Find available vehicles (those not currently assigned)
+   * Find available vehicles
    */
   async findAvailable(): Promise<DbListResponse<VehicleRow>> {
-    const response = await this.client
-      .from('vehicles')
-      .select('*')
-      .eq('status', asVehicleStatus('available'))
-      .order('created_at', { ascending: false });
-    
-    return { data: response.data, error: response.error };
+    return this.findByStatus(asVehicleStatus('available'));
   }
 
   /**
    * Update vehicle status
    */
-  async updateStatus(vehicleId: string, status: string): Promise<DbSingleResponse<VehicleRow>> {
-    const response = await this.client
+  async updateStatus(vehicleId: string, status: Tables['vehicles']['Row']['status']): Promise<DbSingleResponse<VehicleRow>> {
+    const response = await supabase
       .from('vehicles')
-      .update({ status: asVehicleStatus(status) })
+      .update({ status })
       .eq('id', asVehicleId(vehicleId))
       .select()
       .single();
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
   }
 
   /**
-   * Get vehicle with current lease information
+   * Find vehicles with extended details
    */
-  async getWithLease(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { leases: any[] }>> {
-    const response = await this.client
+  async findWithDetails(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { maintenance: any[] }>> {
+    const response = await supabase
       .from('vehicles')
-      .select('*, leases(*)')
+      .select(`
+        *,
+        maintenance(*)
+      `)
       .eq('id', asVehicleId(vehicleId))
       .single();
     
-    return { data: response.data, error: response.error };
+    return this.mapDbResponse(response);
   }
 }
 
-// Export the repository instance and the factory function
-export const vehicleRepository = new VehicleRepository(supabase);
-export const createVehicleRepository = (client: any) => new VehicleRepository(client);
+export const vehicleRepository = new VehicleRepository();

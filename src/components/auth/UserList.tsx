@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -70,9 +71,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
-import { UserData, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 
-// Define the permission settings interface
+interface UserData {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  status: string;
+  created_at: string;
+}
+
 interface PermissionSettings {
   view: boolean;
   create: boolean;
@@ -178,8 +186,7 @@ const UserList = () => {
       }
       
       console.log("Fetched users:", data);
-      // Cast the data to unknown first, then to UserData[] to bypass TypeScript's strict type checking
-      setUsers(data as unknown as UserData[]);
+      setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
       toast.error("Failed to load users: " + error.message);
@@ -195,7 +202,7 @@ const UserList = () => {
       const { error: profileError } = await supabase
         .from("profiles")
         .delete()
-        .eq("id", userId as any);
+        .eq("id", userId);
       
       if (profileError) {
         console.error("Error deleting user profile:", profileError);
@@ -232,7 +239,7 @@ const UserList = () => {
         const { error } = await supabase
           .from("profiles")
           .delete()
-          .eq("id", user.id as any);
+          .eq("id", user.id);
         
         if (error) {
           console.error(`Error deleting user ${user.id}:`, error);
@@ -282,7 +289,7 @@ const UserList = () => {
         const { error } = await supabase
           .from("profiles")
           .delete()
-          .eq("id", user.id as any);
+          .eq("id", user.id);
         
         if (error) {
           console.error(`Error deleting user ${user.id}:`, error);
@@ -316,8 +323,8 @@ const UserList = () => {
     try {
       const { error: tarekError } = await supabase
         .from("profiles")
-        .update({ role: "admin" } as any)
-        .eq("email", "tareklaribi25914@gmail.com" as any);
+        .update({ role: "admin" })
+        .eq("email", "tareklaribi25914@gmail.com");
       
       if (tarekError) {
         console.error("Error updating Tarek's role:", tarekError);
@@ -328,8 +335,8 @@ const UserList = () => {
       
       const { error: khamisError } = await supabase
         .from("profiles")
-        .update({ role: "admin" } as any)
-        .eq("email", "khamis-1992@hotmail.com" as any);
+        .update({ role: "admin" })
+        .eq("email", "khamis-1992@hotmail.com");
       
       if (khamisError) {
         console.error("Error updating Khamis's role:", khamisError);
@@ -344,12 +351,14 @@ const UserList = () => {
     }
   };
 
-  const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus) => {
+  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
+      const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
+      
       const { error } = await supabase
         .from("profiles")
-        .update({ status: newStatus } as any)
-        .eq("id", userId as any);
+        .update({ status: validStatus })
+        .eq("id", userId);
       
       if (error) {
         console.error("Update status error details:", error);
@@ -377,13 +386,13 @@ const UserList = () => {
     
     setSaving(true);
     try {
-      const newRole = form.getValues("role") as UserRole;
+      const newRole = form.getValues("role");
       
       if (newRole !== selectedUser.role) {
         await supabase
           .from("profiles")
-          .update({ role: newRole } as any)
-          .eq("id", selectedUser.id as any);
+          .update({ role: newRole })
+          .eq("id", selectedUser.id);
       }
       
       toast.success("User permissions updated successfully");

@@ -89,8 +89,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
       referenceNumber?: string,
       includeLatePaymentFee?: boolean,
       isPartialPayment?: boolean,
-      targetPaymentId?: string,
-      paymentType?: string
+      targetPaymentId?: string
     } = {}
   ): Promise<ServiceResult<boolean>> {
     return handleServiceOperation(async () => {
@@ -101,8 +100,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
         referenceNumber,
         includeLatePaymentFee = false,
         isPartialPayment = false,
-        targetPaymentId,
-        paymentType = 'rent'
+        targetPaymentId
       } = options;
       
       // Check if this is an additional payment for a partially paid record
@@ -171,8 +169,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
             balance: Math.max(0, newBalance),
             status: newStatus,
             payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod,
-            type: paymentType
+            payment_method: paymentMethod
           })
           .eq('id', existingPaymentId);
           
@@ -202,7 +199,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
           reference_number: referenceNumber || null,
           description: notes || `Monthly rent payment for ${agreementData.agreement_number}`,
           status: paymentStatus,
-          type: paymentType,
+          type: 'rent',
           days_overdue: daysLate,
           late_fine_amount: lateFineAmount,
           original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()

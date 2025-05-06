@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -15,7 +16,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { Payment } from '@/types/payment-history.types';
+import { Payment } from './PaymentHistory.types';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
@@ -274,7 +275,6 @@ export function AgreementDetail({
         }}
         leaseStartDate={agreement.start_date} 
         leaseEndDate={agreement.end_date}
-        leaseId={agreement.id}
       />}
 
       {agreement.start_date && agreement.end_date && (

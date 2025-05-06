@@ -1,433 +1,538 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  Card, CardContent, 
-  Badge, Button, 
-  Tabs, TabsContent, TabsList, TabsTrigger,
-  Textarea
-} from "@/components/ui";
-import { FormField } from "@/components/ui/form-components";
-import { useToast } from "@/components/ui/use-toast";
-import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
-import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
-import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
+  Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, 
+  FileText, Phone, Mail, User, ChevronRight
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { useCustomers } from '@/hooks/use-customers';
+import { Customer } from '@/lib/validation-schemas/customer';
+import { toast } from 'sonner';
+import { CustomerTrafficFines } from './CustomerTrafficFines';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { formatDate, formatDateTime } from '@/lib/date-utils';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 
-interface CustomerDetailProps {
-  customerId?: string;
-}
-
-// Function to handle customer data updates
-const updateCustomer = (id: string, data: any) => {
-  return supabase
-    .from('profiles')
-    .update(data)
-    .eq('id', id)
-    .then(({ data, error }) => {
-      if (error) throw error;
-      return data;
-    });
-};
-
-export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [customer, setCustomer] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+export function CustomerDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { getCustomer, deleteCustomer } = useCustomers();
+  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [localNotes, setLocalNotes] = useState('');
+
+  const fetchCustomer = useCallback(async () => {
+    if (!id || hasLoaded) return;
+    
+    setLoading(true);
+    setFetchError(null);
+    
+    try {
+      const data = await getCustomer(id);
+      if (data) {
+        setCustomer(data);
+        setHasLoaded(true);
+      } else {
+        setFetchError("Customer not found");
+      }
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      setFetchError("Failed to load customer details");
+      toast.error("Error loading customer details");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, getCustomer, hasLoaded]);
 
   useEffect(() => {
-    const fetchCustomer = async () => {
-      if (!customerId) {
-        setError("No customer ID provided");
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Get customer and their agreements
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            agreements:leases(
-              id, 
-              agreement_number, 
-              start_date, 
-              end_date, 
-              status
-            )
-          `)
-          .eq('id', customerId)
-          .single();
+    fetchCustomer();
+  }, [fetchCustomer]);
 
-        if (error) {
-          console.error("Error fetching customer:", error);
-          setError(error.message);
-          toast({
-            title: "Error fetching customer",
-            description: error.message,
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
+  useEffect(() => {
+    if (customer?.notes) {
+      setLocalNotes(customer.notes);
+    }
+  }, [customer?.notes]);
+
+  const handleDelete = async () => {
+    if (!customer?.id || isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteCustomer.mutateAsync(customer.id, {
+        onSuccess: () => {
+          toast.success("Customer deleted successfully");
+          navigate('/customers');
+        },
+        onError: (error) => {
+          console.error("Delete error:", error);
+          toast.error("Failed to delete customer");
+          setIsDeleting(false);
         }
-
-        setCustomer(data);
-        setNotes(data.notes || "");
-        setIsLoading(false);
-      } catch (error: any) {
-        console.error("Unexpected error fetching customer:", error);
-        setError(error.message);
-        setIsLoading(false);
-        toast({
-          title: "Unexpected error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (customerId) {
-      fetchCustomer();
-    }
-  }, [customerId, toast]);
-
-  // Handle customer updates
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await updateCustomer(id, data);
-    },
-    onSuccess: (_, variables) => {
-      // Update local state after successful mutation
-      if (customer) {
-        setCustomer({
-          ...customer,
-          ...variables.data
-        });
-      }
-      toast({
-        title: "Customer updated",
-        description: "Customer details have been updated successfully.",
       });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error("Unexpected error during delete:", error);
+      toast.error("An unexpected error occurred");
+      setIsDeleting(false);
     }
-  });
-
-  const handleUpdateCustomer = async (data: any) => {
-    if (!customerId) return;
-    updateMutation.mutate({ id: customerId, data });
   };
 
-  const handleSaveNotes = () => {
-    if (!customerId) return;
-    updateMutation.mutate({ 
-      id: customerId, 
-      data: { notes } 
-    });
-    setEditingNotes(false);
+  const getStatusBadgeVariant = (status: string): "default" | "outline" | "secondary" | "destructive" => {
+    switch (status) {
+      case "active": return "default";
+      case "inactive": return "secondary";
+      case "blacklisted": return "destructive";
+      case "pending_review": 
+      case "pending_payment": 
+        return "outline";
+      default: return "outline";
+    }
   };
 
-  const handleCancelEditNotes = () => {
-    setNotes(customer?.notes || "");
-    setEditingNotes(false);
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
-  const handleDelete = () => {
-    toast({
-      title: "Delete functionality",
-      description: "Delete functionality is not implemented yet.",
-      variant: "destructive",
-    });
+  const handleSaveNotes = async () => {
+    if (!customer?.id) return;
+    
+    try {
+      await updateCustomer.mutateAsync({
+        id: customer.id,
+        notes: localNotes
+      });
+      setIsEditingNotes(false);
+      toast.success('Notes updated successfully');
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast.error('Failed to update notes');
+    }
   };
 
-  if (isLoading) {
+  if (loading && !hasLoaded) {
     return (
-      <div className="flex items-center justify-center p-6">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-12 w-[250px] rounded-md" />
+          <Skeleton className="h-10 w-[150px] rounded-md" />
+        </div>
+        <Skeleton className="h-[200px] w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-[300px] rounded-lg" />
+          <Skeleton className="h-[300px] rounded-lg" />
+        </div>
       </div>
     );
   }
 
-  if (error || !customer) {
+  if (fetchError || !customer) {
     return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <p className="text-destructive">{error || "Customer data not found"}</p>
-        </CardContent>
+      <Card className="mx-auto max-w-2xl">
+        <CardHeader className="text-center">
+          <CardTitle>Customer Not Found</CardTitle>
+          <CardDescription>
+            {fetchError || "The customer you're looking for doesn't exist or has been removed."}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex justify-center">
+          <Button asChild>
+            <Link to="/customers">Back to Customers</Link>
+          </Button>
+        </CardFooter>
       </Card>
     );
   }
 
-  // Count active agreements
-  const activeAgreements = customer.agreements?.filter(
-    (agreement: any) => agreement.status === 'active'
-  ).length || 0;
-
-  // Get total agreements
-  const totalAgreements = customer.agreements?.length || 0;
+  const activeAgreements = agreements?.filter(a => a.status === 'ACTIVE') || [];
+  const totalAgreements = agreements?.length || 0;
 
   return (
     <div className="space-y-6">
-      {/* Customer Header Card */}
-      <Card className="w-full border rounded-lg overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
-                {customer.full_name?.charAt(0) || "C"}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
-                </div>
-                <p className="text-gray-500">Customer since {formatDate(customer.created_at)}</p>
-                <div className="mt-2 flex gap-6">
-                  <div className="flex items-center gap-1">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.email || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.phone_number || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.nationality || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4 md:mt-0">
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            </div>
-          </div>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-start p-6 pb-0 md:pb-6 gap-6">
+          <Avatar className="h-24 w-24 border-4 border-background">
+            <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+              {getInitials(customer.full_name)}
+            </AvatarFallback>
+          </Avatar>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Total Agreements</p>
-              <p className="text-3xl font-bold">{totalAgreements}</p>
+          <div className="flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  {customer.full_name}
+                  <Badge 
+                    variant={getStatusBadgeVariant(customer.status)} 
+                    className="capitalize ml-2"
+                  >
+                    {customer.status.replace('_', ' ')}
+                  </Badge>
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Customer since {formatDate(customer.created_at || '')}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button asChild variant="outline">
+                  <Link to={`/customers/edit/${customer.id}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Link>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the customer record for {customer.full_name}.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Active Agreements</p>
-              <p className="text-3xl font-bold">{activeAgreements}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Last Updated</p>
-              <p className="text-3xl font-bold">{formatDate(customer.updated_at || customer.created_at)}</p>
+            
+            <div className="flex flex-wrap gap-4 mt-2">
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
+                <a href={`mailto:${customer.email}`}>
+                  <Mail className="h-4 w-4" />{customer.email}
+                </a>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
+                <a href={`tel:+974${customer.phone}`}>
+                  <Phone className="h-4 w-4" />+974 {customer.phone}
+                </a>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5" asChild>
+                <span>
+                  <User className="h-4 w-4" />{customer.nationality || 'Not specified'}
+                </span>
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* Tabs for different sections */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px border-t mt-6 bg-muted">
+          <div className="bg-background p-6 flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Total Agreements</span>
+            <span className="text-3xl font-bold">{totalAgreements}</span>
+          </div>
+          <div className="bg-background p-6 flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Active Agreements</span>
+            <span className="text-3xl font-bold">{activeAgreements.length}</span>
+          </div>
+          <div className="bg-background p-6 flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">Last Updated</span>
+            <span className="text-medium">
+              {customer.updated_at 
+                ? formatDate(customer.updated_at)
+                : 'Never updated'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="agreements">Agreements</TabsTrigger>
-          <TabsTrigger value="legal">Legal Obligations</TabsTrigger>
-          <TabsTrigger value="fines">Traffic Fines</TabsTrigger>
+          <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="profile" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Contact Information Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                Contact Information
-              </h3>
-              
-              <div className="space-y-4">
+        <TabsContent value="profile" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UserCog className="mr-2 h-5 w-5" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">Email Address</p>
-                  <p className="font-medium">{customer.email || "N/A"}</p>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Email Address</h4>
+                  <p className="text-foreground">{customer.email}</p>
                 </div>
-                
                 <div>
-                  <p className="text-gray-500 mb-1">Phone Number</p>
-                  <p className="font-medium">{customer.phone_number || "N/A"}</p>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Phone Number</h4>
+                  <p className="text-foreground">+974 {customer.phone}</p>
                 </div>
-                
                 <div>
-                  <p className="text-gray-500 mb-1">Address</p>
-                  <p className="font-medium">{customer.address || "N/A"}</p>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Address</h4>
+                  <p className="text-foreground whitespace-pre-line">{customer.address || 'No address provided'}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Customer Details Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Customer Details
-              </h3>
-              
-              <div className="space-y-4">
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CalendarClock className="mr-2 h-5 w-5" />
+                  Customer Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">Status</p>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Driver License</p>
-                  <p className="font-medium">{customer.driver_license || "N/A"}</p>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Last Updated</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {formatDate(customer.updated_at || customer.created_at)} 3:25 PM
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Additional Notes with Edit Functionality */}
-          <Card className="w-full md:col-span-2">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Additional Notes</h3>
-                {!editingNotes ? (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setEditingNotes(true)}
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Status</h4>
+                  <Badge
+                    variant={getStatusBadgeVariant(customer.status)}
+                    className="capitalize"
                   >
-                    <Edit className="h-4 w-4 mr-1" /> Edit Notes
+                    {customer.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Driver License</h4>
+                  <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
+                    {customer.driver_license}
+                  </code>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Last Updated</h4>
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {customer.updated_at 
+                      ? formatDateTime(customer.updated_at) 
+                      : 'Never updated'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Additional Notes</CardTitle>
+                {!isEditingNotes ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsEditingNotes(true)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Notes
                   </Button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="space-x-2">
                     <Button 
                       variant="outline" 
-                      size="sm" 
-                      onClick={handleCancelEditNotes}
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingNotes(false);
+                        setLocalNotes(customer?.notes || '');
+                      }}
                     >
-                      <X className="h-4 w-4 mr-1" /> Cancel
+                      Cancel
                     </Button>
                     <Button 
-                      variant="default" 
-                      size="sm" 
+                      size="sm"
                       onClick={handleSaveNotes}
-                      disabled={updateMutation.isPending}
                     >
-                      <Save className="h-4 w-4 mr-1" /> Save
+                      Save
                     </Button>
                   </div>
                 )}
               </div>
-              
-              {!editingNotes ? (
-                <p className="text-gray-500 italic">
-                  {customer.notes || "No additional notes for this customer."}
-                </p>
-              ) : (
-                <FormField
-                  label="Customer Notes"
-                  htmlFor="notes"
-                >
-                  <Textarea 
-                    id="notes"
-                    placeholder="Enter notes about this customer..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none">
+                {isEditingNotes ? (
+                  <Textarea
+                    value={localNotes}
+                    onChange={(e) => setLocalNotes(e.target.value)}
+                    placeholder="Add notes about this customer..."
                     className="min-h-[100px]"
                   />
-                </FormField>
-              )}
+                ) : (
+                  customer?.notes ? (
+                    <p className="whitespace-pre-line">{customer.notes}</p>
+                  ) : (
+                    <p className="text-muted-foreground italic">No additional notes for this customer.</p>
+                  )
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="agreements">
-          {customer.agreements && customer.agreements.length > 0 ? (
-            <div className="bg-white rounded-md shadow">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Agreement #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Start Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      End Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {customer.agreements.map((agreement: any) => (
-                    <tr key={agreement.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={
-                          agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
-                          agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'
-                        }>
-                          {agreement.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Card className="w-full">
-              <CardContent className="p-6 text-center">
-                <p className="text-gray-500">No agreements found for this customer.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="legal">
-          {customerId && <CustomerLegalObligationsPage customerId={customerId} />}
+        <TabsContent value="agreements" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center">
+                  <FileText className="mr-2 h-5 w-5" />
+                  Agreement History
+                </CardTitle>
+                <CardDescription>
+                  List of rental agreements associated with this customer
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/agreements/new?customerId=${customer.id}`}>
+                  Create Agreement
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Agreement Number</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingAgreements ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <TableRow key={`skeleton-${i}`}>
+                          {Array.from({ length: 7 }).map((_, j) => (
+                            <TableCell key={`skeleton-cell-${i}-${j}`}>
+                              <Skeleton className="h-6 w-full" />
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : agreements && agreements.length > 0 ? (
+                      agreements.map((agreement) => (
+                        <TableRow key={agreement.id}>
+                          <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
+                          <TableCell>
+                            {agreement.vehicles ? (
+                              <span>
+                                {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
+                              </span>
+                            ) : (
+                              'Unknown vehicle'
+                            )}
+                          </TableCell>
+                          <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : 'N/A'}</TableCell>
+                          <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                agreement.status === 'ACTIVE' ? 'default' :
+                                agreement.status === 'PENDING' ? 'outline' :
+                                agreement.status === 'CANCELLED' ? 'destructive' :
+                                agreement.status === 'CLOSED' ? 'outline' :
+                                agreement.status === 'EXPIRED' ? 'secondary' :
+                                'default'
+                              }
+                              className="capitalize"
+                            >
+                              {agreement.status?.toLowerCase().replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to={`/agreements/${agreement.id}`}>
+                                View
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                          <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                            <p className="text-muted-foreground">No agreements found for this customer.</p>
+                            <Button asChild variant="outline" size="sm">
+                              <Link to={`/agreements/new?customerId=${customer.id}`}>
+                                Create Agreement
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
-        <TabsContent value="fines">
-          {customerId && <CustomerTrafficFines customerId={customerId} />}
+        <TabsContent value="traffic-fines" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                Traffic Fines
+              </CardTitle>
+              <CardDescription>
+                Traffic violations associated with this customer
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {customer.id && <CustomerTrafficFines customerId={customer.id} />}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-};
+}
+
+export default CustomerDetail;
