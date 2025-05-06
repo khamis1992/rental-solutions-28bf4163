@@ -2,31 +2,23 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
-import CustomerSelector from "@/components/customers/CustomerSelector";
-import { CustomerInfo } from "@/types/customer";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement-utils";
-import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
 import { AgreementTemplateStatus } from "./AgreementTemplateStatus";
 import { AgreementDetails } from "./AgreementDetails";
 import { CustomerVehicleSection } from "./CustomerVehicleSection";
 import { PaymentInformation } from "./PaymentInformation";
+import { useTemplateSetup } from "./TemplateSetup";
+import { CustomerInfo } from "@/types/customer";
 
 const AddAgreementForm = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(false);
-  const [templateError, setTemplateError] = useState<string | null>(null);
-  const [specificUrlCheck, setSpecificUrlCheck] = useState<any>(null);
+  const { standardTemplateExists, specificUrlCheck, templateError } = useTemplateSetup();
   
   // Form state
-  const [agreementNumber, setAgreementNumber] = useState("AGR-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + Math.floor(1000 + Math.random() * 9000));
+  const [agreementNumber, setAgreementNumber] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -42,6 +34,18 @@ const AddAgreementForm = () => {
   const [dailyLateFee, setDailyLateFee] = useState<string>("120");
   const [totalContractAmount, setTotalContractAmount] = useState<string>("0");
   const [notes, setNotes] = useState<string>("");
+
+  // Generate unique agreement number on component mount
+  useEffect(() => {
+    const generateAgreementNumber = () => {
+      const prefix = "AGR";
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const random = Math.floor(1000 + Math.random() * 9000);
+      return `${prefix}-${dateStr}-${random}`;
+    };
+    
+    setAgreementNumber(generateAgreementNumber());
+  }, []);
 
   // Update end date when start date or duration changes
   useEffect(() => {
@@ -59,58 +63,175 @@ const AddAgreementForm = () => {
     setTotalContractAmount((rent * duration).toString());
   }, [rentAmount, durationMonths]);
 
+  const validateForm = () => {
+    if (!selectedCustomer) {
+      toast.error("Please select a customer");
+      return false;
+    }
+    
+    if (!selectedVehicle) {
+      toast.error("Please select a vehicle");
+      return false;
+    }
+    
+    if (!startDate) {
+      toast.error("Please select a start date");
+      return false;
+    }
+    
+    if (parseFloat(rentAmount) <= 0) {
+      toast.error("Rent amount must be greater than zero");
+      return false;
+    }
+    
+    return true;
+  };
+
+  const generatePaymentSchedule = async (leaseId: string) => {
+    try {
+      // Calculate monthly payment dates based on start date and duration
+      const paymentDates = [];
+      const rentAmountNum = parseFloat(rentAmount);
+      
+      for (let i = 0; i < parseInt(durationMonths); i++) {
+        const paymentDate = new Date(startDate);
+        paymentDate.setMonth(paymentDate.getMonth() + i);
+        
+        paymentDates.push({
+          lease_id: leaseId,
+          amount: rentAmountNum,
+          due_date: paymentDate.toISOString(),
+          status: i === 0 ? 'pending' : 'pending',
+          type: 'rent',
+          description: `Month ${i + 1} payment`
+        });
+      }
+      
+      // Insert payment schedule
+      if (paymentDates.length > 0) {
+        const { error } = await supabase.from('unified_payments').insert(paymentDates);
+        if (error) {
+          console.error("Error creating payment schedule:", error);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error in payment schedule generation:", error);
+      return false;
+    }
+  };
+
+  const checkVehicleAvailability = async (vehicleId: string) => {
+    try {
+      // Check if vehicle is already assigned to an active agreement
+      const { data, error } = await supabase
+        .from('leases')
+        .select('id, agreement_number, status')
+        .eq('vehicle_id', vehicleId)
+        .eq('status', 'active');
+        
+      if (error) throw error;
+      
+      return {
+        isAvailable: !data || data.length === 0,
+        existingAgreement: data && data.length > 0 ? data[0] : null
+      };
+    } catch (error) {
+      console.error("Error checking vehicle availability:", error);
+      throw error;
+    }
+  };
+
+  const closeExistingAgreement = async (agreementId: string) => {
+    try {
+      const { error } = await supabase
+        .from('leases')
+        .update({ status: 'closed', updated_at: new Date().toISOString() })
+        .eq('id', agreementId);
+        
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error("Error closing existing agreement:", error);
+      return false;
+    }
+  };
+
+  const updateVehicleStatus = async (vehicleId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', vehicleId);
+        
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error("Error updating vehicle status:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      if (!selectedCustomer) {
-        toast.error("Please select a customer");
-        setIsSubmitting(false);
-        return;
+      let vehicleId = selectedVehicle?.id;
+      
+      // Check if vehicle is available if status is active
+      if (vehicleId && status === 'active') {
+        const { isAvailable, existingAgreement } = await checkVehicleAvailability(vehicleId);
+        
+        // If vehicle is not available, close the existing agreement
+        if (!isAvailable && existingAgreement) {
+          console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
+          const closed = await closeExistingAgreement(existingAgreement.id);
+          if (!closed) {
+            toast.error("Failed to close existing agreement for the vehicle");
+            setIsSubmitting(false);
+            return;
+          }
+        }
       }
       
+      // Create agreement
       const leaseData = {
         agreement_number: agreementNumber,
-        customer_id: selectedCustomer.id,
-        vehicle_id: selectedVehicle?.id || null,
-        start_date: startDate,
-        end_date: endDate,
+        customer_id: selectedCustomer!.id,
+        vehicle_id: vehicleId,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         status: status,
         rent_amount: parseFloat(rentAmount),
         deposit_amount: parseFloat(depositAmount),
         daily_late_fee: parseFloat(dailyLateFee),
         total_amount: parseFloat(totalContractAmount),
         notes: notes,
+        agreement_type: 'long_term' // Default value
       };
       
-      if (leaseData.vehicle_id && leaseData.status === 'active') {
-        const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
-        
-        if (!isAvailable && existingAgreement) {
-          console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
-        }
-      }
-      
-      console.log("Submitting lease data:", leaseData);
-      
       const { data, error } = await supabase.from("leases").insert([leaseData]).select("id").single();
+      
       if (error) {
         throw error;
       }
       
-      if (leaseData.status === 'active' && leaseData.vehicle_id) {
-        await activateAgreement(data.id, leaseData.vehicle_id);
-      } else if (leaseData.status === 'active') {
-        // If agreement is active but not tied to a vehicle, still generate payment
-        try {
-          console.log("Generating initial payment schedule for new agreement");
-          const result = await forceGeneratePaymentForAgreement(supabase, data.id);
-          if (!result.success) {
-            console.warn("Could not generate payment schedule:", result.message);
-          }
-        } catch (paymentError) {
-          console.error("Error generating payment schedule:", paymentError);
+      // If agreement is active, update vehicle status
+      if (status === 'active' && vehicleId) {
+        await updateVehicleStatus(vehicleId, 'rented');
+        
+        // Generate payment schedule
+        const paymentsCreated = await generatePaymentSchedule(data.id);
+        if (!paymentsCreated) {
+          toast.warning("Agreement created but failed to generate payment schedule");
         }
       }
       

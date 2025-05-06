@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CustomerSelector from "@/components/customers/CustomerSelector";
 import { CustomerInfo } from "@/types/customer";
+import VehicleSelector from "@/components/vehicles/VehicleSelector";
 
 interface CustomerVehicleSectionProps {
   selectedCustomer: CustomerInfo | null;
@@ -36,18 +36,11 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         <label className="text-sm font-medium">
           Vehicle
         </label>
-        <Select onValueChange={(value) => {
-          // In a real implementation, you'd fetch vehicle details here
-          setSelectedVehicle({ id: value, make: 'Sample', model: 'Vehicle' });
-        }}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select vehicle" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="vehicle1">Toyota Camry (ABC-123)</SelectItem>
-            <SelectItem value="vehicle2">Honda Civic (XYZ-789)</SelectItem>
-          </SelectContent>
-        </Select>
+        <VehicleSelector
+          selectedVehicle={selectedVehicle}
+          onVehicleSelect={setSelectedVehicle}
+          placeholder="Select vehicle"
+        />
       </div>
     </div>
   );

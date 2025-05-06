@@ -5,10 +5,7 @@ import { useTemplateSetup } from "@/components/agreements/form/TemplateSetup";
 import AddAgreementForm from "@/components/agreements/form/AddAgreementForm";
 
 const AddAgreement = () => {
-  const {
-    standardTemplateExists,
-    specificUrlCheck
-  } = useTemplateSetup();
+  const templateSetup = useTemplateSetup();
   
   return (
     <PageContainer 
