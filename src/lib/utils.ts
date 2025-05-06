@@ -1,6 +1,6 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
 
 /**
  * Combines class names
@@ -8,6 +8,24 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+/**
+ * Formats a date string to a readable format
+ * @param date The date to format (can be string, Date object, or null/undefined)
+ * @param formatStr The date format string (default: 'dd/MM/yyyy')
+ * @returns Formatted date string or 'N/A' if date is invalid
+ */
+export const formatDate = (date: string | Date | null | undefined, formatStr = 'dd/MM/yyyy'): string => {
+  if (!date) return 'N/A';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, formatStr);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid Date';
+  }
+};
 
 /**
  * Formats a number as currency
