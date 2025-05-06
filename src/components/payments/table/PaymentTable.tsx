@@ -56,7 +56,7 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
             <tr key={payment.id} className="bg-white border-b hover:bg-gray-50">
               <td className="px-4 py-3">{formatDate(payment.payment_date)}</td>
               <td className="px-4 py-3">{formatPaymentType(payment.type)}</td>
-              <td className="px-4 py-3 font-medium">QAR {formatCurrency(payment.amount)}</td>
+              <td className="px-4 py-3 font-medium">{formatCurrency(payment.amount)}</td>
               <td className="px-4 py-3">
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}>
                   {payment.status}

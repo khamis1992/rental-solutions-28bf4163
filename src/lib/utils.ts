@@ -1,6 +1,7 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
 
 /**
  * Combines class names
@@ -28,6 +29,24 @@ export const formatCurrency = (amount: number | string | null | undefined, curre
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`;
+};
+
+/**
+ * Formats a date into a readable string
+ * @param date The date to format
+ * @param formatString Optional format string (defaults to 'MMMM d, yyyy')
+ * @returns Formatted date string
+ */
+export const formatDate = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy'): string => {
+  if (!date) return 'N/A';
+  
+  try {
+    const dateObject = date instanceof Date ? date : new Date(date);
+    return format(dateObject, formatString);
+  } catch (error) {
+    console.error('Error formatting date:', error, 'Input was:', date);
+    return 'Invalid date';
+  }
 };
 
 /**
