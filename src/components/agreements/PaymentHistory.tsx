@@ -36,7 +36,7 @@ export function PaymentHistory({
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted}
       onRecordPayment={onRecordPayment}
-      showAnalytics={true} // Show analytics in this component
+      showAnalytics={true}
     />
   );
 }
