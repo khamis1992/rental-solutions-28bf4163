@@ -26,6 +26,27 @@ export function asVehicleStatus(status: string): string {
 }
 
 /**
+ * Validates and normalizes profile status for database operations
+ * @param status - Status string to validate
+ * @returns Validated profile status string
+ */
+export function asProfileStatus(status: string): string {
+  // Convert application status strings to database status strings
+  switch (status.toLowerCase()) {
+    case 'active':
+    case 'inactive':
+    case 'pending':
+    case 'suspended':
+    case 'blocked':
+    case 'pending_review':
+      return status.toLowerCase();
+    default:
+      console.warn(`Unknown profile status '${status}', defaulting to 'active'`);
+      return 'active';
+  }
+}
+
+/**
  * Validates and normalizes vehicle ID for database operations
  * @param id - ID string to validate
  * @returns Validated vehicle ID string
