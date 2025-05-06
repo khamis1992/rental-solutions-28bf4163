@@ -27,7 +27,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         </label>
         <CustomerSelector 
           selectedCustomer={selectedCustomer}
-          onCustomerSelect={(customer) => customer && setSelectedCustomer(customer)}
+          onCustomerSelect={setSelectedCustomer}
           placeholder="Select customer"
         />
       </div>
@@ -38,7 +38,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         </label>
         <VehicleSelector
           selectedVehicle={selectedVehicle}
-          onVehicleSelect={(vehicle) => vehicle && setSelectedVehicle(vehicle)}
+          onVehicleSelect={setSelectedVehicle}
           placeholder="Select vehicle"
         />
       </div>

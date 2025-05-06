@@ -12,8 +12,9 @@ import { CarInstallmentContract } from '@/types/car-installment';
 const CarInstallmentContracts = () => {
   const {
     contracts,
-    isLoading,
+    isLoadingContracts,
     summary,
+    isLoadingSummary,
     contractFilters,
     setContractFilters,
     createContract
@@ -67,12 +68,12 @@ const CarInstallmentContracts = () => {
 
       <ContractSummaryCards 
         summary={summary} 
-        isLoading={isLoading} 
+        isLoading={isLoadingSummary} 
       />
 
       <CarContractsList
         contracts={contracts || []}
-        isLoading={isLoading}
+        isLoading={isLoadingContracts}
         onContractClick={handleViewContract}
         filters={contractFilters}
         onSearchChange={handleSearchChange}

@@ -36,57 +36,13 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   const [recordMode, setRecordMode] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<CarInstallmentPayment | null>(null);
   const { 
-    fetchPayments,
+    fetchContractPayments, 
+    paymentFilters, 
+    setPaymentFilters,
     addPayment,
-    updatePaymentStatus
+    recordPayment,
+    importPayments
   } = useCarInstallments();
-
-  // Custom fetch contract payments function
-  const fetchContractPayments = async (contractId: string, filters?: PaymentFilters) => {
-    setIsLoadingPayments(true);
-    try {
-      // Filter the payments for this contract
-      const allPayments = await fetchPayments();
-      const contractPayments = allPayments.filter(p => p.contract_id === contractId);
-      
-      // Apply filters if provided
-      let filteredPayments = [...contractPayments];
-      
-      if (filters?.status && filters.status !== 'all') {
-        filteredPayments = filteredPayments.filter(p => p.status === filters.status);
-      }
-      
-      if (filters?.dateFrom) {
-        const fromDate = new Date(filters.dateFrom);
-        filteredPayments = filteredPayments.filter(p => {
-          const paymentDate = new Date(p.payment_date);
-          return paymentDate >= fromDate;
-        });
-      }
-      
-      if (filters?.dateTo) {
-        const toDate = new Date(filters.dateTo);
-        filteredPayments = filteredPayments.filter(p => {
-          const paymentDate = new Date(p.payment_date);
-          return paymentDate <= toDate;
-        });
-      }
-      
-      return filteredPayments;
-    } catch (error) {
-      console.error('Error in fetchContractPayments:', error);
-      return [];
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  };
-
-  // Local payment filters
-  const [paymentFilters, setPaymentFilters] = useState<PaymentFilters>({
-    status: 'all',
-    dateFrom: undefined,
-    dateTo: undefined
-  });
 
   const loadPayments = async () => {
     setIsLoadingPayments(true);
@@ -122,7 +78,10 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   const handlePaymentSubmit = (data: any) => {
     if (recordMode && selectedPayment) {
       // Record a payment against an existing installment
-      updatePaymentStatus(selectedPayment.id, 'paid', data.amount);
+      recordPayment({
+        id: selectedPayment.id,
+        amountPaid: data.amount
+      });
     } else {
       // Add a new payment
       addPayment({
@@ -135,22 +94,12 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   };
 
   const handleImportSubmit = (payments: any[]) => {
-    // Implement a simpler import function since we don't have importPayments
-    const importPromises = payments.map(payment => 
-      addPayment({
-        contract_id: contract.id,
-        ...payment
-      })
-    );
-    
-    Promise.all(importPromises)
-      .then(() => {
-        setIsImportDialogOpen(false);
-        setTimeout(loadPayments, 500); // Reload after a short delay
-      })
-      .catch(err => {
-        console.error('Error importing payments:', err);
-      });
+    importPayments({
+      contractId: contract.id,
+      payments
+    });
+    setIsImportDialogOpen(false);
+    setTimeout(loadPayments, 500); // Reload after a short delay
   };
 
   const handleExportTemplate = () => {

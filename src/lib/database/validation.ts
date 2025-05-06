@@ -53,33 +53,6 @@ export function validateUUID(value: string, name: string): string {
 }
 
 /**
- * Validates if the provided string is a valid database ID (UUID)
- * @param id - The ID to check
- * @returns True if the ID is valid, false otherwise
- */
-export function isValidDatabaseId(id: string | null | undefined): boolean {
-  if (!id) return false;
-  
-  // UUID pattern check
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-}
-
-/**
- * Validates if the provided string is a valid database ID (UUID) and throws an error if not
- * @param id - The ID to check
- * @param name - Name for the error message
- * @returns The original ID if valid
- * @throws Error if the ID is not valid
- */
-export function validateDatabaseId(id: string, name: string = 'ID'): string {
-  if (!isValidDatabaseId(id)) {
-    throw new Error(`Invalid ${name} format: ${id}`);
-  }
-  return id;
-}
-
-/**
  * Ensures array is defined, defaulting to empty array if not
  * @param arr - Array to check
  * @returns The provided array or an empty array
@@ -135,3 +108,31 @@ export function validateStatus<T extends string>(
   console.warn(`Invalid status '${status}', defaulting to '${defaultValue}'`);
   return defaultValue;
 }
+
+/**
+ * Validates if the provided string is a valid database ID (UUID)
+ * @param id - The ID to check
+ * @returns True if the ID is valid, false otherwise
+ */
+export function isValidDatabaseId(id: string | null | undefined): boolean {
+  if (!id) return false;
+  
+  // UUID pattern check
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+/**
+ * Validates if the provided string is a valid database ID (UUID) and throws an error if not
+ * @param id - The ID to check
+ * @param name - Name for the error message
+ * @returns The original ID if valid
+ * @throws Error if the ID is not valid
+ */
+export function validateDatabaseId(id: string, name: string = 'ID'): string {
+  if (!isValidDatabaseId(id)) {
+    throw new Error(`Invalid ${name} format: ${id}`);
+  }
+  return id;
+}
+
