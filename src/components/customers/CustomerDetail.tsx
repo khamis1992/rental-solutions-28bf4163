@@ -3,12 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Card, CardContent, 
   Badge, Button, 
-  Tabs, TabsContent, TabsList, TabsTrigger 
+  Tabs, TabsContent, TabsList, TabsTrigger,
+  Textarea
 } from "@/components/ui";
+import { FormField } from "@/components/ui/form-components";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock } from 'lucide-react';
+import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
@@ -36,6 +38,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -78,6 +82,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         }
 
         setCustomer(data);
+        setNotes(data.notes || "");
         setIsLoading(false);
       } catch (error: any) {
         console.error("Unexpected error fetching customer:", error);
@@ -101,7 +106,14 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       return await updateCustomer(id, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Update local state after successful mutation
+      if (customer) {
+        setCustomer({
+          ...customer,
+          ...variables.data
+        });
+      }
       toast({
         title: "Customer updated",
         description: "Customer details have been updated successfully.",
@@ -119,6 +131,20 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const handleUpdateCustomer = async (data: any) => {
     if (!customerId) return;
     updateMutation.mutate({ id: customerId, data });
+  };
+
+  const handleSaveNotes = () => {
+    if (!customerId) return;
+    updateMutation.mutate({ 
+      id: customerId, 
+      data: { notes } 
+    });
+    setEditingNotes(false);
+  };
+
+  const handleCancelEditNotes = () => {
+    setNotes(customer?.notes || "");
+    setEditingNotes(false);
   };
 
   const handleDelete = () => {
@@ -283,13 +309,58 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
             </CardContent>
           </Card>
           
-          {/* Additional Notes */}
+          {/* Additional Notes with Edit Functionality */}
           <Card className="w-full md:col-span-2">
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Additional Notes</h3>
-              <p className="text-gray-500 italic">
-                {customer.notes || "No additional notes for this customer."}
-              </p>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Additional Notes</h3>
+                {!editingNotes ? (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setEditingNotes(true)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" /> Edit Notes
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCancelEditNotes}
+                    >
+                      <X className="h-4 w-4 mr-1" /> Cancel
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={handleSaveNotes}
+                      disabled={updateMutation.isPending}
+                    >
+                      <Save className="h-4 w-4 mr-1" /> Save
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {!editingNotes ? (
+                <p className="text-gray-500 italic">
+                  {customer.notes || "No additional notes for this customer."}
+                </p>
+              ) : (
+                <FormField
+                  label="Customer Notes"
+                  htmlFor="notes"
+                >
+                  <Textarea 
+                    id="notes"
+                    placeholder="Enter notes about this customer..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </FormField>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
