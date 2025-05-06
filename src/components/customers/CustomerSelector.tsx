@@ -47,12 +47,14 @@ const CustomerSelector = ({
         
         if (error) {
           console.error('Error fetching customers:', error);
+          setCustomers([]);
           return;
         }
         
-        setCustomers(data as CustomerInfo[]);
+        setCustomers(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error in fetchCustomers:', error);
+        setCustomers([]);
       } finally {
         setLoading(false);
       }
@@ -95,11 +97,9 @@ const CustomerSelector = ({
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
-          {!loading && (
-            <CommandEmpty>No customers found.</CommandEmpty>
-          )}
+          <CommandEmpty>No customers found.</CommandEmpty>
           <CommandGroup>
-            {customers.map((customer) => (
+            {Array.isArray(customers) && customers.length > 0 ? customers.map((customer) => (
               <CommandItem
                 key={customer.id}
                 value={customer.id}
@@ -118,7 +118,9 @@ const CustomerSelector = ({
                   <Check className="h-4 w-4 text-green-500" />
                 )}
               </CommandItem>
-            ))}
+            )) : (
+              <div className="py-6 text-center text-sm">No results found.</div>
+            )}
           </CommandGroup>
         </Command>
       </PopoverContent>
