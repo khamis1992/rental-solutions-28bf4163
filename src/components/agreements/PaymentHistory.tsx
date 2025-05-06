@@ -1,12 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
-import { format } from 'date-fns';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
+import React from 'react';
 import { Payment } from '@/types/payment-history.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 
