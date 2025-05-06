@@ -30,7 +30,7 @@ export function AgreementSearch({
   const [inputValue, setInputValue] = useState(searchQuery);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: customers, isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', inputValue],
     queryFn: async () => {
       if (!inputValue || inputValue.length < 2) return [];
@@ -70,8 +70,9 @@ export function AgreementSearch({
 
   // Handle customer selection
   const handleSelectCustomer = (customer: any) => {
+    if (!customer) return;
     setSelectedCustomer(customer);
-    setInputValue(customer.full_name);
+    setInputValue(customer.full_name || '');
     setOpen(false);
     setSearchParams({ customer_id: customer.id, query: undefined });
   };
@@ -94,6 +95,9 @@ export function AgreementSearch({
       handleSearch();
     }
   };
+
+  // Ensure customers is always an array
+  const safeCustomers = Array.isArray(customers) ? customers : [];
 
   return (
     <div className="relative w-full max-w-md">
@@ -119,17 +123,17 @@ export function AgreementSearch({
               <CommandInput 
                 placeholder="Search customers..." 
                 value={inputValue}
-                onValueChange={setInputValue}
+                onValueChange={(value) => setInputValue(value || '')}
               />
               <CommandList>
                 <CommandEmpty>
                   {isLoading ? 'Searching...' : 'No customers found'}
                 </CommandEmpty>
                 <CommandGroup heading="Customers">
-                  {customers?.map((customer: any) => (
+                  {safeCustomers.map((customer: any) => (
                     <CommandItem
-                      key={customer.id}
-                      value={customer.id}
+                      key={customer.id || `customer-${Math.random()}`}
+                      value={customer.id || ''}
                       onSelect={() => handleSelectCustomer(customer)}
                       className="flex items-center gap-2"
                     >
@@ -137,9 +141,9 @@ export function AgreementSearch({
                         <User className="h-4 w-4" />
                       </div>
                       <div className="flex flex-col">
-                        <span>{customer.full_name}</span>
+                        <span>{customer.full_name || ''}</span>
                         <span className="text-xs text-muted-foreground">
-                          {customer.email || customer.phone_number}
+                          {customer.email || customer.phone_number || ''}
                         </span>
                       </div>
                     </CommandItem>
@@ -166,7 +170,7 @@ export function AgreementSearch({
         <div className="absolute top-full left-0 mt-2 flex items-center">
           <Badge variant="secondary" className="flex items-center gap-1">
             <User className="h-3 w-3" />
-            {selectedCustomer.full_name}
+            {selectedCustomer.full_name || ''}
             <button className="ml-1 rounded-full hover:bg-muted" onClick={handleClearSearch}>
               <X className="h-3 w-3" />
             </button>

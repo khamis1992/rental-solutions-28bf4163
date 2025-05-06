@@ -82,8 +82,8 @@ const VehicleSelector = ({
                   <ScrollArea className="h-72">
                     {safeVehicles.map((vehicle) => (
                       <CommandItem
-                        key={vehicle.id}
-                        value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
+                        key={vehicle.id || `vehicle-${Math.random()}`}
+                        value={`${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''}`}
                         onSelect={() => handleSelect(vehicle)}
                       >
                         <Check
@@ -92,7 +92,7 @@ const VehicleSelector = ({
                             selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                        {vehicle.make || ''} {vehicle.model || ''} ({vehicle.license_plate || ''})
                       </CommandItem>
                     ))}
                   </ScrollArea>
