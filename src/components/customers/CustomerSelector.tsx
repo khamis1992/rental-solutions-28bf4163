@@ -111,7 +111,7 @@ const CustomerSelector = ({
             <CommandEmpty>No customers found.</CommandEmpty>
           )}
           <CommandGroup>
-            {!loading && !error && customers.map((customer) => (
+            {!loading && !error && Array.isArray(customers) && customers.map((customer) => (
               <CommandItem
                 key={customer.id}
                 value={customer.id}

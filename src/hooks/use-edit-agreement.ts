@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
+import { asDbId } from '@/types/database-types';
 
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
@@ -35,14 +35,26 @@ export function useEditAgreement(id: string | undefined) {
         
         if (foundAgreement) {
           console.log("Found agreement in list:", foundAgreement);
-          const fullAgreement = adaptSimpleToFullAgreement(foundAgreement);
-          setAgreement(fullAgreement);
           
-          if (foundAgreement.vehicle_id && (!foundAgreement.vehicles || !Object.keys(foundAgreement.vehicles || {}).length)) {
-            fetchVehicleDetails(foundAgreement.vehicle_id);
-          } else if (foundAgreement.vehicles) {
-            console.log("Vehicle data already included:", foundAgreement.vehicles);
-            setVehicleData(foundAgreement.vehicles);
+          // Convert any string dates to Date objects before setting state
+          const processedAgreement: Agreement = {
+            ...foundAgreement,
+            start_date: foundAgreement.start_date ? new Date(foundAgreement.start_date as string) : undefined,
+            end_date: foundAgreement.end_date ? new Date(foundAgreement.end_date as string) : undefined,
+            created_at: foundAgreement.created_at ? new Date(foundAgreement.created_at as string) : undefined,
+            updated_at: foundAgreement.updated_at ? new Date(foundAgreement.updated_at as string) : undefined
+          };
+          
+          setAgreement(processedAgreement);
+          
+          // Check if we need to fetch vehicle details
+          if (foundAgreement.vehicle_id) {
+            if (foundAgreement.vehicles && typeof foundAgreement.vehicles === 'object') {
+              console.log("Vehicle data already included:", foundAgreement.vehicles);
+              setVehicleData(foundAgreement.vehicles);
+            } else {
+              fetchVehicleDetails(foundAgreement.vehicle_id);
+            }
           }
         } else {
           // Fetch directly if not found in the list
@@ -58,14 +70,26 @@ export function useEditAgreement(id: string | undefined) {
           
           if (fetchedData) {
             console.log("Fetched agreement data:", fetchedData);
-            const fullAgreement = adaptSimpleToFullAgreement(fetchedData);
-            setAgreement(fullAgreement);
             
-            if (fetchedData.vehicle_id && fetchedData.vehicles && typeof fetchedData.vehicles === 'object') {
-              console.log("Vehicle data already included:", fetchedData.vehicles);
-              setVehicleData(fetchedData.vehicles);
-            } else if (fetchedData.vehicle_id) {
-              fetchVehicleDetails(fetchedData.vehicle_id);
+            // Process the data to ensure date fields are Date objects
+            const processedAgreement: Agreement = {
+              ...fetchedData,
+              start_date: fetchedData.start_date ? new Date(fetchedData.start_date) : undefined,
+              end_date: fetchedData.end_date ? new Date(fetchedData.end_date) : undefined,
+              created_at: fetchedData.created_at ? new Date(fetchedData.created_at) : undefined,
+              updated_at: fetchedData.updated_at ? new Date(fetchedData.updated_at) : undefined
+            };
+            
+            setAgreement(processedAgreement);
+            
+            // Check if we need to fetch vehicle details
+            if (fetchedData.vehicle_id) {
+              if (fetchedData.vehicles && typeof fetchedData.vehicles === 'object') {
+                console.log("Vehicle data already included:", fetchedData.vehicles);
+                setVehicleData(fetchedData.vehicles);
+              } else {
+                fetchVehicleDetails(fetchedData.vehicle_id);
+              }
             }
           } else {
             toast.error("Agreement not found");
@@ -106,16 +130,18 @@ export function useEditAgreement(id: string | undefined) {
         // Safe update of agreement with vehicle info
         setAgreement(prev => {
           if (!prev) return null;
-          if (!data) return prev;
           
-          // Create a new agreement object with updated vehicle information
-          return {
+          const updatedAgreement: Agreement = {
             ...prev,
             vehicles: data,
-            vehicle_make: data.make || '',
-            vehicle_model: data.model || '',
-            license_plate: data.license_plate || ''
           };
+
+          // Only add these properties if data contains them
+          if (data.make) updatedAgreement.vehicle_make = data.make;
+          if (data.model) updatedAgreement.vehicle_model = data.model;
+          if (data.license_plate) updatedAgreement.license_plate = data.license_plate;
+          
+          return updatedAgreement;
         });
       }
     } catch (error) {
@@ -127,7 +153,10 @@ export function useEditAgreement(id: string | undefined) {
   useEffect(() => {
     if (rentAmount && agreement && !agreement.rent_amount) {
       console.log("Setting rent amount from hook:", rentAmount);
-      setAgreement(prev => prev ? { ...prev, rent_amount: rentAmount } : null);
+      setAgreement(prev => {
+        if (!prev) return null;
+        return { ...prev, rent_amount: rentAmount };
+      });
     }
   }, [rentAmount, agreement]);
 

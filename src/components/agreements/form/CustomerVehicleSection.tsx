@@ -38,7 +38,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
   useEffect(() => {
     const fetchCustomers = async () => {
       if (searchQuery.length < 2) {
-        setCustomers([]);  // Always ensure customers is an array
+        setCustomers([]);
         return;
       }
 
@@ -54,14 +54,14 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
 
         if (error) {
           console.error('Error fetching customers:', error);
-          setCustomers([]);  // Ensure we set an empty array on error
+          setCustomers([]);
           return;
         }
 
-        setCustomers(data || []);  // Ensure we always set an array, even when data is null
+        setCustomers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Unexpected error:', err);
-        setCustomers([]);  // Ensure we set an empty array on error
+        setCustomers([]);
       } finally {
         setIsLoading(false);
       }
@@ -104,28 +104,26 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
                 )}
               </CommandEmpty>
               <CommandGroup>
-                {customers && customers.length > 0 ? (
-                  customers.map((customer) => (
-                    <CommandItem
-                      key={customer.id}
-                      onSelect={() => {
-                        setSelectedCustomer(customer);
-                        setOpen(false);
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <span className="flex-1">{customer.full_name}</span>
-                      {customer.phone_number && (
-                        <span className="text-xs text-muted-foreground">
-                          ({customer.phone_number})
-                        </span>
-                      )}
-                      {selectedCustomer?.id === customer.id && (
-                        <Check className="h-4 w-4 text-green-500" />
-                      )}
-                    </CommandItem>
-                  ))
-                ) : null}
+                {Array.isArray(customers) && customers.length > 0 && customers.map((customer) => (
+                  <CommandItem
+                    key={customer.id}
+                    onSelect={() => {
+                      setSelectedCustomer(customer);
+                      setOpen(false);
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="flex-1">{customer.full_name}</span>
+                    {customer.phone_number && (
+                      <span className="text-xs text-muted-foreground">
+                        ({customer.phone_number})
+                      </span>
+                    )}
+                    {selectedCustomer?.id === customer.id && (
+                      <Check className="h-4 w-4 text-green-500" />
+                    )}
+                  </CommandItem>
+                ))}
               </CommandGroup>
             </Command>
           </PopoverContent>
