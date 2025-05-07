@@ -4,14 +4,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
-import { Car, Plus } from 'lucide-react';
+import { Car, Plus, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
-// Define valid statuses based on app enum
+// Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
   'available',
   'rented',
@@ -27,7 +27,10 @@ const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
-  const { useRealtimeUpdates } = useVehicles();
+  
+  // Get vehicles using the hook's useList functionality
+  const { useList, useRealtimeUpdates } = useVehicles();
+  const { data: vehicles = [], isLoading, error } = useList(filters);
   
   // Setup real-time updates
   useRealtimeUpdates();
@@ -39,7 +42,6 @@ const Vehicles = () => {
     if (statusFromUrl && statusFromUrl !== 'all') {
       // Validate that the status is a valid enum value
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
-        // Use the app status value in our filter
         setFilters(prevFilters => ({ 
           ...prevFilters,
           status: statusFromUrl as VehicleStatus
@@ -105,7 +107,15 @@ const Vehicles = () => {
             icon={Car}
             className="md:mb-0"
           />
-          <div className="flex justify-end">
+          <div className="flex flex-wrap gap-2">
+            <CustomButton 
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/vehicles/status-update')}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Status Update
+            </CustomButton>
             <CustomButton size="sm" glossy onClick={handleAddVehicle}>
               <Plus className="h-4 w-4 mr-2" />
               Add Vehicle
@@ -130,9 +140,17 @@ const Vehicles = () => {
         </div>
         
         <VehicleGrid 
-          onSelectVehicle={handleSelectVehicle} 
-          filter={filters}
+          vehicles={vehicles}
+          isLoading={isLoading}
+          onVehicleClick={handleSelectVehicle}
         />
+        
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            <p className="font-medium">Error loading vehicles</p>
+            <p>{error?.message || 'An unknown error occurred'}</p>
+          </div>
+        )}
       </div>
     </PageContainer>
   );
