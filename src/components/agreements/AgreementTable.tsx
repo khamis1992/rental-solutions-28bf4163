@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { DataTable } from '@/components/ui/data-table';
@@ -7,7 +6,6 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
 } from '@tanstack/react-table';
@@ -19,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FileCheck, FileClock, FileX } from 'lucide-react';
 import { SimpleAgreement } from '@/hooks/use-agreements';
+import { Pagination } from '@/components/ui/pagination';
 
 interface AgreementTableProps {
   compact?: boolean;
@@ -29,6 +28,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
     agreements,
     isLoading,
     error,
+    pagination,
   } = useAgreementTable();
   
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -199,7 +199,9 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
     data: typedAgreements || [],
     columns: compactColumns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // We're using custom pagination with the useAgreements hook,
+    // so we don't need the React Table pagination model
+    // getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     state: {
@@ -216,85 +218,62 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
   }
 
   return (
-    <div className="relative w-full overflow-auto">
-      <table className="w-full caption-bottom text-sm">
-        <thead className="border-b">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <th key={header.id} className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className="border-b transition-colors hover:bg-muted/50"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="p-2 align-middle">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+    <div className="flex flex-col gap-4">
+      <div className="relative w-full overflow-auto">
+        <table className="w-full caption-bottom text-sm">
+          <thead className="border-b">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <th key={header.id} className="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </th>
+                  );
+                })}
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={compactColumns.length} className="h-24 text-center">
-                No agreements found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-            table.getFilteredRowModel().rows.length
-          )}{' '}
-          of {table.getFilteredRowModel().rows.length} agreements
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="h-8 px-4"
-          >
-            Previous
-          </Button>
-          <span className="text-sm">
-            Page {table.getState().pagination.pageIndex + 1} of{' '}
-            {table.getPageCount()}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="h-8 px-4"
-          >
-            Next
-          </Button>
-        </div>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b transition-colors hover:bg-muted/50"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="p-2 align-middle">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={compactColumns.length} className="h-24 text-center">
+                  No agreements found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+      
+      {/* Custom Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-2">
+          <Pagination 
+            currentPage={pagination.page} 
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.handlePageChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

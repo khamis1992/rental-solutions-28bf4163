@@ -4,6 +4,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
+import { Pagination } from '@/components/ui/pagination';
 
 export function AgreementList() {
   const {
@@ -11,6 +12,7 @@ export function AgreementList() {
     isLoading,
     error,
     handleBulkDelete,
+    pagination,
   } = useAgreementTable();
 
   if (isLoading) {
@@ -38,12 +40,22 @@ export function AgreementList() {
   })) as Agreement[];
 
   return (
-    <div>
+    <div className="space-y-6">
       <AgreementCardView 
         agreements={typedAgreements}
         isLoading={isLoading}
         onDeleteAgreement={(id) => handleBulkDelete(id)}
       />
+      
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-4">
+          <Pagination 
+            currentPage={pagination.page} 
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.handlePageChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

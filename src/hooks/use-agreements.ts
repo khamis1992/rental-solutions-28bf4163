@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -5,6 +6,7 @@ import { Agreement } from '@/types/agreement';
 import { CustomerInfo } from '@/types/customer';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { asAgreementId } from '@/utils/type-casting';
 
 export interface SimpleAgreement {
   id: string;
@@ -37,10 +39,23 @@ export interface SimpleAgreement {
   };
 }
 
+interface PaginationOptions {
+  page: number;
+  pageSize: number;
+}
+
 export function useAgreements(initialFilters = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
+  
+  // Default pagination values
+  const [pagination, setPagination] = useState<PaginationOptions>({
+    page: 1,
+    pageSize: 10
+  });
+  
+  const [totalCount, setTotalCount] = useState(0);
 
   // Function to get initial filters from URL parameters
   const getInitialFilters = () => {
@@ -76,22 +91,65 @@ export function useAgreements(initialFilters = {}) {
     setFilters(updatedFilters);
   };
 
+  // Function to handle pagination changes
+  const handlePaginationChange = (newPage: number, newPageSize?: number) => {
+    setPagination(prev => ({
+      page: newPage,
+      pageSize: newPageSize || prev.pageSize
+    }));
+  };
+
   const {
-    data: agreements,
+    data: agreementsData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['agreements', filters],
+    queryKey: ['agreements', filters, pagination],
     queryFn: async () => {
       console.log('Fetching agreements with filters:', filters);
+      console.log('Pagination:', pagination);
       
+      // Calculate offset based on current page and page size
+      const from = (pagination.page - 1) * pagination.pageSize;
+      const to = from + pagination.pageSize - 1;
+      
+      // First, count total agreements with the current filters (without pagination)
+      let countQuery = supabase
+        .from('leases')
+        .select('id', { count: 'exact' });
+        
+      // Apply filters to count query
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          if (key === 'customer_id') {
+            countQuery = countQuery.eq('customer_id', value);
+          } else if (key === 'status' && value !== 'all') {
+            countQuery = countQuery.eq('status', value);
+          } else if (key === 'agreement_number') {
+            countQuery = countQuery.ilike('agreement_number', `%${value}%`);
+          }
+        }
+      });
+      
+      const { count, error: countError } = await countQuery;
+      
+      if (countError) {
+        console.error('Error counting agreements:', countError);
+        throw new Error(`Failed to count agreements: ${countError.message}`);
+      }
+      
+      setTotalCount(count || 0);
+      console.log(`Total agreements count: ${count}`);
+      
+      // Now fetch the actual data with pagination
       let query = supabase
         .from('leases')
         .select(`
           *,
           customers:profiles(*),
           vehicles(*)
-        `);
+        `)
+        .range(from, to);
 
       // Apply filters, giving priority to direct filters (like customer_id)
       Object.entries(filters).forEach(([key, value]) => {
@@ -115,7 +173,12 @@ export function useAgreements(initialFilters = {}) {
       }
 
       console.log(`Fetched ${data?.length || 0} agreements`);
-      return data || [];
+      return {
+        data: data || [],
+        count: count || 0,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+      };
     },
     retry: 1,
     refetchOnWindowFocus: false,
@@ -125,7 +188,7 @@ export function useAgreements(initialFilters = {}) {
     const { data: updatedAgreement, error } = await supabase
       .from('leases')
       .update(data)
-      .eq('id', id)
+      .eq('id', asAgreementId(id))
       .select()
       .single();
   
@@ -144,7 +207,7 @@ export function useAgreements(initialFilters = {}) {
     const { error } = await supabase
       .from('leases')
       .delete()
-      .in('id', ids);
+      .in('id', ids.map(id => asAgreementId(id)));
   
     if (error) {
       console.error('Error deleting agreements:', error);
@@ -156,7 +219,7 @@ export function useAgreements(initialFilters = {}) {
   };
 
   return {
-    agreements: agreements || [],
+    agreements: agreementsData?.data || [],
     isLoading,
     error,
     updateAgreement,
@@ -166,5 +229,12 @@ export function useAgreements(initialFilters = {}) {
     setFilters,
     customer,
     setCustomer,
+    pagination: {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      totalCount: totalCount,
+      totalPages: Math.ceil(totalCount / pagination.pageSize),
+      handlePageChange: handlePaginationChange,
+    }
   };
 }

@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -100,7 +101,7 @@ const Agreements = () => {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === 'all') {
+    if (value === 'all' || value === 'agreements') {
       setSearchParams({ status: undefined });
     } else {
       setSearchParams({ status: value });
