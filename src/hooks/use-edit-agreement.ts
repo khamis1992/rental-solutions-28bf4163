@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
+import { LeaseStatus } from '@/types/lease-types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
@@ -25,9 +26,15 @@ const processFetchedData = (data: any): Agreement | null => {
   if (!data || !isNotError(data)) return null;
   
   try {
+    // Make sure that status is properly cast to LeaseStatus
+    const statusValue = data.status || 'draft';
+    const validStatus = ['active', 'pending', 'completed', 'cancelled', 'pending_payment', 
+                         'pending_deposit', 'draft', 'terminated', 'archived', 'closed', 
+                         'expired'].includes(statusValue) ? statusValue as LeaseStatus : 'draft' as LeaseStatus;
+    
     const processedAgreement: Agreement = {
       id: data.id || '',
-      status: asStatus<Agreement['status']>(data.status || 'draft'),
+      status: validStatus,
       customer_id: data.customer_id || '',
       vehicle_id: data.vehicle_id || '',
       start_date: ensureDate(data.start_date) || new Date(),

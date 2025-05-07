@@ -25,12 +25,14 @@ export function usePayment(agreementId?: string) {
   const handlePaymentSubmit = async (
     amount: number,
     paymentDate: Date,
-    notes?: string,
-    paymentMethod?: string,
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    paymentType?: string
+    options?: {
+      notes?: string;
+      paymentMethod?: string;
+      referenceNumber?: string;
+      includeLatePaymentFee?: boolean;
+      isPartialPayment?: boolean;
+      paymentType?: string;
+    }
   ) => {
     if (!agreementId) return;
 
@@ -38,14 +40,7 @@ export function usePayment(agreementId?: string) {
       agreementId, 
       amount, 
       paymentDate, 
-      {
-        notes,
-        paymentMethod,
-        referenceNumber,
-        includeLatePaymentFee,
-        isPartialPayment,
-        paymentType,
-      }
+      options || {}
     );
   };
 

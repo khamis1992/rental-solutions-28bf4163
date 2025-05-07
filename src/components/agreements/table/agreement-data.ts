@@ -1,5 +1,5 @@
 
-import { SimpleAgreement } from '@/hooks/use-agreements';
+import { SimpleAgreement } from '@/types/agreement-types';
 import { Agreement } from '@/types/agreement';
 
 export function processAgreementData(agreements: SimpleAgreement[]): Agreement[] {

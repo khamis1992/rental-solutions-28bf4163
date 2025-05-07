@@ -4,6 +4,7 @@ import { useAgreementPagination } from './agreements/use-agreement-pagination';
 import { useAgreementData } from './agreements/use-agreement-data';
 import { useAgreementMutations } from './agreements/use-agreement-mutations';
 import { Agreement } from '@/types/agreement';
+import { SimpleAgreement } from '@/types/agreement-types';
 
 /**
  * Main hook for working with agreements
@@ -31,5 +32,5 @@ export function useAgreements(initialFilters = {}) {
   };
 }
 
-// Export Agreement type instead of SimpleAgreement
-export type { Agreement };
+// Export Agreement type and SimpleAgreement
+export type { Agreement, SimpleAgreement };

@@ -1,24 +1,7 @@
-import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
 
-export type Payment = {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string | null;
-  description: string | null;
-  type: string;
-  late_fine_amount: number;
-  days_overdue: number;
-  original_due_date: string | null;
-  transaction_id: string | null;
-  [key: string]: any; // Allow additional properties
-};
+import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
+import { Payment } from '@/types/agreement-types';
+import { asDbId } from '@/utils/type-casting';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -26,7 +9,10 @@ export const usePayments = (agreementId?: string) => {
     async () => {
       if (!agreementId) return [] as Payment[];
       
-      const response = await paymentRepository.findByLeaseId(agreementId);
+      const response = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreementId);
       
       if (response.error) {
         console.error("Error fetching payments:", response.error);
@@ -43,35 +29,37 @@ export const usePayments = (agreementId?: string) => {
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    const response = await paymentRepository.recordPayment(newPayment);
+    const response = await supabase
+      .from('unified_payments')
+      .insert(newPayment)
+      .select();
 
     if (response.error) {
       console.error("Error adding payment:", response.error);
       return null;
     }
-    return response.data;
-  }, {
-    onSuccess: () => {
-      refetch();
-    }
+    return response.data?.[0] || null;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
+    const response = await supabase
+      .from('unified_payments')
+      .update(paymentUpdate.data)
+      .eq('id', paymentUpdate.id)
+      .select();
 
     if (response.error) {
       console.error("Error updating payment:", response.error);
       throw response.error;
     }
-    return response.data;
-  }, {
-    onSuccess: () => {
-      refetch();
-    }
+    return response.data?.[0] || null;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const response = await paymentRepository.delete(paymentId);
+    const response = await supabase
+      .from('unified_payments')
+      .delete()
+      .eq('id', paymentId);
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
@@ -94,3 +82,6 @@ export const usePayments = (agreementId?: string) => {
     fetchPayments,
   };
 };
+
+// Import for supabase
+import { supabase } from '@/integrations/supabase/client';

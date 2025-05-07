@@ -3,7 +3,7 @@ import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
-import { SimpleAgreement } from '@/hooks/use-agreements';
+import { SimpleAgreement } from '@/types/agreement-types';
 import { Pagination } from '@/components/ui/pagination';
 
 export function AgreementList() {

@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -26,40 +27,40 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
 
       try {
         // Try to get rent_amount from vehicles table based on vehicle_id in agreement
-        const { data: agreementData, error: agreementError } = await supabase
+        const responseAgreement = await supabase
           .from('leases')
           .select('vehicle_id')
           .eq('id', agreementId)
           .single();
 
-        if (agreementError) {
-          console.error("Error fetching agreement for rent amount:", agreementError);
-          setError(new Error(`Failed to fetch agreement: ${agreementError.message}`));
+        if (responseAgreement.error) {
+          console.error("Error fetching agreement for rent amount:", responseAgreement.error);
+          setError(new Error(`Failed to fetch agreement: ${responseAgreement.error.message}`));
           setIsLoading(false);
           return;
         }
 
-        if (!agreementData.vehicle_id) {
+        if (!responseAgreement.data || !responseAgreement.data.vehicle_id) {
           setIsLoading(false);
           return;
         }
 
         // Fetch the vehicle to get rent_amount
-        const { data: vehicleData, error: vehicleError } = await supabase
+        const responseVehicle = await supabase
           .from('vehicles')
           .select('rent_amount')
-          .eq('id', agreementData.vehicle_id)
+          .eq('id', responseAgreement.data.vehicle_id)
           .single();
 
-        if (vehicleError) {
-          console.error("Error fetching vehicle rent amount:", vehicleError);
-          setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
+        if (responseVehicle.error) {
+          console.error("Error fetching vehicle rent amount:", responseVehicle.error);
+          setError(new Error(`Failed to fetch vehicle: ${responseVehicle.error.message}`));
           setIsLoading(false);
           return;
         }
 
-        if (vehicleData && vehicleData.rent_amount) {
-          setRentAmount(vehicleData.rent_amount);
+        if (responseVehicle.data && responseVehicle.data.rent_amount) {
+          setRentAmount(responseVehicle.data.rent_amount);
         }
       } catch (err) {
         console.error("Unexpected error in fetchRentAmount:", err);
