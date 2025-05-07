@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { hasData } from '@/utils/supabase-type-helpers';
+import { asStatus } from '@/utils/type-casting';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -26,7 +27,7 @@ const processFetchedData = (data: any): Agreement | null => {
   try {
     const processedAgreement: Agreement = {
       id: data.id || '',
-      status: data.status || 'draft',
+      status: asStatus<Agreement['status']>(data.status || 'draft'),
       customer_id: data.customer_id || '',
       vehicle_id: data.vehicle_id || '',
       start_date: ensureDate(data.start_date) || new Date(),
@@ -109,17 +110,17 @@ export function useEditAgreement(id: string | undefined) {
         } else {
           // Fetch directly if not found in the list
           try {
-            const { data, error } = await supabase
+            const response = await supabase
               .from('leases')
               .select('*, vehicles(*), profiles:customer_id(*)')
               .eq('id', id);
               
-            if (error) {
-              throw error;
+            if (response.error) {
+              throw response.error;
             }
             
-            if (data && data.length > 0) {
-              const leaseData = data[0];
+            if (hasData(response) && response.data.length > 0) {
+              const leaseData = response.data[0];
               console.log("Fetched agreement data:", leaseData);
               
               // Process the fetched data
@@ -167,18 +168,18 @@ export function useEditAgreement(id: string | undefined) {
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
       console.log("Fetching vehicle details for ID:", vehicleId);
-      const { data, error } = await supabase
+      const response = await supabase
         .from('vehicles')
         .select('*')
         .eq('id', vehicleId);
         
-      if (error) {
-        console.error("Error fetching vehicle details:", error);
+      if (response.error) {
+        console.error("Error fetching vehicle details:", response.error);
         return;
       }
       
-      if (data && data.length > 0) {
-        const vehicleDetails = data[0];
+      if (hasData(response) && response.data.length > 0) {
+        const vehicleDetails = response.data[0];
         console.log("Fetched vehicle data:", vehicleDetails);
         setVehicleData(vehicleDetails);
         

@@ -1,7 +1,7 @@
 
 // Fixing use-fleet-report.ts to handle the 'type' property issue
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export type Vehicle = {
@@ -97,7 +97,7 @@ export const useFleetReport = () => {
 
         // Transform data for compatibility
         const processedVehicles = (data || []).map(vehicle => {
-          if (vehicle && typeof vehicle === 'object') {
+          if (vehicle) {
             return {
               ...vehicle,
               currentCustomer: vehicle.current_customer || undefined,

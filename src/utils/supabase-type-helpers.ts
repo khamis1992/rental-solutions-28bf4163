@@ -47,7 +47,7 @@ export function castDbId(id: string): string {
 }
 
 /**
- * Cast a string to UUID for database operations
+ * Cast any string to a UUID type for database operations
  */
 export function castToUUID(id: string): string {
   return id;

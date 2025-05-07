@@ -1,7 +1,8 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useCrudApi } from './api/use-crud-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { asMaintenanceId } from '@/utils/type-casting';
 
 // Define the Maintenance type that matches the actual database schema
 export type MaintenanceRecord = {
