@@ -38,7 +38,7 @@ export function useEditAgreement(id: string | undefined) {
           const fullAgreement = adaptSimpleToFullAgreement(foundAgreement);
           setAgreement(fullAgreement);
           
-          if (foundAgreement.vehicle_id && (!foundAgreement.vehicles || !Object.keys(foundAgreement.vehicles).length)) {
+          if (foundAgreement.vehicle_id && (!foundAgreement.vehicles || !Object.keys(foundAgreement.vehicles || {}).length)) {
             fetchVehicleDetails(foundAgreement.vehicle_id);
           } else if (foundAgreement.vehicles) {
             console.log("Vehicle data already included:", foundAgreement.vehicles);
@@ -61,11 +61,11 @@ export function useEditAgreement(id: string | undefined) {
             const fullAgreement = adaptSimpleToFullAgreement(fetchedData);
             setAgreement(fullAgreement);
             
-            if (fetchedData.vehicle_id && (!fetchedData.vehicles || !Object.keys(fetchedData.vehicles || {}).length)) {
-              fetchVehicleDetails(fetchedData.vehicle_id);
-            } else if (fetchedData.vehicles) {
+            if (fetchedData.vehicle_id && fetchedData.vehicles && typeof fetchedData.vehicles === 'object') {
               console.log("Vehicle data already included:", fetchedData.vehicles);
               setVehicleData(fetchedData.vehicles);
+            } else if (fetchedData.vehicle_id) {
+              fetchVehicleDetails(fetchedData.vehicle_id);
             }
           } else {
             toast.error("Agreement not found");
@@ -103,17 +103,18 @@ export function useEditAgreement(id: string | undefined) {
         console.log("Fetched vehicle data:", data);
         setVehicleData(data);
         
-        // Type-safe way to update the agreement
+        // Safe update of agreement with vehicle info
         setAgreement(prev => {
           if (!prev) return null;
+          if (!data) return prev;
           
           // Create a new agreement object with updated vehicle information
           return {
             ...prev,
             vehicles: data,
-            vehicle_make: data.make,
-            vehicle_model: data.model,
-            license_plate: data.license_plate
+            vehicle_make: data.make || '',
+            vehicle_model: data.model || '',
+            license_plate: data.license_plate || ''
           };
         });
       }

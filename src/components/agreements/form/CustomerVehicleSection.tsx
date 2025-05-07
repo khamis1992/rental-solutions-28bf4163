@@ -38,7 +38,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
   useEffect(() => {
     const fetchCustomers = async () => {
       if (searchQuery.length < 2) {
-        setCustomers([]);  // Initialize with empty array if search query is too short
+        setCustomers([]);  // Always ensure customers is an array
         return;
       }
 
@@ -54,14 +54,14 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
 
         if (error) {
           console.error('Error fetching customers:', error);
-          setCustomers([]);  // Initialize with empty array on error
+          setCustomers([]);  // Ensure we set an empty array on error
           return;
         }
 
-        setCustomers(data || []);  // Ensure we always set an array
+        setCustomers(data || []);  // Ensure we always set an array, even when data is null
       } catch (err) {
         console.error('Unexpected error:', err);
-        setCustomers([]);  // Initialize with empty array on error
+        setCustomers([]);  // Ensure we set an empty array on error
       } finally {
         setIsLoading(false);
       }

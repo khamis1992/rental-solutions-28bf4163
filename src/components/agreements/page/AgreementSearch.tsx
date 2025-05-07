@@ -30,7 +30,7 @@ export function AgreementSearch({
   const [inputValue, setInputValue] = useState(searchQuery);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: customers, isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery({
     queryKey: ['customers', inputValue],
     queryFn: async () => {
       if (!inputValue || inputValue.length < 2) return [];
@@ -126,24 +126,26 @@ export function AgreementSearch({
                   {isLoading ? 'Searching...' : 'No customers found'}
                 </CommandEmpty>
                 <CommandGroup heading="Customers">
-                  {customers?.map((customer: any) => (
-                    <CommandItem
-                      key={customer.id}
-                      value={customer.id}
-                      onSelect={() => handleSelectCustomer(customer)}
-                      className="flex items-center gap-2"
-                    >
-                      <div className="flex h-7 w-7 shrink-0 select-none items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <User className="h-4 w-4" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span>{customer.full_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {customer.email || customer.phone_number}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {Array.isArray(customers) && customers.length > 0 ? 
+                    customers.map((customer: any) => (
+                      <CommandItem
+                        key={customer.id}
+                        value={customer.id}
+                        onSelect={() => handleSelectCustomer(customer)}
+                        className="flex items-center gap-2"
+                      >
+                        <div className="flex h-7 w-7 shrink-0 select-none items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span>{customer.full_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {customer.email || customer.phone_number}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    )) : null
+                  }
                 </CommandGroup>
               </CommandList>
             </Command>

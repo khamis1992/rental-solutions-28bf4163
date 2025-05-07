@@ -55,13 +55,8 @@ const CustomerSelector = ({
         }
         
         // Ensure data is an array before setting state
-        if (Array.isArray(data)) {
-          setCustomers(data as CustomerInfo[]);
-        } else {
-          console.warn('Customer data is not an array:', data);
-          setCustomers([]);
-        }
-      } catch (error) {
+        setCustomers(Array.isArray(data) ? data : []);
+      } catch (error: any) {
         console.error('Error in fetchCustomers:', error);
         setError('An unexpected error occurred');
         setCustomers([]);
@@ -116,7 +111,7 @@ const CustomerSelector = ({
             <CommandEmpty>No customers found.</CommandEmpty>
           )}
           <CommandGroup>
-            {!loading && !error && Array.isArray(customers) && customers.map((customer) => (
+            {!loading && !error && customers.map((customer) => (
               <CommandItem
                 key={customer.id}
                 value={customer.id}
