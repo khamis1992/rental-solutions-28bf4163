@@ -19,6 +19,11 @@ const safeProp = <T, K extends string>(obj: T | null | undefined, key: K): any =
   return (obj as any)[key];
 };
 
+// Type guard to check if an object is not an error
+const isNotError = (obj: any): boolean => {
+  return obj && typeof obj === 'object' && !('error' in obj);
+};
+
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
   const { agreements } = useAgreements();
@@ -82,7 +87,7 @@ export function useEditAgreement(id: string | undefined) {
             throw error;
           }
           
-          if (fetchedData) {
+          if (fetchedData && isNotError(fetchedData)) {
             console.log("Fetched agreement data:", fetchedData);
             
             // Process the data to ensure date fields are Date objects
@@ -139,7 +144,7 @@ export function useEditAgreement(id: string | undefined) {
         return;
       }
       
-      if (data) {
+      if (data && isNotError(data)) {
         console.log("Fetched vehicle data:", data);
         setVehicleData(data);
         
@@ -153,9 +158,16 @@ export function useEditAgreement(id: string | undefined) {
           };
 
           // Only add these properties if data contains them and prev exists
-          if (data.make) updatedAgreement.vehicle_make = data.make;
-          if (data.model) updatedAgreement.vehicle_model = data.model;
-          if (data.license_plate) updatedAgreement.license_plate = data.license_plate;
+          if (data.make) {
+            // Use type assertion to add non-standard properties
+            (updatedAgreement as any).vehicle_make = data.make;
+          }
+          if (data.model) {
+            (updatedAgreement as any).vehicle_model = data.model;
+          }
+          if (data.license_plate) {
+            (updatedAgreement as any).license_plate = data.license_plate;
+          }
           
           return updatedAgreement;
         });

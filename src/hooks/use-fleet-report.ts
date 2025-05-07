@@ -1,196 +1,129 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { fetchVehicles } from '@/lib/vehicles/vehicle-api';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
+// Fixing use-fleet-report.ts to handle the 'type' property issue
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Helper function to calculate utilization rate (based on status)
-const calculateUtilizationRate = (vehicles: Vehicle[]) => {
-  if (!vehicles.length) return 0;
-  
-  const rentedCount = vehicles.filter(v => v.status === 'rented').length;
-  return Math.round((rentedCount / vehicles.length) * 100);
+export type Vehicle = {
+  id: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  license_plate?: string;
+  color?: string;
+  vehicle_type?: string; // Use this instead of 'type'
+  status?: string;
+  mileage?: number;
+  created_at?: string;
+  updated_at?: string;
+  image_url?: string;
+  rent_amount?: number;
 };
 
-// Helper function to get vehicles grouped by type
-const getVehiclesByType = (vehicles: Vehicle[]) => {
-  const typeMap = new Map<string, {
-    type: string,
-    count: number,
-    avgDailyRate: number,
-    totalRevenue: number,
-    vehicles: Vehicle[]
-  }>();
-
-  vehicles.forEach(vehicle => {
-    // Use safe property access for vehicleType
-    const typeName = vehicle.type || 'Unspecified';
-    const dailyRate = vehicle.dailyRate || 0;
-    
-    if (!typeMap.has(typeName)) {
-      typeMap.set(typeName, {
-        type: typeName,
-        count: 0,
-        avgDailyRate: 0,
-        totalRevenue: 0,
-        vehicles: []
-      });
-    }
-    
-    const typeData = typeMap.get(typeName)!;
-    typeData.count += 1;
-    typeData.vehicles.push(vehicle);
-    typeData.totalRevenue += dailyRate;
-  });
-  
-  // Calculate average daily rate for each type
-  return Array.from(typeMap.values()).map(typeData => ({
-    ...typeData,
-    avgDailyRate: typeData.totalRevenue / typeData.count
-  }));
-};
-
-// Calculate status counts
-const getStatusCounts = (vehicles: Vehicle[]) => {
-  const statusMap: Record<string, number> = {
-    available: 0,
-    rented: 0,
-    reserved: 0,
-    maintenance: 0,
-    other: 0
-  };
-
-  vehicles.forEach(vehicle => {
-    if (vehicle.status && statusMap[vehicle.status] !== undefined) {
-      statusMap[vehicle.status]++;
-    } else {
-      statusMap.other++;
-    }
-  });
-  
-  return statusMap;
-};
-
-// Fetch customer information for rented vehicles
-const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
-  // Get rented vehicles IDs
-  const rentedVehicleIds = vehicles
-    .filter(v => v.status === 'rented')
-    .map(v => v.id);
-  
-  if (rentedVehicleIds.length === 0) {
-    return vehicles;
-  }
-
-  try {
-    // Fetch active leases for these vehicles using manual query without in clause
-    let query = supabase
-      .from('leases')
-      .select('vehicle_id, customer_id, profiles:customer_id(full_name, email, phone_number)')
-      .eq('status', 'active');
-    
-    // Need to fetch without in clause to avoid type errors
-    const { data: allLeases, error } = await query;
-
-    if (error || !allLeases) {
-      console.error('Error fetching customer information:', error);
-      return vehicles;
-    }
-    
-    // Filter leases for our vehicles manually
-    const leases = allLeases.filter(lease => 
-      rentedVehicleIds.includes(lease.vehicle_id)
-    );
-
-    // Map customer data to vehicles
-    return vehicles.map(vehicle => {
-      if (vehicle.status === 'rented') {
-        const lease = leases.find(l => {
-          if (typeof l === 'object' && l !== null) {
-            return l.vehicle_id === vehicle.id;
-          }
-          return false;
-        });
-        
-        if (lease && lease.profiles) {
-          const profiles = lease.profiles;
-          if (typeof profiles === 'object' && profiles !== null) {
-            return {
-              ...vehicle,
-              currentCustomer: (profiles as any).full_name || '',
-              customerEmail: (profiles as any).email || '',
-              customerPhone: (profiles as any).phone_number || '',
-              customerId: lease.customer_id
-            };
-          }
-        }
-      }
-      return vehicle;
-    });
-  } catch (error) {
-    console.error('Error in attachCustomerInfo:', error);
-    return vehicles;
-  }
+export type FleetReport = {
+  totalVehicles: number;
+  availableVehicles: number;
+  rentedVehicles: number;
+  maintenanceVehicles: number;
+  vehiclesByType: Record<string, number>;
+  vehiclesByStatus: Record<string, number>;
+  vehiclesByMake: Record<string, number>;
+  averageRentAmount: number;
+  totalRentAmount: number;
 };
 
 export const useFleetReport = () => {
-  const { data: fetchedVehicles = [], isLoading, error } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => fetchVehicles(),
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [report, setReport] = useState<FleetReport>({
+    totalVehicles: 0,
+    availableVehicles: 0,
+    rentedVehicles: 0,
+    maintenanceVehicles: 0,
+    vehiclesByType: {},
+    vehiclesByStatus: {},
+    vehiclesByMake: {},
+    averageRentAmount: 0,
+    totalRentAmount: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Fetch customer information and attach to vehicles
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles-with-customers', fetchedVehicles],
-    queryFn: () => attachCustomerInfo(fetchedVehicles),
-    enabled: fetchedVehicles.length > 0,
-    initialData: fetchedVehicles,
-  });
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-  // Calculate utilization rate
-  const fleetUtilizationRate = calculateUtilizationRate(vehicles);
-  
-  // Group vehicles by type
-  const vehiclesByType = getVehiclesByType(vehicles);
-  
-  // Get status counts
-  const statusCounts = getStatusCounts(vehicles);
-  
-  // Prepare data for reports
-  const reportData = vehicles.map(vehicle => ({
-    license_plate: vehicle.license_plate,
-    status: vehicle.status,
-    customer_name: vehicle.currentCustomer || 'Not Assigned',
-    // Fields removed: make, model, year, daily_rate, customer_contact
-  }));
-  
-  // Calculate fleet statistics
-  const fleetStats = {
-    totalVehicles: vehicles.length,
-    activeRentals: vehicles.filter(v => v.status === 'rented').length,
-    averageDailyRate: vehicles.reduce((acc, v) => acc + (v.dailyRate || 0), 0) / 
-                      (vehicles.length || 1),
-    maintenanceRequired: vehicles.filter(v => v.status === 'maintenance').length
+        if (error) throw error;
+
+        setVehicles(data || []);
+        generateReport(data || []);
+      } catch (err) {
+        console.error('Error fetching vehicles for report:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch vehicles'));
+        toast.error('Failed to load fleet data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
+  const generateReport = (vehicleData: Vehicle[]) => {
+    if (!Array.isArray(vehicleData) || vehicleData.length === 0) {
+      return;
+    }
+
+    const totalVehicles = vehicleData.length;
+    const availableVehicles = vehicleData.filter(v => v.status === 'available').length;
+    const rentedVehicles = vehicleData.filter(v => v.status === 'rented').length;
+    const maintenanceVehicles = vehicleData.filter(v => v.status === 'maintenance').length;
+
+    const vehiclesByType: Record<string, number> = {};
+    const vehiclesByStatus: Record<string, number> = {};
+    const vehiclesByMake: Record<string, number> = {};
+
+    let totalRent = 0;
+    let vehiclesWithRent = 0;
+
+    vehicleData.forEach(vehicle => {
+      // Handle vehicle_type instead of type
+      const vehicleType = vehicle.vehicle_type || 'unknown';
+      vehiclesByType[vehicleType] = (vehiclesByType[vehicleType] || 0) + 1;
+
+      // Handle status
+      const status = vehicle.status || 'unknown';
+      vehiclesByStatus[status] = (vehiclesByStatus[status] || 0) + 1;
+
+      // Handle make
+      const make = vehicle.make || 'unknown';
+      vehiclesByMake[make] = (vehiclesByMake[make] || 0) + 1;
+
+      // Calculate rent amounts
+      if (vehicle.rent_amount) {
+        totalRent += vehicle.rent_amount;
+        vehiclesWithRent++;
+      }
+    });
+
+    const averageRentAmount = vehiclesWithRent > 0 ? totalRent / vehiclesWithRent : 0;
+
+    setReport({
+      totalVehicles,
+      availableVehicles,
+      rentedVehicles,
+      maintenanceVehicles,
+      vehiclesByType,
+      vehiclesByStatus,
+      vehiclesByMake,
+      averageRentAmount,
+      totalRentAmount: totalRent
+    });
   };
 
-  // Helper function to format currency
-  function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  }
-
-  return {
-    vehicles,
-    fleetStats,
-    fleetUtilizationRate,
-    vehiclesByType,
-    statusCounts,
-    reportData,
-    isLoading,
-    error
-  };
+  return { vehicles, report, isLoading, error };
 };
