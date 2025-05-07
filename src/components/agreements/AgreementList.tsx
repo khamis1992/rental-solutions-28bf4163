@@ -10,9 +10,8 @@ const AgreementList: React.FC = () => {
     agreements,
     isLoading,
     error,
-    rowSelection,
-    setRowSelection,
-    handleBulkDelete
+    handleBulkDelete,
+    pagination
   } = useAgreementTable();
 
   if (isLoading) {
@@ -44,10 +43,51 @@ const AgreementList: React.FC = () => {
       <AgreementTable
         agreements={typedAgreements}
         isLoading={isLoading}
-        rowSelection={rowSelection}
-        setRowSelection={setRowSelection}
         deleteAgreement={handleBulkDelete}
       />
+      
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-4">
+          <div className="text-sm text-muted-foreground mb-2">
+            Showing {agreements.length} of {pagination.totalCount} agreements
+          </div>
+          <nav className="flex justify-center mt-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => pagination.handlePageChange(1)}
+                disabled={pagination.page === 1}
+                className="px-2 py-1 rounded border disabled:opacity-50"
+              >
+                First
+              </button>
+              <button
+                onClick={() => pagination.handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="px-2 py-1 rounded border disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="px-2">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => pagination.handlePageChange(pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+                className="px-2 py-1 rounded border disabled:opacity-50"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => pagination.handlePageChange(pagination.totalPages)}
+                disabled={pagination.page === pagination.totalPages}
+                className="px-2 py-1 rounded border disabled:opacity-50"
+              >
+                Last
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
     </div>
   );
 };

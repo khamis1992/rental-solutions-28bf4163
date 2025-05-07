@@ -103,8 +103,9 @@ const Agreements = () => {
     setActiveTab(value);
     if (value === 'all' || value === 'agreements') {
       setSearchParams({ status: undefined });
-    } else {
-      setSearchParams({ status: value });
+    } else if (value === 'active' || value === 'pending' || value === 'history') {
+      // Only set the status filter for valid status values
+      setSearchParams({ status: value === 'history' ? undefined : value });
     }
   };
 

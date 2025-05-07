@@ -17,16 +17,12 @@ import { useReactTable, flexRender, getCoreRowModel } from '@tanstack/react-tabl
 interface AgreementTableProps {
   agreements: Agreement[];
   isLoading: boolean;
-  rowSelection: Record<string, boolean>;
-  setRowSelection: (selection: Record<string, boolean>) => void;
   deleteAgreement: (id: string) => void;
 }
 
 export function AgreementTable({ 
   agreements, 
   isLoading,
-  rowSelection,
-  setRowSelection,
   deleteAgreement
 }: AgreementTableProps) {
   const columns = React.useMemo(
@@ -38,8 +34,6 @@ export function AgreementTable({
     data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
-    state: { rowSelection },
-    onRowSelectionChange: setRowSelection,
   });
 
   if (isLoading) {
@@ -108,7 +102,7 @@ export function AgreementTable({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+            <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
