@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,19 +42,19 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     enableHiding: false,
   },
   {
-    accessorKey: "agreement_number",
+    id: "agreement_number",
     header: "Agreement #",
     cell: ({ row }) => (
       <Link 
         to={`/agreements/${row.original.id}`}
         className="font-medium text-primary hover:underline"
       >
-        {row.getValue("agreement_number")}
+        {row.original.agreement_number || `AG-${row.original.id?.substring(0, 8)}`}
       </Link>
     ),
   },
   {
-    accessorKey: "customers.full_name",
+    id: "customers.full_name",
     header: "Customer",
     cell: ({ row }) => {
       const customer = row.original.customers;
@@ -74,7 +75,7 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     },
   },
   {
-    accessorKey: "vehicles",
+    id: "vehicles",
     header: "Vehicle",
     cell: ({ row }) => {
       const vehicle = row.original.vehicles;
@@ -115,7 +116,7 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     },
   },
   {
-    accessorKey: "start_date",
+    id: "start_date",
     header: "Rental Period",
     cell: ({ row }) => {
       const startDate = row.original.start_date;
@@ -128,7 +129,7 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     },
   },
   {
-    accessorKey: "rent_amount",
+    id: "rent_amount",
     header: "Monthly Rent",
     cell: ({ row }) => {
       return (
@@ -139,16 +140,16 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
     },
   },
   {
-    accessorKey: "status",
+    id: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const status = row.original.status;
       return (
         <Badge 
           variant={
-            status === "active" ? "success" : 
+            status === "active" ? "default" : 
             status === "draft" ? "secondary" : 
-            status === "pending" ? "warning" :
+            status === "pending" ? "outline" :
             status === "expired" ? "outline" :
             "destructive"
           }
@@ -165,7 +166,7 @@ export const getAgreementColumns = (deleteAgreement: (id: string) => void): Colu
           ) : (
             <FileX className="h-3 w-3 mr-1" />
           )}
-          {status}
+          {typeof status === 'string' ? status.replace('_', ' ') : 'Unknown'}
         </Badge>
       );
     },

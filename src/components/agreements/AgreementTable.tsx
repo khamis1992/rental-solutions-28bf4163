@@ -50,7 +50,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
 
   const columns: ColumnDef<Agreement>[] = React.useMemo(() => [
     {
-      accessorKey: 'agreement_number',
+      id: 'agreement_number',
       header: 'Agreement',
       cell: ({ row }) => (
         <Link 
@@ -62,7 +62,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
       ),
     },
     {
-      accessorKey: 'customers.full_name',
+      id: 'customers.full_name',
       header: 'Customer',
       cell: ({ row }) => (
         <div className="flex items-center max-w-[180px]">
@@ -80,7 +80,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
       ),
     },
     {
-      accessorKey: 'vehicles',
+      id: 'vehicles',
       header: 'Vehicle',
       cell: ({ row }) => {
         const vehicle = row.original.vehicles;
@@ -105,26 +105,26 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
       },
     },
     {
-      accessorKey: 'start_date',
+      id: 'start_date',
       header: 'Start Date',
       cell: ({ row }) => (
         <span>{row.original.start_date ? format(row.original.start_date, 'MMM d, yyyy') : 'N/A'}</span>
       ),
     },
     {
-      accessorKey: 'end_date',
+      id: 'end_date',
       header: 'End Date',
       cell: ({ row }) => (
         <span>{row.original.end_date ? format(row.original.end_date, 'MMM d, yyyy') : 'N/A'}</span>
       ),
     },
     {
-      accessorKey: 'rent_amount',
+      id: 'rent_amount',
       header: 'Rent Amount',
       cell: ({ row }) => formatCurrency(row.original.rent_amount || 0),
     },
     {
-      accessorKey: 'status',
+      id: 'status',
       header: 'Status',
       cell: ({ row }) => {
         const status = row.original.status;
@@ -192,7 +192,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
 
   // Use a subset of columns for compact view
   const compactColumns = compact ? columns.filter(col => 
-    ['agreement_number', 'customers.full_name', 'rent_amount', 'status', 'actions'].includes(col.accessorKey as string) || col.id === 'actions'
+    ['agreement_number', 'customers.full_name', 'rent_amount', 'status', 'actions'].includes(col.id as string)
   ) : columns;
 
   const table = useReactTable({

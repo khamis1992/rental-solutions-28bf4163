@@ -15,7 +15,7 @@ export interface SimpleAgreement {
   start_date?: string;
   end_date?: string;
   created_at?: string;
-  updated_at?: string; // Added this field that was missing
+  updated_at?: string; 
   total_amount?: number;
   agreement_number?: string;
   agreement_type?: string;

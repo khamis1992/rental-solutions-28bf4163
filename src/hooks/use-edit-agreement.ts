@@ -1,12 +1,12 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { hasData, castDbId } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -17,18 +17,6 @@ const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
 // Type guard to check if an object is not an error
 const isNotError = (obj: any): boolean => {
   return obj && typeof obj === 'object' && !('error' in obj) && obj !== null;
-};
-
-// Helper function to safely access object properties
-const safeProp = <T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined => {
-  if (!obj) return undefined;
-  return obj[key];
-};
-
-// Type guard to check if data has required properties
-const hasExpectedProperties = (data: any, properties: string[]): boolean => {
-  if (!data || typeof data !== 'object') return false;
-  return properties.every(prop => prop in data);
 };
 
 // Helper to safely process fetched data
@@ -124,29 +112,29 @@ export function useEditAgreement(id: string | undefined) {
             const { data, error } = await supabase
               .from('leases')
               .select('*, vehicles(*), profiles:customer_id(*)')
-              .eq('id', id)
-              .single();
+              .eq('id', id);
               
             if (error) {
               throw error;
             }
             
-            if (data) {
-              console.log("Fetched agreement data:", data);
+            if (data && data.length > 0) {
+              const leaseData = data[0];
+              console.log("Fetched agreement data:", leaseData);
               
               // Process the fetched data
-              const processedAgreement = processFetchedData(data);
+              const processedAgreement = processFetchedData(leaseData);
               
               if (processedAgreement) {
                 setAgreement(processedAgreement);
                 
                 // Check if we need to fetch vehicle details
-                if (data.vehicle_id) {
-                  if (data.vehicles && isNotError(data.vehicles)) {
-                    console.log("Vehicle data already included:", data.vehicles);
-                    setVehicleData(data.vehicles);
+                if (leaseData.vehicle_id) {
+                  if (leaseData.vehicles && isNotError(leaseData.vehicles)) {
+                    console.log("Vehicle data already included:", leaseData.vehicles);
+                    setVehicleData(leaseData.vehicles);
                   } else {
-                    await fetchVehicleDetails(data.vehicle_id);
+                    await fetchVehicleDetails(leaseData.vehicle_id);
                   }
                 }
               } else {
@@ -180,17 +168,17 @@ export function useEditAgreement(id: string | undefined) {
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('id', vehicleId)
-        .single();
+        .eq('id', vehicleId);
         
       if (error) {
         console.error("Error fetching vehicle details:", error);
         return;
       }
       
-      if (data && isNotError(data)) {
-        console.log("Fetched vehicle data:", data);
-        setVehicleData(data);
+      if (data && data.length > 0) {
+        const vehicleDetails = data[0];
+        console.log("Fetched vehicle data:", vehicleDetails);
+        setVehicleData(vehicleDetails);
         
         // Safe update of agreement with vehicle info
         setAgreement(prev => {
@@ -198,10 +186,10 @@ export function useEditAgreement(id: string | undefined) {
           
           return {
             ...prev,
-            vehicles: data,
-            vehicle_make: typeof data === 'object' && data && 'make' in data ? data.make as string : undefined,
-            vehicle_model: typeof data === 'object' && data && 'model' in data ? data.model as string : undefined,
-            license_plate: typeof data === 'object' && data && 'license_plate' in data ? data.license_plate as string : undefined
+            vehicles: vehicleDetails || {},
+            vehicle_make: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.make : undefined,
+            vehicle_model: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.model : undefined,
+            license_plate: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.license_plate : undefined
           };
         });
       }
