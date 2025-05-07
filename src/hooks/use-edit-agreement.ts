@@ -1,16 +1,16 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
+import { useAgreements } from '@/hooks/use-agreements';
 
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
-  const { getAgreement } = useAgreements();
+  const { agreements, updateAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
@@ -30,22 +30,47 @@ export function useEditAgreement(id: string | undefined) {
       console.log("Fetching agreement with ID:", id);
       setIsLoading(true);
       try {
-        const data = await getAgreement(id);
-        console.log("Fetched agreement data:", data);
-        if (data) {
-          const fullAgreement = adaptSimpleToFullAgreement(data);
-          console.log("Converted to full agreement:", fullAgreement);
+        // Find agreement in the existing list
+        const foundAgreement = agreements.find(a => a.id === id);
+        
+        if (foundAgreement) {
+          console.log("Found agreement in list:", foundAgreement);
+          const fullAgreement = adaptSimpleToFullAgreement(foundAgreement);
           setAgreement(fullAgreement);
           
-          if (data.vehicle_id && (!data.vehicles || !Object.keys(data.vehicles).length)) {
-            fetchVehicleDetails(data.vehicle_id);
-          } else if (data.vehicles) {
-            console.log("Vehicle data already included:", data.vehicles);
-            setVehicleData(data.vehicles);
+          if (foundAgreement.vehicle_id && (!foundAgreement.vehicles || !Object.keys(foundAgreement.vehicles).length)) {
+            fetchVehicleDetails(foundAgreement.vehicle_id);
+          } else if (foundAgreement.vehicles) {
+            console.log("Vehicle data already included:", foundAgreement.vehicles);
+            setVehicleData(foundAgreement.vehicles);
           }
         } else {
-          toast.error("Agreement not found");
-          navigate("/agreements");
+          // Fetch directly if not found in the list
+          const { data: fetchedData, error } = await supabase
+            .from('leases')
+            .select('*, vehicles(*), profiles:customer_id(*)')
+            .eq('id', id)
+            .single();
+            
+          if (error) {
+            throw error;
+          }
+          
+          if (fetchedData) {
+            console.log("Fetched agreement data:", fetchedData);
+            const fullAgreement = adaptSimpleToFullAgreement(fetchedData);
+            setAgreement(fullAgreement);
+            
+            if (fetchedData.vehicle_id && (!fetchedData.vehicles || !Object.keys(fetchedData.vehicles || {}).length)) {
+              fetchVehicleDetails(fetchedData.vehicle_id);
+            } else if (fetchedData.vehicles) {
+              console.log("Vehicle data already included:", fetchedData.vehicles);
+              setVehicleData(fetchedData.vehicles);
+            }
+          } else {
+            toast.error("Agreement not found");
+            navigate("/agreements");
+          }
         }
       } catch (error) {
         console.error("Error fetching agreement for edit:", error);
@@ -58,7 +83,7 @@ export function useEditAgreement(id: string | undefined) {
     };
 
     fetchAgreement();
-  }, [id, getAgreement, navigate, hasAttemptedFetch]);
+  }, [id, navigate, hasAttemptedFetch, agreements]);
 
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
@@ -78,8 +103,11 @@ export function useEditAgreement(id: string | undefined) {
         console.log("Fetched vehicle data:", data);
         setVehicleData(data);
         
+        // Type-safe way to update the agreement
         setAgreement(prev => {
           if (!prev) return null;
+          
+          // Create a new agreement object with updated vehicle information
           return {
             ...prev,
             vehicles: data,

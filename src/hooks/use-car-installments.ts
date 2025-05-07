@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -49,20 +50,31 @@ export const useCarInstallments = () => {
           .select('*', { count: 'exact', head: true });
         
         // Get total portfolio value and amount paid
-        const { data: totals } = await supabase
+        const { data: totalsData } = await supabase
           .from('car_installment_contracts')
-          .select('sum(total_contract_value) as total_contract_value, sum(amount_paid) as amount_paid');
+          .select('total_contract_value, amount_paid')
+          .or('total_contract_value.gte.0,amount_paid.gte.0');
+          
+        // Calculate totals from the returned data
+        let totalPortfolioValue = 0;
+        let totalCollections = 0;
         
-        const totalPortfolioValue = totals?.[0]?.total_contract_value || 0;
-        const totalCollections = totals?.[0]?.amount_paid || 0;
+        if (totalsData && totalsData.length > 0) {
+          totalPortfolioValue = totalsData.reduce((sum, item) => 
+            sum + (typeof item.total_contract_value === 'number' ? item.total_contract_value : 0), 0);
+          
+          totalCollections = totalsData.reduce((sum, item) => 
+            sum + (typeof item.amount_paid === 'number' ? item.amount_paid : 0), 0);
+        }
         
         // Get upcoming payments
-        const { data: upcoming } = await supabase
+        const { data: upcomingData } = await supabase
           .from('car_installment_payments')
-          .select('sum(amount) as amount')
+          .select('amount')
           .eq('status', 'pending');
         
-        const upcomingPayments = upcoming?.[0]?.amount || 0;
+        const upcomingPayments = upcomingData ? 
+          upcomingData.reduce((sum, item) => sum + (item.amount || 0), 0) : 0;
         
         return {
           totalContracts: totalContracts || 0,
@@ -135,13 +147,13 @@ export const useCarInstallments = () => {
   const updatePaymentStatus = async (
     id: string, 
     status: PaymentStatusType, 
-    paidAmount: number = 0
+    paid_amount: number = 0
   ) => {
     try {
       const updateData: any = { status };
       
-      if (status === 'paid' && paidAmount > 0) {
-        updateData.paid_amount = paidAmount;
+      if (status === 'paid' && paid_amount > 0) {
+        updateData.paid_amount = paid_amount;
       }
       
       const { error } = await supabase
@@ -181,10 +193,16 @@ export const useCarInstallments = () => {
 
   // Import payments mutation
   const importPayments = useMutation({
-    mutationFn: async (payments: Partial<CarInstallmentPayment>[]) => {
+    mutationFn: async (params: { contractId: string, payments: Partial<CarInstallmentPayment>[] }) => {
+      // Ensure each payment has the contract_id
+      const paymentsWithContractId = params.payments.map(payment => ({
+        ...payment,
+        contract_id: params.contractId
+      }));
+      
       const { data, error } = await supabase
         .from('car_installment_payments')
-        .insert(payments)
+        .insert(paymentsWithContractId)
         .select();
         
       if (error) throw error;
@@ -229,6 +247,7 @@ export const useCarInstallments = () => {
     updatePaymentStatus,
     isLoadingContracts,
     isLoadingSummary,
-    isLoadingPayments
+    isLoadingPayments,
+    addPayment: recordPayment.mutate // Added this line to fix the error
   };
 };

@@ -41,36 +41,23 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   });
   
   const { 
-    addPayment, 
-    recordPayment,
-    importPayments
+    recordPayment, 
+    importPayments,
+    fetchContractPayments
   } = useCarInstallments();
 
   const loadPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Simulated payment fetch - in a real app you'd use a proper fetch function
-      // This could be an API call or a local function that accesses payments
-      // For now we'll simulate this with a timeout
-      setTimeout(() => {
-        const dummyPayments = [
-          {
-            id: '1',
-            contract_id: contract.id,
-            amount: 5000,
-            payment_date: new Date().toISOString(),
-            status: 'pending',
-            cheque_number: '123456',
-            drawee_bank: 'Example Bank',
-            remaining_amount: 5000,
-            paid_amount: 0
-          } as CarInstallmentPayment
-        ];
-        setPayments(dummyPayments);
-        setIsLoadingPayments(false);
-      }, 500);
+      if (contract?.id) {
+        const contractPayments = await fetchContractPayments(contract.id);
+        setPayments(contractPayments);
+      } else {
+        setPayments([]);
+      }
     } catch (error) {
       console.error('Error loading payments:', error);
+    } finally {
       setIsLoadingPayments(false);
     }
   };
@@ -99,11 +86,13 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
       // Record a payment against an existing installment
       recordPayment({
         id: selectedPayment.id,
-        amountPaid: data.amount
+        paid_amount: data.amount,
+        status: 'paid',
+        payment_date: data.payment_date
       });
     } else {
       // Add a new payment
-      addPayment({
+      recordPayment({
         contract_id: contract.id,
         ...data
       });
@@ -112,11 +101,17 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
     setTimeout(loadPayments, 500); // Reload after a short delay
   };
 
-  const handleImportSubmit = (payments: any[]) => {
+  const handleImportSubmit = (data: any[]) => {
+    const paymentsToImport = data.map(item => ({
+      ...item,
+      contract_id: contract.id
+    }));
+    
     importPayments({
       contractId: contract.id,
-      payments
+      payments: paymentsToImport
     });
+    
     setIsImportDialogOpen(false);
     setTimeout(loadPayments, 500); // Reload after a short delay
   };
