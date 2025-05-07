@@ -41,9 +41,9 @@ export interface Agreement {
   remaining_amount?: number;
   terms_accepted?: boolean;
   additional_drivers?: string[];
-  license_plate?: string; // Added for compatibility
-  vehicle_make?: string; // Added for compatibility
-  vehicle_model?: string; // Added for compatibility
+  license_plate?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
 }
 
 // Add any other agreement-related types here

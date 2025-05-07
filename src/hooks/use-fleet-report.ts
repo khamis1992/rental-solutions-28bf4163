@@ -176,7 +176,7 @@ export const useFleetReport = () => {
     report, 
     isLoading, 
     error,
-    // Added for FleetReport.tsx
+    // Return these for FleetReport.tsx
     fleetStats: report,
     vehiclesByType
   };

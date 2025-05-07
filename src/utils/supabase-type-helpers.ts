@@ -38,3 +38,32 @@ export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K)
   if (!obj) return undefined;
   return obj[key];
 }
+
+/**
+ * Cast a string to a database ID type
+ */
+export function castDbId(id: string): string {
+  return id;
+}
+
+/**
+ * Check if a response data property exists
+ */
+export function hasDataProperty<T, K extends keyof T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  property: K
+): boolean {
+  if (!hasData(response)) return false;
+  return property in response.data;
+}
+
+/**
+ * Safely access a property from a Supabase response
+ */
+export function getResponseProperty<T, K extends keyof T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  property: K
+): T[K] | null {
+  if (!hasData(response)) return null;
+  return response.data[property];
+}

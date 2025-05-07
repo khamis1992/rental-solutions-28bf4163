@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasData, castDbId } from '@/utils/supabase-type-helpers';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -59,8 +59,8 @@ export function useEditAgreement(id: string | undefined) {
             ...foundAgreement,
             start_date: ensureDate(foundAgreement.start_date),
             end_date: ensureDate(foundAgreement.end_date),
-            created_at: foundAgreement.created_at ? ensureDate(foundAgreement.created_at as string) : undefined,
-            updated_at: foundAgreement.updated_at ? ensureDate(foundAgreement.updated_at as string) : undefined,
+            created_at: foundAgreement.created_at ? ensureDate(foundAgreement.created_at) : undefined,
+            updated_at: foundAgreement.updated_at ? ensureDate(foundAgreement.updated_at) : undefined,
             // Ensure other properties are correctly typed
             vehicles: foundAgreement.vehicles || {}
           };
@@ -160,21 +160,10 @@ export function useEditAgreement(id: string | undefined) {
           const updatedAgreement: Agreement = {
             ...prev,
             vehicles: data,
+            vehicle_make: typeof data === 'object' && data && 'make' in data ? data.make as string : undefined,
+            vehicle_model: typeof data === 'object' && data && 'model' in data ? data.model as string : undefined,
+            license_plate: typeof data === 'object' && data && 'license_plate' in data ? data.license_plate as string : undefined
           };
-
-          // Only add these properties if data contains them and prev exists
-          if (data && typeof data === 'object' && 'make' in data) {
-            // Extend the agreement object with additional properties
-            (updatedAgreement as any).vehicle_make = data.make;
-          }
-          
-          if (data && typeof data === 'object' && 'model' in data) {
-            (updatedAgreement as any).vehicle_model = data.model;
-          }
-          
-          if (data && typeof data === 'object' && 'license_plate' in data) {
-            (updatedAgreement as any).license_plate = data.license_plate;
-          }
           
           return updatedAgreement;
         });
