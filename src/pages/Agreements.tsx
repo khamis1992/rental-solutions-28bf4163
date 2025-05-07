@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -8,14 +7,11 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Download, Filter, Grid, MoreHorizontal, Plus, RefreshCw, Table, Upload } from 'lucide-react';
+import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
-import { AgreementFilters } from '@/components/agreements/AgreementFilters';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
 import { AgreementSearch } from '@/components/agreements/page/AgreementSearch';
-import { AgreementActionButtons } from '@/components/agreements/page/AgreementActionButtons';
-import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -23,8 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import AgreementTable from '@/components/agreements/AgreementTable';
@@ -258,62 +252,64 @@ const Agreements = () => {
             </div>
           )}
           
-          {/* Content Area */}
+          {/* Content Area - Important to keep TabsContent within the Tabs component */}
           <CardContent className="p-0">
-            <TabsContent value="agreements" className="m-0">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                  <div className="flex items-center space-x-2">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-lg font-medium">Loading agreements...</span>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsContent value="agreements" className="m-0">
+                <Suspense fallback={
+                  <div className="flex items-center justify-center h-64">
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                      <span className="text-lg font-medium">Loading agreements...</span>
+                    </div>
                   </div>
-                </div>
-              }>
-                <div className="p-4">
-                  {viewMode === 'card' && <AgreementList />}
-                  {viewMode === 'table' && <AgreementTable />}
-                  {viewMode === 'compact' && <AgreementTable compact />}
-                </div>
-              </Suspense>
-            </TabsContent>
-            
-            <TabsContent value="active" className="m-0">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              }>
-                <div className="p-4">
-                  {viewMode === 'card' && <AgreementList />}
-                  {viewMode === 'table' && <AgreementTable />}
-                  {viewMode === 'compact' && <AgreementTable compact />}
-                </div>
-              </Suspense>
-            </TabsContent>
-            
-            <TabsContent value="pending" className="m-0">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              }>
-                <div className="p-4">
-                  {viewMode === 'card' && <AgreementList />}
-                  {viewMode === 'table' && <AgreementTable />}
-                  {viewMode === 'compact' && <AgreementTable compact />}
-                </div>
-              </Suspense>
-            </TabsContent>
+                }>
+                  <div className="p-4">
+                    {viewMode === 'card' && <AgreementList />}
+                    {viewMode === 'table' && <AgreementTable />}
+                    {viewMode === 'compact' && <AgreementTable compact />}
+                  </div>
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="active" className="m-0">
+                <Suspense fallback={
+                  <div className="flex items-center justify-center h-64">
+                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                }>
+                  <div className="p-4">
+                    {viewMode === 'card' && <AgreementList />}
+                    {viewMode === 'table' && <AgreementTable />}
+                    {viewMode === 'compact' && <AgreementTable compact />}
+                  </div>
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="pending" className="m-0">
+                <Suspense fallback={
+                  <div className="flex items-center justify-center h-64">
+                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                }>
+                  <div className="p-4">
+                    {viewMode === 'card' && <AgreementList />}
+                    {viewMode === 'table' && <AgreementTable />}
+                    {viewMode === 'compact' && <AgreementTable compact />}
+                  </div>
+                </Suspense>
+              </TabsContent>
 
-            <TabsContent value="history" className="m-0">
-              <div className="p-4">
-                <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Database className="h-5 w-5 mr-2" />
-                  Import History
-                </h2>
-                <ImportHistoryList />
-              </div>
-            </TabsContent>
+              <TabsContent value="history" className="m-0">
+                <div className="p-4">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center">
+                    <Database className="h-5 w-5 mr-2" />
+                    Import History
+                  </h2>
+                  <ImportHistoryList />
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

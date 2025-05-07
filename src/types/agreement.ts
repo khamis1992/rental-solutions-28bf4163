@@ -6,14 +6,14 @@ export interface Agreement {
   status: LeaseStatus;
   customer_id: string;
   vehicle_id: string;
-  start_date: Date;  // Changed from 'string | Date' to just 'Date'
-  end_date: Date;    // Changed from 'string | Date' to just 'Date'
+  start_date: Date;
+  end_date: Date;
   total_amount: number;
   rent_amount?: number;
   payment_frequency?: string;
   payment_day?: number;
-  created_at?: Date;  // Changed to Date
-  updated_at?: Date;  // Changed to Date
+  created_at?: Date;
+  updated_at?: Date;
   agreement_number?: string;
   agreement_type?: string;
   next_payment_date?: string;

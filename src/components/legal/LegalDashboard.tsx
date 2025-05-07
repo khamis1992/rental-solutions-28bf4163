@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, ArrowUpRight } from 'lucide-react';
+import { Search, ArrowUpRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { LegalStats } from './stats/LegalStats';
@@ -86,7 +86,7 @@ const LegalDashboard: React.FC = () => {
           />
 
           <Tabs 
-            defaultValue="overview" 
+            defaultValue={activeTab} 
             value={activeTab}
             onValueChange={setActiveTab}
             className="space-y-4"

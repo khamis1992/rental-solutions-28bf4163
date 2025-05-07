@@ -42,7 +42,7 @@ export function AgreementList() {
       <AgreementCardView 
         agreements={typedAgreements}
         isLoading={isLoading}
-        onDeleteAgreement={id => handleBulkDelete([id])}
+        onDeleteAgreement={(id) => handleBulkDelete(id)}
       />
     </div>
   );
