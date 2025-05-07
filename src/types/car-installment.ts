@@ -1,9 +1,15 @@
 
-/**
- * Type definitions for car installment contracts and payments
- */
+// Types for car installment contracts and payments
+export type PaymentStatusType = 'pending' | 'paid' | 'overdue' | 'cancelled' | 'scheduled';
 
-// Define the car installment contract type
+export interface PaymentFilters {
+  status?: string;
+  dateRange?: {
+    from?: string;
+    to?: string;
+  } | null;
+}
+
 export interface CarInstallmentContract {
   id: string;
   car_type: string;
@@ -22,11 +28,6 @@ export interface CarInstallmentContract {
   updated_at: string;
 }
 
-// Define the car installment payment status type
-export type PaymentStatusType = 'pending' | 'paid' | 'overdue' | 'cancelled' | 'scheduled';
-export type InstallmentStatus = PaymentStatusType; // Alias for backward compatibility
-
-// Define the car installment payment type
 export interface CarInstallmentPayment {
   id: string;
   contract_id: string;
@@ -37,7 +38,7 @@ export interface CarInstallmentPayment {
   status: PaymentStatusType;
   paid_amount: number;
   remaining_amount: number;
-  days_overdue: number;
+  days_overdue?: number;
   payment_notes?: string;
   notes?: string;
   payment_reference?: string;
@@ -50,67 +51,9 @@ export interface CarInstallmentPayment {
   updated_at: string;
 }
 
-// Define the contract summary type
 export interface ContractSummary {
   totalContracts: number;
   totalPortfolioValue: number;
   totalCollections: number;
   upcomingPayments: number;
 }
-
-// Define the imported payment type
-export interface ImportedPayment {
-  cheque_number: string;
-  drawee_bank: string;
-  amount: number;
-  payment_date: string;
-  contract_id?: string;
-  notes?: string;
-}
-
-// Define the contract filters type
-export interface ContractFilters {
-  search: string;
-  status?: string;
-}
-
-// Define the payment filters type
-export interface PaymentFilters {
-  status?: PaymentStatusType | 'all';
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-// Mock data helper for car installment services
-export const createEmptyCarInstallmentContract = (): CarInstallmentContract => ({
-  id: '',
-  car_type: '',
-  model_year: 0,
-  number_of_cars: 0,
-  price_per_car: 0,
-  total_contract_value: 0,
-  amount_paid: 0,
-  amount_pending: 0,
-  total_installments: 0,
-  remaining_installments: 0,
-  installment_value: 0,
-  category: '',
-  overdue_payments: 0,
-  created_at: '',
-  updated_at: ''
-});
-
-export const createEmptyCarInstallmentPayment = (): CarInstallmentPayment => ({
-  id: '',
-  contract_id: '',
-  cheque_number: '',
-  drawee_bank: '',
-  amount: 0,
-  payment_date: '',
-  status: 'pending',
-  paid_amount: 0,
-  remaining_amount: 0,
-  days_overdue: 0,
-  created_at: '',
-  updated_at: ''
-});

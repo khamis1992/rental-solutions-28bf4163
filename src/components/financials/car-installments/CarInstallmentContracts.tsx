@@ -12,17 +12,19 @@ import { CarInstallmentContract } from '@/types/car-installment';
 const CarInstallmentContracts = () => {
   const {
     contracts,
-    isLoadingContracts,
+    isLoading,
     summary,
-    isLoadingSummary,
-    contractFilters,
-    setContractFilters,
+    fetchContracts,
     createContract
   } = useCarInstallments();
 
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<CarInstallmentContract | null>(null);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: ''
+  });
 
   const handleAddContract = () => {
     setIsContractDialogOpen(true);
@@ -43,15 +45,15 @@ const CarInstallmentContracts = () => {
   };
 
   const handleSearchChange = (value: string) => {
-    setContractFilters({
-      ...contractFilters,
+    setFilters({
+      ...filters,
       search: value
     });
   };
 
   const handleStatusFilterChange = (value: string) => {
-    setContractFilters({
-      ...contractFilters,
+    setFilters({
+      ...filters,
       status: value
     });
   };
@@ -68,14 +70,14 @@ const CarInstallmentContracts = () => {
 
       <ContractSummaryCards 
         summary={summary} 
-        isLoading={isLoadingSummary} 
+        isLoading={isLoading} 
       />
 
       <CarContractsList
         contracts={contracts || []}
-        isLoading={isLoadingContracts}
+        isLoading={isLoading}
         onContractClick={handleViewContract}
-        filters={contractFilters}
+        filters={filters}
         onSearchChange={handleSearchChange}
         onStatusFilterChange={handleStatusFilterChange}
       />

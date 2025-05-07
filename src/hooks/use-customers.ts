@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
@@ -41,12 +42,17 @@ export const useCustomers = () => {
       try {
         let query = supabase
           .from(PROFILES_TABLE)
-          .select('*')
-          .eq('role', CUSTOMER_ROLE)
-          .order('created_at', { ascending: false });
+          .select('*');
+          
+        // Apply role filter as a string
+        query = query.eq('role', CUSTOMER_ROLE);
+        
+        // Order by created_at descending
+        query = query.order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          // Use safe casting for the status filter
+          query = query.eq('status', searchParams.status);
         }
 
         if (searchParams.query) {
@@ -64,23 +70,23 @@ export const useCustomers = () => {
         
         console.log('Raw customer data from profiles table:', data);
         
-        const processedCustomers = (data || []).map(profile => ({
+        const processedCustomers = Array.isArray(data) ? data.map(profile => ({
           id: profile.id,
           full_name: profile.full_name || '',
           email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''),
+          phone: profile.phone_number ? stripCountryCode(profile.phone_number) : '',
           driver_license: profile.driver_license || '',
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+          status: (profile.status || 'active'),
           created_at: profile.created_at,
           updated_at: profile.updated_at,
-        }));
+        })) : [];
         
         console.log('Processed customers from profiles:', processedCustomers);
         return processedCustomers as Customer[];
-      } catch (catchError) {
+      } catch (catchError: any) {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];
       }
@@ -122,16 +128,21 @@ export const useCustomers = () => {
       }
       
       console.log('Created customer:', data);
+      
+      if (!data) {
+        throw new Error('No data returned after customer creation');
+      }
+      
       return {
         ...data,
-        phone: stripCountryCode(data.phone_number || '')
+        phone: data.phone_number ? stripCountryCode(data.phone_number) : ''
       } as Customer;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer created successfully');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Failed to create customer', { description: error.message });
     },
   });
@@ -159,16 +170,20 @@ export const useCustomers = () => {
 
       if (error) throw new Error(error.message);
       
+      if (!data || data.length === 0) {
+        throw new Error('No data returned after customer update');
+      }
+      
       return {
         ...data[0],
-        phone: stripCountryCode(data[0].phone_number || '')
+        phone: data[0].phone_number ? stripCountryCode(data[0].phone_number) : ''
       } as Customer;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer updated successfully');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Failed to update customer', { description: error.message });
     },
   });
@@ -187,7 +202,7 @@ export const useCustomers = () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer deleted successfully');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Failed to delete customer', { description: error.message });
     },
   });
@@ -219,18 +234,18 @@ export const useCustomers = () => {
         id: data.id,
         full_name: data.full_name || '',
         email: data.email || '',
-        phone: stripCountryCode(data.phone_number || ''),
+        phone: data.phone_number ? stripCountryCode(data.phone_number) : '',
         driver_license: data.driver_license || '',
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        status: (data.status || 'active'),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
       
       return customerData;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Unexpected error fetching customer:', error);
       toast.error('Failed to fetch customer');
       return null;
