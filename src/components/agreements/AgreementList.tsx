@@ -1,16 +1,14 @@
 
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
-import { AgreementTable } from './table/AgreementTable';
-import { Agreement } from '@/types/agreement';
-import { SimpleAgreement } from '@/hooks/use-agreements';
+import { TableContent } from './table/TableContent';
+import { processAgreementData } from './table/agreement-data';
 
 const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
     error,
-    handleBulkDelete,
     pagination
   } = useAgreementTable();
 
@@ -22,73 +20,15 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  // Cast agreements to the correct type with the required fields
-  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
-    ...agreement,
-    payment_frequency: agreement.payment_frequency || 'monthly', // Default value for type compatibility
-    payment_day: agreement.payment_day || 1, // Default value for type compatibility
-    customers: {
-      full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
-      id: agreement.customers?.id || agreement.customer_id
-    },
-    // Convert string dates to Date objects
-    start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-    end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-    created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
-    updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined
-  })) as Agreement[];
+  // Process agreement data for display
+  const typedAgreements = processAgreementData(agreements || []);
 
   return (
-    <div>
-      <AgreementTable
-        agreements={typedAgreements}
-        isLoading={isLoading}
-        deleteAgreement={handleBulkDelete}
-      />
-      
-      {pagination && pagination.totalPages > 1 && (
-        <div className="mt-4">
-          <div className="text-sm text-muted-foreground mb-2">
-            Showing {agreements.length} of {pagination.totalCount} agreements
-          </div>
-          <nav className="flex justify-center mt-4">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => pagination.handlePageChange(1)}
-                disabled={pagination.page === 1}
-                className="px-2 py-1 rounded border disabled:opacity-50"
-              >
-                First
-              </button>
-              <button
-                onClick={() => pagination.handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-2 py-1 rounded border disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="px-2">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => pagination.handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-2 py-1 rounded border disabled:opacity-50"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => pagination.handlePageChange(pagination.totalPages)}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-2 py-1 rounded border disabled:opacity-50"
-              >
-                Last
-              </button>
-            </div>
-          </nav>
-        </div>
-      )}
-    </div>
+    <TableContent 
+      agreements={typedAgreements}
+      isLoading={isLoading}
+      pagination={pagination}
+    />
   );
 };
 
