@@ -47,6 +47,13 @@ export function castDbId(id: string): string {
 }
 
 /**
+ * Cast a string to UUID for database operations
+ */
+export function castToUUID(id: string): string {
+  return id;
+}
+
+/**
  * Check if a response data property exists
  */
 export function hasDataProperty<T, K extends keyof T>(

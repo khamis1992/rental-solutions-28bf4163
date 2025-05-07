@@ -1,9 +1,9 @@
 
 import { Database } from './database.types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
-import { castToUUID } from '@/utils/supabase-type-helpers';
+import { castDbId } from '@/utils/supabase-type-helpers';
 import { exists } from '@/utils/response-mapper';
-// Removed the hasProperty import to avoid duplication
+// Removed the castToUUID import to avoid duplication
 
 export type GenericSchema = Database[keyof Database];
 export type TablesInsertResponse<T extends keyof Database['public']['Tables']> = PostgrestResponse<Database['public']['Tables'][T]>;
@@ -55,8 +55,8 @@ export const getPropertySafely = <T extends object, K extends keyof T>(
  * @param id ID string to cast
  * @returns The same ID with proper typing for database operations
  */
-export function castDbId<T extends string>(id: T): string {
-  return castToUUID(id);
+export function castDbIdForTable<T extends string>(id: T): string {
+  return castDbId(id);
 }
 
 /**

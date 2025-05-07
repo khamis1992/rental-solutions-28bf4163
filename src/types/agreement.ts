@@ -6,8 +6,8 @@ export interface Agreement {
   status: LeaseStatus;
   customer_id: string;
   vehicle_id: string;
-  start_date?: string | Date;
-  end_date?: string | Date;
+  start_date: Date;  // Changed from 'string | Date' to just 'Date'
+  end_date: Date;    // Changed from 'string | Date' to just 'Date'
   total_amount: number;
   rent_amount?: number;
   payment_frequency?: string;

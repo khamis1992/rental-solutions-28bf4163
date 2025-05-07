@@ -25,6 +25,12 @@ const safeProp = <T, K extends keyof T>(obj: T | null | undefined, key: K): T[K]
   return obj[key];
 };
 
+// Type guard to check if object has expected properties
+const hasExpectedProperties = (obj: any, properties: string[]): boolean => {
+  if (!obj || typeof obj !== 'object') return false;
+  return properties.every(prop => prop in obj);
+};
+
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
   const { agreements } = useAgreements();
@@ -57,8 +63,8 @@ export function useEditAgreement(id: string | undefined) {
           // Convert any string dates to Date objects before setting state
           const processedAgreement: Agreement = {
             ...foundAgreement,
-            start_date: ensureDate(foundAgreement.start_date),
-            end_date: ensureDate(foundAgreement.end_date),
+            start_date: ensureDate(foundAgreement.start_date) || new Date(),
+            end_date: ensureDate(foundAgreement.end_date) || new Date(),
             created_at: foundAgreement.created_at ? ensureDate(foundAgreement.created_at) : undefined,
             updated_at: foundAgreement.updated_at ? ensureDate(foundAgreement.updated_at) : undefined,
             // Ensure other properties are correctly typed
@@ -93,27 +99,32 @@ export function useEditAgreement(id: string | undefined) {
           if (fetchedData && isNotError(fetchedData)) {
             console.log("Fetched agreement data:", fetchedData);
             
-            // Process the data to ensure date fields are Date objects
-            const processedAgreement: Agreement = {
-              ...fetchedData,
-              start_date: fetchedData.start_date ? ensureDate(fetchedData.start_date) : undefined,
-              end_date: fetchedData.end_date ? ensureDate(fetchedData.end_date) : undefined,
-              created_at: fetchedData.created_at ? ensureDate(fetchedData.created_at) : undefined,
-              updated_at: fetchedData.updated_at ? ensureDate(fetchedData.updated_at) : undefined,
-              // Ensure vehicles is properly structured
-              vehicles: fetchedData.vehicles || {}
-            };
-            
-            setAgreement(processedAgreement);
-            
-            // Check if we need to fetch vehicle details
-            if (fetchedData.vehicle_id) {
-              if (fetchedData.vehicles && isNotError(fetchedData.vehicles)) {
-                console.log("Vehicle data already included:", fetchedData.vehicles);
-                setVehicleData(fetchedData.vehicles);
-              } else {
-                await fetchVehicleDetails(fetchedData.vehicle_id);
+            // Type check for expected properties
+            if (hasExpectedProperties(fetchedData, ['start_date', 'end_date'])) {
+              // Process the data to ensure date fields are Date objects
+              const processedAgreement: Agreement = {
+                ...fetchedData as any, // Cast temporarily to bypass strictness
+                start_date: fetchedData.start_date ? ensureDate(fetchedData.start_date as any) || new Date() : new Date(),
+                end_date: fetchedData.end_date ? ensureDate(fetchedData.end_date as any) || new Date() : new Date(),
+                created_at: fetchedData.created_at ? ensureDate(fetchedData.created_at as any) : undefined,
+                updated_at: fetchedData.updated_at ? ensureDate(fetchedData.updated_at as any) : undefined,
+                // Ensure vehicles is properly structured
+                vehicles: fetchedData.vehicles || {}
+              };
+              
+              setAgreement(processedAgreement);
+              
+              // Check if we need to fetch vehicle details
+              if ('vehicle_id' in fetchedData && fetchedData.vehicle_id) {
+                if ('vehicles' in fetchedData && fetchedData.vehicles && isNotError(fetchedData.vehicles)) {
+                  console.log("Vehicle data already included:", fetchedData.vehicles);
+                  setVehicleData(fetchedData.vehicles);
+                } else {
+                  await fetchVehicleDetails(fetchedData.vehicle_id as string);
+                }
               }
+            } else {
+              throw new Error("Fetched data is missing required properties");
             }
           } else {
             toast.error("Agreement not found");
