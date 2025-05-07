@@ -27,6 +27,7 @@ import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PaymentList from '@/components/payments/PaymentList';
 import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
+import { AgreementTrafficFineAnalytics } from '@/components/agreements/legal/AgreementTrafficFineAnalytics';
 import { asDbId, AgreementId } from '@/types/database-types';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
@@ -484,6 +485,14 @@ const AgreementDetailPage = () => {
       </TabsContent>
       
       <TabsContent value="legal" className="space-y-6">
+        {agreement.start_date && agreement.end_date && (
+          <AgreementTrafficFineAnalytics 
+            agreementId={agreement.id} 
+            startDate={new Date(agreement.start_date)} 
+            endDate={new Date(agreement.end_date)} 
+          />
+        )}
+        
         {agreement.start_date && agreement.end_date && <Card>
             <CardHeader>
               <CardTitle>Traffic Fines</CardTitle>
