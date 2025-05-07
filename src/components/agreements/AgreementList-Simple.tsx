@@ -48,12 +48,17 @@ export function AgreementList() {
       />
       
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-4">
+        <div className="mt-6">
           <Pagination 
             currentPage={pagination.page} 
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
+            showFirstLast={true}
+            className="my-4"
           />
+          <div className="text-sm text-muted-foreground text-center">
+            Showing {agreements.length} of {pagination.totalCount} agreements
+          </div>
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { DataTable } from '@/components/ui/data-table';
@@ -201,7 +202,6 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
     getCoreRowModel: getCoreRowModel(),
     // We're using custom pagination with the useAgreements hook,
     // so we don't need the React Table pagination model
-    // getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     state: {
@@ -264,14 +264,18 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
         </table>
       </div>
       
-      {/* Custom Pagination Controls */}
+      {/* Enhanced Pagination Controls */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-2">
+        <div className="mt-4">
           <Pagination 
             currentPage={pagination.page} 
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
+            className="mb-2"
           />
+          <div className="text-sm text-muted-foreground text-center">
+            Showing {agreements.length} of {pagination.totalCount} agreements
+          </div>
         </div>
       )}
     </div>

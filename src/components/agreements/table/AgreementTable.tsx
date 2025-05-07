@@ -13,17 +13,25 @@ import {
 import { Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useReactTable, flexRender, getCoreRowModel } from '@tanstack/react-table';
+import { Pagination } from '@/components/ui/pagination';
 
 interface AgreementTableProps {
   agreements: Agreement[];
   isLoading: boolean;
   deleteAgreement: (id: string) => void;
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalCount: number;
+    handlePageChange: (page: number) => void;
+  };
 }
 
 export function AgreementTable({ 
   agreements, 
   isLoading,
-  deleteAgreement
+  deleteAgreement,
+  pagination
 }: AgreementTableProps) {
   const columns = React.useMemo(
     () => getAgreementColumns(deleteAgreement),
@@ -85,33 +93,49 @@ export function AgreementTable({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : 
-                    flexRender(header.column.columnDef.header, header.getContext())
-                  }
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : 
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    }
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {pagination && pagination.totalPages > 1 && (
+        <div>
+          <Pagination 
+            currentPage={pagination.page} 
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.handlePageChange}
+            showFirstLast={true}
+          />
+          <div className="text-sm text-muted-foreground text-center mt-2">
+            Showing {agreements.length} of {pagination.totalCount} agreements
+          </div>
+        </div>
+      )}
     </div>
   );
 }
