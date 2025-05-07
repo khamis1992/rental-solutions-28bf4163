@@ -1,6 +1,5 @@
 
-import React from 'react';
-import CustomerSelector from "@/components/customers/CustomerSelector";
+import React, { useState, useEffect } from 'react';
 import { CustomerInfo } from "@/types/customer";
 import VehicleSelector from "@/components/vehicles/VehicleSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface CustomerVehicleSectionProps {
@@ -70,6 +68,9 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
     fetchCustomers();
   }, [searchQuery]);
 
+  // Ensure customers is always an array
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Customer & Vehicle</h3>
@@ -104,7 +105,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
                 )}
               </CommandEmpty>
               <CommandGroup>
-                {Array.isArray(customers) && customers.length > 0 && customers.map((customer) => (
+                {safeCustomers.map((customer) => (
                   <CommandItem
                     key={customer.id}
                     onSelect={() => {

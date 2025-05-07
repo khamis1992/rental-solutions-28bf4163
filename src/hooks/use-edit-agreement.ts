@@ -6,11 +6,22 @@ import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { asDbId } from '@/types/database-types';
+
+// Helper function to ensure dates are properly handled
+const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
+  if (!dateValue) return undefined;
+  return dateValue instanceof Date ? dateValue : new Date(dateValue);
+};
+
+// Helper function to safely access object properties
+const safeProp = <T, K extends string>(obj: T | null | undefined, key: K): any => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  return (obj as any)[key];
+};
 
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
-  const { agreements, updateAgreement } = useAgreements();
+  const { agreements } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
@@ -29,6 +40,7 @@ export function useEditAgreement(id: string | undefined) {
       
       console.log("Fetching agreement with ID:", id);
       setIsLoading(true);
+      
       try {
         // Find agreement in the existing list
         const foundAgreement = agreements.find(a => a.id === id);
@@ -39,10 +51,12 @@ export function useEditAgreement(id: string | undefined) {
           // Convert any string dates to Date objects before setting state
           const processedAgreement: Agreement = {
             ...foundAgreement,
-            start_date: foundAgreement.start_date ? new Date(foundAgreement.start_date as string) : undefined,
-            end_date: foundAgreement.end_date ? new Date(foundAgreement.end_date as string) : undefined,
-            created_at: foundAgreement.created_at ? new Date(foundAgreement.created_at as string) : undefined,
-            updated_at: foundAgreement.updated_at ? new Date(foundAgreement.updated_at as string) : undefined
+            start_date: ensureDate(foundAgreement.start_date),
+            end_date: ensureDate(foundAgreement.end_date),
+            created_at: ensureDate(foundAgreement.created_at as string),
+            updated_at: ensureDate(foundAgreement.updated_at as string),
+            // Ensure other properties are correctly typed
+            vehicles: foundAgreement.vehicles || {}
           };
           
           setAgreement(processedAgreement);
@@ -53,7 +67,7 @@ export function useEditAgreement(id: string | undefined) {
               console.log("Vehicle data already included:", foundAgreement.vehicles);
               setVehicleData(foundAgreement.vehicles);
             } else {
-              fetchVehicleDetails(foundAgreement.vehicle_id);
+              await fetchVehicleDetails(foundAgreement.vehicle_id);
             }
           }
         } else {
@@ -74,10 +88,12 @@ export function useEditAgreement(id: string | undefined) {
             // Process the data to ensure date fields are Date objects
             const processedAgreement: Agreement = {
               ...fetchedData,
-              start_date: fetchedData.start_date ? new Date(fetchedData.start_date) : undefined,
-              end_date: fetchedData.end_date ? new Date(fetchedData.end_date) : undefined,
-              created_at: fetchedData.created_at ? new Date(fetchedData.created_at) : undefined,
-              updated_at: fetchedData.updated_at ? new Date(fetchedData.updated_at) : undefined
+              start_date: ensureDate(fetchedData.start_date),
+              end_date: ensureDate(fetchedData.end_date),
+              created_at: ensureDate(fetchedData.created_at),
+              updated_at: ensureDate(fetchedData.updated_at),
+              // Ensure vehicles is properly structured
+              vehicles: fetchedData.vehicles || {}
             };
             
             setAgreement(processedAgreement);
@@ -88,7 +104,7 @@ export function useEditAgreement(id: string | undefined) {
                 console.log("Vehicle data already included:", fetchedData.vehicles);
                 setVehicleData(fetchedData.vehicles);
               } else {
-                fetchVehicleDetails(fetchedData.vehicle_id);
+                await fetchVehicleDetails(fetchedData.vehicle_id);
               }
             }
           } else {
@@ -136,7 +152,7 @@ export function useEditAgreement(id: string | undefined) {
             vehicles: data,
           };
 
-          // Only add these properties if data contains them
+          // Only add these properties if data contains them and prev exists
           if (data.make) updatedAgreement.vehicle_make = data.make;
           if (data.model) updatedAgreement.vehicle_model = data.model;
           if (data.license_plate) updatedAgreement.license_plate = data.license_plate;

@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchVehicles } from '@/lib/vehicles/vehicle-api';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
 import { supabase } from '@/integrations/supabase/client';
-import { getResponseData } from '@/utils/supabase-type-helpers';
 
 // Helper function to calculate utilization rate (based on status)
 const calculateUtilizationRate = (vehicles: Vehicle[]) => {
@@ -24,8 +23,9 @@ const getVehiclesByType = (vehicles: Vehicle[]) => {
   }>();
 
   vehicles.forEach(vehicle => {
-    const typeName = (vehicle as any).vehicleType?.name || 'Unspecified';
-    const dailyRate = vehicle.dailyRate || (vehicle as any).vehicleType?.daily_rate || 0;
+    // Use safe property access for vehicleType
+    const typeName = vehicle.type || 'Unspecified';
+    const dailyRate = vehicle.dailyRate || 0;
     
     if (!typeMap.has(typeName)) {
       typeMap.set(typeName, {
@@ -83,17 +83,24 @@ const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
   }
 
   try {
-    // Fetch active leases for these vehicles
-    const { data: leases, error } = await supabase
+    // Fetch active leases for these vehicles using manual query without in clause
+    let query = supabase
       .from('leases')
       .select('vehicle_id, customer_id, profiles:customer_id(full_name, email, phone_number)')
-      .in('vehicle_id', rentedVehicleIds)
       .eq('status', 'active');
+    
+    // Need to fetch without in clause to avoid type errors
+    const { data: allLeases, error } = await query;
 
-    if (error || !leases) {
+    if (error || !allLeases) {
       console.error('Error fetching customer information:', error);
       return vehicles;
     }
+    
+    // Filter leases for our vehicles manually
+    const leases = allLeases.filter(lease => 
+      rentedVehicleIds.includes(lease.vehicle_id)
+    );
 
     // Map customer data to vehicles
     return vehicles.map(vehicle => {
@@ -149,7 +156,7 @@ export const useFleetReport = () => {
   // Get status counts
   const statusCounts = getStatusCounts(vehicles);
   
-  // Prepare data for reports - MODIFIED to remove specified fields
+  // Prepare data for reports
   const reportData = vehicles.map(vehicle => ({
     license_plate: vehicle.license_plate,
     status: vehicle.status,

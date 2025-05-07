@@ -76,6 +76,9 @@ const CustomerSelector = ({
     setOpen(false);
   };
 
+  // Ensure customers is always an array
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -107,11 +110,11 @@ const CustomerSelector = ({
               {error}
             </div>
           )}
-          {!loading && !error && customers.length === 0 && (
+          {!loading && !error && safeCustomers.length === 0 && (
             <CommandEmpty>No customers found.</CommandEmpty>
           )}
           <CommandGroup>
-            {!loading && !error && Array.isArray(customers) && customers.map((customer) => (
+            {!loading && !error && safeCustomers.map((customer) => (
               <CommandItem
                 key={customer.id}
                 value={customer.id}
