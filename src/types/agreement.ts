@@ -12,8 +12,8 @@ export interface Agreement {
   rent_amount?: number;
   payment_frequency?: string;
   payment_day?: number;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string | Date;
+  updated_at?: string | Date;
   agreement_number?: string;
   agreement_type?: string;
   next_payment_date?: string;
@@ -32,6 +32,7 @@ export interface Agreement {
     year?: number;
     license_plate?: string;
     color?: string;
+    vehicle_type?: string;
   };
   customer_name?: string;
   payments?: any[];
@@ -40,6 +41,9 @@ export interface Agreement {
   remaining_amount?: number;
   terms_accepted?: boolean;
   additional_drivers?: string[];
+  license_plate?: string; // Added for compatibility
+  vehicle_make?: string; // Added for compatibility
+  vehicle_model?: string; // Added for compatibility
 }
 
 // Add any other agreement-related types here

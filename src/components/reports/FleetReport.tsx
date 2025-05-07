@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -11,8 +12,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const FleetReport = () => {
   const { 
     vehicles, 
-    fleetStats, 
-    vehiclesByType, 
+    report, 
     isLoading,
     error
   } = useFleetReport();
@@ -49,6 +49,28 @@ const FleetReport = () => {
       </div>
     );
   }
+
+  // Extract stats from report
+  const fleetStats = {
+    totalVehicles: report.totalVehicles,
+    activeRentals: report.rentedVehicles,
+    averageDailyRate: report.averageRentAmount,
+    maintenanceRequired: report.maintenanceVehicles
+  };
+
+  // Create vehicle type data for the chart
+  const vehiclesByTypeData = Object.entries(report.vehiclesByType).map(([type, count]) => {
+    // Filter vehicles of this type to calculate average rate
+    const vehiclesOfType = vehicles.filter(v => v.vehicle_type === type);
+    const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v.rent_amount || 0), 0);
+    const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
+    
+    return {
+      type,
+      count,
+      avgDailyRate: avgRate
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -117,7 +139,7 @@ const FleetReport = () => {
                         <span className="text-muted-foreground italic">Not assigned</span>
                       }
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -136,20 +158,16 @@ const FleetReport = () => {
           <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
         </CardHeader>
         <CardContent>
-          {vehiclesByType.length > 0 ? (
+          {vehiclesByTypeData.length > 0 ? (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={vehiclesByType.map(type => ({
-                    name: type.type,
-                    count: type.count,
-                    avgRate: type.avgDailyRate
-                  }))}
+                  data={vehiclesByTypeData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
-                    dataKey="name" 
+                    dataKey="type" 
                     tick={{ 
                       transform: 'rotate(-45)',
                       textAnchor: 'end',
@@ -165,13 +183,13 @@ const FleetReport = () => {
                     tickFormatter={(value) => formatCurrency(value)}
                   />
                   <Tooltip formatter={(value, name) => {
-                    if (name === 'avgRate') {
+                    if (name === 'avgDailyRate') {
                       return [formatCurrency(Number(value)), 'Avg Daily Rate'];
                     }
                     return [value, name === 'count' ? 'Count' : name];
                   }} />
                   <Bar dataKey="count" fill="#8884d8" yAxisId="left" name="Vehicle Count" />
-                  <Bar dataKey="avgRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
+                  <Bar dataKey="avgDailyRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

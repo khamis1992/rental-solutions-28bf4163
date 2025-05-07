@@ -1,11 +1,12 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -13,15 +14,15 @@ const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
   return dateValue instanceof Date ? dateValue : new Date(dateValue);
 };
 
-// Helper function to safely access object properties
-const safeProp = <T, K extends string>(obj: T | null | undefined, key: K): any => {
-  if (!obj || typeof obj !== 'object') return undefined;
-  return (obj as any)[key];
-};
-
 // Type guard to check if an object is not an error
 const isNotError = (obj: any): boolean => {
-  return obj && typeof obj === 'object' && !('error' in obj);
+  return obj && typeof obj === 'object' && !('error' in obj) && obj !== null;
+};
+
+// Helper function to safely access object properties
+const safeProp = <T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined => {
+  if (!obj) return undefined;
+  return obj[key];
 };
 
 export function useEditAgreement(id: string | undefined) {
@@ -58,8 +59,8 @@ export function useEditAgreement(id: string | undefined) {
             ...foundAgreement,
             start_date: ensureDate(foundAgreement.start_date),
             end_date: ensureDate(foundAgreement.end_date),
-            created_at: ensureDate(foundAgreement.created_at as string),
-            updated_at: ensureDate(foundAgreement.updated_at as string),
+            created_at: foundAgreement.created_at ? ensureDate(foundAgreement.created_at as string) : undefined,
+            updated_at: foundAgreement.updated_at ? ensureDate(foundAgreement.updated_at as string) : undefined,
             // Ensure other properties are correctly typed
             vehicles: foundAgreement.vehicles || {}
           };
@@ -68,7 +69,7 @@ export function useEditAgreement(id: string | undefined) {
           
           // Check if we need to fetch vehicle details
           if (foundAgreement.vehicle_id) {
-            if (foundAgreement.vehicles && typeof foundAgreement.vehicles === 'object') {
+            if (foundAgreement.vehicles && isNotError(foundAgreement.vehicles)) {
               console.log("Vehicle data already included:", foundAgreement.vehicles);
               setVehicleData(foundAgreement.vehicles);
             } else {
@@ -77,15 +78,17 @@ export function useEditAgreement(id: string | undefined) {
           }
         } else {
           // Fetch directly if not found in the list
-          const { data: fetchedData, error } = await supabase
+          const response = await supabase
             .from('leases')
             .select('*, vehicles(*), profiles:customer_id(*)')
             .eq('id', id)
             .single();
             
-          if (error) {
-            throw error;
+          if (response.error) {
+            throw response.error;
           }
+          
+          const fetchedData = response.data;
           
           if (fetchedData && isNotError(fetchedData)) {
             console.log("Fetched agreement data:", fetchedData);
@@ -93,10 +96,10 @@ export function useEditAgreement(id: string | undefined) {
             // Process the data to ensure date fields are Date objects
             const processedAgreement: Agreement = {
               ...fetchedData,
-              start_date: ensureDate(fetchedData.start_date),
-              end_date: ensureDate(fetchedData.end_date),
-              created_at: ensureDate(fetchedData.created_at),
-              updated_at: ensureDate(fetchedData.updated_at),
+              start_date: fetchedData.start_date ? ensureDate(fetchedData.start_date) : undefined,
+              end_date: fetchedData.end_date ? ensureDate(fetchedData.end_date) : undefined,
+              created_at: fetchedData.created_at ? ensureDate(fetchedData.created_at) : undefined,
+              updated_at: fetchedData.updated_at ? ensureDate(fetchedData.updated_at) : undefined,
               // Ensure vehicles is properly structured
               vehicles: fetchedData.vehicles || {}
             };
@@ -105,7 +108,7 @@ export function useEditAgreement(id: string | undefined) {
             
             // Check if we need to fetch vehicle details
             if (fetchedData.vehicle_id) {
-              if (fetchedData.vehicles && typeof fetchedData.vehicles === 'object') {
+              if (fetchedData.vehicles && isNotError(fetchedData.vehicles)) {
                 console.log("Vehicle data already included:", fetchedData.vehicles);
                 setVehicleData(fetchedData.vehicles);
               } else {
@@ -133,16 +136,18 @@ export function useEditAgreement(id: string | undefined) {
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
       console.log("Fetching vehicle details for ID:", vehicleId);
-      const { data, error } = await supabase
+      const response = await supabase
         .from('vehicles')
         .select('*')
         .eq('id', vehicleId)
         .single();
         
-      if (error) {
-        console.error("Error fetching vehicle details:", error);
+      if (response.error) {
+        console.error("Error fetching vehicle details:", response.error);
         return;
       }
+      
+      const data = response.data;
       
       if (data && isNotError(data)) {
         console.log("Fetched vehicle data:", data);
@@ -158,14 +163,16 @@ export function useEditAgreement(id: string | undefined) {
           };
 
           // Only add these properties if data contains them and prev exists
-          if (data.make) {
-            // Use type assertion to add non-standard properties
+          if (data && typeof data === 'object' && 'make' in data) {
+            // Extend the agreement object with additional properties
             (updatedAgreement as any).vehicle_make = data.make;
           }
-          if (data.model) {
+          
+          if (data && typeof data === 'object' && 'model' in data) {
             (updatedAgreement as any).vehicle_model = data.model;
           }
-          if (data.license_plate) {
+          
+          if (data && typeof data === 'object' && 'license_plate' in data) {
             (updatedAgreement as any).license_plate = data.license_plate;
           }
           

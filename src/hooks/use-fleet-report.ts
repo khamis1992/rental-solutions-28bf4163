@@ -1,6 +1,6 @@
 
 // Fixing use-fleet-report.ts to handle the 'type' property issue
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,6 +18,8 @@ export type Vehicle = {
   updated_at?: string;
   image_url?: string;
   rent_amount?: number;
+  currentCustomer?: string; // Add for FleetReport.tsx
+  dailyRate?: number; // Add for FleetReport.tsx
 };
 
 export type FleetReport = {
@@ -30,6 +32,16 @@ export type FleetReport = {
   vehiclesByMake: Record<string, number>;
   averageRentAmount: number;
   totalRentAmount: number;
+  activeRentals: number; // Add for FleetReport.tsx
+  maintenanceRequired: number; // Add for FleetReport.tsx
+  averageDailyRate: number; // Add for FleetReport.tsx
+};
+
+// Add for FleetReport.tsx
+export type VehicleTypeData = {
+  type: string;
+  count: number;
+  avgDailyRate: number;
 };
 
 export const useFleetReport = () => {
@@ -43,10 +55,34 @@ export const useFleetReport = () => {
     vehiclesByStatus: {},
     vehiclesByMake: {},
     averageRentAmount: 0,
-    totalRentAmount: 0
+    totalRentAmount: 0,
+    activeRentals: 0, // Added for FleetReport.tsx
+    maintenanceRequired: 0, // Added for FleetReport.tsx
+    averageDailyRate: 0 // Added for FleetReport.tsx
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  // Computed vehicle by type data for FleetReport.tsx
+  const vehiclesByType = useMemo(() => {
+    const types: VehicleTypeData[] = [];
+    if (report && report.vehiclesByType) {
+      Object.entries(report.vehiclesByType).forEach(([type, count]) => {
+        // Filter vehicles of this type
+        const vehiclesOfType = vehicles.filter(v => v.vehicle_type === type);
+        // Calculate average daily rate for this type
+        const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v.rent_amount || 0), 0);
+        const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
+        
+        types.push({
+          type,
+          count,
+          avgDailyRate: avgRate
+        });
+      });
+    }
+    return types;
+  }, [report, vehicles]);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -59,8 +95,15 @@ export const useFleetReport = () => {
 
         if (error) throw error;
 
-        setVehicles(data || []);
-        generateReport(data || []);
+        // Transform data for compatibility
+        const processedVehicles = (data || []).map(vehicle => ({
+          ...vehicle,
+          currentCustomer: vehicle.current_customer || undefined, // Add for FleetReport.tsx
+          dailyRate: vehicle.rent_amount || 0 // Add for FleetReport.tsx
+        }));
+
+        setVehicles(processedVehicles);
+        generateReport(processedVehicles);
       } catch (err) {
         console.error('Error fetching vehicles for report:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch vehicles'));
@@ -121,9 +164,20 @@ export const useFleetReport = () => {
       vehiclesByStatus,
       vehiclesByMake,
       averageRentAmount,
-      totalRentAmount: totalRent
+      totalRentAmount: totalRent,
+      activeRentals: rentedVehicles, // Added for FleetReport.tsx
+      maintenanceRequired: maintenanceVehicles, // Added for FleetReport.tsx
+      averageDailyRate: averageRentAmount // Added for FleetReport.tsx
     });
   };
 
-  return { vehicles, report, isLoading, error };
+  return { 
+    vehicles, 
+    report, 
+    isLoading, 
+    error,
+    // Added for FleetReport.tsx
+    fleetStats: report,
+    vehiclesByType
+  };
 };
