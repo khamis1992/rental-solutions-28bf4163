@@ -8,6 +8,13 @@ export interface PaymentFilters {
     from?: string;
     to?: string;
   } | null;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface ContractFilters {
+  search?: string;
+  status?: string;
 }
 
 export interface CarInstallmentContract {
