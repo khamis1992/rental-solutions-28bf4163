@@ -96,11 +96,16 @@ export const useFleetReport = () => {
         if (error) throw error;
 
         // Transform data for compatibility
-        const processedVehicles = (data || []).map(vehicle => ({
-          ...vehicle,
-          currentCustomer: vehicle.current_customer || undefined, // Add for FleetReport.tsx
-          dailyRate: vehicle.rent_amount || 0 // Add for FleetReport.tsx
-        }));
+        const processedVehicles = (data || []).map(vehicle => {
+          if (vehicle && typeof vehicle === 'object') {
+            return {
+              ...vehicle,
+              currentCustomer: vehicle.current_customer || undefined,
+              dailyRate: vehicle.rent_amount || 0
+            } as Vehicle;
+          }
+          return {} as Vehicle;
+        });
 
         setVehicles(processedVehicles);
         generateReport(processedVehicles);

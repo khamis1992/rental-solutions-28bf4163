@@ -1,7 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { useCrudApi } from './api/use-crud-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
-import { asTableId } from '@/utils/type-casting';
 
 // Define the Maintenance type that matches the actual database schema
 export type MaintenanceRecord = {
@@ -57,7 +57,7 @@ export function useMaintenance() {
     
     create: async (maintenanceData: any) => {
       // Map UI fields to database fields before submitting
-      const formattedData = {
+      const formattedData: any = {
         vehicle_id: maintenanceData.vehicle_id,
         maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
         status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
@@ -69,9 +69,12 @@ export function useMaintenance() {
         // Map UI fields to the actual database fields
         performed_by: maintenanceData.service_provider,
         service_type: maintenanceData.invoice_number, // Store invoice number in service_type field
-        // Add odometer reading if available
-        ...(maintenanceData.odometer_reading ? { odometer_reading: maintenanceData.odometer_reading } : {})
       };
+      
+      // Add odometer reading if available
+      if (maintenanceData.odometer_reading) {
+        formattedData.odometer_reading = maintenanceData.odometer_reading;
+      }
       
       const { data, error } = await supabase
         .from('maintenance')
@@ -85,7 +88,7 @@ export function useMaintenance() {
     
     update: async (id: string, maintenanceData: any) => {
       // Map UI fields to database fields before submitting
-      const formattedData = {
+      const formattedData: any = {
         vehicle_id: maintenanceData.vehicle_id,
         maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
         status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
@@ -97,9 +100,12 @@ export function useMaintenance() {
         // Map UI fields to the actual database fields
         performed_by: maintenanceData.service_provider,
         service_type: maintenanceData.invoice_number, // Store invoice number in service_type field
-        // Add odometer reading if available
-        ...(maintenanceData.odometer_reading ? { odometer_reading: maintenanceData.odometer_reading } : {})
       };
+      
+      // Add odometer reading if available
+      if (maintenanceData.odometer_reading) {
+        formattedData.odometer_reading = maintenanceData.odometer_reading;
+      }
       
       const { data, error } = await supabase
         .from('maintenance')
@@ -174,7 +180,7 @@ export function useMaintenance() {
     const { data, error } = await supabase
       .from('maintenance')
       .select('*')
-      .eq('vehicle_id', asTableId('vehicles', vehicleId))
+      .eq('vehicle_id', vehicleId)
       .order('scheduled_date', { ascending: false });
     
     if (error) throw error;
@@ -187,7 +193,7 @@ export function useMaintenance() {
       .select('status, count', { count: 'exact' });
     
     if (vehicleId) {
-      query = query.eq('vehicle_id', asTableId('vehicles', vehicleId));
+      query = query.eq('vehicle_id', vehicleId);
     }
     
     const { count, error } = await query;

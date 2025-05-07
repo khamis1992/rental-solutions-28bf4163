@@ -129,12 +129,14 @@ export function useEditAgreement(id: string | undefined) {
                 setAgreement(processedAgreement);
                 
                 // Check if we need to fetch vehicle details
-                if (leaseData.vehicle_id) {
-                  if (leaseData.vehicles && isNotError(leaseData.vehicles)) {
-                    console.log("Vehicle data already included:", leaseData.vehicles);
-                    setVehicleData(leaseData.vehicles);
+                const vehicleId = leaseData.vehicle_id as string;
+                if (vehicleId) {
+                  const vehicles = leaseData.vehicles as any;
+                  if (vehicles && isNotError(vehicles)) {
+                    console.log("Vehicle data already included:", vehicles);
+                    setVehicleData(vehicles);
                   } else {
-                    await fetchVehicleDetails(leaseData.vehicle_id);
+                    await fetchVehicleDetails(vehicleId);
                   }
                 }
               } else {

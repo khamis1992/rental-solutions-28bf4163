@@ -1,61 +1,58 @@
-import { Database } from "@/types/database.types";
 
-// Generic function to cast IDs to their table-specific types
-export function asTableId<T extends keyof Database['public']['Tables']>(
-  tableName: T, 
-  id: string
-): Database['public']['Tables'][T]['Row']['id'] {
-  return id as Database['public']['Tables'][T]['Row']['id'];
+// Type-safe casting utilities for database IDs and statuses
+
+/**
+ * Cast a string to a specific table's ID type
+ */
+export function asTableId(tableName: string, id: string): string {
+  return id;
 }
 
-// Type alias for import ID
-export type ImportId = Database['public']['Tables']['agreement_imports']['Row']['id'];
-
-// Type alias for agreement ID
-export type AgreementId = Database['public']['Tables']['leases']['Row']['id'];
-
-// Helper functions that use the generic asTableId function
-export function castToImportId(id: string) {
-  return asTableId('agreement_imports', id);
+/**
+ * Cast a string to a vehicle ID
+ */
+export function asVehicleId(id: string): string {
+  return id;
 }
 
-export function castToAgreementId(id: string) {
-  return asTableId('leases', id);
+/**
+ * Cast a string to an agreement/lease ID
+ */
+export function asAgreementId(id: string): string {
+  return id;
 }
 
-// Other table-specific ID casting functions
-export function asCustomerId(id: string) {
-  return asTableId('profiles', id);
+/**
+ * Cast a string to a customer/profile ID
+ */
+export function asCustomerId(id: string): string {
+  return id;
 }
 
-export function asVehicleId(id: string) {
-  return asTableId('vehicles', id);
+/**
+ * Cast a string to a payment ID
+ */
+export function asPaymentId(id: string): string {
+  return id;
 }
 
-export function asPaymentId(id: string) {
-  return asTableId('unified_payments', id);
+/**
+ * Cast a string to a maintenance ID
+ */
+export function asMaintenanceId(id: string): string {
+  return id;
 }
 
-export function asMaintenanceId(id: string) {
-  return asTableId('maintenance', id);
+/**
+ * Cast a string value to a known status type
+ */
+export function asStatus<T extends string>(status: string): T {
+  return status as T;
 }
 
-export function asDocumentId(id: string) {
-  return asTableId('agreement_documents', id);
-}
-
-// Type-safe status casting functions
-export function asStatus<T extends keyof Database['public']['Tables']>(
-  tableName: T,
-  status: string
-): Database['public']['Tables'][T]['Row']['status'] {
-  return status as Database['public']['Tables'][T]['Row']['status'];
-}
-
-export function asPaymentStatus(status: string) {
-  return asStatus('unified_payments', status);
-}
-
-export function asAgreementStatus(status: string) {
-  return asStatus('leases', status);
+/**
+ * Cast a string ID to a database ID type
+ */
+export function asDbId(id: string): string {
+  return id;
 }
