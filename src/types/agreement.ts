@@ -12,8 +12,8 @@ export interface Agreement {
   rent_amount?: number;
   payment_frequency?: string;
   payment_day?: number;
-  created_at?: string | Date;
-  updated_at?: string | Date;
+  created_at?: Date;  // Changed to Date
+  updated_at?: Date;  // Changed to Date
   agreement_number?: string;
   agreement_type?: string;
   next_payment_date?: string;

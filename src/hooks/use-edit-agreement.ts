@@ -25,10 +25,50 @@ const safeProp = <T, K extends keyof T>(obj: T | null | undefined, key: K): T[K]
   return obj[key];
 };
 
-// Type guard to check if object has expected properties
-const hasExpectedProperties = (obj: any, properties: string[]): boolean => {
-  if (!obj || typeof obj !== 'object') return false;
-  return properties.every(prop => prop in obj);
+// Type guard to check if data has required properties
+const hasExpectedProperties = (data: any, properties: string[]): boolean => {
+  if (!data || typeof data !== 'object') return false;
+  return properties.every(prop => prop in data);
+};
+
+// Helper to safely process fetched data
+const processFetchedData = (data: any): Agreement | null => {
+  if (!data || !isNotError(data)) return null;
+  
+  try {
+    const processedAgreement: Agreement = {
+      id: data.id || '',
+      status: data.status || 'draft',
+      customer_id: data.customer_id || '',
+      vehicle_id: data.vehicle_id || '',
+      start_date: ensureDate(data.start_date) || new Date(),
+      end_date: ensureDate(data.end_date) || new Date(),
+      total_amount: data.total_amount || 0,
+      created_at: data.created_at ? ensureDate(data.created_at) : undefined,
+      updated_at: data.updated_at ? ensureDate(data.updated_at) : undefined,
+      customers: data.customers || data.profiles || {},
+      vehicles: data.vehicles || {},
+      rent_amount: data.rent_amount || 0,
+      agreement_number: data.agreement_number,
+      agreement_type: data.agreement_type,
+      notes: data.notes,
+      payment_frequency: data.payment_frequency,
+      payment_day: data.payment_day,
+      daily_late_fee: data.daily_late_fee,
+      deposit_amount: data.deposit_amount,
+      remaining_amount: data.remaining_amount,
+      next_payment_date: data.next_payment_date,
+      last_payment_date: data.last_payment_date,
+      vehicle_make: data.vehicles?.make,
+      vehicle_model: data.vehicles?.model,
+      license_plate: data.vehicles?.license_plate,
+    };
+    
+    return processedAgreement;
+  } catch (error) {
+    console.error("Error processing agreement data:", error);
+    return null;
+  }
 };
 
 export function useEditAgreement(id: string | undefined) {
@@ -60,75 +100,65 @@ export function useEditAgreement(id: string | undefined) {
         if (foundAgreement) {
           console.log("Found agreement in list:", foundAgreement);
           
-          // Convert any string dates to Date objects before setting state
-          const processedAgreement: Agreement = {
-            ...foundAgreement,
-            start_date: ensureDate(foundAgreement.start_date) || new Date(),
-            end_date: ensureDate(foundAgreement.end_date) || new Date(),
-            created_at: foundAgreement.created_at ? ensureDate(foundAgreement.created_at) : undefined,
-            updated_at: foundAgreement.updated_at ? ensureDate(foundAgreement.updated_at) : undefined,
-            // Ensure other properties are correctly typed
-            vehicles: foundAgreement.vehicles || {}
-          };
+          // Process the found agreement data
+          const processedAgreement = processFetchedData(foundAgreement);
           
-          setAgreement(processedAgreement);
-          
-          // Check if we need to fetch vehicle details
-          if (foundAgreement.vehicle_id) {
-            if (foundAgreement.vehicles && isNotError(foundAgreement.vehicles)) {
-              console.log("Vehicle data already included:", foundAgreement.vehicles);
-              setVehicleData(foundAgreement.vehicles);
-            } else {
-              await fetchVehicleDetails(foundAgreement.vehicle_id);
+          if (processedAgreement) {
+            setAgreement(processedAgreement);
+            
+            // Check if we need to fetch vehicle details
+            if (foundAgreement.vehicle_id) {
+              if (foundAgreement.vehicles && isNotError(foundAgreement.vehicles)) {
+                console.log("Vehicle data already included:", foundAgreement.vehicles);
+                setVehicleData(foundAgreement.vehicles);
+              } else {
+                await fetchVehicleDetails(foundAgreement.vehicle_id);
+              }
             }
+          } else {
+            throw new Error("Failed to process agreement data");
           }
         } else {
           // Fetch directly if not found in the list
-          const response = await supabase
-            .from('leases')
-            .select('*, vehicles(*), profiles:customer_id(*)')
-            .eq('id', id)
-            .single();
-            
-          if (response.error) {
-            throw response.error;
-          }
-          
-          const fetchedData = response.data;
-          
-          if (fetchedData && isNotError(fetchedData)) {
-            console.log("Fetched agreement data:", fetchedData);
-            
-            // Type check for expected properties
-            if (hasExpectedProperties(fetchedData, ['start_date', 'end_date'])) {
-              // Process the data to ensure date fields are Date objects
-              const processedAgreement: Agreement = {
-                ...fetchedData as any, // Cast temporarily to bypass strictness
-                start_date: fetchedData.start_date ? ensureDate(fetchedData.start_date as any) || new Date() : new Date(),
-                end_date: fetchedData.end_date ? ensureDate(fetchedData.end_date as any) || new Date() : new Date(),
-                created_at: fetchedData.created_at ? ensureDate(fetchedData.created_at as any) : undefined,
-                updated_at: fetchedData.updated_at ? ensureDate(fetchedData.updated_at as any) : undefined,
-                // Ensure vehicles is properly structured
-                vehicles: fetchedData.vehicles || {}
-              };
+          try {
+            const { data, error } = await supabase
+              .from('leases')
+              .select('*, vehicles(*), profiles:customer_id(*)')
+              .eq('id', id)
+              .single();
               
-              setAgreement(processedAgreement);
+            if (error) {
+              throw error;
+            }
+            
+            if (data) {
+              console.log("Fetched agreement data:", data);
               
-              // Check if we need to fetch vehicle details
-              if ('vehicle_id' in fetchedData && fetchedData.vehicle_id) {
-                if ('vehicles' in fetchedData && fetchedData.vehicles && isNotError(fetchedData.vehicles)) {
-                  console.log("Vehicle data already included:", fetchedData.vehicles);
-                  setVehicleData(fetchedData.vehicles);
-                } else {
-                  await fetchVehicleDetails(fetchedData.vehicle_id as string);
+              // Process the fetched data
+              const processedAgreement = processFetchedData(data);
+              
+              if (processedAgreement) {
+                setAgreement(processedAgreement);
+                
+                // Check if we need to fetch vehicle details
+                if (data.vehicle_id) {
+                  if (data.vehicles && isNotError(data.vehicles)) {
+                    console.log("Vehicle data already included:", data.vehicles);
+                    setVehicleData(data.vehicles);
+                  } else {
+                    await fetchVehicleDetails(data.vehicle_id);
+                  }
                 }
+              } else {
+                throw new Error("Failed to process fetched agreement data");
               }
             } else {
-              throw new Error("Fetched data is missing required properties");
+              toast.error("Agreement not found");
+              navigate("/agreements");
             }
-          } else {
-            toast.error("Agreement not found");
-            navigate("/agreements");
+          } catch (error) {
+            console.error("Error in Supabase query:", error);
+            throw error;
           }
         }
       } catch (error) {
@@ -147,18 +177,16 @@ export function useEditAgreement(id: string | undefined) {
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
       console.log("Fetching vehicle details for ID:", vehicleId);
-      const response = await supabase
+      const { data, error } = await supabase
         .from('vehicles')
         .select('*')
         .eq('id', vehicleId)
         .single();
         
-      if (response.error) {
-        console.error("Error fetching vehicle details:", response.error);
+      if (error) {
+        console.error("Error fetching vehicle details:", error);
         return;
       }
-      
-      const data = response.data;
       
       if (data && isNotError(data)) {
         console.log("Fetched vehicle data:", data);
@@ -168,15 +196,13 @@ export function useEditAgreement(id: string | undefined) {
         setAgreement(prev => {
           if (!prev) return null;
           
-          const updatedAgreement: Agreement = {
+          return {
             ...prev,
             vehicles: data,
             vehicle_make: typeof data === 'object' && data && 'make' in data ? data.make as string : undefined,
             vehicle_model: typeof data === 'object' && data && 'model' in data ? data.model as string : undefined,
             license_plate: typeof data === 'object' && data && 'license_plate' in data ? data.license_plate as string : undefined
           };
-          
-          return updatedAgreement;
         });
       }
     } catch (error) {
