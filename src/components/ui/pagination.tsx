@@ -21,17 +21,14 @@ export function Pagination({
   const pageNumbers = getPageNumbers(currentPage, totalPages);
   
   return (
-    <div className={`flex items-center justify-between ${className}`}>
-      <div className="text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages}
-      </div>
-      <div className="flex items-center space-x-1">
+    <div className={`flex items-center justify-center gap-2 ${className}`}>
+      <div className="flex items-center space-x-2">
         {/* First Page Button */}
         {showFirstLast && (
           <Button
             variant="outline"
             size="icon"
-            className="hidden sm:flex h-8 w-8"
+            className="h-8 w-8"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
           >
@@ -88,7 +85,7 @@ export function Pagination({
           <Button
             variant="outline"
             size="icon"
-            className="hidden sm:flex h-8 w-8"
+            className="h-8 w-8"
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
           >

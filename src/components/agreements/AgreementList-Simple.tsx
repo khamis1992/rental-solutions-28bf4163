@@ -48,13 +48,13 @@ export function AgreementList() {
       />
       
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-6">
+        <div className="flex flex-col items-center justify-center mt-6">
           <Pagination 
             currentPage={pagination.page} 
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
             showFirstLast={true}
-            className="my-4"
+            className="mb-2"
           />
           <div className="text-sm text-muted-foreground text-center">
             Showing {agreements.length} of {pagination.totalCount} agreements

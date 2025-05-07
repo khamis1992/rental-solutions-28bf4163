@@ -124,14 +124,15 @@ export function AgreementTable({
       </div>
       
       {pagination && pagination.totalPages > 1 && (
-        <div>
+        <div className="flex flex-col items-center justify-center">
           <Pagination 
             currentPage={pagination.page} 
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
             showFirstLast={true}
+            className="mb-2"
           />
-          <div className="text-sm text-muted-foreground text-center mt-2">
+          <div className="text-sm text-muted-foreground text-center">
             Showing {agreements.length} of {pagination.totalCount} agreements
           </div>
         </div>
