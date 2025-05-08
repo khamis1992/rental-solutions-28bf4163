@@ -1,72 +1,123 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+import { asUUID, UUID } from '@/lib/uuid-helpers';
+import { getResponseData } from '@/utils/supabase-type-helpers';
+import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
-// Helper type for easy table access
-export type Tables = Database['public']['Tables'];
-export type Schema = keyof Database;
+type Tables = Database['public']['Tables'];
 
-// Table row types
-export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
-export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
-export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
+// Helper type for database IDs that enforces UUID format
+export type DbId = UUID;
 
-// Common ID type
-export type DatabaseId = string;
-export type UUID = string;
-
-// Generic response handler with strong typing
-export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
-  if (response.error) {
-    console.error('Database error:', response.error);
-    return null;
-  }
-  return response.data || null;
+// Helper function to cast IDs to the correct type
+export function asDbId<T extends DbId>(id: string): T {
+  return asUUID(id) as T;
 }
 
-// Type guard for responses
-export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
+// Type aliases for specific entity IDs
+export type LeaseId = Tables['leases']['Row']['id'];
+export type VehicleId = Tables['vehicles']['Row']['id'];
+export type ProfileId = Tables['profiles']['Row']['id'];
+export type PaymentId = Tables['unified_payments']['Row']['id'];
+export type TrafficFineId = Tables['traffic_fines']['Row']['id'];
+export type LegalCaseId = Tables['legal_cases']['Row']['id'];
+export type AgreementId = LeaseId; // Alias for backward compatibility
+
+// Helper type for payment status that matches the database enum
+export type PaymentStatus = Tables['unified_payments']['Row']['status'];
+
+// Helper type for legal case status that matches the database enum
+export type LegalCaseStatus = Tables['legal_cases']['Row']['status'];
+
+// Helper type for vehicle status that matches the database enum
+export type VehicleStatus = Tables['vehicles']['Row']['status'];
+
+// Helper type for agreement status that matches the database enum
+export type AgreementStatus = Tables['leases']['Row']['status'];
+
+// Modified to fix type assignment issues
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): boolean {
   return !response.error && response.data !== null;
 }
 
-// Type safe ID converter
-export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+/**
+ * Type-guard to check if an object is a specific database table row
+ */
+export function isTableRow<T extends keyof Tables>(
+  tableName: T, 
+  obj: any
+): obj is Tables[T]['Row'] {
+  return obj && typeof obj === 'object' && 'id' in obj;
 }
 
-// Type guard for checking if response has data
-export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
-}
-
-// Type-safe column selector
-export function selectColumn<T extends keyof Tables, K extends keyof Tables[T]['Row']>(
-  table: T,
-  column: K
-): K {
+/**
+ * Get type-safe column name for a table for use in filters
+ */
+export function getColumnName<
+  T extends keyof Tables, 
+  C extends keyof Tables[T]['Row']
+>(table: T, column: C): C {
   return column;
 }
 
-// Type-safe status check
-export function isValidStatus<T extends { status: string }>(record: T, status: T['status']): boolean {
-  return record.status === status;
+/**
+ * Safely cast a string value to a database column value
+ */
+export function asColumnValue<
+  T extends keyof Tables, 
+  C extends keyof Tables[T]['Row']
+>(table: T, column: C, value: any): Tables[T]['Row'][C] {
+  return value as Tables[T]['Row'][C];
 }
 
-// Export commonly used table types
-export type LeaseRow = Tables['leases']['Row'];
-export type PaymentRow = Tables['unified_payments']['Row'];
-export type VehicleRow = Tables['vehicles']['Row'];
-export type ProfileRow = Tables['profiles']['Row'];
-export type TrafficFineRow = Tables['traffic_fines']['Row'];
-export type LegalCaseRow = Tables['legal_cases']['Row'];
-
-// Common status types
-export type VehicleStatus = VehicleRow['status']; 
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status']; 
-export type ProfileStatus = ProfileRow['status'];
-
-export function asStatus<T extends { status: string }>(status: string): T['status'] {
-  return status as T['status'];
+/**
+ * Creates a strongly typed reference to a table column for use in queries
+ */
+export function column<T extends keyof Tables, C extends keyof Tables[T]['Row']>(
+  table: T, 
+  columnName: C
+): string {
+  return columnName as string;
 }
 
+// Type-safe cast functions for statuses
+export const castPaymentStatus = (status: string): PaymentStatus => status as PaymentStatus;
+export const castLegalCaseStatus = (status: string): LegalCaseStatus => status as LegalCaseStatus;
+export const castVehicleStatus = (status: string): VehicleStatus => status as VehicleStatus;
+export const castAgreementStatus = (status: string): AgreementStatus => status as AgreementStatus;
+
+// Helper function to handle Supabase response errors
+export const handleSupabaseResponse = <T>(response: any): T | null => {
+  if (response?.error) {
+    console.error("Supabase response error:", response.error);
+    return null;
+  }
+  return response?.data ?? null;
+};
+
+// Create helpers for common tables
+export const Tables = {
+  leases: createTableHelper('leases'),
+  profiles: createTableHelper('profiles'),
+  vehicles: createTableHelper('vehicles'),
+  legal_cases: createTableHelper('legal_cases'),
+  unified_payments: createTableHelper('unified_payments'),
+  traffic_fines: createTableHelper('traffic_fines'),
+};
+
+/**
+ * Create a type-safe table schema helper
+ */
+export function createTableHelper<T extends keyof Tables>(table: T) {
+  return {
+    tableName: table,
+    column: <C extends keyof Tables[T]['Row']>(columnName: C) => columnName,
+    castId: (id: string) => id as any as Tables[T]['Row']['id'],
+    castColumnValue: <C extends keyof Tables[T]['Row']>(
+      column: C, 
+      value: any
+    ): Tables[T]['Row'][C] => value as Tables[T]['Row'][C]
+  };
+}

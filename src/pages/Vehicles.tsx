@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,7 +8,7 @@ import { Car, Plus, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
-import { useVehicles } from '@/hooks/use-vehicles';
+import { useVehicle } from '@/hooks/use-vehicle';
 import { toast } from 'sonner';
 
 // Define valid statuses based on database enum
@@ -27,13 +28,9 @@ const Vehicles = () => {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   
-  // Get vehicles using the hook's useList functionality
-  const vehiclesHook = useVehicles();
-  const { useRealtimeUpdates } = vehiclesHook;
+  // Use the vehicle hook
+  const { vehicles, isLoading, error, handleFilterChange, refetch } = useVehicle();
   
-  // Setup real-time updates
-  useRealtimeUpdates();
-
   // Get status from URL search params
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
@@ -46,6 +43,9 @@ const Vehicles = () => {
           status: statusFromUrl as VehicleStatus
         }));
         
+        // Update the filter in the hook
+        handleFilterChange({ status: statusFromUrl as VehicleStatus });
+        
         // Show a toast to indicate filtered view
         toast.info(`Showing vehicles with status: ${statusFromUrl}`);
       } else {
@@ -54,7 +54,7 @@ const Vehicles = () => {
         navigate('/vehicles');
       }
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, handleFilterChange]);
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);
@@ -64,15 +64,12 @@ const Vehicles = () => {
     navigate('/vehicles/add');
   };
 
-  const handleFilterChange = (newFilters: VehicleFilterValues) => {
+  const handleFilterChange2 = (newFilters: VehicleFilterValues) => {
     // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
     
-    if (newFilters.status && newFilters.status !== 'all') {
-      // Ensure we're using the application VehicleStatus type
+    if (newFilters.status && newFilters.status !== 'all') 
       convertedFilters.status = newFilters.status as VehicleStatus;
-      console.log(`Setting status filter: ${newFilters.status}`);
-    }
     
     if (newFilters.make && newFilters.make !== 'all') 
       convertedFilters.make = newFilters.make;
@@ -94,6 +91,7 @@ const Vehicles = () => {
     }
     
     setFilters(convertedFilters);
+    handleFilterChange(convertedFilters);
   };
   
   return (
@@ -125,7 +123,7 @@ const Vehicles = () => {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
             <VehicleFilters 
-              onFilterChange={handleFilterChange} 
+              onFilterChange={handleFilterChange2} 
               initialValues={{
                 status: filters.status || 'all',
                 make: filters.make || 'all',
@@ -139,17 +137,9 @@ const Vehicles = () => {
         </div>
         
         <VehicleGrid 
-          vehicles={vehicles}
-          isLoading={isLoading}
-          onVehicleClick={handleSelectVehicle}
+          onSelectVehicle={handleSelectVehicle} 
+          filter={filters}
         />
-        
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-            <p className="font-medium">Error loading vehicles</p>
-            <p>{error?.message || 'An unknown error occurred'}</p>
-          </div>
-        )}
       </div>
     </PageContainer>
   );

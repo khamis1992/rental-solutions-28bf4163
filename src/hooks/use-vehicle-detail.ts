@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useVehicle } from '@/hooks/use-vehicles';
+import { useVehicle } from '@/hooks/use-vehicle';
 import { Vehicle } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-response-helpers';
@@ -11,17 +11,31 @@ export const useVehicleDetail = (vehicleId: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Get vehicle details from the useVehicle hook
-  const { getVehicleById } = useVehicle();
+  // Get vehicle details
+  const { vehicleDetails } = useVehicle(vehicleId);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get vehicle details
-      const vehicleDetails = await getVehicleById(vehicleId);
-      setVehicle(vehicleDetails);
+      // Get vehicle details from our hook
+      if (vehicleDetails) {
+        setVehicle(vehicleDetails);
+      } else {
+        // Fallback direct fetch if vehicleDetails is not available
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', vehicleId)
+          .single();
+        
+        if (vehicleError) {
+          throw vehicleError;
+        }
+        
+        setVehicle(vehicleData as Vehicle);
+      }
 
       // Get leases for the vehicle
       const { data: vehicleLeases, error: leasesError } = await supabase
@@ -55,7 +69,7 @@ export const useVehicleDetail = (vehicleId: string) => {
     if (vehicleId) {
       fetchData();
     }
-  }, [vehicleId]);
+  }, [vehicleId, vehicleDetails]);
 
   return {
     vehicle,

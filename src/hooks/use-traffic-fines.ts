@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -229,13 +228,17 @@ export function useTrafficFines(agreementId?: string) {
         throw new Error('No active agreement found for this vehicle');
       }
       
+      // Type assertion to ensure we can access the nested properties
+      const profiles = agreementResponse.data.profiles as { full_name?: string } | null;
+      const customerName = profiles?.full_name || 'Unknown';
+      
       // Update the fine with customer and agreement information
       const updateResponse = await supabase
         .from('traffic_fines')
         .update({
           lease_id: agreementResponse.data.id,
           customer_id: agreementResponse.data.customer_id,
-          customer_name: agreementResponse.data.profiles?.full_name || 'Unknown',
+          customer_name: customerName,
           assignment_status: 'assigned'
         })
         .eq('id', id as any)

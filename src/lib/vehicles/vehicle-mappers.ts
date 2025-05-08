@@ -47,7 +47,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     color: record.color,
     vin: record.vin,
     mileage: record.mileage,
-    status: mapDBStatusToAppStatus(record.status || null),
+    status: mapDBStatusToAppStatus(record.status || null) as VehicleStatus,
     description: record.description,
     image_url: record.image_url,
     created_at: record.created_at,
@@ -61,7 +61,12 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
       name: vehicleType.name,
       daily_rate: vehicleType.daily_rate
     } : undefined,
-    dailyRate: vehicleType?.daily_rate
+    dailyRate: vehicleType?.daily_rate,
+    monthlyRate: vehicleType?.monthly_rate,
+    daily_rate: record.daily_rate || vehicleType?.daily_rate,
+    monthly_rate: record.monthly_rate || vehicleType?.monthly_rate,
+    notes: record.notes,
+    additional_images: record.additional_images
   };
 }
 

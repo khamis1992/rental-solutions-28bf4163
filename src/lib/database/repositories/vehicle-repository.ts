@@ -1,10 +1,24 @@
-
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asVehicleId, asVehicleStatus } from '../utils';
 import { supabase } from '@/lib/supabase';
+import { PostgrestError } from '@supabase/supabase-js';
 
 type VehicleRow = TableRow<'vehicles'>;
+
+// Create a custom error type that implements PostgrestError
+class RepositoryError extends Error implements PostgrestError {
+  code: string;
+  details: string;
+  hint: string;
+  
+  constructor(message: string) {
+    super(message);
+    this.code = 'CUSTOM_ERROR';
+    this.details = message;
+    this.hint = '';
+    Object.setPrototypeOf(this, RepositoryError.prototype);
+  }
+}
 
 /**
  * Repository for vehicle-related database operations
@@ -23,7 +37,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       const response = await this.client
         .from('vehicles')
         .select('*')
-        .eq('status', asVehicleStatus(status))
+        .eq('status', status)
         .order('created_at', { ascending: false });
       
       console.log(`findByStatus response:`, response);
@@ -35,7 +49,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findByStatus:", error);
       return {
         data: [],
-        error: error instanceof Error ? error : new Error('Unknown error in findByStatus')
+        error: new RepositoryError(`Unknown error in findByStatus: ${error instanceof Error ? error.message : String(error)}`)
       };
     }
   }
@@ -48,7 +62,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       const response = await this.client
         .from('vehicles')
         .select('*')
-        .eq('status', asVehicleStatus('available'))
+        .eq('status', 'available')
         .order('created_at', { ascending: false });
       
       return { 
@@ -59,7 +73,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findAvailable:", error);
       return {
         data: [],
-        error: error instanceof Error ? error : new Error('Unknown error in findAvailable')
+        error: new RepositoryError(`Unknown error in findAvailable: ${error instanceof Error ? error.message : String(error)}`)
       };
     }
   }
@@ -72,21 +86,21 @@ export class VehicleRepository extends Repository<'vehicles'> {
       if (!vehicleId) {
         return {
           data: null,
-          error: new Error('Vehicle ID is required')
+          error: new RepositoryError('Vehicle ID is required')
         };
       }
       
       if (!status) {
         return {
           data: null,
-          error: new Error('Status is required')
+          error: new RepositoryError('Status is required')
         };
       }
       
       const response = await this.client
         .from('vehicles')
-        .update({ status: asVehicleStatus(status) })
-        .eq('id', asVehicleId(vehicleId))
+        .update({ status })
+        .eq('id', vehicleId)
         .select()
         .single();
       
@@ -98,7 +112,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in updateStatus:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in updateStatus')
+        error: new RepositoryError(`Unknown error in updateStatus: ${error instanceof Error ? error.message : String(error)}`)
       };
     }
   }
