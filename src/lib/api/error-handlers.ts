@@ -1,70 +1,32 @@
 
-import { toast } from 'sonner';
-
-// Define the ServiceResult type
-export type ServiceResult<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-  errors?: Record<string, string>;
-  meta?: Record<string, any>;
-};
-
-/**
- * Handles service result errors with appropriate UI feedback
- */
-export function handleServiceError<T>(result: ServiceResult<T>, fallbackMessage = 'An error occurred'): void {
-  if (!result.success) {
-    let message: string;
-    
-    if (result.error) {
-      message = result.error;
-    } else if (result.errors) {
-      message = Object.values(result.errors).join(', ');
-    } else {
-      message = fallbackMessage;
-    }
-    
-    toast.error('Error', {
-      description: message,
-    });
-    
-    console.error('Service error:', { 
-      message, 
-      errors: result.errors,
-      meta: result.meta 
-    });
-  }
-}
-
-/**
- * Handles API errors with appropriate UI feedback
- */
-export function handleApiError(error: unknown, context?: string): void {
+// Error handler for API errors
+export const handleApiError = (error: unknown) => {
   console.error('API Error:', error);
   
+  // Determine the error message to display
   let errorMessage = 'An unexpected error occurred';
   
   if (error instanceof Error) {
     errorMessage = error.message;
   } else if (typeof error === 'string') {
     errorMessage = error;
+  } else if (error && typeof error === 'object' && 'message' in error) {
+    errorMessage = String((error as any).message);
   }
   
-  if (context) {
-    errorMessage = `${context}: ${errorMessage}`;
-  }
-  
-  toast.error('Error', {
-    description: errorMessage,
-  });
-}
+  // Return standard error format
+  return {
+    success: false,
+    error: errorMessage,
+    data: null
+  };
+};
 
-/**
- * Handles API success with appropriate UI feedback
- */
-export function handleApiSuccess(message: string): void {
-  toast.success('Success', {
-    description: message,
-  });
-}
+// Success handler for API responses
+export const handleApiSuccess = <T>(data: T) => {
+  return {
+    success: true,
+    data,
+    error: null
+  };
+};

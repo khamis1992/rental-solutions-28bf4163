@@ -5,7 +5,9 @@
  */
 import { supabase } from '@/lib/supabase';
 import { createVehicleRepository } from './repositories/vehicle-repository';
+import { createProfileRepository } from './repositories/profile-repository';
 import { UUID } from '../database-types';
+import { isValidStatus, hasData } from '../validation-utils';
 
 // Export type guards for validation
 export const typeGuards = {
@@ -20,11 +22,13 @@ export const typeGuards = {
 
 // Create repositories using the supabase client
 export const vehicleRepository = createVehicleRepository(supabase);
+export const profileRepository = createProfileRepository(supabase);
 
 // Export repositories without naming conflicts
 export { vehicleRepository as vehicleRepo };
+export { profileRepository as profileRepo };
 
-// Export validation functions from database-common to avoid conflicts
+// Export from database-common to avoid conflicts
 export { 
   asLeaseStatus,
   asVehicleStatus,
@@ -38,4 +42,4 @@ export {
 export { isSuccessResponse } from './validation';
 
 // Export common utility functions for database responses
-export { isValidStatus, hasData } from '../validation-utils';
+export { isValidStatus, hasData };

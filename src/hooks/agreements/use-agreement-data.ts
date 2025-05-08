@@ -16,24 +16,27 @@ export function useAgreementData(filters, pagination, setTotalCount) {
   const { data: agreements = [], isLoading, error } = useQuery({
     queryKey: ['agreements', filters, pagination],
     queryFn: async () => {
-      // Build the query with filters
+      // Build the query with filters and table aliases to avoid ambiguous column references
       let query = supabase.from('leases').select(`
-        *,
+        leases:id, leases:agreement_number, leases:status, leases:start_date, leases:end_date,
+        leases:customer_id, leases:vehicle_id, leases:total_amount, leases:rent_amount,
+        leases:payment_frequency, leases:deposit_amount, leases:created_at, leases:updated_at,
+        leases:notes, leases:daily_late_fee,
         customers:profiles(id, full_name, email, phone_number),
         vehicles(id, make, model, year, license_plate, color, vehicle_type)
       `, { count: 'exact' });
 
       // Apply filters
       if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+        query = query.eq('leases.status', filters.status);
       }
 
       if (filters.customer_id) {
-        query = query.eq('customer_id', filters.customer_id);
+        query = query.eq('leases.customer_id', filters.customer_id);
       }
 
       if (filters.searchTerm) {
-        query = query.or(`agreement_number.ilike.%${filters.searchTerm}%,license_plate.ilike.%${filters.searchTerm}%`);
+        query = query.or(`leases.agreement_number.ilike.%${filters.searchTerm}%,vehicles.license_plate.ilike.%${filters.searchTerm}%`);
       }
 
       // Apply pagination

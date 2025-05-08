@@ -6,7 +6,7 @@ import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-j
  */
 export function isSuccessResponse<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: T; error: null } {
+): response is { data: T; error: null; status: number; statusText: string; count?: number | null } {
   return !response.error && response.data !== null;
 }
 
