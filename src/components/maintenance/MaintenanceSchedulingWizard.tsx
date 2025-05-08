@@ -4,12 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { toast } from "sonner";
 import { MaintenanceTypeStep } from './wizard/MaintenanceTypeStep';
 import { MaintenanceDetailsStep } from './wizard/MaintenanceDetailsStep';
 import { MaintenanceConfirmationStep } from './wizard/MaintenanceConfirmationStep';
+import { useMaintenanceForm } from './wizard/useMaintenanceForm';
 
 interface MaintenanceSchedulingWizardProps {
   open: boolean;
@@ -28,37 +28,28 @@ export function MaintenanceSchedulingWizard({
   const [isProcessing, setIsProcessing] = useState(false);
   const { create } = useMaintenance(vehicleId);
   
-  const [formData, setFormData] = useState({
-    maintenance_type: MaintenanceType.REGULAR_INSPECTION,
-    description: '',
-    scheduled_date: new Date().toISOString().slice(0, 16),
-    estimated_cost: '',
-    assigned_to: '',
-    notes: '',
-    vehicle_id: vehicleId || '',
-    status: MaintenanceStatus.SCHEDULED
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    });
-  };
+  // Use our custom hook for form state and validation
+  const {
+    formData,
+    errors,
+    handleInputChange,
+    handleSelectChange,
+    validateForm,
+    getSubmitData
+  } = useMaintenanceForm(vehicleId);
 
   const handleContinue = () => {
     if (currentStep === 'type') {
-      setCurrentStep('details');
+      // Validate only the fields in the current step
+      const isValid = !errors.maintenance_type && !errors.description;
+      if (isValid) {
+        setCurrentStep('details');
+      }
     } else if (currentStep === 'details') {
-      setCurrentStep('confirm');
+      // Validate all fields before proceeding to confirmation
+      if (validateForm()) {
+        setCurrentStep('confirm');
+      }
     }
   };
 
@@ -71,15 +62,21 @@ export function MaintenanceSchedulingWizard({
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Please correct the form errors before submitting");
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      await create.mutateAsync(formData);
+      const submitData = getSubmitData();
+      await create.mutateAsync(submitData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();
     } catch (error) {
+      console.error('Error scheduling maintenance:', error);
       toast.error("Failed to schedule maintenance");
-      console.error(error);
     } finally {
       setIsProcessing(false);
     }
@@ -108,6 +105,7 @@ export function MaintenanceSchedulingWizard({
               description={formData.description}
               onMaintenanceTypeChange={(value) => handleSelectChange('maintenance_type', value)}
               onDescriptionChange={handleInputChange}
+              errors={errors}
             />
           </TabsContent>
           
@@ -118,6 +116,7 @@ export function MaintenanceSchedulingWizard({
               assignedTo={formData.assigned_to}
               notes={formData.notes}
               onInputChange={handleInputChange}
+              errors={errors}
             />
           </TabsContent>
           
@@ -127,6 +126,8 @@ export function MaintenanceSchedulingWizard({
               scheduledDate={formData.scheduled_date}
               estimatedCost={formData.estimated_cost}
               assignedTo={formData.assigned_to}
+              description={formData.description}
+              notes={formData.notes}
             />
           </TabsContent>
         </Tabs>
