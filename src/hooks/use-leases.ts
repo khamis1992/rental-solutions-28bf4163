@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
-import { VehicleId } from '@/lib/database/database-types';
 import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
+import { asVehicleId } from '@/utils/type-casting';
 
 /**
  * Hook to fetch leases (agreements) related to vehicles
@@ -33,7 +33,7 @@ export const useLeases = () => {
           total_amount,
           profiles:customer_id (id, full_name, phone_number, email)
         `)
-        .eq('vehicle_id', vehicleId as VehicleId)
+        .eq('vehicle_id', asVehicleId(vehicleId))
         .order('created_at', { ascending: false });
 
       if (!hasData(response)) {

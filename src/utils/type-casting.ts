@@ -1,100 +1,45 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
-import { LeaseStatus } from '@/types/lease-types';
-import { Database } from '@/types/database.types';
+/**
+ * Utility functions for type casting database IDs to their specific types
+ */
+
+// Common ID types
+export type UUID = string;
+export type LeaseId = UUID;
+export type VehicleId = UUID;
+export type ProfileId = UUID;
+export type PaymentId = UUID;
+export type TrafficFineId = UUID;
+export type LegalCaseId = UUID;
+export type MaintenanceId = UUID;
 
 /**
- * Type-safe cast for database IDs and enums
+ * Type-safe ID conversion functions
  */
-export function asStatus<T extends string>(status: string): T {
-  return status as T;
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
 }
 
-/**
- * Cast a string to a lease status
- */
-export function asLeaseStatus(status: string): LeaseStatus {
-  return status as LeaseStatus;
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
 }
 
-/**
- * Cast a string to a database ID
- */
-export function asDbId(id: string): string {
-  return id;
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
 }
 
-/**
- * Cast a string to a lease ID
- */
-export function asLeaseId(id: string): string {
-  return id;
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
 }
 
-/**
- * Cast a string to an agreement ID
- */
-export function asAgreementId(id: string): string {
-  return id;
+export function asTrafficFineId(id: string): TrafficFineId {
+  return id as TrafficFineId;
 }
 
-/**
- * Cast a string to a payment ID
- */
-export function asPaymentId(id: string): string {
-  return id;
+export function asLegalCaseId(id: string): LegalCaseId {
+  return id as LegalCaseId;
 }
 
-/**
- * Cast a string to a maintenance ID
- */
-export function asMaintenanceId(id: string): string {
-  return id;
-}
-
-/**
- * Cast a string to a vehicle ID
- */
-export function asVehicleId(id: string): string {
-  return id;
-}
-
-/**
- * Cast a string to a column name for lease ID
- */
-export function asLeaseIdColumn(columnName: string): string {
-  return columnName;
-}
-
-/**
- * Type guard to check if Supabase response contains data
- */
-export function hasResponseData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is { data: T; error: null } {
-  if (!response) return false;
-  if (response.error) return false;
-  return response.data !== null && response.data !== undefined;
-}
-
-/**
- * Safely extract property from an object that might be null or have an error
- */
-export function safeExtract<T, K extends keyof T>(
-  obj: T | null | undefined | { error: any },
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined {
-  if (!obj) return defaultValue;
-  if ('error' in obj && obj.error) return defaultValue;
-  return (obj as T)[key] ?? defaultValue;
-}
-
-/**
- * Type guard to check if an object exists and is not an error
- */
-export function isValidObject<T>(obj: T | null | undefined | { error: any }): obj is T {
-  if (!obj) return false;
-  if ('error' in obj && obj.error) return false;
-  return true;
+export function asMaintenanceId(id: string): MaintenanceId {
+  return id as MaintenanceId;
 }

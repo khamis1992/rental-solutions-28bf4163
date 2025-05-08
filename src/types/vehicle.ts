@@ -1,3 +1,4 @@
+
 /**
  * Vehicle status options from the database schema
  */
@@ -35,6 +36,21 @@ export interface Vehicle {
   vehicle_type_id?: string | null;
   currentCustomer?: string | null;
   dailyRate?: number | null;
+  monthlyRate?: number | null;
+  notes?: string | null;
+  additional_images?: string[] | null;
+  vehicleType?: {
+    id: string;
+    name: string;
+    daily_rate: number;
+    description?: string;
+  };
+  vehicle_type?: {
+    id: string;
+    name: string;
+    daily_rate: number;
+    description?: string;
+  };
 }
 
 /**
@@ -55,6 +71,7 @@ export interface VehicleFormData {
   insurance_expiry?: string | null;
   rent_amount?: number | null;
   vehicle_type_id?: string | null;
+  image?: File | null;
 }
 
 export interface VehicleInsertData {
@@ -93,17 +110,24 @@ export interface VehicleUpdateData {
   insurance_company?: string;
   insurance_expiry?: string | Date;
   device_type?: string;
+  image?: File | null;
+  updated_at?: string;
 }
 
 // Update VehicleFilterParams to include missing properties
 export interface VehicleFilterParams {
   status?: string;
+  statuses?: string[];
   searchTerm?: string;
   cursor?: string;
   location?: string;
   vehicle_type_id?: string;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
+  make?: string;
+  model?: string;
+  year?: number;
+  search?: string;
 }
 
 /**
@@ -118,3 +142,4 @@ export interface VehicleType {
   monthly_rate?: number;
   description?: string;
 }
+

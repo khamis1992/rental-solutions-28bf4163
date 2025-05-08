@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { supabase } from '@/integrations/supabase/client';
-import { hasData, getErrorMessage, getResponseData } from '@/utils/supabase-response-helpers';
+import { supabase } from '@/lib/supabase';
+import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
+import { asLeaseId } from '@/utils/type-casting';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -30,8 +31,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const responseAgreement = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId)
-          .single();
+          .eq('id', agreementId);
 
         if (!hasData(responseAgreement)) {
           console.error("Error fetching agreement for rent amount:", getErrorMessage(responseAgreement));
@@ -40,7 +40,14 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        const vehicleId = responseAgreement.data.vehicle_id;
+        if (!responseAgreement.data || responseAgreement.data.length === 0) {
+          setError(new Error('No agreement data found'));
+          setIsLoading(false);
+          return;
+        }
+
+        const vehicleId = responseAgreement.data[0]?.vehicle_id;
+        
         if (!vehicleId) {
           setIsLoading(false);
           return;
@@ -60,7 +67,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (responseVehicle.data.rent_amount !== null) {
+        if (responseVehicle.data && responseVehicle.data.rent_amount !== null) {
           setRentAmount(responseVehicle.data.rent_amount);
         }
       } catch (err) {
