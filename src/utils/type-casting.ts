@@ -32,9 +32,23 @@ export function asLeaseId(id: string): string {
 }
 
 /**
+ * Cast a string to an agreement ID
+ */
+export function asAgreementId(id: string): string {
+  return id;
+}
+
+/**
  * Cast a string to a payment ID
  */
 export function asPaymentId(id: string): string {
+  return id;
+}
+
+/**
+ * Cast a string to a maintenance ID
+ */
+export function asMaintenanceId(id: string): string {
   return id;
 }
 

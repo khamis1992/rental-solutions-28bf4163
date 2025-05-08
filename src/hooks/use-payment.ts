@@ -36,12 +36,12 @@ export function usePayment(agreementId?: string) {
   ) => {
     if (!agreementId) return;
 
-    await handleSpecialPayment(
-      agreementId, 
-      amount, 
-      paymentDate, 
-      options || {}
-    );
+    await handleSpecialPayment({
+      agreementId,
+      amount,
+      paymentDate,
+      options: options || {}
+    });
   };
 
   return {

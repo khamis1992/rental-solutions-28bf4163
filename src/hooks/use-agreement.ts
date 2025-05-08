@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAgreementService } from './services/useAgreementService';
 import type { Agreement, TableFilters } from '@/types/agreement';
-import { asStatusColumn } from '@/types/agreement-types';
-import type { AgreementStatus } from '@/types/agreement-types';
+import { asStatusColumn, AgreementStatus } from '@/types/agreement-types';
 import { SortingState } from '@tanstack/react-table';
 
 export function useAgreement(agreementId?: string) {

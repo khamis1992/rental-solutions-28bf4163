@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { toast } from 'sonner';
-import { asAgreementId } from '@/utils/type-casting';
+import { asLeaseId } from '@/utils/type-casting';
 
 /**
  * Hook for agreement mutations (update, delete)
@@ -15,7 +15,7 @@ export function useAgreementMutations() {
     const { data: updatedAgreement, error } = await supabase
       .from('leases')
       .update(data)
-      .eq('id', asAgreementId(id))
+      .eq('id', asLeaseId(id))
       .select()
       .single();
   
@@ -34,7 +34,7 @@ export function useAgreementMutations() {
     const { error } = await supabase
       .from('leases')
       .delete()
-      .in('id', ids.map(id => asAgreementId(id)));
+      .in('id', ids.map(id => asLeaseId(id)));
   
     if (error) {
       console.error('Error deleting agreements:', error);

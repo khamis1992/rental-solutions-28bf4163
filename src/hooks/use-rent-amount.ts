@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';

@@ -65,3 +65,11 @@ export interface Payment {
   transaction_id: string | null;
   [key: string]: any;
 }
+
+// Export AgreementStatus type
+export type AgreementStatus = LeaseStatus;
+
+// Helper function to convert string to status column
+export function asStatusColumn(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
