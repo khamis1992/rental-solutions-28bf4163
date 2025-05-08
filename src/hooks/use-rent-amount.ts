@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/supabase-response-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -39,7 +40,13 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (!responseAgreement.data || !responseAgreement.data.vehicle_id) {
+        if (!responseAgreement.data) {
+          setIsLoading(false);
+          return;
+        }
+
+        const vehicleId = responseAgreement.data.vehicle_id;
+        if (!vehicleId) {
           setIsLoading(false);
           return;
         }
@@ -48,7 +55,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const responseVehicle = await supabase
           .from('vehicles')
           .select('rent_amount')
-          .eq('id', responseAgreement.data.vehicle_id)
+          .eq('id', vehicleId)
           .single();
 
         if (responseVehicle.error) {

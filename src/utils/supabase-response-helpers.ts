@@ -2,56 +2,82 @@
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
 /**
- * Type guard to check if Supabase response contains data
+ * Type guard to check if a Supabase response has data
  */
-export function hasResponseData<T>(
+export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is { data: T; error: null } {
+): response is (PostgrestResponse<T> & { data: T }) | (PostgrestSingleResponse<T> & { data: T }) {
   if (!response) return false;
   if (response.error) return false;
   return response.data !== null && response.data !== undefined;
 }
 
 /**
- * Check if response has an error
- */
-export function hasResponseError<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is { error: Error; data: null } {
-  if (!response) return false;
-  return !!response.error;
-}
-
-/**
- * Get response data safely
+ * Extract data safely from a Supabase response
  */
 export function getResponseData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
-  defaultValue: T | null = null
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
-  if (!response || response.error || !response.data) {
-    return defaultValue;
+  if (!hasData(response)) {
+    return null;
   }
   return response.data;
 }
 
 /**
- * Type guard to check if a PostgrestResponse has data
+ * Type guard to check if an object is not null or undefined
  */
-export function isSuccessResponse<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function exists<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
 
 /**
- * Safely extract a property from a potentially undefined object
+ * Type guard to check if value is an object
  */
-export function safeGet<T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined {
-  if (obj === null || obj === undefined) return defaultValue;
-  return obj[key] ?? defaultValue;
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Safe accessor for properties
+ */
+export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
+  if (!obj) return undefined;
+  return obj[key];
+}
+
+/**
+ * Cast a string to a database ID type
+ */
+export function castDbId(id: string): string {
+  return id;
+}
+
+/**
+ * Cast any string to a UUID type for database operations
+ */
+export function castToUUID(id: string): string {
+  return id;
+}
+
+/**
+ * Check if a response data property exists
+ */
+export function hasDataProperty<T, K extends keyof T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  property: K
+): boolean {
+  if (!hasData(response)) return false;
+  return property in response.data;
+}
+
+/**
+ * Safely access a property from a Supabase response
+ */
+export function getResponseProperty<T, K extends keyof T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  property: K
+): T[K] | null {
+  if (!hasData(response)) return null;
+  return response.data[property];
 }

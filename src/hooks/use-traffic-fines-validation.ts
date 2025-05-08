@@ -2,7 +2,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { hasResponseData, isObject } from '@/utils/supabase-response-helpers';
+import { hasData, isObject } from '@/utils/supabase-response-helpers';
 
 export function useTrafficFinesValidation(fineId?: string | null) {
   const validateFine = useMutation({
@@ -31,7 +31,7 @@ export function useTrafficFinesValidation(fineId?: string | null) {
         .select();
 
       // Response handling with better type safety
-      if (!hasResponseData(insertResponse)) {
+      if (!hasData(insertResponse)) {
         throw new Error(`Error logging validation: ${insertResponse.error?.message || 'Unknown error'}`);
       }
 

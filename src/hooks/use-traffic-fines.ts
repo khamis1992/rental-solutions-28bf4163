@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { asTableId } from '@/lib/uuid-helpers';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { castDbId } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/supabase-response-helpers';
 
 export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
 
@@ -86,26 +86,31 @@ export const useTrafficFines = () => {
         }> = {};
         
         if (finesWithLeaseIds.length > 0) {
-          const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
-          const { data: leases, error: leaseError } = await supabase
-            .from('leases')
-            .select('id, customer_id, start_date, end_date, profiles(full_name)')
-            .in('id', leaseIds as string[]);
+          const leaseIds = finesWithLeaseIds
+            .map(fine => fine.lease_id)
+            .filter(Boolean) as string[];
             
-          if (leaseError) {
-            console.error('Error fetching lease information:', leaseError);
-          } else if (leases) {
-            // Create a mapping of lease_id to customer information and lease dates
-            leases.forEach(lease => {
-              if (lease && lease.id) {
-                customerAndLeaseInfo[lease.id] = {
-                  customer_id: lease.customer_id,
-                  customer_name: lease.profiles?.full_name,
-                  start_date: lease.start_date,
-                  end_date: lease.end_date
-                };
-              }
-            });
+          if (leaseIds.length > 0) {
+            const { data: leases, error: leaseError } = await supabase
+              .from('leases')
+              .select('id, customer_id, start_date, end_date, profiles(full_name)')
+              .in('id', leaseIds);
+              
+            if (leaseError) {
+              console.error('Error fetching lease information:', leaseError);
+            } else if (leases) {
+              // Create a mapping of lease_id to customer information and lease dates
+              leases.forEach(lease => {
+                if (lease && lease.id) {
+                  customerAndLeaseInfo[lease.id] = {
+                    customer_id: lease.customer_id,
+                    customer_name: lease.profiles?.full_name,
+                    start_date: lease.start_date,
+                    end_date: lease.end_date
+                  };
+                }
+              });
+            }
           }
         }
         

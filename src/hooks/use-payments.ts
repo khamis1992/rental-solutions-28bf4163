@@ -1,7 +1,7 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { Payment } from '@/types/agreement-types';
-import { asDbId, asPaymentId } from '@/utils/type-casting';
+import { castDbId, castToUUID } from '@/utils/supabase-response-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -12,7 +12,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asDbId(agreementId));
+        .eq('lease_id', castDbId(agreementId));
       
       if (response.error) {
         console.error("Error fetching payments:", response.error);
@@ -39,28 +39,28 @@ export const usePayments = (agreementId?: string) => {
       console.error("Error adding payment:", response.error);
       return null;
     }
-    return (response.data?.[0] || null) as Payment | null;
+    return ((response.data && response.data[0]) || null) as Payment | null;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentUpdate.data as any)
-      .eq('id', asPaymentId(paymentUpdate.id))
+      .eq('id', castToUUID(paymentUpdate.id))
       .select();
 
     if (response.error) {
       console.error("Error updating payment:", response.error);
       throw response.error;
     }
-    return (response.data?.[0] || null) as Payment | null;
+    return ((response.data && response.data[0]) || null) as Payment | null;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', asPaymentId(paymentId));
+      .eq('id', castToUUID(paymentId));
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
