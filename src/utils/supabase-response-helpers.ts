@@ -44,3 +44,24 @@ export function hasErrorCode(
 ): boolean {
   return !!response.error && response.error.code === code;
 }
+
+/**
+ * Utility to cast a string to a database ID type
+ */
+export function castDbId(id: string): string {
+  return id;
+}
+
+/**
+ * Utility to cast a string to a UUID
+ */
+export function castToUUID(id: string): string {
+  return id;
+}
+
+/**
+ * Type guard to check if a value is an object
+ */
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}

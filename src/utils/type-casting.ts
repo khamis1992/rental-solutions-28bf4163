@@ -43,3 +43,10 @@ export function asLegalCaseId(id: string): LegalCaseId {
 export function asMaintenanceId(id: string): MaintenanceId {
   return id as MaintenanceId;
 }
+
+/**
+ * Generic status casting function
+ */
+export function asStatus<T extends string>(status: string, _type?: T): T {
+  return status as T;
+}

@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers } from '@/hooks/use-customers';
-import { useVehicles } from '@/hooks/use-vehicles';
+import { useVehicle } from '@/hooks/use-vehicles';
 import { UseFormReturn } from 'react-hook-form';
 import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -22,8 +21,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   onVehicleChange
 }) => {
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const vehiclesHook = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicle();
 
   const statusOptions = [
     { label: "Draft", value: AgreementStatus.DRAFT },

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -29,8 +28,8 @@ const Vehicles = () => {
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   
   // Get vehicles using the hook's useList functionality
-  const { useList, useRealtimeUpdates } = useVehicles();
-  const { data: vehicles = [], isLoading, error } = useList(filters);
+  const vehiclesHook = useVehicles();
+  const { useRealtimeUpdates } = vehiclesHook;
   
   // Setup real-time updates
   useRealtimeUpdates();
