@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -16,51 +15,62 @@ export function useAgreementData(filters, pagination, setTotalCount) {
   const { data: agreements = [], isLoading, error } = useQuery({
     queryKey: ['agreements', filters, pagination],
     queryFn: async () => {
-      // Build the query with filters and table aliases to avoid ambiguous column references
-      let query = supabase.from('leases').select(`
-        leases:id, leases:agreement_number, leases:status, leases:start_date, leases:end_date,
-        leases:customer_id, leases:vehicle_id, leases:total_amount, leases:rent_amount,
-        leases:payment_frequency, leases:deposit_amount, leases:created_at, leases:updated_at,
-        leases:notes, leases:daily_late_fee,
-        customers:profiles(id, full_name, email, phone_number),
-        vehicles(id, make, model, year, license_plate, color, vehicle_type)
-      `, { count: 'exact' });
+      try {
+        // Build the query with filters and table aliases to avoid ambiguous column references
+        let query = supabase.from('leases').select(`
+          id, agreement_number, status, start_date, end_date,
+          customer_id, vehicle_id, total_amount, rent_amount,
+          payment_frequency, deposit_amount, created_at, updated_at,
+          notes, daily_late_fee,
+          customers:profiles(id, full_name, email, phone_number),
+          vehicles(id, make, model, year, license_plate, color, vehicle_type)
+        `, { count: 'exact' });
 
-      // Apply filters
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('leases.status', filters.status);
-      }
+        // Apply filters
+        if (filters.status && filters.status !== 'all') {
+          query = query.eq('status', filters.status);
+        }
 
-      if (filters.customer_id) {
-        query = query.eq('leases.customer_id', filters.customer_id);
-      }
+        if (filters.customer_id) {
+          query = query.eq('customer_id', filters.customer_id);
+        }
 
-      if (filters.searchTerm) {
-        query = query.or(`leases.agreement_number.ilike.%${filters.searchTerm}%,vehicles.license_plate.ilike.%${filters.searchTerm}%`);
-      }
+        if (filters.searchTerm) {
+          // Apply the search filter correctly
+          query = query.or(`agreement_number.ilike.%${filters.searchTerm}%,vehicles.license_plate.ilike.%${filters.searchTerm}%`);
+        }
 
-      // Apply pagination
-      if (pagination) {
-        const { pageSize, pageIndex } = pagination;
-        const start = pageIndex * pageSize;
-        const end = start + pageSize - 1;
-        query = query.range(start, end);
-      }
+        // Apply pagination
+        if (pagination) {
+          const { pageSize, pageIndex } = pagination;
+          const start = pageIndex * pageSize;
+          const end = start + pageSize - 1;
+          query = query.range(start, end);
+        }
 
-      // Execute the query
-      const response = await query;
-      
-      if (hasData(response)) {
-        // Set total count for pagination
-        setTotalCount(response.count || 0);
+        // Add ordering by created_at for consistent results
+        query = query.order('created_at', { ascending: false });
+
+        // Execute the query
+        const response = await query;
         
-        // Process and return the data
-        return processAgreementData(response.data);
+        if (hasData(response)) {
+          // Set total count for pagination
+          setTotalCount(response.count || 0);
+          
+          // Process and return the data
+          return processAgreementData(response.data);
+        }
+        
+        console.error("Error fetching agreements:", getErrorMessage(response));
+        return [];
+      } catch (error) {
+        console.error("Exception fetching agreements:", error);
+        return [];
       }
-      
-      console.error("Error fetching agreements:", getErrorMessage(response));
-      return [];
-    }
+    },
+    // Refresh data every 60 seconds
+    refetchInterval: 60000
   });
 
   return {
