@@ -1,4 +1,3 @@
-
 import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 /**
@@ -41,4 +40,16 @@ export function formatErrors(
     },
     {} as Record<string, string>
   );
+}
+
+/**
+ * Validates if a string is a valid database ID
+ * Checks if the string is a valid UUID format
+ */
+export function isValidDatabaseId(id: string | null | undefined): boolean {
+  if (!id) return false;
+  
+  // Regular expression for UUID validation
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }
