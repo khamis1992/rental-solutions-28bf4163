@@ -2,60 +2,56 @@
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
 /**
- * Type guard for checking if a Supabase response has data and no error
+ * Type guard to check if Supabase response contains data
  */
 export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is (PostgrestResponse<T> & { data: T[] }) | (PostgrestSingleResponse<T> & { data: T }) {
-  return !!(response && !response.error && response.data !== null && response.data !== undefined);
+): response is { data: T; error: null } {
+  if (!response) return false;
+  if (response.error) return false;
+  return response.data !== null && response.data !== undefined;
 }
 
 /**
- * Type guard to check if a value is a valid object (not null/undefined)
+ * Check if response has an error
  */
-export function isObject<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
+export function hasResponseError<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { error: Error; data: null } {
+  if (!response) return false;
+  return !!response.error;
 }
 
 /**
- * Extract data safely from a Supabase single response
+ * Get response data safely
  */
-export function extractSingleResponseData<T>(
-  response: PostgrestSingleResponse<T> | null | undefined
+export function getResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  defaultValue: T | null = null
 ): T | null {
-  if (!response || response.error || !response.data) return null;
+  if (!response || response.error || !response.data) {
+    return defaultValue;
+  }
   return response.data;
 }
 
 /**
- * Extract data safely from a Supabase response which returns an array
+ * Type guard to check if a PostgrestResponse has data
  */
-export function extractArrayResponseData<T>(
-  response: PostgrestResponse<T> | null | undefined
-): T[] {
-  if (!response || response.error || !response.data) return [];
-  return Array.isArray(response.data) ? response.data : [];
+export function isSuccessResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
 }
 
 /**
- * Handle errors from Supabase responses
+ * Safely extract a property from a potentially undefined object
  */
-export function handleResponseError(
-  response: PostgrestSingleResponse<any> | PostgrestResponse<any> | null | undefined,
-  defaultErrorMessage: string = 'An error occurred'
-): string | null {
-  if (!response) return defaultErrorMessage;
-  if (response.error) return response.error.message || defaultErrorMessage;
-  return null;
-}
-
-/**
- * Safe property accessor for potentially null objects
- */
-export function safeGetProperty<T, K extends keyof T>(
+export function safeGet<T, K extends keyof T>(
   obj: T | null | undefined,
-  key: K
+  key: K,
+  defaultValue?: T[K]
 ): T[K] | undefined {
-  if (!obj) return undefined;
-  return obj[key];
+  if (obj === null || obj === undefined) return defaultValue;
+  return obj[key] ?? defaultValue;
 }

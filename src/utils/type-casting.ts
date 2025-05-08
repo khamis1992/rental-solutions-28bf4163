@@ -53,6 +53,13 @@ export function asMaintenanceId(id: string): string {
 }
 
 /**
+ * Cast a string to a vehicle ID
+ */
+export function asVehicleId(id: string): string {
+  return id;
+}
+
+/**
  * Cast a string to a column name for lease ID
  */
 export function asLeaseIdColumn(columnName: string): string {

@@ -6,7 +6,10 @@ import { MaintenanceRecord } from '@/types/maintenance';
 import { asVehicleId } from '@/utils/type-casting';
 import { hasResponseData } from '@/utils/supabase-response-helpers';
 
-export function useMaintenanceRecords(vehicleId?: string) {
+/**
+ * Hook for managing vehicle maintenance records
+ */
+export function useMaintenance(vehicleId?: string) {
   const queryClient = useQueryClient();
 
   const { data: maintenanceRecords = [], isLoading, error } = useQuery({
@@ -24,13 +27,15 @@ export function useMaintenanceRecords(vehicleId?: string) {
         return response.data as MaintenanceRecord[];
       }
 
-      console.error('Error fetching maintenance records:', response.error);
+      if (response?.error) {
+        console.error('Error fetching maintenance records:', response.error);
+      }
       return [];
     },
     enabled: !!vehicleId,
   });
 
-  const createMaintenanceRecord = useMutation({
+  const create = useMutation({
     mutationFn: async (newRecord: Partial<MaintenanceRecord>) => {
       const { data, error } = await supabase
         .from('maintenance')
@@ -49,12 +54,12 @@ export function useMaintenanceRecords(vehicleId?: string) {
       queryClient.invalidateQueries({ queryKey: ['maintenance', vehicleId] });
       queryClient.invalidateQueries({ queryKey: ['vehicle', vehicleId] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create maintenance record: ${error.message}`);
     },
   });
 
-  const updateMaintenanceRecord = useMutation({
+  const update = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<MaintenanceRecord> }) => {
       const { data: updatedRecord, error } = await supabase
         .from('maintenance')
@@ -71,12 +76,12 @@ export function useMaintenanceRecords(vehicleId?: string) {
       queryClient.invalidateQueries({ queryKey: ['maintenance', vehicleId] });
       queryClient.invalidateQueries({ queryKey: ['vehicle', vehicleId] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update maintenance record: ${error.message}`);
     },
   });
 
-  const deleteMaintenanceRecord = useMutation({
+  const deleteMaintenance = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('maintenance').delete().eq('id', id);
       if (error) throw error;
@@ -86,17 +91,37 @@ export function useMaintenanceRecords(vehicleId?: string) {
       toast.success('Maintenance record deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['maintenance', vehicleId] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(`Failed to delete maintenance record: ${error.message}`);
     },
   });
+
+  const getAllRecords = async (): Promise<MaintenanceRecord[]> => {
+    const { data, error } = await supabase
+      .from('maintenance')
+      .select('*, vehicles(*)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching maintenance records:', error);
+      return [];
+    }
+
+    return data as MaintenanceRecord[];
+  };
 
   return {
     maintenanceRecords,
     isLoading,
     error,
-    createMaintenanceRecord: createMaintenanceRecord.mutateAsync,
-    updateMaintenanceRecord: updateMaintenanceRecord.mutateAsync,
-    deleteMaintenanceRecord: deleteMaintenanceRecord.mutateAsync,
+    create,
+    update,
+    delete: deleteMaintenance,
+    getAllRecords,
   };
 }
+
+/**
+ * Legacy alias for compatibility
+ */
+export const useMaintenanceRecords = useMaintenance;

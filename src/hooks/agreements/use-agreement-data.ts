@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { processAgreementData } from '@/components/agreements/table/agreement-data';
 import { CustomerInfo } from '@/types/customer';
-import { hasResponseData } from '@/utils/type-casting';
+import { hasResponseData } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for fetching agreement data

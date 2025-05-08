@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,28 +25,7 @@ export function MaintenanceSchedulingWizard({
   vehicleId
 }: MaintenanceSchedulingWizardProps) {
   const [currentStep, setCurrentStep] = useState('type');
-  const [formData, setFormData] = useState({
-    vehicle_id: vehicleId || '',
-    maintenance_type: MaintenanceType.REGULAR_INSPECTION,
-    description: '',
-    scheduled_date: '',
-    estimated_cost: '',
-    notes: '',
-    assigned_to: '',
-    status: MaintenanceStatus.SCHEDULED
-  });
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { create } = useMaintenance();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData({
+  const [formData, setFormData({
       ...formData,
       [field]: value
     });
