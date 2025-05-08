@@ -40,7 +40,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (!responseAgreement.data) {
+        if (!hasData(responseAgreement)) {
           setIsLoading(false);
           return;
         }
@@ -65,7 +65,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (responseVehicle.data && responseVehicle.data.rent_amount) {
+        if (hasData(responseVehicle) && responseVehicle.data.rent_amount !== null) {
           setRentAmount(responseVehicle.data.rent_amount);
         }
       } catch (err) {

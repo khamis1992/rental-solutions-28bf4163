@@ -1,7 +1,8 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { Payment } from '@/types/agreement-types';
-import { castDbId, castToUUID } from '@/utils/supabase-response-helpers';
+import { castDbId, castToUUID, hasData } from '@/utils/supabase-response-helpers';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -19,7 +20,8 @@ export const usePayments = (agreementId?: string) => {
         return [] as Payment[];
       }
       
-      return (response.data || []) as Payment[];
+      // Use proper type casting to resolve TypeScript errors
+      return (response.data || []) as unknown as Payment[];
     },
     {
       enabled: !!agreementId,
@@ -39,7 +41,13 @@ export const usePayments = (agreementId?: string) => {
       console.error("Error adding payment:", response.error);
       return null;
     }
-    return ((response.data && response.data[0]) || null) as Payment | null;
+    
+    // Properly handle response types
+    if (!hasData(response)) {
+      return null;
+    }
+    
+    return response.data[0] as unknown as Payment;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
@@ -53,7 +61,13 @@ export const usePayments = (agreementId?: string) => {
       console.error("Error updating payment:", response.error);
       throw response.error;
     }
-    return ((response.data && response.data[0]) || null) as Payment | null;
+    
+    // Properly handle response types
+    if (!hasData(response)) {
+      return null;
+    }
+    
+    return response.data[0] as unknown as Payment;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
@@ -83,9 +97,6 @@ export const usePayments = (agreementId?: string) => {
     fetchPayments,
   };
 };
-
-// Import for supabase
-import { supabase } from '@/integrations/supabase/client';
 
 // Re-export the Payment type
 export type { Payment } from '@/types/agreement-types';

@@ -13,6 +13,15 @@ export function hasData<T>(
 }
 
 /**
+ * Alias for hasData - used in some components
+ */
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is (PostgrestResponse<T> & { data: T }) | (PostgrestSingleResponse<T> & { data: T }) {
+  return hasData(response);
+}
+
+/**
  * Extract data safely from a Supabase response
  */
 export function getResponseData<T>(

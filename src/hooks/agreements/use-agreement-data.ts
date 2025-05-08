@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { processAgreementData } from '@/components/agreements/table/agreement-data';
 import { CustomerInfo } from '@/types/customer';
-import { hasResponseData } from '@/utils/supabase-response-helpers';
+import { hasData } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for fetching agreement data
@@ -47,7 +47,7 @@ export function useAgreementData(filters, pagination, setTotalCount) {
       // Execute the query
       const response = await query;
       
-      if (hasResponseData(response)) {
+      if (hasData(response)) {
         // Set total count for pagination
         setTotalCount(response.count || 0);
         

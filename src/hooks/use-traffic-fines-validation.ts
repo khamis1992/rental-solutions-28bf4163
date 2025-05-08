@@ -32,7 +32,7 @@ export function useTrafficFinesValidation(fineId?: string | null) {
 
       // Response handling with better type safety
       if (!hasData(insertResponse)) {
-        throw new Error(`Error logging validation: ${insertResponse.error?.message || 'Unknown error'}`);
+        throw new Error(`Error logging validation: ${insertResponse?.error?.message || 'Unknown error'}`);
       }
 
       // Safely check result properties

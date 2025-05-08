@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { MaintenanceRecord } from '@/types/maintenance';
 import { asVehicleId } from '@/utils/type-casting';
-import { hasResponseData } from '@/utils/supabase-response-helpers';
+import { hasData } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for managing vehicle maintenance records
@@ -23,7 +23,7 @@ export function useMaintenance(vehicleId?: string) {
         .eq('vehicle_id', asVehicleId(vehicleId))
         .order('created_at', { ascending: false });
 
-      if (hasResponseData(response)) {
+      if (hasData(response)) {
         return response.data as MaintenanceRecord[];
       }
 
