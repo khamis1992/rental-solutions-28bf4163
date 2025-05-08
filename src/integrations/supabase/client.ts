@@ -38,6 +38,136 @@ export const supabase = createClient<Database>(
   options
 );
 
+/**
+ * Check the health of the Supabase connection
+ * @returns Promise with health status and latency
+ */
+export async function checkSupabaseHealth(): Promise<{ 
+  isHealthy: boolean; 
+  latency?: number; 
+  error?: string 
+}> {
+  const startTime = performance.now();
+  
+  try {
+    // Simple query to check database connection
+    const { data, error } = await supabase
+      .from('health_check')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+    
+    // If table doesn't exist, try a different approach
+    if (error && error.code === '42P01') {
+      try {
+        // Try using RPC function if available
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_server_timestamp');
+        
+        if (rpcError) {
+          // Try system table as last resort
+          const { error: sysError } = await supabase
+            .from('pg_stat_activity')
+            .select('pid')
+            .limit(1);
+            
+          if (sysError) {
+            return { 
+              isHealthy: false, 
+              error: `Database connection failed: ${sysError.message}` 
+            };
+          }
+        }
+      } catch (fallbackError) {
+        // Last attempt: simple RLS-allowed query
+        const { error: finalError } = await supabase.auth.getSession();
+        if (finalError) {
+          return { 
+            isHealthy: false, 
+            error: `Connection failed: ${finalError.message}` 
+          };
+        }
+      }
+    } else if (error) {
+      return { 
+        isHealthy: false, 
+        error: `Database query failed: ${error.message}` 
+      };
+    }
+    
+    const endTime = performance.now();
+    return { 
+      isHealthy: true, 
+      latency: Math.round(endTime - startTime) 
+    };
+  } catch (err) {
+    return { 
+      isHealthy: false, 
+      error: err instanceof Error ? err.message : 'Unknown error' 
+    };
+  }
+}
+
+/**
+ * Check connection with retry mechanism
+ */
+export async function checkConnectionWithRetry(
+  maxRetries = 3, 
+  delayMs = 1000
+): Promise<boolean> {
+  let attempts = 0;
+  
+  while (attempts < maxRetries) {
+    const { isHealthy } = await checkSupabaseHealth();
+    
+    if (isHealthy) {
+      return true;
+    }
+    
+    attempts++;
+    console.log(`Connection attempt ${attempts} failed, retrying...`);
+    
+    if (attempts < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, delayMs * attempts));
+    }
+  }
+  
+  console.error(`Failed to connect after ${maxRetries} attempts`);
+  return false;
+}
+
+/**
+ * Monitor database connection status
+ */
+export function monitorDatabaseConnection(
+  onConnectionChange?: (isConnected: boolean) => void,
+  pollingIntervalMs = 30000
+): () => void {
+  let isConnected = true;
+  let intervalId: number;
+  
+  const checkConnection = async () => {
+    const { isHealthy } = await checkSupabaseHealth();
+    
+    if (isHealthy !== isConnected) {
+      isConnected = isHealthy;
+      if (onConnectionChange) {
+        onConnectionChange(isConnected);
+      }
+    }
+  };
+  
+  // Initial check
+  checkConnection();
+  
+  // Set up polling
+  intervalId = window.setInterval(checkConnection, pollingIntervalMs);
+  
+  // Return function to stop monitoring
+  return () => {
+    window.clearInterval(intervalId);
+  };
+}
+
 // Helper function for database query errors
 export function handleQueryError(error: any): string {
   if (typeof error === 'object' && error !== null) {
@@ -66,8 +196,8 @@ export function isPermissionError(error: any): boolean {
 // Get server timestamp (used for synchronizing client time)
 export async function getServerTime(): Promise<Date | null> {
   try {
-    // Fixed: Using string literal for function name
-    const { data, error } = await supabase.rpc('get_server_time');
+    // Fixing the issue with `get_server_time` function
+    const { data, error } = await supabase.rpc('get_server_timestamp');
     
     if (error) {
       console.error('Error getting server time:', error);

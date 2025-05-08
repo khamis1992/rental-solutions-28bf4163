@@ -24,7 +24,7 @@ export const vehicleRepository = createVehicleRepository(supabase);
 // Export repositories without naming conflicts
 export { vehicleRepository as vehicleRepo };
 
-// Export validation functions directly from database-types to avoid conflicts
+// Export validation functions from database-common to avoid conflicts
 export { 
   asLeaseStatus,
   asVehicleStatus,
@@ -32,7 +32,7 @@ export {
   asLeaseId,
   asProfileId,
   asPaymentId
-} from '../database-types';
+} from '../database-common';
 
 // Export type-safe response check
 export { isSuccessResponse } from './validation';

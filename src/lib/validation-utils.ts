@@ -48,7 +48,7 @@ export function isDate(value: unknown): value is Date {
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: T; error: null } {
+): response is PostgrestResponse<T> & { data: T } {
   return !response.error && response.data !== null;
 }
 
@@ -89,4 +89,14 @@ export const validators = {
   isDate,
   ensureArray,
   formatValidationErrors
+};
+
+// Export typeGuards for backwards compatibility
+export const typeGuards = {
+  isString,
+  isNumber,
+  isBoolean,
+  isDate,
+  isObject,
+  isArray,
 };
