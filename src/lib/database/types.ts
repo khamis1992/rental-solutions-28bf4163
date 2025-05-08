@@ -29,8 +29,9 @@ export type DbSingleResponse<T> = {
 /**
  * Type guard for checking if response has data
  */
-export function hasData<T>(response: DbListResponse<T> | DbSingleResponse<T>): response is { data: T | T[]; error: null } {
-  return !response.error && response.data !== null;
+export function hasData<T>(response: DbListResponse<T> | DbSingleResponse<T>): response is 
+  { data: T[] | T; error: null } {
+  return response.error === null && response.data !== null;
 }
 
 /**

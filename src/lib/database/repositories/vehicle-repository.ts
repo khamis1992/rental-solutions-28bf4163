@@ -1,22 +1,24 @@
+
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
 import { supabase } from '@/lib/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
+import { asVehicleId } from '../validation';
 
 type VehicleRow = TableRow<'vehicles'>;
 
 // Create a custom error type that implements PostgrestError
-class RepositoryError extends Error implements PostgrestError {
+class RepositoryError implements PostgrestError {
   code: string;
   details: string;
   hint: string;
+  message: string;
   
   constructor(message: string) {
-    super(message);
+    this.message = message;
     this.code = 'CUSTOM_ERROR';
     this.details = message;
     this.hint = '';
-    Object.setPrototypeOf(this, RepositoryError.prototype);
   }
 }
 
@@ -125,7 +127,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       if (!vehicleId) {
         return {
           data: null,
-          error: new Error('Vehicle ID is required')
+          error: new RepositoryError('Vehicle ID is required')
         };
       }
       
@@ -148,7 +150,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in getWithLease:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in getWithLease')
+        error: new RepositoryError(`Unknown error in getWithLease: ${error instanceof Error ? error.message : String(error)}`)
       };
     }
   }
@@ -161,7 +163,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       if (!vehicleId) {
         return {
           data: null,
-          error: new Error('Vehicle ID is required')
+          error: new RepositoryError('Vehicle ID is required')
         };
       }
       
@@ -184,7 +186,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findWithDetails:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in findWithDetails')
+        error: new RepositoryError(`Unknown error in findWithDetails: ${error instanceof Error ? error.message : String(error)}`)
       };
     }
   }
