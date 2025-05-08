@@ -34,7 +34,8 @@ export class Repository<T extends keyof Tables> {
         message: error instanceof Error ? error.message : String(error),
         details: '',
         hint: '',
-        code: 'CUSTOM_ERROR'
+        code: 'CUSTOM_ERROR',
+        name: 'PostgrestError'
       };
       
       return {
@@ -63,7 +64,8 @@ export class Repository<T extends keyof Tables> {
         message: error instanceof Error ? error.message : String(error),
         details: '',
         hint: '',
-        code: 'CUSTOM_ERROR'
+        code: 'CUSTOM_ERROR',
+        name: 'PostgrestError'
       };
       
       return {
@@ -93,7 +95,8 @@ export class Repository<T extends keyof Tables> {
         message: error instanceof Error ? error.message : String(error),
         details: '',
         hint: '',
-        code: 'CUSTOM_ERROR'
+        code: 'CUSTOM_ERROR',
+        name: 'PostgrestError'
       };
       
       return {
@@ -124,7 +127,8 @@ export class Repository<T extends keyof Tables> {
         message: error instanceof Error ? error.message : String(error),
         details: '',
         hint: '',
-        code: 'CUSTOM_ERROR'
+        code: 'CUSTOM_ERROR',
+        name: 'PostgrestError'
       };
       
       return {
@@ -155,7 +159,8 @@ export class Repository<T extends keyof Tables> {
         message: error instanceof Error ? error.message : String(error),
         details: '',
         hint: '',
-        code: 'CUSTOM_ERROR'
+        code: 'CUSTOM_ERROR',
+        name: 'PostgrestError'
       };
       
       return {
@@ -188,7 +193,8 @@ export function createRepository<T extends keyof Tables>(tableName: T) {
           message: error instanceof Error ? error.message : String(error),
           details: '',
           hint: '',
-          code: 'CUSTOM_ERROR'
+          code: 'CUSTOM_ERROR',
+          name: 'PostgrestError'
         };
         
         return {
@@ -215,7 +221,8 @@ export function createRepository<T extends keyof Tables>(tableName: T) {
           message: error instanceof Error ? error.message : String(error),
           details: '',
           hint: '',
-          code: 'CUSTOM_ERROR'
+          code: 'CUSTOM_ERROR',
+          name: 'PostgrestError'
         };
         
         return {
@@ -241,7 +248,8 @@ export function createRepository<T extends keyof Tables>(tableName: T) {
           message: error instanceof Error ? error.message : String(error),
           details: '',
           hint: '',
-          code: 'CUSTOM_ERROR'
+          code: 'CUSTOM_ERROR',
+          name: 'PostgrestError'
         };
         
         return {
@@ -269,7 +277,8 @@ export function createRepository<T extends keyof Tables>(tableName: T) {
           message: error instanceof Error ? error.message : String(error),
           details: '',
           hint: '',
-          code: 'CUSTOM_ERROR'
+          code: 'CUSTOM_ERROR',
+          name: 'PostgrestError'
         };
         
         return {
@@ -297,7 +306,8 @@ export function createRepository<T extends keyof Tables>(tableName: T) {
           message: error instanceof Error ? error.message : String(error),
           details: '',
           hint: '',
-          code: 'CUSTOM_ERROR'
+          code: 'CUSTOM_ERROR',
+          name: 'PostgrestError'
         };
         
         return {

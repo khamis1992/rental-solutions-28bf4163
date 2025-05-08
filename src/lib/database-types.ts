@@ -1,16 +1,19 @@
 
 import { Database } from '@/types/database.types';
-import { asUUID, UUID } from '@/lib/uuid-helpers';
-import { getResponseData } from '@/utils/supabase-type-helpers';
 import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 type Tables = Database['public']['Tables'];
 
 // Helper type for database IDs that enforces UUID format
-export type DbId = UUID;
+export type UUID = string;
 
 // Helper function to cast IDs to the correct type
-export function asDbId<T extends DbId>(id: string): T {
+export function asUUID(id: string): UUID {
+  return id as UUID;
+}
+
+// Helper function to cast IDs to the correct type
+export function asDbId<T extends UUID>(id: string): T {
   return asUUID(id) as T;
 }
 
@@ -35,10 +38,50 @@ export type VehicleStatus = Tables['vehicles']['Row']['status'];
 // Helper type for agreement status that matches the database enum
 export type AgreementStatus = Tables['leases']['Row']['status'];
 
-// Modified to fix type assignment issues
+// Type-safe ID casting functions
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
+}
+
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
+}
+
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
+}
+
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
+}
+
+export function asTrafficFineId(id: string): TrafficFineId {
+  return id as TrafficFineId;
+}
+
+export function asLegalCaseId(id: string): LegalCaseId {
+  return id as LegalCaseId;
+}
+
+// Type-safe status casting functions
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
+
+export function asVehicleStatus(status: string): VehicleStatus {
+  return status as VehicleStatus;
+}
+
+export function asPaymentStatus(status: string): PaymentStatus {
+  return status as PaymentStatus;
+}
+
+/**
+ * Type guard to check if a response has data
+ */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): boolean {
+): response is { data: T; error: null } {
   return !response.error && response.data !== null;
 }
 
@@ -53,33 +96,10 @@ export function isTableRow<T extends keyof Tables>(
 }
 
 /**
- * Get type-safe column name for a table for use in filters
+ * Helper function for checking if status is valid
  */
-export function getColumnName<
-  T extends keyof Tables, 
-  C extends keyof Tables[T]['Row']
->(table: T, column: C): C {
-  return column;
-}
-
-/**
- * Safely cast a string value to a database column value
- */
-export function asColumnValue<
-  T extends keyof Tables, 
-  C extends keyof Tables[T]['Row']
->(table: T, column: C, value: any): Tables[T]['Row'][C] {
-  return value as Tables[T]['Row'][C];
-}
-
-/**
- * Creates a strongly typed reference to a table column for use in queries
- */
-export function column<T extends keyof Tables, C extends keyof Tables[T]['Row']>(
-  table: T, 
-  columnName: C
-): string {
-  return columnName as string;
+export function isValidStatus<T extends { status: string }>(record: T, status: T['status']): boolean {
+  return record.status === status;
 }
 
 // Type-safe cast functions for statuses

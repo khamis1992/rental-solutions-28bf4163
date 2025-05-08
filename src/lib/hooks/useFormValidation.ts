@@ -43,6 +43,7 @@ export function useFormValidation<T extends Record<string, any>>(initialErrors: 
     const newErrors: Partial<Record<keyof T, string>> = {};
     let isValid = true;
 
+    // Validate each field in the schema
     for (const field in schema) {
       if (Object.prototype.hasOwnProperty.call(schema, field)) {
         const rules = schema[field];

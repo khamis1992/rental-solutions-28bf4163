@@ -1,6 +1,4 @@
 
-// Fix the error handler to handle ServiceResult properly
-
 import { toast } from 'sonner';
 
 // Define the ServiceResult type
@@ -59,5 +57,14 @@ export function handleApiError(error: unknown, context?: string): void {
   
   toast.error('Error', {
     description: errorMessage,
+  });
+}
+
+/**
+ * Handles API success with appropriate UI feedback
+ */
+export function handleApiSuccess(message: string): void {
+  toast.success('Success', {
+    description: message,
   });
 }

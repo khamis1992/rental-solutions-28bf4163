@@ -2,6 +2,16 @@
 /**
  * Database validation utilities for ensuring data integrity
  */
+import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+
+/**
+ * Type guard to check if a response has data and no error
+ */
+export function isSuccessResponse<T>(
+  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
+): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
+}
 
 /**
  * Validates that the provided value is not null or undefined
@@ -121,18 +131,3 @@ export function isValidDatabaseId(id: string | null | undefined): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 }
-
-/**
- * Validates if the provided string is a valid database ID (UUID) and throws an error if not
- * @param id - The ID to check
- * @param name - Name for the error message
- * @returns The original ID if valid
- * @throws Error if the ID is not valid
- */
-export function validateDatabaseId(id: string, name: string = 'ID'): string {
-  if (!isValidDatabaseId(id)) {
-    throw new Error(`Invalid ${name} format: ${id}`);
-  }
-  return id;
-}
-

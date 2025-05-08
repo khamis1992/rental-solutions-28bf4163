@@ -1,66 +1,92 @@
 
-import { z } from 'zod';
-import { validators } from '@/utils/validation';
+import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 /**
- * Enhanced validateData function that properly types and formats errors
+ * Type guard to check if a value is a valid string
  */
-export function validateData<T>(schema: z.ZodType<T>, data: unknown): { 
-  success: true; 
-  data: T; 
-} | { 
-  success: false; 
-  errors: Record<string, string>; 
-} {
-  try {
-    const validData = schema.parse(data);
-    return { success: true, data: validData };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      // Format errors into a user-friendly object
-      const formattedErrors: Record<string, string> = {};
-      error.errors.forEach(err => {
-        const path = err.path.join('.');
-        formattedErrors[path] = err.message;
-      });
-      
-      return { success: false, errors: formattedErrors };
-    }
-    
-    // Handle unexpected errors
-    return { 
-      success: false, 
-      errors: { _general: 'An unexpected validation error occurred' } 
-    };
-  }
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
 }
 
 /**
- * Helper to create a typed API response with validation
+ * Type guard to check if a value is a valid number
  */
-export function withValidation<T, R>(
-  schema: z.ZodType<T>,
-  handler: (data: T) => Promise<R>
-): (data: unknown) => Promise<{ success: true; data: R } | { success: false; errors: Record<string, string> }> {
-  return async (data: unknown) => {
-    const validationResult = validateData(schema, data);
-    
-    if (!validationResult.success) {
-      return validationResult;
-    }
-    
-    try {
-      const result = await handler(validationResult.data);
-      return { success: true, data: result };
-    } catch (error) {
-      console.error('Error in validated handler:', error);
-      return { 
-        success: false, 
-        errors: { _general: error instanceof Error ? error.message : 'An unknown error occurred' } 
-      };
-    }
-  };
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
 }
 
-// Re-export validation functions for convenience
-export { validators };
+/**
+ * Type guard to check if a value is a valid boolean
+ */
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+/**
+ * Type guard to check if a value is a valid object
+ */
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Type guard to check if a value is a valid array
+ */
+export function isArray<T>(value: unknown): value is T[] {
+  return Array.isArray(value);
+}
+
+/**
+ * Type guard to check if a value is a valid date
+ */
+export function isDate(value: unknown): value is Date {
+  return value instanceof Date && !isNaN(value.getTime());
+}
+
+/**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
+}
+
+/**
+ * Check if status is valid
+ */
+export function isValidStatus<T extends { status: string }>(
+  record: T, 
+  validStatuses: string[]
+): boolean {
+  return validStatuses.includes(record.status);
+}
+
+/**
+ * Ensure array, even if input is single value
+ */
+export function ensureArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value === null || value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * Format validation errors into user-friendly message
+ */
+export function formatValidationErrors(errors: Record<string, string[]>): string {
+  return Object.entries(errors)
+    .map(([field, fieldErrors]) => `${field}: ${fieldErrors.join(', ')}`)
+    .join('\n');
+}
+
+// Export validators for consistency with other code
+export const validators = {
+  isString,
+  isNumber,
+  isBoolean,
+  isObject,
+  isArray,
+  isDate,
+  ensureArray,
+  formatValidationErrors
+};

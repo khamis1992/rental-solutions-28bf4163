@@ -31,7 +31,7 @@ export function createQueryConfig<TData, TKey extends unknown[]>(
 export function createMetaQueryConfig<TData, TKey extends unknown[]>(
   queryKey: TKey,
   meta: QueryMeta,
-  options?: Partial<UseQueryOptions<TData, Error, TData, TKey>>
+  options?: Partial<Omit<UseQueryOptions<TData, Error, TData, TKey>, 'queryKey'>>
 ): UseQueryOptions<TData, Error, TData, TKey> {
   return createQueryConfig(queryKey, {
     ...options,

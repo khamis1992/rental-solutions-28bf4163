@@ -3,16 +3,17 @@ import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
 import { supabase } from '@/lib/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
-import { asVehicleId } from '../validation';
+import { asVehicleId } from '@/lib/database-types';
 
 type VehicleRow = TableRow<'vehicles'>;
 
-// Create a custom error type that implements PostgrestError
+// Create a custom error type that extends Error and implements PostgrestError
 class RepositoryError implements PostgrestError {
   code: string;
   details: string;
   hint: string;
   message: string;
+  name: string = 'PostgrestError';
   
   constructor(message: string) {
     this.message = message;
