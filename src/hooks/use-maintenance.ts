@@ -1,22 +1,24 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { MaintenanceRecord } from '@/types/maintenance';
 import { asVehicleId } from '@/utils/type-casting';
-import { hasData } from '@/utils/supabase-response-helpers';
+import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for managing vehicle maintenance records
  */
-export function useMaintenance(vehicleId?: string) {
+export function useMaintenance(vehicleId: string) {
   const queryClient = useQueryClient();
 
-  const { data: maintenanceRecords = [], isLoading, error } = useQuery({
+  const {
+    data: maintenanceRecords = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['maintenance', vehicleId],
     queryFn: async () => {
-      if (!vehicleId) return [];
-
       const response = await supabase
         .from('maintenance')
         .select('*')
@@ -27,9 +29,7 @@ export function useMaintenance(vehicleId?: string) {
         return response.data as MaintenanceRecord[];
       }
 
-      if (response?.error) {
-        console.error('Error fetching maintenance records:', response.error);
-      }
+      console.error("Error fetching maintenance records:", getErrorMessage(response));
       return [];
     },
     enabled: !!vehicleId,
@@ -113,6 +113,7 @@ export function useMaintenance(vehicleId?: string) {
   return {
     maintenanceRecords,
     isLoading,
+    isError,
     error,
     create,
     update,

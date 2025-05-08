@@ -13,7 +13,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', castDbId(agreementId));
+        .eq('lease_id', agreementId as any); // Type assertion to avoid string incompatibility
       
       if (response.error) {
         console.error("Error fetching payments:", response.error);
@@ -54,7 +54,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentUpdate.data as any)
-      .eq('id', castToUUID(paymentUpdate.id))
+      .eq('id', paymentUpdate.id as any) // Type assertion to avoid string incompatibility
       .select();
 
     if (response.error) {
@@ -74,7 +74,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', castToUUID(paymentId));
+      .eq('id', paymentId as any); // Type assertion to avoid string incompatibility
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { hasData } from '@/utils/supabase-response-helpers';
+import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -30,8 +30,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const responseAgreement = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId)
-          .single();
+          .eq('id', agreementId as any); // Type assertion to avoid type mismatch
 
         if (responseAgreement.error) {
           console.error("Error fetching agreement for rent amount:", responseAgreement.error);

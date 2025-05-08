@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { processAgreementData } from '@/components/agreements/table/agreement-data';
 import { CustomerInfo } from '@/types/customer';
-import { hasData } from '@/utils/supabase-response-helpers';
+import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for fetching agreement data
@@ -55,7 +55,7 @@ export function useAgreementData(filters, pagination, setTotalCount) {
         return processAgreementData(response.data);
       }
       
-      console.error("Error fetching agreements:", response.error);
+      console.error("Error fetching agreements:", getErrorMessage(response));
       return [];
     }
   });
