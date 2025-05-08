@@ -130,7 +130,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handlePayFine = async (id: string) => {
     try {
-      await payTrafficFine.mutate({ id });
+      await payTrafficFine.mutateAsync({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
       console.error("Error paying fine:", error);
@@ -142,7 +142,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handleDisputeFine = async (id: string) => {
     try {
-      await disputeTrafficFine.mutate({ id });
+      await disputeTrafficFine.mutateAsync({ id });
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
       console.error("Error disputing fine:", error);

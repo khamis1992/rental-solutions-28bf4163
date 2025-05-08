@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
+import { hasData, getErrorMessage, getResponseData } from '@/utils/supabase-response-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -30,16 +30,12 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const responseAgreement = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId as any); // Type assertion to avoid type mismatch
-
-        if (responseAgreement.error) {
-          console.error("Error fetching agreement for rent amount:", responseAgreement.error);
-          setError(new Error(`Failed to fetch agreement: ${responseAgreement.error.message}`));
-          setIsLoading(false);
-          return;
-        }
+          .eq('id', agreementId)
+          .single();
 
         if (!hasData(responseAgreement)) {
+          console.error("Error fetching agreement for rent amount:", getErrorMessage(responseAgreement));
+          setError(new Error(`Failed to fetch agreement: ${getErrorMessage(responseAgreement)}`));
           setIsLoading(false);
           return;
         }
@@ -57,14 +53,14 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           .eq('id', vehicleId)
           .single();
 
-        if (responseVehicle.error) {
-          console.error("Error fetching vehicle rent amount:", responseVehicle.error);
-          setError(new Error(`Failed to fetch vehicle: ${responseVehicle.error.message}`));
+        if (!hasData(responseVehicle)) {
+          console.error("Error fetching vehicle rent amount:", getErrorMessage(responseVehicle));
+          setError(new Error(`Failed to fetch vehicle: ${getErrorMessage(responseVehicle)}`));
           setIsLoading(false);
           return;
         }
 
-        if (hasData(responseVehicle) && responseVehicle.data.rent_amount !== null) {
+        if (responseVehicle.data.rent_amount !== null) {
           setRentAmount(responseVehicle.data.rent_amount);
         }
       } catch (err) {

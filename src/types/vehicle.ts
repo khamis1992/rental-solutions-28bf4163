@@ -1,4 +1,3 @@
-
 /**
  * Vehicle status options from the database schema
  */
@@ -58,18 +57,51 @@ export interface VehicleFormData {
   vehicle_type_id?: string | null;
 }
 
-/**
- * Vehicle filter parameters type
- */
-export interface VehicleFilterParams {
+export interface VehicleInsertData {
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  vin: string;
+  color?: string;
+  mileage?: number;
+  rent_amount?: number;
   status?: string;
-  statuses?: string[];
+  vehicle_type_id?: string;
+  description?: string;
+  image_url?: string;
+  location?: string;
+  insurance_company?: string;
+  insurance_expiry?: string | Date;
+  device_type?: string;
+}
+
+export interface VehicleUpdateData {
   make?: string;
   model?: string;
-  year?: number | null;
-  minYear?: number | null;
-  maxYear?: number | null;
+  year?: number;
+  license_plate?: string;
+  vin?: string;
+  color?: string;
+  mileage?: number;
+  rent_amount?: number;
+  status?: string;
+  vehicle_type_id?: string;
+  description?: string;
+  image_url?: string;
+  location?: string;
+  insurance_company?: string;
+  insurance_expiry?: string | Date;
+  device_type?: string;
+}
+
+// Update VehicleFilterParams to include missing properties
+export interface VehicleFilterParams {
+  status?: string;
   searchTerm?: string;
+  cursor?: string;
+  location?: string;
+  vehicle_type_id?: string;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
 }

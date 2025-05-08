@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -49,7 +48,7 @@ interface TrafficFinesListProps {
 
 const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
+  const { trafficFines, isLoading, error, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 

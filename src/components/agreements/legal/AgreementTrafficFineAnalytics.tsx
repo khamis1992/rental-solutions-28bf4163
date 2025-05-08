@@ -1,7 +1,8 @@
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { TrafficFine } from '@/types/traffic-fine';
 import { Loader2, AlertCircle, CheckCircle2, CircleDollarSign, CalendarDays } from 'lucide-react';
 import { format, differenceInMonths } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';

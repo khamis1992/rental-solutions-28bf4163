@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -7,6 +8,7 @@ import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
 
 /**
  * Hook for managing vehicle maintenance records
+ * @param vehicleId Vehicle ID for which maintenance records should be fetched
  */
 export function useMaintenance(vehicleId: string) {
   const queryClient = useQueryClient();
