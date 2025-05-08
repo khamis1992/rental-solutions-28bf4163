@@ -8,14 +8,14 @@ interface AgreementTableProps {
   compact?: boolean;
 }
 
-export default function AgreementTable({ compact = false }: AgreementTableProps) {
+export const AgreementTable = ({ compact = false }: AgreementTableProps) => {
   const {
     agreements,
     isLoading,
     error,
     pagination,
   } = useAgreementTable();
-  
+
   // Process agreement data for display
   const typedAgreements = processAgreementData(agreements || []);
 
@@ -24,11 +24,11 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
   }
 
   return (
-    <TableContent 
+    <TableContent
       agreements={typedAgreements}
       isLoading={isLoading}
       compact={compact}
       pagination={pagination}
     />
   );
-}
+};

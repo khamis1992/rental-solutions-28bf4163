@@ -4,7 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import { Database } from 'lucide-react';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
-import AgreementTable from '@/components/agreements/AgreementTable';
+import { AgreementTable } from '@/components/agreements/AgreementTable';
 
 interface AgreementContentProps {
   activeTab: string;

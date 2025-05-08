@@ -6,7 +6,7 @@ import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/types/agreement-types';
 import { Pagination } from '@/components/ui/pagination';
 
-export function AgreementList() {
+export const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
@@ -41,16 +41,16 @@ export function AgreementList() {
 
   return (
     <div className="space-y-6">
-      <AgreementCardView 
+      <AgreementCardView
         agreements={typedAgreements}
         isLoading={isLoading}
         onDeleteAgreement={(id) => handleBulkDelete(id)}
       />
-      
+
       {pagination && pagination.totalPages > 1 && (
         <div className="flex flex-col items-center justify-center mt-6">
-          <Pagination 
-            currentPage={pagination.page} 
+          <Pagination
+            currentPage={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
             showFirstLast={true}

@@ -29,5 +29,5 @@ export * from './page/AgreementSearch';
 export * from './page/ActiveFilters';
 
 // Table components
-export * from './table/AgreementTable';
+export * from './AgreementTable';
 export * from './table/AgreementTableColumns';
