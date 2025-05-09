@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 interface AgreementSearchProps {
   searchQuery: string;
@@ -15,30 +17,42 @@ export function AgreementSearch({
   setSearchParams,
 }: AgreementSearchProps) {
   const [inputValue, setInputValue] = useState(searchQuery);
+  const debouncedValue = useDebounce(inputValue, 500);
+
+  // Effect to handle debounced search
+  useEffect(() => {
+    if (debouncedValue !== searchQuery) {
+      handleSearch(debouncedValue);
+    }
+  }, [debouncedValue]);
 
   // Handle direct search query input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    
-    if (!value) {
-      // Clear search if input is empty
-      setSearchParams({ query: undefined });
-      setSearchQuery('');
-    }
   };
 
   // Handle search submission
-  const handleSearch = () => {
-    setSearchQuery(inputValue);
-    setSearchParams({ query: inputValue });
+  const handleSearch = (value: string) => {
+    if (!value || value.trim() === '') {
+      // Clear search if input is empty
+      setSearchParams({ query: undefined });
+      setSearchQuery('');
+    } else {
+      // Set search parameters and reset to page 1
+      setSearchParams({ 
+        query: value,
+        page: 1  // Important: Reset to page 1 when searching
+      });
+      setSearchQuery(value);
+    }
   };
 
   // Handle Enter key for search
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSearch();
+      handleSearch(inputValue);
     }
   };
 
@@ -46,7 +60,7 @@ export function AgreementSearch({
   const handleClearSearch = () => {
     setInputValue('');
     setSearchQuery('');
-    setSearchParams({ query: undefined });
+    setSearchParams({ query: undefined, page: 1 });
   };
 
   return (
@@ -56,16 +70,11 @@ export function AgreementSearch({
         
         <Input
           type="search"
-          placeholder="Search agreements..."
+          placeholder="Search agreements by number, plate, or customer..."
           className="pl-10 pr-10"
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onBlur={() => {
-            if (inputValue && inputValue !== searchQuery) {
-              handleSearch();
-            }
-          }}
         />
         
         {inputValue && (
