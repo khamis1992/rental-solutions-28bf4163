@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
@@ -93,7 +92,7 @@ const VehicleDetailPage = () => {
     );
   }
   
-  if (error || !vehicle) {
+  if (!vehicle) {
     return (
       <PageContainer>
         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">

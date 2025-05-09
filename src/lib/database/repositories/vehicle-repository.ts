@@ -140,9 +140,9 @@ export class VehicleRepository extends Repository<'vehicles'> {
   }
 
   /**
-   * Get vehicle with details including maintenance history
+   * Get vehicle with details including maintenance history and vehicle type
    */
-  async findWithDetails(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { maintenance: any[] }>> {
+  async findWithDetails(vehicleId: string): Promise<DbSingleResponse<VehicleRow & { maintenance: any[], vehicle_types: any }>> {
     try {
       if (!vehicleId) {
         return {
@@ -153,7 +153,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       
       const response = await this.client
         .from('vehicles')
-        .select('*, maintenance:vehicle_maintenance(*)')
+        .select('*, maintenance:vehicle_maintenance(*), vehicle_types(*)')
         .eq('id', asVehicleId(vehicleId))
         .single();
       

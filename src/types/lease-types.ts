@@ -17,21 +17,21 @@ export type LeaseStatus =
 
 // Make sure our lease status types always include all validation schema status types
 export type ValidationLeaseStatus = 
+  | 'active'
   | 'pending'
   | 'cancelled'
-  | 'active'
-  | 'closed'
   | 'draft'
+  | 'closed'
   | 'expired';
 
 // Helper to check if a lease status is valid for the validation schema
 export function isValidationLeaseStatus(status: LeaseStatus): status is ValidationLeaseStatus {
   return [
+    'active',
     'pending',
     'cancelled',
-    'active',
+    'draft', 
     'closed',
-    'draft',
     'expired'
   ].includes(status);
 }

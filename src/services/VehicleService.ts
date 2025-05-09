@@ -1,4 +1,3 @@
-
 import { vehicleRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
@@ -136,6 +135,16 @@ export class VehicleService extends BaseService<'vehicles'> {
       // Ensure maintenance is always an array
       if (!response.data.maintenance) {
         response.data.maintenance = [];
+      }
+      
+      // Map vehicle_types to vehicleType for compatibility
+      if (response.data.vehicle_types) {
+        (response.data as any).vehicleType = {
+          id: response.data.vehicle_types.id,
+          name: response.data.vehicle_types.name,
+          daily_rate: response.data.vehicle_types.daily_rate,
+          size: response.data.vehicle_types.size
+        };
       }
       
       return response.data;
