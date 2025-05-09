@@ -17,13 +17,13 @@ export function AgreementPagination({
   className = ''
 }: AgreementPaginationProps) {
   // Generate page numbers with ellipsis for long page ranges
-  const getPageNumbers = () => {
+  const getPageNumbers = (): (number | string)[] => {
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
     
     // Always show first page, last page, current page, and one page before and after current
-    const pages = [1];
+    const pages: (number | string)[] = [1];
     
     if (currentPage > 3) {
       pages.push('...');
@@ -62,7 +62,7 @@ export function AgreementPagination({
       
       <div className="flex items-center space-x-1">
         {getPageNumbers().map((page, index) => (
-          page === '...' ? (
+          typeof page === 'string' ? (
             <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
           ) : (
             <Button
@@ -70,7 +70,7 @@ export function AgreementPagination({
               variant={currentPage === page ? "default" : "outline"}
               size="sm"
               className="w-8 h-8 p-0"
-              onClick={() => onPageChange(Number(page))}
+              onClick={() => onPageChange(page)}
             >
               {page}
             </Button>

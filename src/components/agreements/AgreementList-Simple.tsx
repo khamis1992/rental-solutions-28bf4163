@@ -47,7 +47,7 @@ export function AgreementList() {
         onDeleteAgreement={(id) => handleBulkDelete(id)}
       />
       
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <div className="flex flex-col items-center justify-center mt-6">
           <AgreementPagination
             currentPage={pagination.page}

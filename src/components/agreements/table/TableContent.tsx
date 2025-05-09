@@ -101,7 +101,7 @@ export function TableContent({
         </table>
       </div>
       
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <div className="flex flex-col items-center justify-center mt-2">
           <AgreementPagination
             currentPage={pagination.page}
