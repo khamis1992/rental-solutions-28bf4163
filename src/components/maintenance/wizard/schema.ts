@@ -6,9 +6,10 @@ import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/mai
 export const maintenanceFormSchema = z.object({
   maintenance_type: z.enum([
     MaintenanceType.OIL_CHANGE,
-    MaintenanceType.TIRE_REPLACEMENT, 
+    MaintenanceType.TIRE_ROTATION, 
     MaintenanceType.BRAKE_SERVICE,
     MaintenanceType.REGULAR_INSPECTION,
+    MaintenanceType.TIRE_REPLACEMENT,
     MaintenanceType.ENGINE_REPAIR,
     MaintenanceType.TRANSMISSION_SERVICE,
     MaintenanceType.ELECTRICAL_REPAIR,

@@ -1,4 +1,3 @@
-
 /**
  * Core types for the Vehicle Management System
  * @module VehicleTypes
@@ -52,6 +51,24 @@ export interface Vehicle {
   vehicle_type_id?: string;
   /** Indicates if this is test data */
   is_test_data?: boolean;
+  /** Additional images URLs */
+  additional_images?: string[];
+  /** Vehicle notes/description */
+  notes?: string;
+  /** Daily rate for rentals */
+  dailyRate?: number;
+  /** Monthly rate for rentals */
+  monthlyRate?: number;
+  /** Vehicle type information */
+  vehicleType?: string;
+  /** Vehicle types information object */
+  vehicle_types?: {
+    id: string;
+    name: string;
+    description?: string;
+    daily_rate: number;
+    [key: string]: any;
+  };
   /** Timestamps */
   created_at: string;
   updated_at: string;
@@ -107,4 +124,55 @@ interface VehicleMetrics {
   revenue_generated: number;
   maintenance_costs: number;
   availability_percentage: number;
+}
+
+// Add these missing type definitions for vehicle-mappers.ts
+export type VehicleType = {
+  id: string;
+  name: string;
+  description?: string;
+  daily_rate: number;
+};
+
+export type DatabaseVehicleRecord = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  status: string;
+  // Add other fields as needed
+};
+
+export type DatabaseVehicleType = {
+  id: string;
+  name: string;
+  description?: string;
+  daily_rate: number;
+};
+
+export type DatabaseVehicleStatus = string;
+
+export interface VehicleFilterParams {
+  status?: string;
+  statuses?: string[];
+  make?: string;
+  model?: string;
+  year?: number | null;
+  minYear?: number | null;
+  maxYear?: number | null;
+  searchTerm?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  location?: string;
+  vehicle_type_id?: string;
+  [key: string]: any;
+}
+
+export interface VehicleGridProps {
+  filter?: {
+    statuses?: string[];
+    [key: string]: any;
+  };
+  showAdd?: boolean; // Added to fix the error in MaintenancePage
 }

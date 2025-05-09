@@ -1,140 +1,148 @@
 
 import React, { useState, useEffect } from 'react';
-import { MaintenanceRecord, MaintenanceCategory } from '@/types/maintenance';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { maintenanceSchema } from '@/lib/validation-schemas/maintenance';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue, 
-} from '@/components/ui/select';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { Card, CardContent } from '@/components/ui/card';
+import VehicleSelector from '@/components/vehicles/VehicleSelector';
+import { MaintenanceRecord } from '@/types/maintenance';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useVehicles } from '@/hooks/use-vehicles';
 
-export interface MaintenanceFormProps {
-  initialData?: Partial<MaintenanceRecord>;
-  onSubmit: (data: any) => void;
-  isEditMode?: boolean;
-}
+// Define the form schema
+const maintenanceFormSchema = z.object({
+  maintenance_type: z.string().min(1, {
+    message: "Please select a maintenance type",
+  }),
+  service_type: z.string().optional(),
+  description: z.string().optional(),
+  vehicle_id: z.string().nullable().optional(),
+  scheduled_date: z.string().min(1, {
+    message: "Please select a scheduled date",
+  }),
+  completion_date: z.string().optional(),
+  status: z.string().min(1, {
+    message: "Please select a status",
+  }),
+  cost: z.number().optional(),
+  service_provider: z.string().optional(),
+  notes: z.string().optional(),
+  category_id: z.string().optional(),
+});
+
+export type MaintenanceFormProps = {
+  initialData?: MaintenanceRecord;
+  onSubmit: (formData: any) => void;
+};
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   initialData,
   onSubmit,
-  isEditMode = false,
 }) => {
-  const [categories, setCategories] = useState<MaintenanceCategory[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  
-  // Setup form with validation
-  const form = useForm<MaintenanceRecord>({
-    resolver: zodResolver(maintenanceSchema),
-    defaultValues: {
-      ...initialData || {
-        maintenance_type: 'REGULAR_INSPECTION',
-        description: '',
-        cost: 0,
-        scheduled_date: new Date().toISOString(),
-        completion_date: undefined,
-        status: 'scheduled',
-        service_provider: '',
-        vehicle_id: '',
-        notes: '',
-      }
-    }
-  });
+  const { vehicles, isLoading: loadingVehicles } = useVehicles();
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
-  // Load maintenance categories
   useEffect(() => {
     const fetchCategories = async () => {
-      setLoading(true);
       try {
-        // Mocked categories for now - in a real app, this would come from an API
-        const mockCategories = [
-          { id: '1', name: 'Engine', description: 'Engine maintenance', is_active: true },
-          { id: '2', name: 'Brakes', description: 'Brake system', is_active: true },
-          { id: '3', name: 'Tires', description: 'Tire maintenance', is_active: true },
-          { id: '4', name: 'Electrical', description: 'Electrical system', is_active: true },
-          { id: '5', name: 'Interior', description: 'Interior maintenance', is_active: true },
-        ];
-        setCategories(mockCategories as MaintenanceCategory[]);
-      } catch (error) {
-        console.error('Error loading maintenance categories:', error);
+        const { data, error } = await fetch('/api/maintenance-categories').then(res => res.json());
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setCategories([]);
       } finally {
-        setLoading(false);
+        setLoadingCategories(false);
       }
     };
 
     fetchCategories();
   }, []);
 
-  // Handle form submission
-  const handleSubmit = (data: MaintenanceRecord) => {
-    onSubmit(data);
+  // Set up the form
+  const form = useForm<z.infer<typeof maintenanceFormSchema>>({
+    resolver: zodResolver(maintenanceFormSchema),
+    defaultValues: {
+      maintenance_type: initialData?.maintenance_type || '',
+      service_type: initialData?.service_type || '',
+      description: initialData?.description || '',
+      vehicle_id: initialData?.vehicle_id || null,
+      scheduled_date: initialData?.scheduled_date 
+        ? typeof initialData.scheduled_date === 'string' 
+          ? initialData.scheduled_date.split('T')[0] 
+          : (initialData.scheduled_date as Date).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
+      completion_date: initialData?.completion_date 
+        ? typeof initialData.completion_date === 'string'
+          ? initialData.completion_date.split('T')[0]
+          : (initialData.completion_date as Date)?.toISOString().split('T')[0]
+        : '',
+      status: initialData?.status || MaintenanceStatus.SCHEDULED,
+      cost: initialData?.cost || 0,
+      service_provider: initialData?.service_provider || '',
+      notes: initialData?.notes || '',
+      category_id: initialData?.category_id || '',
+    },
+  });
+
+  useEffect(() => {
+    if (initialData?.vehicle_id && vehicles.length) {
+      const vehicle = vehicles.find(v => v.id === initialData.vehicle_id);
+      if (vehicle) {
+        setSelectedVehicle(vehicle);
+      }
+    }
+  }, [initialData?.vehicle_id, vehicles]);
+
+  const handleFormSubmit = (values: z.infer<typeof maintenanceFormSchema>) => {
+    onSubmit({
+      ...values,
+      vehicle_id: selectedVehicle?.id || values.vehicle_id,
+    });
   };
 
-  const activeCategories = categories.filter(category => 
-    // Type guard to check if the category has is_active property
-    (category && typeof category === 'object' && 'is_active' in category) 
-      ? category.is_active 
-      : true
-  );
+  const handleVehicleSelect = (vehicle: any) => {
+    setSelectedVehicle(vehicle);
+    form.setValue('vehicle_id', vehicle.id);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="maintenance_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Maintenance Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select a maintenance type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="REGULAR_INSPECTION">Regular Inspection</SelectItem>
-                    <SelectItem value="REPAIR">Repair</SelectItem>
-                    <SelectItem value="OIL_CHANGE">Oil Change</SelectItem>
-                    <SelectItem value="TIRE_ROTATION">Tire Rotation</SelectItem>
-                    <SelectItem value="BRAKE_SERVICE">Brake Service</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="category_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {activeCategories.map(category => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
+                    {Object.entries(MaintenanceType).map(([key, value]) => (
+                      <SelectItem key={key} value={value}>
+                        {key.replace(/_/g, ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -146,74 +154,25 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
-            name="vehicle_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle</FormLabel>
-                <FormControl>
-                  <Input placeholder="Vehicle ID" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="scheduled_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Scheduled Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={new Date(field.value)}
-                      onSelect={(date) => field.onChange(date?.toISOString())}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="status"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder="Select a status" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    {Object.entries(MaintenanceStatus).map(([key, value]) => (
+                      <SelectItem key={key} value={value}>
+                        {key.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -223,12 +182,26 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
-            name="service_provider"
+            name="scheduled_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Service Provider</FormLabel>
+                <FormLabel>Scheduled Date</FormLabel>
                 <FormControl>
-                  <Input placeholder="Service Provider Name" {...field} />
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="completion_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Completion Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -244,26 +217,25 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <FormControl>
                   <Input 
                     type="number" 
-                    placeholder="0" 
+                    min="0" 
+                    step="0.01" 
                     {...field} 
-                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
 
-        <div className="grid grid-cols-1 gap-4">
           <FormField
             control={form.control}
-            name="description"
+            name="service_provider"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Service Provider</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Maintenance description" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -272,25 +244,92 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
-            name="notes"
+            name="category_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Additional notes" {...field} />
-                </FormControl>
+                <FormLabel>Category</FormLabel>
+                {loadingCategories ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" type="button" onClick={() => window.history.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : initialData?.id ? 'Update' : 'Create'}
+
+        <div>
+          <FormLabel>Vehicle</FormLabel>
+          {loadingVehicles ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <VehicleSelector
+              selectedVehicle={selectedVehicle}
+              onVehicleSelect={handleVehicleSelect}
+              placeholder="Select a vehicle"
+            />
+          )}
+        </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Describe the maintenance task"
+                  className="min-h-[80px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Additional notes"
+                  className="min-h-[80px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end">
+          <Button 
+            type="submit"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? 'Saving...' : (initialData ? 'Update' : 'Create')}
           </Button>
         </div>
       </form>

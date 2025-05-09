@@ -26,7 +26,7 @@ export function MaintenanceSchedulingWizard({
 }: MaintenanceSchedulingWizardProps) {
   const [currentStep, setCurrentStep] = useState('type');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { create } = useMaintenance(vehicleId);
+  const { create } = useMaintenance(vehicleId || '');
   
   // Use our custom hook for form state and validation
   const {
@@ -102,7 +102,7 @@ export function MaintenanceSchedulingWizard({
           <TabsContent value="type" className="pt-4">
             <MaintenanceTypeStep
               maintenanceType={formData.maintenance_type}
-              description={formData.description}
+              description={formData.description || ''}
               onMaintenanceTypeChange={(value) => handleSelectChange('maintenance_type', value)}
               onDescriptionChange={handleInputChange}
               errors={errors}
@@ -113,8 +113,8 @@ export function MaintenanceSchedulingWizard({
             <MaintenanceDetailsStep
               scheduledDate={formData.scheduled_date}
               estimatedCost={formData.estimated_cost}
-              assignedTo={formData.assigned_to}
-              notes={formData.notes}
+              assignedTo={formData.assigned_to || ''}
+              notes={formData.notes || ''}
               onInputChange={handleInputChange}
               errors={errors}
             />
@@ -125,9 +125,9 @@ export function MaintenanceSchedulingWizard({
               maintenanceType={formData.maintenance_type}
               scheduledDate={formData.scheduled_date}
               estimatedCost={formData.estimated_cost}
-              assignedTo={formData.assigned_to}
-              description={formData.description}
-              notes={formData.notes}
+              assignedTo={formData.assigned_to || ''}
+              description={formData.description || ''}
+              notes={formData.notes || ''}
             />
           </TabsContent>
         </Tabs>

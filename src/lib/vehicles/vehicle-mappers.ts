@@ -1,96 +1,82 @@
 
-import { 
-  Vehicle, 
-  VehicleType, 
-  DatabaseVehicleRecord, 
-  DatabaseVehicleType, 
-  VehicleStatus,
-  DatabaseVehicleStatus
-} from '@/types/vehicle';
+import { Vehicle, VehicleType, VehicleStatus } from '@/types/vehicle.types';
 
-/**
- * Maps a database vehicle status to an app vehicle status
- */
-export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): VehicleStatus | undefined {
-  if (!dbStatus) return undefined;
+// Define missing types
+type DatabaseVehicleRecord = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  status: string;
+  // Add other fields as needed
+};
+
+type DatabaseVehicleType = {
+  id: string;
+  name: string;
+  description?: string;
+  daily_rate: number;
+};
+
+type DatabaseVehicleStatus = string;
+
+// Map database vehicle record to application Vehicle type
+export const mapToVehicle = (record: DatabaseVehicleRecord, vehicleTypes?: DatabaseVehicleType[]): Vehicle => {
+  let vehicleType: DatabaseVehicleType | undefined;
   
-  if (dbStatus === 'reserve') {
-    return 'reserved';
+  if (vehicleTypes?.length && record.vehicle_type_id) {
+    vehicleType = vehicleTypes.find(vt => vt.id === record.vehicle_type_id);
   }
   
-  return dbStatus as VehicleStatus;
-}
-
-/**
- * Maps an app vehicle status to a database vehicle status
- */
-export function mapToDBStatus(status: VehicleStatus | undefined): DatabaseVehicleStatus | undefined {
-  if (!status) return undefined;
-  
-  if (status === 'reserved') {
-    return 'reserve';
-  }
-  
-  return status as DatabaseVehicleStatus;
-}
-
-/**
- * Maps a database vehicle record to an app vehicle object
- */
-export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicleType?: DatabaseVehicleType): Vehicle {
   return {
     id: record.id,
-    license_plate: record.license_plate,
     make: record.make,
     model: record.model,
     year: record.year,
-    color: record.color,
-    vin: record.vin,
-    mileage: record.mileage,
-    status: mapDBStatusToAppStatus(record.status || null) as VehicleStatus,
-    description: record.description,
-    image_url: record.image_url,
+    license_plate: record.license_plate,
+    status: mapStatusToDomain(record.status),
+    color: record.color || undefined,
+    mileage: record.mileage || 0,
+    rent_amount: record.rent_amount || 0,
+    vehicle_type_id: record.vehicle_type_id || undefined,
+    image_url: record.image_url || undefined,
+    vin: record.vin || '',
+    location: record.location || undefined,
     created_at: record.created_at,
     updated_at: record.updated_at,
-    rent_amount: record.rent_amount,
+    // The properties below are properly added to the Vehicle type now
+    description: record.description,
+    notes: record.notes,
+    is_test_data: record.is_test_data,
     insurance_company: record.insurance_company,
     insurance_expiry: record.insurance_expiry,
-    location: record.location,
-    vehicleType: vehicleType ? {
+    additional_images: record.additional_images,
+    vehicle_types: vehicleType ? {
       id: vehicleType.id,
       name: vehicleType.name,
+      description: vehicleType.description,
       daily_rate: vehicleType.daily_rate
-    } : undefined,
-    dailyRate: vehicleType?.daily_rate,
-    monthlyRate: vehicleType?.monthly_rate,
-    daily_rate: record.daily_rate || vehicleType?.daily_rate,
-    monthly_rate: record.monthly_rate || vehicleType?.monthly_rate,
-    notes: record.notes,
-    additional_images: record.additional_images
-  };
-}
+    } : undefined
+  } as Vehicle;
+};
 
-/**
- * Normalize features array from various input formats
- */
-export function normalizeFeatures(features: any): string[] {
-  if (!features) return [];
-  
-  if (typeof features === 'string') {
-    try {
-      return JSON.parse(features);
-    } catch (e) {
-      return [features];
-    }
-  }
-  
-  if (Array.isArray(features)) {
-    return features.map(f => typeof f === 'string' ? f : JSON.stringify(f));
-  }
-  
-  if (typeof features === 'object') {
-    return Object.values(features).map(f => typeof f === 'string' ? f : JSON.stringify(f));
-  }
-  
-  return [String(features)];
-}
+// Map domain status to database status
+export const mapToDBStatus = (status: VehicleStatus): DatabaseVehicleStatus => {
+  return status;
+};
+
+// Map database status to domain status
+export const mapStatusToDomain = (status: DatabaseVehicleStatus): VehicleStatus => {
+  return status as VehicleStatus;
+};
+
+// Map vehicle types
+export const mapVehicleTypes = (types: DatabaseVehicleType[]): VehicleType[] => {
+  return types.map(type => ({
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    daily_rate: type.daily_rate
+  }));
+};

@@ -1,80 +1,90 @@
 
 import { useState } from 'react';
-import { MaintenanceFormData, maintenanceFormSchema, transformFormData } from './schema';
-import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
+import { MaintenanceFormData } from '@/lib/validation-schemas/maintenance';
 
-export const useMaintenanceForm = (vehicleId?: string) => {
-  // Initialize form state with default values
-  const [formData, setFormData] = useState<MaintenanceFormData>({
-    maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+export type MaintenanceFormErrors = {
+  maintenance_type?: string;
+  description?: string;
+  scheduled_date?: string;
+  estimated_cost?: string;
+  assigned_to?: string;
+  notes?: string;
+  vehicle_id?: string;
+  status?: string;
+};
+
+export const useMaintenanceForm = (vehicleId: string | undefined) => {
+  const [formData, setFormData] = useState<{
+    maintenance_type: string;
+    description?: string;
+    scheduled_date: string;
+    estimated_cost: string;
+    assigned_to?: string;
+    notes?: string;
+    vehicle_id?: string;
+    status?: string;
+  }>({
+    maintenance_type: '',
     description: '',
-    scheduled_date: new Date().toISOString().slice(0, 16),
-    estimated_cost: '',
+    scheduled_date: new Date().toISOString().substring(0, 10),
+    estimated_cost: '0',
     assigned_to: '',
     notes: '',
-    vehicle_id: vehicleId || '',
-    status: MaintenanceStatus.SCHEDULED
+    vehicle_id: vehicleId,
+    status: 'scheduled'
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof MaintenanceFormData, string>>>({});
+  const [errors, setErrors] = useState<MaintenanceFormErrors>({});
 
-  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error for the field being changed
-    if (errors[name as keyof MaintenanceFormData]) {
-      setErrors({
-        ...errors,
-        [name]: undefined
-      });
+    // Clear error when field is edited
+    if (errors[name as keyof MaintenanceFormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Handle select changes
-  const handleSelectChange = (field: keyof MaintenanceFormData, value: string) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    });
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error for the field being changed
-    if (errors[field]) {
-      setErrors({
-        ...errors,
-        [field]: undefined
-      });
+    // Clear error when field is edited
+    if (errors[name as keyof MaintenanceFormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Validate form data
-  const validateForm = (): boolean => {
-    try {
-      maintenanceFormSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error: any) {
-      if (error.errors) {
-        const newErrors: Partial<Record<keyof MaintenanceFormData, string>> = {};
-        error.errors.forEach((err: any) => {
-          if (err.path && err.path.length > 0) {
-            const field = err.path[0] as keyof MaintenanceFormData;
-            newErrors[field] = err.message;
-          }
-        });
-        setErrors(newErrors);
-      }
-      return false;
+  const validateForm = () => {
+    const newErrors: MaintenanceFormErrors = {};
+    
+    if (!formData.maintenance_type) {
+      newErrors.maintenance_type = "Maintenance type is required";
     }
+    
+    if (!formData.scheduled_date) {
+      newErrors.scheduled_date = "Scheduled date is required";
+    }
+    
+    if (formData.estimated_cost && (isNaN(parseFloat(formData.estimated_cost)) || parseFloat(formData.estimated_cost) < 0)) {
+      newErrors.estimated_cost = "Estimated cost must be a valid number";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  // Prepare data for submission
   const getSubmitData = () => {
-    return transformFormData(formData);
+    return {
+      maintenance_type: formData.maintenance_type,
+      description: formData.description || '',
+      scheduled_date: formData.scheduled_date,
+      cost: parseFloat(formData.estimated_cost || '0'),
+      assigned_to: formData.assigned_to,
+      notes: formData.notes,
+      vehicle_id: formData.vehicle_id || vehicleId,
+      status: formData.status || 'scheduled'
+    };
   };
 
   return {

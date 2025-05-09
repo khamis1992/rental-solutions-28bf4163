@@ -44,6 +44,7 @@ export interface Agreement {
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
+  signature_url?: string;
 }
 
 // Add any other agreement-related types here
