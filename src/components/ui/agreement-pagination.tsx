@@ -21,20 +21,32 @@ export function AgreementPagination({
     return null;
   }
 
+  const handlePreviousClick = () => {
+    if (currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextClick = () => {
+    if (currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
+  };
+
   // Simple pagination that shows current page number out of total pages
   return (
-    <div className={`flex items-center justify-center gap-2 ${className}`}>
+    <div className={`flex items-center justify-center gap-4 ${className}`}>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={handlePreviousClick}
         disabled={currentPage <= 1}
       >
-        <ChevronLeft className="h-4 w-4" />
-        <span className="ml-1">Back</span>
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Back
       </Button>
       
-      <div className="flex items-center px-3 py-1 bg-muted rounded-md">
+      <div className="flex items-center px-4 py-2 bg-background border rounded-md">
         <span className="text-sm font-medium">
           Page {currentPage} of {totalPages}
         </span>
@@ -43,11 +55,11 @@ export function AgreementPagination({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={handleNextClick}
         disabled={currentPage >= totalPages}
       >
-        <span className="mr-1">Next</span>
-        <ChevronRight className="h-4 w-4" />
+        Next
+        <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>
   );

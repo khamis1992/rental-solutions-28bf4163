@@ -32,11 +32,13 @@ export function useAgreementTable() {
     }
   };
 
-  const handleBulkDelete = async (id: string) => {
+  const handleBulkDelete = async (id?: string) => {
     try {
       const ids = id ? [id] : selectedAgreements;
-      await deleteAgreements(ids);
-      setSelectedAgreements([]);
+      if (ids.length > 0) {
+        await deleteAgreements(ids);
+        setSelectedAgreements([]);
+      }
     } catch (error) {
       console.error('Failed to delete agreements:', error);
     }

@@ -102,7 +102,7 @@ export function TableContent({
       </div>
       
       {pagination && (
-        <div className="flex flex-col items-center justify-center mt-4">
+        <div className="flex flex-col items-center justify-center mt-4 py-2 border-t">
           <AgreementPagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}

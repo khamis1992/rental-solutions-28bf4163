@@ -48,7 +48,7 @@ export function AgreementList() {
       />
       
       {pagination && (
-        <div className="flex flex-col items-center justify-center mt-6">
+        <div className="flex flex-col items-center justify-center mt-6 pb-2 border-t pt-6">
           <AgreementPagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
