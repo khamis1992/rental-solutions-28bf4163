@@ -91,9 +91,15 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({
                 </div>
               )}
               
-              {vehicle.daily_rate && (
+              {vehicle.dailyRate && (
                 <div className="flex items-center gap-1 font-medium text-foreground">
-                  <span>{formatCurrency(vehicle.daily_rate)}/day</span>
+                  <span>{formatCurrency(vehicle.dailyRate)}/day</span>
+                </div>
+              )}
+              
+              {!vehicle.dailyRate && vehicle.rent_amount && (
+                <div className="flex items-center gap-1 font-medium text-foreground">
+                  <span>{formatCurrency(vehicle.rent_amount)}/day</span>
                 </div>
               )}
             </div>

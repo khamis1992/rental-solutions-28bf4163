@@ -1,11 +1,11 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleDetail from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { CustomButton } from '@/components/ui/custom-button';
+import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -26,9 +26,7 @@ const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { useVehicle, useDelete } = useVehicles();
-  const { data: vehicle, isLoading, error, refetch } = useVehicle(id ? asVehicleId(id) : '');
-  const { mutate: deleteVehicle, isPending: isDeleting } = useDelete();
+  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
   
   // Force a refresh on component mount
   React.useEffect(() => {
@@ -39,21 +37,8 @@ const VehicleDetailPage = () => {
   }, [id, refetch]);
   
   const handleDelete = async () => {
-    if (id) {
-      deleteVehicle(asVehicleId(id), {
-        onSuccess: () => {
-          toast.success('Vehicle deleted successfully', {
-            description: 'You have been redirected to the vehicles list'
-          });
-          navigate('/vehicles');
-        },
-        onError: (error) => {
-          toast.error('Failed to delete vehicle', {
-            description: error instanceof Error ? error.message : 'An unknown error occurred'
-          });
-        }
-      });
-    }
+    // We'll implement this in a future update
+    toast.error("Delete functionality will be available soon");
   };
 
   const handleScheduleMaintenance = () => {
@@ -178,7 +163,6 @@ const VehicleDetailPage = () => {
                   <AlertDialogAction 
                     onClick={handleDelete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={isDeleting}
                   >
                     {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isDeleting ? 'Deleting...' : 'Delete'}

@@ -17,7 +17,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
 
     setIsLoading(true);
     try {
-      const vehicleData = await vehicleService.getVehicleDetail(vehicleId);
+      const vehicleData = await vehicleService.getVehicleDetails(vehicleId);
       setVehicle(vehicleData);
       setError(null);
     } catch (err) {

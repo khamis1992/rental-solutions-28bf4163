@@ -92,9 +92,10 @@ const VehicleTable: React.FC<VehicleTableProps> = ({
               <TableCell>
                 <VehicleStatusBadge status={vehicle.status} />
               </TableCell>
-              <TableCell>{vehicle.vehicle_type?.name || 'Standard'}</TableCell>
+              <TableCell>{vehicle.vehicleType?.name || 'Standard'}</TableCell>
               <TableCell>
-                {vehicle.daily_rate ? formatCurrency(vehicle.daily_rate) : 'Not set'}
+                {vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 
+                 vehicle.rent_amount ? formatCurrency(vehicle.rent_amount) : 'Not set'}
               </TableCell>
             </TableRow>
           ))}
