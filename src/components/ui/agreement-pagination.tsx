@@ -16,7 +16,7 @@ export function AgreementPagination({
   onPageChange,
   className = ''
 }: AgreementPaginationProps) {
-  // Prevent going below page 1 or above totalPages
+  // This component now uses the same pattern as SimplePagination
   const goToPrevious = () => {
     if (currentPage > 1) {
       onPageChange(currentPage - 1);

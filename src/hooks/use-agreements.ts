@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -43,10 +44,10 @@ export function useAgreements(initialFilters = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
-  // Default to showing all agreements without pagination
+  // Set a reasonable pageSize for better performance (10 items per page like in the customer list)
   const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
-    pageSize: 1000 // Setting a high number to effectively show all agreements
+    pageSize: 10
   });
   
   const [totalCount, setTotalCount] = useState(0);
