@@ -49,10 +49,10 @@ export function useAgreements(initialFilters = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
-  // Default pagination values
+  // Updated pageSize from 10 to 12
   const [pagination, setPagination] = useState<PaginationOptions>({
     page: 1,
-    pageSize: 10
+    pageSize: 12
   });
   
   const [totalCount, setTotalCount] = useState(0);
