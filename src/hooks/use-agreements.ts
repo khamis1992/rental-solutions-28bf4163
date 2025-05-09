@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -47,7 +46,7 @@ export function useAgreements(initialFilters = {}) {
   // Default to showing all agreements without pagination
   const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
-    pageSize: 10 // Default to 10 items per page
+    pageSize: 1000 // Setting a high number to effectively show all agreements
   });
   
   const [totalCount, setTotalCount] = useState(0);
@@ -91,16 +90,6 @@ export function useAgreements(initialFilters = {}) {
         ...prev,
         page: Number(newFilters.page) || 1
       }));
-    }
-
-    // If query or status changes, reset to page 1
-    if (newFilters.query !== undefined || newFilters.status !== undefined) {
-      setPagination(prev => ({
-        ...prev,
-        page: 1
-      }));
-      searchParams.set('page', '1');
-      setSearchParams(searchParams);
     }
   };
 
@@ -183,7 +172,7 @@ export function useAgreements(initialFilters = {}) {
           } else if (key === 'agreement_number') {
             query = query.ilike('agreement_number', `%${value}%`);
           } else if (key === 'query') {
-            // Enhanced search across multiple fields using OR
+            // Enhanced search across multiple fields
             query = query.or(
               `agreement_number.ilike.%${value}%,vehicles.license_plate.ilike.%${value}%,profiles.full_name.ilike.%${value}%`
             );
@@ -250,7 +239,7 @@ export function useAgreements(initialFilters = {}) {
     error,
     updateAgreement,
     deleteAgreements,
-    searchParams: filters,
+    searchParams,
     setSearchParams: updateSearchParams,
     setFilters,
     customer,
