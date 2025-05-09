@@ -21,11 +21,26 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     return <div>No vehicle data available</div>;
   }
 
+  // Log the vehicle object to see what we're working with
+  console.log("VehicleDetail component received vehicle:", JSON.stringify({
+    id: vehicle.id,
+    make: vehicle.make,
+    model: vehicle.model,
+    status: vehicle.status,
+    hasVehicleType: !!vehicle.vehicleType,
+    vehicleTypeName: vehicle.vehicleType?.name,
+    dailyRate: vehicle.dailyRate || vehicle.rent_amount
+  }));
+
   const isAvailable = vehicle.status === 'available';
   const isInMaintenance = vehicle.status === 'maintenance';
   const isRented = vehicle.status === 'rented';
 
-  // Format vehicle details for display
+  // Safe access to nested properties with fallbacks
+  const vehicleTypeName = vehicle.vehicleType?.name || 'Standard';
+  const dailyRate = vehicle.dailyRate || vehicle.rent_amount;
+
+  // Format vehicle details for display with defensive coding
   const vehicleDetails = [
     { label: "Make", value: vehicle.make },
     { label: "Model", value: vehicle.model },
@@ -34,9 +49,8 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     { label: "License Plate", value: vehicle.license_plate || 'Not specified' },
     { label: "VIN", value: vehicle.vin || 'Not specified' },
     { label: "Mileage", value: vehicle.mileage ? `${vehicle.mileage} km` : "Not recorded" },
-    { label: "Daily Rate", value: vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 
-                                  vehicle.rent_amount ? formatCurrency(vehicle.rent_amount) : "Not set" },
-    { label: "Type", value: vehicle.vehicleType?.name || "Standard" },
+    { label: "Daily Rate", value: dailyRate ? formatCurrency(dailyRate) : "Not set" },
+    { label: "Type", value: vehicleTypeName },
     { label: "Description", value: vehicle.description || "No description available" },
   ];
 

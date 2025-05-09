@@ -83,12 +83,19 @@ export class VehicleRepository extends Repository<'vehicles'> {
         };
       }
       
+      console.log(`VehicleRepository.updateStatus: Updating vehicle ${vehicleId} to status ${status}`);
       const response = await this.client
         .from('vehicles')
         .update({ status: asVehicleStatus(status) })
         .eq('id', asVehicleId(vehicleId))
         .select()
         .single();
+      
+      if (response.error) {
+        console.error(`VehicleRepository.updateStatus: Error:`, response.error);
+      } else {
+        console.log(`VehicleRepository.updateStatus: Success, new status:`, response.data?.status);
+      }
       
       return { 
         data: response.data || null, 
@@ -115,6 +122,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
         };
       }
       
+      console.log(`VehicleRepository.getWithLease: Fetching vehicle ${vehicleId} with lease information`);
       const response = await this.client
         .from('vehicles')
         .select('*, leases(*)')
@@ -151,11 +159,23 @@ export class VehicleRepository extends Repository<'vehicles'> {
         };
       }
       
+      console.log(`VehicleRepository.findWithDetails: Fetching vehicle ${vehicleId} with maintenance and type information`);
       const response = await this.client
         .from('vehicles')
         .select('*, maintenance:vehicle_maintenance(*), vehicle_types(*)')
         .eq('id', asVehicleId(vehicleId))
         .single();
+      
+      if (response.error) {
+        console.error(`VehicleRepository.findWithDetails: Error:`, response.error);
+      } else {
+        console.log(`VehicleRepository.findWithDetails: Success, found vehicle:`, 
+                   JSON.stringify({
+                     id: response.data?.id,
+                     has_maintenance: Array.isArray(response.data?.maintenance) ? response.data?.maintenance.length > 0 : false,
+                     has_vehicle_type: !!response.data?.vehicle_types
+                   }));
+      }
       
       // Ensure maintenance is always an array
       if (response.data && !Array.isArray(response.data.maintenance)) {

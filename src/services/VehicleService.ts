@@ -116,21 +116,33 @@ export class VehicleService extends BaseService<'vehicles'> {
    * @param id - Vehicle identifier
    * @returns Promise with vehicle details and associated maintenance records
    */
-  async getVehicleDetails(id: string): Promise<ServiceResult<Vehicle & { maintenance: any[] }>> {
+  async getVehicleDetails(id: string): Promise<ServiceResult<Vehicle & { maintenance: any[], vehicleType?: any }>> {
     return handleServiceOperation(async () => {
       if (!id) {
         throw new Error("Vehicle ID is required for getVehicleDetails");
       }
       
+      console.log(`VehicleService.getVehicleDetails: Fetching details for vehicle ID ${id}`);
       const response = await this.repository.findWithDetails(id);
       
       if (response.error) {
+        console.error(`VehicleService.getVehicleDetails: Error fetching details:`, response.error);
         throw new Error(`Failed to fetch vehicle details for ID ${id}: ${response.error.message}`);
       }
       
       if (!response.data) {
+        console.error(`VehicleService.getVehicleDetails: No data returned for vehicle ID ${id}`);
         throw new Error(`No vehicle found with ID ${id}`);
       }
+      
+      console.log(`VehicleService.getVehicleDetails: Successfully fetched vehicle data:`, 
+                 JSON.stringify({
+                   id: response.data.id,
+                   make: response.data.make,
+                   model: response.data.model,
+                   hasVehicleTypes: !!response.data.vehicle_types,
+                   maintenanceCount: Array.isArray(response.data.maintenance) ? response.data.maintenance.length : 'n/a'
+                 }));
       
       // Ensure maintenance is always an array
       if (!response.data.maintenance) {
@@ -139,11 +151,27 @@ export class VehicleService extends BaseService<'vehicles'> {
       
       // Map vehicle_types to vehicleType for compatibility
       if (response.data.vehicle_types) {
-        (response.data as any).vehicleType = {
+        const vehicleData = response.data as any;
+        vehicleData.vehicleType = {
           id: response.data.vehicle_types.id,
           name: response.data.vehicle_types.name,
           daily_rate: response.data.vehicle_types.daily_rate,
           size: response.data.vehicle_types.size
+        };
+        
+        // If the vehicle doesn't have a daily rate set directly, use the one from the vehicle type
+        if (!vehicleData.dailyRate && response.data.vehicle_types.daily_rate) {
+          vehicleData.dailyRate = response.data.vehicle_types.daily_rate;
+        }
+        
+        console.log(`VehicleService.getVehicleDetails: Mapped vehicle_types to vehicleType:`, 
+                   JSON.stringify(vehicleData.vehicleType));
+      } else {
+        console.warn(`VehicleService.getVehicleDetails: No vehicle_types data found for vehicle ${id}`);
+        // Add an empty vehicleType object to prevent null reference errors
+        (response.data as any).vehicleType = {
+          name: "Standard",
+          daily_rate: response.data.rent_amount || 0
         };
       }
       
@@ -167,17 +195,23 @@ export class VehicleService extends BaseService<'vehicles'> {
         throw new Error("Status value is required for updateStatus");
       }
       
+      console.log(`VehicleService.updateStatus: Updating vehicle ${id} status to ${status}`);
       const dbStatus = asVehicleStatus(status);
+      console.log(`VehicleService.updateStatus: Mapped status to DB format: ${dbStatus}`);
+      
       const response = await this.repository.updateStatus(id, dbStatus);
       
       if (response.error) {
+        console.error(`VehicleService.updateStatus: Error updating status:`, response.error);
         throw new Error(`Failed to update vehicle status to ${status} for vehicle ID ${id}: ${response.error.message}`);
       }
       
       if (!response.data) {
+        console.error(`VehicleService.updateStatus: No data returned after status update for vehicle ID ${id}`);
         throw new Error(`Vehicle with ID ${id} not found`);
       }
       
+      console.log(`VehicleService.updateStatus: Successfully updated status for vehicle ${id}`);
       return response.data;
     });
   }

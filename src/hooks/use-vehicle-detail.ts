@@ -18,11 +18,25 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
 
     setIsLoading(true);
     try {
+      console.log(`useVehicleDetail: Fetching vehicle details for ID ${vehicleId}`);
       const vehicleData = await vehicleService.getVehicleDetails(vehicleId);
+      
+      if (!vehicleData) {
+        throw new Error(`No data returned for vehicle ID ${vehicleId}`);
+      }
+      
+      console.log(`useVehicleDetail: Successfully fetched vehicle data:`, 
+                 JSON.stringify({
+                   id: vehicleData.id,
+                   make: vehicleData.make,
+                   model: vehicleData.model,
+                   hasVehicleType: !!vehicleData.vehicleType
+                 }));
+      
       setVehicle(vehicleData);
       setError(null);
     } catch (err) {
-      console.error('Error fetching vehicle:', err);
+      console.error('useVehicleDetail: Error fetching vehicle:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch vehicle'));
       setVehicle(null);
     } finally {

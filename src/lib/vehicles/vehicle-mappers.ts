@@ -14,11 +14,26 @@ import {
 export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): VehicleStatus | undefined {
   if (!dbStatus) return undefined;
   
+  console.log(`mapDBStatusToAppStatus: Converting DB status '${dbStatus}' to app status`);
+  
+  // Handle the reserved/reserve conversion
   if (dbStatus === 'reserve') {
+    console.log(`mapDBStatusToAppStatus: Converting 'reserve' to 'reserved'`);
     return 'reserved';
   }
   
-  return dbStatus as VehicleStatus;
+  // Validate that the status is a valid VehicleStatus
+  const validStatuses: VehicleStatus[] = [
+    'available', 'rented', 'maintenance', 'retired', 
+    'police_station', 'accident', 'stolen', 'reserved'
+  ];
+  
+  if (validStatuses.includes(dbStatus as VehicleStatus)) {
+    return dbStatus as VehicleStatus;
+  }
+  
+  console.warn(`mapDBStatusToAppStatus: Unknown status '${dbStatus}', defaulting to 'available'`);
+  return 'available';
 }
 
 /**
@@ -27,7 +42,11 @@ export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): 
 export function mapToDBStatus(status: VehicleStatus | undefined): DatabaseVehicleStatus | undefined {
   if (!status) return undefined;
   
+  console.log(`mapToDBStatus: Converting app status '${status}' to DB status`);
+  
+  // Handle the reserved/reserve conversion
   if (status === 'reserved') {
+    console.log(`mapToDBStatus: Converting 'reserved' to 'reserve'`);
     return 'reserve';
   }
   
@@ -38,7 +57,14 @@ export function mapToDBStatus(status: VehicleStatus | undefined): DatabaseVehicl
  * Maps a database vehicle record to an app vehicle object
  */
 export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicleType?: DatabaseVehicleType): Vehicle {
-  return {
+  if (!record) {
+    console.error("mapDatabaseRecordToVehicle: Received null or undefined record");
+    throw new Error("Cannot map null vehicle record");
+  }
+  
+  console.log(`mapDatabaseRecordToVehicle: Mapping vehicle ${record.id} from database record`);
+  
+  const vehicle: Vehicle = {
     id: record.id,
     license_plate: record.license_plate,
     make: record.make,
@@ -47,7 +73,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     color: record.color,
     vin: record.vin,
     mileage: record.mileage,
-    status: mapDBStatusToAppStatus(record.status || null),
+    status: mapDBStatusToAppStatus(record.status || null) || 'available',
     description: record.description,
     image_url: record.image_url,
     created_at: record.created_at,
@@ -56,13 +82,42 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     insurance_company: record.insurance_company,
     insurance_expiry: record.insurance_expiry,
     location: record.location,
-    vehicleType: vehicleType ? {
+  };
+  
+  // Handle vehicle type mapping
+  if (record.vehicle_types) {
+    console.log(`mapDatabaseRecordToVehicle: Mapping vehicle_types for ${record.id}`);
+    vehicle.vehicleType = {
+      id: record.vehicle_types.id,
+      name: record.vehicle_types.name,
+      daily_rate: record.vehicle_types.daily_rate,
+      size: record.vehicle_types.size
+    };
+    
+    // If the vehicle doesn't have a daily rate set directly, use the one from the vehicle type
+    if (!vehicle.dailyRate && record.vehicle_types) {
+      vehicle.dailyRate = record.vehicle_types.daily_rate;
+    }
+  } else if (vehicleType) {
+    console.log(`mapDatabaseRecordToVehicle: Using provided vehicleType for ${record.id}`);
+    vehicle.vehicleType = {
       id: vehicleType.id,
       name: vehicleType.name,
       daily_rate: vehicleType.daily_rate
-    } : undefined,
-    dailyRate: vehicleType?.daily_rate
-  };
+    };
+    
+    // Set dailyRate from vehicleType if not already set
+    if (!vehicle.dailyRate) {
+      vehicle.dailyRate = vehicleType.daily_rate;
+    }
+  }
+  
+  // Include maintenance array if it exists
+  if (record.maintenance) {
+    vehicle.maintenance = record.maintenance;
+  }
+
+  return vehicle;
 }
 
 /**

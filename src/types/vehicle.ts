@@ -1,4 +1,3 @@
-
 /**
  * Vehicle status options from the database schema
  */
@@ -43,6 +42,9 @@ export interface Vehicle {
     daily_rate?: number;
     size?: string;
   };
+  // Additional properties from database joins
+  maintenance?: any[];
+  vehicle_types?: any;  // Raw database joined data
 }
 
 /**
@@ -125,6 +127,7 @@ export interface DatabaseVehicleRecord {
   vehicle_type_id?: string | null;
   notes?: string | null;
   vehicle_types?: DatabaseVehicleType | null;
+  maintenance?: any[];
 }
 
 export type DatabaseVehicleStatus = string;
