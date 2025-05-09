@@ -162,7 +162,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.log(`VehicleRepository.findWithDetails: Fetching vehicle ${vehicleId} with maintenance and type information`);
       const response = await this.client
         .from('vehicles')
-        .select('*, maintenance:vehicle_maintenance(*), vehicle_types(*)')
+        .select('*, maintenance(*), vehicle_types(*)')
         .eq('id', asVehicleId(vehicleId))
         .single();
       
