@@ -9,6 +9,7 @@ export * from './VehicleMonitoring';
 export * from './VehicleOnboardingWizard';
 export * from './VehicleStatusUpdate';
 export * from './VehicleStatusBadge';
+export * from './VehicleStatusUpdateDialog';
 export * from './detail/VehicleImageSection';
 export * from './detail/VehicleDetailsSection';
 export * from './detail/VehicleMainInfo';
