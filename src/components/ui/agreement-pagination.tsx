@@ -16,39 +16,72 @@ export function AgreementPagination({
   onPageChange,
   className = ''
 }: AgreementPaginationProps) {
-  // Prevent going below page 1 or above totalPages
-  const goToPrevious = () => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1);
+  // Generate page numbers with ellipsis for long page ranges
+  const getPageNumbers = () => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
-  };
-
-  const goToNext = () => {
-    if (currentPage < totalPages) {
-      onPageChange(currentPage + 1);
+    
+    // Always show first page, last page, current page, and one page before and after current
+    const pages = [1];
+    
+    if (currentPage > 3) {
+      pages.push('...');
     }
+    
+    // Pages around current
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    
+    if (currentPage < totalPages - 2) {
+      pages.push('...');
+    }
+    
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+    
+    return pages;
   };
 
   return (
-    <div className={`flex items-center justify-center space-x-4 ${className}`}>
+    <div className={`flex items-center justify-center space-x-2 ${className}`}>
       <Button
         variant="outline"
         size="sm"
-        onClick={goToPrevious}
+        onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
       >
         <ChevronLeft className="h-4 w-4 mr-1" />
-        <span>Back</span>
+        <span>Previous</span>
       </Button>
       
-      <div className="text-sm font-medium">
-        Page {currentPage} of {totalPages}
+      <div className="flex items-center space-x-1">
+        {getPageNumbers().map((page, index) => (
+          page === '...' ? (
+            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
+          ) : (
+            <Button
+              key={`page-${page}`}
+              variant={currentPage === page ? "default" : "outline"}
+              size="sm"
+              className="w-8 h-8 p-0"
+              onClick={() => onPageChange(Number(page))}
+            >
+              {page}
+            </Button>
+          )
+        ))}
       </div>
       
       <Button
         variant="outline"
         size="sm"
-        onClick={goToNext}
+        onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
       >
         <span>Next</span>
