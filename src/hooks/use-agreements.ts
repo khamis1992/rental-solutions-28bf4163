@@ -127,6 +127,11 @@ export function useAgreements(initialFilters = {}) {
             countQuery = countQuery.eq('status', value);
           } else if (key === 'agreement_number') {
             countQuery = countQuery.ilike('agreement_number', `%${value}%`);
+          } else if (key === 'query') {
+            // Enhanced search across multiple fields
+            countQuery = countQuery.or(
+              `agreement_number.ilike.%${value}%,vehicles.license_plate.ilike.%${value}%,profiles.full_name.ilike.%${value}%`
+            );
           }
         }
       });
@@ -161,6 +166,11 @@ export function useAgreements(initialFilters = {}) {
             query = query.eq('status', value);
           } else if (key === 'agreement_number') {
             query = query.ilike('agreement_number', `%${value}%`);
+          } else if (key === 'query') {
+            // Enhanced search across multiple fields
+            query = query.or(
+              `agreement_number.ilike.%${value}%,vehicles.license_plate.ilike.%${value}%,profiles.full_name.ilike.%${value}%`
+            );
           }
         }
       });

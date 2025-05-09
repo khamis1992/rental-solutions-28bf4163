@@ -110,7 +110,7 @@ const Agreements = () => {
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && key !== 'query' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -162,8 +162,6 @@ const Agreements = () => {
                 <AgreementSearch
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
-                  selectedCustomer={selectedCustomer}
-                  setSelectedCustomer={setSelectedCustomer}
                   setSearchParams={setSearchParams}
                 />
               </div>
@@ -253,7 +251,7 @@ const Agreements = () => {
             </div>
           )}
           
-          {/* Content Area - Important to keep TabsContent within the Tabs component */}
+          {/* Content Area */}
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsContent value="agreements" className="m-0">
