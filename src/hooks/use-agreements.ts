@@ -49,8 +49,9 @@ export function useAgreements(initialFilters = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
+  // Updated pageSize from 10 to 12
   const [pagination, setPagination] = useState<PaginationOptions>({
-    page: Number(searchParams.get('page')) || 1,
+    page: 1,
     pageSize: 12
   });
   
@@ -66,13 +67,14 @@ export function useAgreements(initialFilters = {}) {
   };
 
   // Initialize filters with URL params first, then override with initialFilters
+  // This ensures direct initialFilters (like customer_id) take precedence
   const [filters, setFilters] = useState({
     ...getInitialFilters(),
-    ...initialFilters // This ensures initialFilters take precedence over URL params
+    ...initialFilters // This ensures initialFilters (like customer_id) take precedence over URL params
   });
 
   // Function to update URL parameters based on filters
-  const updateSearchParams = (newFilters: { [key: string]: string | undefined | number }) => {
+  const updateSearchParams = (newFilters: { [key: string]: string | undefined }) => {
     const updatedFilters = { ...filters, ...newFilters };
     
     // Update the URL parameters
@@ -82,20 +84,11 @@ export function useAgreements(initialFilters = {}) {
         // Also remove from current filters
         delete updatedFilters[key];
       } else {
-        searchParams.set(key, String(value));
+        searchParams.set(key, value);
       }
     });
-    
     setSearchParams(searchParams);
     setFilters(updatedFilters);
-    
-    // Update pagination if page is included in filters
-    if (newFilters.page !== undefined) {
-      setPagination(prev => ({
-        ...prev,
-        page: Number(newFilters.page) || 1
-      }));
-    }
   };
 
   // Function to handle pagination changes
@@ -104,9 +97,6 @@ export function useAgreements(initialFilters = {}) {
       page: newPage,
       pageSize: newPageSize || prev.pageSize
     }));
-    
-    // Update URL with new page
-    updateSearchParams({ page: newPage });
   };
 
   const {
@@ -137,11 +127,6 @@ export function useAgreements(initialFilters = {}) {
             countQuery = countQuery.eq('status', value);
           } else if (key === 'agreement_number') {
             countQuery = countQuery.ilike('agreement_number', `%${value}%`);
-          } else if (key === 'query') {
-            // Enhanced search across multiple fields
-            countQuery = countQuery.or(
-              `agreement_number.ilike.%${value}%,vehicles.license_plate.ilike.%${value}%,profiles.full_name.ilike.%${value}%`
-            );
           }
         }
       });
@@ -176,11 +161,6 @@ export function useAgreements(initialFilters = {}) {
             query = query.eq('status', value);
           } else if (key === 'agreement_number') {
             query = query.ilike('agreement_number', `%${value}%`);
-          } else if (key === 'query') {
-            // Enhanced search across multiple fields
-            query = query.or(
-              `agreement_number.ilike.%${value}%,vehicles.license_plate.ilike.%${value}%,profiles.full_name.ilike.%${value}%`
-            );
           }
         }
       });

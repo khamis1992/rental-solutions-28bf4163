@@ -98,28 +98,19 @@ const Agreements = () => {
     setSearchParams(prev => ({ ...prev, ...filters }));
   };
 
-  // Updated to ensure pagination resets when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'all' || value === 'agreements') {
-      setSearchParams({ status: undefined, page: 1 });
+      setSearchParams({ status: undefined });
     } else if (value === 'active' || value === 'pending' || value === 'history') {
-      // Only set the status filter for valid status values and reset to page 1
-      setSearchParams({ status: value === 'history' ? undefined : value, page: 1 });
+      // Only set the status filter for valid status values
+      setSearchParams({ status: value === 'history' ? undefined : value });
     }
   };
 
-  // Extract existing search query from URL params
-  React.useEffect(() => {
-    const queryParam = searchParams?.query;
-    if (queryParam && typeof queryParam === 'string') {
-      setSearchQuery(queryParam);
-    }
-  }, []);
-
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && key !== 'query' && key !== 'page' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
 
   return (
     <PageContainer 
@@ -171,6 +162,8 @@ const Agreements = () => {
                 <AgreementSearch
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
+                  selectedCustomer={selectedCustomer}
+                  setSelectedCustomer={setSelectedCustomer}
                   setSearchParams={setSearchParams}
                 />
               </div>
@@ -226,7 +219,7 @@ const Agreements = () => {
                   >
                     {key}: {value}
                     <button
-                      onClick={() => setSearchParams({ [key]: undefined, page: 1 })}
+                      onClick={() => setSearchParams({ [key]: undefined })}
                       className="ml-1 rounded-full hover:bg-accent p-1"
                     >
                       <span className="sr-only">Remove</span>
@@ -240,7 +233,10 @@ const Agreements = () => {
                   variant="ghost" 
                   size="sm" 
                   onClick={() => {
-                    const cleanParams = { status: searchParams?.status, page: 1 };
+                    const cleanParams = { ...searchParams };
+                    activeFilters.forEach(([key]) => {
+                      delete cleanParams[key];
+                    });
                     setSearchParams(cleanParams);
                   }}
                 >
@@ -257,7 +253,7 @@ const Agreements = () => {
             </div>
           )}
           
-          {/* Content Area */}
+          {/* Content Area - Important to keep TabsContent within the Tabs component */}
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsContent value="agreements" className="m-0">
