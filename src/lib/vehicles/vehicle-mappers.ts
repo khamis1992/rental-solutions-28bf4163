@@ -84,7 +84,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     location: record.location,
   };
   
-  // Handle vehicle type mapping
+  // Handle vehicle type mapping - IMPROVED NULL HANDLING
   if (record.vehicle_types) {
     console.log(`mapDatabaseRecordToVehicle: Mapping vehicle_types for ${record.id}`);
     vehicle.vehicleType = {
@@ -109,6 +109,19 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     // Set dailyRate from vehicleType if not already set
     if (!vehicle.dailyRate) {
       vehicle.dailyRate = vehicleType.daily_rate;
+    }
+  } else {
+    // If no vehicle type found, provide default values to prevent null errors
+    console.warn(`mapDatabaseRecordToVehicle: No vehicle_types found for vehicle ${record.id}, using default values`);
+    vehicle.vehicleType = {
+      id: 'default',
+      name: 'Standard',
+      daily_rate: record.rent_amount || 0,
+      size: 'standard'
+    };
+    
+    if (!vehicle.dailyRate) {
+      vehicle.dailyRate = record.rent_amount || 0;
     }
   }
   

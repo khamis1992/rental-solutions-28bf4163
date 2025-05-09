@@ -38,7 +38,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
 
   // Safe access to nested properties with fallbacks
   const vehicleTypeName = vehicle.vehicleType?.name || 'Standard';
-  const dailyRate = vehicle.dailyRate || vehicle.rent_amount;
+  const dailyRate = vehicle.dailyRate || vehicle.rent_amount || 0;
 
   // Format vehicle details for display with defensive coding
   const vehicleDetails = [
