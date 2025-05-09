@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from 'react';
 import { useVehicleService } from './services/useVehicleService';
+import { Vehicle } from '@/types/vehicle';
 
 export const useVehicleDetail = (vehicleId: string | undefined) => {
   const vehicleService = useVehicleService();
-  const [vehicle, setVehicle] = useState<any | null>(null);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

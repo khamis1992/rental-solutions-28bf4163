@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -25,6 +25,7 @@ import { asVehicleId } from '@/utils/database-type-helpers';
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
   
@@ -37,8 +38,18 @@ const VehicleDetailPage = () => {
   }, [id, refetch]);
   
   const handleDelete = async () => {
-    // We'll implement this in a future update
-    toast.error("Delete functionality will be available soon");
+    if (!id) return;
+    
+    setIsDeleting(true);
+    try {
+      // We'll implement this in a future update
+      toast.error("Delete functionality will be available soon");
+    } catch (error) {
+      console.error("Error deleting vehicle:", error);
+      toast.error("Failed to delete vehicle");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleScheduleMaintenance = () => {
