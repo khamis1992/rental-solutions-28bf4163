@@ -1,77 +1,57 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAgreements } from '@/hooks/use-agreements';
-import { toast } from 'sonner';
+import { useAgreements } from './use-agreements';
 
-export const useAgreementTable = (initialFilters?: any) => {
-  const navigate = useNavigate();
+export function useAgreementTable() {
+  const [selectedAgreements, setSelectedAgreements] = useState<string[]>([]);
+  
   const {
     agreements,
     isLoading,
     error,
     deleteAgreements,
     pagination,
-  } = useAgreements(initialFilters);
-  
-  const [selectedAgreements, setSelectedAgreements] = useState<string[]>([]);
-  
-  const handleBulkDelete = async (ids: string | string[]) => {
-    const agreementIds = Array.isArray(ids) ? ids : [ids];
-    
-    try {
-      await deleteAgreements(agreementIds);
-      
-      // Clear selected agreements after successful deletion
-      setSelectedAgreements([]);
-      
-      toast.success(
-        agreementIds.length > 1
-          ? `${agreementIds.length} agreements deleted successfully`
-          : 'Agreement deleted successfully'
-      );
-    } catch (error) {
-      console.error('Error deleting agreements:', error);
-      toast.error('Failed to delete agreements');
+    setFilters,
+    setSearchParams
+  } = useAgreements();
+
+  const handleSelectAgreement = (id: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedAgreements(prev => [...prev, id]);
+    } else {
+      setSelectedAgreements(prev => prev.filter(agreementId => agreementId !== id));
     }
   };
-  
-  const handleEditAgreement = (id: string) => {
-    navigate(`/agreements/edit/${id}`);
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected && agreements) {
+      const allIds = agreements.map(agreement => agreement.id);
+      setSelectedAgreements(allIds);
+    } else {
+      setSelectedAgreements([]);
+    }
   };
-  
-  const handleViewAgreement = (id: string) => {
-    navigate(`/agreements/${id}`);
+
+  const handleBulkDelete = async (id: string) => {
+    try {
+      const ids = id ? [id] : selectedAgreements;
+      await deleteAgreements(ids);
+      setSelectedAgreements([]);
+    } catch (error) {
+      console.error('Failed to delete agreements:', error);
+    }
   };
-  
-  // Selection handlers
-  const toggleSelection = (id: string) => {
-    setSelectedAgreements(prev => 
-      prev.includes(id)
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
-  };
-  
-  const selectAll = (agreementIds: string[]) => {
-    setSelectedAgreements(agreementIds);
-  };
-  
-  const clearSelection = () => {
-    setSelectedAgreements([]);
-  };
-  
+
   return {
     agreements,
     isLoading,
     error,
     selectedAgreements,
+    handleSelectAgreement,
+    handleSelectAll,
     handleBulkDelete,
-    handleEditAgreement,
-    handleViewAgreement,
-    toggleSelection,
-    selectAll,
-    clearSelection,
-    pagination, // Expose pagination from useAgreements
+    pagination,
+    setFilters,
+    setSearchParams
   };
-};
+}

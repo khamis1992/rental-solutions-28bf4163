@@ -16,71 +16,28 @@ export function AgreementPagination({
   onPageChange,
   className = ''
 }: AgreementPaginationProps) {
-  // Generate page numbers with ellipsis for long page ranges
-  const getPageNumbers = (): (number | string)[] => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    
-    // Always show first page, last page, current page, and one page before and after current
-    const pages: (number | string)[] = [1];
-    
-    if (currentPage > 3) {
-      pages.push('...');
-    }
-    
-    // Pages around current
-    const start = Math.max(2, currentPage - 1);
-    const end = Math.min(totalPages - 1, currentPage + 1);
-    
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    
-    if (currentPage < totalPages - 2) {
-      pages.push('...');
-    }
-    
-    if (totalPages > 1) {
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  };
-
   // Don't render pagination if there are no pages
   if (totalPages <= 0) {
     return null;
   }
 
+  // Simple pagination that shows current page number out of total pages
   return (
-    <div className={`flex items-center justify-center space-x-2 ${className}`}>
+    <div className={`flex items-center justify-center gap-2 ${className}`}>
       <Button
         variant="outline"
         size="sm"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
       >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        <span>Previous</span>
+        <ChevronLeft className="h-4 w-4" />
+        <span className="ml-1">Back</span>
       </Button>
       
-      <div className="flex items-center space-x-1">
-        {getPageNumbers().map((page, index) => (
-          typeof page === 'string' ? (
-            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">...</span>
-          ) : (
-            <Button
-              key={`page-${page}`}
-              variant={currentPage === page ? "default" : "outline"}
-              size="sm"
-              className="w-8 h-8 p-0"
-              onClick={() => onPageChange(page)}
-            >
-              {page}
-            </Button>
-          )
-        ))}
+      <div className="flex items-center px-3 py-1 bg-muted rounded-md">
+        <span className="text-sm font-medium">
+          Page {currentPage} of {totalPages}
+        </span>
       </div>
       
       <Button
@@ -89,8 +46,8 @@ export function AgreementPagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
       >
-        <span>Next</span>
-        <ChevronRight className="h-4 w-4 ml-1" />
+        <span className="mr-1">Next</span>
+        <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
   );
