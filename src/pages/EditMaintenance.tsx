@@ -15,7 +15,7 @@ const EditMaintenance = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [maintenanceData, setMaintenanceData] = useState<MaintenanceRecord | null>(null);
-  const { update, maintenanceRecords } = useMaintenance({});
+  const { update, maintenanceRecords } = useMaintenance('maintenance');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

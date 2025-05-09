@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -86,18 +85,11 @@ const Agreements = () => {
     });
   };
 
-  // Fix for the TypeScript error by using a properly typed function
+  // Fix for the TypeScript error by using direct object assignment
   const handleFilterChange = (key: string, value: string) => {
     setSearchParams((prev) => {
-      // Create a new object with the spread of previous params
-      const updatedParams: Record<string, string> = {};
+      const updatedParams = { ...prev };
       
-      // Copy existing params
-      for (const [paramKey, paramValue] of Object.entries(prev)) {
-        updatedParams[paramKey] = paramValue;
-      }
-      
-      // Update or add the new key-value pair
       if (value) {
         updatedParams[key] = value;
       } else {
@@ -129,7 +121,9 @@ const Agreements = () => {
   // Adapter function to match the expected function signature for AgreementFilterPanel
   const filterChangeAdapter = (filters: Record<string, any>) => {
     Object.entries(filters).forEach(([key, value]) => {
-      handleFilterChange(key, value as string);
+      if (typeof value === 'string') {
+        handleFilterChange(key, value);
+      }
     });
   };
 

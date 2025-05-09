@@ -1,24 +1,11 @@
 
-export interface CustomerInfo {
+export interface Customer {
   id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  driver_license?: string;
-  nationality?: string;
+  full_name?: string;
+  email?: string;
+  phone_number?: string;
   address?: string;
-}
-
-export interface CustomerListItem {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  status: string;
-  created_at: string;
-}
-
-export interface CustomerSearchParams {
-  query: string;
-  status: string;
+  driver_license?: string;
+  created_at?: string | Date;
+  updated_at?: string | Date;
 }

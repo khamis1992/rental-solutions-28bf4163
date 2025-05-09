@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MaintenanceRecord, MaintenanceCategory } from '@/types/maintenance';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -32,7 +33,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   isEditMode = false,
 }) => {
   const [categories, setCategories] = useState<MaintenanceCategory[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   
   // Setup form with validation
   const form = useForm<MaintenanceRecord>({
@@ -55,7 +56,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // Load maintenance categories
   useEffect(() => {
     const fetchCategories = async () => {
-      setIsLoading(true);
+      setLoading(true);
       try {
         // Mocked categories for now - in a real app, this would come from an API
         const mockCategories = [
@@ -69,7 +70,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       } catch (error) {
         console.error('Error loading maintenance categories:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
@@ -91,13 +92,205 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Form fields go here */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="maintenance_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Maintenance Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="REGULAR_INSPECTION">Regular Inspection</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
+                    <SelectItem value="OIL_CHANGE">Oil Change</SelectItem>
+                    <SelectItem value="TIRE_ROTATION">Tire Rotation</SelectItem>
+                    <SelectItem value="BRAKE_SERVICE">Brake Service</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {activeCategories.map(category => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vehicle_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle</FormLabel>
+                <FormControl>
+                  <Input placeholder="Vehicle ID" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="scheduled_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Scheduled Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={new Date(field.value)}
+                      onSelect={(date) => field.onChange(date?.toISOString())}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="service_provider"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Service Provider</FormLabel>
+                <FormControl>
+                  <Input placeholder="Service Provider Name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    placeholder="0" 
+                    {...field} 
+                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Maintenance description" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Additional notes" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={() => window.history.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : initialData?.id ? 'Update' : 'Create'}
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Saving...' : initialData?.id ? 'Update' : 'Create'}
           </Button>
         </div>
       </form>

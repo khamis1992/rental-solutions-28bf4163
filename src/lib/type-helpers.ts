@@ -44,7 +44,7 @@ export function extractResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
   if (!hasResponseData(response)) {
-    if (response && response.error) {
+    if (response && 'error' in response && response.error) {
       console.error('Database error:', response.error);
     }
     return null;
@@ -62,8 +62,13 @@ export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
     return [];
   }
   
-  // Fix: Instead of returning the input directly, ensure we return an array
-  return Array.isArray(data) ? data : [data];
+  // Return array as is if it's already an array
+  if (Array.isArray(data)) {
+    return data;
+  }
+  
+  // Wrap single item in an array
+  return [data];
 }
 
 /**
