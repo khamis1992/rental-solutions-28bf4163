@@ -1,11 +1,15 @@
-import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+
+import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import { Database } from '@/types/database.types';
+
+type Tables = Database['public']['Tables'];
 
 /**
- * Type guard for successful database responses
+ * Type guard to check if a response has data and no error
  */
 export function isSuccessResponse<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: T; error: null; status: number; statusText: string; count?: number | null } {
+): response is PostgrestResponse<T> & { data: T; error: null; status: number; statusText: string; count?: number | null } {
   return !response.error && response.data !== null;
 }
 

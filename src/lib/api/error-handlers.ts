@@ -1,32 +1,37 @@
 
-// Error handler for API errors
-export const handleApiError = (error: unknown) => {
+import { toast } from 'sonner';
+
+/**
+ * Handle API success with toast notification
+ */
+export function handleApiSuccess(message: string): void {
+  toast.success(message);
+}
+
+/**
+ * Handle API errors with toast notification
+ */
+export function handleApiError(error: unknown): void {
+  const errorMessage = getErrorMessage(error);
+  toast.error(`Error: ${errorMessage}`);
   console.error('API Error:', error);
-  
-  // Determine the error message to display
-  let errorMessage = 'An unexpected error occurred';
-  
+}
+
+/**
+ * Extract error message from various error types
+ */
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    errorMessage = error.message;
-  } else if (typeof error === 'string') {
-    errorMessage = error;
-  } else if (error && typeof error === 'object' && 'message' in error) {
-    errorMessage = String((error as any).message);
+    return error.message;
   }
   
-  // Return standard error format
-  return {
-    success: false,
-    error: errorMessage,
-    data: null
-  };
-};
-
-// Success handler for API responses
-export const handleApiSuccess = <T>(data: T) => {
-  return {
-    success: true,
-    data,
-    error: null
-  };
-};
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  
+  return 'Unknown error occurred';
+}

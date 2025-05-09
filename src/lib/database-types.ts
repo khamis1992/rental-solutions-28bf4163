@@ -1,6 +1,7 @@
 
 import { Database } from '@/types/database.types';
 import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import { LeaseStatus } from '@/types/lease-types';
 
 type Tables = Database['public']['Tables'];
 
@@ -81,7 +82,7 @@ export function asPaymentStatus(status: string): PaymentStatus {
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: T; error: null } {
+): response is PostgrestResponse<T> & { data: T; error: null } {
   return !response.error && response.data !== null;
 }
 

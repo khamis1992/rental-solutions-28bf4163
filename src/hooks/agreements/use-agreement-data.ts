@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -5,6 +6,7 @@ import { Agreement } from '@/types/agreement';
 import { processAgreementData } from '@/components/agreements/table/agreement-data';
 import { CustomerInfo } from '@/types/customer';
 import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
+import { SimpleAgreement } from '@/types/agreement-types';
 
 /**
  * Hook for fetching agreement data
@@ -36,7 +38,7 @@ export function useAgreementData(filters, pagination, setTotalCount) {
         }
 
         if (filters.searchTerm) {
-          // Apply the search filter correctly
+          // Apply the search filter correctly using table aliases
           query = query.or(`agreement_number.ilike.%${filters.searchTerm}%,vehicles.license_plate.ilike.%${filters.searchTerm}%`);
         }
 
@@ -59,9 +61,30 @@ export function useAgreementData(filters, pagination, setTotalCount) {
           setTotalCount(response.count || 0);
 
           console.log("Agreements data from API:", response.data);
+          
+          // Map the response data to the expected SimpleAgreement format
+          const mappedData: SimpleAgreement[] = response.data.map(item => ({
+            id: item.id,
+            status: item.status,
+            customer_id: item.customer_id,
+            vehicle_id: item.vehicle_id,
+            start_date: item.start_date,
+            end_date: item.end_date,
+            total_amount: item.total_amount,
+            rent_amount: item.rent_amount,
+            payment_frequency: item.payment_frequency || 'monthly',
+            deposit_amount: item.deposit_amount,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            agreement_number: item.agreement_number,
+            daily_late_fee: item.daily_late_fee,
+            notes: item.notes,
+            customers: item.customers,
+            vehicles: item.vehicles
+          }));
 
           // Process and return the data
-          const processedData = processAgreementData(response.data);
+          const processedData = processAgreementData(mappedData);
           console.log("Processed agreements data:", processedData);
           return processedData;
         }
