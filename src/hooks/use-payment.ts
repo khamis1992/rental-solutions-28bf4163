@@ -25,23 +25,28 @@ export function usePayment(agreementId?: string) {
   const handlePaymentSubmit = async (
     amount: number,
     paymentDate: Date,
-    options?: {
-      notes?: string;
-      paymentMethod?: string;
-      referenceNumber?: string;
-      includeLatePaymentFee?: boolean;
-      isPartialPayment?: boolean;
-      paymentType?: string;
-    }
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string
   ) => {
     if (!agreementId) return;
 
-    await handleSpecialPayment({
-      agreementId,
-      amount,
-      paymentDate,
-      options: options || {}
-    });
+    await handleSpecialPayment(
+      agreementId, 
+      amount, 
+      paymentDate, 
+      {
+        notes,
+        paymentMethod,
+        referenceNumber,
+        includeLatePaymentFee,
+        isPartialPayment,
+        paymentType,
+      }
+    );
   };
 
   return {

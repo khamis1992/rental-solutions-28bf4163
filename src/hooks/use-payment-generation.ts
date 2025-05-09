@@ -1,11 +1,9 @@
 
 import { useState, useCallback } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
-import { asPaymentId } from '@/utils/type-casting';
-import { hasData } from '@/utils/supabase-type-helpers';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -45,19 +43,19 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       const paymentId = targetPaymentId || queryParams.get('paymentId');
       
       if (paymentId) {
-        const response = await supabase
+        const { data: existingPayment, error: queryError } = await supabase
           .from('unified_payments')
           .select('*')
           .eq('id', paymentId)
           .single();
           
-        if (response.error) {
-          console.error("Error fetching existing payment:", response.error);
-        } else if (response.data) {
-          existingPaymentId = response.data.id;
-          existingPaymentAmount = response.data.amount || 0;
-          existingAmountPaid = response.data.amount_paid || 0;
-          existingBalance = response.data.balance || 0;
+        if (queryError) {
+          console.error("Error fetching existing payment:", queryError);
+        } else if (existingPayment) {
+          existingPaymentId = existingPayment.id;
+          existingPaymentAmount = existingPayment.amount || 0;
+          existingAmountPaid = existingPayment.amount_paid || 0;
+          existingBalance = existingPayment.balance || 0;
         }
       }
       
@@ -65,16 +63,16 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       let dailyLateFee = 120; // Default value
       if (!agreement) {
         // If agreement isn't passed in props, fetch it from supabase
-        const response = await supabase
+        const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('daily_late_fee')
           .eq('id', agreementId)
           .single();
           
-        if (response.error) {
-          console.error("Error fetching lease data for late fee:", response.error);
-        } else if (response.data) {
-          dailyLateFee = response.data.daily_late_fee || 120;
+        if (leaseError) {
+          console.error("Error fetching lease data for late fee:", leaseError);
+        } else if (leaseData) {
+          dailyLateFee = leaseData.daily_late_fee || 120;
         }
       } else {
         // Use the daily_late_fee from the provided agreement

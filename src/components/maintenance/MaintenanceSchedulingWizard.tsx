@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { toast } from "sonner";
-import { MaintenanceTypeStep } from './wizard/MaintenanceTypeStep';
-import { MaintenanceDetailsStep } from './wizard/MaintenanceDetailsStep';
-import { MaintenanceConfirmationStep } from './wizard/MaintenanceConfirmationStep';
-import { useMaintenanceForm } from './wizard/useMaintenanceForm';
 
 interface MaintenanceSchedulingWizardProps {
   open: boolean;
@@ -25,31 +26,38 @@ export function MaintenanceSchedulingWizard({
   vehicleId
 }: MaintenanceSchedulingWizardProps) {
   const [currentStep, setCurrentStep] = useState('type');
+  const [formData, setFormData] = useState({
+    vehicle_id: vehicleId || '',
+    maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+    description: '',
+    scheduled_date: '',
+    estimated_cost: '',
+    notes: '',
+    assigned_to: '',
+    status: MaintenanceStatus.SCHEDULED
+  });
   const [isProcessing, setIsProcessing] = useState(false);
-  const { create } = useMaintenance(vehicleId || '');
-  
-  // Use our custom hook for form state and validation
-  const {
-    formData,
-    errors,
-    handleInputChange,
-    handleSelectChange,
-    validateForm,
-    getSubmitData
-  } = useMaintenanceForm(vehicleId);
+  const { create } = useMaintenance();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      [field]: value
+    });
+  };
 
   const handleContinue = () => {
     if (currentStep === 'type') {
-      // Validate only the fields in the current step
-      const isValid = !errors.maintenance_type && !errors.description;
-      if (isValid) {
-        setCurrentStep('details');
-      }
+      setCurrentStep('details');
     } else if (currentStep === 'details') {
-      // Validate all fields before proceeding to confirmation
-      if (validateForm()) {
-        setCurrentStep('confirm');
-      }
+      setCurrentStep('confirm');
     }
   };
 
@@ -62,25 +70,128 @@ export function MaintenanceSchedulingWizard({
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      toast.error("Please correct the form errors before submitting");
-      return;
-    }
-
     setIsProcessing(true);
     try {
-      const submitData = getSubmitData();
-      await create.mutateAsync(submitData);
+      await create.mutateAsync(formData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();
     } catch (error) {
-      console.error('Error scheduling maintenance:', error);
       toast.error("Failed to schedule maintenance");
+      console.error(error);
     } finally {
       setIsProcessing(false);
     }
   };
+
+  const renderTypeSelection = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Maintenance Type</Label>
+        <Select
+          value={formData.maintenance_type}
+          onValueChange={(value) => handleSelectChange('maintenance_type', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select maintenance type" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.values(MaintenanceType).map((type) => (
+              <SelectItem key={type} value={type}>
+                {type.replace(/_/g, ' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+          placeholder="Describe the maintenance work needed"
+        />
+      </div>
+    </div>
+  );
+
+  const renderDetails = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="scheduled_date">Scheduled Date</Label>
+        <Input
+          type="datetime-local"
+          id="scheduled_date"
+          name="scheduled_date"
+          value={formData.scheduled_date}
+          onChange={handleInputChange}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="estimated_cost">Estimated Cost</Label>
+        <Input
+          type="number"
+          id="estimated_cost"
+          name="estimated_cost"
+          value={formData.estimated_cost}
+          onChange={handleInputChange}
+          placeholder="0.00"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="assigned_to">Assigned To</Label>
+        <Input
+          id="assigned_to"
+          name="assigned_to"
+          value={formData.assigned_to}
+          onChange={handleInputChange}
+          placeholder="Technician name or ID"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="notes">Additional Notes</Label>
+        <Textarea
+          id="notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleInputChange}
+          placeholder="Any additional notes or instructions"
+        />
+      </div>
+    </div>
+  );
+
+  const renderConfirmation = () => (
+    <div className="space-y-4">
+      <div className="bg-slate-50 p-4 rounded-md">
+        <h3 className="text-sm font-medium mb-3">Maintenance Summary</h3>
+        <div className="space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Type:</span>
+            <span>{formData.maintenance_type.replace(/_/g, ' ')}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Scheduled Date:</span>
+            <span>{new Date(formData.scheduled_date).toLocaleString()}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Estimated Cost:</span>
+            <span>${parseFloat(formData.estimated_cost || '0').toFixed(2)}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Assigned To:</span>
+            <span>{formData.assigned_to || 'Not assigned'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -100,35 +211,15 @@ export function MaintenanceSchedulingWizard({
           </TabsList>
           
           <TabsContent value="type" className="pt-4">
-            <MaintenanceTypeStep
-              maintenanceType={formData.maintenance_type}
-              description={formData.description || ''}
-              onMaintenanceTypeChange={(value) => handleSelectChange('maintenance_type', value)}
-              onDescriptionChange={handleInputChange}
-              errors={errors}
-            />
+            {renderTypeSelection()}
           </TabsContent>
           
           <TabsContent value="details" className="pt-4">
-            <MaintenanceDetailsStep
-              scheduledDate={formData.scheduled_date}
-              estimatedCost={formData.estimated_cost}
-              assignedTo={formData.assigned_to || ''}
-              notes={formData.notes || ''}
-              onInputChange={handleInputChange}
-              errors={errors}
-            />
+            {renderDetails()}
           </TabsContent>
           
           <TabsContent value="confirm" className="pt-4">
-            <MaintenanceConfirmationStep
-              maintenanceType={formData.maintenance_type}
-              scheduledDate={formData.scheduled_date}
-              estimatedCost={formData.estimated_cost}
-              assignedTo={formData.assigned_to || ''}
-              description={formData.description || ''}
-              notes={formData.notes || ''}
-            />
+            {renderConfirmation()}
           </TabsContent>
         </Tabs>
         

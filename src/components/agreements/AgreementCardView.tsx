@@ -84,11 +84,9 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
     }
   };
 
-  console.log("AgreementCardView received agreements:", agreements);
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {agreements && agreements.length > 0 ? agreements.map((agreement) => (
+      {agreements.map((agreement) => (
         <Card key={agreement.id} className="overflow-hidden hover:border-primary/50 transition-colors">
           <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center space-x-2">
@@ -139,7 +137,7 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
               <User className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="text-sm">
                 {agreement.customers && agreement.customers.id ? (
-                  <Link
+                  <Link 
                     to={`/customers/${agreement.customers.id}`}
                     className="hover:underline font-medium"
                   >
@@ -150,19 +148,19 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
                 )}
               </div>
             </div>
-
+            
             {/* Vehicle */}
             <div className="flex items-start space-x-2">
               <Car className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="text-sm">
                 {agreement.vehicles && agreement.vehicles.id ? (
-                  <Link
+                  <Link 
                     to={`/vehicles/${agreement.vehicles.id}`}
                     className="hover:underline"
                   >
                     {agreement.vehicles.make && agreement.vehicles.model ? (
                       <span>
-                        {agreement.vehicles.make} {agreement.vehicles.model}
+                        {agreement.vehicles.make} {agreement.vehicles.model} 
                         <span className="font-semibold text-primary ml-1">({agreement.vehicles.license_plate})</span>
                       </span>
                     ) : agreement.vehicles.license_plate ? (
@@ -176,7 +174,7 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
                 )}
               </div>
             </div>
-
+            
             {/* Period */}
             <div className="flex items-start space-x-2">
               <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
@@ -190,7 +188,7 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
                 )}
               </div>
             </div>
-
+            
             {/* Amount */}
             <div className="flex items-start space-x-2">
               <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
@@ -214,15 +212,7 @@ export function AgreementCardView({ agreements, isLoading, onDeleteAgreement }: 
             </Link>
           </CardFooter>
         </Card>
-      )) : (
-        <div className="col-span-3 text-center py-8">
-          <FileText className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-          <h3 className="text-lg font-medium text-gray-900">No agreements found</h3>
-          <p className="text-gray-500 max-w-md mx-auto mt-2">
-            Try adjusting your search or filters to find what you're looking for.
-          </p>
-        </div>
-      )}
+      ))}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { TableContent } from './table/TableContent';
 import { processAgreementData } from './table/agreement-data';
 
-export const AgreementList: React.FC = () => {
+const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
@@ -24,10 +24,12 @@ export const AgreementList: React.FC = () => {
   const typedAgreements = processAgreementData(agreements || []);
 
   return (
-    <TableContent
+    <TableContent 
       agreements={typedAgreements}
       isLoading={isLoading}
       pagination={pagination}
     />
   );
 };
+
+export default AgreementList;

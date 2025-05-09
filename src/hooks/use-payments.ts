@@ -1,8 +1,24 @@
-
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { Payment } from '@/types/agreement-types';
-import { castDbId, castToUUID, hasData } from '@/utils/supabase-response-helpers';
-import { supabase } from '@/integrations/supabase/client';
+import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
+
+export type Payment = {
+  id: string;
+  lease_id: string;
+  amount: number;
+  amount_paid: number;
+  balance: number;
+  payment_date: string | null;
+  due_date: string | null;
+  status: string;
+  payment_method: string | null;
+  description: string | null;
+  type: string;
+  late_fine_amount: number;
+  days_overdue: number;
+  original_due_date: string | null;
+  transaction_id: string | null;
+  [key: string]: any; // Allow additional properties
+};
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -10,18 +26,14 @@ export const usePayments = (agreementId?: string) => {
     async () => {
       if (!agreementId) return [] as Payment[];
       
-      const response = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreementId as any); // Type assertion to avoid string incompatibility
+      const response = await paymentRepository.findByLeaseId(agreementId);
       
       if (response.error) {
         console.error("Error fetching payments:", response.error);
         return [] as Payment[];
       }
       
-      // Use proper type casting to resolve TypeScript errors
-      return (response.data || []) as unknown as Payment[];
+      return response.data as Payment[] || [];
     },
     {
       enabled: !!agreementId,
@@ -31,50 +43,35 @@ export const usePayments = (agreementId?: string) => {
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    const paymentData = { ...newPayment };
-    const response = await supabase
-      .from('unified_payments')
-      .insert(paymentData as any)
-      .select();
+    const response = await paymentRepository.recordPayment(newPayment);
 
     if (response.error) {
       console.error("Error adding payment:", response.error);
       return null;
     }
-    
-    // Properly handle response types
-    if (!hasData(response)) {
-      return null;
+    return response.data;
+  }, {
+    onSuccess: () => {
+      refetch();
     }
-    
-    return response.data[0] as unknown as Payment;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const response = await supabase
-      .from('unified_payments')
-      .update(paymentUpdate.data as any)
-      .eq('id', paymentUpdate.id as any) // Type assertion to avoid string incompatibility
-      .select();
+    const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
 
     if (response.error) {
       console.error("Error updating payment:", response.error);
       throw response.error;
     }
-    
-    // Properly handle response types
-    if (!hasData(response)) {
-      return null;
+    return response.data;
+  }, {
+    onSuccess: () => {
+      refetch();
     }
-    
-    return response.data[0] as unknown as Payment;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const response = await supabase
-      .from('unified_payments')
-      .delete()
-      .eq('id', paymentId as any); // Type assertion to avoid string incompatibility
+    const response = await paymentRepository.delete(paymentId);
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
@@ -97,6 +94,3 @@ export const usePayments = (agreementId?: string) => {
     fetchPayments,
   };
 };
-
-// Re-export the Payment type
-export type { Payment } from '@/types/agreement-types';

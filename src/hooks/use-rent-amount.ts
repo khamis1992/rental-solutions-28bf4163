@@ -1,9 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { Agreement } from '@/types/agreement';
-import { supabase } from '@/lib/supabase';
-import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
-import { asLeaseId } from '@/utils/type-casting';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -28,47 +26,40 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
 
       try {
         // Try to get rent_amount from vehicles table based on vehicle_id in agreement
-        const responseAgreement = await supabase
+        const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId);
+          .eq('id', agreementId)
+          .single();
 
-        if (!hasData(responseAgreement)) {
-          console.error("Error fetching agreement for rent amount:", getErrorMessage(responseAgreement));
-          setError(new Error(`Failed to fetch agreement: ${getErrorMessage(responseAgreement)}`));
+        if (agreementError) {
+          console.error("Error fetching agreement for rent amount:", agreementError);
+          setError(new Error(`Failed to fetch agreement: ${agreementError.message}`));
           setIsLoading(false);
           return;
         }
 
-        if (!responseAgreement.data || responseAgreement.data.length === 0) {
-          setError(new Error('No agreement data found'));
-          setIsLoading(false);
-          return;
-        }
-
-        const vehicleId = responseAgreement.data[0]?.vehicle_id;
-        
-        if (!vehicleId) {
+        if (!agreementData.vehicle_id) {
           setIsLoading(false);
           return;
         }
 
         // Fetch the vehicle to get rent_amount
-        const responseVehicle = await supabase
+        const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('rent_amount')
-          .eq('id', vehicleId)
+          .eq('id', agreementData.vehicle_id)
           .single();
 
-        if (!hasData(responseVehicle)) {
-          console.error("Error fetching vehicle rent amount:", getErrorMessage(responseVehicle));
-          setError(new Error(`Failed to fetch vehicle: ${getErrorMessage(responseVehicle)}`));
+        if (vehicleError) {
+          console.error("Error fetching vehicle rent amount:", vehicleError);
+          setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
           setIsLoading(false);
           return;
         }
 
-        if (responseVehicle.data && responseVehicle.data.rent_amount !== null) {
-          setRentAmount(responseVehicle.data.rent_amount);
+        if (vehicleData && vehicleData.rent_amount) {
+          setRentAmount(vehicleData.rent_amount);
         }
       } catch (err) {
         console.error("Unexpected error in fetchRentAmount:", err);

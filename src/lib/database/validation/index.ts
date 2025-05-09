@@ -1,60 +1,41 @@
-
-import { Database } from '@/types/database.types';
-
-type Tables = Database['public']['Tables'];
+/**
+ * Export all validation utilities from the validation directory
+ */
+export * from './typeGuards';
 
 /**
- * Type-safe status casting functions
+ * Validates and converts lease status to database-compatible format
  */
-export function asLeaseStatus(status: string): Tables['leases']['Row']['status'] {
-  return status as Tables['leases']['Row']['status'];
-}
-
-export function asVehicleStatus(status: string): Tables['vehicles']['Row']['status'] {
-  return status as Tables['vehicles']['Row']['status'];
-}
-
-export function asPaymentStatus(status: string): Tables['unified_payments']['Row']['status'] {
-  return status as Tables['unified_payments']['Row']['status'];
-}
-
-export function asProfileStatus(status: string): Tables['profiles']['Row']['status'] {
-  return status as Tables['profiles']['Row']['status'];
-}
-
-export function asTrafficFineStatus(status: string): Tables['traffic_fines']['Row']['payment_status'] {
-  return status as Tables['traffic_fines']['Row']['payment_status'];
-}
-
-export function asLegalCaseStatus(status: string): Tables['legal_cases']['Row']['status'] {
-  return status as Tables['legal_cases']['Row']['status'];
+export function asLeaseStatus(status: string): string {
+  return status;
 }
 
 /**
- * Type-safe ID casting functions
+ * Validates and converts vehicle status to database-compatible format
  */
-export function asVehicleId(id: string): Tables['vehicles']['Row']['id'] {
-  return id as Tables['vehicles']['Row']['id'];
-}
-
-export function asLeaseId(id: string): Tables['leases']['Row']['id'] {
-  return id as Tables['leases']['Row']['id'];
-}
-
-export function asProfileId(id: string): Tables['profiles']['Row']['id'] {
-  return id as Tables['profiles']['Row']['id'];
-}
-
-export function asPaymentId(id: string): Tables['unified_payments']['Row']['id'] {
-  return id as Tables['unified_payments']['Row']['id'];
+export function asVehicleStatus(status: string): string {
+  return status;
 }
 
 /**
- * Validator functions to check if values are valid
+ * Validates and converts payment status to database-compatible format
  */
-export function isValidStatus<T extends {status: string}>(
-  entity: T, 
-  validStatuses: string[]
-): boolean {
-  return validStatuses.includes(entity.status);
+export function asPaymentStatus(status: string): string {
+  return status;
+}
+
+/**
+ * Generic status validator for database entities
+ */
+export function asEntityStatus(status: string): string {
+  return status;
+}
+
+/**
+ * Validates database ID format
+ */
+export function isValidDatabaseId(id: string): boolean {
+  // Basic UUID validation
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }

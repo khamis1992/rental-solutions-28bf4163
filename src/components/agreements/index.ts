@@ -3,8 +3,7 @@
 export * from './AgreementDetail';
 export * from './AgreementFilters';
 export * from './AgreementForm';
-// Export AgreementList using named export to avoid duplicate export error
-export { AgreementList } from './AgreementList';
+export * from './AgreementList';
 export * from './AgreementList-Simple';
 export * from './AgreementStats';
 export * from './AgreementTrafficFines';
@@ -30,5 +29,5 @@ export * from './page/AgreementSearch';
 export * from './page/ActiveFilters';
 
 // Table components
-export * from './AgreementTable';
+export * from './table/AgreementTable';
 export * from './table/AgreementTableColumns';

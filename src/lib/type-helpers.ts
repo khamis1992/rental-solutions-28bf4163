@@ -1,128 +1,133 @@
-// Fix the line causing the error
-export const asArray = <T>(value: T | T[]): T[] => {
-  if (Array.isArray(value)) {
-    return value;
-  } else {
-    return [value];
+
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import { Database } from '@/types/database.types';
+import { exists } from '@/utils/response-mapper';
+
+/**
+ * Type for database ID that ensures consistent typing across the application
+ */
+export type DatabaseId = string;
+
+/**
+ * Type guard to check if a value is a valid DatabaseId
+ */
+export function isValidDatabaseId(id: unknown): id is DatabaseId {
+  return typeof id === 'string' && id.length > 0;
+}
+
+/**
+ * Safely cast any string ID to the proper database ID type
+ * This is a type assertion function that helps TypeScript understand 
+ * the ID is correctly formatted, but doesn't perform runtime validation
+ */
+export function castToDatabaseId(id: string): DatabaseId {
+  return id as DatabaseId;
+}
+
+/**
+ * Type guard to check if a Supabase response has data and is not an error
+ */
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is (PostgrestResponse<T> & { data: T }) {
+  if (!response) return false;
+  if (response.error) return false;
+  return response.data !== null && response.data !== undefined;
+}
+
+/**
+ * Safely extract data from a Supabase response
+ * Returns null if response is invalid or has an error
+ */
+export function extractResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): T | null {
+  if (!hasResponseData(response)) {
+    if (response?.error) {
+      console.error('Database error:', response.error);
+    }
+    return null;
   }
-};
+  return response.data;
+}
 
-export const truncateString = (str: string, maxLength: number) => {
-  if (!str) return '';
-  if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength) + '...';
-};
-
-export const formatDate = (date: Date | string): string => {
-  try {
-    const dt = typeof date === 'string' ? new Date(date) : date;
-    return dt.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return 'Invalid Date';
+/**
+ * Type guard to ensure array type
+ * Useful when dealing with potentially unknown response structures
+ */
+export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
+  if (data === null || data === undefined) {
+    return [];
   }
-};
+  return Array.isArray(data) ? data : [data];
+}
 
-export const formatTime = (date: Date | string): string => {
-  try {
-    const dt = typeof date === 'string' ? new Date(date) : date;
-    return dt.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return 'Invalid Time';
+/**
+ * Database table types for easier referencing
+ */
+export type Tables = Database['public']['Tables'];
+
+/**
+ * Type for payment status from database schema
+ */
+export type PaymentStatusType = Tables['unified_payments']['Row']['status'];
+
+/**
+ * Convert string to strongly typed payment status
+ */
+export function toPaymentStatus(status: string): PaymentStatusType {
+  return status as PaymentStatusType;
+}
+
+/**
+ * Handle Supabase response with proper error logging and type safety
+ */
+export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+  if (response?.error) {
+    console.error('Database error:', response.error);
+    return null;
   }
-};
+  
+  return response?.data || null;
+}
 
-export const formatDateTime = (date: Date | string): string => {
-  return `${formatDate(date)} ${formatTime(date)}`;
-};
+/**
+ * Type assertion function to cast string ID to the database table's ID type
+ */
+export function castToTableId<T extends keyof Tables>(id: string, _table: T): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
 
-export const isValidDate = (date: any): boolean => {
-  return date instanceof Date && !isNaN(date.getTime());
-};
+/**
+ * Safe way to access properties from a Supabase response that might be an error
+ */
+export function safelyAccessProperty<T, K extends keyof T>(
+  obj: T | null | undefined, 
+  key: K, 
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (!obj) return defaultValue;
+  return (obj as any)[key] ?? defaultValue;
+}
 
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+/**
+ * Type guard to check if an object has a specific property
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
 
-export const isValidPhoneNumber = (phoneNumber: string): boolean => {
-  const phoneRegex = /^[0-9]{8,15}$/;
-  return phoneRegex.test(phoneNumber);
-};
-
-export const isValidUrl = (url: string): boolean => {
-  try {
-    new URL(url);
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-export const generateRandomString = (length: number): string => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
-
-export const generateRandomNumber = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
-export const generateRandomBoolean = (): boolean => {
-  return Math.random() < 0.5;
-};
-
-export const generateRandomDate = (start: Date, end: Date): Date => {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-};
-
-export const generateRandomArray = <T>(count: number, callback: () => T): T[] => {
-  const result: T[] = [];
-  for (let i = 0; i < count; i++) {
-    result.push(callback());
-  }
-  return result;
-};
-
-export const generateRandomObject = <T>(keys: string[], callback: (key: string) => any): T => {
-  const result: any = {};
-  for (const key of keys) {
-    result[key] = callback(key);
-  }
-  return result as T;
-};
-
-export const generateRandomEnumValue = <T>(enumType: { [s: string]: T }): T => {
-  const enumValues = Object.values(enumType) as T[];
-  const randomIndex = Math.floor(Math.random() * enumValues.length);
-  return enumValues[randomIndex];
-};
-
-export const generateRandomId = (): string => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
-
-export const generateRandomColor = (): string => {
-  return '#' + Math.floor(Math.random()*16777215).toString(16);
-};
-
-export const generateRandomImageUrl = (width: number = 200, height: number = 200): string => {
-  return `https://picsum.photos/${width}/${height}`;
-};
-
-export const generateAvatarUrl = (name: string): string => {
-  const initials = name.split(' ').map(n => n[0]).join('');
-  return `https://ui-avatars.com/api/?name=${initials}&background=random`;
-};
+/**
+ * Creates a strongly typed filter for a specific table column
+ */
+export function createTableColumnFilter<
+  T extends keyof Database['public']['Tables'],
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(table: T, column: C) {
+  return function(value: Database['public']['Tables'][T]['Row'][C]) {
+    return { column: column as string, value };
+  };
+}

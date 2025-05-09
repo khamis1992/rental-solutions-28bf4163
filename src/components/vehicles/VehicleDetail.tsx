@@ -29,11 +29,11 @@ const VehicleDetail = () => {
   const { toast } = useToast();
   
   // Use the new hook for vehicle details
-  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id || '');
-  const { updateStatus, isUpdating } = useVehicleStatus(id || '');
+  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
+  const { updateStatus, isUpdating } = useVehicleStatus(id);
   const { deleteVehicle, isDeleting } = useVehicleDelete();
-  const { maintenanceRecords, isLoading: isLoadingMaintenance } = useVehicleMaintenanceHistory(id || '');
-  const { agreements, isLoading: isLoadingAgreements } = useVehicleAgreements(id || '');
+  const { maintenanceRecords, isLoading: isLoadingMaintenance } = useVehicleMaintenanceHistory(id);
+  const { agreements, isLoading: isLoadingAgreements } = useVehicleAgreements(id);
 
   if (isLoading) {
     return (
@@ -75,7 +75,7 @@ const VehicleDetail = () => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "The vehicle could not be found or you don't have permission to view it."}
+            {error?.message || "The vehicle could not be found or you don't have permission to view it."}
           </p>
         </CardContent>
         <CardFooter>
@@ -141,10 +141,10 @@ const VehicleDetail = () => {
     { label: "License Plate", value: vehicle.license_plate },
     { label: "VIN", value: vehicle.vin },
     { label: "Mileage", value: vehicle.mileage ? `${vehicle.mileage} km` : "Not recorded" },
-    { label: "Daily Rate", value: vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : "Not set" },
-    { label: "Monthly Rate", value: vehicle.monthlyRate ? formatCurrency(vehicle.monthlyRate) : "Not set" },
-    { label: "Type", value: vehicle.vehicleType?.name || "Standard" },
-    { label: "Description", value: vehicle.vehicleType?.description || "No description available" },
+    { label: "Daily Rate", value: vehicle.daily_rate ? formatCurrency(vehicle.daily_rate) : "Not set" },
+    { label: "Monthly Rate", value: vehicle.monthly_rate ? formatCurrency(vehicle.monthly_rate) : "Not set" },
+    { label: "Type", value: vehicle.vehicle_type?.name || "Standard" },
+    { label: "Description", value: vehicle.vehicle_type?.description || "No description available" },
   ];
 
   return (

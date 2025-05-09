@@ -1,75 +1,63 @@
 
-import { Agreement } from '@/types/agreement';
-import { LeaseStatus } from '@/types/lease-types';
+import { Database } from "@/types/database.types";
+import { DbId, LeaseStatus, PaymentStatus } from '@/types/database-common';
+import { GenericSchema } from "@supabase/supabase-js";
 
-export interface SimpleAgreement {
-  id: string;
-  status: LeaseStatus;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: string | Date;
-  end_date: string | Date;
-  total_amount: number;
-  rent_amount?: number;
-  payment_frequency?: string;
-  payment_day?: number;
-  created_at?: string | Date;
-  updated_at?: string | Date;
-  agreement_number?: string;
-  agreement_type?: string;
-  next_payment_date?: string;
-  last_payment_date?: string;
-  notes?: string;
-  customers?: {
-    id?: string;
-    full_name?: string;
-    email?: string;
-    phone_number?: string;
-  };
-  vehicles?: {
-    id?: string;
-    make?: string;
-    model?: string;
-    year?: number;
-    license_plate?: string;
-    color?: string;
-    vehicle_type?: string;
-  };
-  customer_name?: string;
-  payments?: any[];
-  daily_late_fee?: number;
-  deposit_amount?: number;
-  remaining_amount?: number;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-}
-
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string | null;
-  description: string | null;
-  type: string;
-  late_fine_amount: number;
-  days_overdue: number;
-  original_due_date: string | null;
-  transaction_id: string | null;
-  [key: string]: any;
-}
-
-// Export AgreementStatus type
 export type AgreementStatus = LeaseStatus;
 
-// Helper function to convert string to status column
-export function asStatusColumn(status: string): LeaseStatus {
-  return status as LeaseStatus;
-}
+export type DatabaseStatusColumn<T extends keyof Database['public']['Tables']> = 
+  keyof Database['public']['Tables'][T]['Row'] extends 'status' 
+    ? Database['public']['Tables'][T]['Row']['status'] 
+    : never;
+
+export type Payment = {
+  id: DbId;
+  amount: number;
+  payment_date: Date;
+  notes?: string;
+  payment_method?: string;
+  reference_number?: string;
+  transaction_id?: string; // Added for compatibility
+  include_late_fee?: boolean;
+  is_partial?: boolean;
+  status: PaymentStatus;
+};
+
+export type PaymentEntryDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title?: string; // Added to fix compatibility errors
+  description?: string; // Added to fix compatibility errors
+  defaultAmount?: number; // Added to fix compatibility errors
+  rentAmount?: number; // Added to fix compatibility errors
+  lateFeeDetails?: { amount: number; daysLate: number } | null; // Added to fix compatibility errors
+  selectedPayment?: Payment | null;
+  onSubmit: (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
+  ) => Promise<void>;
+};
+
+export type AgreementImport = {
+  id: DbId;
+  status: 'pending' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  file_name: string;
+  total_records: number;
+  processed_records: number;
+  failed_records: number;
+};
+
+// Helper functions for type casting with standardized naming
+export const asStatusColumn = <T extends keyof Database['public']['Tables']>(
+  status: string
+): DatabaseStatusColumn<T> => status as DatabaseStatusColumn<T>;
+
+export const asAgreementIdColumn = (id: string) => id as DbId;
+export const asImportIdColumn = (id: string) => id as DbId;

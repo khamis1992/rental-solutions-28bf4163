@@ -1,14 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { LeaseStatus } from '@/types/lease-types';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { hasData } from '@/utils/supabase-type-helpers';
-import { asStatus } from '@/utils/type-casting';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -26,15 +24,9 @@ const processFetchedData = (data: any): Agreement | null => {
   if (!data || !isNotError(data)) return null;
   
   try {
-    // Make sure that status is properly cast to LeaseStatus
-    const statusValue = data.status || 'draft';
-    const validStatus = ['active', 'pending', 'completed', 'cancelled', 'pending_payment', 
-                         'pending_deposit', 'draft', 'terminated', 'archived', 'closed', 
-                         'expired'].includes(statusValue) ? statusValue as LeaseStatus : 'draft' as LeaseStatus;
-    
     const processedAgreement: Agreement = {
       id: data.id || '',
-      status: validStatus,
+      status: data.status || 'draft',
       customer_id: data.customer_id || '',
       vehicle_id: data.vehicle_id || '',
       start_date: ensureDate(data.start_date) || new Date(),
@@ -117,17 +109,17 @@ export function useEditAgreement(id: string | undefined) {
         } else {
           // Fetch directly if not found in the list
           try {
-            const response = await supabase
+            const { data, error } = await supabase
               .from('leases')
               .select('*, vehicles(*), profiles:customer_id(*)')
               .eq('id', id);
               
-            if (response.error) {
-              throw response.error;
+            if (error) {
+              throw error;
             }
             
-            if (hasData(response) && response.data.length > 0) {
-              const leaseData = response.data[0];
+            if (data && data.length > 0) {
+              const leaseData = data[0];
               console.log("Fetched agreement data:", leaseData);
               
               // Process the fetched data
@@ -175,18 +167,18 @@ export function useEditAgreement(id: string | undefined) {
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
       console.log("Fetching vehicle details for ID:", vehicleId);
-      const response = await supabase
+      const { data, error } = await supabase
         .from('vehicles')
         .select('*')
         .eq('id', vehicleId);
         
-      if (response.error) {
-        console.error("Error fetching vehicle details:", response.error);
+      if (error) {
+        console.error("Error fetching vehicle details:", error);
         return;
       }
       
-      if (hasData(response) && response.data.length > 0) {
-        const vehicleDetails = response.data[0];
+      if (data && data.length > 0) {
+        const vehicleDetails = data[0];
         console.log("Fetched vehicle data:", vehicleDetails);
         setVehicleData(vehicleDetails);
         

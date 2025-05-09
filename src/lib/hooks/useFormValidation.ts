@@ -1,98 +1,66 @@
 
 import { useState } from 'react';
+import { z } from 'zod';
+import { useToast } from '@/components/ui/use-toast';
 
-/**
- * Generic form validation hook for handling form validation
- */
-export function useFormValidation<T extends Record<string, any>>(initialErrors: Partial<Record<keyof T, string>> = {}) {
-  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>(initialErrors);
+export function useFormValidation<T extends z.ZodType<any, any>>(schema: T) {
+  const { toast } = useToast();
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  /**
-   * Validate a single field
-   */
-  const validateField = <K extends keyof T>(
-    field: K,
-    value: T[K],
-    rules: ((value: T[K]) => string | null)[]
-  ): string | null => {
-    for (const rule of rules) {
-      const error = rule(value);
-      if (error) {
-        setErrors(prev => ({ ...prev, [field]: error }));
-        return error;
-      }
-    }
-
-    // Clear error for this field
-    setErrors(prev => {
-      const updated = { ...prev };
-      delete updated[field];
-      return updated;
-    });
-
-    return null;
-  };
-
-  /**
-   * Validate entire form data object against a schema of rules
-   */
-  const validateForm = (
-    data: T,
-    schema: Record<keyof T, Array<(value: any) => string | null>>
-  ): boolean => {
-    const newErrors: Partial<Record<keyof T, string>> = {};
-    let isValid = true;
-
-    // Validate each field in the schema
-    for (const field in schema) {
-      if (Object.prototype.hasOwnProperty.call(schema, field)) {
-        const rules = schema[field];
-        const value = data[field];
+  const validateForm = (data: any): data is z.infer<T> => {
+    try {
+      schema.parse(data);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const formattedErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          const path = err.path.join('.');
+          formattedErrors[path] = err.message;
+        });
+        setErrors(formattedErrors);
         
-        for (const rule of rules) {
-          const error = rule(value);
-          if (error) {
-            newErrors[field] = error;
-            isValid = false;
-            break;
-          }
-        }
+        // Show toast for the first error
+        const firstError = error.errors[0];
+        toast({
+          title: 'Validation Error',
+          description: firstError.message,
+          variant: 'destructive',
+        });
       }
+      return false;
     }
-
-    setErrors(newErrors);
-    return isValid;
   };
 
-  /**
-   * Set a specific error manually
-   */
-  const setError = <K extends keyof T>(field: K, message: string | null) => {
-    setErrors(prev => {
-      if (message === null) {
-        const updated = { ...prev };
-        delete updated[field];
-        return updated;
+  const validateField = <K extends keyof z.infer<T>>(field: K, value: z.infer<T>[K]): boolean => {
+    try {
+      const fieldSchema = schema.shape[field as string];
+      if (fieldSchema) {
+        fieldSchema.parse(value);
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[field as string];
+          return updated;
+        });
+        return true;
       }
-      return { ...prev, [field]: message };
-    });
-  };
-
-  /**
-   * Clear all errors
-   */
-  const clearErrors = () => {
-    setErrors({});
+      return false;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setErrors((prev) => ({
+          ...prev,
+          [field as string]: error.errors[0]?.message || 'Invalid value',
+        }));
+      }
+      return false;
+    }
   };
 
   return {
     errors,
-    validateField,
     validateForm,
-    setError,
-    clearErrors,
+    validateField,
     hasErrors: Object.keys(errors).length > 0
   };
 }
-
-export default useFormValidation;

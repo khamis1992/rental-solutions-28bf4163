@@ -1,24 +1,15 @@
 
+import { Tables, TableRow, TableInsert, TableUpdate, UUID } from './database-types';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { UUID } from './database-types';
-import { getResponseData } from '@/utils/supabase-type-helpers';
 import { supabase } from '@/lib/supabase';
 
-// Define type aliases for common operations
-export type DbSchema = Database['public'];
-export type DbTables = DbSchema['Tables'];
+export * from './database-types';
 
-export type TableRow<T extends keyof DbTables> = DbTables[T]['Row'];
-export type TableInsert<T extends keyof DbTables> = DbTables[T]['Insert'];
-export type TableUpdate<T extends keyof DbTables> = DbTables[T]['Update'];
-
-// Helper type for database IDs that enforces UUID format
-export type DbId = UUID;
-
-// Common query builder for type-safe operations
-export const createQuery = <T extends keyof DbTables>(tableName: T) => {
+// Type-safe query builder
+export const createQuery = <T extends keyof Tables>(tableName: T) => {
   return {
-    findById: async (id: string): Promise<TableRow<T> | null> => {
+    findById: async (id: UUID): Promise<TableRow<T> | null> => {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -48,7 +39,7 @@ export const createQuery = <T extends keyof DbTables>(tableName: T) => {
       return data as TableRow<T>;
     },
 
-    update: async (id: string, values: TableUpdate<T>): Promise<TableRow<T> | null> => {
+    update: async (id: UUID, values: TableUpdate<T>): Promise<TableRow<T> | null> => {
       const { data, error } = await supabase
         .from(tableName)
         .update(values)
@@ -64,7 +55,7 @@ export const createQuery = <T extends keyof DbTables>(tableName: T) => {
       return data as TableRow<T>;
     },
 
-    delete: async (id: string): Promise<boolean> => {
+    delete: async (id: UUID): Promise<boolean> => {
       const { error } = await supabase
         .from(tableName)
         .delete()
@@ -97,4 +88,5 @@ export const createQuery = <T extends keyof DbTables>(tableName: T) => {
   };
 };
 
-export type QueryBuilder<T extends keyof DbTables> = ReturnType<typeof createQuery<T>>;
+export type QueryBuilder<T extends keyof Tables> = ReturnType<typeof createQuery<T>>;
+

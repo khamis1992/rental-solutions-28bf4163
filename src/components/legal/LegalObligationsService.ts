@@ -1,5 +1,5 @@
 // Import the typeGuards correctly
-import { typeGuards } from '@/lib/validation-utils';
+import { typeGuards } from '@/lib/database';
 
 export class LegalObligationsService {
   // Existing code...

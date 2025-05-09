@@ -1,40 +1,26 @@
 
 import { UseQueryOptions } from '@tanstack/react-query';
 
-type QueryMeta = Record<string, unknown>;
-
-/**
- * Create a standard query configuration with consistent defaults
- */
-export function createQueryConfig<TData, TKey extends unknown[]>(
-  queryKey: TKey,
-  options?: Partial<UseQueryOptions<TData, Error, TData, TKey>>
-): UseQueryOptions<TData, Error, TData, TKey> {
-  return {
-    queryKey,
-    retry: (failureCount, error) => {
-      // Only retry network errors or 5XX server errors
-      if (error instanceof Error && error.message.includes('Network Error')) {
-        return failureCount < 3;
+export const defaultQueryConfig = {
+  retry: (failureCount: number, error: any) => {
+    // Don't retry on specific error types
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = (error as { code: string }).code;
+      if (['23505', '23503', '42P01', '42703'].includes(code)) {
+        return false;
       }
-      return false;
-    },
-    refetchOnWindowFocus: true,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    ...options,
-  };
-}
+    }
+    return failureCount < 3;
+  },
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  refetchOnWindowFocus: false
+};
 
-/**
- * Create a query configuration with additional metadata
- */
-export function createMetaQueryConfig<TData, TKey extends unknown[]>(
-  queryKey: TKey,
-  meta: QueryMeta,
-  options?: Partial<Omit<UseQueryOptions<TData, Error, TData, TKey>, 'queryKey'>>
-): UseQueryOptions<TData, Error, TData, TKey> {
-  return createQueryConfig(queryKey, {
-    ...options,
-    meta
-  });
+export function createQueryConfig<TData>(
+  options?: Partial<UseQueryOptions<TData, Error>>
+): UseQueryOptions<TData, Error> {
+  return {
+    ...defaultQueryConfig,
+    ...options
+  };
 }

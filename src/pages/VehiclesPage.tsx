@@ -27,8 +27,7 @@ const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
-  const vehiclesHook = useVehicles();
-  const { useRealtimeUpdates } = vehiclesHook;
+  const { useRealtimeUpdates } = useVehicles();
   
   // Setup real-time updates
   useRealtimeUpdates();

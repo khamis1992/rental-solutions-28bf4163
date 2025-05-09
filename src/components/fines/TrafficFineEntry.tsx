@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -17,7 +18,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Calendar } from 'lucide-react';
-import { useTrafficFines, TrafficFine, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,7 +45,7 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { addTrafficFine } = useTrafficFines();
+  const { createTrafficFine } = useTrafficFines();
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -61,7 +62,7 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
 
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      await addTrafficFine.mutateAsync(data as TrafficFineCreatePayload);
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload);
       toast.success("Traffic fine created successfully");
       form.reset();
       if (onFineSaved) {

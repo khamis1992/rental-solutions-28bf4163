@@ -1,35 +1,54 @@
 
 /**
- * Format a number as currency
+ * Utility functions for formatting values for display
  */
-export function formatCurrency(amount: number): string {
+
+// Format a date as a localized string
+export function formatDate(date: Date | string | number | null | undefined): string {
+  if (!date) return 'N/A';
+  
+  const dateObj = date instanceof Date ? date : new Date(date);
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+  
+  return dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+// Format a currency value
+export function formatCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return 'N/A';
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2
+    currency: 'QAR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(amount);
 }
 
-/**
- * Format a date with customizable options
- */
-export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = {}): string {
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  };
+// Format a number with commas
+export function formatNumber(num: number | null | undefined): string {
+  if (num === null || num === undefined) return 'N/A';
   
-  const mergedOptions = { ...defaultOptions, ...options };
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+// Format a phone number
+export function formatPhoneNumber(phoneNumber: string | null | undefined): string {
+  if (!phoneNumber) return 'N/A';
   
-  if (!date) return '';
+  // Basic formatting for Qatar numbers
+  const cleaned = phoneNumber.replace(/\D/g, '');
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (cleaned.length === 8) {
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4)}`;
+  }
   
-  // Check if date is valid
-  if (isNaN(dateObj.getTime())) return '';
-  
-  return new Intl.DateTimeFormat('en-US', mergedOptions).format(dateObj);
+  return phoneNumber;
 }

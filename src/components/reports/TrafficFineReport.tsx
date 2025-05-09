@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

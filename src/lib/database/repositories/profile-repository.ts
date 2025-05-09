@@ -1,106 +1,59 @@
 
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import { Repository } from '../repository';
+import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
+import { asProfileId } from '../database-types';
+import { supabase } from '@/lib/supabase';
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type ProfileRow = TableRow<'profiles'>;
 
 /**
- * Repository for interacting with profiles table
+ * Repository for customer profile related database operations
  */
-export function createProfileRepository(supabaseClient: SupabaseClient) {
-  return {
-    /**
-     * Find a profile by ID
-     */
-    findById: async (id: string) => {
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .single();
+export class ProfileRepository extends Repository<'profiles'> {
+  constructor(client: any) {
+    super(client, 'profiles');
+  }
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
+  /**
+   * Find active customer profiles
+   */
+  async findActive(): Promise<DbListResponse<ProfileRow>> {
+    const response = await this.client
+      .from('profiles')
+      .select('*')
+      .eq('status', 'active')
+      .order('full_name', { ascending: true });
+    
+    return { data: response.data, error: response.error };
+  }
 
-      return data as ProfileRow;
-    },
-
-    /**
-     * Find profiles by criteria
-     */
-    findByFilter: async (filter: Partial<ProfileRow>) => {
-      let query = supabaseClient.from('profiles').select('*');
-
-      // Apply filters
-      Object.entries(filter).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      });
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching profiles by filter:', error);
-        return [];
-      }
-
-      return data as ProfileRow[];
-    },
-
-    /**
-     * Create a new profile
-     */
-    create: async (profile: ProfileInsert) => {
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .insert(profile)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating profile:', error);
-        return null;
-      }
-
-      return data as ProfileRow;
-    },
-
-    /**
-     * Update a profile
-     */
-    update: async (id: string, updates: ProfileUpdate) => {
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating profile:', error);
-        return null;
-      }
-
-      return data as ProfileRow;
-    },
-
-    /**
-     * Delete a profile
-     */
-    delete: async (id: string) => {
-      const { error } = await supabaseClient
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      return !error;
-    }
-  };
+  /**
+   * Search profiles by name or other fields
+   */
+  async search(query: string): Promise<DbListResponse<ProfileRow>> {
+    const response = await this.client
+      .from('profiles')
+      .select('*')
+      .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone_number.ilike.%${query}%`)
+      .order('full_name', { ascending: true });
+    
+    return { data: response.data, error: response.error };
+  }
+  
+  /**
+   * Get profile with related leases
+   */
+  async getWithLeases(profileId: string): Promise<DbSingleResponse<ProfileRow & { leases: any[] }>> {
+    const response = await this.client
+      .from('profiles')
+      .select('*, leases(*)')
+      .eq('id', asProfileId(profileId))
+      .single();
+    
+    return { data: response.data, error: response.error };
+  }
 }
 
-export type ProfileRepository = ReturnType<typeof createProfileRepository>;
+// Export the repository instance and the factory function
+export const profileRepository = new ProfileRepository(supabase);
+export const createProfileRepository = (client: any) => new ProfileRepository(client);

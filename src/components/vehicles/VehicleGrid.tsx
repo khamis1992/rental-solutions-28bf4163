@@ -12,17 +12,6 @@ interface VehicleGridProps {
   filter?: any; // Keep for backward compatibility
 }
 
-// Define a type for the expected vehicle structure
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  license_plate: string;
-  status: string;
-  year: number | string;
-  // Add other fields as needed
-}
-
 const VehicleGrid: React.FC<VehicleGridProps> = ({
   vehicles = [],
   isLoading = false,
@@ -62,21 +51,21 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({
           No vehicles found.
         </Card>
       ) : (
-        // Safely map over vehicles array with type assertion
-        vehicles.map((vehicle: any) => (
+        // Safely map over vehicles array
+        typeGuards.isArray(vehicles) && vehicles.map(vehicle => (
           <Card 
-            key={vehicle?.id} 
+            key={vehicle.id} 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => vehicle?.id && handleVehicleClick(vehicle.id)}
+            onClick={() => handleVehicleClick(vehicle.id)}
           >
             <div className="p-4">
-              <h3 className="text-lg font-medium">{vehicle?.make || ''} {vehicle?.model || ''}</h3>
-              <p className="text-sm text-muted-foreground">{vehicle?.license_plate || ''}</p>
+              <h3 className="text-lg font-medium">{vehicle.make} {vehicle.model}</h3>
+              <p className="text-sm text-muted-foreground">{vehicle.license_plate}</p>
               <div className="mt-2 flex justify-between items-center">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {vehicle?.status || 'unknown'}
+                  {vehicle.status}
                 </span>
-                <span className="text-sm text-gray-500">{vehicle?.year || ''}</span>
+                <span className="text-sm text-gray-500">{vehicle.year}</span>
               </div>
             </div>
           </Card>

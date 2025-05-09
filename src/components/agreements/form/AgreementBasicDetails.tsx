@@ -22,7 +22,8 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   onVehicleChange
 }) => {
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const vehiclesHook = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
 
   const statusOptions = [
     { label: "Draft", value: AgreementStatus.DRAFT },
