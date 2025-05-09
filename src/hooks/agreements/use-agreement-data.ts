@@ -11,7 +11,7 @@ import { hasData, getErrorMessage } from '@/utils/supabase-response-helpers';
  */
 export function useAgreementData(filters, pagination, setTotalCount) {
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
-  
+
   const { data: agreements = [], isLoading, error } = useQuery({
     queryKey: ['agreements', filters, pagination],
     queryFn: async () => {
@@ -53,15 +53,19 @@ export function useAgreementData(filters, pagination, setTotalCount) {
 
         // Execute the query
         const response = await query;
-        
+
         if (hasData(response)) {
           // Set total count for pagination
           setTotalCount(response.count || 0);
-          
+
+          console.log("Agreements data from API:", response.data);
+
           // Process and return the data
-          return processAgreementData(response.data);
+          const processedData = processAgreementData(response.data);
+          console.log("Processed agreements data:", processedData);
+          return processedData;
         }
-        
+
         console.error("Error fetching agreements:", getErrorMessage(response));
         return [];
       } catch (error) {
