@@ -16,7 +16,7 @@ export function isSuccessResponse<T>(
  */
 export function isTableRow<T extends object>(
   obj: any, 
-  requiredProps: (keyof T)[] = ['id']
+  requiredProps: Array<keyof T> = ['id' as keyof T]
 ): obj is T {
   if (!obj || typeof obj !== 'object') return false;
   

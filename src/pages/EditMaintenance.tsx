@@ -8,13 +8,12 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner'; // Use sonner directly instead of useToast
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getAllRecords, update } = useMaintenance();
-  const { toast } = useToast();
   const [maintenance, setMaintenance] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,11 +90,7 @@ const EditMaintenance = () => {
         data: preparedData 
       });
       
-      toast({
-        title: "Success",
-        description: "Maintenance record updated successfully",
-        variant: "default"
-      });
+      toast.success("Maintenance record updated successfully");
       
       navigate('/maintenance');
     } catch (err) {
@@ -161,7 +156,6 @@ const EditMaintenance = () => {
       <MaintenanceForm
         initialData={formattedMaintenance}
         onSubmit={handleSubmit}
-        isLoading={isSubmitting}
         isEditMode={true}
       />
     </PageContainer>

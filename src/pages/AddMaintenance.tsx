@@ -7,12 +7,11 @@ import PageContainer from '@/components/layout/PageContainer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner'; // Use sonner directly instead of useToast
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
   const { create } = useMaintenance();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -56,11 +55,7 @@ const AddMaintenance = () => {
       
       await create.mutateAsync(preparedData);
       
-      toast({
-        title: "Success",
-        description: "Maintenance record created successfully",
-        variant: "default"
-      });
+      toast.success("Maintenance record created successfully");
       
       navigate('/maintenance');
     } catch (err: any) {
@@ -86,7 +81,6 @@ const AddMaintenance = () => {
       
       <MaintenanceForm
         onSubmit={handleSubmit}
-        isLoading={isSubmitting}
       />
     </PageContainer>
   );

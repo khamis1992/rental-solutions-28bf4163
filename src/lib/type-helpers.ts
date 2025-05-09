@@ -31,7 +31,8 @@ export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): response is (PostgrestResponse<T> & { data: T }) {
   if (!response) return false;
-  if (response.error) return false;
+  // Check for error property first to avoid accessing undefined
+  if (response.error !== null && response.error !== undefined) return false;
   return response.data !== null && response.data !== undefined;
 }
 
@@ -54,6 +55,7 @@ export function extractResponseData<T>(
 /**
  * Type guard to ensure array type
  * Useful when dealing with potentially unknown response structures
+ * Returns an array of T, wrapping single values in an array
  */
 export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
   if (data === null || data === undefined) {
@@ -113,7 +115,7 @@ export function safelyAccessProperty<T, K extends keyof T>(
 /**
  * Type guard to check if an object has a specific property
  */
-export function hasProperty<T extends object, K extends string>(
+export function hasProperty<T extends object, K extends PropertyKey>(
   obj: T,
   key: K
 ): obj is T & Record<K, unknown> {

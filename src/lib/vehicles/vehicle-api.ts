@@ -17,8 +17,32 @@ import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
 // Helper function to convert database status to app status
 const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null => {
   if (!dbStatus) return null;
-  if (dbStatus === 'reserve') return 'reserved';
-  return dbStatus as VehicleStatus;
+  
+  // Create a mapping of DB status to app status
+  const statusMap: Record<string, VehicleStatus> = {
+    'available': 'available',
+    'rented': 'rented',
+    'reserve': 'reserved', // DB uses 'reserve', app uses 'reserved'
+    'reserved': 'reserved',
+    'maintenance': 'maintenance',
+    'police_station': 'police_station',
+    'accident': 'accident',
+    'stolen': 'stolen',
+    'retired': 'retired'
+  };
+  
+  return (statusMap[dbStatus] || dbStatus) as VehicleStatus;
+};
+
+// Helper function to convert app status to database status
+export const mapToDBStatus = (appStatus: string): string => {
+  // Create a mapping of app status to DB status
+  const statusMap: Record<string, string> = {
+    'reserved': 'reserve', // App uses 'reserved', DB uses 'reserve'
+    // For all other statuses, the DB and app use the same values
+  };
+  
+  return statusMap[appStatus] || appStatus;
 };
 
 // Fetch vehicles with optional filtering

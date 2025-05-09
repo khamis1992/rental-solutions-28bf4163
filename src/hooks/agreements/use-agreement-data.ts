@@ -62,26 +62,31 @@ export function useAgreementData(filters, pagination, setTotalCount) {
 
           console.log("Agreements data from API:", response.data);
           
-          // Map the response data to the expected SimpleAgreement format
-          const mappedData: SimpleAgreement[] = response.data.map(item => ({
-            id: item.id,
-            status: item.status,
-            customer_id: item.customer_id,
-            vehicle_id: item.vehicle_id,
-            start_date: item.start_date,
-            end_date: item.end_date,
-            total_amount: item.total_amount,
-            rent_amount: item.rent_amount,
-            payment_frequency: item.payment_frequency || 'monthly',
-            deposit_amount: item.deposit_amount,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            agreement_number: item.agreement_number,
-            daily_late_fee: item.daily_late_fee,
-            notes: item.notes,
-            customers: item.customers,
-            vehicles: item.vehicles
-          }));
+          // Map the response data to the expected SimpleAgreement format with proper typing
+          const mappedData = response.data.map(item => {
+            // Extract the first customer if it's an array
+            const customerData = Array.isArray(item.customers) ? item.customers[0] : item.customers;
+            
+            return {
+              id: item.id,
+              status: item.status,
+              customer_id: item.customer_id,
+              vehicle_id: item.vehicle_id,
+              start_date: item.start_date,
+              end_date: item.end_date,
+              total_amount: item.total_amount,
+              rent_amount: item.rent_amount,
+              payment_frequency: item.payment_frequency || 'monthly',
+              deposit_amount: item.deposit_amount,
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              agreement_number: item.agreement_number,
+              daily_late_fee: item.daily_late_fee,
+              notes: item.notes,
+              customers: customerData, // Use the extracted customer data
+              vehicles: item.vehicles
+            } as SimpleAgreement;
+          });
 
           // Process and return the data
           const processedData = processAgreementData(mappedData);

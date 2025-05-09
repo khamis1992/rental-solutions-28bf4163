@@ -85,8 +85,24 @@ const Agreements = () => {
     });
   };
 
-  const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(prev => ({ ...prev, ...filters }));
+  const handleFilterChange = (key: string, value: string) => {
+    setSearchParams((prev) => {
+      const updatedParams: Record<string, string> = {};
+      
+      // Copy existing params
+      for (const [paramKey, paramValue] of prev.entries()) {
+        updatedParams[paramKey] = paramValue;
+      }
+      
+      // Update or add the new key-value pair
+      if (value) {
+        updatedParams[key] = value;
+      } else {
+        delete updatedParams[key];
+      }
+      
+      return updatedParams;
+    });
   };
 
   const handleTabChange = (value: string) => {
