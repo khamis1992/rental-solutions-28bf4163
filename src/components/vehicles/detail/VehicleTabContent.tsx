@@ -2,9 +2,14 @@
 import React from 'react';
 import { FileText, Wrench } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import { AgreementHistoryTab } from './AgreementHistoryTab';
+import { MaintenanceHistoryTab } from './MaintenanceHistoryTab';
 
-export const VehicleTabContent: React.FC = () => {
+interface VehicleTabContentProps {
+  vehicleId?: string;
+}
+
+export const VehicleTabContent: React.FC<VehicleTabContentProps> = ({ vehicleId }) => {
   return (
     <Tabs defaultValue="agreements" className="w-full">
       <TabsList>
@@ -19,19 +24,11 @@ export const VehicleTabContent: React.FC = () => {
       </TabsList>
       
       <TabsContent value="agreements" className="space-y-4">
-        <Card>
-          <CardContent className="py-6 text-center text-muted-foreground">
-            Agreement history will be displayed here
-          </CardContent>
-        </Card>
+        <AgreementHistoryTab vehicleId={vehicleId} />
       </TabsContent>
       
       <TabsContent value="maintenance" className="space-y-4">
-        <Card>
-          <CardContent className="py-6 text-center text-muted-foreground">
-            Maintenance history will be displayed here
-          </CardContent>
-        </Card>
+        <MaintenanceHistoryTab vehicleId={vehicleId} />
       </TabsContent>
     </Tabs>
   );

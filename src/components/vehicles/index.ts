@@ -15,3 +15,5 @@ export * from './detail/VehicleMainInfo';
 export * from './detail/VehicleQuickActions';
 export * from './detail/VehicleStatusCard';
 export * from './detail/VehicleTabContent';
+export * from './detail/AgreementHistoryTab';
+export * from './detail/MaintenanceHistoryTab';
