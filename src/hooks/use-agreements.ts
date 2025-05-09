@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -39,19 +38,15 @@ export interface SimpleAgreement {
   };
 }
 
-interface PaginationOptions {
-  page: number;
-  pageSize: number;
-}
-
 export function useAgreements(initialFilters = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
-  const [pagination, setPagination] = useState<PaginationOptions>({
+  // Default to showing all agreements without pagination
+  const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
-    pageSize: 12
+    pageSize: 1000 // Setting a high number to effectively show all agreements
   });
   
   const [totalCount, setTotalCount] = useState(0);
