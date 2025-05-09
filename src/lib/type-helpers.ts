@@ -29,7 +29,7 @@ export function castToDatabaseId(id: string): DatabaseId {
  */
 export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is (PostgrestResponse<T> & { data: T }) {
+): response is (PostgrestResponse<T> & { data: T; error: null }) {
   if (!response) return false;
   // Check for error property first to avoid accessing undefined
   if (response.error !== null && response.error !== undefined) return false;
@@ -44,7 +44,7 @@ export function extractResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
   if (!hasResponseData(response)) {
-    if (response?.error) {
+    if (response && response.error) {
       console.error('Database error:', response.error);
     }
     return null;
@@ -61,6 +61,8 @@ export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
   if (data === null || data === undefined) {
     return [];
   }
+  
+  // Fix: Instead of returning the input directly, ensure we return an array
   return Array.isArray(data) ? data : [data];
 }
 

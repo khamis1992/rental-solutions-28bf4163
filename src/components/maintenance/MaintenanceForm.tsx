@@ -1,64 +1,92 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { MaintenanceRecord, MaintenanceCategory } from '@/types/maintenance';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import { toast } from 'sonner';
-import { typeGuards } from '@/lib/database';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { maintenanceSchema } from '@/lib/validation-schemas/maintenance';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue, 
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-// Add missing types
-interface MaintenanceFormProps {
-  initialData?: any;
+export interface MaintenanceFormProps {
+  initialData?: Partial<MaintenanceRecord>;
   onSubmit: (data: any) => void;
-  categories?: any[];
-  isSubmitting?: boolean;
+  isEditMode?: boolean;
 }
 
-const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ 
-  initialData, 
-  onSubmit, 
-  categories = [],
-  isSubmitting = false
+const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
+  initialData,
+  onSubmit,
+  isEditMode = false,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<MaintenanceCategory[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  const form = useForm({
+  // Setup form with validation
+  const form = useForm<MaintenanceRecord>({
+    resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       ...initialData || {
-        vehicle_id: '',
-        service_type: '',
+        maintenance_type: 'REGULAR_INSPECTION',
         description: '',
-        scheduled_date: new Date(),
         cost: 0,
+        scheduled_date: new Date().toISOString(),
+        completion_date: undefined,
+        status: 'scheduled',
+        service_provider: '',
+        vehicle_id: '',
         notes: '',
-        category_id: ''
       }
     }
   });
 
+  // Load maintenance categories
   useEffect(() => {
-    if (initialData?.category_id) {
-      setSelectedCategory(initialData.category_id);
-    }
-  }, [initialData]);
+    const fetchCategories = async () => {
+      setIsLoading(true);
+      try {
+        // Mocked categories for now - in a real app, this would come from an API
+        const mockCategories = [
+          { id: '1', name: 'Engine', description: 'Engine maintenance', is_active: true },
+          { id: '2', name: 'Brakes', description: 'Brake system', is_active: true },
+          { id: '3', name: 'Tires', description: 'Tire maintenance', is_active: true },
+          { id: '4', name: 'Electrical', description: 'Electrical system', is_active: true },
+          { id: '5', name: 'Interior', description: 'Interior maintenance', is_active: true },
+        ];
+        setCategories(mockCategories as MaintenanceCategory[]);
+      } catch (error) {
+        console.error('Error loading maintenance categories:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCategory(event.target.value);
-    form.setValue('category_id', event.target.value);
+    fetchCategories();
+  }, []);
+
+  // Handle form submission
+  const handleSubmit = (data: MaintenanceRecord) => {
+    onSubmit(data);
   };
 
-  const handleSubmit = async (data: any) => {
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      toast.error('Failed to save maintenance record');
-      console.error('Error in maintenance form:', error);
-    }
-  };
-
-  // Safely filter categories
-  const filteredCategories = typeGuards.isArray(categories) 
-    ? categories.filter(cat => cat?.is_active !== false)
-    : [];
+  const activeCategories = categories.filter(category => 
+    // Type guard to check if the category has is_active property
+    (category && typeof category === 'object' && 'is_active' in category) 
+      ? category.is_active 
+      : true
+  );
 
   return (
     <Form {...form}>

@@ -17,6 +17,8 @@ export interface MaintenanceRecord {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  service_type?: string;
+  category_id?: string;
   vehicles?: {
     id: string;
     make: string;

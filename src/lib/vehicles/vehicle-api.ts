@@ -11,7 +11,7 @@ import {
   VehicleStatus,
   DatabaseVehicleStatus
 } from '@/types/vehicle';
-import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
+import { mapDatabaseRecordToVehicle, normalizeFeatures } from './vehicle-mappers';
 import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
 
 // Helper function to convert database status to app status
@@ -35,7 +35,7 @@ const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null =
 };
 
 // Helper function to convert app status to database status
-export const mapToDBStatus = (appStatus: string): string => {
+const mapToDBStatus = (appStatus: string): string => {
   // Create a mapping of app status to DB status
   const statusMap: Record<string, string> = {
     'reserved': 'reserve', // App uses 'reserved', DB uses 'reserve'

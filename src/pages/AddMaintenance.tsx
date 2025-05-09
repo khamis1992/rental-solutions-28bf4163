@@ -11,7 +11,7 @@ import { toast } from 'sonner'; // Use sonner directly instead of useToast
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
-  const { create } = useMaintenance();
+  const { create } = useMaintenance({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   

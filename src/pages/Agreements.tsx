@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -85,12 +86,14 @@ const Agreements = () => {
     });
   };
 
+  // Fix for the TypeScript error by using a properly typed function
   const handleFilterChange = (key: string, value: string) => {
     setSearchParams((prev) => {
+      // Create a new object with the spread of previous params
       const updatedParams: Record<string, string> = {};
       
       // Copy existing params
-      for (const [paramKey, paramValue] of prev.entries()) {
+      for (const [paramKey, paramValue] of Object.entries(prev)) {
         updatedParams[paramKey] = paramValue;
       }
       
@@ -122,6 +125,13 @@ const Agreements = () => {
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && value !== undefined && value !== '');
+
+  // Adapter function to match the expected function signature for AgreementFilterPanel
+  const filterChangeAdapter = (filters: Record<string, any>) => {
+    Object.entries(filters).forEach(([key, value]) => {
+      handleFilterChange(key, value as string);
+    });
+  };
 
   return (
     <PageContainer 
@@ -177,7 +187,7 @@ const Agreements = () => {
           {/* Filter Panel */}
           {showFilters && (
             <div className="border-b">
-              <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
+              <AgreementFilterPanel onFilterChange={filterChangeAdapter} currentFilters={searchParams} />
             </div>
           )}
           
