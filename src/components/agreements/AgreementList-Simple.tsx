@@ -4,7 +4,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
-import { Pagination } from '@/components/ui/pagination';
+import { SimplePagination } from '@/components/ui/simple-pagination';
 
 export function AgreementList() {
   const {
@@ -49,14 +49,12 @@ export function AgreementList() {
       
       {pagination && pagination.totalPages > 1 && (
         <div className="flex flex-col items-center justify-center mt-6">
-          <Pagination 
-            currentPage={pagination.page} 
+          <SimplePagination
+            currentPage={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}
-            showFirstLast={true}
-            className="mb-2"
           />
-          <div className="text-sm text-muted-foreground text-center">
+          <div className="text-sm text-muted-foreground text-center mt-2">
             Showing {agreements.length} of {pagination.totalCount} agreements
           </div>
         </div>
