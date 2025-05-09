@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -30,11 +31,16 @@ import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPan
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
+  
+  // Add state for search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Use the hooks
+  const { setSearchParams, searchParams } = useAgreements();
   
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -103,19 +109,48 @@ const Agreements = () => {
     setActiveTab(value);
     if (value === 'all' || value === 'agreements') {
       setSearchParams({ status: undefined, page: 1 });
+      setStatusFilter('all');
     } else if (value === 'active' || value === 'pending' || value === 'history') {
       // Only set the status filter for valid status values and reset to page 1
+      const newStatus = value === 'history' ? 'all' : value;
       setSearchParams({ status: value === 'history' ? undefined : value, page: 1 });
+      setStatusFilter(newStatus);
     }
+  };
+
+  // Handle search query changes
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setSearchParams({ 
+      query: query || undefined, 
+      page: 1 
+    });
+  };
+
+  // Handle status filter changes
+  const handleStatusChange = (status: string) => {
+    setStatusFilter(status);
+    setSearchParams({ 
+      status: status === 'all' ? undefined : status, 
+      page: 1 
+    });
   };
 
   // Extract existing search query from URL params
   React.useEffect(() => {
     const queryParam = searchParams?.query;
+    const statusParam = searchParams?.status;
+    
     if (queryParam && typeof queryParam === 'string') {
       setSearchQuery(queryParam);
     }
-  }, []);
+    
+    if (statusParam && typeof statusParam === 'string') {
+      setStatusFilter(statusParam);
+    } else {
+      setStatusFilter('all');
+    }
+  }, [searchParams]);
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
@@ -167,11 +202,12 @@ const Agreements = () => {
             
             {/* Search and Action Bar */}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
-              <div className="flex-1 max-w-md">
+              <div className="flex-1">
                 <AgreementSearch
                   searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  setSearchParams={setSearchParams}
+                  status={statusFilter}
+                  onSearchChange={handleSearchChange}
+                  onStatusChange={handleStatusChange}
                 />
               </div>
               
