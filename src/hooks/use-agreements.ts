@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
@@ -51,7 +51,7 @@ export function useAgreements(initialFilters = {}) {
   
   // Updated pageSize from 10 to 12
   const [pagination, setPagination] = useState<PaginationOptions>({
-    page: 1,
+    page: parseInt(searchParams.get('page') || '1', 10),
     pageSize: 12
   });
   
@@ -61,7 +61,9 @@ export function useAgreements(initialFilters = {}) {
   const getInitialFilters = () => {
     const params: { [key: string]: string } = {};
     searchParams.forEach((value, key) => {
-      params[key] = value;
+      if (key !== 'page') { // Skip page parameter as it's handled separately
+        params[key] = value;
+      }
     });
     return params;
   };
@@ -74,7 +76,7 @@ export function useAgreements(initialFilters = {}) {
   });
 
   // Function to update URL parameters based on filters
-  const updateSearchParams = (newFilters: { [key: string]: string | undefined }) => {
+  const updateSearchParams = useCallback((newFilters: { [key: string]: string | undefined }) => {
     const updatedFilters = { ...filters, ...newFilters };
     
     // Update the URL parameters
@@ -87,24 +89,39 @@ export function useAgreements(initialFilters = {}) {
         searchParams.set(key, value);
       }
     });
+    
+    // Always include the current page in the URL
+    searchParams.set('page', pagination.page.toString());
+    
     setSearchParams(searchParams);
     setFilters(updatedFilters);
-  };
+  }, [filters, pagination.page, searchParams, setSearchParams]);
 
   // Function to handle pagination changes
-  const handlePaginationChange = (newPage: number, newPageSize?: number) => {
+  const handlePaginationChange = useCallback((newPage: number, newPageSize?: number) => {
+    // Update pagination state
     setPagination(prev => ({
       page: newPage,
       pageSize: newPageSize || prev.pageSize
     }));
-  };
+    
+    // Update URL with new page
+    searchParams.set('page', newPage.toString());
+    setSearchParams(searchParams);
+    
+    // Scroll to top when changing pages
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, [searchParams, setSearchParams]);
 
   const {
     data: agreementsData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['agreements', filters, pagination],
+    queryKey: ['agreements', filters, pagination.page, pagination.pageSize],
     queryFn: async () => {
       console.log('Fetching agreements with filters:', filters);
       console.log('Pagination:', pagination);
@@ -233,7 +250,7 @@ export function useAgreements(initialFilters = {}) {
       page: pagination.page,
       pageSize: pagination.pageSize,
       totalCount: totalCount,
-      totalPages: Math.ceil(totalCount / pagination.pageSize),
+      totalPages: Math.max(1, Math.ceil(totalCount / pagination.pageSize)),
       handlePageChange: handlePaginationChange,
     }
   };

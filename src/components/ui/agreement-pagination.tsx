@@ -48,6 +48,11 @@ export function AgreementPagination({
     return pages;
   };
 
+  // Don't render pagination if there are no pages
+  if (totalPages <= 0) {
+    return null;
+  }
+
   return (
     <div className={`flex items-center justify-center space-x-2 ${className}`}>
       <Button
