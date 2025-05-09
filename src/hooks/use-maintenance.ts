@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useCrudApi } from './api/use-crud-api';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { asMaintenanceId, asVehicleId } from '@/utils/type-safety';
 
 // Define the Maintenance type that matches the actual database schema
 export type MaintenanceRecord = {
@@ -48,7 +49,7 @@ export function useMaintenance() {
       const { data, error } = await supabase
         .from('maintenance')
         .select('*, vehicles(*)')
-        .eq('id', id)
+        .eq('id', asMaintenanceId(id) as string)
         .single();
       
       if (error) throw error;
@@ -110,7 +111,7 @@ export function useMaintenance() {
       const { data, error } = await supabase
         .from('maintenance')
         .update(formattedData)
-        .eq('id', id)
+        .eq('id', asMaintenanceId(id) as string)
         .select()
         .single();
       
@@ -122,7 +123,7 @@ export function useMaintenance() {
       const { error } = await supabase
         .from('maintenance')
         .delete()
-        .eq('id', id);
+        .eq('id', asMaintenanceId(id) as string);
       
       if (error) throw error;
     }
@@ -180,7 +181,7 @@ export function useMaintenance() {
     const { data, error } = await supabase
       .from('maintenance')
       .select('*')
-      .eq('vehicle_id', vehicleId)
+      .eq('vehicle_id', asVehicleId(vehicleId) as string)
       .order('scheduled_date', { ascending: false });
     
     if (error) throw error;
@@ -193,7 +194,7 @@ export function useMaintenance() {
       .select('status, count', { count: 'exact' });
     
     if (vehicleId) {
-      query = query.eq('vehicle_id', vehicleId);
+      query = query.eq('vehicle_id', asVehicleId(vehicleId) as string);
     }
     
     const { count, error } = await query;

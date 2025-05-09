@@ -7,16 +7,12 @@ import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { hasData } from '@/utils/supabase-type-helpers';
+import { asLeaseId, isNotError, hasProperty, safeGet, ensureValidLeaseStatus } from '@/utils/type-safety';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
   if (!dateValue) return undefined;
   return dateValue instanceof Date ? dateValue : new Date(dateValue);
-};
-
-// Type guard to check if an object is not an error
-const isNotError = (obj: any): boolean => {
-  return obj && typeof obj === 'object' && !('error' in obj) && obj !== null;
 };
 
 // Helper to safely process fetched data
@@ -26,7 +22,7 @@ const processFetchedData = (data: any): Agreement | null => {
   try {
     const processedAgreement: Agreement = {
       id: data.id || '',
-      status: data.status || 'draft',
+      status: ensureValidLeaseStatus(data.status) || 'draft',
       customer_id: data.customer_id || '',
       vehicle_id: data.vehicle_id || '',
       start_date: ensureDate(data.start_date) || new Date(),
@@ -47,9 +43,9 @@ const processFetchedData = (data: any): Agreement | null => {
       remaining_amount: data.remaining_amount,
       next_payment_date: data.next_payment_date,
       last_payment_date: data.last_payment_date,
-      vehicle_make: data.vehicles?.make,
-      vehicle_model: data.vehicles?.model,
-      license_plate: data.vehicles?.license_plate,
+      vehicle_make: safeGet(data.vehicles, 'make'),
+      vehicle_model: safeGet(data.vehicles, 'model'),
+      license_plate: safeGet(data.vehicles, 'license_plate'),
     };
     
     return processedAgreement;
@@ -112,7 +108,7 @@ export function useEditAgreement(id: string | undefined) {
             const { data, error } = await supabase
               .from('leases')
               .select('*, vehicles(*), profiles:customer_id(*)')
-              .eq('id', id);
+              .eq('id', asLeaseId(id) as string);
               
             if (error) {
               throw error;
@@ -131,7 +127,7 @@ export function useEditAgreement(id: string | undefined) {
                 // Check if we need to fetch vehicle details
                 const vehicleId = leaseData.vehicle_id as string;
                 if (vehicleId) {
-                  const vehicles = leaseData.vehicles as any;
+                  const vehicles = leaseData.vehicles;
                   if (vehicles && isNotError(vehicles)) {
                     console.log("Vehicle data already included:", vehicles);
                     setVehicleData(vehicles);
@@ -170,7 +166,7 @@ export function useEditAgreement(id: string | undefined) {
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('id', vehicleId);
+        .eq('id', asLeaseId(vehicleId) as string);
         
       if (error) {
         console.error("Error fetching vehicle details:", error);
@@ -189,9 +185,9 @@ export function useEditAgreement(id: string | undefined) {
           return {
             ...prev,
             vehicles: vehicleDetails || {},
-            vehicle_make: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.make : undefined,
-            vehicle_model: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.model : undefined,
-            license_plate: vehicleDetails && typeof vehicleDetails === 'object' ? vehicleDetails.license_plate : undefined
+            vehicle_make: vehicleDetails && hasProperty(vehicleDetails, 'make') ? vehicleDetails.make : undefined,
+            vehicle_model: vehicleDetails && hasProperty(vehicleDetails, 'model') ? vehicleDetails.model : undefined,
+            license_plate: vehicleDetails && hasProperty(vehicleDetails, 'license_plate') ? vehicleDetails.license_plate : undefined
           };
         });
       }

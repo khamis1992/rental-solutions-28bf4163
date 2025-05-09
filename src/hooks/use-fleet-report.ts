@@ -69,9 +69,9 @@ export const useFleetReport = () => {
     if (report && report.vehiclesByType) {
       Object.entries(report.vehiclesByType).forEach(([type, count]) => {
         // Filter vehicles of this type
-        const vehiclesOfType = vehicles.filter(v => v.vehicle_type === type);
+        const vehiclesOfType = vehicles.filter(v => v?.vehicle_type === type);
         // Calculate average daily rate for this type
-        const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v.rent_amount || 0), 0);
+        const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v?.rent_amount || 0), 0);
         const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
         
         types.push({
@@ -98,8 +98,21 @@ export const useFleetReport = () => {
         // Transform data for compatibility
         const processedVehicles = (data || []).map(vehicle => {
           if (vehicle && typeof vehicle === 'object') {
+            // Create a new object with the vehicle properties to avoid spread type error
             return {
-              ...vehicle,
+              id: vehicle.id,
+              make: vehicle.make,
+              model: vehicle.model,
+              year: vehicle.year,
+              license_plate: vehicle.license_plate,
+              color: vehicle.color,
+              vehicle_type: vehicle.vehicle_type ?? "unknown",
+              status: vehicle.status,
+              mileage: vehicle.mileage,
+              created_at: vehicle.created_at,
+              updated_at: vehicle.updated_at,
+              image_url: vehicle.image_url,
+              rent_amount: vehicle.rent_amount,
               currentCustomer: vehicle.current_customer || undefined,
               dailyRate: vehicle.rent_amount || 0
             } as Vehicle;
@@ -127,9 +140,9 @@ export const useFleetReport = () => {
     }
 
     const totalVehicles = vehicleData.length;
-    const availableVehicles = vehicleData.filter(v => v.status === 'available').length;
-    const rentedVehicles = vehicleData.filter(v => v.status === 'rented').length;
-    const maintenanceVehicles = vehicleData.filter(v => v.status === 'maintenance').length;
+    const availableVehicles = vehicleData.filter(v => v?.status === 'available').length;
+    const rentedVehicles = vehicleData.filter(v => v?.status === 'rented').length;
+    const maintenanceVehicles = vehicleData.filter(v => v?.status === 'maintenance').length;
 
     const vehiclesByType: Record<string, number> = {};
     const vehiclesByStatus: Record<string, number> = {};
@@ -140,19 +153,19 @@ export const useFleetReport = () => {
 
     vehicleData.forEach(vehicle => {
       // Handle vehicle_type instead of type
-      const vehicleType = vehicle.vehicle_type || 'unknown';
+      const vehicleType = vehicle?.vehicle_type || 'unknown';
       vehiclesByType[vehicleType] = (vehiclesByType[vehicleType] || 0) + 1;
 
       // Handle status
-      const status = vehicle.status || 'unknown';
+      const status = vehicle?.status || 'unknown';
       vehiclesByStatus[status] = (vehiclesByStatus[status] || 0) + 1;
 
       // Handle make
-      const make = vehicle.make || 'unknown';
+      const make = vehicle?.make || 'unknown';
       vehiclesByMake[make] = (vehiclesByMake[make] || 0) + 1;
 
       // Calculate rent amounts
-      if (vehicle.rent_amount) {
+      if (vehicle?.rent_amount) {
         totalRent += vehicle.rent_amount;
         vehiclesWithRent++;
       }

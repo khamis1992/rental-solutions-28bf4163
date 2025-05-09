@@ -4,6 +4,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
+import { asLeaseId, asPaymentId, isNotError } from '@/utils/type-safety';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -46,12 +47,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const { data: existingPayment, error: queryError } = await supabase
           .from('unified_payments')
           .select('*')
-          .eq('id', paymentId)
+          .eq('id', asPaymentId(paymentId) as string)
           .single();
           
         if (queryError) {
           console.error("Error fetching existing payment:", queryError);
-        } else if (existingPayment) {
+        } else if (existingPayment && isNotError(existingPayment)) {
           existingPaymentId = existingPayment.id;
           existingPaymentAmount = existingPayment.amount || 0;
           existingAmountPaid = existingPayment.amount_paid || 0;
@@ -66,12 +67,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('daily_late_fee')
-          .eq('id', agreementId)
+          .eq('id', asLeaseId(agreementId) as string)
           .single();
           
         if (leaseError) {
           console.error("Error fetching lease data for late fee:", leaseError);
-        } else if (leaseData) {
+        } else if (leaseData && isNotError(leaseData)) {
           dailyLateFee = leaseData.daily_late_fee || 120;
         }
       } else {
@@ -141,9 +142,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           balance = Math.max(0, rentAmount - amount);
         }
         
+        // Cast the ID to string to avoid type issues
+        const safeAgreementId = asLeaseId(agreementId) as string;
+        
         // Form the payment record
         const paymentRecord = {
-          lease_id: agreementId,
+          lease_id: safeAgreementId,
           // Safe access to rent_amount with a fallback
           amount: agreement?.rent_amount || 0,
           amount_paid: amountPaid,
@@ -177,7 +181,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         // If there's a late fee to apply and user opted to include it, record it as a separate transaction
         if (lateFineAmount > 0 && includeLatePaymentFee) {
           const lateFeeRecord = {
-            lease_id: agreementId,
+            lease_id: safeAgreementId,
             amount: lateFineAmount,
             amount_paid: lateFineAmount,
             balance: 0,
@@ -197,37 +201,31 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           const { error: lateFeeError } = await supabase
             .from('unified_payments')
             .insert(lateFeeRecord);
-          
+            
           if (lateFeeError) {
             console.error("Late fee recording error:", lateFeeError);
-            toast.warning("Payment recorded but failed to record late fee");
+            toast.error("Payment recorded, but failed to record late fee");
           } else {
-            toast.success(isPartialPayment ? 
-              "Partial payment and late fee recorded successfully" : 
-              "Payment and late fee recorded successfully");
+            toast.success("Payment and late fee recorded successfully!");
           }
         } else {
-          toast.success(isPartialPayment ? 
-            "Partial payment recorded successfully" : 
-            "Payment recorded successfully");
+          toast.success("Payment recorded successfully!");
         }
       }
       
-      refreshAgreementData();
       return true;
     } catch (error) {
-      console.error("Unexpected error recording payment:", error);
-      toast.error("An unexpected error occurred while recording payment");
+      console.error("Error in handleSpecialAgreementPayments:", error);
+      toast.error("Failed to process payment");
       return false;
     } finally {
       setIsProcessing(false);
     }
-  }, [agreement, agreementId, refreshAgreementData]);
+  }, [agreement, agreementId]);
 
   return {
-    refreshTrigger,
+    isProcessing,
     refreshAgreementData,
-    handleSpecialAgreementPayments,
-    isProcessing
+    handleSpecialAgreementPayments
   };
 };
