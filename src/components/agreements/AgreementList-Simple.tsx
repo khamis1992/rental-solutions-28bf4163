@@ -4,7 +4,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
-import { Pagination } from '@/components/ui/pagination';
+import { AgreementPagination } from '@/components/ui/agreement-pagination';
 
 export function AgreementList() {
   const {
@@ -47,9 +47,9 @@ export function AgreementList() {
         onDeleteAgreement={(id) => handleBulkDelete(id)}
       />
       
-      {pagination && (
-        <div className="flex flex-col items-center justify-center mt-6 pb-2 border-t pt-6">
-          <Pagination
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex flex-col items-center justify-center mt-6">
+          <AgreementPagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}

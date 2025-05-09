@@ -1,9 +1,7 @@
 
-// This file is kept for backward compatibility but is now deprecated.
-// Please use the generic Pagination component from @/components/ui/pagination instead.
-
 import React from 'react';
-import { Pagination } from '@/components/ui/pagination';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AgreementPaginationProps {
   currentPage: number;
@@ -12,7 +10,50 @@ interface AgreementPaginationProps {
   className?: string;
 }
 
-export function AgreementPagination(props: AgreementPaginationProps) {
-  // Forward to the generic Pagination component
-  return <Pagination {...props} />;
+export function AgreementPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  className = ''
+}: AgreementPaginationProps) {
+  // Prevent going below page 1 or above totalPages
+  const goToPrevious = () => {
+    if (currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
+  };
+
+  const goToNext = () => {
+    if (currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
+  };
+
+  return (
+    <div className={`flex items-center justify-center space-x-4 ${className}`}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goToPrevious}
+        disabled={currentPage <= 1}
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        <span>Back</span>
+      </Button>
+      
+      <div className="text-sm font-medium">
+        Page {currentPage} of {totalPages}
+      </div>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goToNext}
+        disabled={currentPage >= totalPages}
+      >
+        <span>Next</span>
+        <ChevronRight className="h-4 w-4 ml-1" />
+      </Button>
+    </div>
+  );
 }
