@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
-import { AgreementPagination } from '@/components/ui/agreement-pagination';
+import { SimplePagination } from '@/components/ui/simple-pagination';
 import { getAgreementColumns } from './columns';
 
 interface TableContentProps {
@@ -103,7 +103,7 @@ export function TableContent({
       
       {pagination && pagination.totalPages > 1 && (
         <div className="flex flex-col items-center justify-center mt-2">
-          <AgreementPagination
+          <SimplePagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
             onPageChange={pagination.handlePageChange}

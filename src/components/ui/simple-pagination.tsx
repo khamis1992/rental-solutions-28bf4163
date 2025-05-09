@@ -16,7 +16,6 @@ export function SimplePagination({
   onPageChange,
   className = ''
 }: SimplePaginationProps) {
-  // Prevent going below page 1 or above totalPages
   const goToPrevious = () => {
     if (currentPage > 1) {
       onPageChange(currentPage - 1);
@@ -37,8 +36,8 @@ export function SimplePagination({
         onClick={goToPrevious}
         disabled={currentPage <= 1}
       >
-        <ChevronLeft className="h-4 w-4" />
-        <span className="sr-only">Previous Page</span>
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Previous
       </Button>
       
       <div className="text-sm font-medium">
@@ -51,8 +50,8 @@ export function SimplePagination({
         onClick={goToNext}
         disabled={currentPage >= totalPages}
       >
-        <ChevronRight className="h-4 w-4" />
-        <span className="sr-only">Next Page</span>
+        Next
+        <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>
   );

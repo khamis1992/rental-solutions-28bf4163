@@ -30,7 +30,7 @@ export function AgreementPagination({
   };
 
   return (
-    <div className={`flex items-center justify-center space-x-4 ${className}`}>
+    <div className={`flex items-center justify-center gap-4 ${className}`}>
       <Button
         variant="outline"
         size="sm"
@@ -38,7 +38,7 @@ export function AgreementPagination({
         disabled={currentPage <= 1}
       >
         <ChevronLeft className="h-4 w-4 mr-1" />
-        <span>Back</span>
+        Previous
       </Button>
       
       <div className="text-sm font-medium">
@@ -51,7 +51,7 @@ export function AgreementPagination({
         onClick={goToNext}
         disabled={currentPage >= totalPages}
       >
-        <span>Next</span>
+        Next
         <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>
