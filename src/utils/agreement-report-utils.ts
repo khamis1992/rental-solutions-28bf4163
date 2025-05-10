@@ -100,31 +100,31 @@ export const generateAgreementReport = (
       
       doc.setFontSize(10);
       
-      // If customer info is available, display it
+      // If customer info is available, display it with name and address blanked out
       if (agreement.customers) {
         // Left column
         doc.setFont('helvetica', 'bold');
         doc.text('Name:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.full_name || 'This should be filled by the system', leftX + 40, currentY);
+        doc.text('_________________', leftX + 40, currentY); // Blanked out name
         currentY += itemHeight;
         
         doc.setFont('helvetica', 'bold');
         doc.text('Email:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.email || 'This should be filled by the system', leftX + 40, currentY);
+        doc.text(agreement.customers.email || 'N/A', leftX + 40, currentY);
         currentY += itemHeight;
         
         doc.setFont('helvetica', 'bold');
         doc.text('Phone:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.phone_number || 'This should be filled by the system', leftX + 40, currentY);
+        doc.text(agreement.customers.phone_number || 'N/A', leftX + 40, currentY);
         currentY += itemHeight;
         
         doc.setFont('helvetica', 'bold');
         doc.text('Address:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.address || 'This should be blank', leftX + 40, currentY);
+        doc.text('_________________', leftX + 40, currentY); // Blanked out address
         
         // Right column
         const rightStartY = currentY - (itemHeight * 3);
@@ -132,12 +132,12 @@ export const generateAgreementReport = (
         doc.setFont('helvetica', 'bold');
         doc.text('Driver License:', rightX, rightStartY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.driver_license || 'This should be blank', rightX + 40, rightStartY);
+        doc.text(agreement.customers.driver_license || 'N/A', rightX + 40, rightStartY);
         
         doc.setFont('helvetica', 'bold');
         doc.text('Nationality:', rightX, rightStartY + itemHeight);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.nationality || 'This should be blank', rightX + 40, rightStartY + itemHeight);
+        doc.text(agreement.customers.nationality || 'N/A', rightX + 40, rightStartY + itemHeight);
       } else {
         doc.text('Customer information not available', 30, currentY);
       }
