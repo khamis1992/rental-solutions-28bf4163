@@ -11,6 +11,7 @@ interface PaymentDetails {
   agreementNumber: string | null;
   pendingPayments: PendingPayment[];
   leaseId: string | null;
+  contractAmount: number | null; // Added contractAmount field
 }
 
 interface PendingPayment {
@@ -77,6 +78,9 @@ export function usePaymentDetails(carNumber: string) {
 
         if (paymentError) throw paymentError;
 
+        // Get the total contract amount
+        const contractAmount = lease.total_amount || 0;
+
         setData({
           rentAmount: lease.rent_amount || 0,
           lateFeeAmount: lateFee,
@@ -84,6 +88,7 @@ export function usePaymentDetails(carNumber: string) {
           agreementNumber: lease.agreement_number,
           pendingPayments: pendingPayments || [],
           leaseId: lease.id,
+          contractAmount: contractAmount // Add contract amount to the data
         });
 
       } catch (err) {

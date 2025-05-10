@@ -26,7 +26,7 @@ interface PaymentHistoryProps {
   isLoading: boolean;
   rentAmount: number | null;
   leaseId?: string;
-  contractAmount?: number | null; // Added contractAmount prop
+  contractAmount?: number | null; // This prop receives the total contract amount
   onPaymentDeleted?: (paymentId: string) => void;
   onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
@@ -38,7 +38,7 @@ export function PaymentHistorySection({
   isLoading,
   rentAmount,
   leaseId,
-  contractAmount = null, // Set default value to null
+  contractAmount = null, // Default value is null
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
@@ -56,10 +56,14 @@ export function PaymentHistorySection({
     .filter(payment => payment.status === 'completed')
     .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
   
-  // Calculate balance based on contract amount if available, otherwise use totalAmount
+  // Calculate balance based on contract amount if available
+  // If contractAmount is provided, use it for balance calculation, otherwise use totalAmount
   const effectiveTotal = contractAmount || totalAmount;
+  
+  // Balance is the contract amount minus the amount that has been paid with completed payments
   const balance = effectiveTotal - amountPaid;
   
+  // Calculate late fees
   const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
 
   // Helper function to determine if a payment was late

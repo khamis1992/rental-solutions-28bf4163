@@ -42,7 +42,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
       // If a specific payment is selected, use that payment
       let paymentData;
       
-      if (selectedPaymentId) {
+      if (selectedPaymentId && selectedPaymentId !== 'new') {
         // Find the selected pending payment
         const selectedPayment = data.pendingPayments.find(p => p.id === selectedPaymentId);
         
@@ -68,7 +68,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
           description: `The selected payment of ${selectedPayment.amount} QAR has been marked as completed.`,
         });
       } else {
-        // Create a new payment if no specific payment was selected
+        // Create a new payment if no specific payment was selected or "new" was selected
         paymentData = {
           amount: data.rentAmount,
           payment_date: new Date().toISOString(),
@@ -158,6 +158,12 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
               <span>Default Total Due:</span>
               <span className="font-semibold">QAR {data.totalDue.toFixed(2)}</span>
             </div>
+            {data.contractAmount !== null && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Total Contract Amount:</span>
+                <span>QAR {data.contractAmount.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           {data.pendingPayments && data.pendingPayments.length > 0 && (
