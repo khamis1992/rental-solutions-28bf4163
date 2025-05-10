@@ -1,98 +1,42 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { LeaseStatus, ensureValidLeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { hasData } from '@/utils/supabase-type-helpers';
 import { CustomerInfo } from '@/types/customer';
+import { useAgreementDataFetching } from './agreement/use-agreement-data-fetching';
+import { processAgreementData, processCustomerData } from '@/utils/agreement-data-processors';
 
-// Helper function to ensure dates are properly handled
-const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
-  if (!dateValue) return undefined;
-  return dateValue instanceof Date ? dateValue : new Date(dateValue);
-};
-
-// Helper to safely process fetched data
-const processFetchedData = (data: any): Agreement | null => {
-  if (!data) return null;
-  
-  try {
-    // Check if we have the necessary data
-    if (!data.id) return null;
-    
-    console.log("Processing agreement data:", data);
-    
-    const processedAgreement: Agreement = {
-      id: data.id,
-      status: ensureValidLeaseStatus(data.status),
-      customer_id: data.customer_id || '',
-      vehicle_id: data.vehicle_id || '',
-      start_date: ensureDate(data.start_date) || new Date(),
-      end_date: ensureDate(data.end_date) || new Date(),
-      total_amount: data.total_amount || 0,
-      created_at: data.created_at ? ensureDate(data.created_at) : undefined,
-      updated_at: data.updated_at ? ensureDate(data.updated_at) : undefined,
-      customers: data.customers || data.profiles || {},
-      vehicles: data.vehicles || {},
-      rent_amount: data.rent_amount || 0,
-      agreement_number: data.agreement_number,
-      agreement_type: data.agreement_type,
-      notes: data.notes,
-      payment_frequency: data.payment_frequency,
-      payment_day: data.payment_day,
-      daily_late_fee: data.daily_late_fee,
-      deposit_amount: data.deposit_amount,
-      remaining_amount: data.remaining_amount,
-      next_payment_date: data.next_payment_date,
-      last_payment_date: data.last_payment_date,
-      vehicle_make: data.vehicles?.make,
-      vehicle_model: data.vehicles?.model,
-      license_plate: data.vehicles?.license_plate,
-    };
-    
-    return processedAgreement;
-  } catch (error) {
-    console.error("Error processing agreement data:", error);
-    return null;
-  }
-};
-
-// Helper to convert profile/customers data to CustomerInfo
-const processCustomerData = (data: any): CustomerInfo | null => {
-  if (!data) return null;
-  
-  try {
-    return {
-      id: data.id || '',
-      full_name: data.full_name || '',
-      email: data.email || '',
-      phone_number: data.phone_number || '',
-      driver_license: data.driver_license || '',
-      nationality: data.nationality || '',
-      address: data.address || ''
-    };
-  } catch (error) {
-    console.error("Error processing customer data:", error);
-    return null;
-  }
-};
-
+/**
+ * Hook for editing an existing agreement
+ */
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
   const { agreements } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [vehicleData, setVehicleData] = useState<any>(null);
-  const [customerData, setCustomerData] = useState<CustomerInfo | null>(null);
+  
+  // Get data fetching utilities
+  const {
+    vehicleData,
+    setVehicleData,
+    customerData,
+    setCustomerData,
+    fetchVehicleDetails,
+    fetchCustomerDetails,
+    updateAgreementWithData,
+    fetchAgreementById
+  } = useAgreementDataFetching();
+  
+  // Get rent amount calculation
   const { rentAmount } = useRentAmount(agreement, id);
 
+  // Effect to fetch agreement data
   useEffect(() => {
-    if (hasAttemptedFetch) return;
+    if (hasAttemptedFetch || !id) return;
     
     const fetchAgreement = async () => {
       if (!id) {
@@ -105,19 +49,19 @@ export function useEditAgreement(id: string | undefined) {
       setIsLoading(true);
       
       try {
-        // Find agreement in the existing list
+        // First try to find agreement in the existing list for better performance
         const foundAgreement = agreements.find(a => a.id === id);
         
         if (foundAgreement) {
           console.log("Found agreement in list:", foundAgreement);
           
           // Process the found agreement data
-          const processedAgreement = processFetchedData(foundAgreement);
+          const processedAgreement = processAgreementData(foundAgreement);
           
           if (processedAgreement) {
             setAgreement(processedAgreement);
             
-            // Process customer data
+            // Process and set customer data if available
             if (foundAgreement.customers || foundAgreement.profiles) {
               const customer = processCustomerData(foundAgreement.customers || foundAgreement.profiles);
               if (customer) {
@@ -141,59 +85,30 @@ export function useEditAgreement(id: string | undefined) {
             throw new Error("Failed to process agreement data");
           }
         } else {
-          // Fetch directly if not found in the list
-          try {
-            const { data, error } = await supabase
-              .from('leases')
-              .select('*, vehicles(*), profiles:customer_id(*)')
-              .eq('id', id)
-              .single();
-              
-            if (error) {
-              throw error;
+          // If not found in the list, fetch directly from database
+          const fetchedAgreement = await fetchAgreementById(id);
+          
+          if (fetchedAgreement) {
+            setAgreement(fetchedAgreement);
+            
+            // Handle vehicle data
+            const vehicleId = fetchedAgreement.vehicle_id;
+            if (vehicleId && !fetchedAgreement.vehicles) {
+              await fetchVehicleDetails(vehicleId);
+            } else if (fetchedAgreement.vehicles) {
+              setVehicleData(fetchedAgreement.vehicles);
             }
             
-            if (data) {
-              console.log("Fetched agreement data:", data);
-              
-              // Process the fetched data
-              const processedAgreement = processFetchedData(data);
-              
-              if (processedAgreement) {
-                setAgreement(processedAgreement);
-                
-                // Check if we need to fetch vehicle details
-                const vehicleId = data.vehicle_id as string;
-                if (vehicleId) {
-                  const vehicles = data.vehicles;
-                  if (vehicles) {
-                    console.log("Vehicle data already included:", vehicles);
-                    setVehicleData(vehicles);
-                  } else {
-                    await fetchVehicleDetails(vehicleId);
-                  }
-                }
-                
-                // Check and log customer details
-                const customerDetails = data.profiles;
-                if (customerDetails) {
-                  console.log("Customer data already included:", customerDetails);
-                  const customer = processCustomerData(customerDetails);
-                  if (customer) setCustomerData(customer);
-                } else if (data.customer_id) {
-                  // If customer data not included but ID available, fetch it
-                  await fetchCustomerDetails(data.customer_id);
-                }
-              } else {
-                throw new Error("Failed to process fetched agreement data");
-              }
-            } else {
-              toast.error("Agreement not found");
-              navigate("/agreements");
+            // Handle customer data
+            if (fetchedAgreement.customer_id && !fetchedAgreement.customers) {
+              await fetchCustomerDetails(fetchedAgreement.customer_id);
+            } else if (fetchedAgreement.customers) {
+              const customerInfo = processCustomerData(fetchedAgreement.customers);
+              if (customerInfo) setCustomerData(customerInfo);
             }
-          } catch (error) {
-            console.error("Error in Supabase query:", error);
-            throw error;
+          } else {
+            toast.error("Agreement not found");
+            navigate("/agreements");
           }
         }
       } catch (error) {
@@ -207,81 +122,7 @@ export function useEditAgreement(id: string | undefined) {
     };
 
     fetchAgreement();
-  }, [id, navigate, hasAttemptedFetch, agreements]);
-
-  const fetchVehicleDetails = async (vehicleId: string) => {
-    try {
-      console.log("Fetching vehicle details for ID:", vehicleId);
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', vehicleId);
-        
-      if (error) {
-        console.error("Error fetching vehicle details:", error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        const vehicleDetails = data[0];
-        console.log("Fetched vehicle data:", vehicleDetails);
-        setVehicleData(vehicleDetails);
-        
-        // Safe update of agreement with vehicle info
-        setAgreement((prev) => {
-          if (!prev) return null;
-          
-          return {
-            ...prev,
-            vehicles: vehicleDetails || {},
-            vehicle_make: vehicleDetails?.make,
-            vehicle_model: vehicleDetails?.model,
-            license_plate: vehicleDetails?.license_plate
-          };
-        });
-      }
-    } catch (error) {
-      console.error("Error in fetchVehicleDetails:", error);
-    }
-  };
-  
-  const fetchCustomerDetails = async (customerId: string) => {
-    try {
-      console.log("Fetching customer details for ID:", customerId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', customerId)
-        .single();
-        
-      if (error) {
-        console.error("Error fetching customer details:", error);
-        return;
-      }
-      
-      if (data) {
-        console.log("Fetched customer data:", data);
-        
-        // Process customer data
-        const customer = processCustomerData(data);
-        if (customer) {
-          setCustomerData(customer);
-          
-          // Safe update of agreement with customer info
-          setAgreement((prev) => {
-            if (!prev) return null;
-            
-            return {
-              ...prev,
-              customers: data || {}
-            };
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error in fetchCustomerDetails:", error);
-    }
-  };
+  }, [id, navigate, hasAttemptedFetch, agreements, fetchAgreementById, fetchCustomerDetails, fetchVehicleDetails]);
 
   // Effect to set rent amount when it's available
   useEffect(() => {

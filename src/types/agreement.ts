@@ -24,6 +24,9 @@ export interface Agreement {
     full_name?: string;
     email?: string;
     phone_number?: string;
+    driver_license?: string;
+    nationality?: string;
+    address?: string;
   };
   vehicles?: {
     id?: string;
@@ -33,6 +36,7 @@ export interface Agreement {
     license_plate?: string;
     color?: string;
     vehicle_type?: string;
+    vin?: string;
   };
   customer_name?: string;
   payments?: any[];
