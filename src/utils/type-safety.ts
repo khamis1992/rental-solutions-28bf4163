@@ -1,5 +1,4 @@
 
-// Import from lease-types.ts at the top of the file
 import { 
   LeaseStatus, 
   ValidationLeaseStatus, 

@@ -35,6 +35,7 @@ import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
 import { generateAgreementReport } from '@/utils/agreement-report-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
 const AgreementDetailPage = () => {
   const {
@@ -287,57 +288,62 @@ const AgreementDetailPage = () => {
   return <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements" actions={
     <>
       {agreement && agreement.status === AgreementStatus.ACTIVE && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
-                <Calendar className="h-4 w-4" />
-                {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p>Creates a new monthly payment record for this agreement with automatically calculated due amount and late fees. The payment status will be set to "pending".</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <HoverCard openDelay={300} closeDelay={200}>
+          <HoverCardTrigger asChild>
+            <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
+              <Calendar className="h-4 w-4" />
+              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+            </Button>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
+            <h4 className="font-medium mb-1">Payment Schedule Generation</h4>
+            <p className="text-sm text-muted-foreground">
+              Creates a new monthly payment record for this agreement with automatically calculated due amount and late fees. 
+              The payment status will be set to "pending".
+            </p>
+          </HoverCardContent>
+        </HoverCard>
       )}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGenerateReport} 
-              className="gap-2 mr-2"
-            >
-              <FileText className="h-4 w-4" />
-              Generate Report
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">
-            <p>Generate a detailed PDF report of this agreement including payment history and contract details.</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRunMaintenanceJob} 
-              disabled={isRunningMaintenance} 
-              className="gap-2"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs">
-            <p>Checks and fixes payment schedules by detecting missing or duplicate payments, updating payment statuses, and recalculating late fees if needed.</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <HoverCard openDelay={300} closeDelay={200}>
+        <HoverCardTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGenerateReport} 
+            className="gap-2 mr-2"
+          >
+            <FileText className="h-4 w-4" />
+            Generate Report
+          </Button>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
+          <h4 className="font-medium mb-1">Agreement Report</h4>
+          <p className="text-sm text-muted-foreground">
+            Generate a detailed PDF report of this agreement including payment history and contract details.
+          </p>
+        </HoverCardContent>
+      </HoverCard>
+      <HoverCard openDelay={300} closeDelay={200}>
+        <HoverCardTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRunMaintenanceJob} 
+            disabled={isRunningMaintenance} 
+            className="gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+          </Button>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
+          <h4 className="font-medium mb-1">Payment Maintenance</h4>
+          <p className="text-sm text-muted-foreground">
+            Checks and fixes payment schedules by detecting missing or duplicate payments, 
+            updating payment statuses, and recalculating late fees if needed.
+          </p>
+        </HoverCardContent>
+      </HoverCard>
     </>
   }>
     <div className="flex justify-between items-center mb-4">
