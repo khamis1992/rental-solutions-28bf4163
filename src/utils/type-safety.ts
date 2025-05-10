@@ -66,7 +66,7 @@ export function ensureValidationLeaseStatus(status: string | null | undefined): 
   return toValidationLeaseStatus(status as LeaseStatus);
 }
 
-// Re-export these types and functions from lease-types.ts to make them available
+// Import from lease-types.ts
 import { 
   LeaseStatus, 
   ValidationLeaseStatus, 
@@ -74,6 +74,7 @@ import {
   ensureValidLeaseStatus 
 } from '@/types/lease-types';
 
+// Re-export these types and functions to make them available
 export { 
   LeaseStatus, 
   ValidationLeaseStatus, 
