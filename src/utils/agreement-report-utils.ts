@@ -11,120 +11,256 @@ export const generateAgreementReport = (
   payments: any[] = []
 ) => {
   const doc = generateStandardReport(
-    `Agreement Report - ${agreement.agreement_number}`,
+    `AGREEMENT REPORT - ${agreement.agreement_number}`,
     undefined,
     async (doc, startY) => {
       let currentY = startY;
       
-      // Set text color to black for all sections
-      doc.setTextColor(0, 0, 0);
+      // Set text color to navy blue for all sections
+      doc.setTextColor(0, 51, 102);
       
       // Agreement Information
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('AGREEMENT INFORMATION', 20, currentY);
-      currentY += 15;
+      currentY += 10;
+      
+      // Draw a table for agreement information
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 245, 245);
+      doc.rect(20, currentY, doc.internal.pageSize.getWidth() - 40, 70, 'FD');
+      currentY += 10;
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      const agreementInfo = [
-        `Agreement Number: ${agreement.agreement_number}`,
-        `Status: ${agreement.status.toUpperCase()}`,
-        `Start Date: ${format(new Date(agreement.start_date), 'dd/MM/yyyy')}`,
-        `End Date: ${format(new Date(agreement.end_date), 'dd/MM/yyyy')}`,
-        `Monthly Rent: ${formatCurrency(rentAmount || 0)}`,
-        `Contract Total: ${formatCurrency(contractAmount || agreement.total_amount || 0)}`,
-        `Deposit Amount: ${formatCurrency(agreement.deposit_amount || 0)}`
-      ];
       
-      agreementInfo.forEach(info => {
-        doc.text(info, 20, currentY);
-        currentY += 7;
-      });
+      // Left column
+      let leftX = 30;
+      let rightX = 105;
+      let itemHeight = 12;
       
-      currentY += 10;
+      // Agreement information in two columns
+      doc.setFont('helvetica', 'bold');
+      doc.text('Agreement Number:', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(agreement.agreement_number || 'N/A', leftX + 40, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Status:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(agreement.status.toUpperCase(), rightX + 25, currentY);
+      currentY += itemHeight;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Start Date:', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(new Date(agreement.start_date), 'dd/MM/yyyy'), leftX + 40, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('End Date:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(new Date(agreement.end_date), 'dd/MM/yyyy'), rightX + 25, currentY);
+      currentY += itemHeight;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Monthly Rent:', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(rentAmount || 0), leftX + 40, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Contract Total:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(contractAmount || agreement.total_amount || 0), rightX + 40, currentY);
+      currentY += itemHeight;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Deposit Amount:', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(agreement.deposit_amount || 0), leftX + 40, currentY);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('Rent Due Day:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(agreement.rent_due_day?.toString() || '1', rightX + 40, currentY);
+      
+      // Advance Y position to after the table
+      currentY += 45;
       
       // Customer Information
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('CUSTOMER INFORMATION', 20, currentY);
-      currentY += 15;
+      currentY += 10;
+      
+      // Draw a table for customer information
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 245, 245);
+      doc.rect(20, currentY, doc.internal.pageSize.getWidth() - 40, 70, 'FD');
+      currentY += 10;
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      
+      // If customer info is available, display it
       if (agreement.customers) {
-        const customerInfo = [
-          `Name: ${agreement.customers.full_name}`,
-          `Email: ${agreement.customers.email || 'N/A'}`,
-          `Phone: ${agreement.customers.phone_number || 'N/A'}`,
-          `Driver License: ${agreement.customers.driver_license || 'N/A'}`,
-          `Address: ${agreement.customers.address || 'N/A'}`
-        ];
+        // Left column
+        doc.setFont('helvetica', 'bold');
+        doc.text('Name:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.full_name || 'This should be filled by the system', leftX + 40, currentY);
+        currentY += itemHeight;
         
-        customerInfo.forEach(info => {
-          doc.text(info, 20, currentY);
-          currentY += 7;
-        });
+        doc.setFont('helvetica', 'bold');
+        doc.text('Email:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.email || 'This should be filled by the system', leftX + 40, currentY);
+        currentY += itemHeight;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Phone:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.phone_number || 'This should be filled by the system', leftX + 40, currentY);
+        currentY += itemHeight;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Address:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.address || 'This should be blank', leftX + 40, currentY);
+        
+        // Right column
+        const rightStartY = currentY - (itemHeight * 3);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Driver License:', rightX, rightStartY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.driver_license || 'This should be blank', rightX + 40, rightStartY);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Nationality:', rightX, rightStartY + itemHeight);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.customers.nationality || 'This should be blank', rightX + 40, rightStartY + itemHeight);
       } else {
-        doc.text('Customer information not available', 20, currentY);
-        currentY += 7;
+        doc.text('Customer information not available', 30, currentY);
       }
       
-      currentY += 10;
+      // Advance Y position to after the table
+      currentY += 45;
       
       // Vehicle Information
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('VEHICLE INFORMATION', 20, currentY);
-      currentY += 15;
+      currentY += 10;
+      
+      // Draw a table for vehicle information
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 245, 245);
+      doc.rect(20, currentY, doc.internal.pageSize.getWidth() - 40, 70, 'FD');
+      currentY += 10;
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      
+      // If vehicle info is available, display it
       if (agreement.vehicles) {
-        const vehicleInfo = [
-          `Vehicle: ${agreement.vehicles.make} ${agreement.vehicles.model} (${agreement.vehicles.year || 'N/A'})`,
-          `License Plate: ${agreement.vehicles.license_plate}`,
-          `Color: ${agreement.vehicles.color || 'N/A'}`,
-          `VIN: ${agreement.vehicles.vin || 'N/A'}`
-        ];
+        // Left column
+        doc.setFont('helvetica', 'bold');
+        doc.text('Make/Model:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${agreement.vehicles.make || 'N/A'} ${agreement.vehicles.model || 'N/A'}`, leftX + 40, currentY);
         
-        vehicleInfo.forEach(info => {
-          doc.text(info, 20, currentY);
-          currentY += 7;
-        });
+        // Right column
+        doc.setFont('helvetica', 'bold');
+        doc.text('Year:', rightX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.vehicles.year?.toString() || 'N/A', rightX + 25, currentY);
+        currentY += itemHeight;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('License Plate:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.vehicles.license_plate || 'N/A', leftX + 40, currentY);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Color:', rightX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.vehicles.color || 'N/A', rightX + 25, currentY);
+        currentY += itemHeight;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('VIN:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(agreement.vehicles.vin || 'N/A', leftX + 40, currentY);
       } else {
-        doc.text('Vehicle information not available', 20, currentY);
-        currentY += 7;
+        doc.text('Vehicle information not available', 30, currentY);
       }
       
-      currentY += 10;
+      // Advance Y position to after the table
+      currentY += 45;
       
       // Payment Summary
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('PAYMENT SUMMARY', 20, currentY);
-      currentY += 15;
+      currentY += 10;
+      
+      // Draw a table for payment summary
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 245, 245);
+      doc.rect(20, currentY, doc.internal.pageSize.getWidth() - 40, 70, 'FD');
+      currentY += 10;
       
       doc.setFontSize(10);
+      
+      // Calculate payment summary
+      const totalPaid = payments.filter(p => p.status === 'completed')
+        .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
+        
+      const totalLateFees = payments
+        .reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
+        
+      const remainingBalance = (contractAmount || agreement.total_amount || 0) - totalPaid;
+      
+      const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid')
+        .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      
+      // Left column - Payment details
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Paid:', leftX, currentY);
       doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(totalPaid), leftX + 40, currentY);
       
-      const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
-      const totalLateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
-      const remainingBalance = (agreement.total_amount || 0) - totalPaid;
+      // Right column - Payment details
+      doc.setFont('helvetica', 'bold');
+      doc.text('Late Fees:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(totalLateFees), rightX + 40, currentY);
+      currentY += itemHeight;
       
-      const paymentSummary = [
-        `Total Paid: ${formatCurrency(totalPaid)}`,
-        `Late Fees: ${formatCurrency(totalLateFees)}`,
-        `Remaining Balance: ${formatCurrency(remainingBalance)}`,
-        `Next Payment Due: ${agreement.next_payment_date ? format(new Date(agreement.next_payment_date), 'dd/MM/yyyy') : 'N/A'}`
-      ];
+      doc.setFont('helvetica', 'bold');
+      doc.text('Remaining Balance:', leftX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(remainingBalance), leftX + 40, currentY);
       
-      paymentSummary.forEach(info => {
-        doc.text(info, 20, currentY);
-        currentY += 7;
-      });
+      doc.setFont('helvetica', 'bold');
+      doc.text('Pending Payments:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(formatCurrency(pendingPayments), rightX + 40, currentY);
+      currentY += itemHeight;
       
-      return currentY;
+      // Add next payment date if available
+      if (agreement.next_payment_date) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Next Payment Due:', leftX, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.text(format(new Date(agreement.next_payment_date), 'dd/MM/yyyy'), leftX + 40, currentY);
+      }
+      
+      // Add traffic fines placeholder as shown in the image
+      doc.setFont('helvetica', 'bold');
+      doc.text('Traffic Fines:', rightX, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text('QAR 0.00', rightX + 40, currentY);
+      
+      return currentY + 45; // Return the final Y position
     }
   );
   
