@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
-import { Payment } from './PaymentHistory.types';
+import { Payment } from '@/types/payment-history.types';
 import { 
   Select,
   SelectContent,
@@ -15,7 +15,7 @@ import {
 export interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedPayment?: Partial<Payment> | null;
+  selectedPayment?: Payment | null;
   onSubmit: (
     amount: number,
     paymentDate: Date,
@@ -25,7 +25,7 @@ export interface PaymentEntryDialogProps {
     includeLatePaymentFee?: boolean,
     isPartialPayment?: boolean,
     paymentType?: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   defaultAmount?: number | null;
   leaseId?: string;
   rentAmount?: number | null;
@@ -90,7 +90,7 @@ export function PaymentEntryDialog({
   }, [selectedPayment, defaultAmount]);
 
   const handleSubmit = async () => {
-    await onSubmit(
+    const success = await onSubmit(
       amount,
       paymentDate,
       notes,
@@ -100,7 +100,10 @@ export function PaymentEntryDialog({
       isPartialPayment,
       paymentType
     );
-    onOpenChange(false);
+    
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   return (
