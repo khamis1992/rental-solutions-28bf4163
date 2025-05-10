@@ -1,5 +1,5 @@
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { Agreement } from '@/types/agreement';
 import AgreementForm from '@/components/agreements/AgreementForm';
 import { AgreementFormStatus } from '@/components/agreements/AgreementFormStatus';
@@ -28,7 +28,8 @@ export function AgreementEditor({ id, agreement, userId, vehicleData }: Agreemen
           <AgreementForm 
             initialData={{
               ...agreement,
-              vehicles: vehicleData || agreement.vehicles
+              vehicles: vehicleData || agreement.vehicles || {},
+              customers: agreement.customers || {}
             }} 
             onSubmit={props.handleSubmit}
             isSubmitting={props.isSubmitting}

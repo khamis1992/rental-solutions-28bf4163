@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
+import { ensureValidationLeaseStatus } from '@/utils/type-safety';
 
 // Updated type declaration for validation result with proper conditional type
 type ValidationResult = 
@@ -40,8 +41,14 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       setValidationErrors(null);
       setUpdateProgress(10);
       
+      // Convert the status to a validation-compatible status
+      const updatedFormData = {
+        ...formData,
+        status: ensureValidationLeaseStatus(formData.status)
+      };
+      
       // Validate form data
-      const validationResult = validateAgreementData(formData) as ValidationResult;
+      const validationResult = validateAgreementData(updatedFormData) as ValidationResult;
       setUpdateProgress(30);
       
       if (!validationResult.success) {

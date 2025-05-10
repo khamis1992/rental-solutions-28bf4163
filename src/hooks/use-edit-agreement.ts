@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { LeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
+import { LeaseStatus, ensureValidLeaseStatus } from '@/utils/type-safety';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
@@ -23,9 +23,11 @@ const processFetchedData = (data: any): Agreement | null => {
     // Check if we have the necessary data
     if (!data.id) return null;
     
+    console.log("Processing agreement data:", data);
+    
     const processedAgreement: Agreement = {
       id: data.id,
-      status: (data.status as LeaseStatus) || 'draft',
+      status: ensureValidLeaseStatus(data.status),
       customer_id: data.customer_id || '',
       vehicle_id: data.vehicle_id || '',
       start_date: ensureDate(data.start_date) || new Date(),
@@ -111,32 +113,41 @@ export function useEditAgreement(id: string | undefined) {
             const { data, error } = await supabase
               .from('leases')
               .select('*, vehicles(*), profiles:customer_id(*)')
-              .eq('id', id);
+              .eq('id', id)
+              .single();
               
             if (error) {
               throw error;
             }
             
-            if (data && data.length > 0) {
-              const leaseData = data[0];
-              console.log("Fetched agreement data:", leaseData);
+            if (data) {
+              console.log("Fetched agreement data:", data);
               
               // Process the fetched data
-              const processedAgreement = processFetchedData(leaseData);
+              const processedAgreement = processFetchedData(data);
               
               if (processedAgreement) {
                 setAgreement(processedAgreement);
                 
                 // Check if we need to fetch vehicle details
-                const vehicleId = leaseData.vehicle_id as string;
+                const vehicleId = data.vehicle_id as string;
                 if (vehicleId) {
-                  const vehicles = leaseData.vehicles;
+                  const vehicles = data.vehicles;
                   if (vehicles) {
                     console.log("Vehicle data already included:", vehicles);
                     setVehicleData(vehicles);
                   } else {
                     await fetchVehicleDetails(vehicleId);
                   }
+                }
+                
+                // Check and log customer details
+                const customerDetails = data.profiles;
+                if (customerDetails) {
+                  console.log("Customer data already included:", customerDetails);
+                } else if (data.customer_id) {
+                  // If customer data not included but ID available, fetch it
+                  await fetchCustomerDetails(data.customer_id);
                 }
               } else {
                 throw new Error("Failed to process fetched agreement data");
@@ -196,6 +207,38 @@ export function useEditAgreement(id: string | undefined) {
       }
     } catch (error) {
       console.error("Error in fetchVehicleDetails:", error);
+    }
+  };
+  
+  const fetchCustomerDetails = async (customerId: string) => {
+    try {
+      console.log("Fetching customer details for ID:", customerId);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', customerId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching customer details:", error);
+        return;
+      }
+      
+      if (data) {
+        console.log("Fetched customer data:", data);
+        
+        // Safe update of agreement with customer info
+        setAgreement((prev) => {
+          if (!prev) return null;
+          
+          return {
+            ...prev,
+            customers: data || {}
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error in fetchCustomerDetails:", error);
     }
   };
 

@@ -2,21 +2,24 @@
 import React from 'react';
 
 interface AgreementFormStatusProps {
-  updateProgress: string | null;
-  validationErrors: Record<string, string> | null;
+  updateProgress: number | ((progress: number) => void) | null | undefined;
+  validationErrors: Record<string, string> | null | undefined;
 }
 
 export const AgreementFormStatus: React.FC<AgreementFormStatusProps> = ({
   updateProgress,
   validationErrors
 }) => {
+  // Determine if updateProgress is a number that should be displayed
+  const showProgress = typeof updateProgress === 'number' && updateProgress > 0 && updateProgress < 100;
+  
   return (
     <>
-      {updateProgress && (
+      {showProgress && (
         <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded mb-4">
           <p className="flex items-center">
             <span className="animate-pulse mr-2">⏳</span>
-            <span>{updateProgress}</span>
+            <span>Processing... {updateProgress}%</span>
           </p>
         </div>
       )}

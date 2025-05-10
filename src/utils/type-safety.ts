@@ -40,6 +40,27 @@ export function asLeaseId(id: string | null | undefined): string {
 }
 
 /**
+ * Cast string to PaymentId with type safety
+ */
+export function asPaymentId(id: string | null | undefined): string {
+  return id || '';
+}
+
+/**
+ * Cast string to VehicleId with type safety
+ */
+export function asVehicleId(id: string | null | undefined): string {
+  return id || '';
+}
+
+/**
+ * Cast string to MaintenanceId with type safety
+ */
+export function asMaintenanceId(id: string | null | undefined): string {
+  return id || '';
+}
+
+/**
  * Ensures a lease status is valid, defaulting to 'draft' if not
  */
 export function ensureValidLeaseStatus(status: any): LeaseStatus {

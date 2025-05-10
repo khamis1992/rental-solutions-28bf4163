@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { AgreementBasicDetails } from './form/AgreementBasicDetails';
 import { AgreementContractTerms } from './form/AgreementContractTerms';
 import { VehicleDetailsCard } from './form/VehicleDetailsCard';
+import CustomerSection from './CustomerSection';
+import { CustomerInfo } from '@/types/customer';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -26,6 +28,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
 
   // Initialize form with default values
   const form = useForm<Agreement>({
@@ -71,6 +74,31 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         setSelectedVehicle(initialData.vehicles);
       }
     }
+    
+    // Set customer_id and selected customer if it exists
+    if (initialData?.customer_id) {
+      console.log("Setting customer_id from initialData:", initialData.customer_id);
+      form.setValue('customer_id', initialData.customer_id);
+      
+      // If we have customer information, set the selected customer
+      if (initialData.customers) {
+        const customerData = initialData.customers;
+        console.log("Setting selected customer from initialData:", customerData);
+        
+        // Convert to CustomerInfo format
+        const customer: CustomerInfo = {
+          id: customerData.id || initialData.customer_id,
+          full_name: customerData.full_name || '',
+          email: customerData.email || '',
+          phone_number: customerData.phone_number || '',
+          driver_license: '', // Set defaults for optional fields
+          nationality: '',
+          address: ''
+        };
+        
+        setSelectedCustomer(customer);
+      }
+    }
   }, [initialData, form]);
 
   const handleVehicleChange = (vehicleId: string, vehicleData: any) => {
@@ -109,6 +137,13 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
           isEdit={isEdit} 
           onVehicleChange={handleVehicleChange} 
         />
+        
+        {selectedCustomer && (
+          <div className="mb-6">
+            <h3 className="text-lg font-medium mb-3">Customer Information</h3>
+            <CustomerSection customer={selectedCustomer} />
+          </div>
+        )}
 
         {selectedVehicle && (
           <VehicleDetailsCard vehicle={selectedVehicle} />
