@@ -55,7 +55,8 @@ export function AgreementDetail({
     isLoading,
     fetchPayments,
     updatePayment,
-    addPayment
+    addPayment,
+    deletePayment
   } = usePayments(agreement?.id);
   
   useEffect(() => {
@@ -171,6 +172,20 @@ export function AgreementDetail({
     }
   }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
 
+  const handleDeletePayment = useCallback(async (paymentId: string) => {
+    if (!agreement?.id) return;
+    
+    try {
+      await deletePayment(paymentId);
+      onDataRefresh();
+      fetchPayments();
+      toast.success("Payment deleted successfully");
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast.error("Failed to delete payment");
+    }
+  }, [agreement?.id, deletePayment, onDataRefresh, fetchPayments]);
+
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1;
@@ -259,7 +274,7 @@ export function AgreementDetail({
         isLoading={isLoading} 
         rentAmount={rentAmount}
         contractAmount={contractAmount}
-        onPaymentDeleted={onPaymentDeleted}
+        onPaymentDeleted={(paymentId) => handleDeletePayment(paymentId)}
         onPaymentUpdated={handlePaymentUpdate}
         onRecordPayment={(payment) => {
           if (payment && agreement.id) {

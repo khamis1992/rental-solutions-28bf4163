@@ -1,3 +1,4 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
 
@@ -71,13 +72,22 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const response = await paymentRepository.delete(paymentId);
+    const safePaymentId = asPaymentId(paymentId);
+    if (!safePaymentId) {
+      throw new Error("Invalid payment ID");
+    }
+
+    const response = await paymentRepository.delete(safePaymentId);
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
-      return null;
+      throw response.error;
     }
     return { success: true };
+  }, {
+    onSuccess: () => {
+      refetch();
+    }
   });
 
   const fetchPayments = () => {

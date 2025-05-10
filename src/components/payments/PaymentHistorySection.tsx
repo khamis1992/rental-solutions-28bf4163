@@ -16,6 +16,7 @@ interface PaymentHistoryProps {
   rentAmount: number | null;
   leaseId?: string;
   onPaymentDeleted?: () => void;
+  onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
   showAnalytics?: boolean;
 }
@@ -26,6 +27,7 @@ export function PaymentHistorySection({
   rentAmount,
   leaseId,
   onPaymentDeleted,
+  onPaymentUpdated,
   onRecordPayment,
   showAnalytics = true
 }: PaymentHistoryProps) {
@@ -59,6 +61,15 @@ export function PaymentHistorySection({
   const handleRecordPaymentClick = () => {
     setSelectedPayment(null);
     setIsPaymentDialogOpen(true);
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (onPaymentDeleted) {
+      // Confirm deletion with the user
+      if (window.confirm('Are you sure you want to delete this payment?')) {
+        onPaymentDeleted();
+      }
+    }
   };
 
   const renderPaymentHistory = () => {
@@ -98,7 +109,7 @@ export function PaymentHistorySection({
         <PaymentTable 
           payments={payments} 
           onEditPayment={handleEditPayment}
-          onDeletePayment={onPaymentDeleted}
+          onDeletePayment={handleDeletePayment}
         />
         
         <PaymentTableActions />
@@ -136,10 +147,13 @@ export function PaymentHistorySection({
             
             if (selectedPayment) {
               paymentData.id = selectedPayment.id;
+              if (onPaymentUpdated) {
+                return onPaymentUpdated(paymentData);
+              }
             }
             
             handlePaymentCreated(paymentData);
-            return Promise.resolve();
+            return Promise.resolve(true);
           }}
           title={selectedPayment ? "Edit Payment" : "Record Payment"}
           description={selectedPayment ? "Update payment details" : "Add a new payment to this agreement"}

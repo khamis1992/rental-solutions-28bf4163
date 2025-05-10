@@ -36,6 +36,7 @@ export function PaymentHistory({
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted}
       onRecordPayment={onRecordPayment}
+      onPaymentUpdated={onPaymentUpdated}
       showAnalytics={true}
     />
   );

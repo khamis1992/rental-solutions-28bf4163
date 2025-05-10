@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 interface PaymentTableProps {
   payments: PaymentHistoryItem[];
   onEditPayment?: (payment: PaymentHistoryItem) => void;
-  onDeletePayment?: () => void;
+  onDeletePayment?: (paymentId: string) => void;
 }
 
 export function PaymentTable({ payments, onEditPayment, onDeletePayment }: PaymentTableProps) {
@@ -76,11 +76,11 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
-                  {onDeletePayment && (
+                  {onDeletePayment && payment.id && (
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={onDeletePayment}
+                      onClick={() => onDeletePayment(payment.id)}
                       className="h-8 w-8 text-red-500 hover:text-red-600"
                     >
                       <Trash className="h-4 w-4" />
