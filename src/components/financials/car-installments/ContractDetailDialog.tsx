@@ -7,15 +7,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Loader2, FileDown, Plus, FileUp } from 'lucide-react';
 import { CarInstallmentContract, CarInstallmentPayment } from '@/types/car-installment';
 import { useCarInstallments } from '@/hooks/use-car-installments';
 import { ContractDetailSummary } from './ContractDetailSummary';
-import { ContractPaymentsTable } from './ContractPaymentsTable';
 import { PaymentDialog } from './PaymentDialog';
 import { ImportPaymentsDialog } from './ImportPaymentsDialog';
-import { PaymentFiltersBar } from './PaymentFiltersBar';
+import { PaymentsTab } from './tabs/PaymentsTab';
+import { createExportTemplate } from './utils/contractPaymentHelpers';
 
 interface ContractDetailDialogProps {
   open: boolean;
@@ -117,21 +115,7 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   };
 
   const handleExportTemplate = () => {
-    // Create CSV template for download
-    const headers = ['cheque_number', 'drawee_bank', 'amount', 'payment_date', 'notes'];
-    const csv = [
-      headers.join(','),
-      '12345,Bank Name,5000,2025-03-01,Sample payment'
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${contract.car_type}_payments_template.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    createExportTemplate(contract);
   };
 
   const handleFilterChange = (newFilters: any) => {
@@ -161,48 +145,17 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4 pt-4">
-            <div className="flex flex-wrap gap-3 justify-between items-center">
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={handleAddPayment}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Payment
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => setIsImportDialogOpen(true)}
-                >
-                  <FileUp className="h-4 w-4 mr-1" />
-                  Import
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={handleExportTemplate}
-                >
-                  <FileDown className="h-4 w-4 mr-1" />
-                  Template
-                </Button>
-              </div>
-              <PaymentFiltersBar 
-                filters={paymentFilters}
-                onFilterChange={handleFilterChange}
-              />
-            </div>
-
-            {isLoadingPayments ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <ContractPaymentsTable 
-                payments={payments}
-                onRecordPayment={handleRecordPayment}
-              />
-            )}
+            <PaymentsTab 
+              contract={contract}
+              payments={payments}
+              isLoadingPayments={isLoadingPayments}
+              onAddPayment={handleAddPayment}
+              onImportClick={() => setIsImportDialogOpen(true)}
+              onRecordPayment={handleRecordPayment}
+              onExportTemplate={handleExportTemplate}
+              paymentFilters={paymentFilters}
+              onFilterChange={handleFilterChange}
+            />
           </TabsContent>
         </Tabs>
 

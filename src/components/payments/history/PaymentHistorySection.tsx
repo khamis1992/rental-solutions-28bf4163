@@ -1,294 +1,253 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PaymentHistoryItem } from '@/types/payment-history.types';
-import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
-import { PaymentStatsCards } from '../stats/PaymentStatsCards';
-import { PaymentStatusBar } from '../status/PaymentStatusBar';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Payment } from '@/types/payment-history.types';
 import { PaymentTable } from '../table/PaymentTable';
-import { PaymentTableActions } from '../actions/PaymentTableActions';
-import { EmptyPaymentState } from '../empty/EmptyPaymentState';
-import { PaymentAnalytics } from '../analytics/PaymentAnalytics';
+import { PaymentStatusBar } from '../status/PaymentStatusBar';
+import { PaymentStatsCards } from '../stats/PaymentStatsCards';
 import { PaymentFilterBar } from './PaymentFilterBar';
 import { PaymentActionsBar } from './PaymentActionsBar';
+import { PaymentLoadingState } from './PaymentLoadingState';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-interface PaymentHistoryProps {
-  payments: PaymentHistoryItem[];
+interface PaymentHistorySectionProps {
+  payments: Payment[];
   isLoading: boolean;
-  rentAmount: number | null;
+  rentAmount?: number | null;
   leaseId?: string;
   onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
-  onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
   showAnalytics?: boolean;
 }
 
 export function PaymentHistorySection({
-  payments = [],
+  payments,
   isLoading,
   rentAmount,
   leaseId,
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  showAnalytics = true
-}: PaymentHistoryProps) {
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  showAnalytics = false
+}: PaymentHistorySectionProps) {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const [paymentToEdit, setPaymentToEdit] = useState<Payment | null>(null);
 
-  // Calculate payment statistics
-  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  
-  // Calculate amount paid from COMPLETED payments only
-  const amountPaid = payments
-    .filter(payment => payment.status === 'completed')
-    .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
-  
-  const balance = totalAmount - amountPaid;
-  const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
-
-  // Helper function to determine if a payment was late
-  const isLatePayment = (payment: PaymentHistoryItem): boolean => {
-    // First check if days_overdue is available and greater than 0
-    if (payment.days_overdue && payment.days_overdue > 0) {
-      return true;
-    }
+  // Sort and filter payments
+  useEffect(() => {
+    if (!payments) return;
     
-    // If days_overdue is not available, check if there's late_fine_amount
-    if (payment.late_fine_amount && payment.late_fine_amount > 0) {
-      return true;
-    }
+    // Sort by date (newest first)
+    let sorted = [...payments].sort((a, b) => 
+      new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
+    );
     
-    // If payment_date and due_date are available, compare them
-    if (payment.payment_date && payment.due_date) {
-      const paymentDate = new Date(payment.payment_date);
-      const dueDate = new Date(payment.due_date);
-      return paymentDate > dueDate;
-    }
-    
-    // If payment_date and original_due_date are available, compare them
-    if (payment.payment_date && payment.original_due_date) {
-      const paymentDate = new Date(payment.payment_date);
-      const originalDueDate = new Date(payment.original_due_date);
-      return paymentDate > originalDueDate;
-    }
-    
-    // Default to false if we can't determine
-    return false;
-  };
-
-  // Calculate payment status counts
-  const paidOnTime = payments.filter(p => 
-    p.status === 'completed' && !isLatePayment(p)
-  ).length;
-  
-  const paidLate = payments.filter(p => 
-    p.status === 'completed' && isLatePayment(p)
-  ).length;
-  
-  const unpaid = payments.filter(p => 
-    p.status === 'pending' || p.status === 'overdue'
-  ).length;
-
-  // Filter payments based on selected status
-  const filteredPayments = statusFilter
-    ? payments.filter(payment => {
-        if (statusFilter === 'completed_ontime') {
-          return payment.status === 'completed' && !isLatePayment(payment);
-        } else if (statusFilter === 'completed_late') {
-          return payment.status === 'completed' && isLatePayment(payment);
-        } else {
-          return payment.status === statusFilter;
+    // Apply status filter if set
+    if (statusFilter) {
+      sorted = sorted.filter(payment => {
+        switch (statusFilter) {
+          case 'completed':
+            return payment.status === 'completed';
+          case 'completed_ontime':
+            return payment.status === 'completed' && !payment.is_late;
+          case 'completed_late':
+            return payment.status === 'completed' && payment.is_late;
+          case 'pending':
+            return payment.status === 'pending';
+          case 'overdue':
+            return payment.status === 'pending' && payment.is_overdue;
+          default:
+            return true;
         }
-      })
-    : payments;
-
-  const handlePaymentCreated = (payment: Partial<PaymentHistoryItem>) => {
-    if (onRecordPayment) {
-      onRecordPayment(payment);
-      setIsPaymentDialogOpen(false);
+      });
     }
-  };
-
-  const handleEditPayment = (payment: PaymentHistoryItem) => {
-    setSelectedPayment(payment);
-    setIsPaymentDialogOpen(true);
-  };
+    
+    setFilteredPayments(sorted);
+  }, [payments, statusFilter]);
 
   const handleRecordPaymentClick = () => {
-    setSelectedPayment(null);
-    setIsPaymentDialogOpen(true);
-  };
-  
-  const handleDeletePayment = (paymentId: string) => {
-    if (onPaymentDeleted) {
-      // Confirm deletion with the user
-      if (window.confirm('Are you sure you want to delete this payment?')) {
-        onPaymentDeleted(paymentId);
-      }
+    if (onRecordPayment) {
+      // Create a new payment object with default values
+      const newPayment = {
+        lease_id: leaseId,
+        payment_amount: rentAmount || 0,
+        status: 'pending',
+        payment_date: new Date().toISOString(),
+      };
+      
+      onRecordPayment(newPayment);
     }
   };
 
-  const handlePaymentSubmit = async (
-    amount: number, 
-    date: Date, 
-    notes?: string, 
-    method?: string, 
-    reference?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartial?: boolean,
-    paymentType?: string
-  ): Promise<boolean> => {
-    if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
-      try {
-        // Calculate if there's a late fee applicable based on the payment date
-        let daysOverdue = 0;
-        let lateFineAmount = 0;
-        
-        if (selectedPayment.due_date) {
-          const dueDate = new Date(selectedPayment.due_date);
-          // Only calculate late fee if payment is made after due date
-          if (date > dueDate) {
-            // Calculate days late
-            daysOverdue = Math.floor((date.getTime() - dueDate.getTime()) / (1000 * 3600 * 24));
-            // Assume daily_late_fee of 120 if not provided elsewhere
-            lateFineAmount = Math.min(daysOverdue * 120, 3000);
-          } else {
-            // Payment is on time or early, no late fee
-            daysOverdue = 0;
-            lateFineAmount = 0;
-          }
-        }
-        
-        // If amount is zero, set status to voided instead of completed
-        const paymentStatus = amount === 0 ? 'voided' : 'completed';
-        
-        const paymentData: Partial<PaymentHistoryItem> = {
-          id: selectedPayment.id,
-          amount,
-          payment_date: date.toISOString(),
-          description: notes,
-          payment_method: method,
-          transaction_id: reference,
-          status: paymentStatus,
-          type: paymentType || selectedPayment.type || 'rent',
-          days_overdue: daysOverdue,
-          late_fine_amount: lateFineAmount,
-        };
-        
-        const success = await onPaymentUpdated(paymentData);
-        if (success) {
-          setIsPaymentDialogOpen(false);
-          return true;
-        } else {
-          return false;
-        }
-      } catch (error) {
-        console.error("Error updating payment:", error);
-        return false;
-      }
-    } else if (onRecordPayment && leaseId) {
-      const paymentData: Partial<PaymentHistoryItem> = {
-        amount,
-        payment_date: date.toISOString(),
-        description: notes,
-        payment_method: method,
-        transaction_id: reference,
-        lease_id: leaseId,
-        status: 'completed',
-        type: paymentType || 'rent'
-      };
-      
-      handlePaymentCreated(paymentData);
-      return true;
+  const handleDeleteClick = (paymentId: string) => {
+    setPaymentToDelete(paymentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditClick = (payment: Payment) => {
+    setPaymentToEdit(payment);
+    setIsPaymentSheetOpen(true);
+  };
+  
+  const handleDeleteConfirm = () => {
+    if (paymentToDelete && onPaymentDeleted) {
+      onPaymentDeleted(paymentToDelete);
+      setDeleteDialogOpen(false);
+      setPaymentToDelete(null);
     }
-    
+  };
+
+  const handleUpdatePayment = async (updatedPayment: Partial<Payment>) => {
+    if (onPaymentUpdated && paymentToEdit) {
+      const success = await onPaymentUpdated({
+        id: paymentToEdit.id,
+        ...updatedPayment
+      });
+      
+      if (success) {
+        setIsPaymentSheetOpen(false);
+        setPaymentToEdit(null);
+        return true;
+      }
+      return false;
+    }
     return false;
   };
 
-  const renderPaymentHistory = () => {
-    if (isLoading) {
-      return <PaymentLoadingState />;
+  // Calculate payment statistics
+  const paymentStats = React.useMemo(() => {
+    if (!payments?.length) {
+      return {
+        total: 0,
+        paid: 0,
+        pending: 0,
+        late: 0,
+        overdue: 0,
+      };
     }
 
-    if (payments.length === 0) {
-      return <EmptyPaymentState onRecordPayment={handleRecordPaymentClick} />;
-    }
-
-    return (
-      <>
-        <PaymentStatsCards 
-          totalAmount={totalAmount} 
-          amountPaid={amountPaid} 
-          balance={balance} 
-          lateFees={lateFees} 
-        />
-        
-        <PaymentStatusBar 
-          paidOnTime={paidOnTime} 
-          paidLate={paidLate} 
-          unpaid={unpaid} 
-          totalPayments={payments.length} 
-        />
-
-        <div className="flex justify-between items-center mb-4">
-          <PaymentActionsBar 
-            rentAmount={rentAmount} 
-            onRecordPaymentClick={handleRecordPaymentClick}
-          />
-          
-          <PaymentFilterBar 
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-          />
-        </div>
-        
-        <PaymentTable 
-          payments={filteredPayments} 
-          onEditPayment={handleEditPayment}
-          onDeletePayment={handleDeletePayment}
-        />
-        
-        <PaymentTableActions />
-      </>
-    );
-  };
+    return payments.reduce((stats, payment) => {
+      stats.total++;
+      
+      if (payment.status === 'completed') {
+        stats.paid++;
+        if (payment.is_late) {
+          stats.late++;
+        }
+      }
+      
+      if (payment.status === 'pending') {
+        stats.pending++;
+        if (payment.is_overdue) {
+          stats.overdue++;
+        }
+      }
+      
+      return stats;
+    }, { total: 0, paid: 0, pending: 0, late: 0, overdue: 0 });
+  }, [payments]);
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>Track all financial transactions for this agreement</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {renderPaymentHistory()}
-        </CardContent>
-      </Card>
-      
-      {isPaymentDialogOpen && (
-        <PaymentEntryDialog
-          open={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={handlePaymentSubmit}
-          defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
-          title={selectedPayment ? "Edit Payment" : "Record Payment"}
-          description={selectedPayment ? "Update payment details or set amount to 0 to void transaction" : "Add a new payment to this agreement"}
-          leaseId={leaseId}
-          rentAmount={rentAmount}
-          selectedPayment={selectedPayment}
-        />
-      )}
-      
-      {/* Only render the analytics section if showAnalytics is true */}
       {showAnalytics && (
-        <PaymentAnalytics
-          amountPaid={amountPaid}
-          balance={balance}
-          lateFees={lateFees}
-        />
+        <>
+          <PaymentStatusBar 
+            totalPayments={paymentStats.total}
+            completedPayments={paymentStats.paid}
+            pendingPayments={paymentStats.pending}
+            overduePayments={paymentStats.overdue}
+          />
+          <PaymentStatsCards 
+            totalPayments={paymentStats.total}
+            paidPayments={paymentStats.paid}
+            pendingPayments={paymentStats.pending}
+            latePayments={paymentStats.late}
+            overduePayments={paymentStats.overdue}
+            payments={payments}
+          />
+        </>
       )}
+
+      <Card>
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Payment History</h3>
+            <div className="flex items-center space-x-2">
+              <PaymentFilterBar 
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+              />
+              {rentAmount !== undefined && rentAmount !== null && (
+                <PaymentActionsBar 
+                  rentAmount={rentAmount} 
+                  onRecordPaymentClick={handleRecordPaymentClick} 
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {isLoading ? (
+            <PaymentLoadingState />
+          ) : filteredPayments.length > 0 ? (
+            <PaymentTable 
+              payments={filteredPayments} 
+              onDeleteClick={onPaymentDeleted ? handleDeleteClick : undefined}
+              onEditClick={onPaymentUpdated ? handleEditClick : undefined}
+            />
+          ) : (
+            <div className="text-center p-8">
+              <p className="text-muted-foreground">No payment records found.</p>
+              {statusFilter && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try changing your filter settings.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Payment Sheet */}
+      <Sheet open={isPaymentSheetOpen} onOpenChange={setIsPaymentSheetOpen}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Edit Payment</SheetTitle>
+          </SheetHeader>
+          {paymentToEdit && (
+            <div className="py-4">
+              <p>Edit payment form would go here.</p>
+              {/* Edit payment form would go here */}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
