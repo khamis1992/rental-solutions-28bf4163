@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -37,10 +38,6 @@ export function CustomerList({ searchParams }: CustomerListProps) {
     status: searchParams.status !== 'all' ? searchParams.status : undefined,
     searchTerm: searchParams.query || undefined
   });
-
-  // For debugging
-  console.log('CustomerList - search params:', searchParams);
-  console.log('CustomerList - fetched customers:', customers);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
