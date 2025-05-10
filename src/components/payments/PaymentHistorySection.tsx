@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
 import { generatePaymentHistoryPdf } from '@/utils/report-utils';
+import { formatDate } from '@/lib/date-utils';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -131,13 +132,13 @@ export function PaymentHistorySection({
 
   const handleExportHistoryClick = () => {
     try {
-      // Format payment data for the PDF export
+      // Format payment data for the PDF export - now with formatted dates (without time)
       const paymentHistoryData = payments.map(payment => {
         return {
           description: payment.description || 'Payment',
           amount: payment.amount || 0,
-          dueDate: payment.due_date || '',
-          paymentDate: payment.payment_date || '',
+          dueDate: payment.due_date ? formatDate(payment.due_date, 'MMM d, yyyy') : '',
+          paymentDate: payment.payment_date ? formatDate(payment.payment_date, 'MMM d, yyyy') : '',
           status: payment.status || '',
           lateFee: payment.late_fine_amount || 0,
           total: (payment.amount || 0) + (payment.late_fine_amount || 0)
