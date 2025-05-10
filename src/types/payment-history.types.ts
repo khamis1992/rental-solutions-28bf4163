@@ -5,7 +5,7 @@ export interface PaymentHistoryItem {
   amount_paid?: number;
   payment_date?: string | null; // Updated to handle null values
   due_date?: string | null; // Updated to handle null values
-  status: string;
+  status: string; // 'completed', 'pending', 'overdue', etc.
   lease_id?: string;
   type?: string;
   description?: string;

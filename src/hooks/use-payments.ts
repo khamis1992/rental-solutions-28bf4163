@@ -44,7 +44,13 @@ export const usePayments = (agreementId?: string) => {
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    const response = await paymentRepository.recordPayment(newPayment);
+    // Ensure status is set to completed for new payments if not specified
+    const paymentToAdd = {
+      ...newPayment,
+      status: newPayment.status || 'completed'
+    };
+    
+    const response = await paymentRepository.recordPayment(paymentToAdd);
 
     if (response.error) {
       console.error("Error adding payment:", response.error);

@@ -38,7 +38,12 @@ export function PaymentHistorySection({
 
   // Calculate payment statistics
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const amountPaid = payments.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
+  
+  // Calculate amount paid from COMPLETED payments only
+  const amountPaid = payments
+    .filter(payment => payment.status === 'completed')
+    .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
+  
   const balance = totalAmount - amountPaid;
   const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
 
