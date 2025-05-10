@@ -10,6 +10,8 @@ import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -20,6 +22,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const [carNumber, setCarNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
   const { data, isLoading, error } = usePaymentDetails(carNumber);
   const { addPayment } = usePayments();
@@ -27,6 +30,48 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
     return format(new Date(dateString), 'dd MMM yyyy');
+  };
+
+  // Group payments by their status
+  const getGroupedPayments = () => {
+    if (!data?.allPayments) return { pending: [], completed: [], overdue: [], other: [] };
+    
+    return data.allPayments.reduce((groups, payment) => {
+      const status = payment.status.toLowerCase();
+      if (status === 'pending' || status === 'partially_paid') {
+        groups.pending.push(payment);
+      } else if (status === 'completed') {
+        groups.completed.push(payment);
+      } else if (status === 'overdue') {
+        groups.overdue.push(payment);
+      } else {
+        groups.other.push(payment);
+      }
+      return groups;
+    }, { 
+      pending: [], 
+      completed: [], 
+      overdue: [], 
+      other: [] 
+    } as Record<string, any[]>);
+  };
+
+  const groupedPayments = getGroupedPayments();
+
+  // Get status badge based on payment status
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500">Completed</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case 'partially_paid':
+        return <Badge className="bg-blue-500">Partially Paid</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-500">Overdue</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,8 +88,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
       let paymentData;
       
       if (selectedPaymentId && selectedPaymentId !== 'new') {
-        // Find the selected pending payment
-        const selectedPayment = data.pendingPayments.find(p => p.id === selectedPaymentId);
+        // Find the selected payment
+        const selectedPayment = data.allPayments.find(p => p.id === selectedPaymentId);
         
         if (!selectedPayment) {
           throw new Error('Selected payment not found');
@@ -166,47 +211,184 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
             )}
           </div>
 
-          {data.pendingPayments && data.pendingPayments.length > 0 && (
-            <div className="space-y-2">
+          {data.allPayments && data.allPayments.length > 0 ? (
+            <div className="space-y-3">
               <Label>Select a Payment to Record</Label>
-              <RadioGroup 
-                value={selectedPaymentId || ''} 
-                onValueChange={setSelectedPaymentId}
-                className="space-y-2"
-              >
-                {data.pendingPayments.map((payment) => (
-                  <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value={payment.id} id={payment.id} />
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-4">
+                  <TabsTrigger value="pending" className="text-xs">
+                    Pending ({groupedPayments.pending.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="text-xs">
+                    Completed ({groupedPayments.completed.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="overdue" className="text-xs">
+                    Overdue ({groupedPayments.overdue.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="new" className="text-xs">
+                    New Payment
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="pending" className="pt-2">
+                  {groupedPayments.pending.length > 0 ? (
+                    <RadioGroup 
+                      value={selectedPaymentId || ''} 
+                      onValueChange={setSelectedPaymentId}
+                      className="space-y-2"
+                    >
+                      {groupedPayments.pending.map((payment) => (
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
+                          <RadioGroupItem value={payment.id} id={payment.id} />
+                          <div className="grid flex-1">
+                            <div className="flex justify-between">
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
+                              </Label>
+                              {getStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                Due: {payment.due_date ? formatDate(payment.due_date) : 'Not set'}
+                              </span>
+                            </div>
+                            {payment.late_fine_amount && payment.late_fine_amount > 0 && (
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No pending payments found
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="completed" className="pt-2">
+                  {groupedPayments.completed.length > 0 ? (
+                    <RadioGroup 
+                      value={selectedPaymentId || ''} 
+                      onValueChange={setSelectedPaymentId}
+                      className="space-y-2"
+                    >
+                      {groupedPayments.completed.map((payment) => (
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
+                          <RadioGroupItem value={payment.id} id={payment.id} />
+                          <div className="grid flex-1">
+                            <div className="flex justify-between">
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
+                              </Label>
+                              {getStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                Paid: {payment.payment_date ? formatDate(payment.payment_date) : 'Not set'}
+                              </span>
+                            </div>
+                            {payment.late_fine_amount && payment.late_fine_amount > 0 && (
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No completed payments found
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="overdue" className="pt-2">
+                  {groupedPayments.overdue.length > 0 ? (
+                    <RadioGroup 
+                      value={selectedPaymentId || ''} 
+                      onValueChange={setSelectedPaymentId}
+                      className="space-y-2"
+                    >
+                      {groupedPayments.overdue.map((payment) => (
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
+                          <RadioGroupItem value={payment.id} id={payment.id} />
+                          <div className="grid flex-1">
+                            <div className="flex justify-between">
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
+                              </Label>
+                              {getStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
+                              </span>
+                              <span className="text-sm text-red-500 font-medium">
+                                Overdue since: {payment.due_date ? formatDate(payment.due_date) : 'Not set'}
+                              </span>
+                            </div>
+                            {payment.late_fine_amount && payment.late_fine_amount > 0 && (
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No overdue payments found
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="new" className="pt-2">
+                  <div className="flex items-center space-x-2 border rounded-md p-3">
+                    <RadioGroupItem value="new" id="new-payment" checked={selectedPaymentId === 'new'} onClick={() => setSelectedPaymentId('new')} />
                     <div className="grid flex-1">
-                      <div className="flex justify-between">
-                        <Label htmlFor={payment.id} className="font-medium">
-                          QAR {payment.amount.toFixed(2)}
-                        </Label>
-                        <span className="text-sm text-muted-foreground">
-                          {payment.status}
+                      <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
+                      <span className="text-sm text-muted-foreground">
+                        Amount: QAR {data.totalDue.toFixed(2)} (Rent + Late Fee)
+                      </span>
+                      {data.lateFeeAmount > 0 && (
+                        <span className="text-sm text-red-500">
+                          Includes Late Fee: QAR {data.lateFeeAmount.toFixed(2)}
                         </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          {payment.description || 'Payment'}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          Due: {payment.due_date ? formatDate(payment.due_date) : 'Not set'}
-                        </span>
-                      </div>
+                      )}
                     </div>
                   </div>
-                ))}
-                <div className="flex items-center space-x-2 border rounded-md p-3">
-                  <RadioGroupItem value="new" id="new-payment" />
-                  <div className="grid flex-1">
-                    <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
-                    <span className="text-sm text-muted-foreground">
-                      Amount: QAR {data.totalDue.toFixed(2)} (Rent + Late Fee)
-                    </span>
-                  </div>
-                </div>
-              </RadioGroup>
+                </TabsContent>
+              </Tabs>
+            </div>
+          ) : (
+            <div className="text-center p-4 border rounded-md">
+              <p className="text-muted-foreground">No payments found for this agreement.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                You can create a new payment below.
+              </p>
+              <div className="mt-4">
+                <RadioGroupItem value="new" id="new-payment" checked={selectedPaymentId === 'new'} onClick={() => setSelectedPaymentId('new')} className="hidden" />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setSelectedPaymentId('new')}
+                >
+                  Create New Payment
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -218,7 +400,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         </Button>
         <Button 
           type="submit" 
-          disabled={!carNumber || loading || isLoading || !!error || !data || (data.pendingPayments.length > 0 && !selectedPaymentId && selectedPaymentId !== 'new')}
+          disabled={!carNumber || loading || isLoading || !!error || !data || (!selectedPaymentId && selectedPaymentId !== 'new')}
         >
           Record Payment
         </Button>
