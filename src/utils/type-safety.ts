@@ -1,72 +1,73 @@
 
-import { Database } from '@/types/database.types';
-import { LeaseStatus as LeaseStatusType } from '@/types/lease-types';
-import { toValidationLeaseStatus } from '@/types/lease-types';
-
-// Helper type for database ID type casting
-export type DbId = string;
+import { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
 
 /**
- * Type-safe function to cast a string to a vehicle ID
+ * Type guard to check if a value is not an error
  */
-export function asVehicleId(id: string | null | undefined): string | undefined {
-  return id ?? undefined;
+export function isNotError(value: any): boolean {
+  return value !== null && 
+         value !== undefined && 
+         typeof value !== 'string' && 
+         !('error' in value);
 }
 
 /**
- * Type-safe function to cast a string to an agreement/lease ID
- */
-export function asLeaseId(id: string | null | undefined): string | undefined {
-  return id ?? undefined;
-}
-
-/**
- * Type-safe function to cast a string to a maintenance ID
- */
-export function asMaintenanceId(id: string | null | undefined): string | undefined {
-  return id ?? undefined;
-}
-
-/**
- * Type-safe function to cast a string to a payment ID
- */
-export function asPaymentId(id: string | null | undefined): string | undefined {
-  return id ?? undefined;
-}
-
-/**
- * Type-safe function to check if an object exists and has a property
+ * Type guard to check if an object has a property
  */
 export function hasProperty<T extends object, K extends string>(
-  obj: T | null | undefined, 
-  prop: K
+  obj: T | null | undefined,
+  key: K
 ): obj is T & Record<K, unknown> {
-  return obj !== null && obj !== undefined && prop in obj;
+  return obj !== null && obj !== undefined && key in obj;
 }
 
 /**
- * Type guard to check if a response has data and is not an error
- */
-export function isNotError<T>(obj: any): obj is T {
-  return obj && typeof obj === 'object' && !('error' in obj) && obj !== null;
-}
-
-/**
- * Safely get a property from an object with a default value
+ * Safely get a value from an object, handle nullish values
  */
 export function safeGet<T, K extends keyof T>(
-  obj: T | null | undefined, 
-  key: K, 
-  defaultValue?: T[K]
+  obj: T | null | undefined,
+  key: K
 ): T[K] | undefined {
-  if (!obj) return defaultValue;
-  return obj[key] ?? defaultValue;
+  if (obj === null || obj === undefined) return undefined;
+  return obj[key];
 }
 
 /**
- * Cast a lease status to a validation-compatible status
+ * Cast string to LeaseId with type safety
  */
-export function ensureValidLeaseStatus(status: LeaseStatusType | string | null | undefined): string {
+export function asLeaseId(id: string | null | undefined): string {
+  return id || '';
+}
+
+/**
+ * Ensures a lease status is valid, defaulting to 'draft' if not
+ */
+export function ensureValidLeaseStatus(status: any): LeaseStatus {
   if (!status) return 'draft';
-  return toValidationLeaseStatus(status as LeaseStatusType);
+  
+  const validStatuses: LeaseStatus[] = [
+    'active',
+    'pending',
+    'completed',
+    'cancelled',
+    'pending_payment',
+    'pending_deposit',
+    'draft',
+    'terminated',
+    'archived',
+    'closed',
+    'expired'
+  ];
+  
+  return validStatuses.includes(status as LeaseStatus) 
+    ? (status as LeaseStatus) 
+    : 'draft';
+}
+
+/**
+ * Convert any lease status to a validation-compatible status
+ */
+export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
+  if (!status) return 'draft';
+  return toValidationLeaseStatus(status as LeaseStatus);
 }

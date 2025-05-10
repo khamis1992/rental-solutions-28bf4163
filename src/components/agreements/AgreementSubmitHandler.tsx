@@ -2,7 +2,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
 
 // Updated type declaration for validation result with proper conditional type
@@ -11,7 +11,15 @@ type ValidationResult =
   | { success: false; error?: Error; errors: Record<string, string> };
 
 interface AgreementSubmitHandlerProps {
-  children: React.ReactNode;
+  children: (props: {
+    handleSubmit: (data: Agreement) => Promise<void>;
+    isSubmitting: boolean;
+    updateProgress?: (progress: number) => void;
+    validationErrors?: Record<string, string> | null;
+  }) => React.ReactNode;
+  id?: string;
+  agreement?: Agreement;
+  userId?: string;
   onSubmit?: (data: Agreement) => void;
   redirectTo?: string;
 }
@@ -22,27 +30,41 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
   redirectTo = '/agreements',
 }) => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [validationErrors, setValidationErrors] = React.useState<Record<string, string> | null>(null);
+  const [updateProgress, setUpdateProgress] = React.useState<number>(0);
 
   const handleSubmit = async (formData: Agreement) => {
     try {
+      setIsSubmitting(true);
+      setValidationErrors(null);
+      setUpdateProgress(10);
+      
       // Validate form data
       const validationResult = validateAgreementData(formData) as ValidationResult;
+      setUpdateProgress(30);
       
       if (!validationResult.success) {
         // Type guard to ensure errors exists on the validation result
         if ('errors' in validationResult) {
           // Show validation errors
+          setValidationErrors(validationResult.errors);
           const firstErrorKey = Object.keys(validationResult.errors)[0];
           const errorMessage = validationResult.errors[firstErrorKey];
           toast.error(errorMessage);
         } else {
           toast.error("Validation failed");
         }
+        setUpdateProgress(0);
         return;
       }
       
+      setUpdateProgress(50);
+      
       // Save agreement
       const saveResult = await agreementService.save(validationResult.data);
+      
+      setUpdateProgress(80);
       
       if (!saveResult.success) {
         // Handle API errors
@@ -51,8 +73,11 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
         } else {
           toast.error("Failed to save agreement");
         }
+        setUpdateProgress(0);
         return;
       }
+      
+      setUpdateProgress(100);
       
       // Success handling
       toast.success('Agreement created successfully');
@@ -69,25 +94,26 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
     } catch (error) {
       console.error("Error submitting agreement:", error);
       toast.error("An unexpected error occurred");
+      setUpdateProgress(0);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div>
-      {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
-            onSubmit: handleSubmit
-          });
-        }
-        return child;
+      {children({
+        handleSubmit,
+        isSubmitting,
+        updateProgress: (progress) => setUpdateProgress(progress),
+        validationErrors
       })}
     </div>
   );
 };
 
 // Updated validation function that returns the correct type
-function validateAgreementData(data: any): ValidationResult {
+function validateAgreementData(data: Agreement): ValidationResult {
   // Implement validation logic here
   const errors: Record<string, string> = {};
   

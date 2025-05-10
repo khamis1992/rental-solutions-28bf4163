@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Agreement } from '@/types/agreement';
 import AgreementForm from '@/components/agreements/AgreementForm';
 import { AgreementFormStatus } from '@/components/agreements/AgreementFormStatus';
@@ -19,20 +19,20 @@ export function AgreementEditor({ id, agreement, userId, vehicleData }: Agreemen
       agreement={agreement}
       userId={userId}
     >
-      {({ handleSubmit, isSubmitting, updateProgress, validationErrors }) => (
+      {(props) => (
         <>
           <AgreementFormStatus
-            updateProgress={updateProgress}
-            validationErrors={validationErrors}
+            updateProgress={props.updateProgress}
+            validationErrors={props.validationErrors}
           />
           <AgreementForm 
             initialData={{
               ...agreement,
               vehicles: vehicleData || agreement.vehicles
             }} 
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-            validationErrors={validationErrors}
+            onSubmit={props.handleSubmit}
+            isSubmitting={props.isSubmitting}
+            validationErrors={props.validationErrors}
           />
         </>
       )}
