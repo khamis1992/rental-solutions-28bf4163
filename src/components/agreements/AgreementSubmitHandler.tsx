@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
-import { ensureValidationLeaseStatus } from '@/utils/type-safety';
+import { ValidationLeaseStatus, ensureValidationLeaseStatus } from '@/types/lease-types';
 
 // Updated type declaration for validation result with proper conditional type
 type ValidationResult = 
