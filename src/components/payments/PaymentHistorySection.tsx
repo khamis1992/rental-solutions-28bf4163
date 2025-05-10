@@ -47,10 +47,48 @@ export function PaymentHistorySection({
   const balance = totalAmount - amountPaid;
   const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
 
+  // Helper function to determine if a payment was late
+  const isLatePayment = (payment: PaymentHistoryItem): boolean => {
+    // First check if days_overdue is available and greater than 0
+    if (payment.days_overdue && payment.days_overdue > 0) {
+      return true;
+    }
+    
+    // If days_overdue is not available, check if there's late_fine_amount
+    if (payment.late_fine_amount && payment.late_fine_amount > 0) {
+      return true;
+    }
+    
+    // If payment_date and due_date are available, compare them
+    if (payment.payment_date && payment.due_date) {
+      const paymentDate = new Date(payment.payment_date);
+      const dueDate = new Date(payment.due_date);
+      return paymentDate > dueDate;
+    }
+    
+    // If payment_date and original_due_date are available, compare them
+    if (payment.payment_date && payment.original_due_date) {
+      const paymentDate = new Date(payment.payment_date);
+      const originalDueDate = new Date(payment.original_due_date);
+      return paymentDate > originalDueDate;
+    }
+    
+    // Default to false if we can't determine
+    return false;
+  };
+
   // Calculate payment status counts
-  const paidOnTime = payments.filter(p => p.status === 'completed' && (!p.days_overdue || p.days_overdue === 0)).length;
-  const paidLate = payments.filter(p => p.status === 'completed' && p.days_overdue && p.days_overdue > 0).length;
-  const unpaid = payments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
+  const paidOnTime = payments.filter(p => 
+    p.status === 'completed' && !isLatePayment(p)
+  ).length;
+  
+  const paidLate = payments.filter(p => 
+    p.status === 'completed' && isLatePayment(p)
+  ).length;
+  
+  const unpaid = payments.filter(p => 
+    p.status === 'pending' || p.status === 'overdue'
+  ).length;
 
   const handlePaymentCreated = (payment: Partial<PaymentHistoryItem>) => {
     if (onRecordPayment) {
