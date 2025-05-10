@@ -3,23 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PaymentHistoryItem } from '@/types/payment-history.types';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
-import { PaymentStatsCards } from './stats/PaymentStatsCards';
-import { PaymentStatusBar } from './status/PaymentStatusBar';
-import { PaymentTable } from './table/PaymentTable';
-import { PaymentActions, PaymentTableActions } from './actions/PaymentActions';
-import { EmptyPaymentState } from './empty/EmptyPaymentState';
-import { PaymentAnalytics } from './analytics/PaymentAnalytics';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
-import { generatePaymentHistoryPdf } from '@/utils/report-utils';
-import { formatDate } from '@/lib/date-utils';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { PaymentStatsCards } from '../stats/PaymentStatsCards';
+import { PaymentStatusBar } from '../status/PaymentStatusBar';
+import { PaymentTable } from '../table/PaymentTable';
+import { PaymentTableActions } from '../actions/PaymentTableActions';
+import { EmptyPaymentState } from '../empty/EmptyPaymentState';
+import { PaymentAnalytics } from '../analytics/PaymentAnalytics';
+import { PaymentFilterBar } from './PaymentFilterBar';
+import { PaymentActionsBar } from './PaymentActionsBar';
 
 interface PaymentHistoryProps {
   payments: PaymentHistoryItem[];
@@ -129,37 +120,7 @@ export function PaymentHistorySection({
     setSelectedPayment(null);
     setIsPaymentDialogOpen(true);
   };
-
-  const handleExportHistoryClick = () => {
-    try {
-      // Format payment data for the PDF export - now with formatted dates (without time)
-      const paymentHistoryData = payments.map(payment => {
-        return {
-          description: payment.description || 'Payment',
-          amount: payment.amount || 0,
-          dueDate: payment.due_date ? formatDate(payment.due_date, 'MMM d, yyyy') : '',
-          paymentDate: payment.payment_date ? formatDate(payment.payment_date, 'MMM d, yyyy') : '',
-          status: payment.status || '',
-          lateFee: payment.late_fine_amount || 0,
-          total: (payment.amount || 0) + (payment.late_fine_amount || 0)
-        };
-      });
-
-      // Generate the PDF
-      const doc = generatePaymentHistoryPdf(
-        paymentHistoryData,
-        "Payment History"
-      );
-
-      // Save the PDF
-      doc.save("payment-history.pdf");
-      toast.success("Payment history exported successfully");
-    } catch (error) {
-      console.error("Error exporting payment history:", error);
-      toast.error("Failed to export payment history");
-    }
-  };
-
+  
   const handleDeletePayment = (paymentId: string) => {
     if (onPaymentDeleted) {
       // Confirm deletion with the user
@@ -218,18 +179,13 @@ export function PaymentHistorySection({
         
         const success = await onPaymentUpdated(paymentData);
         if (success) {
-          toast.success(amount === 0 
-            ? "Payment voided successfully" 
-            : "Payment updated successfully");
           setIsPaymentDialogOpen(false);
           return true;
         } else {
-          toast.error("Failed to update payment");
           return false;
         }
       } catch (error) {
         console.error("Error updating payment:", error);
-        toast.error("Failed to update payment");
         return false;
       }
     } else if (onRecordPayment && leaseId) {
@@ -251,30 +207,9 @@ export function PaymentHistorySection({
     return false;
   };
 
-  const getFilterLabel = () => {
-    switch (statusFilter) {
-      case 'completed':
-        return 'Completed';
-      case 'completed_ontime':
-        return 'Paid On Time';
-      case 'completed_late':
-        return 'Paid Late';  
-      case 'pending':
-        return 'Pending';
-      case 'overdue':
-        return 'Overdue';
-      default:
-        return 'All Payments';
-    }
-  };
-
   const renderPaymentHistory = () => {
     if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-48">
-          <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
-        </div>
-      );
+      return <PaymentLoadingState />;
     }
 
     if (payments.length === 0) {
@@ -298,52 +233,15 @@ export function PaymentHistorySection({
         />
 
         <div className="flex justify-between items-center mb-4">
-          <PaymentActions 
+          <PaymentActionsBar 
             rentAmount={rentAmount} 
             onRecordPaymentClick={handleRecordPaymentClick}
-            onExportHistoryClick={handleExportHistoryClick}
           />
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-2">
-                <Filter className="h-4 w-4 mr-2" />
-                {statusFilter ? getFilterLabel() : "Filter"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === null}
-                onCheckedChange={() => setStatusFilter(null)}
-              >
-                All Payments
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'completed_ontime'}
-                onCheckedChange={() => setStatusFilter('completed_ontime')}
-              >
-                Paid On Time
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'completed_late'}
-                onCheckedChange={() => setStatusFilter('completed_late')}
-              >
-                Paid Late
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'pending'}
-                onCheckedChange={() => setStatusFilter('pending')}
-              >
-                Pending
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'overdue'}
-                onCheckedChange={() => setStatusFilter('overdue')}
-              >
-                Overdue
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <PaymentFilterBar 
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+          />
         </div>
         
         <PaymentTable 
