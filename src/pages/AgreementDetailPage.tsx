@@ -63,7 +63,9 @@ const AgreementDetailPage = () => {
     payments,
     isLoading: isLoadingPayments,
     fetchPayments,
-    addPayment
+    addPayment,
+    deletePayment,
+    updatePayment
   } = usePayments(id || '');
 
   // Monitor for duplicate payments and fix them if needed
@@ -208,6 +210,19 @@ const AgreementDetailPage = () => {
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!id) return;
+    
+    try {
+      await deletePayment(paymentId);
+      fetchPayments();
+      toast.success('Payment deleted successfully');
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error('Failed to delete payment');
     }
   };
 
@@ -447,7 +462,7 @@ const AgreementDetailPage = () => {
                 isLoading={isLoadingPayments} 
                 rentAmount={rentAmount} 
                 contractAmount={agreement?.total_amount || null}
-                onPaymentDeleted={fetchPayments}
+                onPaymentDeleted={handleDeletePayment}
                 leaseStartDate={agreement.start_date}
                 leaseEndDate={agreement.end_date}
                 onRecordPayment={(payment) => {
@@ -459,6 +474,22 @@ const AgreementDetailPage = () => {
                     };
                     addPayment(fullPayment);
                     fetchPayments();
+                  }
+                }}
+                onPaymentUpdated={async (payment) => {
+                  if (!payment.id) return false;
+                  try {
+                    await updatePayment({
+                      id: payment.id,
+                      data: payment
+                    });
+                    fetchPayments();
+                    toast.success('Payment updated successfully');
+                    return true;
+                  } catch (error) {
+                    console.error('Error updating payment:', error);
+                    toast.error('Failed to update payment');
+                    return false;
                   }
                 }}
                 leaseId={id}

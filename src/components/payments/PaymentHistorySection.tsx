@@ -87,7 +87,7 @@ export function PaymentHistorySection({
     includeLatePaymentFee?: boolean,
     isPartial?: boolean,
     paymentType?: string
-  ) => {
+  ): Promise<boolean> => {
     if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
       try {
         const paymentData: Partial<PaymentHistoryItem> = {

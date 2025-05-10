@@ -180,12 +180,15 @@ export function AgreementDetail({
       await deletePayment(paymentId);
       onDataRefresh();
       fetchPayments();
+      if (onPaymentDeleted) {
+        onPaymentDeleted();
+      }
       toast.success("Payment deleted successfully");
     } catch (error) {
       console.error("Error deleting payment:", error);
       toast.error("Failed to delete payment");
     }
-  }, [agreement?.id, deletePayment, onDataRefresh, fetchPayments]);
+  }, [agreement?.id, deletePayment, onDataRefresh, fetchPayments, onPaymentDeleted]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
