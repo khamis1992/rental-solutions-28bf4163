@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, FileDown, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface PaymentActionsProps {
   rentAmount: number | null;
@@ -10,29 +10,22 @@ interface PaymentActionsProps {
 
 export function PaymentActions({ rentAmount, onRecordPaymentClick }: PaymentActionsProps) {
   return (
-    <div className="flex justify-between mb-4">
-      <div className="flex items-center text-sm font-medium">
-        {rentAmount && <span className="text-muted-foreground">Monthly Rent: QAR {rentAmount}</span>}
-      </div>
+    <div className="flex flex-wrap gap-2">
       <Button onClick={onRecordPaymentClick}>
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="mr-2 h-4 w-4" />
         Record Payment
       </Button>
     </div>
   );
 }
 
+// The PaymentTableActions component is now only used for additional actions that might be needed at the bottom of the table
 export function PaymentTableActions() {
   return (
-    <div className="flex justify-between mt-4">
-      <Button variant="outline" size="sm">
-        <FileDown className="h-4 w-4 mr-2" />
-        Export History
-      </Button>
-      <Button variant="outline" size="sm">
-        <Filter className="h-4 w-4 mr-2" />
-        Filter
-      </Button>
+    <div className="mt-4 flex justify-between">
+      <div className="text-sm text-muted-foreground">
+        {/* This area can be used for pagination, bulk actions, etc. in the future */}
+      </div>
     </div>
   );
 }

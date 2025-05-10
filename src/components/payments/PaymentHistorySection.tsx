@@ -10,6 +10,14 @@ import { PaymentActions, PaymentTableActions } from './actions/PaymentActions';
 import { EmptyPaymentState } from './empty/EmptyPaymentState';
 import { PaymentAnalytics } from './analytics/PaymentAnalytics';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface PaymentHistoryProps {
   payments: PaymentHistoryItem[];
@@ -33,7 +41,7 @@ export function PaymentHistorySection({
   showAnalytics = true
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [filter, setFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
 
   // Calculate payment statistics
@@ -89,6 +97,19 @@ export function PaymentHistorySection({
   const unpaid = payments.filter(p => 
     p.status === 'pending' || p.status === 'overdue'
   ).length;
+
+  // Filter payments based on selected status
+  const filteredPayments = statusFilter
+    ? payments.filter(payment => {
+        if (statusFilter === 'completed_ontime') {
+          return payment.status === 'completed' && !isLatePayment(payment);
+        } else if (statusFilter === 'completed_late') {
+          return payment.status === 'completed' && isLatePayment(payment);
+        } else {
+          return payment.status === statusFilter;
+        }
+      })
+    : payments;
 
   const handlePaymentCreated = (payment: Partial<PaymentHistoryItem>) => {
     if (onRecordPayment) {
@@ -172,6 +193,23 @@ export function PaymentHistorySection({
     return false;
   };
 
+  const getFilterLabel = () => {
+    switch (statusFilter) {
+      case 'completed':
+        return 'Completed';
+      case 'completed_ontime':
+        return 'Paid On Time';
+      case 'completed_late':
+        return 'Paid Late';  
+      case 'pending':
+        return 'Pending';
+      case 'overdue':
+        return 'Overdue';
+      default:
+        return 'All Payments';
+    }
+  };
+
   const renderPaymentHistory = () => {
     if (isLoading) {
       return (
@@ -201,13 +239,56 @@ export function PaymentHistorySection({
           totalPayments={payments.length} 
         />
 
-        <PaymentActions 
-          rentAmount={rentAmount} 
-          onRecordPaymentClick={handleRecordPaymentClick} 
-        />
+        <div className="flex justify-between items-center mb-4">
+          <PaymentActions 
+            rentAmount={rentAmount} 
+            onRecordPaymentClick={handleRecordPaymentClick} 
+          />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="ml-2">
+                <Filter className="h-4 w-4 mr-2" />
+                {statusFilter ? getFilterLabel() : "Filter"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === null}
+                onCheckedChange={() => setStatusFilter(null)}
+              >
+                All Payments
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'completed_ontime'}
+                onCheckedChange={() => setStatusFilter('completed_ontime')}
+              >
+                Paid On Time
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'completed_late'}
+                onCheckedChange={() => setStatusFilter('completed_late')}
+              >
+                Paid Late
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'pending'}
+                onCheckedChange={() => setStatusFilter('pending')}
+              >
+                Pending
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem 
+                checked={statusFilter === 'overdue'}
+                onCheckedChange={() => setStatusFilter('overdue')}
+              >
+                Overdue
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         
         <PaymentTable 
-          payments={payments} 
+          payments={filteredPayments} 
           onEditPayment={handleEditPayment}
           onDeletePayment={handleDeletePayment}
         />

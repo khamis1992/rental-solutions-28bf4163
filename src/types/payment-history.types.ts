@@ -1,4 +1,3 @@
-
 export interface PaymentHistoryItem {
   id: string;
   amount: number;
@@ -17,6 +16,7 @@ export interface PaymentHistoryItem {
   next_payment_date?: string | null; // Updated to handle null values
   reference_number?: string;
   notes?: string;
+  original_due_date?: string | null; // Added this field to fix the TypeScript error
 }
 
 export interface PaymentHistoryResponse {
