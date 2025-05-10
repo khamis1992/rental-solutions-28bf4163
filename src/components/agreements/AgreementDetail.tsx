@@ -300,7 +300,7 @@ export function AgreementDetail({
         leaseEndDate={agreement.end_date}
         leaseId={agreement.id}
       />}
-      
+
       {agreement.start_date && agreement.end_date && (
         <LegalCaseCard agreementId={agreement.id} />
       )}

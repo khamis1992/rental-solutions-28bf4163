@@ -7,7 +7,7 @@ interface PaymentHistoryProps {
   payments: Payment[];
   isLoading: boolean;
   rentAmount: number | null;
-  contractAmount: number | null;
+  contractAmount: number | null; // Make sure contractAmount is passed through
   onPaymentDeleted: (paymentId: string) => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment: (payment: Partial<Payment>) => void;
@@ -33,6 +33,7 @@ export function PaymentHistory({
       payments={payments} 
       isLoading={isLoading} 
       rentAmount={rentAmount}
+      contractAmount={contractAmount} // Pass contractAmount to the PaymentHistorySection
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted}
       onRecordPayment={onRecordPayment}
