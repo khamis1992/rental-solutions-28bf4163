@@ -66,6 +66,29 @@ export class PaymentRepository extends Repository<'unified_payments'> {
     
     return { data: response.data, error: response.error };
   }
+
+  /**
+   * Update payment
+   * This overrides the base update method to ensure proper handling of payment updates
+   */
+  async update(paymentId: string, paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
+    const safePaymentId = asPaymentId(paymentId);
+    if (!safePaymentId) {
+      return { 
+        data: null, 
+        error: { message: "Invalid payment ID", details: "", code: "", hint: "" } 
+      };
+    }
+    
+    const response = await this.client
+      .from('unified_payments')
+      .update(paymentData)
+      .eq('id', safePaymentId)
+      .select()
+      .single();
+    
+    return { data: response.data, error: response.error };
+  }
 }
 
 // Export the repository instance and the factory function

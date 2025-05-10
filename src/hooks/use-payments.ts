@@ -58,7 +58,15 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const response = await paymentRepository.update(paymentUpdate.id, paymentUpdate.data);
+    const { id, data: paymentData } = paymentUpdate;
+    
+    // Make sure we have a valid payment ID
+    const safePaymentId = asPaymentId(id);
+    if (!safePaymentId) {
+      throw new Error("Invalid payment ID");
+    }
+
+    const response = await paymentRepository.update(safePaymentId, paymentData);
 
     if (response.error) {
       console.error("Error updating payment:", response.error);

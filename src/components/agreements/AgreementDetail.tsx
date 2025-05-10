@@ -154,8 +154,8 @@ export function AgreementDetail({
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
-  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>) => {
-    if (!agreement?.id || !updatedPayment.id) return Promise.resolve(false);
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
+    if (!agreement?.id || !updatedPayment.id) return false;
     
     try {
       await updatePayment({
@@ -164,6 +164,7 @@ export function AgreementDetail({
       });
       onDataRefresh();
       fetchPayments();
+      toast.success("Payment updated successfully");
       return true;
     } catch (error) {
       console.error("Error updating payment:", error);
@@ -274,7 +275,7 @@ export function AgreementDetail({
         isLoading={isLoading} 
         rentAmount={rentAmount}
         contractAmount={contractAmount}
-        onPaymentDeleted={(paymentId) => handleDeletePayment(paymentId)}
+        onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handlePaymentUpdate}
         onRecordPayment={(payment) => {
           if (payment && agreement.id) {

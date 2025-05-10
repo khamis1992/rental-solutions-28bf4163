@@ -3,8 +3,8 @@ export interface PaymentHistoryItem {
   id: string;
   amount: number;
   amount_paid?: number;
-  payment_date?: string; // Changed from string | Date to just string
-  due_date?: string; // Changed from string | Date to just string
+  payment_date?: string | null; // Updated to handle null values
+  due_date?: string | null; // Updated to handle null values
   status: string;
   lease_id?: string;
   type?: string;
@@ -14,7 +14,7 @@ export interface PaymentHistoryItem {
   late_fine_amount?: number;
   days_overdue?: number;
   balance?: number;
-  next_payment_date?: string; // Changed from string | Date to just string
+  next_payment_date?: string | null; // Updated to handle null values
   reference_number?: string;
   notes?: string;
 }

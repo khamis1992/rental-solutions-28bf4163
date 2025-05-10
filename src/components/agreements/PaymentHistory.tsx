@@ -8,7 +8,7 @@ interface PaymentHistoryProps {
   isLoading: boolean;
   rentAmount: number | null;
   contractAmount: number | null;
-  onPaymentDeleted: () => void;
+  onPaymentDeleted: (paymentId: string) => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment: (payment: Partial<Payment>) => void;
   leaseStartDate: string | Date | null;

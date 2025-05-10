@@ -9,13 +9,14 @@ import { PaymentTable } from './table/PaymentTable';
 import { PaymentActions, PaymentTableActions } from './actions/PaymentActions';
 import { EmptyPaymentState } from './empty/EmptyPaymentState';
 import { PaymentAnalytics } from './analytics/PaymentAnalytics';
+import { toast } from 'sonner';
 
 interface PaymentHistoryProps {
   payments: PaymentHistoryItem[];
   isLoading: boolean;
   rentAmount: number | null;
   leaseId?: string;
-  onPaymentDeleted?: () => void;
+  onPaymentDeleted?: (paymentId: string) => void;
   onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
   showAnalytics?: boolean;
@@ -67,9 +68,65 @@ export function PaymentHistorySection({
     if (onPaymentDeleted) {
       // Confirm deletion with the user
       if (window.confirm('Are you sure you want to delete this payment?')) {
-        onPaymentDeleted();
+        onPaymentDeleted(paymentId);
       }
     }
+  };
+
+  const handlePaymentSubmit = async (
+    amount: number, 
+    date: Date, 
+    notes?: string, 
+    method?: string, 
+    reference?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartial?: boolean,
+    paymentType?: string
+  ) => {
+    if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
+      try {
+        const paymentData: Partial<PaymentHistoryItem> = {
+          id: selectedPayment.id,
+          amount,
+          payment_date: date.toISOString(),
+          description: notes,
+          payment_method: method,
+          transaction_id: reference,
+          status: 'completed',
+          type: paymentType || selectedPayment.type || 'rent'
+        };
+        
+        const success = await onPaymentUpdated(paymentData);
+        if (success) {
+          toast.success("Payment updated successfully");
+          setIsPaymentDialogOpen(false);
+          return true;
+        } else {
+          toast.error("Failed to update payment");
+          return false;
+        }
+      } catch (error) {
+        console.error("Error updating payment:", error);
+        toast.error("Failed to update payment");
+        return false;
+      }
+    } else if (onRecordPayment && leaseId) {
+      const paymentData: Partial<PaymentHistoryItem> = {
+        amount,
+        payment_date: date.toISOString(),
+        description: notes,
+        payment_method: method,
+        transaction_id: reference,
+        lease_id: leaseId,
+        status: 'completed',
+        type: paymentType || 'rent'
+      };
+      
+      handlePaymentCreated(paymentData);
+      return true;
+    }
+    
+    return false;
   };
 
   const renderPaymentHistory = () => {
@@ -129,35 +186,14 @@ export function PaymentHistorySection({
         </CardContent>
       </Card>
       
-      {isPaymentDialogOpen && leaseId && (
+      {isPaymentDialogOpen && (
         <PaymentEntryDialog
           open={isPaymentDialogOpen}
           onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={(amount, date, notes, method, reference, includeLatePaymentFee, isPartial, paymentType) => {
-            const paymentData: Partial<PaymentHistoryItem> = {
-              amount,
-              payment_date: date.toISOString(),
-              description: notes,
-              payment_method: method,
-              transaction_id: reference,
-              lease_id: leaseId,
-              status: 'completed',
-              type: paymentType || 'rent'
-            };
-            
-            if (selectedPayment) {
-              paymentData.id = selectedPayment.id;
-              if (onPaymentUpdated) {
-                return onPaymentUpdated(paymentData);
-              }
-            }
-            
-            handlePaymentCreated(paymentData);
-            return Promise.resolve(true);
-          }}
+          onSubmit={handlePaymentSubmit}
+          defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
           title={selectedPayment ? "Edit Payment" : "Record Payment"}
           description={selectedPayment ? "Update payment details" : "Add a new payment to this agreement"}
-          defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount}
           leaseId={leaseId}
           rentAmount={rentAmount}
           selectedPayment={selectedPayment}
