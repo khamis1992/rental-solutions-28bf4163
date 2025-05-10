@@ -12,6 +12,7 @@ import { PaymentAnalytics } from './analytics/PaymentAnalytics';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
+import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -128,6 +129,36 @@ export function PaymentHistorySection({
     setIsPaymentDialogOpen(true);
   };
 
+  const handleExportHistoryClick = () => {
+    try {
+      // Format payment data for the PDF export
+      const paymentHistoryData = payments.map(payment => {
+        return {
+          description: payment.description || 'Payment',
+          amount: payment.amount || 0,
+          dueDate: payment.due_date || '',
+          paymentDate: payment.payment_date || '',
+          status: payment.status || '',
+          lateFee: payment.late_fine_amount || 0,
+          total: (payment.amount || 0) + (payment.late_fine_amount || 0)
+        };
+      });
+
+      // Generate the PDF
+      const doc = generatePaymentHistoryPdf(
+        paymentHistoryData,
+        "Payment History"
+      );
+
+      // Save the PDF
+      doc.save("payment-history.pdf");
+      toast.success("Payment history exported successfully");
+    } catch (error) {
+      console.error("Error exporting payment history:", error);
+      toast.error("Failed to export payment history");
+    }
+  };
+
   const handleDeletePayment = (paymentId: string) => {
     if (onPaymentDeleted) {
       // Confirm deletion with the user
@@ -242,7 +273,8 @@ export function PaymentHistorySection({
         <div className="flex justify-between items-center mb-4">
           <PaymentActions 
             rentAmount={rentAmount} 
-            onRecordPaymentClick={handleRecordPaymentClick} 
+            onRecordPaymentClick={handleRecordPaymentClick}
+            onExportHistoryClick={handleExportHistoryClick}
           />
           
           <DropdownMenu>

@@ -1,20 +1,27 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 
 interface PaymentActionsProps {
   rentAmount: number | null;
   onRecordPaymentClick: () => void;
+  onExportHistoryClick?: () => void;
 }
 
-export function PaymentActions({ rentAmount, onRecordPaymentClick }: PaymentActionsProps) {
+export function PaymentActions({ rentAmount, onRecordPaymentClick, onExportHistoryClick }: PaymentActionsProps) {
   return (
     <div className="flex flex-wrap gap-2">
       <Button onClick={onRecordPaymentClick}>
         <Plus className="mr-2 h-4 w-4" />
         Record Payment
       </Button>
+      {onExportHistoryClick && (
+        <Button variant="outline" onClick={onExportHistoryClick}>
+          <FileText className="mr-2 h-4 w-4" />
+          Export History
+        </Button>
+      )}
     </div>
   );
 }
