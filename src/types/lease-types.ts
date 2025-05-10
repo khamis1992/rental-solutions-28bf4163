@@ -56,3 +56,28 @@ export function toValidationLeaseStatus(status: LeaseStatus): ValidationLeaseSta
       return 'draft';
   }
 }
+
+/**
+ * Ensures a lease status is valid, defaulting to 'draft' if not
+ */
+export function ensureValidLeaseStatus(status: any): LeaseStatus {
+  if (!status) return 'draft';
+  
+  const validStatuses: LeaseStatus[] = [
+    'active',
+    'pending',
+    'completed',
+    'cancelled',
+    'pending_payment',
+    'pending_deposit',
+    'draft',
+    'terminated',
+    'archived',
+    'closed',
+    'expired'
+  ];
+  
+  return validStatuses.includes(status as LeaseStatus) 
+    ? (status as LeaseStatus) 
+    : 'draft';
+}

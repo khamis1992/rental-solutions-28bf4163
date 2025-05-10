@@ -59,37 +59,17 @@ export function asMaintenanceId(id: string | null | undefined): string {
 }
 
 /**
- * Ensures a lease status is valid, defaulting to 'draft' if not
- */
-export function ensureValidLeaseStatus(status: any): LeaseStatus {
-  if (!status) return 'draft';
-  
-  const validStatuses: LeaseStatus[] = [
-    'active',
-    'pending',
-    'completed',
-    'cancelled',
-    'pending_payment',
-    'pending_deposit',
-    'draft',
-    'terminated',
-    'archived',
-    'closed',
-    'expired'
-  ];
-  
-  return validStatuses.includes(status as LeaseStatus) 
-    ? (status as LeaseStatus) 
-    : 'draft';
-}
-
-/**
- * Convert any lease status to a validation-compatible status
+ * Ensures a validation-compatible lease status, defaulting to 'draft' if not
  */
 export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
   if (!status) return 'draft';
   return toValidationLeaseStatus(status as LeaseStatus);
 }
 
-// Re-export these types from lease-types.ts to make them available
-export { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
+// Re-export these types and functions from lease-types.ts to make them available
+export { 
+  LeaseStatus, 
+  ValidationLeaseStatus, 
+  toValidationLeaseStatus,
+  ensureValidLeaseStatus 
+} from '@/types/lease-types';
