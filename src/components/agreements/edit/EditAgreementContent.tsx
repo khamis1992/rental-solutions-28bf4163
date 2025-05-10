@@ -3,6 +3,7 @@ import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
 import { AgreementEditor } from '@/components/agreements/edit/AgreementEditor';
+import { CustomerInfo } from '@/types/customer';
 
 interface EditAgreementContentProps {
   id?: string;
@@ -10,6 +11,7 @@ interface EditAgreementContentProps {
   agreement: Agreement | null;
   isLoading: boolean;
   vehicleData: any;
+  customerData?: CustomerInfo;
 }
 
 export function EditAgreementContent({ 
@@ -17,7 +19,8 @@ export function EditAgreementContent({
   userId, 
   agreement, 
   isLoading, 
-  vehicleData 
+  vehicleData,
+  customerData
 }: EditAgreementContentProps) {
   return (
     <>
@@ -32,6 +35,7 @@ export function EditAgreementContent({
           agreement={agreement}
           userId={userId}
           vehicleData={vehicleData}
+          customerData={customerData}
         />
       )}
     </>

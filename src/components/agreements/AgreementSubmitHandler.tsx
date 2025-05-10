@@ -87,7 +87,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       setUpdateProgress(100);
       
       // Success handling
-      toast.success('Agreement created successfully');
+      toast.success('Agreement saved successfully');
       
       // Custom callback if provided
       if (onSubmit) {

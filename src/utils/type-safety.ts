@@ -1,6 +1,4 @@
 
-import { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
-
 /**
  * Type guard to check if a value is not an error
  */
@@ -92,3 +90,6 @@ export function ensureValidationLeaseStatus(status: string | null | undefined): 
   if (!status) return 'draft';
   return toValidationLeaseStatus(status as LeaseStatus);
 }
+
+// Re-export these types from lease-types.ts to make them available
+export { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';

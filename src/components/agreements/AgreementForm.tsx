@@ -91,18 +91,55 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
           full_name: customerData.full_name || '',
           email: customerData.email || '',
           phone_number: customerData.phone_number || '',
-          driver_license: '', // Set defaults for optional fields
-          nationality: '',
-          address: ''
+          driver_license: customerData.driver_license || '', // Set defaults for optional fields
+          nationality: customerData.nationality || '',
+          address: customerData.address || ''
         };
         
         setSelectedCustomer(customer);
       }
     }
+
+    // Set total_amount if it exists
+    if (initialData?.total_amount) {
+      console.log("Setting total_amount from initialData:", initialData.total_amount);
+      form.setValue('total_amount', initialData.total_amount);
+    }
+
+    // Set deposit_amount if it exists
+    if (initialData?.deposit_amount) {
+      console.log("Setting deposit_amount from initialData:", initialData.deposit_amount);
+      form.setValue('deposit_amount', initialData.deposit_amount);
+    }
+
+    // Set daily_late_fee if it exists
+    if (initialData?.daily_late_fee) {
+      console.log("Setting daily_late_fee from initialData:", initialData.daily_late_fee);
+      form.setValue('daily_late_fee', initialData.daily_late_fee);
+    }
+
+    // Set notes if it exists
+    if (initialData?.notes) {
+      console.log("Setting notes from initialData:", initialData.notes);
+      form.setValue('notes', initialData.notes);
+    }
+
+    // Set all other fields that might be needed
+    if (initialData?.agreement_number) {
+      form.setValue('agreement_number', initialData.agreement_number);
+    }
   }, [initialData, form]);
 
   const handleVehicleChange = (vehicleId: string, vehicleData: any) => {
+    console.log("Vehicle changed:", vehicleId, vehicleData);
     setSelectedVehicle(vehicleData);
+    form.setValue('vehicle_id', vehicleId);
+  };
+
+  const handleCustomerChange = (customerId: string, customerData: CustomerInfo) => {
+    console.log("Customer changed:", customerId, customerData);
+    setSelectedCustomer(customerData);
+    form.setValue('customer_id', customerId);
   };
 
   const handleSubmit = async (data: Agreement) => {
@@ -135,7 +172,8 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         <AgreementBasicDetails 
           form={form} 
           isEdit={isEdit} 
-          onVehicleChange={handleVehicleChange} 
+          onVehicleChange={handleVehicleChange}
+          onCustomerChange={handleCustomerChange} 
         />
         
         {selectedCustomer && (

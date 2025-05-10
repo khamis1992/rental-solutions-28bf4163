@@ -1,13 +1,14 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/types/agreement';
-import { LeaseStatus, ensureValidLeaseStatus } from '@/utils/type-safety';
+import { LeaseStatus, ensureValidLeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { hasData } from '@/utils/supabase-type-helpers';
+import { CustomerInfo } from '@/types/customer';
 
 // Helper function to ensure dates are properly handled
 const ensureDate = (dateValue: string | Date | undefined): Date | undefined => {
@@ -60,6 +61,26 @@ const processFetchedData = (data: any): Agreement | null => {
   }
 };
 
+// Helper to convert profile/customers data to CustomerInfo
+const processCustomerData = (data: any): CustomerInfo | null => {
+  if (!data) return null;
+  
+  try {
+    return {
+      id: data.id || '',
+      full_name: data.full_name || '',
+      email: data.email || '',
+      phone_number: data.phone_number || '',
+      driver_license: data.driver_license || '',
+      nationality: data.nationality || '',
+      address: data.address || ''
+    };
+  } catch (error) {
+    console.error("Error processing customer data:", error);
+    return null;
+  }
+};
+
 export function useEditAgreement(id: string | undefined) {
   const navigate = useNavigate();
   const { agreements } = useAgreements();
@@ -67,6 +88,7 @@ export function useEditAgreement(id: string | undefined) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [vehicleData, setVehicleData] = useState<any>(null);
+  const [customerData, setCustomerData] = useState<CustomerInfo | null>(null);
   const { rentAmount } = useRentAmount(agreement, id);
 
   useEffect(() => {
@@ -94,6 +116,17 @@ export function useEditAgreement(id: string | undefined) {
           
           if (processedAgreement) {
             setAgreement(processedAgreement);
+            
+            // Process customer data
+            if (foundAgreement.customers || foundAgreement.profiles) {
+              const customer = processCustomerData(foundAgreement.customers || foundAgreement.profiles);
+              if (customer) {
+                console.log("Customer data processed:", customer);
+                setCustomerData(customer);
+              }
+            } else if (foundAgreement.customer_id) {
+              await fetchCustomerDetails(foundAgreement.customer_id);
+            }
             
             // Check if we need to fetch vehicle details
             if (foundAgreement.vehicle_id) {
@@ -145,6 +178,8 @@ export function useEditAgreement(id: string | undefined) {
                 const customerDetails = data.profiles;
                 if (customerDetails) {
                   console.log("Customer data already included:", customerDetails);
+                  const customer = processCustomerData(customerDetails);
+                  if (customer) setCustomerData(customer);
                 } else if (data.customer_id) {
                   // If customer data not included but ID available, fetch it
                   await fetchCustomerDetails(data.customer_id);
@@ -227,15 +262,21 @@ export function useEditAgreement(id: string | undefined) {
       if (data) {
         console.log("Fetched customer data:", data);
         
-        // Safe update of agreement with customer info
-        setAgreement((prev) => {
-          if (!prev) return null;
+        // Process customer data
+        const customer = processCustomerData(data);
+        if (customer) {
+          setCustomerData(customer);
           
-          return {
-            ...prev,
-            customers: data || {}
-          };
-        });
+          // Safe update of agreement with customer info
+          setAgreement((prev) => {
+            if (!prev) return null;
+            
+            return {
+              ...prev,
+              customers: data || {}
+            };
+          });
+        }
       }
     } catch (error) {
       console.error("Error in fetchCustomerDetails:", error);
@@ -257,7 +298,8 @@ export function useEditAgreement(id: string | undefined) {
     agreement, 
     setAgreement, 
     isLoading, 
-    vehicleData, 
+    vehicleData,
+    customerData,
     setVehicleData 
   };
 }

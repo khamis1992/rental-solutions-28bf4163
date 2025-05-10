@@ -5,7 +5,7 @@ import { useAgreementEditor } from '@/hooks/use-agreement-editor';
 import { EditAgreementContent } from '@/components/agreements/edit/EditAgreementContent';
 
 const EditAgreement = () => {
-  const { id, userId, agreement, isLoading, vehicleData } = useAgreementEditor();
+  const { id, userId, agreement, isLoading, vehicleData, customerData } = useAgreementEditor();
 
   return (
     <PageContainer
@@ -19,6 +19,7 @@ const EditAgreement = () => {
         agreement={agreement}
         isLoading={isLoading}
         vehicleData={vehicleData}
+        customerData={customerData}
       />
     </PageContainer>
   );
