@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Payment } from '@/types/payment-history.types';
-import { PaymentHistorySection } from '@/components/payments';
+import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 
 interface PaymentHistoryProps {
   payments: Payment[];
