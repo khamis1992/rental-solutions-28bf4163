@@ -2,6 +2,7 @@
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { ValidationLeaseStatus } from '@/types/lease-types';
 
 // Enum for agreement status
 export const AgreementStatus = {
@@ -20,7 +21,7 @@ export const agreementSchema = z.object({
   end_date: z.date(),
   customer_id: z.string().min(1, "Customer is required"),
   vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]) as z.ZodEnum<[ValidationLeaseStatus, ...ValidationLeaseStatus[]]>,
   rent_amount: z.number().positive("Rent amount must be positive"),
   deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
   total_amount: z.number().positive("Total amount must be positive"),
