@@ -128,7 +128,8 @@ export function AgreementDetail({
     paymentMethod?: string, 
     referenceNumber?: string, 
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    paymentType?: string
   ) => {
     if (agreement && agreement.id) {
       try {
@@ -146,12 +147,16 @@ export function AgreementDetail({
           onDataRefresh();
           fetchPayments();
           toast.success("Payment recorded successfully");
+          return true;
         }
+        return false;
       } catch (error) {
         console.error("Error recording payment:", error);
         toast.error("Failed to record payment");
+        return false;
       }
     }
+    return false;
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
   const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {

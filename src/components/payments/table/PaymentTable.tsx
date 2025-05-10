@@ -45,6 +45,7 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
             <th scope="col" className="px-4 py-3">Date</th>
             <th scope="col" className="px-4 py-3">Type</th>
             <th scope="col" className="px-4 py-3">Amount</th>
+            <th scope="col" className="px-4 py-3">Late Fee</th>
             <th scope="col" className="px-4 py-3">Status</th>
             <th scope="col" className="px-4 py-3">Method</th>
             <th scope="col" className="px-4 py-3">Description</th>
@@ -57,6 +58,11 @@ export function PaymentTable({ payments, onEditPayment, onDeletePayment }: Payme
               <td className="px-4 py-3">{formatDate(payment.payment_date)}</td>
               <td className="px-4 py-3">{formatPaymentType(payment.type)}</td>
               <td className="px-4 py-3 font-medium">{formatCurrency(payment.amount)}</td>
+              <td className="px-4 py-3">
+                {payment.late_fine_amount && payment.late_fine_amount > 0 
+                  ? formatCurrency(payment.late_fine_amount) 
+                  : '-'}
+              </td>
               <td className="px-4 py-3">
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}>
                   {payment.status}
