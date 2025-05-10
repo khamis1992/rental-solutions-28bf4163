@@ -1,83 +1,70 @@
 
 /**
- * Comprehensive lease status definitions for use across the application
+ * Lease status for the system 
+ * This represents all possible status values for a lease
  */
 export type LeaseStatus = 
-  | 'active'
-  | 'pending'
-  | 'completed'
-  | 'cancelled'
-  | 'pending_payment'
-  | 'pending_deposit'
-  | 'draft'
-  | 'terminated'
-  | 'archived'
-  | 'closed'
-  | 'expired';
+  | 'draft' 
+  | 'active' 
+  | 'pending' 
+  | 'expired' 
+  | 'cancelled' 
+  | 'closed' 
+  | 'completed';
 
-// Make sure our lease status types always include all validation schema status types
+/**
+ * Subset of lease status values used for validation
+ * These are the accepted values in forms and validation schemas
+ */
 export type ValidationLeaseStatus = 
-  | 'active'
-  | 'pending'
-  | 'cancelled'
-  | 'draft'
-  | 'closed'
-  | 'expired';
+  | 'draft' 
+  | 'active' 
+  | 'pending' 
+  | 'expired' 
+  | 'cancelled' 
+  | 'closed';
 
-// Helper to check if a lease status is valid for the validation schema
-export function isValidationLeaseStatus(status: LeaseStatus): status is ValidationLeaseStatus {
-  return [
-    'active',
-    'pending',
-    'cancelled',
-    'draft', 
-    'closed',
-    'expired'
-  ].includes(status);
-}
-
-// Convert a lease status to a validation-compatible status
+/**
+ * Converts a LeaseStatus to a ValidationLeaseStatus
+ * Maps any non-validation compatible status to 'draft'
+ */
 export function toValidationLeaseStatus(status: LeaseStatus): ValidationLeaseStatus {
-  if (isValidationLeaseStatus(status)) {
-    return status;
+  // Check if status is already a valid ValidationLeaseStatus
+  if ([
+    'draft', 
+    'active', 
+    'pending', 
+    'expired', 
+    'cancelled', 
+    'closed'
+  ].includes(status)) {
+    return status as ValidationLeaseStatus;
   }
   
-  // Map non-validation statuses to appropriate validation statuses
-  switch(status) {
-    case 'completed':
-      return 'closed';
-    case 'pending_payment':
-    case 'pending_deposit':
-      return 'pending';
-    case 'terminated':
-    case 'archived':
-      return 'closed';
-    default:
-      return 'draft';
-  }
+  // Default to draft for any other status
+  return 'draft';
 }
 
 /**
- * Ensures a lease status is valid, defaulting to 'draft' if not
+ * Ensures that a status value is a valid LeaseStatus
+ * Provides a safe default of 'draft' for invalid values
  */
-export function ensureValidLeaseStatus(status: any): LeaseStatus {
+export function ensureValidLeaseStatus(status: string | null | undefined): LeaseStatus {
   if (!status) return 'draft';
   
-  const validStatuses: LeaseStatus[] = [
-    'active',
-    'pending',
-    'completed',
-    'cancelled',
-    'pending_payment',
-    'pending_deposit',
-    'draft',
-    'terminated',
-    'archived',
+  // Check if status is a valid LeaseStatus
+  if ([
+    'draft', 
+    'active', 
+    'pending', 
+    'expired', 
+    'cancelled', 
     'closed',
-    'expired'
-  ];
+    'completed'
+  ].includes(status)) {
+    return status as LeaseStatus;
+  }
   
-  return validStatuses.includes(status as LeaseStatus) 
-    ? (status as LeaseStatus) 
-    : 'draft';
+  // Default to draft for any other status
+  return 'draft';
 }
