@@ -100,19 +100,19 @@ export const generateAgreementReport = (
       
       doc.setFontSize(10);
       
-      // If customer info is available, display it with name and address blanked out
+      // Display customer info but blank out specified fields
       if (agreement.customers) {
         // Left column
         doc.setFont('helvetica', 'bold');
         doc.text('Name:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text('_________________', leftX + 40, currentY); // Blanked out name
+        doc.text('_________________', leftX + 40, currentY); // Blank name field
         currentY += itemHeight;
         
         doc.setFont('helvetica', 'bold');
         doc.text('Email:', leftX, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.email || 'N/A', leftX + 40, currentY);
+        doc.text('_________________', leftX + 40, currentY); // Blank email field
         currentY += itemHeight;
         
         doc.setFont('helvetica', 'bold');
@@ -120,11 +120,6 @@ export const generateAgreementReport = (
         doc.setFont('helvetica', 'normal');
         doc.text(agreement.customers.phone_number || 'N/A', leftX + 40, currentY);
         currentY += itemHeight;
-        
-        doc.setFont('helvetica', 'bold');
-        doc.text('Address:', leftX, currentY);
-        doc.setFont('helvetica', 'normal');
-        doc.text('_________________', leftX + 40, currentY); // Blanked out address
         
         // Right column
         const rightStartY = currentY - (itemHeight * 3);
@@ -137,7 +132,12 @@ export const generateAgreementReport = (
         doc.setFont('helvetica', 'bold');
         doc.text('Nationality:', rightX, rightStartY + itemHeight);
         doc.setFont('helvetica', 'normal');
-        doc.text(agreement.customers.nationality || 'N/A', rightX + 40, rightStartY + itemHeight);
+        doc.text('_________________', rightX + 40, rightStartY + itemHeight); // Blank nationality field
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Address:', rightX, rightStartY + itemHeight * 2);
+        doc.setFont('helvetica', 'normal');
+        doc.text('_________________', rightX + 40, rightStartY + itemHeight * 2); // Blank address field
       } else {
         doc.text('Customer information not available', 30, currentY);
       }
@@ -196,7 +196,7 @@ export const generateAgreementReport = (
       // Advance Y position to after the table
       currentY += 45;
       
-      // Payment Summary
+      // Payment Summary - Updated to match the image design
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('PAYMENT SUMMARY', 20, currentY);
