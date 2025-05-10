@@ -2,12 +2,24 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface PaymentDetails {
   rentAmount: number;
   lateFeeAmount: number;
   totalDue: number;
   agreementNumber: string | null;
+  pendingPayments: PendingPayment[];
+  leaseId: string | null;
+}
+
+interface PendingPayment {
+  id: string;
+  amount: number;
+  due_date: string | null;
+  status: string;
+  description: string | null;
+  payment_date: string | null;
 }
 
 export function usePaymentDetails(carNumber: string) {
@@ -55,11 +67,23 @@ export function usePaymentDetails(carNumber: string) {
           lateFee = daysLate * (lease.daily_late_fee || 120); // Default to 120 if not set
         }
 
+        // Fetch pending payments for this lease
+        const { data: pendingPayments, error: paymentError } = await supabase
+          .from('unified_payments')
+          .select('id, amount, due_date, status, description, payment_date')
+          .eq('lease_id', lease.id)
+          .in('status', ['pending', 'partially_paid'])
+          .order('due_date', { ascending: true });
+
+        if (paymentError) throw paymentError;
+
         setData({
           rentAmount: lease.rent_amount || 0,
           lateFeeAmount: lateFee,
           totalDue: (lease.rent_amount || 0) + lateFee,
-          agreementNumber: lease.agreement_number
+          agreementNumber: lease.agreement_number,
+          pendingPayments: pendingPayments || [],
+          leaseId: lease.id,
         });
 
       } catch (err) {
