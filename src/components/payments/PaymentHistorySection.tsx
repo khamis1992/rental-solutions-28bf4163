@@ -180,6 +180,28 @@ export function PaymentHistorySection({
   ): Promise<boolean> => {
     if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
       try {
+        // Calculate if there's a late fee applicable based on the payment date
+        let daysOverdue = 0;
+        let lateFineAmount = 0;
+        
+        if (selectedPayment.due_date) {
+          const dueDate = new Date(selectedPayment.due_date);
+          // Only calculate late fee if payment is made after due date
+          if (date > dueDate) {
+            // Calculate days late
+            daysOverdue = Math.floor((date.getTime() - dueDate.getTime()) / (1000 * 3600 * 24));
+            // Assume daily_late_fee of 120 if not provided elsewhere
+            lateFineAmount = Math.min(daysOverdue * 120, 3000);
+          } else {
+            // Payment is on time or early, no late fee
+            daysOverdue = 0;
+            lateFineAmount = 0;
+          }
+        }
+        
+        // If amount is zero, set status to voided instead of completed
+        const paymentStatus = amount === 0 ? 'voided' : 'completed';
+        
         const paymentData: Partial<PaymentHistoryItem> = {
           id: selectedPayment.id,
           amount,
@@ -187,13 +209,17 @@ export function PaymentHistorySection({
           description: notes,
           payment_method: method,
           transaction_id: reference,
-          status: 'completed',
-          type: paymentType || selectedPayment.type || 'rent'
+          status: paymentStatus,
+          type: paymentType || selectedPayment.type || 'rent',
+          days_overdue: daysOverdue,
+          late_fine_amount: lateFineAmount,
         };
         
         const success = await onPaymentUpdated(paymentData);
         if (success) {
-          toast.success("Payment updated successfully");
+          toast.success(amount === 0 
+            ? "Payment voided successfully" 
+            : "Payment updated successfully");
           setIsPaymentDialogOpen(false);
           return true;
         } else {
@@ -349,7 +375,7 @@ export function PaymentHistorySection({
           onSubmit={handlePaymentSubmit}
           defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
           title={selectedPayment ? "Edit Payment" : "Record Payment"}
-          description={selectedPayment ? "Update payment details" : "Add a new payment to this agreement"}
+          description={selectedPayment ? "Update payment details or set amount to 0 to void transaction" : "Add a new payment to this agreement"}
           leaseId={leaseId}
           rentAmount={rentAmount}
           selectedPayment={selectedPayment}

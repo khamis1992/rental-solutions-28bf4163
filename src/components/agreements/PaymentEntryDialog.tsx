@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export interface PaymentEntryDialogProps {
   open: boolean;
@@ -66,6 +68,7 @@ export function PaymentEntryDialog({
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(false);
   const [paymentType, setPaymentType] = React.useState<string>(selectedPayment?.type || 'rent');
+  const [showVoidWarning, setShowVoidWarning] = React.useState<boolean>(false);
 
   // Update form values when selected payment changes
   React.useEffect(() => {
@@ -89,6 +92,11 @@ export function PaymentEntryDialog({
     }
   }, [selectedPayment, defaultAmount]);
 
+  // Check if the amount is zero and show a warning
+  React.useEffect(() => {
+    setShowVoidWarning(!!selectedPayment && amount === 0);
+  }, [amount, selectedPayment]);
+
   const handleSubmit = async () => {
     const success = await onSubmit(
       amount,
@@ -110,6 +118,14 @@ export function PaymentEntryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <FormSection title={title} description={description}>
+          {showVoidWarning && (
+            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-300">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription>
+                Setting amount to 0 will mark this transaction as void.
+              </AlertDescription>
+            </Alert>
+          )}
           <FormGroup>
             <FormRow>
               <FormField label="Amount" htmlFor="amount">
@@ -223,7 +239,7 @@ export function PaymentEntryDialog({
             onClick={handleSubmit}
             className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
           >
-            {selectedPayment ? 'Update Payment' : 'Submit Payment'}
+            {selectedPayment && amount === 0 ? 'Void Payment' : selectedPayment ? 'Update Payment' : 'Submit Payment'}
           </button>
         </FormSection>
       </DialogContent>
