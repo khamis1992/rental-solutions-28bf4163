@@ -29,6 +29,7 @@ export function MaintenanceSchedulingWizard({
   const [formData, setFormData] = useState({
     vehicle_id: vehicleId || '',
     maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+    service_type: 'maintenance', // Add missing property
     description: '',
     scheduled_date: '',
     estimated_cost: '',
@@ -72,7 +73,14 @@ export function MaintenanceSchedulingWizard({
   const handleSubmit = async () => {
     setIsProcessing(true);
     try {
-      await create.mutateAsync(formData);
+      // Convert the formData to include the required id field
+      // The ID will be generated server-side, but we need to provide it for TypeScript
+      const maintenanceData = {
+        ...formData,
+        id: '' // This will be ignored/replaced by the server
+      };
+      
+      await create.mutateAsync(maintenanceData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();

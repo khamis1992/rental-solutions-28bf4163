@@ -1,7 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { asAgreementId } from '@/utils/database-type-helpers';
+import { asLeaseId } from '@/utils/database-type-helpers';
 
 // Define AgreementFilters interface
 export interface AgreementFilters {
@@ -44,7 +43,7 @@ export const agreementService = {
             notes: agreement.notes,
             updated_at: new Date().toISOString()
           })
-          .eq('id', asAgreementId(agreement.id!))
+          .eq('id', asLeaseId(agreement.id!))
           .select()
           .single();
           
@@ -90,7 +89,7 @@ export const agreementService = {
       const { error } = await supabase
         .from('leases')
         .delete()
-        .eq('id', asAgreementId(id));
+        .eq('id', asLeaseId(id));
         
       if (error) throw error;
       

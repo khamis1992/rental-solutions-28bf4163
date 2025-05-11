@@ -1,5 +1,6 @@
 
 import { Database } from '@/types/database.types';
+import { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
 
 /**
  * Helper functions for type-safe database operations
@@ -35,6 +36,11 @@ export function asPaymentId(id: string | null | undefined): string {
   return id || '';
 }
 
+// Add missing asAgreementId
+export function asAgreementId(id: string | null | undefined): string {
+  return id || '';
+}
+
 // Status type helpers
 export function asVehicleStatus(status: string | null | undefined): string {
   return status || 'available';
@@ -54,4 +60,10 @@ export function isQueryDataValid<T>(data: any): data is T {
          data !== undefined && 
          typeof data !== 'string' && 
          !('error' in data);
+}
+
+// Add missing ensureValidationLeaseStatus from lease-types.ts to avoid circular imports
+export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
+  if (!status) return 'draft';
+  return toValidationLeaseStatus(status as LeaseStatus);
 }
