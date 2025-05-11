@@ -1,12 +1,4 @@
 
-import { 
-  LeaseStatus, 
-  ValidationLeaseStatus, 
-  toValidationLeaseStatus,
-  ensureValidLeaseStatus,
-  ensureValidationLeaseStatus 
-} from '@/types/lease-types';
-
 /**
  * Type guard to check if a value is not an error
  */
@@ -66,11 +58,11 @@ export function asMaintenanceId(id: string | null | undefined): string {
   return id || '';
 }
 
-// Re-export these types and functions to make them available
+// Re-export these from lease-types directly
 export { 
   LeaseStatus, 
   ValidationLeaseStatus, 
   toValidationLeaseStatus,
   ensureValidLeaseStatus,
   ensureValidationLeaseStatus 
-};
+} from '../types/lease-types';

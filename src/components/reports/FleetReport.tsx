@@ -9,6 +9,18 @@ import { formatCurrency } from '@/lib/utils';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// Define proper structure for ReportData to include vehicles and report
+type ReportData = {
+  vehicles: any[];
+  report: {
+    totalVehicles: number;
+    rentedVehicles: number;
+    maintenanceVehicles: number;
+    averageRentAmount: number;
+    vehiclesByType: Record<string, number>;
+  };
+};
+
 const FleetReport = () => {
   const { 
     reportData, 
@@ -70,7 +82,7 @@ const FleetReport = () => {
   // Create vehicle type data for the chart
   const vehiclesByTypeData = Object.entries(report.vehiclesByType || {}).map(([type, count]) => {
     // Filter vehicles of this type to calculate average rate
-    const vehiclesOfType = vehicles.filter(v => v?.vehicle_type === type);
+    const vehiclesOfType = vehicles.filter(v => v && v.vehicle_type === type);
     const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v?.rent_amount || 0), 0);
     const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
     
@@ -135,22 +147,25 @@ const FleetReport = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vehicles.slice(0, 5).map((vehicle) => vehicle && (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
-                    <TableCell>{vehicle.license_plate}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={vehicle.status || 'available'} />
-                    </TableCell>
-                    <TableCell>
-                      {vehicle.status === 'rented' && vehicle.currentCustomer ? 
-                        vehicle.currentCustomer : 
-                        <span className="text-muted-foreground italic">Not assigned</span>
-                      }
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
-                  </TableRow>
-                ))}
+                {vehicles.slice(0, 5).map((vehicle) => {
+                  if (!vehicle) return null; // Skip null vehicles
+                  return (
+                    <TableRow key={vehicle.id}>
+                      <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
+                      <TableCell>{vehicle.license_plate}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={vehicle.status || 'available'} />
+                      </TableCell>
+                      <TableCell>
+                        {vehicle.status === 'rented' && vehicle.currentCustomer ? 
+                          vehicle.currentCustomer : 
+                          <span className="text-muted-foreground italic">Not assigned</span>
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (

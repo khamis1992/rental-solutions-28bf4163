@@ -1,131 +1,173 @@
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { Vehicle } from '@/types/vehicle';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
-// Define the structure for our report data
-interface ReportData {
-  vehicleInfo: {
-    id: string;
-    make: string;
-    model: string;
-    year: number;
-    licensePlate: string;
-    vin: string;
-    color: string;
-    status: string;
+// Define the shape of report data
+export type ReportData = {
+  vehicles: any[];
+  report: {
+    totalVehicles: number;
+    rentedVehicles: number;
+    maintenanceVehicles: number;
+    averageRentAmount: number;
+    vehiclesByType: Record<string, number>;
   };
-  maintenanceInfo: {
-    lastMaintenanceDate: string;
-    nextScheduledMaintenance: string;
-    maintenanceHistory: Array<{
-      date: string;
-      type: string;
-      cost: number;
-      notes: string;
-    }>;
-  };
-  financialInfo: {
-    acquisitionCost: number;
-    currentValue: number;
-    monthlyRevenue: number;
-    maintenanceCosts: number;
-    roi: number;
-  };
-  utilizationInfo: {
-    daysRented: number;
-    daysAvailable: number;
-    utilizationRate: number;
-    averageRentalDuration: number;
-  };
-}
+};
 
-// Primary hook implementation
-export function useFleetReport(vehicle?: Vehicle | null) {
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Function to generate a report
-  const generateReport = async (vehicleId: string): Promise<void> => {
+export function useFleetReport() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Function to generate report data
+  const generateReportData = async (): Promise<ReportData> => {
     setLoading(true);
-    setError(null);
+    setError('');
     
     try {
-      // Here you would typically fetch the data from your API or database
-      // For this example, we'll just simulate it with a setTimeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get all vehicles
+      const { data: vehicles, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select(`
+          *,
+          leases(
+            id,
+            customer_id,
+            status,
+            start_date,
+            end_date
+          ),
+          maintenance(
+            id,
+            status,
+            scheduled_date
+          )
+        `);
+
+      if (vehiclesError) throw new Error(vehiclesError.message);
       
-      // Generate sample report data (in a real app, this would come from your API)
-      const data: ReportData = {
-        vehicleInfo: {
-          id: vehicle?.id || vehicleId,
-          make: vehicle?.make || 'Unknown',
-          model: vehicle?.model || 'Unknown',
-          year: vehicle?.year || 0,
-          licensePlate: vehicle?.license_plate || 'Unknown',
-          vin: vehicle?.vin || 'Unknown',
-          color: vehicle?.color || 'Unknown',
-          status: vehicle?.status || 'Unknown',
-        },
-        maintenanceInfo: {
-          lastMaintenanceDate: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-          nextScheduledMaintenance: format(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-          maintenanceHistory: [
-            {
-              date: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-              type: 'Oil Change',
-              cost: 50,
-              notes: 'Regular maintenance',
-            },
-            {
-              date: format(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-              type: 'Tire Rotation',
-              cost: 75,
-              notes: 'Regular maintenance',
-            },
-          ],
-        },
-        financialInfo: {
-          acquisitionCost: 25000,
-          currentValue: 18000,
-          monthlyRevenue: 1200,
-          maintenanceCosts: 150,
-          roi: 0.12,
-        },
-        utilizationInfo: {
-          daysRented: 25,
-          daysAvailable: 30,
-          utilizationRate: 0.83,
-          averageRentalDuration: 7,
-        },
+      // Get customers for active leases
+      const vehiclesWithData = await Promise.all(
+        (vehicles || []).map(async (vehicle) => {
+          // Find active lease for this vehicle
+          const activeLease = vehicle.leases?.find((lease: any) => 
+            lease.status === 'active'
+          );
+          
+          if (activeLease?.customer_id) {
+            // Get customer data
+            const { data: customer } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', activeLease.customer_id)
+              .single();
+              
+            return {
+              ...vehicle,
+              currentCustomer: customer?.full_name || null
+            };
+          }
+          
+          return vehicle;
+        })
+      );
+
+      // Calculate report stats
+      const totalVehicles = vehiclesWithData.length;
+      const rentedVehicles = vehiclesWithData.filter(v => v.status === 'rented').length;
+      const maintenanceVehicles = vehiclesWithData.filter(
+        v => v.status === 'maintenance' || v.status === 'repair'
+      ).length;
+      
+      // Calculate average rent amount
+      let totalRent = 0;
+      let vehiclesWithRent = 0;
+      
+      vehiclesWithData.forEach(vehicle => {
+        if (vehicle && vehicle.rent_amount) {
+          totalRent += vehicle.rent_amount;
+          vehiclesWithRent++;
+        }
+      });
+      
+      const averageRentAmount = vehiclesWithRent > 0 
+        ? totalRent / vehiclesWithRent 
+        : 0;
+        
+      // Calculate vehicles by type
+      const vehiclesByType: Record<string, number> = {};
+      
+      vehiclesWithData.forEach(vehicle => {
+        if (vehicle && vehicle.vehicle_type) {
+          if (!vehiclesByType[vehicle.vehicle_type]) {
+            vehiclesByType[vehicle.vehicle_type] = 0;
+          }
+          vehiclesByType[vehicle.vehicle_type]++;
+        }
+      });
+
+      return {
+        vehicles: vehiclesWithData,
+        report: {
+          totalVehicles,
+          rentedVehicles,
+          maintenanceVehicles,
+          averageRentAmount,
+          vehiclesByType
+        }
       };
-      
-      setReportData(data);
     } catch (err) {
-      setError('Failed to generate report. Please try again later.');
-      console.error('Error generating report:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate report';
+      setError(errorMessage);
+      return {
+        vehicles: [],
+        report: {
+          totalVehicles: 0,
+          rentedVehicles: 0,
+          maintenanceVehicles: 0,
+          averageRentAmount: 0,
+          vehiclesByType: {}
+        }
+      };
     } finally {
       setLoading(false);
     }
   };
-  
-  // Function to export the report to PDF or Excel
-  const exportReport = (format: 'pdf' | 'excel'): void => {
-    if (!reportData) {
-      setError('No report data to export');
-      return;
-    }
-    
-    // This would be implemented with a PDF/Excel generation library
-    alert(`Exporting report in ${format} format...`);
+
+  // Generate a report for a specific vehicle
+  const generateVehicleReport = async (vehicleId: string) => {
+    // Implementation for vehicle-specific report
+    console.log(`Generating report for vehicle ${vehicleId}`);
+    // This would be implemented based on requirements
   };
-  
-  return {
-    reportData,
-    loading,
+
+  // Export report to different formats
+  const exportReport = (format: 'pdf' | 'excel') => {
+    console.log(`Exporting report as ${format}`);
+    // This would be implemented based on requirements
+  };
+
+  // React Query hook for report data
+  const { data: reportData, refetch } = useQuery({
+    queryKey: ['fleetReport'],
+    queryFn: generateReportData,
+    refetchOnWindowFocus: false,
+  });
+
+  return { 
+    reportData: reportData || { 
+      vehicles: [], 
+      report: {
+        totalVehicles: 0,
+        rentedVehicles: 0,
+        maintenanceVehicles: 0,
+        averageRentAmount: 0,
+        vehiclesByType: {}
+      }
+    },
+    loading, 
     error,
-    generateReport,
-    exportReport,
+    generateReport: generateVehicleReport,
+    exportReport
   };
 }

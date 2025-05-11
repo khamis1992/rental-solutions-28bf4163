@@ -113,7 +113,7 @@ export const getAgreementColumns = (compact = false): ColumnDef<Agreement>[] => 
             icon = <FileX className="h-3 w-3 mr-1" />;
             break;
           default:
-            // Handle special statuses that aren't in LeaseStatus type
+            // Handle special statuses that aren't in our standard types
             const statusStr = String(status);
             if (statusStr === 'pending_payment' || statusStr === 'pending_deposit') {
               badgeVariant = 'secondary';
