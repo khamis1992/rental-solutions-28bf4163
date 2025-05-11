@@ -1,99 +1,81 @@
 
-import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Database } from '@/types/database.types';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import { useQuery, useMutation, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
+import { QueryKey, QueryFunction } from '@tanstack/react-query';
 
-// Define helper types for improved type safety
-type DbTables = Database['public']['Tables'];
-type TableName = keyof DbTables;
+// Type for handling Supabase response with proper error typing
+type SupabaseQueryResult<T> = T | PostgrestError | null;
 
-export const useSupabaseQuery = <T>(
-  key: string[],
-  queryFn: () => Promise<T | null>,
-  options?: {
-    enabled?: boolean;
-    refetchOnMount?: boolean;
-    refetchOnWindowFocus?: boolean;
-    refetchOnReconnect?: boolean;
-    retry?: boolean | number;
-  }
-): UseQueryResult<T | null, Error> => {
+// Custom error type for type conversion errors
+interface GenericStringError {
+  message: string;
+  error: true;
+}
+
+export function useSupabaseQuery<T>(
+  queryKey: QueryKey,
+  queryFn: QueryFunction<SupabaseQueryResult<T>>,
+  options?: Omit<UseQueryOptions<SupabaseQueryResult<T>>, 'queryKey' | 'queryFn'>
+) {
   return useQuery({
-    queryKey: key,
+    queryKey,
     queryFn,
     ...options,
   });
-};
-
-export const useSupabaseMutation = <T>(
-  mutationFn: (data: any) => Promise<T | null>
-) => {
-  return useMutation({
-    mutationFn,
-    onError: (error) => {
-      console.error('Mutation error:', error);
-    },
-  });
-};
-
-/**
- * Type-safe helper for creating Supabase filters
- */
-export function createFilter<T extends keyof any>(
-  column: T, 
-  value: any
-): { column: T, value: any } {
-  return { column, value };
 }
 
-/**
- * Create a type-safe Supabase query builder
- */
-export function createTypedQuery<T, TableName extends keyof Database['public']['Tables']>(tableName: TableName) {
-  return {
-    select: async (columns: string = '*') => {
-      const response = await supabase
-        .from(tableName)
-        .select(columns);
-      
-      if (!hasData(response)) {
-        console.error('Error in Supabase query:', response.error);
-        return null;
-      }
-      return response.data as T[];
-    },
-    
-    getById: async (id: string, columns: string = '*') => {
-      const response = await supabase
-        .from(tableName)
-        .select(columns)
-        .eq('id', id)
-        .single();
-        
-      if (!hasData(response)) {
-        console.error('Error in Supabase query:', response.error);
-        return null;
-      }
-      return response.data as T;
-    },
-    
-    filter: async (filters: Array<{ column: string, value: any }>, columns: string = '*') => {
-      let query = supabase
-        .from(tableName)
-        .select(columns);
-        
-      for (const filter of filters) {
-        query = query.eq(filter.column, filter.value);
-      }
-      
-      const response = await query;
-      
-      if (!hasData(response)) {
-        console.error('Error in Supabase query:', response.error);
-        return null;
-      }
-      return response.data as T[];
-    }
-  };
+export function useSupabaseMutation<TData = unknown, TVariables = void, TContext = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  options?: Omit<UseMutationOptions<TData, PostgrestError, TVariables, TContext>, 'mutationFn'>
+) {
+  return useMutation({
+    mutationFn,
+    ...options,
+  });
+}
+
+// Helper to extract data from Supabase response
+export function getResponseData<T>(
+  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
+): T | null {
+  if (response.error) {
+    console.error('Supabase query error:', response.error);
+    return null;
+  }
+  return response.data;
+}
+
+// Helper to check if a response is valid
+export function isValidResponse<T>(
+  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
+): response is PostgrestResponse<T> & { error: null; data: T } {
+  return !response.error && response.data !== null;
+}
+
+// Helper to convert response to array safely
+export function toArray<T>(data: T | T[] | null | undefined): T[] {
+  if (data === null || data === undefined) {
+    return [];
+  }
+  return Array.isArray(data) ? data : [data];
+}
+
+// Helper to handle both string errors and PostgrestError safely
+export function handleQueryError<T>(error: string | PostgrestError | unknown): T[] {
+  console.error('Query error:', error);
+  if (typeof error === 'string') {
+    // Handle string error
+    return [] as unknown as T[]; // Return empty array with proper type cast
+  }
+  // Handle other error types
+  return [] as unknown as T[]; // Return empty array with proper type cast
+}
+
+// Helper to extract a single item from a response
+export function extractSingleItem<T>(data: T | T[] | null): T | null {
+  if (data === null) return null;
+  if (Array.isArray(data)) {
+    return data.length > 0 ? data[0] : null;
+  }
+  return data;
 }

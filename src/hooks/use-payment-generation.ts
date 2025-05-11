@@ -122,7 +122,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             status: newStatus,
             payment_date: paymentDate.toISOString(),
             payment_method: paymentMethod
-          } as any)
+          })
           .eq('id', existingPaymentId);
           
         if (updateError) {
@@ -169,7 +169,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
               days_overdue: daysLate,
               late_fine_amount: lateFineAmount,
               original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-            } as any)
+            })
             .select('id')
             .single();
         
@@ -198,7 +198,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
                 late_fine_amount: lateFineAmount,
                 days_overdue: daysLate,
                 original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-              } as any);
+              });
             
             if (lateFeeError) {
               console.error("Late fee recording error:", lateFeeError);

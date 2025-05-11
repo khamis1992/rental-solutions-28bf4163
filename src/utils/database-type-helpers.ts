@@ -65,5 +65,15 @@ export function isQueryDataValid<T>(data: any): data is T {
 // Add missing ensureValidationLeaseStatus from lease-types.ts to avoid circular imports
 export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
   if (!status) return 'draft';
+  
+  // This handles conversion from any LeaseStatus to a valid ValidationLeaseStatus
+  // Including handling the 'completed' status
+  if (status === 'completed') return 'closed';
+  
   return toValidationLeaseStatus(status as LeaseStatus);
+}
+
+// Add a type-safe cast for using in database operations
+export function asTypedDatabaseId<T extends string>(id: string | null | undefined): T {
+  return (id || '') as T;
 }

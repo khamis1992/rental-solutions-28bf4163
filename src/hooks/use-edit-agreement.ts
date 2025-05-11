@@ -61,10 +61,12 @@ export function useEditAgreement(id: string | undefined) {
           
           if (processedAgreement) {
             // Ensure the status is compatible with ValidationLeaseStatus
+            // This safely converts 'completed' to a valid status like 'closed'
             const safeAgreement = {
               ...processedAgreement,
               status: ensureValidationLeaseStatus(processedAgreement.status)
-            };
+            } as Agreement; // Type assertion to make TypeScript happy
+            
             setAgreement(safeAgreement);
             
             // Process and set customer data if available
@@ -99,7 +101,8 @@ export function useEditAgreement(id: string | undefined) {
             const safeAgreement = {
               ...fetchedAgreement,
               status: ensureValidationLeaseStatus(fetchedAgreement.status)
-            };
+            } as Agreement; // Type assertion to make TypeScript happy
+            
             setAgreement(safeAgreement);
             
             // Handle vehicle data

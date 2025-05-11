@@ -1,75 +1,119 @@
 
 import { useState, useEffect } from 'react';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId } from '@/utils/database-type-helpers';
-import { isQueryDataValid } from '@/utils/database-type-helpers';
+import { supabase } from '@/lib/supabase';
+import { Agreement } from '@/types/agreement';
+import { useQuery } from '@tanstack/react-query';
+import { asTypedDatabaseId } from '@/utils/database-type-helpers';
 
-export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
-  const [rentAmount, setRentAmount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+type LeaseRateQueryResult = {
+  rent_amount?: number | null;
+};
 
+/**
+ * Hook to get the correct rent amount for an agreement
+ */
+export function useRentAmount(agreement?: Agreement | null, agreementId?: string) {
+  const [rentAmount, setRentAmount] = useState<number | undefined>(
+    agreement?.rent_amount || agreement?.total_amount || 0
+  );
+
+  // Query to fetch the rent amount for the current agreement
+  const { data: leaseRateData } = useQuery({
+    queryKey: ['lease-rate', agreement?.id || agreementId],
+    queryFn: async () => {
+      if (!agreement?.id && !agreementId) return null;
+      
+      try {
+        // Use the ID from agreement object if available, otherwise use the agreementId prop
+        const id = agreement?.id || agreementId;
+        if (!id) return null;
+        
+        // Fetch lease data to get the rent_amount
+        const { data, error } = await supabase
+          .from('leases')
+          .select('rent_amount')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching lease rate:', error);
+          return null;
+        }
+        
+        return data as LeaseRateQueryResult;
+      } catch (error) {
+        console.error('Error in lease rate query:', error);
+        return null;
+      }
+    },
+    enabled: Boolean(agreement?.id || agreementId)
+  });
+
+  // Query to fetch the default rate for the vehicle type if no rent_amount is set
+  const { data: vehicleRateData } = useQuery({
+    queryKey: ['vehicle-rate', agreement?.vehicle_id],
+    queryFn: async () => {
+      if (!agreement?.vehicle_id) return null;
+      
+      try {
+        // Fetch vehicle default rate
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select(`
+            rent_amount,
+            vehicle_type_id,
+            vehicle_types:vehicle_type_id (
+              monthly_rate
+            )
+          `)
+          .eq('id', agreement.vehicle_id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching vehicle rate:', error);
+          return null;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error in vehicle rate query:', error);
+        return null;
+      }
+    },
+    enabled: Boolean(agreement?.vehicle_id) && !Boolean(leaseRateData?.rent_amount)
+  });
+
+  // Update rent amount when data is available
   useEffect(() => {
-    // If we already have an agreement with rent_amount, use that value
+    // First priority: Use the rent_amount from the agreement object if it exists
     if (agreement?.rent_amount) {
       setRentAmount(agreement.rent_amount);
       return;
     }
 
-    // If we don't have the agreement ID, exit early
-    if (!agreementId) {
+    // Second priority: Use the rent_amount from the lease query
+    if (leaseRateData?.rent_amount) {
+      setRentAmount(leaseRateData.rent_amount);
       return;
     }
 
-    const fetchRentAmount = async () => {
-      setIsLoading(true);
-      setError(null);
+    // Third priority: Use the vehicle's rent_amount if it exists
+    if (vehicleRateData?.rent_amount) {
+      setRentAmount(vehicleRateData.rent_amount);
+      return;
+    }
 
-      try {
-        // Try to get rent_amount from vehicles table based on vehicle_id in agreement
-        const { data: agreementData, error: agreementError } = await supabase
-          .from('leases')
-          .select('vehicle_id')
-          .eq('id', asLeaseId(agreementId))
-          .single();
+    // Fourth priority: Use the vehicle type's monthly_rate if it exists
+    if (vehicleRateData?.vehicle_types?.monthly_rate) {
+      setRentAmount(vehicleRateData.vehicle_types.monthly_rate);
+      return;
+    }
 
-        if (agreementError) {
-          console.error("Error fetching agreement for rent amount:", agreementError);
-          setError(new Error(`Failed to fetch agreement: ${agreementError.message}`));
-          setIsLoading(false);
-          return;
-        }
+    // Fallback to the total amount if nothing else is available
+    if (agreement?.total_amount) {
+      setRentAmount(agreement.total_amount);
+    }
+  }, [agreement, leaseRateData, vehicleRateData]);
 
-        if (isQueryDataValid<{ vehicle_id: string }>(agreementData) && agreementData.vehicle_id) {
-          // Fetch the vehicle to get rent_amount
-          const { data: vehicleData, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('rent_amount')
-            .eq('id', agreementData.vehicle_id)
-            .single();
-
-          if (vehicleError) {
-            console.error("Error fetching vehicle rent amount:", vehicleError);
-            setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
-            setIsLoading(false);
-            return;
-          }
-
-          if (isQueryDataValid<{ rent_amount: number }>(vehicleData) && vehicleData.rent_amount) {
-            setRentAmount(vehicleData.rent_amount);
-          }
-        }
-      } catch (err) {
-        console.error("Unexpected error in fetchRentAmount:", err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRentAmount();
-  }, [agreement, agreementId]);
-
-  return { rentAmount, isLoading, error };
-};
+  return { rentAmount };
+}

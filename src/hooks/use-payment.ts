@@ -22,6 +22,7 @@ export function usePayment(agreementId?: string) {
     enabled: !!agreementId,
   });
 
+  // Simplified version of handlePaymentSubmit that uses only the parameters needed by handleSpecialPayment
   const handlePaymentSubmit = async (
     amount: number,
     paymentDate: Date,
@@ -34,8 +35,8 @@ export function usePayment(agreementId?: string) {
   ) => {
     if (!agreementId) return;
 
-    await handleSpecialPayment(
-      agreementId, 
+    // Pass all parameters properly to handleSpecialPayment
+    return handleSpecialPayment(
       amount, 
       paymentDate, 
       notes,

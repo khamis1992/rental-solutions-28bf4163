@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +26,7 @@ export function MaintenanceSchedulingWizard({
 }: MaintenanceSchedulingWizardProps) {
   const [currentStep, setCurrentStep] = useState('type');
   const [formData, setFormData] = useState({
+    id: '',  // Empty ID for new records
     vehicle_id: vehicleId || '',
     maintenance_type: MaintenanceType.REGULAR_INSPECTION,
     service_type: 'maintenance', // Add missing property
@@ -73,14 +73,8 @@ export function MaintenanceSchedulingWizard({
   const handleSubmit = async () => {
     setIsProcessing(true);
     try {
-      // Convert the formData to include the required id field
-      // The ID will be generated server-side, but we need to provide it for TypeScript
-      const maintenanceData = {
-        ...formData,
-        id: '' // This will be ignored/replaced by the server
-      };
-      
-      await create.mutateAsync(maintenanceData);
+      // The formData now includes the required id field
+      await create.mutateAsync(formData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();

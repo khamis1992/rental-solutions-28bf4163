@@ -58,10 +58,6 @@ export const usePayments = (agreementId?: string) => {
       return null;
     }
     return response.data;
-  }, {
-    onSuccess: () => {
-      refetch();
-    }
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
@@ -80,10 +76,6 @@ export const usePayments = (agreementId?: string) => {
       throw response.error;
     }
     return response.data;
-  }, {
-    onSuccess: () => {
-      refetch();
-    }
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
@@ -99,10 +91,6 @@ export const usePayments = (agreementId?: string) => {
       throw response.error;
     }
     return { success: true };
-  }, {
-    onSuccess: () => {
-      refetch();
-    }
   });
 
   const fetchPayments = () => {
