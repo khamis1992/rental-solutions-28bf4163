@@ -8,6 +8,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { CustomerInfo } from '@/types/customer';
 import { useAgreementDataFetching } from './agreement/use-agreement-data-fetching';
 import { processAgreementData, processCustomerData } from '@/utils/agreement-data-processors';
+import { ensureValidationLeaseStatus } from '@/types/lease-types';
 
 /**
  * Hook for editing an existing agreement
@@ -59,7 +60,12 @@ export function useEditAgreement(id: string | undefined) {
           const processedAgreement = processAgreementData(foundAgreement);
           
           if (processedAgreement) {
-            setAgreement(processedAgreement);
+            // Ensure the status is compatible with ValidationLeaseStatus
+            const safeAgreement = {
+              ...processedAgreement,
+              status: ensureValidationLeaseStatus(processedAgreement.status)
+            };
+            setAgreement(safeAgreement);
             
             // Process and set customer data if available
             if (foundAgreement.customers || foundAgreement.profiles) {
@@ -89,7 +95,12 @@ export function useEditAgreement(id: string | undefined) {
           const fetchedAgreement = await fetchAgreementById(id);
           
           if (fetchedAgreement) {
-            setAgreement(fetchedAgreement);
+            // Ensure the status is compatible with ValidationLeaseStatus
+            const safeAgreement = {
+              ...fetchedAgreement,
+              status: ensureValidationLeaseStatus(fetchedAgreement.status)
+            };
+            setAgreement(safeAgreement);
             
             // Handle vehicle data
             const vehicleId = fetchedAgreement.vehicle_id;

@@ -11,11 +11,20 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const FleetReport = () => {
   const { 
-    vehicles, 
-    report, 
-    isLoading,
+    reportData, 
+    loading: isLoading,
     error
   } = useFleetReport();
+  
+  // Extract vehicles and report from the reportData
+  const vehicles = reportData?.vehicles || [];
+  const report = reportData?.report || {
+    totalVehicles: 0,
+    rentedVehicles: 0,
+    maintenanceVehicles: 0,
+    averageRentAmount: 0,
+    vehiclesByType: {}
+  };
 
   if (isLoading) {
     return (
@@ -59,10 +68,10 @@ const FleetReport = () => {
   };
 
   // Create vehicle type data for the chart
-  const vehiclesByTypeData = Object.entries(report.vehiclesByType).map(([type, count]) => {
+  const vehiclesByTypeData = Object.entries(report.vehiclesByType || {}).map(([type, count]) => {
     // Filter vehicles of this type to calculate average rate
-    const vehiclesOfType = vehicles.filter(v => v.vehicle_type === type);
-    const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v.rent_amount || 0), 0);
+    const vehiclesOfType = vehicles.filter(v => v?.vehicle_type === type);
+    const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v?.rent_amount || 0), 0);
     const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
     
     return {
@@ -126,7 +135,7 @@ const FleetReport = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vehicles.slice(0, 5).map((vehicle) => (
+                {vehicles.slice(0, 5).map((vehicle) => vehicle && (
                   <TableRow key={vehicle.id}>
                     <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
                     <TableCell>{vehicle.license_plate}</TableCell>

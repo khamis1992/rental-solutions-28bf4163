@@ -114,10 +114,11 @@ export const getAgreementColumns = (compact = false): ColumnDef<Agreement>[] => 
             break;
           default:
             // Handle special statuses that aren't in LeaseStatus type
-            if (status === 'pending_payment' || status === 'pending_deposit') {
+            const statusStr = String(status);
+            if (statusStr === 'pending_payment' || statusStr === 'pending_deposit') {
               badgeVariant = 'secondary';
               icon = <FileClock className="h-3 w-3 mr-1" />;
-            } else if (status === 'terminated') {
+            } else if (statusStr === 'terminated') {
               badgeVariant = 'destructive';
               icon = <FileX className="h-3 w-3 mr-1" />;
             } else {

@@ -52,7 +52,16 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
     if (customers && Array.isArray(customers)) {
       const customer = customers.find(c => c.id === customerId);
       if (customer) {
-        onCustomerChange(customerId, customer);
+        const customerData: CustomerInfo = {
+          id: customer.id,
+          full_name: customer.full_name,
+          email: customer.email || '',
+          phone_number: customer.phone || '',  // Map phone to phone_number
+          driver_license: customer.driver_license || '',
+          nationality: customer.nationality || '',
+          address: customer.address || '',
+        };
+        onCustomerChange(customerId, customerData);
       }
     }
   };
