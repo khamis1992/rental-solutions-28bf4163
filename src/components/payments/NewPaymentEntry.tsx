@@ -3,9 +3,11 @@ import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { ChevronLeft } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NewPaymentEntryProps {
   onBack: () => void;
@@ -14,9 +16,10 @@ interface NewPaymentEntryProps {
 
 export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
   const [note, setNote] = useState('');
+  const [amount, setAmount] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const { toast } = useToast();
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -27,7 +30,7 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.png'],
+      'image/*': ['.jpeg', '.png', '.jpg'],
       'application/pdf': ['.pdf'],
     },
     maxFiles: 1,
@@ -35,21 +38,23 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      toast.error("Please enter a valid payment amount");
+      return;
+    }
+
     setLoading(true);
 
     try {
       // Here we would normally process the payment and upload the file
-      toast({
-        title: "Payment Recorded",
-        description: "The new payment has been successfully recorded.",
-      });
-      onClose();
+      // Simulate a successful payment recording
+      setTimeout(() => {
+        toast.success("Payment recorded successfully");
+        onClose();
+      }, 1000);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to record payment. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to record payment. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -68,13 +73,42 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
       </Button>
 
       <div className="space-y-2">
+        <Label htmlFor="amount">Payment Amount</Label>
+        <Input
+          id="amount"
+          type="number"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          required
+          className="text-lg"
+          min="0.01"
+          step="0.01"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="paymentMethod">Payment Method</Label>
+        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select payment method" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cash">Cash</SelectItem>
+            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+            <SelectItem value="credit_card">Credit Card</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="note">Payment Note</Label>
         <Textarea
           id="note"
           placeholder="Enter payment details (e.g., Invoice #12345)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          required
         />
       </div>
 
@@ -104,8 +138,8 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
         <Button type="button" variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" disabled={!note || loading}>
-          Record Payment
+        <Button type="submit" disabled={!amount || loading}>
+          {loading ? "Processing..." : "Record Payment"}
         </Button>
       </div>
     </form>
