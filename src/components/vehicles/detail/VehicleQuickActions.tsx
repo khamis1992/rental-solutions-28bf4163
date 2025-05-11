@@ -31,7 +31,7 @@ export const VehicleQuickActions: React.FC<VehicleQuickActionsProps> = ({ vehicl
         <Button 
           variant="outline" 
           className="w-full justify-start"
-          onClick={() => navigate(`/agreements/new?vehicle_id=${vehicle.id}`)}
+          onClick={() => navigate(`/agreements/add?vehicle_id=${vehicle.id}`)}
           disabled={!isAvailable}
         >
           <FileText className="mr-2 h-4 w-4" />

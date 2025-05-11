@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -27,8 +28,10 @@ import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSel
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
+import { useNavigate } from 'react-router-dom';
 
 const Agreements = () => {
+  const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,6 +125,11 @@ const Agreements = () => {
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && key !== 'query' && key !== 'page' && value !== undefined && value !== '');
 
+  // Function to navigate to add agreement page
+  const handleAddAgreement = () => {
+    navigate('/agreements/add');
+  };
+
   return (
     <PageContainer 
       title="Rental Agreements" 
@@ -207,7 +215,10 @@ const Agreements = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
-                <Button size="sm">
+                <Button 
+                  size="sm"
+                  onClick={handleAddAgreement}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Agreement
                 </Button>
