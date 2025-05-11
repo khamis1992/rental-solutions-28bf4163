@@ -50,7 +50,7 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterCloneProps> = (
         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search by name, email, phone or ID..."
+          placeholder="Search agreements by customer name..."
           className="pl-9 pr-8 h-10"
           value={searchValue}
           onChange={handleSearchChange}
@@ -76,9 +76,16 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterCloneProps> = (
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Created this month</DropdownMenuItem>
-          <DropdownMenuItem>With active agreements</DropdownMenuItem>
-          <DropdownMenuItem>Without documents</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onFilterChange && onFilterChange({ status: 'active' })}>Active Agreements</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onFilterChange && onFilterChange({ status: 'pending' })}>Pending Agreements</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => {
+            const next30Days = new Date();
+            next30Days.setDate(next30Days.getDate() + 30);
+            onFilterChange && onFilterChange({ 
+              end_date_after: new Date().toISOString(),
+              end_date_before: next30Days.toISOString()
+            });
+          }}>Expiring Soon</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="justify-center">
             <Button 
