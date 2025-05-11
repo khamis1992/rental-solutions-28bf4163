@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSelectors';
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
+import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -167,13 +168,11 @@ const Agreements = () => {
             
             {/* Search and Action Bar */}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
-              <div className="flex-1 max-w-md">
-                <AgreementSearch
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  setSearchParams={setSearchParams}
-                />
-              </div>
+              <AgreementSearch
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                setSearchParams={setSearchParams}
+              />
               
               <div className="flex items-center gap-2">
                 <Button 
@@ -182,7 +181,7 @@ const Agreements = () => {
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <Filter className="h-4 w-4 mr-2" />
-                  {showFilters ? "Hide Filters" : "Filters"}
+                  {showFilters ? "Hide Filters" : "Advanced Filters"}
                 </Button>
                 
                 <Button 
@@ -217,35 +216,11 @@ const Agreements = () => {
             
             {/* Active Filters */}
             {activeFilters.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {activeFilters.map(([key, value]) => (
-                  <Badge 
-                    key={key} 
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    {key}: {value}
-                    <button
-                      onClick={() => setSearchParams({ [key]: undefined, page: 1 })}
-                      className="ml-1 rounded-full hover:bg-accent p-1"
-                    >
-                      <span className="sr-only">Remove</span>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                    </button>
-                  </Badge>
-                ))}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => {
-                    const cleanParams = { status: searchParams?.status, page: 1 };
-                    setSearchParams(cleanParams);
-                  }}
-                >
-                  Clear all
-                </Button>
+              <div className="mt-4">
+                <ActiveFilters 
+                  activeFilters={activeFilters}
+                  setSearchParams={setSearchParams}
+                />
               </div>
             )}
           </div>
