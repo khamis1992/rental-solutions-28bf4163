@@ -105,21 +105,27 @@ export const getAgreementColumns = (compact = false): ColumnDef<Agreement>[] => 
             icon = <FileCheck className="h-3 w-3 mr-1" />;
             break;
           case 'pending':
-          case 'pending_payment':
-          case 'pending_deposit':
             badgeVariant = 'secondary';
             icon = <FileClock className="h-3 w-3 mr-1" />;
             break;
           case 'cancelled':
-          case 'terminated':
             badgeVariant = 'destructive';
             icon = <FileX className="h-3 w-3 mr-1" />;
             break;
           default:
-            badgeVariant = 'outline';
+            // Handle special statuses that aren't in LeaseStatus type
+            if (status === 'pending_payment' || status === 'pending_deposit') {
+              badgeVariant = 'secondary';
+              icon = <FileClock className="h-3 w-3 mr-1" />;
+            } else if (status === 'terminated') {
+              badgeVariant = 'destructive';
+              icon = <FileX className="h-3 w-3 mr-1" />;
+            } else {
+              badgeVariant = 'outline';
+            }
         }
 
-        const displayStatus = status.replace('_', ' ');
+        const displayStatus = String(status).replace('_', ' ');
 
         return (
           <Badge variant={badgeVariant} className="capitalize flex items-center w-fit">

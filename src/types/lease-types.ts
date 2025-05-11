@@ -1,5 +1,4 @@
 
-
 /**
  * Lease status for the system 
  * This represents all possible status values for a lease
@@ -70,3 +69,10 @@ export function ensureValidLeaseStatus(status: string | null | undefined): Lease
   return 'draft';
 }
 
+/**
+ * Ensures a validation-compatible lease status, defaulting to 'draft' if not
+ */
+export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
+  if (!status) return 'draft';
+  return toValidationLeaseStatus(status as LeaseStatus);
+}

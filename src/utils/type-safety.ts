@@ -1,10 +1,10 @@
 
-
 import { 
   LeaseStatus, 
   ValidationLeaseStatus, 
   toValidationLeaseStatus,
-  ensureValidLeaseStatus 
+  ensureValidLeaseStatus,
+  ensureValidationLeaseStatus 
 } from '@/types/lease-types';
 
 /**
@@ -66,19 +66,11 @@ export function asMaintenanceId(id: string | null | undefined): string {
   return id || '';
 }
 
-/**
- * Ensures a validation-compatible lease status, defaulting to 'draft' if not
- */
-export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
-  if (!status) return 'draft';
-  return toValidationLeaseStatus(status as LeaseStatus);
-}
-
 // Re-export these types and functions to make them available
 export { 
   LeaseStatus, 
   ValidationLeaseStatus, 
   toValidationLeaseStatus,
-  ensureValidLeaseStatus 
+  ensureValidLeaseStatus,
+  ensureValidationLeaseStatus 
 };
-
