@@ -9,17 +9,20 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { UseFormReturn } from 'react-hook-form';
 import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { CustomerInfo } from '@/types/customer';
 
 interface AgreementBasicDetailsProps {
   form: UseFormReturn<Agreement>;
   isEdit: boolean;
   onVehicleChange: (vehicleId: string, vehicleData: any) => void;
+  onCustomerChange: (customerId: string, customerData: CustomerInfo) => void;
 }
 
 export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({ 
   form, 
   isEdit,
-  onVehicleChange
+  onVehicleChange,
+  onCustomerChange
 }) => {
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
@@ -40,6 +43,16 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
       const vehicle = vehicles.find(v => v.id === vehicleId);
       if (vehicle) {
         onVehicleChange(vehicleId, vehicle);
+      }
+    }
+  };
+
+  // When customer is selected, update selected customer state
+  const handleCustomerChange = (customerId: string) => {
+    if (customers && Array.isArray(customers)) {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        onCustomerChange(customerId, customer);
       }
     }
   };
@@ -97,7 +110,10 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
             <FormItem>
               <FormLabel>Customer</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  handleCustomerChange(value);
+                }}
                 defaultValue={field.value}
               >
                 <FormControl>
@@ -154,7 +170,7 @@ export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
                   ) : vehicles && Array.isArray(vehicles) && vehicles.length > 0 ? (
                     vehicles.map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                        {vehicle.make} {vehicle.model} - {vehicle.license_plate}
                       </SelectItem>
                     ))
                   ) : (

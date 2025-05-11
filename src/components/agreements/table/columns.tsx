@@ -119,10 +119,12 @@ export const getAgreementColumns = (compact = false): ColumnDef<Agreement>[] => 
             badgeVariant = 'outline';
         }
 
+        const displayStatus = status.replace('_', ' ');
+
         return (
           <Badge variant={badgeVariant} className="capitalize flex items-center w-fit">
             {icon}
-            {status.replace('_', ' ')}
+            {displayStatus}
           </Badge>
         );
       },

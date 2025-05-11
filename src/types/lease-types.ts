@@ -1,4 +1,5 @@
 
+
 /**
  * Lease status for the system 
  * This represents all possible status values for a lease
@@ -68,3 +69,4 @@ export function ensureValidLeaseStatus(status: string | null | undefined): Lease
   // Default to draft for any other status
   return 'draft';
 }
+

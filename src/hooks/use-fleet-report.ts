@@ -1,201 +1,131 @@
 
-// Fixing use-fleet-report.ts to handle the 'type' property issue
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { Vehicle } from '@/types/vehicle';
 
-export type Vehicle = {
-  id: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  license_plate?: string;
-  color?: string;
-  vehicle_type?: string; // Use this instead of 'type'
-  status?: string;
-  mileage?: number;
-  created_at?: string;
-  updated_at?: string;
-  image_url?: string;
-  rent_amount?: number;
-  currentCustomer?: string; // Add for FleetReport.tsx
-  dailyRate?: number; // Add for FleetReport.tsx
-};
+// Define the structure for our report data
+interface ReportData {
+  vehicleInfo: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+    vin: string;
+    color: string;
+    status: string;
+  };
+  maintenanceInfo: {
+    lastMaintenanceDate: string;
+    nextScheduledMaintenance: string;
+    maintenanceHistory: Array<{
+      date: string;
+      type: string;
+      cost: number;
+      notes: string;
+    }>;
+  };
+  financialInfo: {
+    acquisitionCost: number;
+    currentValue: number;
+    monthlyRevenue: number;
+    maintenanceCosts: number;
+    roi: number;
+  };
+  utilizationInfo: {
+    daysRented: number;
+    daysAvailable: number;
+    utilizationRate: number;
+    averageRentalDuration: number;
+  };
+}
 
-export type FleetReport = {
-  totalVehicles: number;
-  availableVehicles: number;
-  rentedVehicles: number;
-  maintenanceVehicles: number;
-  vehiclesByType: Record<string, number>;
-  vehiclesByStatus: Record<string, number>;
-  vehiclesByMake: Record<string, number>;
-  averageRentAmount: number;
-  totalRentAmount: number;
-  activeRentals: number; // Add for FleetReport.tsx
-  maintenanceRequired: number; // Add for FleetReport.tsx
-  averageDailyRate: number; // Add for FleetReport.tsx
-};
-
-// Add for FleetReport.tsx
-export type VehicleTypeData = {
-  type: string;
-  count: number;
-  avgDailyRate: number;
-};
-
-export const useFleetReport = () => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [report, setReport] = useState<FleetReport>({
-    totalVehicles: 0,
-    availableVehicles: 0,
-    rentedVehicles: 0,
-    maintenanceVehicles: 0,
-    vehiclesByType: {},
-    vehiclesByStatus: {},
-    vehiclesByMake: {},
-    averageRentAmount: 0,
-    totalRentAmount: 0,
-    activeRentals: 0, // Added for FleetReport.tsx
-    maintenanceRequired: 0, // Added for FleetReport.tsx
-    averageDailyRate: 0 // Added for FleetReport.tsx
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  // Computed vehicle by type data for FleetReport.tsx
-  const vehiclesByType = useMemo(() => {
-    const types: VehicleTypeData[] = [];
-    if (report && report.vehiclesByType) {
-      Object.entries(report.vehiclesByType).forEach(([type, count]) => {
-        // Filter vehicles of this type
-        const vehiclesOfType = vehicles.filter(v => v?.vehicle_type === type);
-        // Calculate average daily rate for this type
-        const totalRate = vehiclesOfType.reduce((sum, v) => sum + (v?.rent_amount || 0), 0);
-        const avgRate = vehiclesOfType.length > 0 ? totalRate / vehiclesOfType.length : 0;
-        
-        types.push({
-          type,
-          count,
-          avgDailyRate: avgRate
-        });
-      });
+// Primary hook implementation
+export function useFleetReport(vehicle?: Vehicle | null) {
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Function to generate a report
+  const generateReport = async (vehicleId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Here you would typically fetch the data from your API or database
+      // For this example, we'll just simulate it with a setTimeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate sample report data (in a real app, this would come from your API)
+      const data: ReportData = {
+        vehicleInfo: {
+          id: vehicle?.id || vehicleId,
+          make: vehicle?.make || 'Unknown',
+          model: vehicle?.model || 'Unknown',
+          year: vehicle?.year || 0,
+          licensePlate: vehicle?.license_plate || 'Unknown',
+          vin: vehicle?.vin || 'Unknown',
+          color: vehicle?.color || 'Unknown',
+          status: vehicle?.status || 'Unknown',
+        },
+        maintenanceInfo: {
+          lastMaintenanceDate: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+          nextScheduledMaintenance: format(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+          maintenanceHistory: [
+            {
+              date: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+              type: 'Oil Change',
+              cost: 50,
+              notes: 'Regular maintenance',
+            },
+            {
+              date: format(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+              type: 'Tire Rotation',
+              cost: 75,
+              notes: 'Regular maintenance',
+            },
+          ],
+        },
+        financialInfo: {
+          acquisitionCost: 25000,
+          currentValue: 18000,
+          monthlyRevenue: 1200,
+          maintenanceCosts: 150,
+          roi: 0.12,
+        },
+        utilizationInfo: {
+          daysRented: 25,
+          daysAvailable: 30,
+          utilizationRate: 0.83,
+          averageRentalDuration: 7,
+        },
+      };
+      
+      setReportData(data);
+    } catch (err) {
+      setError('Failed to generate report. Please try again later.');
+      console.error('Error generating report:', err);
+    } finally {
+      setLoading(false);
     }
-    return types;
-  }, [report, vehicles]);
-
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Transform data for compatibility
-        const processedVehicles = (data || []).map(vehicle => {
-          if (vehicle && typeof vehicle === 'object') {
-            // Create a new object with the vehicle properties to avoid spread type error
-            return {
-              id: vehicle.id,
-              make: vehicle.make,
-              model: vehicle.model,
-              year: vehicle.year,
-              license_plate: vehicle.license_plate,
-              color: vehicle.color,
-              vehicle_type: vehicle.vehicle_type ?? "unknown",
-              status: vehicle.status,
-              mileage: vehicle.mileage,
-              created_at: vehicle.created_at,
-              updated_at: vehicle.updated_at,
-              image_url: vehicle.image_url,
-              rent_amount: vehicle.rent_amount,
-              currentCustomer: vehicle.current_customer || undefined,
-              dailyRate: vehicle.rent_amount || 0
-            } as Vehicle;
-          }
-          return {} as Vehicle;
-        });
-
-        setVehicles(processedVehicles);
-        generateReport(processedVehicles);
-      } catch (err) {
-        console.error('Error fetching vehicles for report:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch vehicles'));
-        toast.error('Failed to load fleet data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchVehicles();
-  }, []);
-
-  const generateReport = (vehicleData: Vehicle[]) => {
-    if (!Array.isArray(vehicleData) || vehicleData.length === 0) {
+  };
+  
+  // Function to export the report to PDF or Excel
+  const exportReport = (format: 'pdf' | 'excel'): void => {
+    if (!reportData) {
+      setError('No report data to export');
       return;
     }
-
-    const totalVehicles = vehicleData.length;
-    const availableVehicles = vehicleData.filter(v => v?.status === 'available').length;
-    const rentedVehicles = vehicleData.filter(v => v?.status === 'rented').length;
-    const maintenanceVehicles = vehicleData.filter(v => v?.status === 'maintenance').length;
-
-    const vehiclesByType: Record<string, number> = {};
-    const vehiclesByStatus: Record<string, number> = {};
-    const vehiclesByMake: Record<string, number> = {};
-
-    let totalRent = 0;
-    let vehiclesWithRent = 0;
-
-    vehicleData.forEach(vehicle => {
-      // Handle vehicle_type instead of type
-      const vehicleType = vehicle?.vehicle_type || 'unknown';
-      vehiclesByType[vehicleType] = (vehiclesByType[vehicleType] || 0) + 1;
-
-      // Handle status
-      const status = vehicle?.status || 'unknown';
-      vehiclesByStatus[status] = (vehiclesByStatus[status] || 0) + 1;
-
-      // Handle make
-      const make = vehicle?.make || 'unknown';
-      vehiclesByMake[make] = (vehiclesByMake[make] || 0) + 1;
-
-      // Calculate rent amounts
-      if (vehicle?.rent_amount) {
-        totalRent += vehicle.rent_amount;
-        vehiclesWithRent++;
-      }
-    });
-
-    const averageRentAmount = vehiclesWithRent > 0 ? totalRent / vehiclesWithRent : 0;
-
-    setReport({
-      totalVehicles,
-      availableVehicles,
-      rentedVehicles,
-      maintenanceVehicles,
-      vehiclesByType,
-      vehiclesByStatus,
-      vehiclesByMake,
-      averageRentAmount,
-      totalRentAmount: totalRent,
-      activeRentals: rentedVehicles, // Added for FleetReport.tsx
-      maintenanceRequired: maintenanceVehicles, // Added for FleetReport.tsx
-      averageDailyRate: averageRentAmount // Added for FleetReport.tsx
-    });
+    
+    // This would be implemented with a PDF/Excel generation library
+    alert(`Exporting report in ${format} format...`);
   };
-
-  return { 
-    vehicles, 
-    report, 
-    isLoading, 
+  
+  return {
+    reportData,
+    loading,
     error,
-    // Return these for FleetReport.tsx
-    fleetStats: report,
-    vehiclesByType
+    generateReport,
+    exportReport,
   };
-};
+}
