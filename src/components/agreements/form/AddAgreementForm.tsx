@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { AgreementTemplateStatus } from "./AgreementTemplateStatus";
@@ -14,6 +14,7 @@ import { CustomerInfo } from "@/types/customer";
 
 const AddAgreementForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { standardTemplateExists, specificUrlCheck, templateError } = useTemplateSetup();
   
@@ -39,6 +40,34 @@ const AddAgreementForm = () => {
   const [customerError, setCustomerError] = useState<string>("");
   const [vehicleError, setVehicleError] = useState<string>("");
   const [rentError, setRentError] = useState<string>("");
+
+  // Check for vehicle_id in URL query params
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const vehicleId = queryParams.get('vehicle_id');
+    
+    if (vehicleId) {
+      const fetchVehicleData = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('id', vehicleId)
+            .single();
+            
+          if (error) {
+            console.error("Error fetching vehicle data:", error);
+          } else if (data) {
+            setSelectedVehicle(data);
+          }
+        } catch (err) {
+          console.error("Error in vehicle fetch:", err);
+        }
+      };
+      
+      fetchVehicleData();
+    }
+  }, [location.search]);
 
   // Generate unique agreement number on component mount
   useEffect(() => {
