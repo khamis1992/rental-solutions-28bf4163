@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
-import { VehicleService, VehicleFilterParams } from '@/services/VehicleService';
+import { VehicleService, VehicleFilterParams, PaginatedResult } from '@/services/VehicleService';
+import { usePagination } from '@/hooks/usePagination';
 
 const vehicleService = new VehicleService();
 
@@ -12,19 +12,37 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<VehicleFilterParams>(initialFilters);
+  const [totalItems, setTotalItems] = useState(0);
+  
+  // Setup pagination with initial values
+  const pagination = usePagination({
+    totalItems, 
+    initialPage: 1,
+    itemsPerPage: 20
+  });
 
-  // Load vehicles based on filters
+  // Load vehicles based on filters and pagination
   useEffect(() => {
     const fetchVehicles = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        console.log("Fetching vehicles with filters:", filters);
-        const result = await vehicleService.findVehicles(filters);
+        // Include pagination parameters in the filter
+        const paginatedFilters = {
+          ...filters,
+          limit: pagination.itemsPerPage,
+          offset: (pagination.currentPage - 1) * pagination.itemsPerPage
+        };
+        
+        console.log("Fetching vehicles with filters:", paginatedFilters);
+        const result = await vehicleService.findVehicles(paginatedFilters);
+        
         if (result && result.success) {
           console.log("Vehicles fetched successfully:", result.data);
-          // Ensure we always have an array, even if result.data is null/undefined
-          setVehicles(Array.isArray(result.data) ? result.data : []);
+          
+          // Update total count and vehicles
+          setTotalItems(result.data.count);
+          setVehicles(Array.isArray(result.data.data) ? result.data.data : []);
         } else {
           console.error("Failed to fetch vehicles:", result?.error || "Unknown error");
           setError(result?.error?.message || "Failed to fetch vehicles");
@@ -42,7 +60,7 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
     };
 
     fetchVehicles();
-  }, [filters]);
+  }, [filters, pagination.currentPage, pagination.itemsPerPage]);
 
   // Load vehicle types
   useEffect(() => {
@@ -193,6 +211,8 @@ export function useVehicleService(initialFilters: VehicleFilterParams = {}) {
     setFilters,
     vehicleTypes,
     availableVehicles,
+    pagination,
+    totalItems,
     getVehicleDetails,
     updateVehicle,
     updateStatus,

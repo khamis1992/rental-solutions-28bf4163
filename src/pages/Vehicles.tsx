@@ -6,7 +6,6 @@ import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import VehicleTable from '@/components/vehicles/VehicleTable';
 import VehicleFilters from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
-import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +14,8 @@ import { Car, Grid3x3, Plus, RefreshCw, TableProperties, Wrench } from 'lucide-r
 import { VehicleStats } from '@/components/vehicles/VehicleStats';
 import { VehicleSearch } from '@/components/vehicles/VehicleSearch';
 import { Badge } from '@/components/ui/badge';
+import { useVehicleService } from '@/hooks/services/useVehicleService';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -37,12 +38,15 @@ const Vehicles = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [activeTab, setActiveTab] = useState<string>('all');
   
-  // Get vehicles using the hook's useList functionality
-  const { useList, useRealtimeUpdates } = useVehicles();
-  const { data: vehicles = [], isLoading, error } = useList(filters);
-  
-  // Setup real-time updates
-  useRealtimeUpdates();
+  // Use the vehicle service hook with pagination
+  const { 
+    vehicles, 
+    isLoading,
+    error,
+    setFilters: updateFilters,
+    pagination,
+    totalItems
+  } = useVehicleService(filters);
 
   // Get status from URL search params
   useEffect(() => {
@@ -84,6 +88,9 @@ const Vehicles = () => {
     } else if (VALID_STATUSES.includes(value as VehicleStatus)) {
       setFilters(prev => ({ ...prev, status: value as VehicleStatus }));
     }
+    
+    // Reset to first page when changing tabs
+    pagination.setPage(1);
   };
 
   const handleSearchChange = (query: string) => {
@@ -92,6 +99,9 @@ const Vehicles = () => {
       ...prev, 
       search: query.trim() !== '' ? query : undefined 
     }));
+    
+    // Reset to first page when searching
+    pagination.setPage(1);
   };
 
   const handleFilterChange = (newFilters: any) => {
@@ -121,6 +131,10 @@ const Vehicles = () => {
     }
     
     setFilters(convertedFilters);
+    updateFilters(convertedFilters);
+    
+    // Reset to first page when changing filters
+    pagination.setPage(1);
   };
 
   // Create array of active filters for filter chips
@@ -237,6 +251,7 @@ const Vehicles = () => {
                         const updatedFilters = { ...filters };
                         delete updatedFilters[key as keyof VehicleFilterParams];
                         setFilters(updatedFilters);
+                        updateFilters(updatedFilters);
                       }}
                       className="ml-1 rounded-full hover:bg-accent p-1"
                     >
@@ -255,6 +270,7 @@ const Vehicles = () => {
                     if (filters.status) cleanFilters.status = filters.status;
                     if (searchQuery) cleanFilters.search = searchQuery;
                     setFilters(cleanFilters);
+                    updateFilters(cleanFilters);
                   }}
                 >
                   Clear filters
@@ -302,6 +318,17 @@ const Vehicles = () => {
                 <p>{error?.message || 'An unknown error occurred'}</p>
               </div>
             )}
+            
+            {/* Pagination Controls */}
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={totalItems}
+              itemsPerPage={pagination.itemsPerPage}
+              onPageChange={pagination.setPage}
+              onItemsPerPageChange={pagination.setItemsPerPage}
+              className="mt-4"
+            />
           </CardContent>
         </Card>
       </div>

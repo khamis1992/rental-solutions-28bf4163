@@ -19,7 +19,14 @@ export interface VehicleFilterParams {
   sortDirection?: 'asc' | 'desc';
   location?: string;
   vehicle_type_id?: string;
+  limit?: number;
+  offset?: number;
   [key: string]: any;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  count: number;
 }
 
 /**
@@ -32,62 +39,113 @@ export class VehicleService extends BaseService<'vehicles'> {
   }
 
   /**
-   * Finds vehicles based on specified filtering criteria
+   * Finds vehicles based on specified filtering criteria with pagination
    * @param filters - Optional filtering parameters for vehicle search
-   * @returns Promise with filtered vehicle records
+   * @returns Promise with filtered vehicle records and total count
    * @throws Error if database operation fails
    */
-  async findVehicles(filters?: VehicleFilterParams): Promise<ServiceResult<Vehicle[]>> {
+  async findVehicles(filters?: VehicleFilterParams): Promise<ServiceResult<PaginatedResult<Vehicle>>> {
     return handleServiceOperation(async () => {
       console.log("VehicleService.findVehicles called with filters:", filters);
-      let query = supabase.from('vehicles')
+      
+      // For count query - We'll use this to get total records without pagination
+      let countQuery = supabase.from('vehicles').select('id', { count: 'exact', head: true });
+      
+      // For data query with pagination and full details
+      let dataQuery = supabase.from('vehicles')
         .select('*, vehicle_types(*)');
       
       if (filters) {
+        // Apply filters to both queries
         if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
           console.log("Filtering by statuses:", filters.statuses);
           // Map each status to its database representation
           const dbStatuses = filters.statuses.map(status => asVehicleStatus(status));
-          query = query.in('status', dbStatuses);
+          countQuery = countQuery.in('status', dbStatuses);
+          dataQuery = dataQuery.in('status', dbStatuses);
           console.log("Mapped to DB statuses:", dbStatuses);
         } else if (filters.status) {
           console.log("Filtering by single status:", filters.status);
           const dbStatus = asVehicleStatus(filters.status);
-          query = query.eq('status', dbStatus);
+          countQuery = countQuery.eq('status', dbStatus);
+          dataQuery = dataQuery.eq('status', dbStatus);
         }
         
-        // Apply other filters
-        if (filters.make) query = query.eq('make', filters.make);
-        if (filters.model) query = query.eq('model', filters.model);
-        if (filters.year) query = query.eq('year', filters.year);
-        if (filters.location) query = query.eq('location', filters.location);
-        if (filters.vehicle_type_id) query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+        // Apply other filters to both queries
+        if (filters.make) {
+          countQuery = countQuery.eq('make', filters.make);
+          dataQuery = dataQuery.eq('make', filters.make);
+        }
+        if (filters.model) {
+          countQuery = countQuery.eq('model', filters.model);
+          dataQuery = dataQuery.eq('model', filters.model);
+        }
+        if (filters.year) {
+          countQuery = countQuery.eq('year', filters.year);
+          dataQuery = dataQuery.eq('year', filters.year);
+        }
+        if (filters.location) {
+          countQuery = countQuery.eq('location', filters.location);
+          dataQuery = dataQuery.eq('location', filters.location);
+        }
+        if (filters.vehicle_type_id) {
+          countQuery = countQuery.eq('vehicle_type_id', filters.vehicle_type_id);
+          dataQuery = dataQuery.eq('vehicle_type_id', filters.vehicle_type_id);
+        }
         
         if (filters.searchTerm) {
-          query = query.or(
-            `license_plate.ilike.%${filters.searchTerm}%,make.ilike.%${filters.searchTerm}%,model.ilike.%${filters.searchTerm}%,vin.ilike.%${filters.searchTerm}%`
-          );
+          const searchCondition = `license_plate.ilike.%${filters.searchTerm}%,make.ilike.%${filters.searchTerm}%,model.ilike.%${filters.searchTerm}%,vin.ilike.%${filters.searchTerm}%`;
+          countQuery = countQuery.or(searchCondition);
+          dataQuery = dataQuery.or(searchCondition);
         }
         
+        // Apply sorting only to data query
         if (filters.sortBy) {
           const direction = filters.sortDirection || 'asc';
-          query = query.order(filters.sortBy, { ascending: direction === 'asc' });
+          dataQuery = dataQuery.order(filters.sortBy, { ascending: direction === 'asc' });
+        } else {
+          // Default sorting by created_at
+          dataQuery = dataQuery.order('created_at', { ascending: false });
+        }
+        
+        // Apply pagination only to data query
+        if (filters.limit !== undefined) {
+          dataQuery = dataQuery.limit(filters.limit);
+        }
+        if (filters.offset !== undefined) {
+          dataQuery = dataQuery.range(
+            filters.offset, 
+            filters.offset + (filters.limit || 20) - 1
+          );
         }
       } else {
-        console.log("No filters provided, fetching all vehicles");
+        // Default sorting
+        dataQuery = dataQuery.order('created_at', { ascending: false });
       }
       
-      console.log("Executing Supabase query");
-      const { data, error } = await query;
+      console.log("Executing Supabase count query");
+      const countResponse = await countQuery;
       
-      if (error) {
-        console.error("Supabase query error:", error);
-        throw new Error(`Failed to fetch vehicles: ${error.message}`);
+      console.log("Executing Supabase data query");
+      const dataResponse = await dataQuery;
+      
+      if (countResponse.error) {
+        console.error("Supabase count query error:", countResponse.error);
+        throw new Error(`Failed to count vehicles: ${countResponse.error.message}`);
       }
       
-      console.log(`Retrieved ${data?.length || 0} vehicles`);
-      // Always return an array, even if data is null
-      return data || [];
+      if (dataResponse.error) {
+        console.error("Supabase data query error:", dataResponse.error);
+        throw new Error(`Failed to fetch vehicles: ${dataResponse.error.message}`);
+      }
+      
+      const totalCount = countResponse.count || 0;
+      console.log(`Retrieved ${dataResponse.data?.length || 0} vehicles out of ${totalCount} total`);
+      
+      return {
+        data: dataResponse.data || [],
+        count: totalCount
+      };
     });
   }
 
