@@ -50,7 +50,7 @@ export const AgreementListFilter: React.FC<AgreementListFilterProps> = ({
         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search agreements by number, customer or vehicle..."
+          placeholder="Search agreements by customer name..."
           className="pl-9 pr-8 h-10"
           value={searchValue}
           onChange={handleSearchChange}

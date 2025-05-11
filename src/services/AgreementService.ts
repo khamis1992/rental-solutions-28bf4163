@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
@@ -11,7 +10,7 @@ export interface AgreementFilters {
   vehicleId?: string;
   startDate?: Date;
   endDate?: Date;
-  search?: string;
+  searchTerm?: string;  // Changed from 'search' to 'searchTerm' to match CustomerService
   end_date_after?: string;
   end_date_before?: string;
   [key: string]: any;
@@ -147,14 +146,12 @@ export const agreementService = {
         query = query.lte('end_date', filters.end_date_before);
       }
       
-      // Fixed search implementation that works with non-Latin characters
-      if (filters.search && filters.search.trim() !== '') {
-        const searchTerm = filters.search.trim();
+      // Changed to only search by customer name, exactly like CustomerService
+      if (filters.searchTerm && filters.searchTerm.trim() !== '') {
+        const searchTerm = filters.searchTerm.trim();
         
-        // Use individual filter conditions instead of the OR syntax to fix special character issues
-        query = query.or(
-          `agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`
-        );
+        // Only search on customer name (profile.full_name)
+        query = query.textSearch('profiles.full_name', searchTerm);
       }
 
       const { data, error, count } = await query;

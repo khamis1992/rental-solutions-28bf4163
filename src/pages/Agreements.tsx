@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -120,15 +121,15 @@ const Agreements = () => {
     }
   };
 
-  // Handle search using the component - simplified to match the CustomerListFilter behavior
+  // Handle search using the component - matching the CustomerListFilter behavior exactly
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setSearchParams({ search: query || undefined });
+    setSearchParams({ searchTerm: query || undefined }); // Changed from 'search' to 'searchTerm'
   };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && key !== 'search' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && key !== 'searchTerm' && value !== undefined && value !== '');
 
   // Function to navigate to add agreement page
   const handleAddAgreement = () => {
