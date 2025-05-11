@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -11,7 +10,7 @@ import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Uploa
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
-import { AgreementListFilter } from '@/components/agreements/AgreementListFilter';
+import { CustomerListFilterClone } from '@/components/agreements/CustomerListFilterClone';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -124,7 +123,7 @@ const Agreements = () => {
   // Handle search using the component - matching the CustomerListFilter behavior exactly
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setSearchParams({ searchTerm: query || undefined }); // Changed from 'search' to 'searchTerm'
+    setSearchParams({ searchTerm: query || undefined });
   };
 
   // Create array of active filters for filter chips
@@ -182,7 +181,7 @@ const Agreements = () => {
             
             {/* Search and Action Bar */}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
-              <AgreementListFilter
+              <CustomerListFilterClone
                 searchTerm={searchQuery}
                 onSearch={handleSearch}
                 onFilterChange={handleFilterChange}
