@@ -20,6 +20,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: async () => {
+      console.log('Fetching agreements with filters:', searchParams);
       const result = await agreementService.findAgreements(searchParams);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch agreements');
@@ -109,7 +110,20 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     isLoading,
     error,
     searchParams,
-    setSearchParams,
+    setSearchParams: (newParams: AgreementFilters) => {
+      setSearchParams(prev => {
+        const merged = { ...prev, ...newParams };
+        
+        // Remove undefined values
+        Object.keys(merged).forEach(key => {
+          if (merged[key] === undefined) {
+            delete merged[key];
+          }
+        });
+        
+        return merged;
+      });
+    },
     refetch,
     getAgreementDetails,
     updateAgreement: updateAgreement.mutateAsync,

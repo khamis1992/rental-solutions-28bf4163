@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,24 +25,21 @@ export const AgreementListFilter: React.FC<AgreementListFilterProps> = ({
   onFilterChange
 }) => {
   const [searchValue, setSearchValue] = useState(searchTerm);
+  const debouncedSearchValue = useDebounce(searchValue, 300);
   
-  // Handle search input changes with debounce
+  // Effect to trigger search when debounced value changes
+  React.useEffect(() => {
+    onSearch(debouncedSearchValue);
+  }, [debouncedSearchValue, onSearch]);
+  
+  // Handle search input changes
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchValue(value);
-    
-    // Add debounce for search
-    const timeoutId = setTimeout(() => {
-      onSearch(value);
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
+    setSearchValue(e.target.value);
   };
   
   // Clear search input
   const handleClearSearch = () => {
     setSearchValue('');
-    onSearch('');
   };
 
   return (

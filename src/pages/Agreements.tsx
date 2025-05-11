@@ -4,7 +4,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
@@ -29,16 +28,19 @@ import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
 import { useNavigate } from 'react-router-dom';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const Agreements = () => {
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const { setSearchParams, searchParams } = useAgreements();
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
+  
+  // Use the agreement service instead of the direct hook
+  const { agreements, isLoading, searchParams, setSearchParams, refetch } = useAgreementService();
   
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -93,9 +95,9 @@ const Agreements = () => {
   }, []);
   
   const handleImportComplete = () => {
-    setSearchParams({ 
-      status: 'all' 
-    });
+    // Reset filters and refresh data
+    setSearchParams({});
+    refetch();
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
@@ -106,40 +108,29 @@ const Agreements = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'all' || value === 'agreements') {
-      setSearchParams({ status: undefined, page: 1 });
+      setSearchParams({ status: undefined });
     } else if (value === 'active' || value === 'pending' || value === 'history') {
-      // Only set the status filter for valid status values and reset to page 1
-      setSearchParams({ status: value === 'history' ? undefined : value, page: 1 });
+      // Only set the status filter for valid status values
+      setSearchParams({ status: value === 'history' ? undefined : value });
     }
   };
 
-  // Extract existing search query from URL params
-  React.useEffect(() => {
-    const queryParam = searchParams?.query;
-    if (queryParam && typeof queryParam === 'string') {
-      setSearchQuery(queryParam);
-    }
-  }, []);
-
-  // Handle search using the new component
+  // Handle search using the component
   const handleSearch = (query: string) => {
     if (!query || query.trim() === '') {
       // Clear search if input is empty
-      setSearchParams({ query: undefined, page: 1 });
+      setSearchParams({ search: undefined });
       setSearchQuery('');
     } else {
-      // Set search parameters and reset to page 1
-      setSearchParams({ 
-        query: query,
-        page: 1  // Important: Reset to page 1 when searching
-      });
+      // Set search parameters
+      setSearchParams({ search: query });
       setSearchQuery(query);
     }
   };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && key !== 'query' && key !== 'page' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && key !== 'search' && value !== undefined && value !== '');
 
   // Function to navigate to add agreement page
   const handleAddAgreement = () => {

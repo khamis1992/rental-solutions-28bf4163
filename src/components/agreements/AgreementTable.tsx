@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useAgreementTable } from '@/hooks/use-agreement-table';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { TableContent } from './table/TableContent';
 import { processAgreementData } from './table/agreement-data';
 
@@ -13,8 +13,8 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
     agreements,
     isLoading,
     error,
-    pagination,
-  } = useAgreementTable();
+    deleteAgreement
+  } = useAgreementService();
   
   // Process agreement data for display
   const typedAgreements = processAgreementData(agreements || []);
@@ -28,7 +28,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
       agreements={typedAgreements}
       isLoading={isLoading}
       compact={compact}
-      pagination={pagination}
+      pagination={undefined}
     />
   );
 }

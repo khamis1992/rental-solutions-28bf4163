@@ -1,6 +1,8 @@
+
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
+import { BaseService, handleServiceOperation, ServiceResult } from '@/services/base/BaseService';
 
 // Define AgreementFilters interface
 export interface AgreementFilters {
@@ -10,6 +12,8 @@ export interface AgreementFilters {
   startDate?: Date;
   endDate?: Date;
   search?: string;
+  end_date_after?: string;
+  end_date_before?: string;
   [key: string]: any;
 }
 
@@ -108,29 +112,49 @@ export const agreementService = {
    */
   async findAgreements(filters: AgreementFilters = {}): Promise<SaveResponse> {
     try {
-      let query = supabase.from('leases').select('*');
+      let query = supabase.from('leases').select(`
+        *,
+        customers:profiles(*),
+        vehicles(*)
+      `);
       
       // Apply filters
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         query = query.eq('status', filters.status);
       }
+      
       if (filters.customerId) {
         query = query.eq('customer_id', filters.customerId);
       }
+      
       if (filters.vehicleId) {
         query = query.eq('vehicle_id', filters.vehicleId);
       }
+      
       if (filters.startDate) {
         query = query.gte('start_date', filters.startDate.toISOString());
       }
+      
       if (filters.endDate) {
         query = query.lte('end_date', filters.endDate.toISOString());
       }
+      
+      if (filters.end_date_after) {
+        query = query.gte('end_date', filters.end_date_after);
+      }
+      
+      if (filters.end_date_before) {
+        query = query.lte('end_date', filters.end_date_before);
+      }
+      
       if (filters.search) {
-        query = query.ilike('agreement_number', `%${filters.search}%`);
+        // Enhanced search across multiple fields
+        query = query.or(
+          `agreement_number.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%,profiles.full_name.ilike.%${filters.search}%`
+        );
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       
       if (error) throw error;
       

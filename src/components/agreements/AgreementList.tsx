@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useAgreementTable } from '@/hooks/use-agreement-table';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { TableContent } from './table/TableContent';
 import { processAgreementData } from './table/agreement-data';
 
@@ -8,9 +8,8 @@ const AgreementList: React.FC = () => {
   const {
     agreements,
     isLoading,
-    error,
-    pagination
-  } = useAgreementTable();
+    error
+  } = useAgreementService();
 
   if (isLoading) {
     return <div>Loading agreements...</div>;
@@ -27,7 +26,7 @@ const AgreementList: React.FC = () => {
     <TableContent 
       agreements={typedAgreements}
       isLoading={isLoading}
-      pagination={pagination}
+      pagination={undefined}
     />
   );
 };
