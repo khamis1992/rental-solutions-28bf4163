@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { LeaseStatus, ValidationLeaseStatus, toValidationLeaseStatus } from '@/types/lease-types';
 
@@ -63,6 +62,9 @@ export function isQueryDataValid<T>(data: any): data is T {
 }
 
 // Add missing ensureValidationLeaseStatus from lease-types.ts to avoid circular imports
+/**
+ * Add missing ensureValidationLeaseStatus from lease-types.ts to avoid circular imports
+ */
 export function ensureValidationLeaseStatus(status: string | null | undefined): ValidationLeaseStatus {
   if (!status) return 'draft';
   
@@ -70,7 +72,12 @@ export function ensureValidationLeaseStatus(status: string | null | undefined): 
   // Including handling the 'completed' status
   if (status === 'completed') return 'closed';
   
-  return toValidationLeaseStatus(status as LeaseStatus);
+  if (['draft', 'active', 'pending', 'expired', 'cancelled', 'closed'].includes(status)) {
+    return status as ValidationLeaseStatus;
+  }
+  
+  // Default to draft for any other status
+  return 'draft';
 }
 
 // Add a type-safe cast for using in database operations

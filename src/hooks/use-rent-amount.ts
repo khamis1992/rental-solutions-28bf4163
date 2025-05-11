@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { useQuery } from '@tanstack/react-query';
-import { asTypedDatabaseId } from '@/utils/database-type-helpers';
+import { asLeaseId, asVehicleId, extractMonthlyRate } from '@/utils/type-adapters';
 
 type LeaseRateQueryResult = {
   rent_amount?: number | null;
@@ -32,7 +32,7 @@ export function useRentAmount(agreement?: Agreement | null, agreementId?: string
         const { data, error } = await supabase
           .from('leases')
           .select('rent_amount')
-          .eq('id', id)
+          .eq('id', asLeaseId(id))
           .single();
         
         if (error) {
@@ -66,7 +66,7 @@ export function useRentAmount(agreement?: Agreement | null, agreementId?: string
               monthly_rate
             )
           `)
-          .eq('id', agreement.vehicle_id)
+          .eq('id', asVehicleId(agreement.vehicle_id))
           .single();
         
         if (error) {
@@ -104,9 +104,12 @@ export function useRentAmount(agreement?: Agreement | null, agreementId?: string
     }
 
     // Fourth priority: Use the vehicle type's monthly_rate if it exists
-    if (vehicleRateData?.vehicle_types?.monthly_rate) {
-      setRentAmount(vehicleRateData.vehicle_types.monthly_rate);
-      return;
+    if (vehicleRateData) {
+      const monthlyRate = extractMonthlyRate(vehicleRateData);
+      if (monthlyRate) {
+        setRentAmount(monthlyRate);
+        return;
+      }
     }
 
     // Fallback to the total amount if nothing else is available

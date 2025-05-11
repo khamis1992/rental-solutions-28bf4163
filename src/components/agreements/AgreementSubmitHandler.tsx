@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
-import { ensureValidationLeaseStatus } from '@/utils/database-type-helpers';
+import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 // Updated type declaration for validation result with proper conditional type
 type ValidationResult = 
@@ -41,15 +41,11 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       setValidationErrors(null);
       setUpdateProgress(10);
       
-      // Convert the status to a validation-compatible status
-      // This ensures 'completed' is mapped to an allowed status like 'closed'
-      const updatedFormData = {
-        ...formData,
-        status: ensureValidationLeaseStatus(formData.status)
-      } as any; // Use type assertion to bypass the type mismatch temporarily
+      // Convert the model agreement to validation-compatible agreement
+      const adaptedData = adaptAgreementForValidation(formData);
       
       // Validate form data
-      const validationResult = validateAgreementData(updatedFormData) as ValidationResult;
+      const validationResult = validateAgreementData(adaptedData) as ValidationResult;
       setUpdateProgress(30);
       
       if (!validationResult.success) {

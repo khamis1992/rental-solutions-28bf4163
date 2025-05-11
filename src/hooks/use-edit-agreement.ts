@@ -8,7 +8,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { CustomerInfo } from '@/types/customer';
 import { useAgreementDataFetching } from './agreement/use-agreement-data-fetching';
 import { processAgreementData, processCustomerData } from '@/utils/agreement-data-processors';
-import { ensureValidationLeaseStatus } from '@/utils/database-type-helpers';
+import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 /**
  * Hook for editing an existing agreement
@@ -60,14 +60,8 @@ export function useEditAgreement(id: string | undefined) {
           const processedAgreement = processAgreementData(foundAgreement);
           
           if (processedAgreement) {
-            // Ensure the status is compatible with ValidationLeaseStatus
-            // This safely converts 'completed' to a valid status like 'closed'
-            const safeAgreement = {
-              ...processedAgreement,
-              status: ensureValidationLeaseStatus(processedAgreement.status)
-            } as Agreement; // Type assertion to make TypeScript happy
-            
-            setAgreement(safeAgreement);
+            // Adapt the agreement for validation without changing its original status
+            setAgreement(processedAgreement);
             
             // Process and set customer data if available
             if (foundAgreement.customers || foundAgreement.profiles) {
@@ -97,13 +91,8 @@ export function useEditAgreement(id: string | undefined) {
           const fetchedAgreement = await fetchAgreementById(id);
           
           if (fetchedAgreement) {
-            // Ensure the status is compatible with ValidationLeaseStatus
-            const safeAgreement = {
-              ...fetchedAgreement,
-              status: ensureValidationLeaseStatus(fetchedAgreement.status)
-            } as Agreement; // Type assertion to make TypeScript happy
-            
-            setAgreement(safeAgreement);
+            // Set the agreement as is without modifying the status
+            setAgreement(fetchedAgreement);
             
             // Handle vehicle data
             const vehicleId = fetchedAgreement.vehicle_id;
@@ -155,6 +144,8 @@ export function useEditAgreement(id: string | undefined) {
     isLoading, 
     vehicleData,
     customerData,
-    setVehicleData 
+    setVehicleData,
+    // Add helper function to get validation-compatible agreement
+    getValidationAgreement: () => agreement ? adaptAgreementForValidation(agreement) : null
   };
 }

@@ -42,7 +42,7 @@ export function getResponseData<T>(
     console.error('Supabase query error:', response.error);
     return null;
   }
-  return response.data;
+  return response.data as T;
 }
 
 // Helper to check if a response is valid
@@ -63,12 +63,9 @@ export function toArray<T>(data: T | T[] | null | undefined): T[] {
 // Helper to handle both string errors and PostgrestError safely
 export function handleQueryError<T>(error: string | PostgrestError | unknown): T[] {
   console.error('Query error:', error);
-  if (typeof error === 'string') {
-    // Handle string error
-    return [] as unknown as T[]; // Return empty array with proper type cast
-  }
-  // Handle other error types
-  return [] as unknown as T[]; // Return empty array with proper type cast
+  
+  // Return empty array with correct type cast, regardless of error type
+  return [] as T[];
 }
 
 // Helper to extract a single item from a response

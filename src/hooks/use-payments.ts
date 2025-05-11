@@ -1,7 +1,7 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { paymentRepository } from '@/lib/database';
-import { asLeaseId, asPaymentId } from '@/utils/database-type-helpers';
+import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
 
 export type Payment = {
   id: string;
@@ -61,15 +61,15 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
+    // Destructuring should happen outside the function for clarity
     const { id, data: paymentData } = paymentUpdate;
     
     // Make sure we have a valid payment ID
-    const safePaymentId = asPaymentId(id);
-    if (!safePaymentId) {
+    if (!id) {
       throw new Error("Invalid payment ID");
     }
 
-    const response = await paymentRepository.update(safePaymentId, paymentData);
+    const response = await paymentRepository.update(id, paymentData);
 
     if (response.error) {
       console.error("Error updating payment:", response.error);
@@ -79,12 +79,11 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const safePaymentId = asPaymentId(paymentId);
-    if (!safePaymentId) {
+    if (!paymentId) {
       throw new Error("Invalid payment ID");
     }
 
-    const response = await paymentRepository.delete(safePaymentId);
+    const response = await paymentRepository.delete(paymentId);
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
