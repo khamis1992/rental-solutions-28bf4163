@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -39,8 +38,14 @@ const Agreements = () => {
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
   
-  // Use the agreement service instead of the direct hook
-  const { agreements, isLoading, searchParams, setSearchParams, refetch } = useAgreementService();
+  // Use the agreement service hook
+  const { 
+    agreements, 
+    isLoading, 
+    searchParams, 
+    setSearchParams, 
+    refetch 
+  } = useAgreementService();
   
   // Add state for customer search functionality
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -101,7 +106,7 @@ const Agreements = () => {
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(prev => ({ ...prev, ...filters }));
+    setSearchParams(filters); // Simplified to match CustomerListFilter behavior
   };
 
   // Updated to ensure pagination resets when tab changes
@@ -115,17 +120,10 @@ const Agreements = () => {
     }
   };
 
-  // Handle search using the component
+  // Handle search using the component - simplified to match the CustomerListFilter behavior
   const handleSearch = (query: string) => {
-    if (!query || query.trim() === '') {
-      // Clear search if input is empty
-      setSearchParams({ search: undefined });
-      setSearchQuery('');
-    } else {
-      // Set search parameters
-      setSearchParams({ search: query });
-      setSearchQuery(query);
-    }
+    setSearchQuery(query);
+    setSearchParams({ search: query || undefined });
   };
 
   // Create array of active filters for filter chips
@@ -252,6 +250,7 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
+            {/* ... keep existing code for the TabsContent section */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsContent value="agreements" className="m-0">
                 <Suspense fallback={

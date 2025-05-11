@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,21 +24,24 @@ export const AgreementListFilter: React.FC<AgreementListFilterProps> = ({
   onFilterChange
 }) => {
   const [searchValue, setSearchValue] = useState(searchTerm);
-  const debouncedSearchValue = useDebounce(searchValue, 300);
   
-  // Effect to trigger search when debounced value changes
-  React.useEffect(() => {
-    onSearch(debouncedSearchValue);
-  }, [debouncedSearchValue, onSearch]);
-  
-  // Handle search input changes
+  // Handle search input changes with direct debounce implementation
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
+    const value = e.target.value;
+    setSearchValue(value);
+    
+    // Add debounce for search - same implementation as CustomerListFilter
+    const timeoutId = setTimeout(() => {
+      onSearch(value);
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
   };
   
-  // Clear search input
+  // Clear search input - directly calling onSearch like in CustomerListFilter
   const handleClearSearch = () => {
     setSearchValue('');
+    onSearch('');
   };
 
   return (

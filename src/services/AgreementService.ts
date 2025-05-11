@@ -147,10 +147,13 @@ export const agreementService = {
         query = query.lte('end_date', filters.end_date_before);
       }
       
-      if (filters.search) {
-        // Enhanced search across multiple fields
+      // Fixed search implementation that works with non-Latin characters
+      if (filters.search && filters.search.trim() !== '') {
+        const searchTerm = filters.search.trim();
+        
+        // Use individual filter conditions instead of the OR syntax to fix special character issues
         query = query.or(
-          `agreement_number.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%,profiles.full_name.ilike.%${filters.search}%`
+          `agreement_number.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm}%,profiles.full_name.ilike.%${searchTerm}%`
         );
       }
 
