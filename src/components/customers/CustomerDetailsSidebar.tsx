@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { CustomerInfo } from '@/types/customer';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -37,8 +38,11 @@ import {
   Pencil,
   ArrowUpRight,
   CheckCircle,
-  XCircle
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Agreement } from '@/types/agreement';
 
 interface CustomerDetailsSidebarProps {
   customer: CustomerInfo | null;
@@ -51,6 +55,10 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
   open,
   onOpenChange
 }) => {
+  const [activeTab, setActiveTab] = useState<string>('contact');
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   if (!customer) {
     return null;
   }
@@ -60,7 +68,55 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     navigator.clipboard.writeText(text);
   };
 
-  // Function to get the appropriate badge for a status
+  // Fetch agreements when customer changes or agreements tab is selected
+  useEffect(() => {
+    if (customer?.id && activeTab === 'agreements') {
+      const fetchAgreements = async () => {
+        setIsLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('leases')
+            .select('*, vehicles(*)')
+            .eq('customer_id', customer.id)
+            .order('created_at', { ascending: false });
+            
+          if (error) {
+            console.error('Error fetching agreements:', error);
+            return;
+          }
+          
+          setAgreements(data || []);
+        } catch (error) {
+          console.error('Error in fetch agreements:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchAgreements();
+    }
+  }, [customer?.id, activeTab]);
+
+  // Function to get the appropriate badge for an agreement status
+  const getAgreementStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { variant: string }> = {
+      active: { variant: "success" },
+      pending: { variant: "warning" },
+      expired: { variant: "inactive" },
+      cancelled: { variant: "destructive" },
+      closed: { variant: "secondary" },
+    };
+
+    const { variant } = statusConfig[status] || statusConfig.active;
+    
+    return (
+      <Badge variant={variant as any}>
+        {status.replace('_', ' ')}
+      </Badge>
+    );
+  };
+
+  // Function to get the appropriate badge for a customer status
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: string, icon: any }> = {
       active: { variant: "success", icon: CheckCircle },
@@ -78,6 +134,13 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
         {status.replace('_', ' ')}
       </Badge>
     );
+  };
+
+  // Format date for better display
+  const formatDate = (dateString: string | Date | undefined): string => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -106,7 +169,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
           </div>
           
           {/* Tab Navigation */}
-          <Tabs defaultValue="contact">
+          <Tabs defaultValue="contact" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="contact">Contact</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -182,11 +245,76 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
             </TabsContent>
             
             <TabsContent value="agreements" className="space-y-4 pt-4">
-              <div className="rounded-md border p-4 flex flex-col items-center justify-center text-center">
-                <Car className="h-10 w-10 text-muted-foreground mb-2" />
-                <h3 className="font-medium">Vehicle Agreements</h3>
-                <p className="text-muted-foreground text-sm mb-4">View active and past agreements.</p>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  <span className="ml-2">Loading agreements...</span>
+                </div>
+              ) : agreements.length > 0 ? (
+                <div className="space-y-3">
+                  {agreements.map((agreement) => (
+                    <Card key={agreement.id} className="overflow-hidden">
+                      <CardHeader className="p-3 pb-0">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="text-sm font-medium">
+                              {agreement.agreement_number || `Agreement #${agreement.id.substring(0, 6)}`}
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(agreement.start_date)} - {formatDate(agreement.end_date)}
+                            </p>
+                          </div>
+                          {getAgreementStatusBadge(agreement.status)}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-3 pt-2">
+                        <div className="flex gap-1 items-center text-xs">
+                          <Car className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">
+                            {agreement.vehicles?.license_plate || agreement.license_plate || 'N/A'}
+                          </span>
+                          {' - '}
+                          <span className="text-muted-foreground">
+                            {agreement.vehicles?.make || agreement.vehicle_make || ''} {agreement.vehicles?.model || agreement.vehicle_model || ''}
+                          </span>
+                        </div>
+                        {agreement.total_amount && (
+                          <div className="flex gap-1 items-center mt-1 text-xs">
+                            <CreditCard className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">
+                              ${agreement.total_amount.toFixed(2)}
+                            </span>
+                            {agreement.payment_frequency && (
+                              <span className="text-muted-foreground">
+                                ({agreement.payment_frequency})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {agreements.length > 3 && (
+                    <div className="text-center">
+                      <Button 
+                        variant="link" 
+                        size="sm"
+                        asChild
+                      >
+                        <Link to={`/customers/${customer.id}`}>
+                          View all agreements
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-md border p-4 flex flex-col items-center justify-center text-center">
+                  <Car className="h-10 w-10 text-muted-foreground mb-2" />
+                  <h3 className="font-medium">No Agreements Found</h3>
+                  <p className="text-muted-foreground text-sm mb-4">This customer doesn't have any active or past agreements.</p>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="notes" className="space-y-4 pt-4">
