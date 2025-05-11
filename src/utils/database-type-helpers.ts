@@ -35,6 +35,19 @@ export function asPaymentId(id: string | null | undefined): string {
   return id || '';
 }
 
+// Status type helpers
+export function asVehicleStatus(status: string | null | undefined): string {
+  return status || 'available';
+}
+
+export function asLeaseStatus(status: string | null | undefined): string {
+  return status || 'draft';
+}
+
+export function asPaymentStatus(status: string | null | undefined): string {
+  return status || 'pending';
+}
+
 // Type guard for safely handling query results
 export function isQueryDataValid<T>(data: any): data is T {
   return data !== null && 

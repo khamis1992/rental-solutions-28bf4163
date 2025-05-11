@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { asMaintenanceId, asVehicleId } from '@/utils/database-type-helpers';
+import { asMaintenanceId, asVehicleId, isQueryDataValid } from '@/utils/database-type-helpers';
 
 // Define proper type for maintenance record
 export type MaintenanceRecord = {
@@ -27,6 +27,22 @@ export function useMaintenance() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+
+  // Get all maintenance records
+  const getAllRecords = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .select('*')
+        .order('scheduled_date', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error getting all maintenance records:', error);
+      return [];
+    }
+  };
 
   // Get maintenance records for a vehicle
   const getMaintenanceRecordsByVehicle = async (vehicleId: string) => {
@@ -237,8 +253,12 @@ export function useMaintenance() {
     });
   };
 
+  // Create function for MaintenanceSchedulingWizard
+  const create = useCreateMaintenance();
+
   return {
     loading,
+    getAllRecords,
     getMaintenanceRecordsByVehicle,
     getMaintenanceRecord,
     createMaintenanceRecord,
@@ -253,5 +273,6 @@ export function useMaintenance() {
     useCreateMaintenance,
     useUpdateMaintenance,
     useDeleteMaintenance,
+    create
   };
 }

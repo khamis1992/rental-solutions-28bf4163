@@ -1,6 +1,7 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { paymentRepository, asLeaseIdColumn, asPaymentId } from '@/lib/database';
+import { paymentRepository } from '@/lib/database';
+import { asLeaseId, asPaymentId } from '@/utils/database-type-helpers';
 
 export type Payment = {
   id: string;

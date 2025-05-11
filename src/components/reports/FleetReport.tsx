@@ -9,18 +9,6 @@ import { formatCurrency } from '@/lib/utils';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Define proper structure for ReportData to include vehicles and report
-type ReportData = {
-  vehicles: any[];
-  report: {
-    totalVehicles: number;
-    rentedVehicles: number;
-    maintenanceVehicles: number;
-    averageRentAmount: number;
-    vehiclesByType: Record<string, number>;
-  };
-};
-
 const FleetReport = () => {
   const { 
     reportData, 
@@ -28,7 +16,7 @@ const FleetReport = () => {
     error
   } = useFleetReport();
   
-  // Extract vehicles and report from the reportData
+  // Extract data from reportData
   const vehicles = reportData?.vehicles || [];
   const report = reportData?.report || {
     totalVehicles: 0,
@@ -192,35 +180,21 @@ const FleetReport = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="type" 
-                    tick={{ 
-                      transform: 'rotate(-45)',
-                      textAnchor: 'end',
-                      dominantBaseline: 'auto'
-                    }}
-                    height={70}
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
                   />
-                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                  <YAxis 
-                    yAxisId="right" 
-                    orientation="right" 
-                    stroke="#82ca9d"
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <Tooltip formatter={(value, name) => {
-                    if (name === 'avgDailyRate') {
-                      return [formatCurrency(Number(value)), 'Avg Daily Rate'];
-                    }
-                    return [value, name === 'count' ? 'Count' : name];
-                  }} />
-                  <Bar dataKey="count" fill="#8884d8" yAxisId="left" name="Vehicle Count" />
-                  <Bar dataKey="avgDailyRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Bar yAxisId="left" dataKey="count" name="Vehicle Count" fill="#8884d8" />
+                  <Bar yAxisId="right" dataKey="avgDailyRate" name="Avg. Daily Rate" fill="#82ca9d" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="text-center py-10 text-muted-foreground">
-              <p>No performance data available</p>
-              <p className="text-sm mt-2">Performance data will appear here when available</p>
+              <p>No vehicle type data available</p>
             </div>
           )}
         </CardContent>
@@ -229,20 +203,25 @@ const FleetReport = () => {
   );
 };
 
+// Helper component for status badges
 const StatusBadge = ({ status }: { status: string }) => {
-  const variants: Record<string, string> = {
-    'available': 'bg-green-100 text-green-800',
-    'rented': 'bg-blue-100 text-blue-800',
-    'maintenance': 'bg-amber-100 text-amber-800',
-    'repair': 'bg-red-100 text-red-800',
-    'reserved': 'bg-purple-100 text-purple-800',
+  const getStatusDetails = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return { label: 'Available', color: 'bg-green-100 text-green-800' };
+      case 'rented':
+        return { label: 'Rented', color: 'bg-blue-100 text-blue-800' };
+      case 'maintenance':
+        return { label: 'Maintenance', color: 'bg-amber-100 text-amber-800' };
+      case 'repair':
+        return { label: 'Repair', color: 'bg-red-100 text-red-800' };
+      default:
+        return { label: status, color: 'bg-gray-100 text-gray-800' };
+    }
   };
 
-  return (
-    <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {status}
-    </Badge>
-  );
+  const { label, color } = getStatusDetails(status);
+  return <Badge className={color}>{label}</Badge>;
 };
 
 export default FleetReport;

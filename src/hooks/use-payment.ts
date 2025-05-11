@@ -38,14 +38,12 @@ export function usePayment(agreementId?: string) {
       agreementId, 
       amount, 
       paymentDate, 
-      {
-        notes,
-        paymentMethod,
-        referenceNumber,
-        includeLatePaymentFee,
-        isPartialPayment,
-        paymentType,
-      }
+      notes,
+      paymentMethod,
+      referenceNumber,
+      includeLatePaymentFee,
+      isPartialPayment,
+      paymentType
     );
   };
 

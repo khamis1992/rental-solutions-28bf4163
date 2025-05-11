@@ -58,11 +58,20 @@ export function asMaintenanceId(id: string | null | undefined): string {
   return id || '';
 }
 
-// Re-export these from lease-types directly
-export { 
+// Import these directly from lease-types instead of re-exporting
+import { 
   LeaseStatus, 
   ValidationLeaseStatus, 
   toValidationLeaseStatus,
   ensureValidLeaseStatus,
   ensureValidationLeaseStatus 
 } from '../types/lease-types';
+
+// Export them for backward compatibility
+export { 
+  LeaseStatus, 
+  ValidationLeaseStatus, 
+  toValidationLeaseStatus,
+  ensureValidLeaseStatus,
+  ensureValidationLeaseStatus 
+};

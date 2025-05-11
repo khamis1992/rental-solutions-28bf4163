@@ -148,14 +148,14 @@ export function useFleetReport() {
   };
 
   // React Query hook for report data
-  const { data: reportData, refetch } = useQuery({
+  const { data, refetch } = useQuery({
     queryKey: ['fleetReport'],
     queryFn: generateReportData,
     refetchOnWindowFocus: false,
   });
 
   return { 
-    reportData: reportData || { 
+    reportData: data || { 
       vehicles: [], 
       report: {
         totalVehicles: 0,

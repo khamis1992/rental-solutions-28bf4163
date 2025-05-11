@@ -8,7 +8,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { CustomerInfo } from '@/types/customer';
 import { useAgreementDataFetching } from './agreement/use-agreement-data-fetching';
 import { processAgreementData, processCustomerData } from '@/utils/agreement-data-processors';
-import { ensureValidationLeaseStatus } from '@/types/lease-types';
+import { ensureValidationLeaseStatus } from '@/utils/database-type-helpers';
 
 /**
  * Hook for editing an existing agreement
