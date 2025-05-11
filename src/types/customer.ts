@@ -7,6 +7,8 @@ export interface CustomerInfo {
   driver_license?: string;
   nationality?: string;
   address?: string;
+  status?: string;
+  created_at?: string;
 }
 
 export interface CustomerListItem {

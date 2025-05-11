@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CustomerInfo } from '@/types/customer';
@@ -64,18 +63,19 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-      active: { variant: "default", icon: CheckCircle },
-      inactive: { variant: "secondary", icon: XCircle },
+    // Map status to appropriate badge variants
+    const statusConfig: Record<string, { variant: string, icon: any }> = {
+      active: { variant: "success", icon: CheckCircle },
+      inactive: { variant: "inactive", icon: XCircle },
       blacklisted: { variant: "destructive", icon: XCircle },
-      pending_review: { variant: "outline", icon: AlertTriangle },
-      pending_payment: { variant: "outline", icon: AlertTriangle },
+      pending_review: { variant: "warning", icon: AlertTriangle },
+      pending_payment: { variant: "info", icon: AlertTriangle },
     };
 
-    const { variant, icon: Icon } = variants[status] || variants.active;
+    const { variant, icon: Icon } = statusConfig[status] || statusConfig.active;
     
     return (
-      <Badge variant={variant} className="flex items-center gap-1">
+      <Badge variant={variant as any} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
         {status.replace('_', ' ')}
       </Badge>

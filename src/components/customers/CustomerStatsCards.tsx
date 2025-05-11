@@ -63,13 +63,13 @@ export const CustomerStatsCards: React.FC<CustomerStatsCardsProps> = ({ customer
         </CardContent>
       </Card>
       
-      <Card className="border-l-4 border-l-green-500">
+      <Card className="border-l-4 border-l-emerald-500">
         <CardHeader className="pb-2">
           <CardDescription>Active Customers</CardDescription>
           <CardTitle className="text-3xl font-bold">{stats.active}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex items-center text-green-500">
+          <div className="flex items-center text-emerald-500">
             <UserCheck className="h-4 w-4 mr-1" />
             <span className="text-sm">{((stats.active / stats.total) * 100 || 0).toFixed(0)}% of total</span>
           </div>
@@ -102,13 +102,13 @@ export const CustomerStatsCards: React.FC<CustomerStatsCardsProps> = ({ customer
         </CardContent>
       </Card>
       
-      <Card className="border-l-4 border-l-red-500">
+      <Card className="border-l-4 border-l-rose-500">
         <CardHeader className="pb-2">
           <CardDescription>Blacklisted</CardDescription>
           <CardTitle className="text-3xl font-bold">{stats.blacklisted}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex items-center text-red-500">
+          <div className="flex items-center text-rose-500">
             <ShieldAlert className="h-4 w-4 mr-1" />
             <span className="text-sm">Restricted customers</span>
           </div>

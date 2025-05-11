@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CustomerInfo } from '@/types/customer';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Mail,
   Phone,
@@ -35,7 +35,9 @@ import {
   Car,
   AlertTriangle,
   Pencil,
-  ArrowUpRight
+  ArrowUpRight,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 interface CustomerDetailsSidebarProps {
@@ -58,6 +60,26 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     navigator.clipboard.writeText(text);
   };
 
+  // Function to get the appropriate badge for a status
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { variant: string, icon: any }> = {
+      active: { variant: "success", icon: CheckCircle },
+      inactive: { variant: "inactive", icon: XCircle },
+      blacklisted: { variant: "destructive", icon: XCircle },
+      pending_review: { variant: "warning", icon: AlertTriangle },
+      pending_payment: { variant: "info", icon: AlertTriangle },
+    };
+
+    const { variant, icon: Icon } = statusConfig[status] || statusConfig.active;
+    
+    return (
+      <Badge variant={variant as any} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {status.replace('_', ' ')}
+      </Badge>
+    );
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md overflow-y-auto">
@@ -78,16 +100,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
               <h2 className="text-xl font-bold">{customer.full_name}</h2>
               <p className="text-sm text-muted-foreground">Customer ID: {customer.id.substring(0, 8)}</p>
               <div className="flex gap-2 mt-1">
-                {customer.status && (
-                  <div className={`px-2 py-1 text-xs rounded 
-                    ${customer.status === 'active' ? 'bg-green-100 text-green-800' : 
-                      customer.status === 'inactive' ? 'bg-gray-100 text-gray-800' : 
-                      customer.status === 'blacklisted' ? 'bg-red-100 text-red-800' : 
-                      'bg-yellow-100 text-yellow-800'}`
-                  }>
-                    {customer.status.replace('_', ' ')}
-                  </div>
-                )}
+                {customer.status && getStatusBadge(customer.status)}
               </div>
             </div>
           </div>
