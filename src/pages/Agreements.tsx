@@ -12,7 +12,7 @@ import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Uploa
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
-import { AgreementSearch } from '@/components/agreements/page/AgreementSearch';
+import { AgreementListFilter } from '@/components/agreements/AgreementListFilter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -121,6 +121,22 @@ const Agreements = () => {
     }
   }, []);
 
+  // Handle search using the new component
+  const handleSearch = (query: string) => {
+    if (!query || query.trim() === '') {
+      // Clear search if input is empty
+      setSearchParams({ query: undefined, page: 1 });
+      setSearchQuery('');
+    } else {
+      // Set search parameters and reset to page 1
+      setSearchParams({ 
+        query: query,
+        page: 1  // Important: Reset to page 1 when searching
+      });
+      setSearchQuery(query);
+    }
+  };
+
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
     .filter(([key, value]) => key !== 'status' && key !== 'customer_id' && key !== 'query' && key !== 'page' && value !== undefined && value !== '');
@@ -176,10 +192,10 @@ const Agreements = () => {
             
             {/* Search and Action Bar */}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
-              <AgreementSearch
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                setSearchParams={setSearchParams}
+              <AgreementListFilter
+                searchTerm={searchQuery}
+                onSearch={handleSearch}
+                onFilterChange={handleFilterChange}
               />
               
               <div className="flex items-center gap-2">

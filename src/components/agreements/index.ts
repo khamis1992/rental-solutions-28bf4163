@@ -22,6 +22,7 @@ export * from './VehicleAssignmentDialog';
 export * from './VehicleSection';
 export * from './VehicleStatusBadge';
 export * from './AgreementCardView';
+export * from './AgreementListFilter';
 
 // Page components
 export * from './page/AgreementActionButtons';
