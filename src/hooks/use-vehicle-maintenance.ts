@@ -13,10 +13,10 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
       if (!vehicleId) return [];
       
       const { data, error } = await supabase
-        .from('maintenance_records')
+        .from('maintenance')  // Using the correct 'maintenance' table instead of 'maintenance_records'
         .select('*')
         .eq('vehicle_id', asVehicleId(vehicleId))
-        .order('service_date', { ascending: false });
+        .order('scheduled_date', { ascending: false });
       
       if (error) throw error;
       

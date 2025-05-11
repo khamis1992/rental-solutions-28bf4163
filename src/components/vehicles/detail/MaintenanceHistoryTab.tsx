@@ -54,10 +54,10 @@ export const MaintenanceHistoryTab: React.FC<MaintenanceHistoryTabProps> = ({ ve
               <Wrench className="h-5 w-5 mr-2 text-primary" />
               <div>
                 <h3 className="font-medium">
-                  {record.maintenance_type || 'Maintenance Record'}
+                  {record.maintenance_type || record.service_type || 'Maintenance Record'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {record.performed_by || record.service_provider || 'Not specified'}
+                  {record.performed_by || 'Not specified'}
                 </p>
               </div>
             </div>
@@ -67,11 +67,11 @@ export const MaintenanceHistoryTab: React.FC<MaintenanceHistoryTabProps> = ({ ve
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium">Service Date</p>
-                <p>{formatDate(record.service_date || record.scheduled_date)}</p>
+                <p>{formatDate(record.scheduled_date)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Cost</p>
-                <p>{formatCurrency(record.cost)}</p>
+                <p>{record.cost ? formatCurrency(record.cost) : 'Not specified'}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-sm font-medium">Description</p>
@@ -81,6 +81,12 @@ export const MaintenanceHistoryTab: React.FC<MaintenanceHistoryTabProps> = ({ ve
                 <div className="col-span-2">
                   <p className="text-sm font-medium">Notes</p>
                   <p className="text-sm">{record.notes}</p>
+                </div>
+              )}
+              {record.completed_date && (
+                <div className="col-span-2">
+                  <p className="text-sm font-medium">Completed Date</p>
+                  <p className="text-sm">{formatDate(record.completed_date)}</p>
                 </div>
               )}
             </div>
