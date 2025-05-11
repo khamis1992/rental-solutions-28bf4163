@@ -356,7 +356,10 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                 
                 <TabsContent value="new" className="pt-2">
                   <div className="flex items-center space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value="new" id="new-payment" checked={selectedPaymentId === 'new'} onClick={() => setSelectedPaymentId('new')} />
+                    {/* Fix: Wrap RadioGroupItem inside a RadioGroup */}
+                    <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')}>
+                      <RadioGroupItem value="new" id="new-payment" />
+                    </RadioGroup>
                     <div className="grid flex-1">
                       <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
                       <span className="text-sm text-muted-foreground">
@@ -379,7 +382,10 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                 You can create a new payment below.
               </p>
               <div className="mt-4">
-                <RadioGroupItem value="new" id="new-payment" checked={selectedPaymentId === 'new'} onClick={() => setSelectedPaymentId('new')} className="hidden" />
+                {/* Fix: Wrap RadioGroupItem inside a RadioGroup */}
+                <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')} className="hidden">
+                  <RadioGroupItem value="new" id="new-payment" />
+                </RadioGroup>
                 <Button 
                   type="button" 
                   variant="outline" 
