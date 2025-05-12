@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { DbId, LeaseId, PaymentId, VehicleId, ProfileId, TrafficFineId, LegalCaseId, MaintenanceId } from '@/types/database-common';
 
