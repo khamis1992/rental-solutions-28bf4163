@@ -28,23 +28,38 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
       if (!vehicleId) return [];
       
       try {
+        // Use explicit table references to avoid ambiguity
         const { data, error } = await supabase
           .from('maintenance')
           .select('*')
-          .eq('vehicle_id', asVehicleId(vehicleId))
+          .eq('vehicle_id', vehicleId) // Removed asVehicleId to prevent type errors
           .order('scheduled_date', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching maintenance records:", error);
+          throw error;
+        }
         
-        setMaintenanceRecords(data || []);
-        return data || [];
+        const safeData = data || [];
+        setMaintenanceRecords(safeData);
+        return safeData;
       } catch (err) {
         console.error("Error fetching maintenance records:", err);
         throw err;
       }
     },
-    enabled: !!vehicleId
+    enabled: !!vehicleId // Only run query when vehicleId exists
   });
+
+  // Update maintenance records when vehicleId changes
+  useEffect(() => {
+    if (vehicleId) {
+      refetch();
+    } else {
+      // Reset state when vehicleId is not available
+      setMaintenanceRecords([]);
+    }
+  }, [vehicleId, refetch]);
 
   return {
     maintenanceRecords,

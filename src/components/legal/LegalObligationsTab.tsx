@@ -6,30 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { CustomerObligation } from './CustomerLegalObligations';
+import { supabase } from '@/lib/supabase';
 
 interface LegalObligationsTabProps {
   customerId: string;
 }
-
-// Mock function to simulate fetching legal obligations
-const fetchLegalObligations = async (customerId: string): Promise<CustomerObligation[]> => {
-  // In a real implementation, this would fetch from your API or database
-  console.log(`Fetching legal obligations for customer: ${customerId}`);
-  
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Return mock data for now
-  return [
-    {
-      id: "ob-1",
-      description: "Monthly vehicle lease payment",
-      status: "overdue",
-      dueDate: new Date(),
-      createdAt: new Date()
-    }
-  ];
-};
 
 const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId }) => {
   const [obligations, setObligations] = useState<CustomerObligation[]>([]);
@@ -38,10 +19,45 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
 
   useEffect(() => {
     const loadObligations = async () => {
+      if (!customerId) {
+        setLoading(false);
+        setError("No customer ID provided");
+        return;
+      }
+      
       try {
         setLoading(true);
-        const data = await fetchLegalObligations(customerId);
-        setObligations(data);
+        
+        // Fetch customer name first
+        const { data: customerData, error: customerError } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', customerId)
+          .maybeSingle();
+          
+        if (customerError) {
+          console.error("Error fetching customer data:", customerError);
+          throw new Error("Failed to fetch customer information");
+        }
+
+        // For now, we'll use mock data while implementing the actual functionality
+        const mockObligations: CustomerObligation[] = [
+          {
+            id: "ob-1",
+            customerId: customerId,
+            customerName: customerData?.full_name || "Unknown Customer",
+            description: "Monthly vehicle lease payment",
+            status: "overdue",
+            dueDate: new Date(),
+            createdAt: new Date(),
+            amount: 1200,
+            urgency: "high",
+            daysOverdue: 5,
+            obligationType: "payment"
+          }
+        ];
+        
+        setObligations(mockObligations);
         setError(null);
       } catch (err: any) {
         console.error("Failed to load legal obligations:", err);
@@ -51,10 +67,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       }
     };
 
-    if (customerId) {
-      loadObligations();
-    }
-  }, [customerId]);
+    loadObligations();
+  }, [customerId]); // Properly include customerId in the dependency array
 
   // Get status badge
   const getStatusBadge = (status: string) => {

@@ -19,7 +19,9 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     return null;
   }
 
-  const getUrgencyColorClass = (urgency: string) => {
+  const getUrgencyColorClass = (urgency?: string) => {
+    if (!urgency) return '';
+    
     switch (urgency) {
       case 'critical': return 'text-red-600';
       case 'high': return 'text-orange-500';
@@ -29,7 +31,9 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     }
   };
 
-  const isRecentDate = (date: Date) => {
+  const isRecentDate = (date?: Date) => {
+    if (!date) return false;
+    
     const now = new Date();
     const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     return daysDiff <= 30;
@@ -57,19 +61,23 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Customer</h4>
             <div className="flex items-center">
               <UserCog className="mr-2 h-4 w-4 text-muted-foreground" />
-              <Link 
-                to={`/customers/${obligation.customerId}`} 
-                className="text-primary hover:underline flex items-center"
-              >
-                {obligation.customerName}
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
+              {obligation.customerId ? (
+                <Link 
+                  to={`/customers/${obligation.customerId}`} 
+                  className="text-primary hover:underline flex items-center"
+                >
+                  {obligation.customerName || 'Customer'}
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              ) : (
+                <span>Not assigned</span>
+              )}
             </div>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Amount Due</h4>
-            <p className="font-medium">{formatCurrency(obligation.amount)}</p>
+            <p className="font-medium">{obligation.amount ? formatCurrency(obligation.amount) : 'N/A'}</p>
           </div>
           
           <div>
@@ -77,7 +85,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <div className="flex items-center">
               <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
               <span className={isRecentDate(obligation.dueDate) ? 'text-red-500 font-medium' : ''}>
-                {formatDate(obligation.dueDate)}
+                {obligation.dueDate ? formatDate(obligation.dueDate) : 'No due date set'}
               </span>
             </div>
           </div>
@@ -85,7 +93,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Urgency</h4>
             <p className={`font-medium ${getUrgencyColorClass(obligation.urgency)}`}>
-              {obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1)}
+              {obligation.urgency ? obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1) : 'Not specified'}
             </p>
           </div>
           
@@ -98,10 +106,10 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Days Overdue</h4>
-            <p className={`font-medium ${obligation.daysOverdue > 0 ? 'text-red-500' : ''}`}>
-              {obligation.daysOverdue}
+            <p className={`font-medium ${(obligation.daysOverdue || 0) > 0 ? 'text-red-500' : ''}`}>
+              {obligation.daysOverdue ?? 0}
             </p>
-            {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
+            {(obligation.daysOverdue || 0) > 0 && obligation.obligationType === 'payment' && (
               <p className="text-xs text-red-500">
                 Late fee: {formatCurrency(120)} / day
               </p>
@@ -133,7 +141,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
         <div className="border-t pt-4 mt-4">
           <h4 className="text-sm font-medium mb-2">Related Information</h4>
           <div className="space-y-2">
-            {obligation.obligationType === 'payment' && (
+            {obligation.obligationType === 'payment' && obligation.customerId && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -147,16 +155,18 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
               </Button>
             )}
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              asChild
-            >
-              <Link to={`/customers/${obligation.customerId}`}>
-                <UserCog className="mr-2 h-4 w-4" />
-                View Customer Profile
-              </Link>
-            </Button>
+            {obligation.customerId && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                asChild
+              >
+                <Link to={`/customers/${obligation.customerId}`}>
+                  <UserCog className="mr-2 h-4 w-4" />
+                  View Customer Profile
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

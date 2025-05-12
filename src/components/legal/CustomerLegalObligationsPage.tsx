@@ -19,10 +19,11 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
     // For now, just simulate loading and then show empty state
     const timer = setTimeout(() => {
       setIsLoading(false);
+      // Don't set any data for now, just finish loading state
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [customerId]); // Make sure customerId is included in the dependency array
+  }, [customerId]); // Ensure customerId is in the dependency array
 
   if (isLoading) {
     return (
@@ -50,10 +51,12 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
     );
   }
 
+  // If we have a customerId, use the LegalObligationsTab component
   if (customerId) {
     return <LegalObligationsTab customerId={customerId} />;
   }
 
+  // Default view when no customerId is provided
   return (
     <Card>
       <CardContent className="p-6">

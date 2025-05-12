@@ -52,7 +52,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       setError(null);
       
       try {
-        // Get customer and their agreements
+        // Get customer and their agreements using maybeSingle instead of single to handle not found case
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -66,7 +66,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
             )
           `)
           .eq('id', customerId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching customer:", error);
@@ -74,6 +74,17 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           toast({
             title: "Error fetching customer",
             description: error.message,
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (!data) {
+          setError("Customer not found");
+          toast({
+            title: "Customer not found",
+            description: "The requested customer could not be found",
             variant: "destructive",
           });
           setIsLoading(false);
@@ -97,8 +108,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
 
     if (customerId) {
       fetchCustomer();
+    } else {
+      setIsLoading(false);
+      setError("No customer ID provided");
     }
-  }, [customerId, toast]);
+  }, [customerId, toast]); // Proper dependency array
 
   // Handle customer updates
   const updateMutation = useMutation({
