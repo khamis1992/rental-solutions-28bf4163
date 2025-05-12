@@ -26,7 +26,7 @@ export const MaintenanceHistoryTab: React.FC<MaintenanceHistoryTabProps> = ({ ve
       <Card>
         <CardContent className="py-6">
           <div className="text-center text-muted-foreground">
-            <p>Error loading maintenance history: {error.message}</p>
+            <p>Error loading maintenance history: {(error as Error).message}</p>
           </div>
         </CardContent>
       </Card>
