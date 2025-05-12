@@ -20,6 +20,7 @@ import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
+import { usePayment } from '@/hooks/use-payment';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -57,7 +58,11 @@ export function AgreementDetail({
     updatePayment,
     addPayment,
     deletePayment
-  } = usePayments(agreement?.id);
+  } = usePayments(agreement?.id || '');
+  
+  const { updateHistoricalStatuses } = usePayment(agreement?.id);
+  
+  const [isUpdatingPaymentStatuses, setIsUpdatingPaymentStatuses] = useState(false);
   
   useEffect(() => {
     if (agreement?.id) {
@@ -200,6 +205,22 @@ export function AgreementDetail({
     return months > 0 ? months : 1;
   }, []);
 
+  const handleUpdateHistoricalPaymentStatuses = async () => {
+    if (!agreement) return;
+    
+    setIsUpdatingPaymentStatuses(true);
+    try {
+      await updateHistoricalStatuses();
+      onDataRefresh();
+      fetchPayments();
+    } catch (error) {
+      console.error("Error updating payment statuses:", error);
+      toast.error("Failed to update payment statuses");
+    } finally {
+      setIsUpdatingPaymentStatuses(false);
+    }
+  };
+
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
@@ -270,13 +291,23 @@ export function AgreementDetail({
         contractAmount={contractAmount}
       />
 
-      <AgreementActionButtons 
-        onEdit={handleEdit}
-        onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={handleGenerateDocument}
-        onDelete={handleDelete}
-        isGeneratingPdf={isGeneratingPdf}
-      />
+      <div className="flex items-center justify-between">
+        <AgreementActionButtons 
+          onEdit={handleEdit}
+          onDownloadPdf={handleDownloadPdf}
+          onGenerateDocument={handleGenerateDocument}
+          onDelete={handleDelete}
+          isGeneratingPdf={isGeneratingPdf}
+        />
+        
+        <Button
+          variant="outline"
+          onClick={handleUpdateHistoricalPaymentStatuses}
+          disabled={isUpdatingPaymentStatuses}
+        >
+          {isUpdatingPaymentStatuses ? "Updating..." : "Complete Historical Payments"}
+        </Button>
+      </div>
 
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 

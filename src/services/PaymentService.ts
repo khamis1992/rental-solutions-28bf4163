@@ -346,6 +346,37 @@ export class PaymentService extends BaseService<'unified_payments'> {
       };
     });
   }
+
+  /**
+   * Update status of historical payments to 'completed'
+   * @param agreementId The ID of the agreement to update payments for
+   * @param cutoffDate The date before which all payments should be marked as completed
+   * @returns ServiceResult with count of updated records
+   */
+  async updateHistoricalPaymentStatuses(
+    agreementId: string, 
+    cutoffDate: Date
+  ): Promise<ServiceResult<{updatedCount: number}>> {
+    return handleServiceOperation(async () => {
+      // Update all payments before the cutoff date to "completed" status
+      const { data, error, count } = await supabase
+        .from('unified_payments')
+        .update({ status: 'completed' })
+        .eq('lease_id', agreementId)
+        .lt('payment_date', cutoffDate.toISOString())
+        .not('status', 'eq', 'completed');
+
+      if (error) {
+        console.error("Error updating payment statuses:", error);
+        throw new Error(`Failed to update payment statuses: ${error.message}`);
+      }
+
+      // Return the count of updated records
+      return {
+        updatedCount: count || 0
+      };
+    });
+  }
 }
 
 // Create singleton instance

@@ -87,18 +87,18 @@ export const usePaymentService = (agreementId?: string) => {
 
   // Mutation for handling special payments with late fee calculation
   const handleSpecialPayment = useMutation({
-    mutationFn: async ({ 
-      agreementId, 
-      amount, 
-      paymentDate, 
-      options 
-    }: { 
+    mutationFn: async (params: { 
       agreementId: string; 
       amount: number; 
       paymentDate: Date; 
       options?: any 
     }) => {
-      const result = await paymentService.handleSpecialPayment(agreementId, amount, paymentDate, options);
+      const result = await paymentService.handleSpecialPayment(
+        params.agreementId, 
+        params.amount, 
+        params.paymentDate, 
+        params.options
+      );
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to process special payment');
       }
@@ -151,6 +151,24 @@ export const usePaymentService = (agreementId?: string) => {
     }
   });
 
+  // New mutation for updating historical payment statuses
+  const updateHistoricalPaymentStatuses = useMutation({
+    mutationFn: async (params: { agreementId: string; cutoffDate: Date }) => {
+      const result = await paymentService.updateHistoricalPaymentStatuses(params.agreementId, params.cutoffDate);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to update historical payment statuses');
+      }
+      return result.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.updatedCount} historical payment records updated to completed status`);
+      queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
+    },
+    onError: (error) => {
+      toast.error(`Failed to update payment statuses: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
   return {
     payments,
     isLoading,
@@ -161,6 +179,7 @@ export const usePaymentService = (agreementId?: string) => {
     handleSpecialPayment: handleSpecialPayment.mutateAsync,
     checkAndCreateMissingPayments: checkAndCreateMissingPayments.mutateAsync,
     fixAgreementPayments: fixAgreementPayments.mutateAsync,
+    updateHistoricalPaymentStatuses: updateHistoricalPaymentStatuses.mutateAsync,
     refetch,
     // Expose isPending states for UI loading indicators
     isPending: {
@@ -170,6 +189,7 @@ export const usePaymentService = (agreementId?: string) => {
       handleSpecialPayment: handleSpecialPayment.isPending,
       checkAndCreateMissingPayments: checkAndCreateMissingPayments.isPending,
       fixAgreementPayments: fixAgreementPayments.isPending,
+      updateHistoricalPaymentStatuses: updateHistoricalPaymentStatuses.isPending
     }
   };
 };
