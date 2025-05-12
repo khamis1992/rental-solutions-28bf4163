@@ -3,15 +3,21 @@ import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { CustomerDetail } from '@/components/customers/CustomerDetail';
 import { isValidDatabaseId } from '@/lib/database/validation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const CustomerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [isValidId, setIsValidId] = useState(true);
   
   // Validate ID format
   useEffect(() => {
     if (id && !isValidDatabaseId(id)) {
       console.warn(`Invalid customer ID format: ${id}`);
+      setIsValidId(false);
+    } else {
+      setIsValidId(true);
     }
   }, [id]);
   
@@ -21,7 +27,17 @@ const CustomerDetailPage = () => {
       description="View detailed information about the customer."
       backLink="/customers"
     >
-      <CustomerDetail customerId={id} />
+      {!isValidId ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Invalid customer ID format. Please return to the customers list and try again.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <CustomerDetail customerId={id} />
+      )}
     </PageContainer>
   );
 };

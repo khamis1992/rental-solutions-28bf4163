@@ -56,7 +56,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
             description: "Monthly vehicle lease payment",
             status: "overdue",
             dueDate: new Date(),
-            createdAt: new Date(),
+            createdAt: new Date(), // Make sure createdAt is provided
             amount: 1200,
             urgency: "high",
             daysOverdue: 5,

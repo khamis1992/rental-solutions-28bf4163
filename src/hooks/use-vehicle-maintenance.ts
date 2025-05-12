@@ -24,7 +24,10 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
   const { isLoading, error, refetch } = useQuery({
     queryKey: ['vehicle-maintenance', vehicleId],
     queryFn: async () => {
-      if (!vehicleId) return [];
+      if (!vehicleId) {
+        console.log("useVehicleMaintenanceHistory: No vehicle ID provided");
+        return [];
+      }
       
       try {
         console.log("Fetching maintenance records for vehicle:", vehicleId);

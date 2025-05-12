@@ -30,21 +30,23 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
   useEffect(() => {
     const fetchObligations = async () => {
       if (!customerId) {
+        console.log("CustomerLegalObligations: No customerId provided");
         setIsLoading(false);
         return;
       }
       
       try {
+        console.log("CustomerLegalObligations: Fetching obligations for customer:", customerId);
         setIsLoading(true);
         // Fetch customer name first to include in obligations
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('id', customerId)
-          .single();
+          .maybeSingle();  // Use maybeSingle() instead of single() to avoid errors
           
         if (customerError) {
-          console.error("Error fetching customer data:", customerError);
+          console.error("CustomerLegalObligations: Error fetching customer data:", customerError);
           setError("Failed to fetch customer information");
           setIsLoading(false);
           return;
@@ -70,7 +72,7 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
         setObligations(mockObligations);
         setError(null);
       } catch (err: any) {
-        console.error("Error fetching obligations:", err);
+        console.error("CustomerLegalObligations: Error fetching obligations:", err);
         setError(err.message || "An unexpected error occurred");
       } finally {
         setIsLoading(false);
@@ -78,7 +80,7 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
     };
 
     fetchObligations();
-  }, [customerId]); // Properly include customerId in dependency array
+  }, [customerId]); // Keep customerId in dependency array
 
   return (
     <Card>

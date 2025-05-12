@@ -43,7 +43,8 @@ const LegalCaseManagement = () => {
       dueDate: new Date(),
       urgency: getUrgencyFromPriority(legalCase.priority),
       status: legalCase.status || 'pending',
-      daysOverdue: 0
+      daysOverdue: 0,
+      createdAt: new Date(legalCase.created_at || new Date()) // Add createdAt field
     };
     setSelectedCase(obligation);
   };
