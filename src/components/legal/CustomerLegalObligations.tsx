@@ -8,7 +8,6 @@ export interface CustomerLegalObligationsProps {
 
 export interface CustomerObligation {
   id: string;
-  title: string;
   description: string;
   status: string;
   dueDate?: Date;

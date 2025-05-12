@@ -66,16 +66,9 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
     }
   }, [vehicleId, vehicleService, retryCount]);
 
-  const refetch = useCallback(() => {
-    // Reset retry count and flags when manually refetching
-    setRetryCount(0);
-    setShouldRetry(true);
-    fetchVehicle();
-  }, [fetchVehicle]);
-
   useEffect(() => {
     fetchVehicle();
-  }, [vehicleId, fetchVehicle]);
+  }, [fetchVehicle]);
 
   // Add a retry with delay, only if shouldRetry is true and we haven't hit max retries
   useEffect(() => {
@@ -93,6 +86,6 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
     vehicle,
     isLoading,
     error,
-    refetch
+    refetch: fetchVehicle
   };
 };

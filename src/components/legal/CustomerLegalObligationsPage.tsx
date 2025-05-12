@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerObligation } from './CustomerLegalObligations';
+import LegalObligationsTab from './LegalObligationsTab';
 
 interface CustomerLegalObligationsPageProps {
   customerId?: string;
@@ -49,6 +50,10 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
     );
   }
 
+  if (customerId) {
+    return <LegalObligationsTab customerId={customerId} />;
+  }
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -57,10 +62,12 @@ const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> 
           <div>
             {obligations.map((obligation) => (
               <div key={obligation.id} className="mb-4 p-4 border rounded">
-                <h4 className="font-medium">{obligation.title}</h4>
+                <h4 className="font-medium">{obligation.description}</h4>
                 <p className="text-sm text-muted-foreground">{obligation.description}</p>
                 <div className="flex justify-between mt-2">
-                  <span className="text-xs">{obligation.createdAt.toLocaleDateString()}</span>
+                  <span className="text-xs">
+                    {obligation.dueDate ? new Date(obligation.dueDate).toLocaleDateString() : 'No due date'}
+                  </span>
                   <span className={`text-xs px-2 py-1 rounded ${
                     obligation.status === 'completed' ? 'bg-green-100 text-green-800' : 
                     obligation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 

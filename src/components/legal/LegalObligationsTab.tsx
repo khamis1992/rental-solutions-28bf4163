@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ObligationType, UrgencyLevel, CustomerObligation } from './CustomerLegalObligations';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { CustomerObligation } from './CustomerLegalObligations';
 
 interface LegalObligationsTabProps {
   customerId: string;
@@ -23,17 +23,10 @@ const fetchLegalObligations = async (customerId: string): Promise<CustomerObliga
   return [
     {
       id: "ob-1",
-      customerId: customerId,
-      customerName: "Customer Name", // Would be fetched from actual data
       description: "Monthly vehicle lease payment",
-      obligationType: "payment",
-      amount: 2500,
-      dueDate: new Date(),
-      urgency: "high",
       status: "overdue",
-      daysOverdue: 5,
-      agreementId: "agr-123",
-      agreementNumber: "AGR-2024-0001"
+      dueDate: new Date(),
+      createdAt: new Date()
     }
   ];
 };
@@ -62,21 +55,6 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       loadObligations();
     }
   }, [customerId]);
-
-  // Get urgency badge
-  const getUrgencyBadge = (urgency: UrgencyLevel) => {
-    switch (urgency) {
-      case 'critical':
-        return <Badge variant="destructive">Critical</Badge>;
-      case 'high':
-        return <Badge className="bg-orange-500 hover:bg-orange-600">High</Badge>;
-      case 'medium':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium</Badge>;
-      case 'low':
-      default:
-        return <Badge variant="outline">Low</Badge>;
-    }
-  };
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -138,9 +116,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
             <TableHeader>
               <TableRow>
                 <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
                 <TableHead>Due Date</TableHead>
-                <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -149,18 +125,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                 <TableRow key={obligation.id}>
                   <TableCell>{obligation.description}</TableCell>
                   <TableCell>
-                    {obligation.amount === 0 ? 
-                      'N/A' : 
-                      obligation.amount.toLocaleString('en-US', {
-                        style: 'currency',
-                        currency: 'QAR',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                      })
-                    }
+                    {obligation.dueDate ? formatDate(obligation.dueDate) : 'N/A'}
                   </TableCell>
-                  <TableCell>{formatDate(obligation.dueDate)}</TableCell>
-                  <TableCell>{getUrgencyBadge(obligation.urgency)}</TableCell>
                   <TableCell>{getStatusBadge(obligation.status)}</TableCell>
                 </TableRow>
               ))}
