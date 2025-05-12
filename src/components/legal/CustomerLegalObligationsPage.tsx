@@ -8,7 +8,7 @@ interface CustomerLegalObligationsPageProps {
   customerId?: string;
 }
 
-export const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> = ({ customerId }) => {
+const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPageProps> = ({ customerId }) => {
   const [obligations, setObligations] = useState<CustomerObligation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPage
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [customerId]);
+  }, [customerId]); // Make sure customerId is included in the dependency array
 
   if (isLoading) {
     return (
@@ -55,8 +55,22 @@ export const CustomerLegalObligationsPage: React.FC<CustomerLegalObligationsPage
         <h3 className="text-lg font-semibold mb-4">Legal Obligations</h3>
         {obligations.length > 0 ? (
           <div>
-            {/* Legal obligations will be displayed here in the future */}
-            <p>Customer has {obligations.length} legal obligations.</p>
+            {obligations.map((obligation) => (
+              <div key={obligation.id} className="mb-4 p-4 border rounded">
+                <h4 className="font-medium">{obligation.title}</h4>
+                <p className="text-sm text-muted-foreground">{obligation.description}</p>
+                <div className="flex justify-between mt-2">
+                  <span className="text-xs">{obligation.createdAt.toLocaleDateString()}</span>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    obligation.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                    obligation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {obligation.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-muted-foreground">

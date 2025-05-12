@@ -1,9 +1,20 @@
 
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { CustomerLegalObligationsProps } from './CustomerLegalObligations';
 
-// This is a placeholder component that will be implemented in the future
+export interface CustomerLegalObligationsProps {
+  customerId?: string;
+}
+
+export interface CustomerObligation {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  dueDate?: Date;
+  createdAt: Date;
+}
+
 export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> = ({ customerId }) => {
   return (
     <Card>
@@ -16,3 +27,5 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
     </Card>
   );
 };
+
+export default CustomerLegalObligations;

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { asVehicleId } from '@/utils/database-type-helpers';
@@ -13,7 +13,7 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
       if (!vehicleId) return [];
       
       const { data, error } = await supabase
-        .from('maintenance')  // Using the correct 'maintenance' table instead of 'maintenance_records'
+        .from('maintenance')
         .select('*')
         .eq('vehicle_id', asVehicleId(vehicleId))
         .order('scheduled_date', { ascending: false });

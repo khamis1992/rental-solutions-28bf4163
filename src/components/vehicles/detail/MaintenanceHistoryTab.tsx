@@ -61,13 +61,13 @@ export const MaintenanceHistoryTab: React.FC<MaintenanceHistoryTabProps> = ({ ve
                 </p>
               </div>
             </div>
-            <StatusBadge status={record.status} />
+            <StatusBadge status={record.status || 'unknown'} />
           </div>
           <CardContent className="p-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium">Service Date</p>
-                <p>{formatDate(record.scheduled_date)}</p>
+                <p>{record.scheduled_date ? formatDate(record.scheduled_date) : 'Not specified'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Cost</p>
