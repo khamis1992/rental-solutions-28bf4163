@@ -78,7 +78,7 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
     };
 
     fetchObligations();
-  }, [customerId]); // Properly include customerId in the dependency array
+  }, [customerId]); // Properly include customerId in dependency array
 
   return (
     <Card>

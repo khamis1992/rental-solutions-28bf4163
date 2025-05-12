@@ -17,9 +17,13 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Added console logs for debugging
   useEffect(() => {
+    console.log("LegalObligationsTab: useEffect triggered with customerId:", customerId);
+    
     const loadObligations = async () => {
       if (!customerId) {
+        console.error("LegalObligationsTab: No customer ID provided");
         setLoading(false);
         setError("No customer ID provided");
         return;
@@ -27,6 +31,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       
       try {
         setLoading(true);
+        console.log("LegalObligationsTab: Fetching customer data for ID:", customerId);
         
         // Fetch customer name first
         const { data: customerData, error: customerError } = await supabase
@@ -36,9 +41,11 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
           .maybeSingle();
           
         if (customerError) {
-          console.error("Error fetching customer data:", customerError);
+          console.error("LegalObligationsTab: Error fetching customer data:", customerError);
           throw new Error("Failed to fetch customer information");
         }
+
+        console.log("LegalObligationsTab: Customer data fetched:", customerData);
 
         // For now, we'll use mock data while implementing the actual functionality
         const mockObligations: CustomerObligation[] = [
@@ -60,7 +67,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
         setObligations(mockObligations);
         setError(null);
       } catch (err: any) {
-        console.error("Failed to load legal obligations:", err);
+        console.error("LegalObligationsTab: Failed to load legal obligations:", err);
         setError(err.message || "Failed to load legal obligations");
       } finally {
         setLoading(false);
@@ -68,7 +75,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     };
 
     loadObligations();
-  }, [customerId]); // Properly include customerId in dependency array
+  }, [customerId]); // Keep customerId in dependency array
 
   // Get status badge
   const getStatusBadge = (status: string) => {

@@ -40,9 +40,15 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
+  // Add debugging console logs
+  console.log("CustomerDetail: Rendered with customerId:", customerId);
+
   useEffect(() => {
+    console.log("CustomerDetail: useEffect triggered with customerId:", customerId);
+    
     const fetchCustomer = async () => {
       if (!customerId) {
+        console.error("CustomerDetail: No customer ID provided");
         setError("No customer ID provided");
         setIsLoading(false);
         return;
@@ -52,6 +58,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       setError(null);
       
       try {
+        console.log("CustomerDetail: Fetching customer data for ID:", customerId);
+        
         // Get customer and their agreements using maybeSingle instead of single to handle not found case
         const { data, error } = await supabase
           .from('profiles')
@@ -69,7 +77,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching customer:", error);
+          console.error("CustomerDetail: Error fetching customer:", error);
           setError(error.message);
           toast({
             title: "Error fetching customer",
@@ -81,6 +89,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
         }
 
         if (!data) {
+          console.error("CustomerDetail: Customer not found for ID:", customerId);
           setError("Customer not found");
           toast({
             title: "Customer not found",
@@ -91,11 +100,12 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           return;
         }
 
+        console.log("CustomerDetail: Customer data fetched successfully:", data);
         setCustomer(data);
         setNotes(data.notes || "");
         setIsLoading(false);
       } catch (error: any) {
-        console.error("Unexpected error fetching customer:", error);
+        console.error("CustomerDetail: Unexpected error fetching customer:", error);
         setError(error.message);
         setIsLoading(false);
         toast({
@@ -168,7 +178,9 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     });
   };
 
+  // Show explicit loading indicator
   if (isLoading) {
+    console.log("CustomerDetail: Rendering loading state");
     return (
       <div className="flex items-center justify-center p-6">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -176,7 +188,9 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     );
   }
 
+  // Show explicit error state
   if (error || !customer) {
+    console.log("CustomerDetail: Rendering error state:", error);
     return (
       <Card className="w-full">
         <CardContent className="p-6">
@@ -194,6 +208,8 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   // Get total agreements
   const totalAgreements = customer.agreements?.length || 0;
 
+  console.log("CustomerDetail: Rendering customer detail view for:", customer.full_name);
+  
   return (
     <div className="space-y-6">
       {/* Customer Header Card */}

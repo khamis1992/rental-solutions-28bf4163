@@ -27,6 +27,8 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
       if (!vehicleId) return [];
       
       try {
+        console.log("Fetching maintenance records for vehicle:", vehicleId);
+
         // Use explicit table references to avoid ambiguity
         const { data, error } = await supabase
           .from('maintenance')
@@ -38,6 +40,8 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
           console.error("Error fetching maintenance records:", error);
           throw error;
         }
+        
+        console.log("Maintenance records fetched:", data);
         
         const safeData = data || [];
         setMaintenanceRecords(safeData);
@@ -52,6 +56,7 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
 
   // Update maintenance records when vehicleId changes
   useEffect(() => {
+    console.log("useVehicleMaintenanceHistory: useEffect with vehicleId:", vehicleId);
     if (vehicleId) {
       refetch();
     } else {

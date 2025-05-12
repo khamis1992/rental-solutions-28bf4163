@@ -1,4 +1,3 @@
 
-// Re-export types and component from the TSX file
-export { CustomerLegalObligations } from './CustomerLegalObligations.tsx';
-export type { CustomerLegalObligationsProps, CustomerObligation } from './CustomerLegalObligations.tsx';
+// This is just a re-export file to maintain backward compatibility
+export { CustomerLegalObligations, type CustomerLegalObligationsProps, type CustomerObligation } from './CustomerLegalObligations.tsx';
