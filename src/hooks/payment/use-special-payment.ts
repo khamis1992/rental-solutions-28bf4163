@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { createPaymentUpdate, createPaymentInsert, asLeaseId } from '@/utils/type-adapters';
-import type { PaymentStatus } from '@/types/payment.types';
+import { PaymentStatus } from '@/types/payment.types';
 
 interface SpecialPaymentParams {
   agreementId: string;
@@ -53,13 +53,13 @@ export function useSpecialPayment() {
           // Calculate new balance and status
           const totalPaid = (existingPayment.amount_paid || 0) + amount;
           const newBalance = existingPayment.amount - totalPaid;
-          const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
+          const newStatus = newBalance <= 0 ? 'completed' as PaymentStatus : 'partially_paid' as PaymentStatus;
           
           // Create type-safe update object
           const updateData = createPaymentUpdate({
             amount_paid: totalPaid,
             balance: Math.max(0, newBalance),
-            status: newStatus as PaymentStatus,
+            status: newStatus,
             payment_date: paymentDate.toISOString(),
             payment_method: options.paymentMethod,
             reference_number: options.referenceNumber
@@ -150,8 +150,8 @@ export function useSpecialPayment() {
             description: `Late fee for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })} (${daysLate} days late)`,
             status: 'completed',
             type: 'LATE_PAYMENT_FEE',
-            days_overdue: daysLate,
             late_fine_amount: lateFeeAmount,
+            days_overdue: daysLate,
             original_due_date: dueDate.toISOString()
           });
           
@@ -160,43 +160,34 @@ export function useSpecialPayment() {
             .insert([lateFeeData]);
             
           if (lateFeeError) {
-            console.error("Error recording late fee:", lateFeeError);
-            return {
-              success: true,
-              message: 'Payment recorded, but there was an error recording the late fee'
-            };
+            throw new Error(`Error recording late fee: ${lateFeeError.message}`);
           }
         }
         
         return { success: true, message: 'Payment recorded successfully' };
       } catch (error) {
-        console.error("Error in special payment processing:", error);
+        console.error("Error in specialPaymentMutation:", error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      if (data.success) {
-        toast.success(data.message || 'Payment processed successfully');
-        queryClient.invalidateQueries({ queryKey: ['payments'] });
-      } else {
-        toast.error(data.message || 'Failed to process payment');
-      }
+      toast.success(data.message || 'Payment processed successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
     onError: (error) => {
-      toast.error(`Error processing payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Payment error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
-  
+
   const handleSpecialPayment = async (params: SpecialPaymentParams) => {
     setIsPending(true);
     try {
-      const result = await specialPaymentMutation.mutateAsync(params);
-      return result;
+      return await specialPaymentMutation.mutateAsync(params);
     } finally {
       setIsPending(false);
     }
   };
-  
+
   return {
     handleSpecialPayment,
     isPending

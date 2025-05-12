@@ -49,12 +49,12 @@ export function usePaymentSchedule() {
   const maintenanceJobMutation = useMutation({
     mutationFn: async () => {
       try {
-        const { data, error } = await supabase
+        const { data: leasesMissingPayments, error: viewError } = await supabase
           .from('leases_missing_payments')
           .select('*');
 
-        if (error) {
-          throw new Error(`Database error: ${error.message}`);
+        if (viewError) {
+          throw new Error(`Database error: ${viewError.message}`);
         }
 
         const { data: triggerResult, error: triggerError } = await supabase

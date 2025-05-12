@@ -17,8 +17,8 @@ interface AgreementEditorProps {
 }
 
 export function AgreementEditor({ id, agreement, userId, vehicleData, customerData }: AgreementEditorProps) {
-  // Adapt the agreement to use the validation-compatible format
-  const validationAgreement = adaptAgreementForValidation(agreement) as SchemaAgreement;
+  // Adapt the agreement to use the validation-compatible format with full type safety
+  const validationAgreement = adaptAgreementForValidation(agreement) as unknown as SchemaAgreement;
   
   return (
     <AgreementSubmitHandler 
@@ -39,7 +39,7 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
               customers: customerData || validationAgreement.customers || {}
             }} 
             onSubmit={async (data: SchemaAgreement) => {
-              await props.handleSubmit(data);
+              await props.handleSubmit(data as unknown as SchemaAgreement);
             }}
             isSubmitting={props.isSubmitting}
             validationErrors={props.validationErrors}

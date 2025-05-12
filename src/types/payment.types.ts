@@ -1,10 +1,18 @@
 
 import { Database } from './database.types';
-import { DbId, PaymentStatus } from '@/types/database-common';
+import { DbId } from '@/types/database-common';
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
 export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
+
+// Define and export the PaymentStatus type for consistency across the application
+export type PaymentStatus = 
+  | 'pending'
+  | 'completed'
+  | 'partially_paid'
+  | 'overdue'
+  | 'cancelled';
 
 // Define the Payment interface that can be used throughout the application
 export interface Payment {
@@ -34,4 +42,15 @@ export interface PaymentMetrics {
   clicked: number;
   delivered: number;
   conversion: number;
+}
+
+// Additional types for special payment operations
+export interface SpecialPaymentOptions {
+  notes?: string;
+  paymentMethod?: string;
+  referenceNumber?: string;
+  includeLatePaymentFee?: boolean;
+  isPartialPayment?: boolean;
+  paymentType?: string;
+  targetPaymentId?: string;
 }
