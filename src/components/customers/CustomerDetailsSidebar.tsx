@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
+import { formatCurrency } from '@/lib/formatters';
 
 interface CustomerDetailsSidebarProps {
   customer: CustomerInfo | null;
@@ -287,7 +288,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
                           <div className="flex gap-1 items-center mt-1 text-xs">
                             <CreditCard className="h-3 w-3 text-muted-foreground" />
                             <span className="font-medium">
-                              ${agreement.total_amount.toFixed(2)}
+                              QAR {formatCurrency(agreement.total_amount)}
                             </span>
                             {agreement.payment_frequency && (
                               <span className="text-muted-foreground">
