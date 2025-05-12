@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CustomerInfo } from '@/types/customer';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -59,43 +59,43 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  if (!customer) {
-    return null;
-  }
-
   // Function to copy text to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 
   // Fetch agreements when customer changes or agreements tab is selected
-  useEffect(() => {
-    if (customer?.id && activeTab === 'agreements') {
-      const fetchAgreements = async () => {
-        setIsLoading(true);
-        try {
-          const { data, error } = await supabase
-            .from('leases')
-            .select('*, vehicles(*)')
-            .eq('customer_id', customer.id)
-            .order('created_at', { ascending: false });
-            
-          if (error) {
-            console.error('Error fetching agreements:', error);
-            return;
-          }
-          
-          setAgreements(data || []);
-        } catch (error) {
-          console.error('Error in fetch agreements:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchAgreements();
+  // Only define and use the effect if customer is not null
+  React.useEffect(() => {
+    // Don't run the effect if customer is null
+    if (!customer?.id || activeTab !== 'agreements') {
+      return;
     }
-  }, [customer?.id, activeTab]);
+    
+    const fetchAgreements = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .select('*, vehicles(*)')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching agreements:', error);
+          return;
+        }
+        
+        setAgreements(data || []);
+      } catch (error) {
+        console.error('Error in fetch agreements:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAgreements();
+  }, [customer?.id, activeTab]); // Make sure dependencies are stable
 
   // Function to get the appropriate badge for an agreement status
   const getAgreementStatusBadge = (status: string) => {
@@ -142,6 +142,11 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
+
+  // Early return if customer is null to ensure we don't conditionally render hooks
+  if (!customer) {
+    return null;
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
