@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { PaymentStatus } from '@/types/payment.types';
 
@@ -88,12 +88,6 @@ export function usePaymentSchedule() {
         if (error) {
           throw new Error(`Database error: ${error.message}`);
         }
-
-        // This RPC function doesn't exist yet, but we're preparing for it
-        // It would handle cases like:
-        // - Duplicate payments for the same period
-        // - Payments with inconsistent statuses
-        // - Payments with incorrect date calculations
 
         return { success: true, data };
       } catch (error) {

@@ -33,7 +33,7 @@ export function EditAgreementContent({
       {!isLoading && agreement && id && (
         <AgreementEditor
           id={id}
-          agreement={adaptAgreementForValidation(agreement)}
+          agreement={agreement}
           userId={userId}
           vehicleData={vehicleData}
           customerData={customerData}

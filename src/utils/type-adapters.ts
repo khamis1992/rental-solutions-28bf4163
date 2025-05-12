@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { DbId, LeaseId, PaymentId, VehicleId, ProfileId, TrafficFineId, LegalCaseId, MaintenanceId } from '@/types/database-common';
+import { Payment, PaymentInsert, PaymentUpdate } from '@/types/payment.types';
 
 /**
  * Helper function to safely cast a string to a DbId
@@ -71,9 +72,9 @@ export function createPaymentUpdate(data: {
   payment_method?: string;
   reference_number?: string;
   [key: string]: any;
-}) {
+}): PaymentUpdate {
   // Filter out keys that don't exist in the DB schema
-  const safeData: Record<string, any> = {};
+  const safeData: PaymentUpdate = {};
   
   if (data.amount_paid !== undefined) safeData.amount_paid = data.amount_paid;
   if (data.balance !== undefined) safeData.balance = data.balance;
@@ -104,9 +105,9 @@ export function createPaymentInsert(data: {
   late_fine_amount?: number;
   original_due_date?: string;
   [key: string]: any;
-}) {
+}): PaymentInsert {
   // Create a clean object with only valid DB fields
-  const safeData: Record<string, any> = {
+  const safeData: PaymentInsert = {
     lease_id: data.lease_id,
     amount: data.amount
   };

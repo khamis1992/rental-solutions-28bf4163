@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement as SchemaAgreement } from '@/lib/validation-schemas/agreement';
+import { Agreement as TypeAgreement } from '@/types/agreement';
 import AgreementForm from '@/components/agreements/AgreementForm';
 import { AgreementFormStatus } from '@/components/agreements/AgreementFormStatus';
 import { AgreementSubmitHandler } from '@/components/agreements/AgreementSubmitHandler';
@@ -9,7 +10,7 @@ import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 interface AgreementEditorProps {
   id: string;
-  agreement: Agreement;
+  agreement: TypeAgreement;
   userId?: string;
   vehicleData?: any;
   customerData?: CustomerInfo;
@@ -17,7 +18,7 @@ interface AgreementEditorProps {
 
 export function AgreementEditor({ id, agreement, userId, vehicleData, customerData }: AgreementEditorProps) {
   // Adapt the agreement to use the validation-compatible format
-  const validationAgreement = adaptAgreementForValidation(agreement);
+  const validationAgreement = adaptAgreementForValidation(agreement) as SchemaAgreement;
   
   return (
     <AgreementSubmitHandler 
@@ -37,7 +38,9 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
               vehicles: vehicleData || validationAgreement.vehicles || {},
               customers: customerData || validationAgreement.customers || {}
             }} 
-            onSubmit={props.handleSubmit}
+            onSubmit={async (data: SchemaAgreement) => {
+              await props.handleSubmit(data);
+            }}
             isSubmitting={props.isSubmitting}
             validationErrors={props.validationErrors}
           />

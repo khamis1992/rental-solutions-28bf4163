@@ -5,7 +5,7 @@ import { Payment } from '@/types/payment.types';
 /**
  * Hook for calculating payment statistics
  */
-export function usePaymentCalculation(payments: Payment[], rentAmount: number | null = null, contractAmount: number | null = null) {
+export function usePaymentCalculation(payments: Payment[] = [], rentAmount: number | null = null, contractAmount: number | null = null) {
   return useMemo(() => {
     // Total amount from all payments
     const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -21,54 +21,38 @@ export function usePaymentCalculation(payments: Payment[], rentAmount: number | 
     // Balance is the contract amount minus the amount that has been paid
     const balance = effectiveTotal - amountPaid;
     
-    // Calculate late fees
-    const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
+    // Calculate percentage paid
+    const percentagePaid = effectiveTotal > 0 ? (amountPaid / effectiveTotal) * 100 : 0;
+    
+    // Count overdue payments
+    const overduePayments = payments.filter(
+      payment => payment.status === 'pending' && 
+      payment.due_date && 
+      new Date(payment.due_date) < new Date()
+    ).length;
 
-    // Helper function to determine if a payment was late
-    const isLatePayment = (payment: Payment): boolean => {
-      if (payment.days_overdue && payment.days_overdue > 0) {
-        return true;
-      }
+    // Find next payment date
+    const upcomingPayments = payments
+      .filter(payment => 
+        payment.status === 'pending' && 
+        payment.due_date && 
+        new Date(payment.due_date) >= new Date()
+      )
+      .sort((a, b) => {
+        if (!a.due_date || !b.due_date) return 0;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
       
-      if (payment.late_fine_amount && payment.late_fine_amount > 0) {
-        return true;
-      }
-      
-      return false;
-    };
+    const nextPaymentDue = upcomingPayments.length > 0 ? upcomingPayments[0].due_date : null;
     
-    // Calculate payment status counts
-    const paidOnTime = payments.filter(p => 
-      p.status === 'completed' && !isLatePayment(p)
-    ).length;
-    
-    const paidLate = payments.filter(p => 
-      p.status === 'completed' && isLatePayment(p)
-    ).length;
-    
-    const pendingCount = payments.filter(p => 
-      p.status === 'pending' || p.status === 'partially_paid'
-    ).length;
-
-    const overdueCount = payments.filter(p => 
-      p.status === 'overdue' || (p.status === 'pending' && p.days_overdue && p.days_overdue > 0)
-    ).length;
-
     return {
       totalAmount,
       amountPaid,
       balance,
-      lateFees,
-      paidOnTime,
-      paidLate,
-      pendingCount,
-      overdueCount,
-      paymentStatistics: {
-        total: payments.length,
-        completed: paidOnTime + paidLate,
-        pending: pendingCount,
-        overdue: overdueCount
-      }
+      percentagePaid,
+      overduePayments,
+      nextPaymentDue,
+      remainingPayments: upcomingPayments.length
     };
   }, [payments, rentAmount, contractAmount]);
 }

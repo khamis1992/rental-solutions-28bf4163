@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { createPaymentUpdate, createPaymentInsert, asLeaseId } from '@/utils/type-adapters';
 import type { PaymentStatus } from '@/types/payment.types';
 
@@ -46,8 +46,8 @@ export function useSpecialPayment() {
             .eq('id', options.targetPaymentId)
             .single();
             
-          if (paymentError) {
-            throw new Error(`Error fetching payment: ${paymentError.message}`);
+          if (paymentError || !existingPayment) {
+            throw new Error(`Error fetching payment: ${paymentError?.message || 'No payment found'}`);
           }
           
           // Calculate new balance and status
@@ -89,8 +89,8 @@ export function useSpecialPayment() {
           .eq('id', safeLeaseId)
           .single();
           
-        if (leaseError) {
-          throw new Error(`Error fetching agreement: ${leaseError.message}`);
+        if (leaseError || !leaseData) {
+          throw new Error(`Error fetching agreement: ${leaseError?.message || 'Agreement not found'}`);
         }
         
         // Calculate late fee if applicable

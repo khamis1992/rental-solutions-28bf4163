@@ -5,6 +5,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { agreementService } from '@/services/AgreementService';
 import { adaptAgreementForValidation } from '@/utils/type-adapters';
 import { showSuccessToast, showErrorToast } from '@/utils/toast-utils';
+import { LeaseStatus } from '@/types/lease-types';
 
 // Updated type declaration for validation result with proper conditional type
 type ValidationResult = 
@@ -127,7 +128,7 @@ function mapToApiCompatibleAgreement(data: Agreement): Agreement {
   
   // Fix incompatible types by mapping statuses
   // If the status is 'completed', map it to 'closed' for compatibility
-  if (apiData.status === 'completed') {
+  if (apiData.status === 'completed' as LeaseStatus) {
     apiData.status = 'closed';
   }
   
