@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export interface PaymentEntryDialogProps {
   } | null;
 }
 
-// Define common payment types
+// Define common payment types - moved outside component to prevent recreations on renders
 const PAYMENT_TYPES = [
   { value: 'rent', label: 'Rent' },
   { value: 'deposit', label: 'Security Deposit' },
@@ -60,18 +60,18 @@ export function PaymentEntryDialog({
   description = "Provide the necessary information to record the payment.",
   lateFeeDetails = null
 }: PaymentEntryDialogProps) {
-  const [amount, setAmount] = React.useState<number>(selectedPayment?.amount || defaultAmount || 0);
-  const [paymentDate, setPaymentDate] = React.useState<Date>(selectedPayment?.payment_date ? new Date(selectedPayment.payment_date) : new Date());
-  const [notes, setNotes] = React.useState<string>(selectedPayment?.notes || selectedPayment?.description || '');
-  const [paymentMethod, setPaymentMethod] = React.useState<string>(selectedPayment?.payment_method || 'cash');
-  const [referenceNumber, setReferenceNumber] = React.useState<string>(selectedPayment?.reference_number || selectedPayment?.transaction_id || '');
-  const [includeLatePaymentFee, setIncludeLatePaymentFee] = React.useState<boolean>(false);
-  const [isPartialPayment, setIsPartialPayment] = React.useState<boolean>(false);
-  const [paymentType, setPaymentType] = React.useState<string>(selectedPayment?.type || 'rent');
-  const [showVoidWarning, setShowVoidWarning] = React.useState<boolean>(false);
+  const [amount, setAmount] = useState<number>(0);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [notes, setNotes] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
+  const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
+  const [paymentType, setPaymentType] = useState<string>('rent');
+  const [showVoidWarning, setShowVoidWarning] = useState<boolean>(false);
 
-  // Update form values when selected payment changes
-  React.useEffect(() => {
+  // Update form values when selected payment changes or default amount changes
+  useEffect(() => {
     if (selectedPayment) {
       setAmount(selectedPayment.amount || 0);
       setPaymentDate(selectedPayment.payment_date ? new Date(selectedPayment.payment_date) : new Date());
@@ -90,14 +90,17 @@ export function PaymentEntryDialog({
       setIsPartialPayment(false);
       setPaymentType('rent');
     }
-  }, [selectedPayment, defaultAmount]);
+  }, [selectedPayment, defaultAmount]); // Only depend on selectedPayment and defaultAmount
 
-  // Check if the amount is zero and show a warning
-  React.useEffect(() => {
-    setShowVoidWarning(!!selectedPayment && amount === 0);
-  }, [amount, selectedPayment]);
+  // Check if the amount is zero and show a warning - optimized dependency
+  useEffect(() => {
+    const isZeroAmount = amount === 0;
+    const shouldShowWarning = Boolean(selectedPayment) && isZeroAmount;
+    setShowVoidWarning(shouldShowWarning);
+  }, [amount, selectedPayment]); // Only depend on amount and whether selectedPayment exists
 
-  const handleSubmit = async () => {
+  // Memoize the handleSubmit function to avoid recreating it on each render
+  const handleSubmit = useCallback(async () => {
     const success = await onSubmit(
       amount,
       paymentDate,
@@ -112,7 +115,24 @@ export function PaymentEntryDialog({
     if (success) {
       onOpenChange(false);
     }
-  };
+  }, [
+    amount, 
+    paymentDate, 
+    notes, 
+    paymentMethod, 
+    referenceNumber, 
+    includeLatePaymentFee, 
+    isPartialPayment, 
+    paymentType, 
+    onSubmit, 
+    onOpenChange
+  ]);
+
+  // Calculate button text based on payment state - memoized to avoid recalculation
+  const buttonText = useMemo(() => {
+    if (selectedPayment && amount === 0) return 'Void Payment';
+    return selectedPayment ? 'Update Payment' : 'Submit Payment';
+  }, [selectedPayment, amount]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -239,7 +259,7 @@ export function PaymentEntryDialog({
             onClick={handleSubmit}
             className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
           >
-            {selectedPayment && amount === 0 ? 'Void Payment' : selectedPayment ? 'Update Payment' : 'Submit Payment'}
+            {buttonText}
           </button>
         </FormSection>
       </DialogContent>

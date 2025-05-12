@@ -4,18 +4,17 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
-import { asLeaseId, asPaymentId, createPaymentInsert, createPaymentUpdate, isQueryDataValid } from '@/utils/type-adapters';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Function to refresh agreement data
+  // Function to refresh agreement data - memoized
   const refreshAgreementData = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  // Handle special agreement payments with late fee calculation
+  // Handle special agreement payments with late fee calculation - memoized to prevent recreations
   const handleSpecialAgreementPayments = useCallback(async (
     amount: number, 
     paymentDate: Date, 
@@ -47,17 +46,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const { data: existingPayment, error: queryError } = await supabase
           .from('unified_payments')
           .select('*')
-          .eq('id', asPaymentId(paymentId))
+          .eq('id', paymentId)
           .single();
           
         if (queryError) {
           console.error("Error fetching existing payment:", queryError);
-        } else if (existingPayment && isQueryDataValid<{
-          id: string;
-          amount: number;
-          amount_paid: number;
-          balance: number;
-        }>(existingPayment)) {
+        } else if (existingPayment) {
           existingPaymentId = existingPayment.id;
           existingPaymentAmount = existingPayment.amount || 0;
           existingAmountPaid = existingPayment.amount_paid || 0;
@@ -72,12 +66,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('daily_late_fee')
-          .eq('id', asLeaseId(agreementId || ''))
+          .eq('id', agreementId || '')
           .single();
           
         if (leaseError) {
           console.error("Error fetching lease data for late fee:", leaseError);
-        } else if (leaseData && isQueryDataValid<{ daily_late_fee: number }>(leaseData)) {
+        } else if (leaseData) {
           dailyLateFee = leaseData.daily_late_fee || 120;
         }
       } else {
@@ -112,21 +106,21 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           paymentDate: paymentDate.toISOString()
         });
         
-        // Create type-safe payment update
-        const updateData = createPaymentUpdate({
+        // Create payment update object
+        const updateData = {
           amount_paid: totalPaid,
           balance: Math.max(0, newBalance),
           status: newStatus,
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null
-        });
+        };
         
         // Update the existing payment record
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update(updateData)
-          .eq('id', asPaymentId(existingPaymentId));
+          .eq('id', existingPaymentId);
           
         if (updateError) {
           console.error("Error updating payment:", updateError);
@@ -154,10 +148,10 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         // Cast the ID to string to avoid type issues
         const safeAgreementId = agreementId || '';
         
-        // Prepare the payment record with type safety
+        // Prepare the payment record
         try {
-          const paymentData = createPaymentInsert({
-            lease_id: asLeaseId(safeAgreementId),
+          const paymentData = {
+            lease_id: safeAgreementId,
             amount: agreement?.rent_amount || 0,
             amount_paid: amountPaid,
             balance: balance,
@@ -170,11 +164,11 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             days_overdue: daysLate,
             late_fine_amount: lateFineAmount,
             original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-          });
+          };
           
           const { data, error } = await supabase
             .from('unified_payments')
-            .insert(paymentData)
+            .insert([paymentData])
             .select('id')
             .single();
         
@@ -186,9 +180,9 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         
           // If there's a late fee to apply and user opted to include it, record it as a separate transaction
           if (lateFineAmount > 0 && includeLatePaymentFee) {
-            // Create the late fee record with proper typing
-            const lateFeeData = createPaymentInsert({
-              lease_id: asLeaseId(safeAgreementId),
+            // Create the late fee record
+            const lateFeeData = {
+              lease_id: safeAgreementId,
               amount: lateFineAmount,
               amount_paid: lateFineAmount,
               balance: 0,
@@ -201,11 +195,11 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
               late_fine_amount: lateFineAmount,
               days_overdue: daysLate,
               original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-            });
+            };
             
             const { error: lateFeeError } = await supabase
               .from('unified_payments')
-              .insert(lateFeeData);
+              .insert([lateFeeData]);
             
             if (lateFeeError) {
               console.error("Late fee recording error:", lateFeeError);
@@ -231,7 +225,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     } finally {
       setIsProcessing(false);
     }
-  }, [agreement, agreementId]);
+  }, [agreement, agreementId]); // Only depend on agreement and agreementId
 
   return {
     isProcessing,

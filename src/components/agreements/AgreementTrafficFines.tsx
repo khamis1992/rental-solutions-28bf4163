@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
@@ -12,23 +12,30 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines } = useTrafficFines();
+  const { isLoading: hookIsLoading, trafficFines } = useTrafficFines();
   const [showLoader, setShowLoader] = useState(false);
 
+  // Update showLoader only when the hook's loading state changes
   useEffect(() => {
-    // Initial loading state is managed by the hook
-    setShowLoader(isLoading);
-  }, [isLoading]);
+    setShowLoader(hookIsLoading);
+  }, [hookIsLoading]);
 
-  const handleRefresh = async () => {
+  // Memoize handleRefresh to prevent recreation on each render
+  const handleRefresh = useCallback(async () => {
     setShowLoader(true);
     // Wait a moment for visual feedback
     setTimeout(() => {
       setShowLoader(false);
     }, 1000);
-  };
+  }, []);
 
-  if (isLoading || showLoader) {
+  // Memoize the filtered fines to prevent recalculation on each render
+  const filteredFines = React.useMemo(() => {
+    if (!trafficFines) return [];
+    return trafficFines.filter(fine => fine.leaseId === agreementId);
+  }, [trafficFines, agreementId]);
+
+  if (showLoader) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -36,12 +43,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     );
   }
 
-  // Filter traffic fines for this agreement if needed
-  const filteredFines = trafficFines ? trafficFines.filter(fine => 
-    fine.leaseId === agreementId
-  ) : [];
-
-  if (!filteredFines || filteredFines.length === 0) {
+  if (filteredFines.length === 0) {
     return (
       <div className="space-y-4">
         <p className="text-center py-4 text-muted-foreground">

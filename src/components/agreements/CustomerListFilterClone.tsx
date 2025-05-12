@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Memoized dropdown items to prevent recreation on each render
+const filterOptions = [
+  "Created this month",
+  "With active agreements",
+  "Without documents",
+];
+
 interface CustomerListFilterProps {
   onSearch: (query: string) => void;
   searchTerm: string;
   onFilterChange?: (filters: { [key: string]: string }) => void;
 }
 
-export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
+export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo(({
   onSearch,
   searchTerm,
   onFilterChange
@@ -26,16 +33,12 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
   const [searchValue, setSearchValue] = useState(searchTerm);
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
-  const filterOptions = [
-    "Created this month",
-    "With active agreements",
-    "Without documents",
-  ];
-
+  // Only update search value when searchTerm prop changes
   useEffect(() => {
     setSearchValue(searchTerm);
   }, [searchTerm]);
 
+  // Memoize handleSearchChange to prevent recreation on each render
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
@@ -52,14 +55,23 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
     [onSearch]
   );
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchValue('');
     onSearch('');
-  };
+  }, [onSearch]);
 
   const resetFilters = useCallback(() => {
     if (onFilterChange) onFilterChange({});
   }, [onFilterChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex items-center gap-2 w-full sm:w-auto max-w-md">
@@ -110,7 +122,10 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
       </DropdownMenu>
     </div>
   );
-};
+});
+
+// Add display name for better debugging
+CustomerListFilterClone.displayName = 'CustomerListFilterClone';
 
 // Export both names for backward compatibility
 export default CustomerListFilterClone;

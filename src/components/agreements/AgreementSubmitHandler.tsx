@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Agreement } from '@/types/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { agreementService } from '@/services/AgreementService';
 import { adaptAgreementForValidation } from '@/utils/type-adapters';
 import { showSuccessToast, showErrorToast } from '@/utils/toast-utils';
@@ -35,7 +35,8 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
   const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);
   const [updateProgress, setUpdateProgress] = useState<number>(0);
 
-  const handleSubmit = async (formData: Agreement) => {
+  // Memoize handleSubmit to prevent recreations
+  const handleSubmit = useCallback(async (formData: Agreement) => {
     try {
       setIsSubmitting(true);
       setValidationErrors(null);
@@ -65,8 +66,11 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       
       setUpdateProgress(50);
       
+      // Ensure proper typing between API types and UI types
+      const apiCompatibleData = mapToApiCompatibleAgreement(validationResult.data);
+      
       // Save agreement
-      const saveResult = await agreementService.save(validationResult.data);
+      const saveResult = await agreementService.save(apiCompatibleData);
       
       setUpdateProgress(80);
       
@@ -102,7 +106,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [onSubmit, redirectTo, navigate]); // Only depend on callback functions and navigation
 
   return (
     <div>
@@ -115,6 +119,20 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
     </div>
   );
 };
+
+// Helper function to ensure API compatibility between UI types and API types
+function mapToApiCompatibleAgreement(data: Agreement): Agreement {
+  // Make a copy to avoid modifying the original
+  const apiData = { ...data };
+  
+  // Fix incompatible types by mapping statuses
+  // If the status is 'completed', map it to 'closed' for compatibility
+  if (apiData.status === 'completed') {
+    apiData.status = 'closed';
+  }
+  
+  return apiData;
+}
 
 // Updated validation function that returns the correct type
 function validateAgreementData(data: Agreement): ValidationResult {
@@ -147,12 +165,6 @@ function validateAgreementData(data: Agreement): ValidationResult {
   // Return validation result
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
-  }
-  
-  // Fix incompatible types by mapping statuses
-  // If the status is 'completed', map it to 'closed' for compatibility
-  if (data.status === 'completed') {
-    data.status = 'closed';
   }
   
   return { success: true, data };

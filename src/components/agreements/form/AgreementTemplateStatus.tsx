@@ -8,6 +8,14 @@ export interface TemplateStatus {
   message: string;
 }
 
+// Helper function to convert boolean to TemplateStatus
+export function createTemplateStatus(accessible: boolean, message: string): TemplateStatus {
+  return {
+    accessible, 
+    message
+  };
+}
+
 interface AgreementTemplateStatusProps {
   standardTemplateExists: TemplateStatus;
   specificUrlCheck: TemplateStatus;
