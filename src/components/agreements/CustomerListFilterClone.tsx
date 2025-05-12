@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 
 // Memoized dropdown items to prevent recreation on each render
 const filterOptions = [
@@ -31,28 +32,25 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo((
   onFilterChange
 }) => {
   const [searchValue, setSearchValue] = useState(searchTerm);
-  const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
   // Only update search value when searchTerm prop changes
   useEffect(() => {
     setSearchValue(searchTerm);
   }, [searchTerm]);
 
-  // Memoize handleSearchChange to prevent recreation on each render
+  // Use the debounced callback hook
+  const handleDebouncedSearch = useDebouncedCallback((value: string) => {
+    onSearch(value);
+  }, 300);
+
+  // Handle search input change
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setSearchValue(value);
-
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-
-      timeoutId.current = setTimeout(() => {
-        onSearch(value);
-      }, 300);
+      handleDebouncedSearch(value);
     },
-    [onSearch]
+    [handleDebouncedSearch]
   );
 
   const handleClearSearch = useCallback(() => {
@@ -63,15 +61,6 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo((
   const resetFilters = useCallback(() => {
     if (onFilterChange) onFilterChange({});
   }, [onFilterChange]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-    };
-  }, []);
 
   return (
     <div className="flex items-center gap-2 w-full sm:w-auto max-w-md">

@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/services/PaymentService';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from '@/types/payment.types';
 import { toast } from 'sonner';
 
 /**

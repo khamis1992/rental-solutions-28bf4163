@@ -1,7 +1,7 @@
 
 import { usePaymentService } from './services/usePaymentService';
 import { useQuery } from '@tanstack/react-query';
-import type { Payment } from '@/types/agreement-types';
+import type { Payment } from '@/types/payment-types';
 
 export function usePayment(agreementId?: string) {
   const {

@@ -1,9 +1,11 @@
+
 import { paymentRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from '@/types/payment.types';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
+import { asPaymentId, asLeaseId } from '@/lib/database/database-types';
 
 // Define payment type for readability
 export type PaymentRecord = TableRow<'unified_payments'>;
@@ -115,7 +117,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
         const { data: existingPayment, error: queryError } = await supabase
           .from('unified_payments')
           .select('*')
-          .eq('id', targetPaymentId)
+          .eq('id', asPaymentId(targetPaymentId))
           .single();
           
         if (queryError) {
@@ -133,7 +135,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
       const { data: agreementData, error: agreementError } = await supabase
         .from('leases')
         .select('daily_late_fee, rent_amount, agreement_number')
-        .eq('id', agreementId)
+        .eq('id', asLeaseId(agreementId))
         .single();
       
       if (agreementError) {
@@ -174,7 +176,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
             payment_method: paymentMethod,
             type: paymentType
           })
-          .eq('id', existingPaymentId);
+          .eq('id', asPaymentId(existingPaymentId));
           
         if (updateError) {
           throw new Error(`Failed to record additional payment: ${updateError.message}`);
@@ -278,7 +280,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
       const { data: payments, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreementId)
+        .eq('lease_id', asLeaseId(agreementId))
         .order('original_due_date', { ascending: true });
       
       if (paymentsError) {
