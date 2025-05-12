@@ -9,7 +9,7 @@ import { VehicleImageSection } from './VehicleImageSection';
 import { VehicleDetailsSection } from './VehicleDetailsSection';
 import { Vehicle } from '@/types/vehicle';
 import { VehicleStatusUpdateDialog } from '../VehicleStatusUpdateDialog';
-import { toast } from 'sonner';
+import { useVehicleStatus } from '@/hooks/use-vehicle-status';
 
 interface VehicleMainInfoProps {
   vehicle: Vehicle;
@@ -24,6 +24,7 @@ export const VehicleMainInfo: React.FC<VehicleMainInfoProps> = ({
   vehicleDetails 
 }) => {
   const navigate = useNavigate();
+  const { updateStatus } = useVehicleStatus(vehicle.id);
   const [dialogConfig, setDialogConfig] = useState<{
     isOpen: boolean;
     targetStatus: 'available' | 'maintenance';
@@ -61,14 +62,13 @@ export const VehicleMainInfo: React.FC<VehicleMainInfoProps> = ({
     });
   };
 
-  const handleDialogClose = () => {
-    setDialogConfig(prev => ({ ...prev, isOpen: false }));
-    // Show a success message after dialog closes
-    if (dialogConfig.targetStatus === 'available') {
-      toast.success('Vehicle marked as available');
-    } else if (dialogConfig.targetStatus === 'maintenance') {
-      toast.success('Vehicle marked for maintenance');
+  const handleDialogClose = (confirmed?: boolean) => {
+    if (confirmed && dialogConfig.targetStatus) {
+      // Execute status update with optimized hook
+      updateStatus(dialogConfig.targetStatus);
     }
+    
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
   };
 
   return (

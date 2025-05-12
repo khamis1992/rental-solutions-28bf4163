@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
@@ -27,15 +26,9 @@ const VehicleDetailPage = () => {
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const { vehicle, isLoading, error, refetch } = useVehicleDetail(id);
-  
-  // Force a refresh on component mount
-  React.useEffect(() => {
-    if (id) {
-      console.log('VehicleDetailPage: Fetching fresh vehicle data for ID:', id);
-      refetch();
-    }
-  }, [id, refetch]);
+  // Remove the additional refetch on component mount
+  // This will rely only on the React Query fetching mechanism
+  const { vehicle, isLoading, error } = useVehicleDetail(id);
   
   const handleDelete = async () => {
     if (!id) return;
@@ -189,7 +182,7 @@ const VehicleDetailPage = () => {
       <div className="section-transition mt-6">
         <VehicleDetail 
           vehicle={vehicle} 
-          key={`vehicle-detail-${vehicle.id}-${vehicle.updated_at}`} 
+          key={`vehicle-detail-${vehicle.id}`} 
         />
       </div>
     </PageContainer>
