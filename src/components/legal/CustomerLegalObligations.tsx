@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/lib/supabase';
-import { asProfileId } from '@/utils/database-type-helpers';
 
 export interface CustomerLegalObligationsProps {
   customerId?: string;
@@ -41,7 +40,7 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('full_name')
-          .eq('id', asProfileId(customerId))
+          .eq('id', customerId)
           .single();
           
         if (customerError) {

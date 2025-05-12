@@ -68,7 +68,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     };
 
     loadObligations();
-  }, [customerId]); // Properly include customerId in the dependency array
+  }, [customerId]); // Properly include customerId in dependency array
 
   // Get status badge
   const getStatusBadge = (status: string) => {

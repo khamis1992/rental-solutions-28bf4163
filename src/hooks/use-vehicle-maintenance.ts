@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { asVehicleId } from '@/utils/database-type-helpers';
 
 export type MaintenanceRecord = {
   id: string;
@@ -32,7 +31,7 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
         const { data, error } = await supabase
           .from('maintenance')
           .select('*')
-          .eq('vehicle_id', vehicleId) // Removed asVehicleId to prevent type errors
+          .eq('vehicle_id', vehicleId)
           .order('scheduled_date', { ascending: false });
         
         if (error) {
@@ -59,7 +58,7 @@ export function useVehicleMaintenanceHistory(vehicleId?: string) {
       // Reset state when vehicleId is not available
       setMaintenanceRecords([]);
     }
-  }, [vehicleId, refetch]);
+  }, [vehicleId, refetch]); // Include refetch in dependencies
 
   return {
     maintenanceRecords,
