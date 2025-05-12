@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { DbId, LeaseId, PaymentId, VehicleId, ProfileId, TrafficFineId, LegalCaseId, MaintenanceId } from '@/types/database-common';
 
@@ -46,11 +45,18 @@ export const asMaintenanceId = (id: string): MaintenanceId => id as MaintenanceI
  * Adapts an agreement object to match the validation schema
  */
 export function adaptAgreementForValidation(agreement: any) {
-  return {
-    ...agreement,
-    // Ensure required fields exist with default values if needed
-    total_amount: agreement.total_amount ?? 0,
-  };
+  // Make a copy to avoid modifying the original
+  const validationAgreement = { ...agreement };
+  
+  // Ensure required fields exist with default values if needed
+  validationAgreement.total_amount = validationAgreement.total_amount ?? 0;
+  
+  // Handle 'completed' status (not in validation schema) -> map to 'closed'
+  if (validationAgreement.status === 'completed') {
+    validationAgreement.status = 'closed';
+  }
+  
+  return validationAgreement;
 }
 
 /**

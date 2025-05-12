@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Agreement } from '@/types/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import AgreementForm from '@/components/agreements/AgreementForm';
 import { AgreementFormStatus } from '@/components/agreements/AgreementFormStatus';
 import { AgreementSubmitHandler } from '@/components/agreements/AgreementSubmitHandler';
 import { CustomerInfo } from '@/types/customer';
+import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 interface AgreementEditorProps {
   id: string;
@@ -15,10 +16,13 @@ interface AgreementEditorProps {
 }
 
 export function AgreementEditor({ id, agreement, userId, vehicleData, customerData }: AgreementEditorProps) {
+  // Adapt the agreement to use the validation-compatible format
+  const validationAgreement = adaptAgreementForValidation(agreement);
+  
   return (
     <AgreementSubmitHandler 
       id={id} 
-      agreement={agreement}
+      agreement={validationAgreement}
       userId={userId}
     >
       {(props) => (
@@ -29,9 +33,9 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
           />
           <AgreementForm 
             initialData={{
-              ...agreement,
-              vehicles: vehicleData || agreement.vehicles || {},
-              customers: customerData || agreement.customers || {}
+              ...validationAgreement,
+              vehicles: vehicleData || validationAgreement.vehicles || {},
+              customers: customerData || validationAgreement.customers || {}
             }} 
             onSubmit={props.handleSubmit}
             isSubmitting={props.isSubmitting}

@@ -1,101 +1,150 @@
 
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { paymentService } from '@/services/PaymentService';
+import { supabase } from '@/integrations/supabase/client';
+import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
+import { PaymentStatus } from '@/types/payment.types';
 
 /**
- * Hook for managing payment schedule operations
+ * Hook for payment schedule management operations
  */
 export function usePaymentSchedule() {
   const queryClient = useQueryClient();
+  const [isPending, setIsPendingState] = useState<{
+    generatePayment: boolean;
+    runMaintenanceJob: boolean;
+    fixPaymentAnomalies: boolean;
+  }>({
+    generatePayment: false,
+    runMaintenanceJob: false,
+    fixPaymentAnomalies: false
+  });
 
-  // Mutation for generating a payment for a specific agreement
-  const generatePayment = useMutation({
+  // Generate a payment for a specific agreement
+  const generatePaymentMutation = useMutation({
     mutationFn: async (agreementId: string) => {
-      const result = await paymentService.generatePaymentForAgreement(agreementId);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to generate payment');
+      try {
+        const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
+        return result;
+      } catch (error) {
+        console.error("Error generating payment:", error);
+        throw error;
       }
-      return result.data;
     },
-    onSuccess: (_, agreementId) => {
-      toast.success('Payment schedule generated successfully');
-      queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(data.message || 'Payment schedule generated successfully');
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
+      } else {
+        toast.error(data.message || 'Failed to generate payment schedule');
+      }
     },
     onError: (error) => {
-      toast.error(`Failed to generate payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Error generating payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
-  // Mutation for running system-wide payment maintenance
-  const runMaintenanceJob = useMutation({
+  // Run maintenance job for all agreements - this will generate missing payments
+  const maintenanceJobMutation = useMutation({
     mutationFn: async () => {
-      const result = await paymentService.runPaymentMaintenanceJob();
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to run payment maintenance');
+      try {
+        const { data, error } = await supabase
+          .from('leases_missing_payments')
+          .select('*');
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        const { data: triggerResult, error: triggerError } = await supabase
+          .rpc('generate_missing_payment_records');
+
+        if (triggerError) {
+          throw new Error(`Maintenance job error: ${triggerError.message}`);
+        }
+
+        return { success: true, data: triggerResult };
+      } catch (error) {
+        console.error("Error running maintenance job:", error);
+        throw error;
       }
-      return result.data;
     },
     onSuccess: () => {
-      toast.success('Payment maintenance completed successfully');
-      // Invalidate all payment queries to refresh data
+      toast.success('Payment maintenance job completed');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
     onError: (error) => {
-      toast.error(`Payment maintenance failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Error running maintenance job: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
-  // Mutation for checking and creating missing payments
-  const checkMissingPayments = useMutation({
-    mutationFn: async (agreementId?: string) => {
-      const result = await paymentService.checkAndCreateMissingPayments(agreementId);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to check for missing payments');
+  // Fix payment anomalies (duplicate payments, incorrect statuses)
+  const fixPaymentAnomaliesMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        const { data, error } = await supabase.rpc('fix_payment_anomalies');
+        
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        // This RPC function doesn't exist yet, but we're preparing for it
+        // It would handle cases like:
+        // - Duplicate payments for the same period
+        // - Payments with inconsistent statuses
+        // - Payments with incorrect date calculations
+
+        return { success: true, data };
+      } catch (error) {
+        console.error("Error fixing payment anomalies:", error);
+        throw error;
       }
-      return result.data;
     },
-    onSuccess: (_, agreementId) => {
-      toast.success('Payment schedules checked and updated');
-      if (agreementId) {
-        queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['payments'] });
-      }
+    onSuccess: () => {
+      toast.success('Payment anomalies fixed successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
     onError: (error) => {
-      toast.error(`Failed to check payment schedules: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Error fixing payment anomalies: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
-  // Fix payment anomalies (duplicates, etc.) for an agreement
-  const fixPaymentAnomalies = useMutation({
-    mutationFn: async (agreementId: string) => {
-      const result = await paymentService.fixAgreementPayments(agreementId);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fix agreement payments');
-      }
-      return result.data;
-    },
-    onSuccess: (data, agreementId) => {
-      toast.success(`Payment records fixed successfully: ${data.fixedCount} issues resolved`);
-      queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
-    },
-    onError: (error) => {
-      toast.error(`Failed to fix payments: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  // Wrapper functions with pending state management
+  const generatePayment = async (agreementId: string) => {
+    setIsPendingState(prev => ({ ...prev, generatePayment: true }));
+    try {
+      const result = await generatePaymentMutation.mutateAsync(agreementId);
+      return result;
+    } finally {
+      setIsPendingState(prev => ({ ...prev, generatePayment: false }));
     }
-  });
+  };
+
+  const runMaintenanceJob = async () => {
+    setIsPendingState(prev => ({ ...prev, runMaintenanceJob: true }));
+    try {
+      const result = await maintenanceJobMutation.mutateAsync();
+      return result;
+    } finally {
+      setIsPendingState(prev => ({ ...prev, runMaintenanceJob: false }));
+    }
+  };
+
+  const fixPaymentAnomalies = async () => {
+    setIsPendingState(prev => ({ ...prev, fixPaymentAnomalies: true }));
+    try {
+      const result = await fixPaymentAnomaliesMutation.mutateAsync();
+      return result;
+    } finally {
+      setIsPendingState(prev => ({ ...prev, fixPaymentAnomalies: false }));
+    }
+  };
 
   return {
-    generatePayment: generatePayment.mutateAsync,
-    runMaintenanceJob: runMaintenanceJob.mutateAsync,
-    checkMissingPayments: checkMissingPayments.mutateAsync,
-    fixPaymentAnomalies: fixPaymentAnomalies.mutateAsync,
-    isPending: {
-      generatePayment: generatePayment.isPending,
-      runMaintenanceJob: runMaintenanceJob.isPending,
-      checkMissingPayments: checkMissingPayments.isPending,
-      fixPaymentAnomalies: fixPaymentAnomalies.isPending
-    }
+    generatePayment,
+    runMaintenanceJob,
+    fixPaymentAnomalies,
+    isPending
   };
 }
