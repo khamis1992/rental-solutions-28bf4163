@@ -137,6 +137,12 @@ function validateAgreementData(data: Agreement): ValidationResult {
   if (!data.end_date) {
     errors.end_date = 'End date is required';
   }
+
+  // Ensure total_amount is present and valid
+  if (data.total_amount === undefined || data.total_amount === null) {
+    errors.total_amount = 'Total amount is required';
+    data.total_amount = 0; // Provide a default value
+  }
   
   // Return validation result
   if (Object.keys(errors).length > 0) {

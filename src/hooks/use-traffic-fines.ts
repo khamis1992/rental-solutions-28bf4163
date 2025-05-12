@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,26 +85,31 @@ export const useTrafficFines = () => {
         }> = {};
         
         if (finesWithLeaseIds.length > 0) {
-          const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
-          const { data: leases, error: leaseError } = await supabase
-            .from('leases')
-            .select('id, customer_id, start_date, end_date, profiles(full_name)')
-            .in('id', leaseIds as string[]);
+          const leaseIds = finesWithLeaseIds
+            .map(fine => fine.lease_id)
+            .filter((id): id is string => id !== null && id !== undefined);
             
-          if (leaseError) {
-            console.error('Error fetching lease information:', leaseError);
-          } else if (leases) {
-            // Create a mapping of lease_id to customer information and lease dates
-            leases.forEach(lease => {
-              if (lease && lease.id) {
-                customerAndLeaseInfo[lease.id] = {
-                  customer_id: lease.customer_id,
-                  customer_name: lease.profiles?.full_name,
-                  start_date: lease.start_date,
-                  end_date: lease.end_date
-                };
-              }
-            });
+          if (leaseIds.length > 0) {
+            const { data: leases, error: leaseError } = await supabase
+              .from('leases')
+              .select('id, customer_id, start_date, end_date, profiles(full_name)')
+              .in('id', leaseIds);
+              
+            if (leaseError) {
+              console.error('Error fetching lease information:', leaseError);
+            } else if (leases) {
+              // Create a mapping of lease_id to customer information and lease dates
+              leases.forEach(lease => {
+                if (lease && lease.id) {
+                  customerAndLeaseInfo[lease.id] = {
+                    customer_id: lease.customer_id,
+                    customer_name: lease.profiles?.full_name,
+                    start_date: lease.start_date,
+                    end_date: lease.end_date
+                  };
+                }
+              });
+            }
           }
         }
         
@@ -123,8 +127,10 @@ export const useTrafficFines = () => {
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
           leaseId: fine.lease_id,
           // Add customer information if available
-          customerId: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_id : undefined,
-          customerName: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_name : undefined,
+          customerId: fine.lease_id && customerAndLeaseInfo[fine.lease_id] ? 
+              customerAndLeaseInfo[fine.lease_id].customer_id : undefined,
+          customerName: fine.lease_id && customerAndLeaseInfo[fine.lease_id] ? 
+              customerAndLeaseInfo[fine.lease_id].customer_name : undefined,
           // Add lease dates for validation
           leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
             new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,

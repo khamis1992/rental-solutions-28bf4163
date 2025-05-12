@@ -17,7 +17,7 @@ interface CustomerListFilterProps {
   onFilterChange?: (filters: { [key: string]: string }) => void;
 }
 
-export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
+export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
   onSearch,
   searchTerm,
   onFilterChange

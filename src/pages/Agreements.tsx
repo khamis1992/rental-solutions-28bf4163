@@ -250,7 +250,6 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
-            {/* ... keep existing code for the TabsContent section */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsContent value="agreements" className="m-0">
                 <Suspense fallback={

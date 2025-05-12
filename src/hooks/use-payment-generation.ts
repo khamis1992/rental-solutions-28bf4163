@@ -4,9 +4,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
-import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
-import { isQueryDataValid } from '@/utils/database-type-helpers';
-import { createPaymentInsert, createPaymentUpdate } from '@/utils/type-adapters';
+import { asLeaseId, asPaymentId, createPaymentInsert, createPaymentUpdate, isQueryDataValid } from '@/utils/type-adapters';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -120,7 +118,8 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           balance: Math.max(0, newBalance),
           status: newStatus,
           payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod
+          payment_method: paymentMethod,
+          reference_number: referenceNumber || null
         });
         
         // Update the existing payment record
