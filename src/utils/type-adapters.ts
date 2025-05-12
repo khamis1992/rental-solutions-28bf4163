@@ -1,6 +1,11 @@
 
 import { supabase } from '@/lib/supabase';
-import { DbId, LeaseId, PaymentId } from '@/types/database-types';
+import { DbId, LeaseId, PaymentId, VehicleId, ProfileId, TrafficFineId, LegalCaseId, MaintenanceId } from '@/types/database-common';
+
+/**
+ * Helper function to safely cast a string to a DbId
+ */
+export const asDbId = (id: string): DbId => id as DbId;
 
 /**
  * Helper function to safely cast a string to a LeaseId
@@ -11,6 +16,31 @@ export const asLeaseId = (id: string): LeaseId => id as LeaseId;
  * Helper function to safely cast a string to a PaymentId
  */
 export const asPaymentId = (id: string): PaymentId => id as PaymentId;
+
+/**
+ * Helper function to safely cast a string to a VehicleId
+ */
+export const asVehicleId = (id: string): VehicleId => id as VehicleId;
+
+/**
+ * Helper function to safely cast a string to a ProfileId
+ */
+export const asProfileId = (id: string): ProfileId => id as ProfileId;
+
+/**
+ * Helper function to safely cast a string to a TrafficFineId
+ */
+export const asTrafficFineId = (id: string): TrafficFineId => id as TrafficFineId;
+
+/**
+ * Helper function to safely cast a string to a LegalCaseId
+ */
+export const asLegalCaseId = (id: string): LegalCaseId => id as LegalCaseId;
+
+/**
+ * Helper function to safely cast a string to a MaintenanceId
+ */
+export const asMaintenanceId = (id: string): MaintenanceId => id as MaintenanceId;
 
 /**
  * Adapts an agreement object to match the validation schema
@@ -95,4 +125,25 @@ export function createPaymentInsert(data: {
  */
 export function isQueryDataValid<T>(data: any): data is T {
   return data !== undefined && data !== null;
+}
+
+/**
+ * Extract monthly rate from a vehicle's pricing information
+ */
+export function extractMonthlyRate(vehicle: any): number {
+  if (!vehicle) return 0;
+  
+  // Try to get monthly_rate directly
+  if (typeof vehicle.monthly_rate === 'number') {
+    return vehicle.monthly_rate;
+  }
+  
+  // Try to parse from pricing object if it exists
+  if (vehicle.pricing && typeof vehicle.pricing === 'object') {
+    if (typeof vehicle.pricing.monthly_rate === 'number') {
+      return vehicle.pricing.monthly_rate;
+    }
+  }
+  
+  return 0;
 }

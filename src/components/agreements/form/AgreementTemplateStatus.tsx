@@ -1,50 +1,57 @@
 
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+
+interface TemplateStatus {
+  accessible: boolean;
+  message: string;
+}
 
 interface AgreementTemplateStatusProps {
-  standardTemplateExists: boolean;
-  specificUrlCheck: { accessible: boolean; message: string } | null;
-  checkingTemplate?: boolean;
+  standardTemplateExists: TemplateStatus;
+  specificUrlCheck: TemplateStatus;
 }
 
 export const AgreementTemplateStatus: React.FC<AgreementTemplateStatusProps> = ({
   standardTemplateExists,
-  specificUrlCheck,
-  checkingTemplate = false
+  specificUrlCheck
 }) => {
-  if (checkingTemplate) {
+  if (!standardTemplateExists.accessible && !specificUrlCheck.accessible) {
     return (
-      <Alert className="bg-blue-50 border-blue-200">
-        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-        <AlertTitle>Checking template availability</AlertTitle>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Template Not Found</AlertTitle>
         <AlertDescription>
-          Verifying if agreement templates are available...
+          No agreement template is available. Some features might be limited.
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (standardTemplateExists) {
+  if (specificUrlCheck.accessible) {
     return (
-      <Alert className="bg-green-50 border-green-200">
-        <CheckCircle className="h-4 w-4 text-green-500" />
-        <AlertTitle>Template Ready</AlertTitle>
+      <Alert>
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <AlertTitle>Special Template Available</AlertTitle>
         <AlertDescription>
-          {specificUrlCheck?.message || "Agreement template is available for use."}
+          A URL-specific template will be used for this agreement.
         </AlertDescription>
       </Alert>
     );
   }
 
-  return (
-    <Alert variant="warning">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Template Missing</AlertTitle>
-      <AlertDescription>
-        No agreement template found. You can still create an agreement, but you'll need to create a template later for document generation.
-      </AlertDescription>
-    </Alert>
-  );
+  if (standardTemplateExists.accessible) {
+    return (
+      <Alert>
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <AlertTitle>Standard Template Available</AlertTitle>
+        <AlertDescription>
+          The standard agreement template will be used.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return null;
 };

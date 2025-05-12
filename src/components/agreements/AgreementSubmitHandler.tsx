@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
 import { adaptAgreementForValidation } from '@/utils/type-adapters';
+import { showSuccessToast, showErrorToast } from '@/utils/toast-utils';
 
 // Updated type declaration for validation result with proper conditional type
 type ValidationResult = 
@@ -55,9 +56,9 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
           setValidationErrors(validationResult.errors);
           const firstErrorKey = Object.keys(validationResult.errors)[0];
           const errorMessage = validationResult.errors[firstErrorKey];
-          toast.error(errorMessage);
+          showErrorToast(errorMessage);
         } else {
-          toast.error("Validation failed");
+          showErrorToast("Validation failed");
         }
         setUpdateProgress(0);
         return;
@@ -73,9 +74,9 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       if (!saveResult.success) {
         // Handle API errors
         if ('error' in saveResult) { 
-          toast.error(saveResult.error?.toString() || "Failed to save agreement");
+          showErrorToast(saveResult.error?.toString() || "Failed to save agreement");
         } else {
-          toast.error("Failed to save agreement");
+          showErrorToast("Failed to save agreement");
         }
         setUpdateProgress(0);
         return;
@@ -84,7 +85,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       setUpdateProgress(100);
       
       // Success handling
-      toast.success('Agreement saved successfully');
+      showSuccessToast('Agreement saved successfully');
       
       // Custom callback if provided
       if (onSubmit) {
@@ -97,7 +98,7 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
       }
     } catch (error) {
       console.error("Error submitting agreement:", error);
-      toast.error("An unexpected error occurred");
+      showErrorToast("An unexpected error occurred");
       setUpdateProgress(0);
     } finally {
       setIsSubmitting(false);
@@ -147,6 +148,12 @@ function validateAgreementData(data: Agreement): ValidationResult {
   // Return validation result
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
+  }
+  
+  // Fix incompatible types by mapping statuses
+  // If the status is 'completed', map it to 'closed' for compatibility
+  if (data.status === 'completed') {
+    data.status = 'closed' as any;
   }
   
   return { success: true, data };

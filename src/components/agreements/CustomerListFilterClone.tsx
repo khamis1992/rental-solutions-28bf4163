@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
@@ -110,3 +111,6 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({
     </div>
   );
 };
+
+// Export both names for backward compatibility
+export default CustomerListFilterClone;
