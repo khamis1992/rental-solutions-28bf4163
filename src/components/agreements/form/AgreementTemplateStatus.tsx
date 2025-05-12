@@ -3,7 +3,7 @@ import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
-interface TemplateStatus {
+export interface TemplateStatus {
   accessible: boolean;
   message: string;
 }

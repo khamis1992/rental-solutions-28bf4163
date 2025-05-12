@@ -1,11 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-
-interface TemplateStatus {
-  accessible: boolean;
-  message: string;
-}
+import { TemplateStatus } from '@/components/agreements/form/AgreementTemplateStatus';
 
 export function useTemplateSetup() {
   const [standardTemplateExists, setStandardTemplateExists] = useState<TemplateStatus>({ 

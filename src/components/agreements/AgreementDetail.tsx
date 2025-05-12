@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
@@ -21,6 +21,7 @@ import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
 import { usePayment } from '@/hooks/use-payment';
+import { useDialogVisibility } from '@/utils/api/dialog-utils';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -42,8 +43,13 @@ export function AgreementDetail({
   onGenerateDocument
 }: AgreementDetailProps) {
   const navigate = useNavigate();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  
+  // Use the new dialog management hook
+  const { dialogs, openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
+    delete: false,
+    payment: false
+  });
+  
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
@@ -71,9 +77,7 @@ export function AgreementDetail({
     }
   }, [agreement?.id, fetchPayments]);
   
-  const {
-    handleSpecialAgreementPayments
-  } = usePaymentGeneration(agreement, agreement?.id);
+  const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -84,9 +88,9 @@ export function AgreementDetail({
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
-      setIsDeleteDialogOpen(false);
+      closeDialog('delete');
     }
-  }, [agreement, onDelete]);
+  }, [agreement, onDelete, closeDialog]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -148,7 +152,7 @@ export function AgreementDetail({
           isPartialPayment
         );
         if (success) {
-          setIsPaymentDialogOpen(false);
+          closeDialog('payment');
           onDataRefresh();
           fetchPayments();
           toast.success("Payment recorded successfully");
@@ -162,7 +166,7 @@ export function AgreementDetail({
       }
     }
     return false;
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments, closeDialog]);
 
   const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
     if (!agreement?.id || !updatedPayment.id) return false;
@@ -244,7 +248,7 @@ export function AgreementDetail({
 
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-  const duration = calculateDuration(startDate, endDate);
+  const duration = differenceInMonths(endDate, startDate) || 1;
 
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
@@ -296,7 +300,7 @@ export function AgreementDetail({
           onEdit={handleEdit}
           onDownloadPdf={handleDownloadPdf}
           onGenerateDocument={handleGenerateDocument}
-          onDelete={handleDelete}
+          onDelete={() => openDialog('delete')}
           isGeneratingPdf={isGeneratingPdf}
         />
         
@@ -337,16 +341,13 @@ export function AgreementDetail({
       )}
 
       {agreement.start_date && agreement.end_date && <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
         </Card>}
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      {/* Dialog for delete confirmation - now using the centralized dialog state */}
+      <Dialog open={isDialogVisible('delete')} onOpenChange={open => !open && closeDialog('delete')}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
@@ -355,15 +356,19 @@ export function AgreementDetail({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => closeDialog('delete')}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Payment dialog - now using the centralized dialog state */}
       <PaymentEntryDialog 
-        open={isPaymentDialogOpen} 
-        onOpenChange={setIsPaymentDialogOpen} 
+        open={isDialogVisible('payment')} 
+        onOpenChange={open => {
+          if (!open) closeDialog('payment');
+          else openDialog('payment');
+        }}
         onSubmit={handlePaymentSubmit} 
         defaultAmount={rentAmount || 0} 
         title="Record Rent Payment" 

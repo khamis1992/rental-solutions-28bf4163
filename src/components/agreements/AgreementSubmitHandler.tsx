@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/types/agreement';
 import { agreementService } from '@/services/AgreementService';
@@ -32,9 +31,9 @@ export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
   redirectTo = '/agreements',
 }) => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [validationErrors, setValidationErrors] = React.useState<Record<string, string> | null>(null);
-  const [updateProgress, setUpdateProgress] = React.useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
 
   const handleSubmit = async (formData: Agreement) => {
     try {
@@ -153,7 +152,7 @@ function validateAgreementData(data: Agreement): ValidationResult {
   // Fix incompatible types by mapping statuses
   // If the status is 'completed', map it to 'closed' for compatibility
   if (data.status === 'completed') {
-    data.status = 'closed' as any;
+    data.status = 'closed';
   }
   
   return { success: true, data };

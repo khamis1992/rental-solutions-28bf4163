@@ -8,7 +8,7 @@ interface ApiResponse<T> {
   error: any | null;
 }
 
-export function useApiQuery<TData = any, TError = any>(
+export function useApiQuery<TData = any, TError = Error>(
   queryKey: string[],
   queryFn: () => Promise<any>,
   options?: {
