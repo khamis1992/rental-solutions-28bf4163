@@ -80,7 +80,7 @@ export const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> =
     };
 
     fetchObligations();
-  }, [customerId]); // Keep customerId in dependency array
+  }, [customerId]);
 
   return (
     <Card>

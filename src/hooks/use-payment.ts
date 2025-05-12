@@ -30,10 +30,9 @@ export function usePayment(agreementId?: string) {
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    paymentType?: string
+    isPartialPayment?: boolean
   ) => {
-    if (!agreementId) return;
+    if (!agreementId) return false;
 
     // Create options object for additional parameters
     const options = {
@@ -41,8 +40,7 @@ export function usePayment(agreementId?: string) {
       paymentMethod,
       referenceNumber,
       includeLatePaymentFee,
-      isPartialPayment,
-      paymentType
+      isPartialPayment
     };
 
     // Pass required parameters and options object

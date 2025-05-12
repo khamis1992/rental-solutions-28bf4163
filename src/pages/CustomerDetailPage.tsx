@@ -35,6 +35,14 @@ const CustomerDetailPage = () => {
             Invalid customer ID format. Please return to the customers list and try again.
           </AlertDescription>
         </Alert>
+      ) : !id ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            No customer ID provided. Please return to the customers list and select a customer.
+          </AlertDescription>
+        </Alert>
       ) : (
         <CustomerDetail customerId={id} />
       )}
