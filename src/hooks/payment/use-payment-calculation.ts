@@ -47,7 +47,7 @@ export function usePaymentCalculation(payments: Payment[], rentAmount: number | 
     ).length;
     
     const pendingCount = payments.filter(p => 
-      p.status === 'pending'
+      p.status === 'pending' || p.status === 'partially_paid'
     ).length;
 
     const overdueCount = payments.filter(p => 

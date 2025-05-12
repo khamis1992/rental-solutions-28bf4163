@@ -54,8 +54,6 @@ const AgreementDetailPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [hasRunHistoricalUpdate, setHasRunHistoricalUpdate] = useState(false);
@@ -65,17 +63,23 @@ const AgreementDetailPage = () => {
     rentAmount,
     contractAmount
   } = useRentAmount(agreement, id);
+  
+  // Use our payment hooks with all the necessary functionality
   const {
     payments,
     isLoading: isLoadingPayments,
-    fetchPayments,
-    addPayment,
+    updatePayment,
     deletePayment,
-    updatePayment
+    addPayment,
+    fetchPayments
   } = usePayments(id || '');
   
-  // Add the usePayment hook for the updateHistoricalStatuses function
-  const { updateHistoricalStatuses } = usePayment(id);
+  const { 
+    updateHistoricalStatuses,
+    generatePaymentSchedule,
+    runPaymentMaintenance,
+    isPending: paymentIsPending
+  } = usePayment(id);
 
   // Monitor for duplicate payments and fix them if needed
   useEffect(() => {
@@ -130,43 +134,28 @@ const AgreementDetailPage = () => {
     setIsDocumentDialogOpen(true);
   };
 
+  // Use our new abstract method instead of direct function call
   const handleGeneratePayment = async () => {
     if (!id || !agreement) return;
-    setIsGeneratingPayment(true);
+    
     try {
-      const result = await forceGeneratePaymentForAgreement(supabase, id);
-      if (result.success) {
-        toast.success("Payment schedule generated successfully");
-        refreshAgreementData();
-      } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
-      }
+      await generatePaymentSchedule();
+      refreshAgreementData();
     } catch (error) {
       console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
-    } finally {
-      setIsGeneratingPayment(false);
     }
   };
 
+  // Use our new abstract method instead of direct function call
   const handleRunMaintenanceJob = async () => {
-    if (!id) return;
-    setIsRunningMaintenance(true);
     try {
       toast.info("Running payment maintenance check...");
-      const result = await manuallyRunPaymentMaintenance();
-      if (result.success) {
-        toast.success(result.message || "Payment schedule maintenance completed");
-        refreshAgreementData();
-        fetchPayments();
-      } else {
-        toast.error(result.message || "Payment maintenance failed");
-      }
+      await runPaymentMaintenance();
+      refreshAgreementData();
+      fetchPayments();
     } catch (error) {
       console.error("Error running maintenance job:", error);
       toast.error("Failed to run maintenance job");
-    } finally {
-      setIsRunningMaintenance(false);
     }
   };
 
@@ -321,9 +310,15 @@ const AgreementDetailPage = () => {
       {agreement && agreement.status === AgreementStatus.ACTIVE && (
         <HoverCard openDelay={300} closeDelay={200}>
           <HoverCardTrigger asChild>
-            <Button variant="outline" size="sm" onClick={handleGeneratePayment} disabled={isGeneratingPayment} className="gap-2 mr-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGeneratePayment} 
+              disabled={paymentIsPending.generatePayment} 
+              className="gap-2 mr-2"
+            >
               <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+              {paymentIsPending.generatePayment ? "Generating..." : "Generate Payment Schedule"}
             </Button>
           </HoverCardTrigger>
           <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
@@ -360,11 +355,11 @@ const AgreementDetailPage = () => {
             variant="outline" 
             size="sm" 
             onClick={handleRunMaintenanceJob} 
-            disabled={isRunningMaintenance} 
+            disabled={paymentIsPending.runMaintenance} 
             className="gap-2"
           >
             <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+            {paymentIsPending.runMaintenance ? "Running..." : "Run Payment Maintenance"}
           </Button>
         </HoverCardTrigger>
         <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">

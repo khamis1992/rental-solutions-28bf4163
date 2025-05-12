@@ -11,11 +11,14 @@ import { DbId } from './database-common';
  * - pending: Payment is scheduled but not processed
  * - processing: Payment is being processed
  * - completed: Payment successfully processed
+ * - partially_paid: Payment is partially completed
+ * - overdue: Payment is overdue
  * - failed: Payment processing failed
  * - refunded: Payment was refunded
  * - cancelled: Payment was cancelled before processing
+ * - voided: Payment was voided after processing
  */
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'partially_paid' | 'failed' | 'refunded' | 'cancelled' | 'overdue' | 'voided';
 
 /**
  * Core payment record structure
@@ -49,6 +52,22 @@ export interface Payment {
   status?: PaymentStatus;
   /** Payment type (rent, deposit, fine, etc) */
   type?: string;
+  /** Reference number (check, receipt, etc.) */
+  reference_number?: string;
+  /** Original due date for recurring payments */
+  original_due_date?: string | null;
+  /** Optional notes */
+  notes?: string;
+}
+
+/**
+ * Payment filter options
+ */
+export interface PaymentFilter {
+  status?: PaymentStatus | 'all';
+  fromDate?: Date;
+  toDate?: Date;
+  paymentType?: string;
 }
 
 /**
@@ -85,4 +104,17 @@ export interface PaymentSchedule {
   amount: number;
   next_date: string;
   end_date?: string;
+}
+
+/**
+ * Options for special payment processing
+ */
+export interface SpecialPaymentOptions {
+  notes?: string;
+  paymentMethod?: string;
+  referenceNumber?: string;
+  includeLatePaymentFee?: boolean;
+  isPartialPayment?: boolean;
+  paymentType?: string;
+  targetPaymentId?: string;
 }

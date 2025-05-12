@@ -1,7 +1,8 @@
 
 import { usePaymentService } from './services/usePaymentService';
 import { useQuery } from '@tanstack/react-query';
-import type { Payment } from '@/types/payment-types';
+import { usePaymentSchedule } from './payment/use-payment-schedule';
+import type { Payment, SpecialPaymentOptions } from '@/types/payment.types';
 
 export function usePayment(agreementId?: string) {
   const {
@@ -14,8 +15,17 @@ export function usePayment(agreementId?: string) {
     handleSpecialPayment,
     checkAndCreateMissingPayments,
     fixAgreementPayments,
-    updateHistoricalPaymentStatuses
+    updateHistoricalPaymentStatuses,
+    isPending
   } = usePaymentService(agreementId);
+
+  // Get payment schedule functionality from the new hook
+  const {
+    generatePayment,
+    runMaintenanceJob,
+    fixPaymentAnomalies,
+    isPending: isSchedulePending
+  } = usePaymentSchedule();
 
   const { data: paymentHistory } = useQuery({
     queryKey: ['payments', agreementId],
@@ -23,7 +33,7 @@ export function usePayment(agreementId?: string) {
     enabled: !!agreementId,
   });
 
-  // Simplified wrapper for handleSpecialPayment that accepts consistent parameters
+  // Simplified wrapper for handleSpecialPayment
   const handlePaymentSubmit = async (
     amount: number, 
     paymentDate: Date, 
@@ -31,17 +41,19 @@ export function usePayment(agreementId?: string) {
     paymentMethod?: string,
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    paymentType?: string
   ) => {
     if (!agreementId) return false;
 
     // Create options object for additional parameters
-    const options = {
+    const options: SpecialPaymentOptions = {
       notes,
       paymentMethod,
       referenceNumber,
       includeLatePaymentFee,
-      isPartialPayment
+      isPartialPayment,
+      paymentType
     };
 
     // Pass required parameters and options object
@@ -66,6 +78,18 @@ export function usePayment(agreementId?: string) {
     });
   };
 
+  // Generate payment for the current agreement
+  const generatePaymentSchedule = async () => {
+    if (!agreementId) return false;
+    
+    return generatePayment(agreementId);
+  };
+
+  // Run maintenance job for all agreements
+  const runPaymentMaintenance = async () => {
+    return runMaintenanceJob();
+  };
+
   return {
     payments: paymentHistory,
     isLoading,
@@ -76,6 +100,16 @@ export function usePayment(agreementId?: string) {
     handlePaymentSubmit,
     checkAndCreateMissingPayments,
     fixAgreementPayments,
-    updateHistoricalStatuses
+    updateHistoricalStatuses,
+    // New functionality from payment schedule hook
+    generatePaymentSchedule,
+    runPaymentMaintenance,
+    fixPaymentAnomalies,
+    isPending: {
+      ...isPending,
+      generatePayment: isSchedulePending.generatePayment,
+      runMaintenance: isSchedulePending.runMaintenanceJob,
+      fixAnomalies: isSchedulePending.fixPaymentAnomalies
+    }
   };
 }

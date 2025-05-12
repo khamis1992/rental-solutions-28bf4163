@@ -1,8 +1,7 @@
-
 import { paymentRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
-import { Payment } from '@/types/payment.types';
+import { PaymentStatus } from '@/types/payment.types';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { asPaymentId, asLeaseId } from '@/lib/database/database-types';
@@ -21,7 +20,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
   /**
    * Get payments for an agreement
    */
-  async getPayments(agreementId: string): Promise<ServiceResult<Payment[]>> {
+  async getPayments(agreementId: string): Promise<ServiceResult<PaymentRecord[]>> {
     return handleServiceOperation(async () => {
       const response = await this.repository.findByLeaseId(agreementId);
       
@@ -29,14 +28,14 @@ export class PaymentService extends BaseService<'unified_payments'> {
         throw new Error(`Failed to fetch payments: ${response.error.message}`);
       }
       
-      return response.data as Payment[];
+      return response.data as PaymentRecord[];
     });
   }
 
   /**
    * Record a new payment
    */
-  async recordPayment(paymentData: Partial<Payment>): Promise<ServiceResult<Payment>> {
+  async recordPayment(paymentData: Partial<PaymentRecord>): Promise<ServiceResult<PaymentRecord>> {
     return handleServiceOperation(async () => {
       const response = await this.repository.recordPayment(paymentData);
       
@@ -44,14 +43,14 @@ export class PaymentService extends BaseService<'unified_payments'> {
         throw new Error(`Failed to record payment: ${response.error.message}`);
       }
       
-      return response.data as Payment;
+      return response.data as PaymentRecord;
     });
   }
 
   /**
    * Update an existing payment
    */
-  async updatePayment(paymentId: string, paymentData: Partial<Payment>): Promise<ServiceResult<Payment>> {
+  async updatePayment(paymentId: string, paymentData: Partial<PaymentRecord>): Promise<ServiceResult<PaymentRecord>> {
     return handleServiceOperation(async () => {
       const response = await this.repository.update(paymentId, paymentData);
       
@@ -59,7 +58,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
         throw new Error(`Failed to update payment: ${response.error.message}`);
       }
       
-      return response.data as Payment;
+      return response.data as PaymentRecord;
     });
   }
 
@@ -213,7 +212,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
         // Insert the payment record
         const { error } = await supabase
           .from('unified_payments')
-          .insert(paymentRecord);
+          .insert([paymentRecord]);
         
         if (error) {
           throw new Error(`Failed to record payment: ${error.message}`);
@@ -239,7 +238,7 @@ export class PaymentService extends BaseService<'unified_payments'> {
           
           const { error: lateFeeError } = await supabase
             .from('unified_payments')
-            .insert(lateFeeRecord);
+            .insert([lateFeeRecord]);
           
           if (lateFeeError) {
             console.error("Late fee recording error:", lateFeeError);
@@ -255,9 +254,22 @@ export class PaymentService extends BaseService<'unified_payments'> {
   /**
    * Run maintenance checks on payment schedules
    */
-  async checkAndCreateMissingPayments(): Promise<ServiceResult<any>> {
+  async checkAndCreateMissingPayments(agreementId?: string): Promise<ServiceResult<any>> {
     return handleServiceOperation(async () => {
-      const { data, error } = await supabase.rpc('generate_missing_payment_records');
+      let data;
+      let error;
+      
+      // If agreementId is provided, only check for that agreement
+      if (agreementId) {
+        const response = await supabase.rpc('generate_missing_payment_records');
+        data = response.data;
+        error = response.error;
+      } else {
+        // Check for all agreements
+        const response = await supabase.rpc('generate_missing_payment_records');
+        data = response.data;
+        error = response.error;
+      }
       
       if (error) {
         throw new Error(`Failed to check payment schedules: ${error.message}`);
@@ -267,6 +279,111 @@ export class PaymentService extends BaseService<'unified_payments'> {
         success: true,
         data,
         message: "Payment schedule check completed successfully"
+      };
+    });
+  }
+
+  /**
+   * Generate a payment schedule for a specific agreement
+   * This replaces the forceGeneratePaymentForAgreement functionality
+   */
+  async generatePaymentForAgreement(agreementId: string): Promise<ServiceResult<any>> {
+    return handleServiceOperation(async () => {
+      // Check if agreement exists and is active
+      const { data: agreement, error: agreementError } = await supabase
+        .from('leases')
+        .select('id, status, agreement_number, rent_amount, daily_late_fee')
+        .eq('id', asLeaseId(agreementId))
+        .single();
+      
+      if (agreementError) {
+        throw new Error(`Failed to fetch agreement: ${agreementError.message}`);
+      }
+      
+      if (!agreement) {
+        throw new Error('Agreement not found');
+      }
+      
+      if (agreement.status !== 'active') {
+        throw new Error(`Cannot generate payment for non-active agreement (status: ${agreement.status})`);
+      }
+      
+      // Get the current month and year
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
+      // Check if a payment already exists for this month
+      const { data: existingPayments, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('id')
+        .eq('lease_id', agreementId)
+        .gte('original_due_date', new Date(currentYear, currentMonth, 1).toISOString())
+        .lt('original_due_date', new Date(currentYear, currentMonth + 1, 1).toISOString());
+      
+      if (paymentsError) {
+        throw new Error(`Failed to check existing payments: ${paymentsError.message}`);
+      }
+      
+      // If there's already a payment for this month, we don't need to create one
+      if (existingPayments && existingPayments.length > 0) {
+        return {
+          success: true,
+          message: "Payment already exists for the current month",
+          data: { paymentExists: true }
+        };
+      }
+      
+      // Create a new payment record for the current month
+      const paymentRecord = {
+        lease_id: agreementId,
+        amount: agreement.rent_amount,
+        amount_paid: 0,
+        balance: agreement.rent_amount,
+        payment_date: null,
+        status: 'pending',
+        description: `Monthly rent payment for ${agreement.agreement_number} - ${format(new Date(currentYear, currentMonth), 'MMMM yyyy')}`,
+        type: 'rent',
+        days_overdue: 0,
+        late_fine_amount: 0,
+        original_due_date: new Date(currentYear, currentMonth, 1).toISOString()
+      };
+      
+      // Insert the payment record
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .insert([paymentRecord])
+        .select();
+      
+      if (error) {
+        throw new Error(`Failed to create payment record: ${error.message}`);
+      }
+      
+      return {
+        success: true,
+        message: "Payment schedule generated successfully",
+        data: { payment: data[0] }
+      };
+    });
+  }
+
+  /**
+   * Run system-wide payment maintenance job
+   * This replaces the manuallyRunPaymentMaintenance functionality
+   */
+  async runPaymentMaintenanceJob(): Promise<ServiceResult<any>> {
+    return handleServiceOperation(async () => {
+      // Call the Supabase RPC function to generate missing payment records
+      const { data, error } = await supabase.rpc('generate_missing_payment_records');
+      
+      if (error) {
+        throw new Error(`Failed to run payment maintenance: ${error.message}`);
+      }
+      
+      return {
+        success: true,
+        message: "Payment maintenance job completed successfully",
+        data
       };
     });
   }
