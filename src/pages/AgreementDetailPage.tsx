@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import PageContainer from '@/components/layout/PageContainer';
@@ -36,6 +36,7 @@ import VehicleSection from '@/components/agreements/VehicleSection';
 import { generateAgreementReport } from '@/utils/agreement-report-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { usePayment } from '@/hooks/use-payment';
 
 const AgreementDetailPage = () => {
   const {
@@ -57,6 +58,9 @@ const AgreementDetailPage = () => {
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [hasRunHistoricalUpdate, setHasRunHistoricalUpdate] = useState(false);
+  const [isUpdatingHistoricalPayments, setIsUpdatingHistoricalPayments] = useState(false);
+  
   const {
     rentAmount,
     contractAmount
@@ -69,6 +73,9 @@ const AgreementDetailPage = () => {
     deletePayment,
     updatePayment
   } = usePayments(id || '');
+  
+  // Add the usePayment hook for the updateHistoricalStatuses function
+  const { updateHistoricalStatuses } = usePayment(id);
 
   // Monitor for duplicate payments and fix them if needed
   useEffect(() => {
@@ -90,6 +97,30 @@ const AgreementDetailPage = () => {
       }
     }
   }, [id, isLoading, agreement, payments, fetchPayments]);
+  
+  // Effect to automatically update historical payment statuses when payments tab is opened
+  useEffect(() => {
+    const runHistoricalUpdate = async () => {
+      if (activeTab === "payments" && id && !hasRunHistoricalUpdate && !isUpdatingHistoricalPayments) {
+        setIsUpdatingHistoricalPayments(true);
+        toast.info("Updating historical payment records to completed status...");
+        
+        try {
+          const result = await updateHistoricalStatuses();
+          toast.success(`${result.updatedCount} historical payment records updated to completed status`);
+          fetchPayments();
+        } catch (error) {
+          console.error("Error updating historical payments:", error);
+          toast.error("Failed to update historical payment statuses");
+        } finally {
+          setIsUpdatingHistoricalPayments(false);
+          setHasRunHistoricalUpdate(true);
+        }
+      }
+    };
+    
+    runHistoricalUpdate();
+  }, [activeTab, id, hasRunHistoricalUpdate, updateHistoricalStatuses, fetchPayments, isUpdatingHistoricalPayments]);
 
   const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -426,6 +457,7 @@ const AgreementDetailPage = () => {
         </TabsTrigger>
         <TabsTrigger value="payments" className="flex gap-2">
           <BarChart className="h-4 w-4" /> Payments
+          {isUpdatingHistoricalPayments && <span className="ml-1 h-3 w-3 rounded-full bg-blue-500 animate-pulse"></span>}
         </TabsTrigger>
         <TabsTrigger value="details" className="flex gap-2">
           <User className="h-4 w-4" /> Customer & Vehicle

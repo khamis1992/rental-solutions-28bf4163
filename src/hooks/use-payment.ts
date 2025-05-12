@@ -55,7 +55,7 @@ export function usePayment(agreementId?: string) {
 
   // Function to update all historical payments to 'completed' status
   const updateHistoricalStatuses = async () => {
-    if (!agreementId) return false;
+    if (!agreementId) return { updatedCount: 0 };
     
     // Use September 1, 2024 as the cutoff date
     const cutoffDate = new Date(2024, 8, 1); // Month is 0-indexed, so 8 is September
