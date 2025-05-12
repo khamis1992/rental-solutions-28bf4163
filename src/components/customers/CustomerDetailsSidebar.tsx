@@ -44,6 +44,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/formatters';
+import { useRentAmount } from '@/hooks/use-rent-amount';
 
 interface CustomerDetailsSidebarProps {
   customer: CustomerInfo | null;
@@ -56,6 +57,11 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
   open,
   onOpenChange
 }) => {
+  // Early return if customer is null to prevent React hooks errors
+  if (!customer) {
+    return null;
+  }
+  
   const [activeTab, setActiveTab] = useState<string>('contact');
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -66,10 +72,8 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
   };
 
   // Fetch agreements when customer changes or agreements tab is selected
-  // Only define and use the effect if customer is not null
   React.useEffect(() => {
-    // Don't run the effect if customer is null
-    if (!customer?.id || activeTab !== 'agreements') {
+    if (activeTab !== 'agreements') {
       return;
     }
     
@@ -96,7 +100,7 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     };
     
     fetchAgreements();
-  }, [customer?.id, activeTab]); // Make sure dependencies are stable
+  }, [customer.id, activeTab]); // Stable dependencies
 
   // Function to get the appropriate badge for an agreement status
   const getAgreementStatusBadge = (status: string) => {
@@ -144,10 +148,11 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
     return date.toLocaleDateString();
   };
 
-  // Early return if customer is null to ensure we don't conditionally render hooks
-  if (!customer) {
-    return null;
-  }
+  // Get payment frequency display text
+  const getPaymentFrequencyText = (frequency?: string) => {
+    if (!frequency) return '';
+    return `(${frequency})`;
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -284,19 +289,17 @@ export const CustomerDetailsSidebar: React.FC<CustomerDetailsSidebarProps> = ({
                             {agreement.vehicles?.make || agreement.vehicle_make || ''} {agreement.vehicles?.model || agreement.vehicle_model || ''}
                           </span>
                         </div>
-                        {agreement.total_amount && (
-                          <div className="flex gap-1 items-center mt-1 text-xs">
-                            <CreditCard className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">
-                              QAR {formatCurrency(agreement.total_amount)}
+                        <div className="flex gap-1 items-center mt-1 text-xs">
+                          <CreditCard className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">
+                            QAR {formatCurrency(agreement.rent_amount || 0)}
+                          </span>
+                          {agreement.payment_frequency && (
+                            <span className="text-muted-foreground">
+                              {getPaymentFrequencyText(agreement.payment_frequency)}
                             </span>
-                            {agreement.payment_frequency && (
-                              <span className="text-muted-foreground">
-                                ({agreement.payment_frequency})
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
