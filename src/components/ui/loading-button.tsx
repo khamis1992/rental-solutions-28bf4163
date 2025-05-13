@@ -1,53 +1,58 @@
 
-import React from 'react';
-import { Button, ButtonProps } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import React from "react";
+import { Button, type ButtonProps } from "./button";
+import { Loader } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface LoadingButtonProps extends ButtonProps {
+export interface LoadingButtonProps extends ButtonProps {
   /**
-   * The key to check in loadingStates object
+   * Key in the loading states object to determine if this button is loading
    */
   loadingKey?: string;
   
   /**
-   * The loading states object
+   * Loading states object from useLoadingStates hook
    */
   loadingStates?: Record<string, boolean>;
   
   /**
-   * Direct loading state (alternative to loadingKey + loadingStates)
-   */
-  isLoading?: boolean;
-  
-  /**
-   * Text to show when loading
+   * Text to display when button is loading
    */
   loadingText?: string;
+  
+  /**
+   * Whether to show the loading spinner
+   */
+  showSpinner?: boolean;
 }
 
-export function LoadingButton({ 
-  loadingKey, 
-  loadingStates = {}, 
-  isLoading: directLoading,
+export function LoadingButton({
+  loadingKey,
+  loadingStates = {},
   loadingText = "Loading...",
-  children, 
+  showSpinner = true,
   disabled,
-  ...props 
+  className,
+  children,
+  ...props
 }: LoadingButtonProps) {
-  // Determine if loading from either direct prop or from loadingStates
-  const isLoading = directLoading ?? (loadingKey ? loadingStates[loadingKey] : false);
+  // Determine if the button is in loading state
+  const isLoading = loadingKey ? !!loadingStates[loadingKey] : false;
   
   return (
-    <Button 
-      disabled={isLoading || disabled} 
+    <Button
+      disabled={isLoading || disabled}
+      className={cn(className)}
       {...props}
     >
       {isLoading ? (
         <span className="flex items-center gap-2">
-          <Spinner size="sm" />
+          {showSpinner && <Loader className="h-4 w-4 animate-spin" />}
           {loadingText}
         </span>
-      ) : children}
+      ) : (
+        children
+      )}
     </Button>
   );
 }

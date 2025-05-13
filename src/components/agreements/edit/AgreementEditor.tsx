@@ -6,7 +6,6 @@ import AgreementForm from '@/components/agreements/AgreementForm';
 import { AgreementFormStatus } from '@/components/agreements/AgreementFormStatus';
 import { AgreementSubmitHandler } from '@/components/agreements/AgreementSubmitHandler';
 import { CustomerInfo } from '@/types/customer';
-import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 interface AgreementEditorProps {
   id: string;
@@ -17,8 +16,14 @@ interface AgreementEditorProps {
 }
 
 export function AgreementEditor({ id, agreement, userId, vehicleData, customerData }: AgreementEditorProps) {
-  // Adapt the agreement to use the validation-compatible format with full type safety
-  const validationAgreement = adaptAgreementForValidation(agreement) as unknown as SchemaAgreement;
+  // Convert the TypeAgreement to SchemaAgreement
+  const validationAgreement: SchemaAgreement = {
+    ...agreement,
+    // Ensure total_amount is set, which is required by SchemaAgreement
+    total_amount: agreement.total_amount || 0,
+    // Make sure the status is compatible
+    status: agreement.status as SchemaAgreement['status']
+  };
   
   return (
     <AgreementSubmitHandler 
@@ -39,7 +44,7 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
               customers: customerData || validationAgreement.customers || {}
             }} 
             onSubmit={async (data: SchemaAgreement) => {
-              await props.handleSubmit(data as unknown as SchemaAgreement);
+              await props.handleSubmit(data);
             }}
             isSubmitting={props.isSubmitting}
             validationErrors={props.validationErrors}
