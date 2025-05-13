@@ -1,43 +1,46 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
-/**
- * Hook for managing various loading states
- */
-export const useLoadingStates = <T extends Record<string, boolean>>(initialStates: T) => {
-  const [loadingStates, setLoadingStates] = useState<T>(initialStates);
+export type LoadingState<T extends Record<string, boolean>> = {
+  [K in keyof T]: boolean;
+};
 
-  /**
-   * Set a specific loading state
-   */
-  const setLoading = useCallback((key: keyof T, isLoading: boolean) => {
-    setLoadingStates(prev => ({
-      ...prev,
-      [key]: isLoading
-    }) as T);
-  }, []);
+export interface StatusHandlers<T extends Record<string, boolean>> {
+  setLoading: (key: keyof T) => void;
+  setIdle: (key: keyof T) => void;
+  isLoading: (key: keyof T) => boolean;
+  resetAll: () => void;
+}
 
-  /**
-   * Check if any loading state is true
-   */
-  const isAnyLoading = Object.values(loadingStates).some(state => state === true);
+export const useLoadingStates = <T extends Record<string, boolean>>(initialState: T): [T, StatusHandlers<T>] => {
+  const [state, setState] = useState<T>(initialState);
 
-  /**
-   * Reset all loading states to false
-   */
-  const resetLoadingStates = useCallback(() => {
-    const resetState = Object.keys(loadingStates).reduce((acc, key) => {
-      acc[key as keyof T] = false;
+  const setLoading = (key: keyof T) => {
+    setState(prev => ({ ...prev, [key]: true }));
+  };
+
+  const setIdle = (key: keyof T) => {
+    setState(prev => ({ ...prev, [key]: false }));
+  };
+
+  const isLoading = (key: keyof T): boolean => {
+    return !!state[key];
+  };
+
+  const resetAll = () => {
+    const resetState = Object.keys(initialState).reduce((acc, key) => {
+      acc[key as keyof T] = false as T[keyof T];
       return acc;
     }, {} as T);
-    
-    setLoadingStates(resetState);
-  }, [loadingStates]);
-
-  return {
-    loadingStates,
-    setLoading,
-    isAnyLoading,
-    resetLoadingStates
+    setState(resetState);
   };
+
+  const handlers: StatusHandlers<T> = {
+    setLoading,
+    setIdle,
+    isLoading,
+    resetAll
+  };
+
+  return [state, handlers];
 };

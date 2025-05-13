@@ -62,7 +62,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
 
   const getFilteredData = () => {
     const months = parseInt(timePeriod);
-    if (months && chartData.length > months) {
+    if (months && chartData && chartData.length > months) {
       return chartData.slice(-months);
     }
     return chartData;

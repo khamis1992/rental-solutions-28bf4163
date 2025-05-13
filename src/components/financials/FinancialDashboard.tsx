@@ -10,8 +10,8 @@ import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { RevenueData } from './revenue/types';
 
-// Helper function to calculate percentage change - DEFINED BEFORE USAGE
-const getPercentageChange = (current, previous) => {
+// Helper function to calculate percentage change
+const getPercentageChange = (current: number, previous: number) => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
 };
@@ -24,7 +24,7 @@ const FinancialDashboard = memo(() => {
 
   const memoizedSummary = useMemo(() => financialSummary, [JSON.stringify(financialSummary)]);
 
-  const { revenue: revenueData } = useDashboardData();
+  const { revenue: revenueData = [] } = useDashboardData();
 
   // Get current month name for display
   const currentMonth = useMemo(() => {
@@ -51,6 +51,7 @@ const FinancialDashboard = memo(() => {
   const revenueChartData: RevenueData[] = useMemo(() => {
     if (!revenueData || !Array.isArray(revenueData) || revenueData.length === 0) {
       console.log("No revenue data available for chart");
+      // Return empty array - the chart component will handle this with placeholder data
       return [];
     }
 
