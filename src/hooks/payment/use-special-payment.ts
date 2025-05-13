@@ -1,10 +1,9 @@
-
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { createPaymentUpdate, createPaymentInsert, asLeaseId } from '@/utils/type-adapters';
 import { PaymentStatus } from '@/types/payment.types';
+import { useLoadingStates } from '../use-loading-states';
 
 interface SpecialPaymentParams {
   agreementId: string;
@@ -27,7 +26,9 @@ interface SpecialPaymentParams {
  */
 export function useSpecialPayment() {
   const queryClient = useQueryClient();
-  const [isPending, setIsPending] = useState(false);
+  const { loadingStates, wrapWithLoading } = useLoadingStates({
+    specialPayment: false
+  });
   
   const specialPaymentMutation = useMutation({
     mutationFn: async ({ agreementId, amount, paymentDate, options }: SpecialPaymentParams) => {
@@ -179,17 +180,15 @@ export function useSpecialPayment() {
     }
   });
 
-  const handleSpecialPayment = async (params: SpecialPaymentParams) => {
-    setIsPending(true);
-    try {
+  const handleSpecialPayment = wrapWithLoading('specialPayment',
+    async (params: SpecialPaymentParams) => {
       return await specialPaymentMutation.mutateAsync(params);
-    } finally {
-      setIsPending(false);
     }
-  };
+  );
 
   return {
     handleSpecialPayment,
-    isPending
+    isPending: loadingStates.specialPayment,
+    loadingStates
   };
 }

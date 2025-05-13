@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Download, Edit, FilePlus } from 'lucide-react';
 
 interface AgreementActionButtonsProps {
@@ -25,10 +26,15 @@ export function AgreementActionButtons({
         Edit
       </Button>
       
-      <Button variant="outline" onClick={onDownloadPdf} disabled={isGeneratingPdf}>
+      <LoadingButton 
+        variant="outline" 
+        onClick={onDownloadPdf}
+        isLoading={isGeneratingPdf}
+        loadingText="Generating..."
+      >
         <Download className="mr-2 h-4 w-4" />
-        {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
-      </Button>
+        Agreement Copy
+      </LoadingButton>
 
       <Button variant="outline" onClick={onGenerateDocument}>
         <FilePlus className="mr-2 h-4 w-4" />
@@ -43,4 +49,3 @@ export function AgreementActionButtons({
     </div>
   );
 }
-

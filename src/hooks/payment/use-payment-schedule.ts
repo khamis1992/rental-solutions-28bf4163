@@ -1,21 +1,17 @@
 
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { PaymentStatus } from '@/types/payment.types';
+import { useLoadingStates } from '../use-loading-states';
 
 /**
  * Hook for payment schedule management operations
  */
 export function usePaymentSchedule() {
   const queryClient = useQueryClient();
-  const [isPending, setIsPendingState] = useState<{
-    generatePayment: boolean;
-    runMaintenanceJob: boolean;
-    fixPaymentAnomalies: boolean;
-  }>({
+  const { loadingStates, wrapWithLoading } = useLoadingStates({
     generatePayment: false,
     runMaintenanceJob: false,
     fixPaymentAnomalies: false
@@ -104,41 +100,32 @@ export function usePaymentSchedule() {
     }
   });
 
-  // Wrapper functions with pending state management
-  const generatePayment = async (agreementId: string) => {
-    setIsPendingState(prev => ({ ...prev, generatePayment: true }));
-    try {
+  // Wrapper functions with loading state management
+  const generatePayment = wrapWithLoading('generatePayment', 
+    async (agreementId: string) => {
       const result = await generatePaymentMutation.mutateAsync(agreementId);
       return result;
-    } finally {
-      setIsPendingState(prev => ({ ...prev, generatePayment: false }));
     }
-  };
+  );
 
-  const runMaintenanceJob = async () => {
-    setIsPendingState(prev => ({ ...prev, runMaintenanceJob: true }));
-    try {
+  const runMaintenanceJob = wrapWithLoading('runMaintenanceJob',
+    async () => {
       const result = await maintenanceJobMutation.mutateAsync();
       return result;
-    } finally {
-      setIsPendingState(prev => ({ ...prev, runMaintenanceJob: false }));
     }
-  };
+  );
 
-  const fixPaymentAnomalies = async () => {
-    setIsPendingState(prev => ({ ...prev, fixPaymentAnomalies: true }));
-    try {
+  const fixPaymentAnomalies = wrapWithLoading('fixPaymentAnomalies',
+    async () => {
       const result = await fixPaymentAnomaliesMutation.mutateAsync();
       return result;
-    } finally {
-      setIsPendingState(prev => ({ ...prev, fixPaymentAnomalies: false }));
     }
-  };
+  );
 
   return {
     generatePayment,
     runMaintenanceJob,
     fixPaymentAnomalies,
-    isPending
+    isPending: loadingStates
   };
 }

@@ -4,6 +4,7 @@ import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
 import { usePayment } from '@/hooks/use-payment';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
+import { useLoadingStates } from '@/hooks/use-loading-states';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -44,13 +46,17 @@ export function AgreementDetail({
 }: AgreementDetailProps) {
   const navigate = useNavigate();
   
-  // Use the new dialog management hook
+  // Use the dialog management hook
   const { dialogs, openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
     delete: false,
     payment: false
   });
   
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  // Use our loading states hook for PDF generation
+  const { loadingStates, setLoading } = useLoadingStates({
+    generatingPdf: false
+  });
+
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
     daysLate: number;
@@ -66,9 +72,10 @@ export function AgreementDetail({
     deletePayment
   } = usePayments(agreement?.id || '');
   
-  const { updateHistoricalStatuses } = usePayment(agreement?.id);
-  
-  const [isUpdatingPaymentStatuses, setIsUpdatingPaymentStatuses] = useState(false);
+  const { 
+    updateHistoricalStatuses,
+    loadingStates: paymentLoadingStates
+  } = usePayment(agreement?.id);
   
   useEffect(() => {
     if (agreement?.id) {
@@ -105,7 +112,7 @@ export function AgreementDetail({
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
-        setIsGeneratingPdf(true);
+        setLoading('generatingPdf', true);
         toast.info("Preparing agreement PDF document...");
         const success = await generatePdfDocument(agreement);
         if (success) {
@@ -117,10 +124,10 @@ export function AgreementDetail({
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF");
       } finally {
-        setIsGeneratingPdf(false);
+        setLoading('generatingPdf', false);
       }
     }
-  }, [agreement]);
+  }, [agreement, setLoading]);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
@@ -212,7 +219,6 @@ export function AgreementDetail({
   const handleUpdateHistoricalPaymentStatuses = async () => {
     if (!agreement) return;
     
-    setIsUpdatingPaymentStatuses(true);
     try {
       await updateHistoricalStatuses();
       onDataRefresh();
@@ -220,8 +226,6 @@ export function AgreementDetail({
     } catch (error) {
       console.error("Error updating payment statuses:", error);
       toast.error("Failed to update payment statuses");
-    } finally {
-      setIsUpdatingPaymentStatuses(false);
     }
   };
 
@@ -301,16 +305,18 @@ export function AgreementDetail({
           onDownloadPdf={handleDownloadPdf}
           onGenerateDocument={handleGenerateDocument}
           onDelete={() => openDialog('delete')}
-          isGeneratingPdf={isGeneratingPdf}
+          isGeneratingPdf={loadingStates.generatingPdf}
         />
         
-        <Button
+        <LoadingButton
           variant="outline"
           onClick={handleUpdateHistoricalPaymentStatuses}
-          disabled={isUpdatingPaymentStatuses}
+          loadingKey="updateHistoricalStatuses"
+          loadingStates={paymentLoadingStates}
+          loadingText="Updating..."
         >
-          {isUpdatingPaymentStatuses ? "Updating..." : "Complete Historical Payments"}
-        </Button>
+          Complete Historical Payments
+        </LoadingButton>
       </div>
 
       {agreement && <PaymentHistory 
