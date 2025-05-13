@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,36 +42,43 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       const paymentId = targetPaymentId || queryParams.get('paymentId');
       
       if (paymentId) {
-        const { data: existingPayment, error: queryError } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('id', paymentId)
-          .single();
-          
-        if (queryError) {
-          console.error("Error fetching existing payment:", queryError);
-        } else if (existingPayment) {
-          existingPaymentId = existingPayment.id;
-          existingPaymentAmount = existingPayment.amount || 0;
-          existingAmountPaid = existingPayment.amount_paid || 0;
-          existingBalance = existingPayment.balance || 0;
+        try {
+          const { data: existingPayment, error: queryError } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .eq('id', paymentId)
+            .single();
+            
+          if (queryError) {
+            console.error("Error fetching existing payment:", queryError);
+          } else if (existingPayment) {
+            existingPaymentId = existingPayment.id;
+            existingPaymentAmount = existingPayment.amount || 0;
+            existingAmountPaid = existingPayment.amount_paid || 0;
+            existingBalance = existingPayment.balance || 0;
+          }
+        } catch (error) {
+          console.error("Error processing existing payment:", error);
         }
       }
       
       // Get lease data to access daily_late_fee
       let dailyLateFee = 120; // Default value
       if (!agreement) {
-        // If agreement isn't passed in props, fetch it from supabase
-        const { data: leaseData, error: leaseError } = await supabase
-          .from('leases')
-          .select('daily_late_fee')
-          .eq('id', agreementId || '')
-          .single();
-          
-        if (leaseError) {
-          console.error("Error fetching lease data for late fee:", leaseError);
-        } else if (leaseData) {
-          dailyLateFee = leaseData.daily_late_fee || 120;
+        try {
+          // If agreement isn't passed in props, fetch it from supabase
+          const { data: leaseData, error: leaseError } = await supabase
+            .from('leases')
+            .select('daily_late_fee')
+            .eq('id', agreementId || '');
+            
+          if (leaseError) {
+            console.error("Error fetching lease data for late fee:", leaseError);
+          } else if (leaseData && leaseData.length > 0) {
+            dailyLateFee = leaseData[0].daily_late_fee || 120;
+          }
+        } catch (error) {
+          console.error("Error fetching lease data:", error);
         }
       } else {
         // Use the daily_late_fee from the provided agreement

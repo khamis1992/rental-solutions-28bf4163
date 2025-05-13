@@ -2,47 +2,48 @@
 import { useState, useCallback } from 'react';
 
 /**
- * Hook to manage the visibility of multiple dialogs
- * @param initialState Initial visibility state of dialogs
+ * Hook for managing dialog visibility states
+ * @param initialState Object with dialog names as keys and visibility as boolean values
+ * @returns Object with dialog state and utility functions
  */
-export function useDialogVisibility(initialState: Record<string, boolean> = {}) {
-  const [dialogs, setDialogs] = useState<Record<string, boolean>>(initialState);
+export function useDialogVisibility<T extends Record<string, boolean>>(initialState: T) {
+  const [dialogs, setDialogs] = useState<T>(initialState);
 
   /**
    * Open a specific dialog
    */
-  const openDialog = useCallback((dialogId: string) => {
+  const openDialog = useCallback((name: keyof T) => {
     setDialogs(prev => ({
       ...prev,
-      [dialogId]: true
+      [name]: true
     }));
   }, []);
 
   /**
    * Close a specific dialog
    */
-  const closeDialog = useCallback((dialogId: string) => {
+  const closeDialog = useCallback((name: keyof T) => {
     setDialogs(prev => ({
       ...prev,
-      [dialogId]: false
+      [name]: false
     }));
   }, []);
 
   /**
-   * Toggle a specific dialog's visibility
+   * Toggle a specific dialog
    */
-  const toggleDialog = useCallback((dialogId: string) => {
+  const toggleDialog = useCallback((name: keyof T) => {
     setDialogs(prev => ({
       ...prev,
-      [dialogId]: !prev[dialogId]
+      [name]: !prev[name]
     }));
   }, []);
 
   /**
    * Check if a specific dialog is visible
    */
-  const isDialogVisible = useCallback((dialogId: string): boolean => {
-    return !!dialogs[dialogId];
+  const isDialogVisible = useCallback((name: keyof T) => {
+    return dialogs[name];
   }, [dialogs]);
 
   /**
@@ -50,9 +51,9 @@ export function useDialogVisibility(initialState: Record<string, boolean> = {}) 
    */
   const closeAllDialogs = useCallback(() => {
     const closedState = Object.keys(dialogs).reduce((acc, key) => {
-      acc[key] = false;
+      acc[key as keyof T] = false;
       return acc;
-    }, {} as Record<string, boolean>);
+    }, {} as T);
     
     setDialogs(closedState);
   }, [dialogs]);

@@ -19,10 +19,16 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
   // Convert the TypeAgreement to SchemaAgreement
   const validationAgreement: SchemaAgreement = {
     ...agreement,
-    // Ensure total_amount is set, which is required by SchemaAgreement
+    // Ensure all required fields are set
     total_amount: agreement.total_amount || 0,
+    rent_amount: agreement.rent_amount || 0,
     // Make sure the status is compatible
-    status: agreement.status as SchemaAgreement['status']
+    status: agreement.status as SchemaAgreement['status'],
+    // Ensure these fields are present even if undefined
+    customer_id: agreement.customer_id,
+    vehicle_id: agreement.vehicle_id,
+    start_date: agreement.start_date,
+    end_date: agreement.end_date
   };
   
   return (

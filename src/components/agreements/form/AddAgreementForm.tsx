@@ -293,8 +293,8 @@ const AddAgreementForm = () => {
     <div className="space-y-4">
       {/* Template Status */}
       <AgreementTemplateStatus 
-        standardTemplateExists={standardTemplateExists}
-        specificUrlCheck={specificUrlCheck}
+        standardTemplateExists={!!standardTemplateExists}
+        specificUrlCheck={!!specificUrlCheck}
       />
       
       <Card>
