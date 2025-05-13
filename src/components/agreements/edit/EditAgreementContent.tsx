@@ -2,7 +2,7 @@
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
-import { AgreementEditor } from '@/components/agreements/edit/AgreementEditor';
+import AgreementEditor from '@/components/agreements/edit/AgreementEditor';
 import { CustomerInfo } from '@/types/customer';
 import { adaptAgreementForValidation } from '@/utils/type-adapters';
 

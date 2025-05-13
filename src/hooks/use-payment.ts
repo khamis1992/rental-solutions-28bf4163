@@ -14,7 +14,7 @@ export function usePayment(agreementId?: string) {
     enabled: !!agreementId,
   });
 
-  // Wrap handlePaymentSubmit for backwards compatibility
+  // Implement handlePaymentSubmit for backwards compatibility
   const handlePaymentSubmit = async (
     amount: number, 
     paymentDate: Date, 
@@ -37,16 +37,21 @@ export function usePayment(agreementId?: string) {
       paymentType
     };
 
-    return paymentManagement.handlePaymentSubmit(
-      amount,
-      paymentDate,
-      notes,
-      paymentMethod,
-      referenceNumber,
-      includeLatePaymentFee,
-      isPartialPayment,
-      paymentType
-    );
+    try {
+      await paymentManagement.addPayment({
+        lease_id: agreementId,
+        amount,
+        payment_date: paymentDate.toISOString(),
+        notes: notes || '',
+        payment_method: paymentMethod || 'cash',
+        reference_number: referenceNumber || '',
+        status: 'completed'
+      });
+      return true;
+    } catch (error) {
+      console.error("Error submitting payment:", error);
+      return false;
+    }
   };
 
   return {

@@ -1,46 +1,52 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export type LoadingState<T extends Record<string, boolean>> = {
-  [K in keyof T]: boolean;
-};
-
-export interface StatusHandlers<T extends Record<string, boolean>> {
-  setLoading: (key: keyof T) => void;
-  setIdle: (key: keyof T) => void;
-  isLoading: (key: keyof T) => boolean;
-  resetAll: () => void;
+interface StatusHandlers<T extends Record<string, boolean>> {
+  setLoading: <K extends keyof T>(status: K) => void;
+  setIdle: <K extends keyof T>(status: K) => void;
+  isLoading: <K extends keyof T>(status: K) => boolean;
+  isAnyLoading: () => boolean;
 }
 
-export const useLoadingStates = <T extends Record<string, boolean>>(initialState: T): [T, StatusHandlers<T>] => {
-  const [state, setState] = useState<T>(initialState);
-
-  const setLoading = (key: keyof T) => {
-    setState(prev => ({ ...prev, [key]: true }));
-  };
-
-  const setIdle = (key: keyof T) => {
-    setState(prev => ({ ...prev, [key]: false }));
-  };
-
-  const isLoading = (key: keyof T): boolean => {
-    return !!state[key];
-  };
-
-  const resetAll = () => {
-    const resetState = Object.keys(initialState).reduce((acc, key) => {
-      acc[key as keyof T] = false as T[keyof T];
-      return acc;
-    }, {} as T);
-    setState(resetState);
-  };
-
-  const handlers: StatusHandlers<T> = {
+/**
+ * Hook to manage multiple loading states
+ */
+export function useLoadingStates<T extends Record<string, boolean>>(initialStates: T): {
+  loadingStates: T;
+  setLoading: <K extends keyof T>(status: K) => void;
+  setIdle: <K extends keyof T>(status: K) => void;
+  isLoading: <K extends keyof T>(status: K) => boolean;
+  isAnyLoading: () => boolean;
+} {
+  const [loadingStates, setLoadingStates] = useState<T>(initialStates);
+  
+  const setLoading = useCallback(<K extends keyof T>(status: K) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [status]: true
+    }));
+  }, []);
+  
+  const setIdle = useCallback(<K extends keyof T>(status: K) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [status]: false
+    }));
+  }, []);
+  
+  const isLoading = useCallback(<K extends keyof T>(status: K): boolean => {
+    return !!loadingStates[status];
+  }, [loadingStates]);
+  
+  const isAnyLoading = useCallback((): boolean => {
+    return Object.values(loadingStates).some(state => !!state);
+  }, [loadingStates]);
+  
+  return {
+    loadingStates,
     setLoading,
     setIdle,
     isLoading,
-    resetAll
+    isAnyLoading
   };
-
-  return [state, handlers];
-};
+}

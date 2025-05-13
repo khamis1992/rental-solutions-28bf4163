@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,15 +27,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { useVehicleService } from '@/hooks/services/useVehicleService';
-import { useCustomerService } from '@/hooks/services/useCustomerService';
-import { Agreement } from '@/types/agreement';
 import { LeaseStatus } from '@/types/lease-types';
+import { Loader2 } from 'lucide-react';
 import VehicleSelector from '../selectors/VehicleSelector';
 import CustomerSelector from '../selectors/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import AgreementTermsEditor from '../terms/AgreementTermsEditor';
-import { Loader2 } from 'lucide-react';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -64,8 +62,6 @@ const AgreementEditor = () => {
   const [activeTab, setActiveTab] = useState("details");
   
   const agreementService = useAgreementService();
-  const vehicleService = useVehicleService();
-  const customerService = useCustomerService();
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
@@ -97,7 +93,7 @@ const AgreementEditor = () => {
       
       setIsLoading(true);
       try {
-        const agreement = await agreementService.getAgreementById(id);
+        const agreement = await agreementService.getAgreementDetails(id);
         if (agreement) {
           // Format dates properly
           const startDate = agreement.start_date ? new Date(agreement.start_date) : new Date();
@@ -141,7 +137,7 @@ const AgreementEditor = () => {
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
     setIsLoading(true);
     try {
-      const data: Agreement = {
+      const data = {
         ...formData,
         total_amount: formData.total_amount || 0,
         status: formData.status as LeaseStatus,
@@ -150,7 +146,10 @@ const AgreementEditor = () => {
       let result;
       if (id) {
         // Update existing agreement
-        result = await agreementService.updateAgreement(id, data);
+        result = await agreementService.updateAgreement({
+          id,
+          data
+        });
       } else {
         // Create new agreement
         result = await agreementService.createAgreement(data);
@@ -161,7 +160,7 @@ const AgreementEditor = () => {
           title: "Success",
           description: id ? "Agreement updated successfully" : "Agreement created successfully",
         });
-        navigate(`/agreements/${result.id}`);
+        navigate(`/agreements/${result.id || id}`);
       } else {
         throw new Error("Failed to save agreement");
       }

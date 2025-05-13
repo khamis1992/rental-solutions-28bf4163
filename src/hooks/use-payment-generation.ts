@@ -5,8 +5,8 @@ import { PaymentRecord, isPaymentRecord, isErrorResponse } from '@/types/payment
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { toast } from '@/components/ui/use-toast';
 
-// Define loading states interface
-interface PaymentGenerationLoadingStates {
+// Define loading states interface with proper index signature
+interface PaymentGenerationLoadingStates extends Record<string, boolean> {
   generating: boolean;
   retrieving: boolean;
   updating: boolean;
@@ -14,7 +14,7 @@ interface PaymentGenerationLoadingStates {
 }
 
 export const usePaymentGeneration = () => {
-  const [loadingStates, { setLoading, setIdle, isLoading }] = 
+  const { loadingStates, setLoading, setIdle, isLoading } = 
     useLoadingStates<PaymentGenerationLoadingStates>({
       generating: false,
       retrieving: false,
