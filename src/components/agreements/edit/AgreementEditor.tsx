@@ -30,7 +30,9 @@ export function AgreementEditor({ id, agreement, userId, vehicleData, customerDa
     customer_id: agreement.customer_id,
     vehicle_id: agreement.vehicle_id,
     start_date: agreement.start_date,
-    end_date: agreement.end_date
+    end_date: agreement.end_date,
+    // Set a required total_amount if not provided
+    ...(agreement.total_amount === undefined ? { total_amount: 0 } : {})
   };
   
   return (

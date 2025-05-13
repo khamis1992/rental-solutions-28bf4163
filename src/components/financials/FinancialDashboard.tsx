@@ -1,3 +1,4 @@
+
 import React, { useMemo, memo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
@@ -7,6 +8,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
+import { RevenueData } from './revenue/types';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
 const getPercentageChange = (current, previous) => {
@@ -45,8 +47,9 @@ const FinancialDashboard = memo(() => {
     profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
   }), [financialSummary]);
 
-  const prepareRevenueChartData = useMemo(() => {
-    if (!revenueData || revenueData.length === 0) {
+  // Prepare chart data
+  const revenueChartData: RevenueData[] = useMemo(() => {
+    if (!revenueData || !Array.isArray(revenueData) || revenueData.length === 0) {
       console.log("No revenue data available for chart");
       return [];
     }
@@ -105,7 +108,7 @@ const FinancialDashboard = memo(() => {
       </div>
 
       <FinancialRevenueChart 
-        data={prepareRevenueChartData} 
+        data={revenueChartData} 
         fullWidth={true}
       />
 

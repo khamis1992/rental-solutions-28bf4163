@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -20,22 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface RevenueChartData {
-  name: string;
-  revenue: number;
-  expenses?: number;
-}
+import { RevenueData } from './revenue/types';
 
 interface RevenueChartProps {
-  data: RevenueChartData[];
+  data: RevenueData[];
   title?: string;
   description?: string;
   fullWidth?: boolean;
 }
 
 const FinancialRevenueChart: React.FC<RevenueChartProps> = ({ 
-  data, 
+  data = [], 
   title = "Financial Overview",
   description = "Revenue, expenses, and profit trends",
   fullWidth = false 
@@ -43,8 +39,8 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
   const [timePeriod, setTimePeriod] = useState<string>("6");
   const [viewType, setViewType] = useState<'area' | 'bar'>('area');
   
-  const ensureCompleteData = (inputData: RevenueChartData[]): RevenueChartData[] => {
-    if (!inputData || inputData.length === 0) {
+  const ensureCompleteData = (inputData: RevenueData[]): RevenueData[] => {
+    if (!inputData || !Array.isArray(inputData) || inputData.length === 0) {
       console.log("No revenue data provided, showing placeholder data");
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
       return months.map(month => ({
