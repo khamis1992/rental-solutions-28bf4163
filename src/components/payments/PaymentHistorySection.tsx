@@ -20,13 +20,15 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
+import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 
 interface PaymentHistoryProps {
   payments: PaymentHistoryItem[];
   isLoading: boolean;
   rentAmount: number | null;
   leaseId?: string;
-  contractAmount?: number | null; // This prop receives the total contract amount
+  contractAmount?: number | null;
   onPaymentDeleted?: (paymentId: string) => void;
   onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
@@ -38,64 +40,31 @@ export function PaymentHistorySection({
   isLoading,
   rentAmount,
   leaseId,
-  contractAmount = null, // Default value is null
+  contractAmount = null,
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
   showAnalytics = true
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
 
-  // Calculate payment statistics
-  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  // Use the payment management hook
+  const {
+    statusFilter,
+    setStatusFilter,
+    getFilterLabel,
+    isLatePayment
+  } = usePaymentManagement(leaseId);
   
-  // Calculate amount paid from COMPLETED payments only
-  const amountPaid = payments
-    .filter(payment => payment.status === 'completed')
-    .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
+  // Use the payment calculation hook
+  const {
+    totalAmount,
+    amountPaid,
+    balance,
+    lateFees
+  } = usePaymentCalculation(payments, contractAmount);
   
-  // Calculate balance based on contract amount if available
-  // If contractAmount is provided, use it for balance calculation, otherwise use totalAmount
-  const effectiveTotal = contractAmount || totalAmount;
-  
-  // Balance is the contract amount minus the amount that has been paid with completed payments
-  const balance = effectiveTotal - amountPaid;
-  
-  // Calculate late fees
-  const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
-
-  // Helper function to determine if a payment was late
-  const isLatePayment = (payment: PaymentHistoryItem): boolean => {
-    // First check if days_overdue is available and greater than 0
-    if (payment.days_overdue && payment.days_overdue > 0) {
-      return true;
-    }
-    
-    // If days_overdue is not available, check if there's late_fine_amount
-    if (payment.late_fine_amount && payment.late_fine_amount > 0) {
-      return true;
-    }
-    
-    // If payment_date and due_date are available, compare them
-    if (payment.payment_date && payment.due_date) {
-      const paymentDate = new Date(payment.payment_date);
-      const dueDate = new Date(payment.due_date);
-      return paymentDate > dueDate;
-    }
-    
-    // If payment_date and original_due_date are available, compare them
-    if (payment.payment_date && payment.original_due_date) {
-      const paymentDate = new Date(payment.payment_date);
-      const originalDueDate = new Date(payment.original_due_date);
-      return paymentDate > originalDueDate;
-    }
-    
-    // Default to false if we can't determine
-    return false;
-  };
-
   // Calculate payment status counts
   const paidOnTime = payments.filter(p => 
     p.status === 'completed' && !isLatePayment(p)
@@ -258,23 +227,6 @@ export function PaymentHistorySection({
     }
     
     return false;
-  };
-
-  const getFilterLabel = () => {
-    switch (statusFilter) {
-      case 'completed':
-        return 'Completed';
-      case 'completed_ontime':
-        return 'Paid On Time';
-      case 'completed_late':
-        return 'Paid Late';  
-      case 'pending':
-        return 'Pending';
-      case 'overdue':
-        return 'Overdue';
-      default:
-        return 'All Payments';
-    }
   };
 
   const renderPaymentHistory = () => {

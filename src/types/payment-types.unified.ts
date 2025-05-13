@@ -6,7 +6,9 @@ export type PaymentRow = Database['public']['Tables']['unified_payments']['Row']
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
 export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
 
-// Define and export the PaymentStatus type for consistency across the application
+/**
+ * Unified payment status types for the entire application
+ */
 export type PaymentStatus = 
   | 'pending'
   | 'completed'
@@ -15,7 +17,9 @@ export type PaymentStatus =
   | 'cancelled'
   | 'voided';
 
-// Define the Payment interface that can be used throughout the application
+/**
+ * Unified payment type for the entire application
+ */
 export interface Payment {
   id: DbId;
   amount: number;
@@ -37,15 +41,23 @@ export interface Payment {
   original_due_date?: string | null;
 }
 
+/**
+ * Payment metrics for analytics
+ */
 export interface PaymentMetrics {
-  sent: number;
-  opened: number;
-  clicked: number;
-  delivered: number;
-  conversion: number;
+  totalAmount: number;
+  amountPaid: number;
+  balance: number;
+  lateFees: number;
+  paidOnTime: number;
+  paidLate: number;
+  unpaid: number;
+  totalPayments: number;
 }
 
-// Additional types for special payment operations
+/**
+ * Options for special payment operations
+ */
 export interface SpecialPaymentOptions {
   notes?: string;
   paymentMethod?: string;
@@ -55,3 +67,6 @@ export interface SpecialPaymentOptions {
   paymentType?: string;
   targetPaymentId?: string;
 }
+
+// Re-export types for backward compatibility
+export type { Payment as PaymentHistoryItem } from '@/types/payment-history.types';

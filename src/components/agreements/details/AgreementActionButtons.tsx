@@ -1,50 +1,52 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { Download, Edit, FilePlus } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react";
 
 interface AgreementActionButtonsProps {
   onEdit: () => void;
   onDownloadPdf: () => void;
   onGenerateDocument: () => void;
   onDelete: () => void;
-  isGeneratingPdf: boolean;
+  isGeneratingPdf?: boolean;
+  loadingStates?: Record<string, boolean>;
 }
 
-export function AgreementActionButtons({
-  onEdit,
-  onDownloadPdf,
-  onGenerateDocument,
+export function AgreementActionButtons({ 
+  onEdit, 
+  onDownloadPdf, 
+  onGenerateDocument, 
   onDelete,
-  isGeneratingPdf
+  isGeneratingPdf,
+  loadingStates
 }: AgreementActionButtonsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
+    <div className="flex flex-wrap gap-2 print:hidden">
       <Button variant="outline" onClick={onEdit}>
-        <Edit className="mr-2 h-4 w-4" />
-        Edit
+        <FileEdit className="h-4 w-4 mr-2" /> Edit Agreement
       </Button>
       
-      <LoadingButton 
-        variant="outline" 
+      <LoadingButton
+        variant="outline"
         onClick={onDownloadPdf}
+        loadingKey="generatingPdf"
+        loadingStates={loadingStates}
         isLoading={isGeneratingPdf}
-        loadingText="Generating..."
+        loadingText="Generating PDF..."
       >
-        <Download className="mr-2 h-4 w-4" />
-        Agreement Copy
+        <Download className="h-4 w-4 mr-2" /> Download PDF
       </LoadingButton>
-
+      
       <Button variant="outline" onClick={onGenerateDocument}>
-        <FilePlus className="mr-2 h-4 w-4" />
-        Generate Document
+        <FileText className="h-4 w-4 mr-2" /> Generate Documents
       </Button>
-
-      <div className="flex-grow"></div>
-
-      <Button variant="destructive" onClick={onDelete} className="ml-auto">
-        Delete
+      
+      <Button variant="outline" onClick={() => window.print()}>
+        <CalendarClock className="h-4 w-4 mr-2" /> Print
+      </Button>
+      
+      <Button variant="destructive" onClick={onDelete}>
+        <Trash className="h-4 w-4 mr-2" /> Delete
       </Button>
     </div>
   );

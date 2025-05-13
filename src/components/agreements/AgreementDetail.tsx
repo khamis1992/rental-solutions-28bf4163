@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -9,11 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { Payment } from '@/types/payment-history.types';
@@ -21,9 +20,10 @@ import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
-import { usePayment } from '@/hooks/use-payment';
-import { useDialogVisibility } from '@/utils/api/dialog-utils';
+import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/use-loading-states';
+import { useDialogVisibility } from '@/utils/api/dialog-utils';
+import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -63,28 +63,30 @@ export function AgreementDetail({
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
+  // Use payment management hook
   const {
     payments = [],
     isLoading,
-    fetchPayments,
     updatePayment,
     addPayment,
-    deletePayment
-  } = usePayments(agreement?.id || '');
-  
-  const { 
+    deletePayment,
     updateHistoricalStatuses,
     loadingStates: paymentLoadingStates
-  } = usePayment(agreement?.id);
+  } = usePaymentManagement(agreement?.id);
   
+  // Use special payment hook
+  const { processPayment, calculateLateFee } = useSpecialPayment(agreement?.id);
+  
+  // Calculate late fee on component mount
   useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
-      fetchPayments();
+    const today = new Date();
+    if (today.getDate() > 1) {
+      const { amount, daysLate } = calculateLateFee(today);
+      setLateFeeDetails({ amount, daysLate });
+    } else {
+      setLateFeeDetails(null);
     }
-  }, [agreement?.id, fetchPayments]);
-  
-  const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
+  }, [calculateLateFee]);
 
   const handleDelete = useCallback(() => {
     if (agreement) {
@@ -149,19 +151,18 @@ export function AgreementDetail({
   ) => {
     if (agreement && agreement.id) {
       try {
-        const success = await handleSpecialAgreementPayments(
-          amount, 
-          paymentDate, 
-          notes, 
-          paymentMethod, 
-          referenceNumber, 
+        const success = await processPayment(amount, paymentDate, {
+          notes,
+          paymentMethod,
+          referenceNumber,
           includeLatePaymentFee,
-          isPartialPayment
-        );
+          isPartialPayment,
+          paymentType
+        });
+        
         if (success) {
           closeDialog('payment');
           onDataRefresh();
-          fetchPayments();
           toast.success("Payment recorded successfully");
           return true;
         }
@@ -173,7 +174,7 @@ export function AgreementDetail({
       }
     }
     return false;
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments, closeDialog]);
+  }, [agreement, processPayment, onDataRefresh, closeDialog]);
 
   const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
     if (!agreement?.id || !updatedPayment.id) return false;
@@ -184,7 +185,6 @@ export function AgreementDetail({
         data: updatedPayment
       });
       onDataRefresh();
-      fetchPayments();
       toast.success("Payment updated successfully");
       return true;
     } catch (error) {
@@ -192,7 +192,7 @@ export function AgreementDetail({
       toast.error("Failed to update payment");
       return false;
     }
-  }, [agreement?.id, updatePayment, onDataRefresh, fetchPayments]);
+  }, [agreement?.id, updatePayment, onDataRefresh]);
 
   const handleDeletePayment = useCallback(async (paymentId: string) => {
     if (!agreement?.id) return;
@@ -200,7 +200,6 @@ export function AgreementDetail({
     try {
       await deletePayment(paymentId);
       onDataRefresh();
-      fetchPayments();
       if (onPaymentDeleted) {
         onPaymentDeleted();
       }
@@ -209,12 +208,7 @@ export function AgreementDetail({
       console.error("Error deleting payment:", error);
       toast.error("Failed to delete payment");
     }
-  }, [agreement?.id, deletePayment, onDataRefresh, fetchPayments, onPaymentDeleted]);
-
-  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
-    const months = differenceInMonths(endDate, startDate);
-    return months > 0 ? months : 1;
-  }, []);
+  }, [agreement?.id, deletePayment, onDataRefresh, onPaymentDeleted]);
 
   const handleUpdateHistoricalPaymentStatuses = async () => {
     if (!agreement) return;
@@ -222,27 +216,11 @@ export function AgreementDetail({
     try {
       await updateHistoricalStatuses();
       onDataRefresh();
-      fetchPayments();
     } catch (error) {
       console.error("Error updating payment statuses:", error);
       toast.error("Failed to update payment statuses");
     }
   };
-
-  useEffect(() => {
-    const today = new Date();
-    if (today.getDate() > 1) {
-      const daysLate = today.getDate() - 1;
-      const lateFeeAmount = Math.min(daysLate * 120, 3000);
-
-      setLateFeeDetails({
-        amount: lateFeeAmount,
-        daysLate: daysLate
-      });
-    } else {
-      setLateFeeDetails(null);
-    }
-  }, []);
 
   if (!agreement) {
     return <Alert>
@@ -306,6 +284,7 @@ export function AgreementDetail({
           onGenerateDocument={handleGenerateDocument}
           onDelete={() => openDialog('delete')}
           isGeneratingPdf={loadingStates.generatingPdf}
+          loadingStates={loadingStates}
         />
         
         <LoadingButton
@@ -334,7 +313,6 @@ export function AgreementDetail({
               status: 'completed'
             };
             addPayment(fullPayment);
-            fetchPayments();
           }
         }}
         leaseStartDate={agreement.start_date} 

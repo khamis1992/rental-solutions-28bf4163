@@ -3,56 +3,57 @@ import { useMemo } from 'react';
 import { Payment } from '@/types/payment.types';
 
 /**
- * Hook for calculating payment statistics
+ * Hook for payment calculations and analytics
  */
-export function usePaymentCalculation(payments: Payment[] = [], rentAmount: number | null = null, contractAmount: number | null = null) {
-  return useMemo(() => {
-    // Total amount from all payments
-    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+export function usePaymentCalculation(payments: Payment[], contractAmount?: number | null) {
+  const calculations = useMemo(() => {
+    if (!payments || !Array.isArray(payments) || payments.length === 0) {
+      return {
+        totalAmount: 0,
+        amountPaid: 0,
+        balance: 0,
+        lateFees: 0,
+        paidCount: 0,
+        pendingCount: 0,
+        overdueCount: 0,
+      };
+    }
     
-    // Amount paid from completed payments only
+    // Calculate payment statistics
+    const totalAmount = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    // Calculate amount paid from COMPLETED payments only
     const amountPaid = payments
       .filter(payment => payment.status === 'completed')
       .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
     
-    // Use contract amount if available, otherwise use totalAmount
-    const effectiveTotal = contractAmount || totalAmount;
+    // Calculate balance based on contract amount if available
+    // If contractAmount is provided, use it for balance calculation, otherwise use totalAmount
+    const effectiveTotal = contractAmount !== undefined && contractAmount !== null 
+      ? contractAmount 
+      : totalAmount;
     
-    // Balance is the contract amount minus the amount that has been paid
+    // Balance is the contract amount minus the amount that has been paid with completed payments
     const balance = effectiveTotal - amountPaid;
     
-    // Calculate percentage paid
-    const percentagePaid = effectiveTotal > 0 ? (amountPaid / effectiveTotal) * 100 : 0;
+    // Calculate late fees
+    const lateFees = payments.reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
     
-    // Count overdue payments
-    const overduePayments = payments.filter(
-      payment => payment.status === 'pending' && 
-      payment.due_date && 
-      new Date(payment.due_date) < new Date()
-    ).length;
-
-    // Find next payment date
-    const upcomingPayments = payments
-      .filter(payment => 
-        payment.status === 'pending' && 
-        payment.due_date && 
-        new Date(payment.due_date) >= new Date()
-      )
-      .sort((a, b) => {
-        if (!a.due_date || !b.due_date) return 0;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      });
-      
-    const nextPaymentDue = upcomingPayments.length > 0 ? upcomingPayments[0].due_date : null;
+    // Count payments by status
+    const paidCount = payments.filter(p => p.status === 'completed').length;
+    const pendingCount = payments.filter(p => p.status === 'pending').length;
+    const overdueCount = payments.filter(p => p.status === 'overdue').length;
     
     return {
       totalAmount,
       amountPaid,
       balance,
-      percentagePaid,
-      overduePayments,
-      nextPaymentDue,
-      remainingPayments: upcomingPayments.length
+      lateFees,
+      paidCount,
+      pendingCount,
+      overdueCount,
     };
-  }, [payments, rentAmount, contractAmount]);
+  }, [payments, contractAmount]);
+  
+  return calculations;
 }

@@ -2,12 +2,13 @@
 import React from 'react';
 import { Payment } from '@/types/payment-history.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
+import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 
 interface PaymentHistoryProps {
   payments: Payment[];
   isLoading: boolean;
   rentAmount: number | null;
-  contractAmount: number | null; // Make sure contractAmount is passed through
+  contractAmount: number | null;
   onPaymentDeleted: (paymentId: string) => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment: (payment: Partial<Payment>) => void;
@@ -33,7 +34,7 @@ export function PaymentHistory({
       payments={payments} 
       isLoading={isLoading} 
       rentAmount={rentAmount}
-      contractAmount={contractAmount} // Pass contractAmount to the PaymentHistorySection
+      contractAmount={contractAmount}
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted}
       onRecordPayment={onRecordPayment}

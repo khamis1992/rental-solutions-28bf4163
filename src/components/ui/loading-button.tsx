@@ -24,6 +24,12 @@ export interface LoadingButtonProps extends ButtonProps {
    * Whether to show the loading spinner
    */
   showSpinner?: boolean;
+  
+  /**
+   * Alternative way to specify loading state directly
+   * @deprecated Use loadingKey and loadingStates instead
+   */
+  isLoading?: boolean;
 }
 
 export function LoadingButton({
@@ -31,13 +37,18 @@ export function LoadingButton({
   loadingStates = {},
   loadingText = "Loading...",
   showSpinner = true,
+  isLoading: isLoadingProp,
   disabled,
   className,
   children,
   ...props
 }: LoadingButtonProps) {
-  // Determine if the button is in loading state
-  const isLoading = loadingKey ? !!loadingStates[loadingKey] : false;
+  // Determine if the button is in loading state (priority to direct isLoading prop)
+  const isLoading = isLoadingProp !== undefined 
+    ? isLoadingProp 
+    : loadingKey 
+      ? !!loadingStates[loadingKey] 
+      : false;
   
   return (
     <Button
