@@ -1,7 +1,17 @@
 
 import React from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { TemplateStatus } from './TemplateSetup';
+
+// Define proper TemplateStatus type 
+export interface TemplateStatus {
+  accessible: boolean;
+  message: string;
+}
+
+// Helper function to create template status object
+export function createTemplateStatus(accessible: boolean, message: string): TemplateStatus {
+  return { accessible, message };
+}
 
 interface AgreementTemplateStatusProps {
   standardTemplateExists: TemplateStatus;
@@ -13,21 +23,21 @@ export function AgreementTemplateStatus({
   specificUrlCheck 
 }: AgreementTemplateStatusProps) {
   // Don't show anything if both templates are available
-  if (standardTemplateExists && specificUrlCheck) {
+  if (standardTemplateExists.accessible && specificUrlCheck.accessible) {
     return null;
   }
   
   return (
-    <Alert className={standardTemplateExists ? "bg-green-50" : "bg-amber-50"}>
+    <Alert className={standardTemplateExists.accessible ? "bg-green-50" : "bg-amber-50"}>
       <AlertTitle>
-        {standardTemplateExists 
+        {standardTemplateExists.accessible 
           ? "Template Available" 
           : "Template Information"}
       </AlertTitle>
       <AlertDescription>
-        {specificUrlCheck 
+        {specificUrlCheck.accessible 
           ? "Using custom template specified in URL"
-          : standardTemplateExists 
+          : standardTemplateExists.accessible 
               ? "Using standard agreement template" 
               : "No standard agreement template found. Agreement will be created without a template."}
       </AlertDescription>

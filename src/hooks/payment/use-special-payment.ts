@@ -85,13 +85,14 @@ export const useSpecialPayment = (agreementId?: string) => {
         }
       }
       
-      // Get lease data to access daily_late_fee
+      // Get lease data to access daily_late_fee and rent_amount
       let dailyLateFee = 120; // Default value
+      let rentAmount = 0; // Default value
       
       // If we don't have agreement data, fetch it from supabase
       const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
-        .select('daily_late_fee')
+        .select('daily_late_fee, rent_amount')
         .eq('id', agreementId)
         .single();
           
@@ -99,6 +100,7 @@ export const useSpecialPayment = (agreementId?: string) => {
         console.error("Error fetching lease data for late fee:", leaseError);
       } else if (leaseData) {
         dailyLateFee = leaseData.daily_late_fee || 120;
+        rentAmount = leaseData.rent_amount || 0;
       }
       
       // Calculate if there's a late fee applicable
@@ -163,7 +165,6 @@ export const useSpecialPayment = (agreementId?: string) => {
         if (isPartialPayment) {
           paymentStatus = 'partially_paid';
           // Find the rent amount from lease data
-          const rentAmount = leaseData?.rent_amount || amount;
           balance = Math.max(0, rentAmount - amount);
         }
         
@@ -171,7 +172,7 @@ export const useSpecialPayment = (agreementId?: string) => {
         try {
           const paymentData = {
             lease_id: agreementId,
-            amount: leaseData?.rent_amount || amount,
+            amount: rentAmount || amount,
             amount_paid: amountPaid,
             balance: balance,
             payment_date: paymentDate.toISOString(),

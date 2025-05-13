@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import { createTemplateStatus, TemplateStatus } from '@/components/agreements/form/AgreementTemplateStatus';
 import { supabase } from '@/lib/supabase';
+import { TemplateStatus, createTemplateStatus } from '@/components/agreements/form/AgreementTemplateStatus';
 
 /**
  * Hook to check for available agreement templates

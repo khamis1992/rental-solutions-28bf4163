@@ -1,8 +1,10 @@
+
 import { useState, useCallback } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format as dateFormat } from 'date-fns';
+import { castDbId } from '@/utils/supabase-type-helpers';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -62,27 +64,32 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         }
       }
       
-      // Get lease data to access daily_late_fee
+      // Get lease data to access daily_late_fee and rent_amount
       let dailyLateFee = 120; // Default value
+      let rentAmount = 0; // Default value
+
       if (!agreement) {
         try {
           // If agreement isn't passed in props, fetch it from supabase
           const { data: leaseData, error: leaseError } = await supabase
             .from('leases')
-            .select('daily_late_fee')
-            .eq('id', agreementId || '');
+            .select('daily_late_fee, rent_amount')
+            .eq('id', agreementId || '')
+            .single();
             
           if (leaseError) {
             console.error("Error fetching lease data for late fee:", leaseError);
-          } else if (leaseData && leaseData.length > 0) {
-            dailyLateFee = leaseData[0].daily_late_fee || 120;
+          } else if (leaseData) {
+            dailyLateFee = leaseData.daily_late_fee || 120;
+            rentAmount = leaseData.rent_amount || 0;
           }
         } catch (error) {
           console.error("Error fetching lease data:", error);
         }
       } else {
-        // Use the daily_late_fee from the provided agreement
+        // Use the daily_late_fee and rent_amount from the provided agreement
         dailyLateFee = agreement.daily_late_fee || 120;
+        rentAmount = agreement.rent_amount || 0;
       }
       
       // Calculate if there's a late fee applicable
@@ -126,7 +133,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update(updateData)
-          .eq('id', existingPaymentId);
+          .eq('id', castDbId(existingPaymentId));
           
         if (updateError) {
           console.error("Error updating payment:", updateError);
@@ -147,7 +154,6 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         if (isPartialPayment) {
           paymentStatus = 'partially_paid';
           // Safe access to rent_amount with a fallback
-          const rentAmount = agreement?.rent_amount || 0;
           balance = Math.max(0, rentAmount - amount);
         }
         
@@ -157,8 +163,8 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         // Prepare the payment record
         try {
           const paymentData = {
-            lease_id: safeAgreementId,
-            amount: agreement?.rent_amount || 0,
+            lease_id: castDbId(safeAgreementId),
+            amount: rentAmount || amount,
             amount_paid: amountPaid,
             balance: balance,
             payment_date: paymentDate.toISOString(),
@@ -172,9 +178,10 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
           };
           
+          // Type the insert operation properly
           const { data, error } = await supabase
             .from('unified_payments')
-            .insert([paymentData])
+            .insert(paymentData)
             .select('id')
             .single();
         
@@ -188,7 +195,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           if (lateFineAmount > 0 && includeLatePaymentFee) {
             // Create the late fee record
             const lateFeeData = {
-              lease_id: safeAgreementId,
+              lease_id: castDbId(safeAgreementId),
               amount: lateFineAmount,
               amount_paid: lateFineAmount,
               balance: 0,
@@ -203,9 +210,10 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
               original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
             };
             
+            // Type the insert operation properly
             const { error: lateFeeError } = await supabase
               .from('unified_payments')
-              .insert([lateFeeData]);
+              .insert(lateFeeData);
             
             if (lateFeeError) {
               console.error("Late fee recording error:", lateFeeError);

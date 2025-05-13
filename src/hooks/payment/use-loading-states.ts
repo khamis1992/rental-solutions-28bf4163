@@ -14,7 +14,7 @@ export const useLoadingStates = <T extends Record<string, boolean>>(initialState
     setLoadingStates(prev => ({
       ...prev,
       [key]: isLoading
-    }));
+    }) as T);  // Type assertion to ensure type safety
   }, []);
 
   /**
