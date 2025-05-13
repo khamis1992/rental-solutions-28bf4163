@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -786,7 +787,8 @@ export function useFinancials() {
     addExpense: addExpenseMutation.mutate,
     updateExpense: updateExpenseMutation.mutate,
     deleteExpense: deleteExpenseMutation.mutate,
-    recurringExpenses: expenses.filter(e => e.isRecurring === true),
+    // Fix the null reference error by providing a default empty array if expenses is null
+    recurringExpenses: expenses ? expenses.filter(e => e.isRecurring === true) : [],
     systemDate: getSystemDate()
   };
 }

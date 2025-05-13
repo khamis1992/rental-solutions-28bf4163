@@ -52,9 +52,12 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     
     console.log("Processing revenue chart data:", inputData);
     
+    // Ensure each data item has revenue and expenses properties
     return inputData.map(item => ({
       ...item,
-      expenses: item.expenses || Math.floor(item.revenue * 0.6)
+      name: item.name || 'Unknown',
+      revenue: typeof item.revenue === 'number' ? item.revenue : 0,
+      expenses: typeof item.expenses === 'number' ? item.expenses : Math.floor((item.revenue || 0) * 0.6)
     }));
   };
   
