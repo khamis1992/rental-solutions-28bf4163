@@ -34,30 +34,61 @@ import {
   UserCheck,
   DollarSign,
   Users,
+  Loader2,
 } from 'lucide-react';
-import { useTrafficFines } from '@/hooks/traffic';
+import { useTrafficFineQuery } from '@/hooks/use-traffic-fine-query';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { adaptTrafficFineToUI, UITrafficFine } from './TrafficFineAdapter';
 import { StatCard } from '@/components/ui/stat-card';
+import { TrafficFine } from '@/types/traffic-fine.types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
   onAddFine?: () => void;
+  externalFines?: TrafficFine[];
+  useExternalData?: boolean;
 }
 
-const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesListProps) => {
+const TrafficFinesList = ({ 
+  isAutoAssigning = false, 
+  onAddFine,
+  externalFines,
+  useExternalData = false
+}: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { 
-    fines: dbFines, 
-    isLoading, 
-    payTrafficFine, 
-    disputeTrafficFine, 
-    assignToCustomer 
-  } = useTrafficFines();
-  
   const [assigningFines, setAssigningFines] = useState(false);
+  
+  // Use the standardized service through React Query hooks
+  const {
+    getTrafficFines,
+    updateTrafficFine,
+    assignCustomerToFine
+  } = useTrafficFineQuery();
+  
+  // Fetch traffic fines from the standardized service
+  const trafficFinesQuery = !useExternalData 
+    ? getTrafficFines() 
+    : null;
+    
+  // Set up mutations for traffic fine operations
+  const updateTrafficFineMutation = updateTrafficFine();
+  const assignCustomerToFineMutation = assignCustomerToFine();
+  
+  // Get traffic fines data from either the query or external source
+  const dbFines = useExternalData 
+    ? externalFines || [] 
+    : (trafficFinesQuery?.data?.data || []);
+  const isLoading = useExternalData 
+    ? false 
+    : (trafficFinesQuery?.isLoading || false);
+  const error = !useExternalData 
+    ? trafficFinesQuery?.error 
+    : null;
+    
+  // Convert database fines to UI format
   const fines = dbFines.map(adaptTrafficFineToUI);
   
   const filteredFines = fines ? fines.filter(fine => 
@@ -71,13 +102,34 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
   
   const assignedFinesAmount = assignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
-
   const handlePayFine = (id: string) => {
-    payTrafficFine.mutate({ id });
+    updateTrafficFineMutation.mutate({
+      id,
+      data: { status: 'paid', payment_date: new Date().toISOString() }
+    }, {
+      onSuccess: () => {
+        toast.success('Traffic fine marked as paid');
+      },
+      onError: (error) => {
+        toast.error('Failed to mark fine as paid');
+        console.error('Error paying fine:', error);
+      }
+    });
   };
 
   const handleDisputeFine = (id: string) => {
-    disputeTrafficFine.mutate({ id });
+    updateTrafficFineMutation.mutate({
+      id,
+      data: { status: 'disputed', disputed_date: new Date().toISOString() }
+    }, {
+      onSuccess: () => {
+        toast.success('Traffic fine marked as disputed');
+      },
+      onError: (error) => {
+        toast.error('Failed to mark fine as disputed');
+        console.error('Error disputing fine:', error);
+      }
+    });
   };
 
   const handleAutoAssignFines = async () => {
@@ -107,7 +159,10 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutateAsync({ id: fine.id });
+          await assignCustomerToFineMutation.mutateAsync({ 
+            id: fine.id,
+            licensePlate: fine.licensePlate
+          });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -235,12 +290,25 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
                   <TableHead>Customer</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
+              </TableHeader>              <TableBody>
                 {isLoading || isAutoAssigning ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      {isAutoAssigning ? "Auto-assigning traffic fines..." : "Loading traffic fines..."}
+                      <div className="flex justify-center items-center">
+                        <Loader2 className="animate-spin h-6 w-6 mr-2" />
+                        {isAutoAssigning ? "Auto-assigning traffic fines..." : "Loading traffic fines..."}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                      <Alert variant="destructive" className="mb-4 max-w-md mx-auto">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        <AlertDescription>
+                          Error loading traffic fines. Please try again later.
+                        </AlertDescription>
+                      </Alert>
                     </TableCell>
                   </TableRow>
                 ) : filteredFines.length > 0 ? (
@@ -288,9 +356,8 @@ const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesLi
                               disabled={fine.paymentStatus === 'disputed'}
                             >
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
+                            </DropdownMenuItem>                            <DropdownMenuItem 
+                              onClick={() => assignCustomerToFineMutation.mutate({ id: fine.id, licensePlate: fine.licensePlate })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer

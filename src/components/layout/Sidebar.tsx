@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +27,7 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { NetworkStatusIndicator } from "./NetworkStatusIndicator";
 
 type NavLinkProps = {
   to: string;
@@ -326,18 +326,30 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "User"}</span>
               <span className="text-xs text-gray-400 truncate max-w-[120px]">
                 Admin
-              </span>
-            </div>
+              </span>            </div>
             <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
+          
+          {/* Network status indicator */}
+          <div className="mt-2 px-4 py-2 border-t border-gray-800 flex items-center">
+            <NetworkStatusIndicator />
+            <span className="text-xs text-gray-400 ml-2">
+              {expanded ? 'Connection Status' : ''}
+            </span>
+          </div>
         ) : (
-          <div className="hidden md:flex justify-center">
+          <div className="hidden md:flex flex-col items-center gap-4">
             <Avatar className="h-9 w-9 border border-gray-700">
               <AvatarImage src="" />
               <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
+            
+            {/* Compact network status indicator */}
+            <div className="mt-2">
+              <NetworkStatusIndicator />
+            </div>
           </div>
         )}
       </div>

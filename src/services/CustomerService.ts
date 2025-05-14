@@ -3,6 +3,8 @@ import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseS
 import { TableRow } from '@/lib/database/types';
 import { asProfileStatus } from '@/lib/database/utils';
 import { supabase } from '@/lib/supabase';
+import { CustomerInfo, CustomerSearchParams } from '@/types/customer';
+import { handleError } from '@/utils/error-handler';
 
 export type Customer = TableRow<'profiles'>;
 
@@ -55,75 +57,202 @@ export class CustomerService extends BaseService<'profiles'> {
       return data || [];
     });
   }
+  /**
+   * Get customers with filtering and pagination
+   * This aligns with our standardized React Query hook
+   */
+  async getCustomers(
+    params: CustomerSearchParams = { query: '', status: '' },
+    limit = 10,
+    offset = 0
+  ): Promise<{ data: CustomerInfo[]; count: number } | null> {
+    try {
+      const { query, status } = params;
+
+      // Start building the query
+      let dbQuery = supabase.from('profiles')
+        .select('*', { count: 'exact' })
+        .eq('role', 'customer');
+
+      // Apply filters
+      if (status && status !== 'all') {
+        dbQuery = dbQuery.eq('status', status);
+      }
+
+      // Text search across multiple fields
+      if (query && query.trim() !== '') {
+        const searchTerm = query.trim();
+        dbQuery = dbQuery.or(
+          `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%`
+        );
+      }
+
+      // Get total count and apply pagination
+      dbQuery = dbQuery
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      // Execute query
+      const { data, error, count } = await dbQuery;
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        data: data as CustomerInfo[],
+        count: count || 0
+      };
+    } catch (error) {
+      handleError(error, { context: 'Customer listing' });
+      return null;
+    }
+  }
 
   /**
-   * Fetches detailed customer information including rental history
-   * @param id - Customer ID to retrieve details for
-   * @returns Promise with customer details and associated agreements
+   * Get a customer by their ID
    */
-  async getCustomerDetails(id: string): Promise<ServiceResult<Customer & { agreements: any[] }>> {
-    return handleServiceOperation(async () => {
+  async getCustomerById(id: string): Promise<CustomerInfo | null> {
+    try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          agreements:leases(
-            id, 
-            agreement_number, 
-            start_date, 
-            end_date, 
-            status, 
-            total_amount,
-            vehicles(make, model, license_plate, year)
-          )
-        `)
+        .select('*')
         .eq('id', id)
+        .eq('role', 'customer')
         .single();
-      
+
       if (error) {
-        throw new Error(`Failed to fetch customer details: ${error.message}`);
+        throw error;
       }
-      
-      return data;
-    });
+
+      return data as CustomerInfo;
+    } catch (error) {
+      handleError(error, { context: 'Customer details' });
+      return null;
+    }
   }
 
   /**
-   * Updates customer status while maintaining audit trail
-   * @param id - Customer ID to update
-   * @param status - New status to apply
-   * @returns Promise with updated customer record
+   * Create a new customer
    */
-  async updateStatus(id: string, status: string): Promise<ServiceResult<Customer>> {
-    return handleServiceOperation(async () => {
-      const dbStatus = asProfileStatus(status);
-      const response = await this.repository.update(id, { 
-        status: dbStatus,
-        status_updated_at: new Date().toISOString()
-      });
-      
-      if (response.error) {
-        throw new Error(`Failed to update customer status: ${response.error.message}`);
+  async createCustomer(data: Omit<CustomerInfo, 'id' | 'created_at'>): Promise<CustomerInfo | null> {
+    try {
+      const { data: newCustomer, error } = await supabase
+        .from('profiles')
+        .insert({
+          ...data,
+          role: 'customer',
+          status: data.status || 'active'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
       }
-      
-      return response.data;
-    });
+
+      return newCustomer as CustomerInfo;
+    } catch (error) {
+      handleError(error, { context: 'Create customer' });
+      return null;
+    }
   }
 
   /**
-   * Validates customer document expiration status
-   * Implements business rules for document validation and notification
-   * @param customerId - Customer ID to check documents for
-   * @returns Promise with document validation results and warnings
+   * Update an existing customer
    */
-  async checkDocumentExpiration(customerId: string): Promise<ServiceResult<any>> {
-    return handleServiceOperation(async () => {
-      const response = await this.repository.findById(customerId);
-      if (response.error) {
-        throw new Error(`Failed to fetch customer: ${response.error.message}`);
+  async updateCustomer(id: string, data: Partial<CustomerInfo>): Promise<CustomerInfo | null> {
+    try {
+      const { data: updatedCustomer, error } = await supabase
+        .from('profiles')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('role', 'customer')
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return updatedCustomer as CustomerInfo;
+    } catch (error) {
+      handleError(error, { context: 'Update customer' });
+      return null;
+    }
+  }
+
+  /**
+   * Delete a customer
+   */
+  async deleteCustomer(id: string): Promise<CustomerInfo | null> {
+    try {
+      const { data: deletedCustomer, error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id)
+        .eq('role', 'customer')
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return deletedCustomer as CustomerInfo;
+    } catch (error) {
+      handleError(error, { context: 'Delete customer' });
+      return null;
+    }
+  }
+
+  /**
+   * Search for customers by name, email, or phone
+   */
+  async searchCustomers(query: string, limit = 5): Promise<CustomerInfo[] | null> {
+    try {
+      if (!query || query.trim() === '') {
+        return [];
+      }
+
+      const searchTerm = query.trim();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'customer')
+        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%`)
+        .limit(limit);
+
+      if (error) {
+        throw error;
+      }
+
+      return data as CustomerInfo[];
+    } catch (error) {
+      handleError(error, { context: 'Customer search' });
+      return null;
+    }
+  }
+  /**
+   * Check document expiration for a customer
+   */
+  async checkDocumentExpiration(customerId: string): Promise<{ 
+    customer: CustomerInfo; 
+    documentStatus: { 
+      hasWarnings: boolean; 
+      warnings: Array<any>; 
+    }; 
+  } | null> {
+    try {
+      const customer = await this.getCustomerById(customerId);
+      
+      if (!customer) {
+        throw new Error(`Customer with ID ${customerId} not found`);
       }
       
-      const customer = response.data;
       const today = new Date();
       const expiryWarningDays = 30; // Warn when document expires within 30 days
       
@@ -178,45 +307,12 @@ export class CustomerService extends BaseService<'profiles'> {
           warnings
         }
       };
-    });
-  }
-
-  /**
-   * Retrieves customer payment history across all agreements
-   * @param customerId - Customer ID to fetch payment history for
-   * @returns Promise with detailed payment history
-   */
-  async getPaymentHistory(customerId: string): Promise<ServiceResult<any[]>> {
-    return handleServiceOperation(async () => {
-      // First get all customer's agreements
-      const { data: agreements, error: agreementsError } = await supabase
-        .from('leases')
-        .select('id, agreement_number')
-        .eq('customer_id', customerId);
-      
-      if (agreementsError) {
-        throw new Error(`Failed to fetch customer agreements: ${agreementsError.message}`);
-      }
-      
-      if (!agreements || agreements.length === 0) {
-        return [];
-      }
-      
-      // Get all payments for these agreements
-      const agreementIds = agreements.map(a => a.id);
-      const { data: payments, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('*, lease:lease_id(agreement_number)')
-        .in('lease_id', agreementIds)
-        .order('payment_date', { ascending: false });
-      
-      if (paymentsError) {
-        throw new Error(`Failed to fetch customer payment history: ${paymentsError.message}`);
-      }
-      
-      return payments || [];
-    });
+    } catch (error) {
+      handleError(error, { context: 'Customer document check' });
+      return null;
+    }
   }
 }
 
+// Export a singleton instance
 export const customerService = new CustomerService();

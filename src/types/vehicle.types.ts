@@ -4,58 +4,7 @@
  * @module VehicleTypes
  */
 
-import { Database } from './database.types';
-
-/**
- * Vehicle status options in the system.
- * - available: Vehicle is ready for rental
- * - rented: Currently under an active lease
- * - maintenance: Under maintenance or repair
- * - reserved: Reserved for future rental
- * - inactive: Temporarily out of service
- */
-export type VehicleStatus = Database['public']['Enums']['vehicle_status'];
-
-/**
- * Core vehicle data structure representing a vehicle in the fleet
- */
-export interface Vehicle {
-  /** Unique identifier for the vehicle */
-  id: string;
-  /** Current operational status */
-  status: VehicleStatus;
-  /** Vehicle manufacturer */
-  make: string;
-  /** Vehicle model */
-  model: string;
-  /** Manufacturing year */
-  year: number;
-  /** License plate number */
-  license_plate: string;
-  /** Vehicle color */
-  color?: string;
-  /** Vehicle Identification Number */
-  vin: string;
-  /** Current mileage */
-  mileage: number;
-  /** Daily rental rate */
-  rent_amount: number;
-  /** Insurance provider company name */
-  insurance_company?: string;
-  /** Insurance expiry date */
-  insurance_expiry?: string;
-  /** Current location/branch */
-  location?: string;
-  /** URL to vehicle image */
-  image_url?: string;
-  /** Vehicle category/type ID reference */
-  vehicle_type_id?: string;
-  /** Indicates if this is test data */
-  is_test_data?: boolean;
-  /** Timestamps */
-  created_at: string;
-  updated_at: string;
-}
+import { Vehicle, VehicleStatus } from './vehicle';
 
 /**
  * Extended vehicle information including maintenance and rental history

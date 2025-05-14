@@ -7,6 +7,7 @@
 
 import { toast } from 'sonner';
 import { PostgrestError } from '@supabase/supabase-js';
+import { handleError } from '@/utils/error-handler';
 export * from './api/index';
 
 /**
@@ -15,20 +16,14 @@ export * from './api/index';
  * @param context Optional context for the error message
  */
 export function handleApiError(error: unknown, context?: string): void {
-  console.error('API Error:', error);
-  
-  let errorMessage = 'An unexpected error occurred';
-  
-  if (error instanceof Error) {
-    errorMessage = error.message;
-  } else if (typeof error === 'string') {
-    errorMessage = error;
-  } else if (isPostgrestError(error)) {
-    errorMessage = `Database error: ${error.message}`;
-    
-    // Handle specific database errors
-    switch (error.code) {
-      case '23505':
+  // Use the standardized error handler with backward compatibility
+  handleError(error, { context: context || 'API Request' });
+}
+
+/**
+ * Legacy type guard for PostgrestError
+ * @deprecated Use the standardized error handler instead
+ */
         errorMessage = 'A record with this information already exists.';
         break;
       case '23503':

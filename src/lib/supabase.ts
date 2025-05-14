@@ -2,11 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
+import { supabase as robustClient } from '@/integrations/supabase/client';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Re-export the robust client implementation
+export const supabase = robustClient;
 
 /**
  * Runs payment schedule maintenance job

@@ -1,33 +1,121 @@
-import { vehicleRepository } from '@/lib/database';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
-import { TableRow } from '@/lib/database/types';
-import { asVehicleStatus } from '@/lib/database/utils';
+import { BaseService } from './BaseService';
+import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
-
-export type Vehicle = TableRow<'vehicles'>;
-
-export interface VehicleFilterParams {
-  status?: string;
-  statuses?: string[];
-  make?: string;
-  model?: string;
-  year?: number | null;
-  minYear?: number | null;
-  maxYear?: number | null;
-  searchTerm?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  location?: string;
-  vehicle_type_id?: string;
-  limit?: number;
-  offset?: number;
-  [key: string]: any;
-}
+import { handleError } from '@/utils/error-handler';
 
 export interface PaginatedResult<T> {
   data: T[];
   count: number;
 }
+
+/**
+ * Service for managing vehicle data
+ */
+export class VehicleService extends BaseService {
+  constructor() {
+    super('vehicles');
+  }
+
+  /**
+   * Get all vehicles with filtering and pagination
+   */
+  async getVehicles(filters: VehicleFilterParams = {}): Promise<PaginatedResult<Vehicle> | null> {
+    try {
+      const {
+        status,
+        statuses,
+        make,
+        model,
+        year,
+        minYear,
+        maxYear,
+        searchTerm,
+        sortBy = 'created_at',
+        sortDirection = 'desc',
+        location,
+        vehicle_type_id,
+        limit = 10,
+        offset = 0
+      } = filters;
+
+      // Start building the query
+      let query = this.query.select('*, vehicle_types(*)');
+
+      // Apply filters
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      if (statuses && statuses.length > 0) {
+        query = query.in('status', statuses);
+      }
+
+      if (make) {
+        query = query.ilike('make', `%${make}%`);
+      }
+
+      if (model) {
+        query = query.ilike('model', `%${model}%`);
+      }
+
+      if (year) {
+        query = query.eq('year', year);
+      }
+
+      if (minYear) {
+        query = query.gte('year', minYear);
+      }
+
+      if (maxYear) {
+        query = query.lte('year', maxYear);
+      }
+
+      if (location) {
+        query = query.eq('location', location);
+      }
+
+      if (vehicle_type_id) {
+        query = query.eq('vehicle_type_id', vehicle_type_id);
+      }
+
+      // Text search across multiple fields
+      if (searchTerm) {
+        query = query.or(
+          `license_plate.ilike.%${searchTerm}%,make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,vin.ilike.%${searchTerm}%`
+        );
+      }
+
+      // Get total count (without pagination)
+      const { count, error: countError } = await query.count();
+      
+      if (countError) {
+        throw countError;
+      }
+
+      // Apply sorting and pagination
+      query = query
+        .order(sortBy, { ascending: sortDirection === 'asc' })
+        .range(offset, offset + limit - 1);
+
+      // Execute query
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        data: data.map(vehicle => ({
+          ...vehicle,
+          vehicleType: vehicle.vehicle_types,
+        })) as Vehicle[],
+        count: count || 0
+      };
+    } catch (error) {
+      handleError(error, { context: 'Vehicle listing' });
+      return null;
+    }
+  }
 
 /**
  * Service responsible for managing vehicle operations in the fleet management system.

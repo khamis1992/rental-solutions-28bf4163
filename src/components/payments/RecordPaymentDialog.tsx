@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, CreditCard } from 'lucide-react';
 import { PaymentForAgreement } from './PaymentForAgreement';
 import { NewPaymentEntry } from './NewPaymentEntry';
+import { usePaymentQuery } from '@/hooks/use-payment-query';
 
 interface RecordPaymentDialogProps {
   open: boolean;

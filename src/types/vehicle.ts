@@ -1,41 +1,67 @@
 /**
  * Vehicle status options from the database schema
+ * - available: Vehicle is ready for rental
+ * - rented: Currently under an active lease
+ * - maintenance: Under maintenance or repair
+ * - reserved: Reserved for future rental
+ * - retired: Vehicle that has been taken out of service
+ * - police_station: Vehicle is held at a police station
+ * - accident: Vehicle is involved in an accident
+ * - stolen: Vehicle has been reported as stolen
  */
-export type VehicleStatus = 
-  | 'available' 
-  | 'rented' 
-  | 'maintenance' 
-  | 'retired' 
-  | 'police_station' 
-  | 'accident' 
-  | 'stolen' 
-  | 'reserved';
+import { Database } from './database.types';
+
+export type VehicleStatus = Database['public']['Enums']['vehicle_status'];
 
 /**
- * Vehicle interface definition
+ * Core vehicle data structure representing a vehicle in the fleet
  */
 export interface Vehicle {
+  /** Unique identifier for the vehicle */
   id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  vin: string;
-  color?: string | null;
-  image_url?: string | null;
-  mileage?: number | null;
+  /** Current operational status */
   status: VehicleStatus;
-  created_at: string;
-  updated_at: string;
-  description?: string | null;
-  location?: string | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
+  /** Vehicle manufacturer */
+  make: string;
+  /** Vehicle model */
+  model: string;
+  /** Manufacturing year */
+  year: number;
+  /** License plate number */
+  license_plate: string;
+  /** Vehicle Identification Number */
+  vin: string;
+  /** Vehicle color */
+  color?: string | null;
+  /** URL to vehicle image */
+  image_url?: string | null;
+  /** Current mileage */
+  mileage?: number | null;
+  /** Daily rental rate */
   rent_amount?: number | null;
+  /** Creation timestamp */
+  created_at: string;
+  /** Last update timestamp */
+  updated_at: string;
+  /** Additional vehicle description */
+  description?: string | null;
+  /** Current location/branch */
+  location?: string | null;
+  /** Insurance provider company name */
+  insurance_company?: string | null;
+  /** Insurance expiry date */
+  insurance_expiry?: string | null;
+  /** Vehicle category/type ID reference */
   vehicle_type_id?: string | null;
+  /** Current customer ID if rented */
   currentCustomer?: string | null;
+  /** Daily rental rate (alias) */
   dailyRate?: number | null;
+  /** Additional notes about the vehicle */
   notes?: string | null;
+  /** Indicates if this is test data */
+  is_test_data?: boolean;
+  /** Vehicle type information */
   vehicleType?: {
     id: string;
     name: string;

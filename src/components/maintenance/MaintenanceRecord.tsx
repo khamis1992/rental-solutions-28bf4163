@@ -3,9 +3,10 @@ import React from 'react';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Maintenance } from '@/types/maintenance.types';
 
 interface MaintenanceRecordProps {
-  record: any;
+  record: Maintenance;
   onClick?: () => void;
 }
 

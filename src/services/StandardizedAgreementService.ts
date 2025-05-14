@@ -1,4 +1,3 @@
-
 /**
  * Standardized AgreementService for the Fleet Management System
  */
@@ -12,7 +11,9 @@ export interface PaginatedAgreementResult {
   count: number;
 }
 
-// Helper function to generate agreement numbers
+/**
+ * Helper function to generate agreement numbers
+ */
 function generateAgreementNumber(): string {
   const prefix = 'RENT';
   const timestamp = Date.now().toString().slice(-6);
@@ -286,125 +287,3 @@ export class AgreementService extends BaseService {
 
 // Export a singleton instance
 export const agreementService = new AgreementService();
-          vehicles:vehicle_id(*)
-        `)
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error getting agreement details:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to get agreement details')
-      };
-    }
-  },
-
-  /**
-   * Update agreement
-   */
-  async update(id: string, data: Record<string, any>): Promise<SaveResponse> {
-    try {
-      const { data: updatedData, error } = await supabase
-        .from('leases')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      return { success: true, data: updatedData };
-    } catch (error) {
-      console.error('Error updating agreement:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to update agreement')
-      };
-    }
-  },
-
-  /**
-   * Change agreement status
-   */
-  async changeStatus(id: string, status: string): Promise<SaveResponse> {
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .update({
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error changing agreement status:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to change agreement status')
-      };
-    }
-  },
-
-  /**
-   * Delete agreement
-   */
-  async deleteAgreement(id: string): Promise<SaveResponse> {
-    try {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting agreement:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to delete agreement')
-      };
-    }
-  },
-
-  /**
-   * Calculate remaining amount
-   */
-  async calculateRemainingAmount(id: string): Promise<SaveResponse> {
-    try {
-      // This is a placeholder implementation - in reality you would need to implement this
-      // based on your business logic and database structure
-      const { data, error } = await supabase.rpc('calculate_remaining_amount', { agreement_id: id });
-      
-      if (error) throw error;
-      
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error calculating remaining amount:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to calculate remaining amount')
-      };
-    }
-  }
-};
-
-// Helper function to generate an agreement number
-function generateAgreementNumber(): string {
-  const prefix = 'AGR';
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `${prefix}-${timestamp}-${random}`;
-}
