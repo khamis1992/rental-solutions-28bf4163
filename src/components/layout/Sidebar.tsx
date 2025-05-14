@@ -318,29 +318,31 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         expanded ? "" : "md:px-2 md:flex md:justify-center"
       )}>
         {expanded ? (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-gray-700">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "User"}</span>
-              <span className="text-xs text-gray-400 truncate max-w-[120px]">
-                Admin
+          <>
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9 border border-gray-700">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "User"}</span>
+                <span className="text-xs text-gray-400 truncate max-w-[120px]">
+                  Admin
+                </span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Network status indicator */}
+            <div className="mt-2 px-4 py-2 border-t border-gray-800 flex items-center">
+              <NetworkStatusIndicator />
+              <span className="text-xs text-gray-400 ml-2">
+                {expanded ? 'Connection Status' : ''}
               </span>
             </div>
-            <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          /* Network status indicator */
-          <div className="mt-2 px-4 py-2 border-t border-gray-800 flex items-center">
-            <NetworkStatusIndicator />
-            <span className="text-xs text-gray-400 ml-2">
-              {expanded ? 'Connection Status' : ''}
-            </span>
-          </div>
+          </>
         ) : (
           <div className="hidden md:flex flex-col items-center gap-4">
             <Avatar className="h-9 w-9 border border-gray-700">
