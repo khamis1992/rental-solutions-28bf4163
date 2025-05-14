@@ -30,6 +30,12 @@ export interface TrafficFineCustomer {
 
 export type TrafficFineCreatePayload = Omit<TrafficFine, 'id'>;
 
+export interface UseLegalCasesOptions {
+  customerId?: string;
+  agreementId?: string;
+  status?: string;
+}
+
 export function useTrafficFines(agreementId?: string) {
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [customerData, setCustomerData] = useState<TrafficFineCustomer | null>(null);
@@ -274,20 +280,44 @@ export function useTrafficFines(agreementId?: string) {
     }
   });
 
-  // Add cleanup invalid assignments function
+  // Fix the async function issue in the cleanupInvalidAssignments mutation
   const cleanupInvalidAssignments = useMutation({
     mutationFn: async () => {
-      const invalidAssignedFines = fines.filter(fine => {
+      // First, gather all lease_ids from the fines
+      const finesWithLeases = fines.filter(fine => fine.lease_id && fine.violation_date);
+      const leaseIds = [...new Set(finesWithLeases.map(fine => fine.lease_id))];
+      
+      if (leaseIds.length === 0) {
+        return { success: true, count: 0 };
+      }
+      
+      // Fetch all lease data in a single batch
+      const { data: leaseDataList, error: leaseError } = await supabase
+        .from('leases')
+        .select('id, start_date, end_date')
+        .in('id', leaseIds.filter(Boolean) as string[]);
+      
+      if (leaseError) {
+        throw new Error(`Error fetching lease data: ${leaseError.message}`);
+      }
+      
+      // Create a map of lease data for easy lookup
+      const leaseDataMap: Record<string, { start_date: string, end_date: string }> = {};
+      leaseDataList?.forEach(lease => {
+        if (lease.id) {
+          leaseDataMap[lease.id] = { 
+            start_date: lease.start_date,
+            end_date: lease.end_date
+          };
+        }
+      });
+      
+      // Now identify invalid assignments based on the pre-fetched lease data
+      const invalidAssignedFines = finesWithLeases.filter(fine => {
         if (!fine.lease_id || !fine.violation_date) return false;
         
-        // Get the lease details for this fine
-        const { data: leaseData, error: leaseError } = await supabase
-          .from('leases')
-          .select('start_date, end_date')
-          .eq('id', fine.lease_id)
-          .single();
-        
-        if (leaseError || !leaseData) return true; // Consider as invalid if we can't verify
+        const leaseData = leaseDataMap[fine.lease_id];
+        if (!leaseData) return true; // Consider as invalid if we can't find lease data
         
         const violationDate = new Date(fine.violation_date);
         const leaseStartDate = new Date(leaseData.start_date);
@@ -336,7 +366,7 @@ export function useTrafficFines(agreementId?: string) {
     fetchFines();
   }, [fetchFines]);
 
-  // For compatibility with existing code, exposing both fines and trafficFines
+  // For compatibility with existing code
   return {
     fines,
     trafficFines: fines, // For backward compatibility

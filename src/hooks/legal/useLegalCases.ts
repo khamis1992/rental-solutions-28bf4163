@@ -1,20 +1,20 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { LegalCase, LegalCaseType, LegalCaseStatus, CasePriority } from '@/types/legal-case';
 
-interface UseLegalCasesOptions {
+export interface UseLegalCasesOptions {
   customerId?: string;
-  caseStatus?: LegalCaseStatus;
-  priority?: CasePriority;
+  agreementId?: string;
+  status?: string;
 }
 
-export function useLegalCases(options: UseLegalCasesOptions = {}) {
+export function useLegalCases(options?: UseLegalCasesOptions) {
   const [legalCases, setLegalCases] = useState<LegalCase[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchLegalCases = async () => {
+  const fetchLegalCases = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -31,94 +31,130 @@ export function useLegalCases(options: UseLegalCasesOptions = {}) {
         `)
         .order('created_at', { ascending: false });
       
-      if (options.customerId) {
+      // Apply filters based on options
+      if (options?.customerId) {
         query = query.eq('customer_id', options.customerId);
       }
       
-      if (options.caseStatus) {
-        query = query.eq('status', options.caseStatus);
+      if (options?.status) {
+        query = query.eq('status', options.status);
       }
       
-      if (options.priority) {
-        query = query.eq('priority', options.priority);
+      if (options?.agreementId) {
+        query = query.eq('agreement_id', options.agreementId);
       }
       
-      const { data, error: supabaseError } = await query;
+      const { data, error } = await query;
       
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      if (error) {
+        throw new Error(error.message);
       }
       
-      setLegalCases(data as LegalCase[]);
+      setLegalCases(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
       console.error('Error fetching legal cases:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error fetching legal cases'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  // Create a new legal case
+  const createLegalCase = async (caseData: Omit<LegalCase, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .insert([{
+          ...caseData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data && data.length > 0) {
+        setLegalCases(prevCases => [data[0] as LegalCase, ...prevCases]);
+        return data[0] as LegalCase;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('Error creating legal case:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error creating legal case'));
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const createLegalCase = async (caseData: Omit<LegalCase, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('legal_cases')
-        .insert([caseData])
-        .select();
-      
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-      
-      await fetchLegalCases();
-      return data ? data[0] : null;
-    } catch (err) {
-      console.error('Error creating legal case:', err);
-      throw err;
-    }
-  };
-
+  // Update an existing legal case
   const updateLegalCase = async (id: string, updates: Partial<LegalCase>) => {
     try {
-      const { data, error: supabaseError } = await supabase
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
         .from('legal_cases')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .select();
       
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      if (error) {
+        throw new Error(error.message);
       }
       
-      await fetchLegalCases();
-      return data ? data[0] : null;
+      if (data && data.length > 0) {
+        setLegalCases(prevCases =>
+          prevCases.map(c => (c.id === id ? { ...c, ...data[0] } as LegalCase : c))
+        );
+        return data[0] as LegalCase;
+      }
+      
+      return null;
     } catch (err) {
       console.error('Error updating legal case:', err);
-      throw err;
+      setError(err instanceof Error ? err : new Error('Unknown error updating legal case'));
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Delete a legal case
   const deleteLegalCase = async (id: string) => {
     try {
-      const { error: supabaseError } = await supabase
+      setIsLoading(true);
+      
+      const { error } = await supabase
         .from('legal_cases')
         .delete()
         .eq('id', id);
       
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      if (error) {
+        throw new Error(error.message);
       }
       
-      await fetchLegalCases();
+      setLegalCases(prevCases => prevCases.filter(c => c.id !== id));
       return true;
     } catch (err) {
       console.error('Error deleting legal case:', err);
-      throw err;
+      setError(err instanceof Error ? err : new Error('Unknown error deleting legal case'));
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchLegalCases();
-  }, [options.customerId, options.caseStatus, options.priority]);
+  }, [fetchLegalCases]);
 
   return {
     legalCases,

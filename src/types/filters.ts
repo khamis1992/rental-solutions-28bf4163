@@ -1,47 +1,73 @@
 
 import { LeaseStatus } from './lease-types';
 
-export interface AgreementFilters {
-  status?: LeaseStatus[];
-  customerId?: string;
-  vehicleId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  searchTerm?: string;
-  agreementNumber?: string;
+/**
+ * Base interface for filter objects
+ */
+export interface BaseFilters {
+  search?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
 }
 
-export interface VehicleFilters {
+/**
+ * Agreement filters
+ */
+export interface AgreementFilters extends BaseFilters {
+  status?: LeaseStatus[];
+  date?: [Date | null, Date | null];
+  vehicleId?: string;
+  customerId?: string;
+}
+
+/**
+ * Customer filters
+ */
+export interface CustomerFilters extends BaseFilters {
+  status?: string[];
+  nationality?: string;
+}
+
+/**
+ * Vehicle filters
+ */
+export interface VehicleFilters extends BaseFilters {
   status?: string[];
   make?: string;
   model?: string;
   year?: number;
-  searchTerm?: string;
-  licenseplate?: string;
-  page?: number;
-  limit?: number;
+  vehicleType?: string;
 }
 
-export interface CustomerFilters {
+/**
+ * Payment filters
+ */
+export interface PaymentFilters extends BaseFilters {
   status?: string[];
-  searchTerm?: string;
-  email?: string;
-  phone?: string;
-  page?: number;
-  limit?: number;
+  agreementId?: string;
+  customerId?: string;
+  dateRange?: [Date | null, Date | null];
+  amountRange?: [number | null, number | null];
 }
 
-export interface PaymentFilters {
+/**
+ * Traffic fine filters
+ */
+export interface TrafficFineFilters extends BaseFilters {
   status?: string[];
-  startDate?: Date;
-  endDate?: Date;
-  leaseId?: string;
-  minAmount?: number;
-  maxAmount?: number;
-  page?: number;
-  limit?: number;
+  licensePlate?: string;
+  violationDateRange?: [Date | null, Date | null];
+}
+
+/**
+ * Legal case filters
+ */
+export interface LegalCaseFilters extends BaseFilters {
+  caseType?: string[];
+  status?: string[];
+  priority?: string[];
+  assignedTo?: string;
+  customerId?: string;
 }
