@@ -1,5 +1,5 @@
 
-import { TrafficFine } from '@/hooks/use-traffic-fines';
+import { TrafficFine } from '@/hooks/traffic/types';
 
 // Interface for how traffic fines appear in the UI components
 export interface UITrafficFine {
@@ -36,7 +36,8 @@ export function adaptTrafficFineToUI(fine: TrafficFine): UITrafficFine {
     leaseId: fine.lease_id,
     paymentDate: fine.payment_date,
     assignmentStatus: fine.assignment_status,
-    // Add other fields as needed
+    customerId: fine.customer_id,
+    customerName: fine.customerName
   };
 }
 
@@ -56,7 +57,9 @@ export function adaptUITrafficFineToDatabase(uiFine: UITrafficFine): TrafficFine
     vehicle_id: uiFine.vehicleId,
     lease_id: uiFine.leaseId,
     payment_date: uiFine.paymentDate,
-    assignment_status: uiFine.assignmentStatus
+    assignment_status: uiFine.assignmentStatus,
+    customer_id: uiFine.customerId,
+    customerName: uiFine.customerName
   };
 }
 

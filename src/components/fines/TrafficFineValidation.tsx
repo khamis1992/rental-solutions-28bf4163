@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -11,7 +10,8 @@ import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/traffic';
+import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
 
 const validationSchema = z.object({
   licensePlate: z.string().min(1, 'License plate is required'),
@@ -24,7 +24,8 @@ const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
-  const { trafficFines, assignToCustomer } = useTrafficFines();
+  const { fines: dbFines, assignToCustomer } = useTrafficFines();
+  const fines = dbFines.map(adaptTrafficFineToUI);
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -38,7 +39,7 @@ const TrafficFineValidation: React.FC = () => {
     setValidationResult(null);
     
     try {
-      const relevantFines = trafficFines?.filter(fine => 
+      const relevantFines = fines?.filter(fine => 
         fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
       ) || [];
       

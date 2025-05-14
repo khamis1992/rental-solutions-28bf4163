@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/traffic';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -12,7 +13,7 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading: hookIsLoading, fines } = useTrafficFines(agreementId);
+  const { isLoading: hookIsLoading, fines: dbFines } = useTrafficFines(agreementId);
   const [showLoader, setShowLoader] = useState(false);
 
   // Update showLoader only when the hook's loading state changes
@@ -31,9 +32,9 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   // Memoize the filtered fines to prevent recalculation on each render
   const filteredFines = React.useMemo(() => {
-    if (!fines) return [];
-    return fines.filter(fine => fine.lease_id === agreementId);
-  }, [fines, agreementId]);
+    if (!dbFines) return [];
+    return dbFines.filter(fine => fine.lease_id === agreementId);
+  }, [dbFines, agreementId]);
 
   if (showLoader) {
     return (

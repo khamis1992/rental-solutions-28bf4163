@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -36,23 +35,32 @@ import {
   DollarSign,
   Users,
 } from 'lucide-react';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/traffic';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { adaptTrafficFineToUI, UITrafficFine } from './TrafficFineAdapter';
 import { StatCard } from '@/components/ui/stat-card';
 
 interface TrafficFinesListProps {
   isAutoAssigning?: boolean;
+  onAddFine?: () => void;
 }
 
-const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
+const TrafficFinesList = ({ isAutoAssigning = false, onAddFine }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
-  const [assigningFines, setAssigningFines] = useState(false);
+  const { 
+    fines: dbFines, 
+    isLoading, 
+    payTrafficFine, 
+    disputeTrafficFine, 
+    assignToCustomer 
+  } = useTrafficFines();
   
-  const filteredFines = trafficFines ? trafficFines.filter(fine => 
+  const [assigningFines, setAssigningFines] = useState(false);
+  const fines = dbFines.map(adaptTrafficFineToUI);
+  
+  const filteredFines = fines ? fines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
@@ -99,7 +107,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutate({ id: fine.id });
+          await assignToCustomer.mutateAsync({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -136,7 +144,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
     }
   };
 
-  const getCustomerAssignmentStatus = (fine: any) => {
+  const getCustomerAssignmentStatus = (fine: UITrafficFine) => {
     if (fine.customerId) {
       return (
         <Badge className="bg-blue-500 text-white border-blue-600">
@@ -192,7 +200,10 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                 <UserCheck className="mr-2 h-4 w-4" /> 
                 {(assigningFines || isAutoAssigning) ? "Assigning..." : "Auto-Assign"}
               </Button>
-              <Button className="w-full md:w-auto">
+              <Button 
+                className="w-full md:w-auto" 
+                onClick={onAddFine}
+              >
                 <Plus className="mr-2 h-4 w-4" /> Add Fine
               </Button>
             </div>
