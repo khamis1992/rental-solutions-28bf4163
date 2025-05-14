@@ -21,7 +21,7 @@ import { CustomerInformationCard } from '@/components/agreements/details/Custome
 import { VehicleInformationCard } from '@/components/agreements/details/VehicleInformationCard';
 import { AgreementDetailsCard } from '@/components/agreements/details/AgreementDetailsCard';
 import { AgreementActionButtons } from '@/components/agreements/details/AgreementActionButtons';
-import { LegalCaseCard } from '@/components/agreements/LegalCaseCard';
+import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 
 interface AgreementDetailProps {
