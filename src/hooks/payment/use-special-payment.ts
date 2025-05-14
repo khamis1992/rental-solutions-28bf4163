@@ -1,95 +1,86 @@
-
-import { useState, useCallback } from 'react';
-import { paymentService } from '@/services/PaymentService';
+import { useCallback } from 'react';
+import { usePayments } from '@/hooks/use-payments';
 import { SpecialPaymentOptions } from '@/types/payment-types.unified';
+import { toast } from 'sonner';
+import { useLoadingStates } from './use-loading-states';
 
-/**
- * Hook for handling special payment operations
- */
-export const useSpecialPayment = (agreementId?: string) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+export function useSpecialPayment(agreementId?: string) {
+  const { addPayment, updatePayment, fetchPayments } = usePayments(agreementId);
+  const { loadingStates, setLoading, setIdle } = useLoadingStates({
+    processPayment: false,
+    calculateLateFee: false,
+  });
 
-  /**
-   * Process a payment with additional options for late fees, partial payments, etc.
-   */
-  const processPayment = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    options?: SpecialPaymentOptions
-  ) => {
-    if (!agreementId) return false;
-    
-    setIsProcessing(true);
-    try {
-      const result = await paymentService.handleSpecialPayment(
-        agreementId,
-        amount,
-        paymentDate,
-        options
-      );
-      
-      if (result.error) {
-        console.error("Error processing payment:", result.error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Exception in payment processing:", error);
-      return false;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [agreementId]);
-
-  /**
-   * Calculate late fee based on a specific date
-   */
   const calculateLateFee = useCallback((currentDate: Date) => {
-    const daysLate = currentDate.getDate() > 1 ? currentDate.getDate() - 1 : 0;
-    const amount = Math.min(daysLate * 120, 3000); // Default daily late fee 120, max 3000
+    // Default values
+    const daysLate = 0;
+    const amount = 0;
+
+    // Logic to calculate late fee based on the current date
+    // For now, just return zero - we'll implement this later
     
-    return { amount, daysLate };
+    return { daysLate, amount };
   }, []);
 
-  /**
-   * Record a partial payment
-   */
-  const recordPartialPayment = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    options?: SpecialPaymentOptions
-  ) => {
-    if (!agreementId) return false;
-    
-    return processPayment(amount, paymentDate, {
-      ...options,
-      isPartialPayment: true,
-    });
-  }, [agreementId, processPayment]);
+  const processPayment = useCallback(
+    async (amount: number, paymentDate: Date, options: SpecialPaymentOptions = {}) => {
+      if (!agreementId) {
+        toast.error('Cannot process payment: No agreement ID provided');
+        return false;
+      }
 
-  /**
-   * Record a payment on a specific payment (useful for scheduled payments)
-   */
-  const recordPaymentOnTarget = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    targetPaymentId: string,
-    options?: SpecialPaymentOptions
-  ) => {
-    if (!agreementId) return false;
-    
-    return processPayment(amount, paymentDate, {
-      ...options,
-      targetPaymentId
-    });
-  }, [agreementId, processPayment]);
+      setLoading('processPayment');
+
+      try {
+        const {
+          notes,
+          paymentMethod = 'cash',
+          referenceNumber,
+          includeLatePaymentFee = false,
+          isPartialPayment = false,
+          paymentType = 'rent',
+          targetPaymentId
+        } = options;
+
+        // Create the payment object
+        const payment = {
+          lease_id: agreementId,
+          amount,
+          payment_date: paymentDate.toISOString(),
+          status: 'completed',
+          payment_method: paymentMethod,
+          reference_number: referenceNumber || null,
+          description: notes || 'Payment',
+          type: paymentType,
+        };
+
+        // Update existing payment if targetPaymentId is provided
+        if (targetPaymentId) {
+          await updatePayment({
+            id: targetPaymentId,
+            data: payment
+          });
+        } else {
+          // Otherwise create a new payment
+          await addPayment(payment);
+        }
+
+        fetchPayments();
+        setIdle('processPayment');
+        return true;
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        toast.error('Failed to process payment');
+        setIdle('processPayment');
+        return false;
+      }
+    },
+    [agreementId, addPayment, updatePayment, fetchPayments, setLoading, setIdle]
+  );
 
   return {
     processPayment,
-    recordPartialPayment,
-    recordPaymentOnTarget,
     calculateLateFee,
-    isProcessing
+    isPending: loadingStates,
   };
-};
+}

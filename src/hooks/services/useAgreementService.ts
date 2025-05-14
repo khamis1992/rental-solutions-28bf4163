@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useSupabaseQuery } from '../use-supabase-query';
 import { agreementService } from '@/services/AgreementService';
 import { AgreementFilters } from '@/types/filters';
+import { Agreement } from '@/types/agreement';
 
 export const useAgreementService = () => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>({
@@ -18,7 +19,7 @@ export const useAgreementService = () => {
   const { data: agreements, isLoading, error, refetch } = useSupabaseQuery(
     ['agreements', searchParams],
     async () => {
-      const result = await agreementService.getAgreements(searchParams);
+      const result = await agreementService.findAgreements(searchParams);
       if (result.error) {
         throw new Error(result.error.message);
       }
@@ -27,7 +28,7 @@ export const useAgreementService = () => {
   );
 
   const getAgreementDetails = async (id: string) => {
-    const result = await agreementService.getAgreementDetails(id);
+    const result = await agreementService.getAgreementById(id);
     if (result.error) {
       throw new Error(result.error.message);
     }
@@ -35,7 +36,10 @@ export const useAgreementService = () => {
   };
 
   const updateAgreement = async ({ id, data }: { id: string; data: any }) => {
-    const result = await agreementService.updateAgreement(id, data);
+    const result = await agreementService.save({
+      ...data,
+      id
+    });
     if (result.error) {
       throw new Error(result.error.message);
     }
@@ -45,7 +49,7 @@ export const useAgreementService = () => {
 
   // Adding the missing createAgreement function
   const createAgreement = async (data: any) => {
-    const result = await agreementService.createAgreement(data);
+    const result = await agreementService.save(data);
     if (result.error) {
       throw new Error(result.error.message);
     }
@@ -54,12 +58,20 @@ export const useAgreementService = () => {
   };
 
   const deleteAgreement = async (id: string) => {
-    const result = await agreementService.deleteAgreement(id);
+    const result = await agreementService.delete(id);
     if (result.error) {
       throw new Error(result.error.message);
     }
     await refetch();
     return true;
+  };
+
+  const calculateRemainingAmount = async (id: string) => {
+    const result = await agreementService.calculateRemainingAmount(id);
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   };
 
   const isPending = {
@@ -76,8 +88,9 @@ export const useAgreementService = () => {
     setSearchParams,
     getAgreementDetails,
     updateAgreement,
-    createAgreement, // Added the missing method
+    createAgreement,
     deleteAgreement,
+    calculateRemainingAmount,
     isPending
   };
 };

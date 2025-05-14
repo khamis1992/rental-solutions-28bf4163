@@ -29,7 +29,7 @@ export function EditAgreementContent({
         hasAgreement={!!agreement} 
       />
 
-      {!isLoading && agreement && id && (
+      {!isLoading && agreement && id && userId && (
         <AgreementEditor
           agreement={agreement}
           id={id}

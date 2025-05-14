@@ -2,234 +2,174 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
-import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { LeaseStatus } from '@/types/lease-types';
-import { Loader2 } from 'lucide-react';
-import VehicleSelector from '../selectors/VehicleSelector';
-import CustomerSelector from '../selectors/CustomerSelector';
-import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
-import AgreementTermsEditor from '../terms/AgreementTermsEditor';
+import { z } from 'zod';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { Agreement } from '@/types/agreement';
 import { CustomerInfo } from '@/types/customer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { AgreementStatus } from '@/types/agreement-types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoadingButton } from '@/components/ui/loading-button';
 
-// Define the props interface for AgreementEditor
 interface AgreementEditorProps {
   agreement: Agreement;
   id: string;
-  userId?: string;
-  vehicleData?: any;
+  userId: string;
+  vehicleData: any;
   customerData?: CustomerInfo;
 }
 
-const AgreementEditor: React.FC<AgreementEditorProps> = ({
+// Define the form schema using zod
+const formSchema = z.object({
+  status: z.string(),
+  start_date: z.date(),
+  end_date: z.date(),
+  rent_amount: z.coerce.number().min(0, "Rent amount must be positive"),
+  deposit_amount: z.coerce.number().min(0, "Deposit amount must be positive").optional(),
+  payment_frequency: z.string().optional(),
+  payment_day: z.coerce.number().min(1).max(31).optional(),
+  notes: z.string().optional(),
+  terms_accepted: z.boolean().optional(),
+  daily_late_fee: z.coerce.number().min(0).optional(),
+  agreement_type: z.string().optional(),
+  agreement_number: z.string().optional(),
+});
+
+const AgreementEditor = ({
   agreement,
   id,
   userId,
   vehicleData,
   customerData
-}) => {
+}: AgreementEditorProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
-  
-  const agreementService = useAgreementService();
-  
-  // Define the validation schema
-  const agreementSchema = z.object({
-    agreement_number: z.string().optional(),
-    agreement_type: z.string().min(1, "Agreement type is required"),
-    status: z.string().min(1, "Status is required"),
-    customer_id: z.string().min(1, "Customer is required"),
-    vehicle_id: z.string().min(1, "Vehicle is required"),
-    start_date: z.date(),
-    end_date: z.date(),
-    total_amount: z.number().min(0, "Amount must be a positive number"),
-    rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
-    payment_frequency: z.string().optional(),
-    payment_day: z.number().min(1).max(31).optional(),
-    notes: z.string().optional(),
-    daily_late_fee: z.number().min(0).optional(),
-    deposit_amount: z.number().min(0).optional(),
-    terms_accepted: z.boolean().optional(),
-    additional_drivers: z.array(z.string()).optional(),
-  });
-  
-  // Initialize form with default values
-  const form = useForm<z.infer<typeof agreementSchema>>({
-    resolver: zodResolver(agreementSchema),
+  const [activeTab, setActiveTab] = useState("basic");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { updateAgreement } = useAgreementService();
+
+  // Initialize the form with agreement data
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      agreement_number: agreement.agreement_number || '',
-      agreement_type: agreement.agreement_type || 'rental',
-      status: agreement.status || 'draft',
-      customer_id: agreement.customer_id || '',
-      vehicle_id: agreement.vehicle_id || '',
+      status: agreement.status || 'active',
       start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-      end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(new Date().setDate(new Date().getDate() + 30)),
-      total_amount: agreement.total_amount || 0,
+      end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
       rent_amount: agreement.rent_amount || 0,
+      deposit_amount: agreement.deposit_amount || 0,
       payment_frequency: agreement.payment_frequency || 'monthly',
       payment_day: agreement.payment_day || 1,
       notes: agreement.notes || '',
-      daily_late_fee: agreement.daily_late_fee || 0,
-      deposit_amount: agreement.deposit_amount || 0,
       terms_accepted: agreement.terms_accepted || false,
-      additional_drivers: agreement.additional_drivers || [],
+      daily_late_fee: agreement.daily_late_fee || 120,
+      agreement_type: agreement.agreement_type || 'standard',
+      agreement_number: agreement.agreement_number || '',
     },
   });
-  
-  // Load agreement data if editing
-  useEffect(() => {
-    // Format dates properly
-    const startDate = agreement.start_date ? new Date(agreement.start_date) : new Date();
-    const endDate = agreement.end_date ? new Date(agreement.end_date) : new Date();
-    
-    form.reset({
-      agreement_number: agreement.agreement_number || '',
-      agreement_type: agreement.agreement_type || 'rental',
-      status: agreement.status || 'draft',
-      customer_id: agreement.customer_id || '',
-      vehicle_id: agreement.vehicle_id || '',
-      start_date: startDate,
-      end_date: endDate,
-      total_amount: agreement.total_amount || 0,
-      rent_amount: agreement.rent_amount || 0,
-      payment_frequency: agreement.payment_frequency || 'monthly',
-      payment_day: agreement.payment_day || 1,
-      notes: agreement.notes || '',
-      daily_late_fee: agreement.daily_late_fee || 0,
-      deposit_amount: agreement.deposit_amount || 0,
-      terms_accepted: agreement.terms_accepted || false,
-      additional_drivers: agreement.additional_drivers || [],
-    });
-  }, [agreement, form]);
-  
+
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
-    setIsLoading(true);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
     try {
-      const data = {
-        ...formData,
-        total_amount: formData.total_amount || 0,
-        status: formData.status as LeaseStatus,
+      // Prepare the data for update
+      const updatedAgreement = {
+        ...agreement,
+        ...values,
+        updated_at: new Date().toISOString(),
       };
-      
-      let result;
-      if (id) {
-        // Update existing agreement
-        result = await agreementService.updateAgreement({
-          id,
-          data
-        });
-      } else {
-        // Create new agreement
-        result = await agreementService.createAgreement(data);
-      }
-      
-      if (result) {
-        toast({
-          title: "Success",
-          description: id ? "Agreement updated successfully" : "Agreement created successfully",
-        });
-        navigate(`/agreements/${result.id || id}`);
-      } else {
-        throw new Error("Failed to save agreement");
-      }
-    } catch (error) {
-      console.error("Error saving agreement:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save agreement",
-        variant: "destructive",
+
+      // Update the agreement
+      await updateAgreement({
+        id,
+        data: updatedAgreement,
       });
+
+      toast.success("Agreement updated successfully");
+      navigate(`/agreements/${id}`);
+    } catch (error) {
+      console.error("Error updating agreement:", error);
+      toast.error("Failed to update agreement");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
-  // Calculate total amount based on rent and duration
-  const calculateTotalAmount = () => {
-    const startDate = form.getValues('start_date');
-    const endDate = form.getValues('end_date');
-    const rentAmount = form.getValues('rent_amount') || 0;
-    
-    if (!startDate || !endDate || rentAmount <= 0) return;
-    
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const totalAmount = days * (rentAmount / 30); // Approximate monthly to daily rate
-    
-    form.setValue('total_amount', parseFloat(totalAmount.toFixed(2)));
-  };
-  
-  // Update total when dates or rent amount changes
+
+  // Calculate total amount when rent amount or dates change
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'start_date' || name === 'end_date' || name === 'rent_amount') {
-        calculateTotalAmount();
+    const startDate = form.watch('start_date');
+    const endDate = form.watch('end_date');
+    const rentAmount = form.watch('rent_amount');
+
+    if (startDate && endDate && rentAmount) {
+      // Calculate months between dates
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+      
+      // Update total amount field if it exists
+      if (months > 0) {
+        const totalAmount = months * rentAmount;
+        // We don't set this directly in the form as it might not be part of the form schema
+        // This would typically update a display value or be saved separately
       }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
-  
-  if (isLoading && !form.formState.isSubmitting) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
+    }
+  }, [form.watch('start_date'), form.watch('end_date'), form.watch('rent_amount')]);
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{id ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
+          <CardTitle>Edit Agreement {agreement.agreement_number}</CardTitle>
+          <CardDescription>
+            Update the details of this rental agreement
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 mb-6">
-              <TabsTrigger value="details">Agreement Details</TabsTrigger>
-              <TabsTrigger value="payments">Payment Schedule</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Basic Information</TabsTrigger>
+              <TabsTrigger value="payment">Payment Details</TabsTrigger>
               <TabsTrigger value="terms">Terms & Conditions</TabsTrigger>
             </TabsList>
             
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6">
-                <TabsContent value="details" className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
+                <TabsContent value="basic" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="agreement_number"
+                      name="status"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Agreement Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Auto-generated if left empty" {...field} />
-                          </FormControl>
+                          <FormLabel>Status</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="closed">Closed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                              <SelectItem value="expired">Expired</SelectItem>
+                              <SelectItem value="draft">Draft</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -247,95 +187,32 @@ const AgreementEditor: React.FC<AgreementEditorProps> = ({
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select agreement type" />
+                                <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="rental">Rental</SelectItem>
-                              <SelectItem value="lease">Lease</SelectItem>
-                              <SelectItem value="finance">Finance</SelectItem>
-                              <SelectItem value="subscription">Subscription</SelectItem>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="corporate">Corporate</SelectItem>
+                              <SelectItem value="special">Special</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="customer_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer</FormLabel>
-                          <FormControl>
-                            <CustomerSelector 
-                              value={field.value} 
-                              onChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="vehicle_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vehicle</FormLabel>
-                          <FormControl>
-                            <VehicleSelector 
-                              value={field.value} 
-                              onChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="start_date"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Start Date</FormLabel>
-                          <FormControl>
-                            <DatePicker
-                              date={field.value}
-                              setDate={field.onChange}
-                            />
-                          </FormControl>
+                          <DatePicker
+                            date={field.value}
+                            setDate={field.onChange}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -347,17 +224,54 @@ const AgreementEditor: React.FC<AgreementEditorProps> = ({
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>End Date</FormLabel>
-                          <FormControl>
-                            <DatePicker
-                              date={field.value}
-                              setDate={field.onChange}
-                            />
-                          </FormControl>
+                          <DatePicker
+                            date={field.value}
+                            setDate={field.onChange}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="agreement_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Agreement Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Agreement number" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          A unique identifier for this agreement
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Additional notes about this agreement" 
+                            className="min-h-[100px]" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+
+                <TabsContent value="payment" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="rent_amount"
@@ -365,35 +279,7 @@ const AgreementEditor: React.FC<AgreementEditorProps> = ({
                         <FormItem>
                           <FormLabel>Monthly Rent Amount</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || 0);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="total_amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Amount</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || 0);
-                              }}
-                            />
+                            <Input type="number" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -405,17 +291,39 @@ const AgreementEditor: React.FC<AgreementEditorProps> = ({
                       name="deposit_amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Security Deposit</FormLabel>
+                          <FormLabel>Deposit Amount</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || 0);
-                              }}
-                            />
+                            <Input type="number" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="payment_frequency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Payment Frequency</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="biannual">Bi-Annual</SelectItem>
+                              <SelectItem value="annual">Annual</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -423,85 +331,133 @@ const AgreementEditor: React.FC<AgreementEditorProps> = ({
                     
                     <FormField
                       control={form.control}
-                      name="daily_late_fee"
+                      name="payment_day"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Daily Late Fee</FormLabel>
+                          <FormLabel>Payment Day</FormLabel>
                           <FormControl>
                             <Input 
                               type="number" 
-                              placeholder="0.00" 
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || 0);
-                              }}
+                              min={1} 
+                              max={31} 
+                              {...field} 
                             />
                           </FormControl>
+                          <FormDescription>
+                            Day of the month when payment is due
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
-                    name="notes"
+                    name="daily_late_fee"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <FormLabel>Daily Late Fee</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Additional notes about this agreement" 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
+                          <Input type="number" {...field} />
                         </FormControl>
+                        <FormDescription>
+                          Amount charged per day for late payments
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </TabsContent>
-                
-                <TabsContent value="payments">
-                  <PaymentScheduleEditor 
-                    agreementId={id}
-                    startDate={form.getValues('start_date')}
-                    endDate={form.getValues('end_date')}
-                    rentAmount={form.getValues('rent_amount')}
-                    paymentFrequency={form.getValues('payment_frequency')}
-                    paymentDay={form.getValues('payment_day')}
-                    onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
-                    onPaymentDayChange={(value) => form.setValue('payment_day', value)}
+
+                <TabsContent value="terms" className="space-y-4">
+                  <Alert>
+                    <AlertDescription>
+                      These terms and conditions will be included in the agreement document.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="border rounded-md p-4 bg-muted/50">
+                    <h3 className="font-medium mb-2">Standard Terms</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      The tenant agrees to pay rent on time and maintain the property in good condition.
+                      Late payments will incur fees as specified in the agreement.
+                    </p>
+                    
+                    <h3 className="font-medium mb-2">Damage Policy</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      The tenant is responsible for any damages beyond normal wear and tear.
+                      The security deposit may be used to cover such damages.
+                    </p>
+                    
+                    <h3 className="font-medium mb-2">Termination</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Early termination of this agreement may result in penalties as outlined in the contract.
+                    </p>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="terms_accepted"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Terms and conditions accepted
+                          </FormLabel>
+                          <FormDescription>
+                            Confirm that the customer has accepted the terms and conditions
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
                   />
                 </TabsContent>
-                
-                <TabsContent value="terms">
-                  <AgreementTermsEditor 
-                    termsAccepted={form.getValues('terms_accepted')}
-                    onTermsAcceptedChange={(value) => form.setValue('terms_accepted', value)}
-                    additionalDrivers={form.getValues('additional_drivers')}
-                    onAdditionalDriversChange={(value) => form.setValue('additional_drivers', value)}
-                  />
-                </TabsContent>
-                
-                <div className="flex justify-end space-x-4 pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => navigate('/agreements')}
-                    disabled={isLoading}
+
+                <Separator className="my-4" />
+
+                <div className="flex justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(`/agreements/${id}`)}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id ? "Update Agreement" : "Create Agreement"}
-                  </Button>
+                  
+                  <LoadingButton
+                    type="submit"
+                    isLoading={isSubmitting}
+                    loadingText="Saving..."
+                  >
+                    Save Changes
+                  </LoadingButton>
                 </div>
               </form>
             </Form>
           </Tabs>
         </CardContent>
+        <CardFooter className="bg-muted/50 flex justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Last updated: {agreement.updated_at ? format(new Date(agreement.updated_at), 'PPpp') : 'Never'}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Customer: {customerData?.full_name || agreement.customers?.full_name || 'Unknown'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Vehicle: {vehicleData?.make} {vehicleData?.model} ({vehicleData?.license_plate || 'Unknown'})
+            </p>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

@@ -21,3 +21,6 @@ export interface Payment {
   balance?: number;
   original_due_date?: string | null;
 }
+
+// For backward compatibility
+export type PaymentHistoryItem = Payment;

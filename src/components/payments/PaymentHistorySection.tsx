@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PaymentHistoryItem } from '@/types/payment-history.types';
+import { Payment } from '@/types/payment-types.unified';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { PaymentStatsCards } from './stats/PaymentStatsCards';
 import { PaymentStatusBar } from './status/PaymentStatusBar';
@@ -24,14 +24,14 @@ import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 
 interface PaymentHistoryProps {
-  payments: PaymentHistoryItem[];
+  payments: Payment[];
   isLoading: boolean;
   rentAmount: number | null;
   leaseId?: string;
   contractAmount?: number | null;
   onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
-  onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
   showAnalytics?: boolean;
 }
 
@@ -47,7 +47,7 @@ export function PaymentHistorySection({
   showAnalytics = true
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   // Use the payment management hook
   const {
@@ -91,14 +91,14 @@ export function PaymentHistorySection({
       })
     : payments;
 
-  const handlePaymentCreated = (payment: Partial<PaymentHistoryItem>) => {
+  const handlePaymentCreated = (payment: Partial<Payment>) => {
     if (onRecordPayment) {
       onRecordPayment(payment);
       setIsPaymentDialogOpen(false);
     }
   };
 
-  const handleEditPayment = (payment: PaymentHistoryItem) => {
+  const handleEditPayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsPaymentDialogOpen(true);
   };
@@ -181,7 +181,7 @@ export function PaymentHistorySection({
         // If amount is zero, set status to voided instead of completed
         const paymentStatus = amount === 0 ? 'voided' : 'completed';
         
-        const paymentData: Partial<PaymentHistoryItem> = {
+        const paymentData: Partial<Payment> = {
           id: selectedPayment.id,
           amount,
           payment_date: date.toISOString(),
@@ -211,7 +211,7 @@ export function PaymentHistorySection({
         return false;
       }
     } else if (onRecordPayment && leaseId) {
-      const paymentData: Partial<PaymentHistoryItem> = {
+      const paymentData: Partial<Payment> = {
         amount,
         payment_date: date.toISOString(),
         description: notes,

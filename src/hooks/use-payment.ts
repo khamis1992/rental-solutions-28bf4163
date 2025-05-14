@@ -47,7 +47,7 @@ export function usePayment(agreementId?: string) {
         lease_id: agreementId,
         amount,
         payment_date: paymentDate.toISOString(),
-        description: notes || '', // Use description instead of notes for compatibility
+        description: notes || '', // Use description instead of notes
         payment_method: paymentMethod || 'cash',
         reference_number: referenceNumber || '',
         status: 'completed'
@@ -66,6 +66,7 @@ export function usePayment(agreementId?: string) {
     handlePaymentSubmit,
     // Expose the generatePayment function from usePaymentSchedule
     generatePayment: paymentSchedule.generatePayment,
+    generatePaymentSchedule: paymentSchedule.generatePayment, // Alias for backward compatibility
     runPaymentMaintenance: paymentSchedule.runMaintenanceJob,
     fixPaymentAnomalies: paymentSchedule.fixPaymentAnomalies,
     isPending: {

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -5,8 +6,23 @@ import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
-import { Toast } from 'sonner';
+import { toast } from 'sonner';
 import { Payment } from '@/types/payment-types.unified';
+import { Agreement } from '@/types/agreement';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
+import { CustomerInformationCard } from '@/components/agreements/details/CustomerInformationCard';
+import { VehicleInformationCard } from '@/components/agreements/details/VehicleInformationCard';
+import { AgreementDetailsCard } from '@/components/agreements/details/AgreementDetailsCard';
+import { AgreementActionButtons } from '@/components/agreements/details/AgreementActionButtons';
+import { LegalCaseCard } from '@/components/agreements/LegalCaseCard';
+import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -96,11 +112,12 @@ export function AgreementDetail({
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
-        if (success) {
+        // Using onGenerateDocument instead of generatePdfDocument
+        if (onGenerateDocument) {
+          onGenerateDocument();
           toast.success("Agreement PDF downloaded successfully");
         } else {
-          toast.error("Failed to generate PDF");
+          toast.error("PDF generation not configured");
         }
       } catch (error) {
         console.error("Error generating PDF:", error);
@@ -109,7 +126,7 @@ export function AgreementDetail({
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, setLoading, setIdle, onGenerateDocument]);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
