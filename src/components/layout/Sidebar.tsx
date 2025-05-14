@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -173,7 +174,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         expanded ? "" : "md:px-2"
       )}>
         <nav className="flex flex-col gap-1">
-          {(expanded || !expanded && window.innerWidth >= 768) && (
+          {(expanded || (!expanded && window.innerWidth >= 768)) && (
             <>
               <NavLink
                 to="/dashboard"
@@ -333,7 +334,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             </Button>
           </div>
           
-          {/* Network status indicator */}
+          /* Network status indicator */
           <div className="mt-2 px-4 py-2 border-t border-gray-800 flex items-center">
             <NetworkStatusIndicator />
             <span className="text-xs text-gray-400 ml-2">
