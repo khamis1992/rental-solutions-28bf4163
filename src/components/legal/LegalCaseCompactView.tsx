@@ -1,89 +1,144 @@
-
-import React from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, FileText, Gavel, Loader2, Plus } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
-import { LegalCase } from '@/hooks/legal/types';
+import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
+import { LegalCase } from '@/types/legal-case';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useNavigate } from 'react-router-dom';
 
 interface LegalCaseCompactViewProps {
-  legalCase: LegalCase;
-  onShowDetails: (caseId: string) => void;
+  customerId?: string;
+  agreementId?: string;
 }
 
-const getLegalCaseStatusBadge = (status: string) => {
-  switch (status) {
-    case 'resolved':
-      return <Badge className="bg-green-500">Resolved</Badge>;
-    case 'in_progress':
-      return <Badge className="bg-blue-500">In Progress</Badge>;
-    case 'pending_reminder':
-      return <Badge className="bg-amber-500">Reminder Pending</Badge>;
-    case 'escalated':
-      return <Badge className="bg-red-500">Escalated</Badge>;
-    default:
-      return <Badge className="bg-gray-500">{status}</Badge>;
-  }
-};
-
-const LegalCaseCompactView: React.FC<LegalCaseCompactViewProps> = ({ 
-  legalCase, 
-  onShowDetails 
+export const LegalCaseCompactView: React.FC<LegalCaseCompactViewProps> = ({
+  customerId,
+  agreementId
 }) => {
+  const navigate = useNavigate();
+  const { getLegalCases } = useLegalCaseQuery();
+  
+  // Set up query parameters based on provided props
+  const queryParams: Record<string, string> = {};
+  if (customerId) queryParams.customerId = customerId;
+  if (agreementId) queryParams.agreementId = agreementId;
+  
+  const { data: legalCases, isLoading, error } = getLegalCases(queryParams);
+  
+  const handleCreateCase = () => {
+    navigate('/legal/new', { 
+      state: { 
+        customerId, 
+        agreementId 
+      } 
+    });
+  };
+  
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return <Badge className="bg-yellow-500">Active</Badge>;
+      case 'closed':
+        return <Badge className="bg-green-500">Closed</Badge>;
+      case 'pending':
+        return <Badge className="bg-blue-500">Pending</Badge>;
+      case 'escalated':
+        return <Badge className="bg-red-500">Escalated</Badge>;
+      default:
+        return <Badge variant="outline">{status || 'Unknown'}</Badge>;
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Legal Cases</CardTitle>
+          <CardDescription>Loading legal cases...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Legal Cases</CardTitle>
+          <CardDescription>Error loading legal cases</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error instanceof Error ? error.message : 'An error occurred while loading legal cases'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card className="h-full flex flex-col">
-      <CardContent className="pt-6 flex-1">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="text-lg font-semibold">
-              {legalCase.case_type || 'Legal Case'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Opened {legalCase.created_at ? formatDate(legalCase.created_at) : 'N/A'}
-            </p>
-          </div>
-          {getLegalCaseStatusBadge(legalCase.status)}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-xl flex items-center">
+            <Gavel className="mr-2 h-5 w-5" /> Legal Cases
+          </CardTitle>
+          <CardDescription>
+            Legal cases associated with this {customerId ? 'customer' : 'agreement'}
+          </CardDescription>
         </div>
-        
-        <div className="mt-4">
-          {legalCase.description && (
-            <p className="text-sm line-clamp-3">{legalCase.description}</p>
-          )}
-        </div>
-        
-        <div className="mt-4 space-y-1">
-          {legalCase.amount_owed > 0 && (
-            <p className="text-sm">
-              <span className="font-medium">Amount owed:</span> QAR {legalCase.amount_owed.toLocaleString()}
-            </p>
-          )}
-          
-          {legalCase.reminder_count > 0 && (
-            <p className="text-sm">
-              <span className="font-medium">Reminders sent:</span> {legalCase.reminder_count}
-            </p>
-          )}
-          
-          {legalCase.escalation_date && (
-            <p className="text-sm">
-              <span className="font-medium">Escalation date:</span> {formatDate(legalCase.escalation_date)}
-            </p>
-          )}
-        </div>
-      </CardContent>
-      
-      <CardFooter className="border-t pt-4">
-        <Button 
-          variant="secondary" 
-          size="sm" 
-          className="w-full"
-          onClick={() => onShowDetails(legalCase.id)}
-        >
-          View Case Details
+        <Button onClick={handleCreateCase}>
+          <Plus className="mr-2 h-4 w-4" /> New Case
         </Button>
-      </CardFooter>
+      </CardHeader>
+      <CardContent>
+        {legalCases && legalCases.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Case ID</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Filed Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Court</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {legalCases.map((legalCase: LegalCase) => (
+                <TableRow 
+                  key={legalCase.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/legal/${legalCase.id}`)}
+                >
+                  <TableCell className="font-medium">{legalCase.case_number || legalCase.id}</TableCell>
+                  <TableCell>{legalCase.case_type}</TableCell>
+                  <TableCell>{formatDate(legalCase.filing_date)}</TableCell>
+                  <TableCell>{getStatusBadge(legalCase.status)}</TableCell>
+                  <TableCell>{legalCase.court_name || 'N/A'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No legal cases found</p>
+            <Button variant="outline" onClick={handleCreateCase}>
+              <Plus className="mr-2 h-4 w-4" /> Create New Case
+            </Button>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };
-
-export default LegalCaseCompactView;

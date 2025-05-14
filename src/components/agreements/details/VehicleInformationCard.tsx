@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 
-interface VehicleInformationCardProps {
+export interface VehicleInformationCardProps {
   agreement: Agreement;
 }
 
@@ -37,4 +36,3 @@ export function VehicleInformationCard({ agreement }: VehicleInformationCardProp
     </Card>
   );
 }
-
