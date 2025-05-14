@@ -6,15 +6,16 @@ export interface SpecialPaymentOptions {
   includeLatePaymentFee?: boolean;
   isPartialPayment?: boolean;
   paymentType?: string;
+  targetPaymentId?: string;
 }
 
-export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled' | 'partially_paid';
+export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled' | 'partially_paid' | 'voided';
 
 export interface Payment {
   id: string;
   lease_id: string;
   amount: number;
-  payment_date: string;
+  payment_date?: string;
   description?: string;
   payment_method?: string;
   reference_number?: string;
@@ -26,6 +27,11 @@ export interface Payment {
   original_due_date?: string;
   created_at?: string;
   updated_at?: string;
+  amount_paid?: number;
+  balance?: number;
+  notes?: string;
+  transaction_id?: string;
+  next_payment_date?: string | null;
 }
 
 export type PaymentInsert = Omit<Payment, 'id'>;

@@ -1,41 +1,23 @@
-export interface PaymentHistoryItem {
+
+import { DbId } from '@/types/database-common';
+import { PaymentStatus } from './payment-types.unified';
+
+export interface Payment {
   id: string;
+  lease_id: string;  // Make this required to match other Payment interfaces
   amount: number;
-  amount_paid?: number;
-  payment_date?: string | null; // Updated to handle null values
-  due_date?: string | null; // Updated to handle null values
-  status: string; // 'completed', 'pending', 'overdue', etc.
-  lease_id?: string;
-  type?: string;
-  description?: string;
+  payment_date?: string | null;
+  due_date?: string | null;
+  status: PaymentStatus | string; // Allow string for backward compatibility
   payment_method?: string;
-  transaction_id?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  balance?: number;
-  next_payment_date?: string | null; // Updated to handle null values
-  reference_number?: string;
+  reference_number?: string | null;
+  transaction_id?: string | null;
   notes?: string;
-  original_due_date?: string | null; // Added this field to fix the TypeScript error
-}
-
-export interface PaymentHistoryResponse {
-  data: PaymentHistoryItem[];
-  error: any | null;
-}
-
-export interface PaymentSchedule {
-  id: string;
-  lease_id: string;
-  amount: number;
-  due_date: string;
-  status: string;
-  actual_payment_date?: string;
-  transaction_id?: string;
-  late_fee_applied?: number;
+  type?: string;
+  days_overdue?: number;
+  late_fine_amount?: number;
+  description?: string;
+  amount_paid?: number;
   balance?: number;
-}
-
-export interface Payment extends PaymentHistoryItem {
-  // Additional fields specific to Payment if needed
+  original_due_date?: string | null;
 }

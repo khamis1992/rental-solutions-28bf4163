@@ -1,11 +1,9 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { usePayments } from '@/hooks/use-payments'; 
 import { usePaymentCalculation } from './use-payment-calculation';
 import { useSpecialPayment } from './use-special-payment';
 import { useLoadingStates } from './use-loading-states';
-import { Payment } from '@/types/payment.types';
-import { PaymentStatus } from '@/types/payment.types';
+import { Payment } from '@/types/payment-types.unified'; // Use the unified type
 
 export type PaymentFilter = null | 'pending' | 'completed' | 'overdue' | 'completed_ontime' | 'completed_late';
 
@@ -45,7 +43,7 @@ export const usePaymentManagement = (agreementId?: string) => {
   /**
    * Check if a payment is late
    */
-  const isLatePayment = useCallback((payment: Payment): boolean => {
+  const isLatePayment = useCallback((payment: any): boolean => {
     if (!payment.payment_date || !payment.due_date) return false;
     
     const paymentDate = new Date(payment.payment_date);
@@ -74,7 +72,7 @@ export const usePaymentManagement = (agreementId?: string) => {
   const addPayment = useCallback(async (payment: Partial<Payment>) => {
     try {
       setLoading('adding');
-      return await baseAddPayment(payment);
+      return await baseAddPayment(payment as any); // Cast for type compatibility
     } finally {
       setIdle('adding');
     }
@@ -86,7 +84,7 @@ export const usePaymentManagement = (agreementId?: string) => {
   const updatePayment = useCallback(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
     try {
       setLoading('updating');
-      return await baseUpdatePayment(paymentUpdate);
+      return await baseUpdatePayment(paymentUpdate as any); // Cast for type compatibility
     } finally {
       setIdle('updating');
     }

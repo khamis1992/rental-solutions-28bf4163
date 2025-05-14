@@ -4,7 +4,6 @@ import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
 import AgreementEditor from '@/components/agreements/edit/AgreementEditor';
 import { CustomerInfo } from '@/types/customer';
-import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 interface EditAgreementContentProps {
   id?: string;
@@ -32,8 +31,8 @@ export function EditAgreementContent({
 
       {!isLoading && agreement && id && (
         <AgreementEditor
-          id={id}
           agreement={agreement}
+          id={id}
           userId={userId}
           vehicleData={vehicleData}
           customerData={customerData}

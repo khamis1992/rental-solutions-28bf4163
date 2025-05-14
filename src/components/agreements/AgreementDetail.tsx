@@ -1,28 +1,12 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import LegalCaseCard from './LegalCaseCard';
-import { Payment } from '@/types/payment-types.unified';
-import { CustomerInformationCard } from './details/CustomerInformationCard';
-import { VehicleInformationCard } from './details/VehicleInformationCard';
-import { AgreementDetailsCard } from './details/AgreementDetailsCard';
-import { AgreementActionButtons } from './details/AgreementActionButtons';
-import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
+import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
+import { Toast } from 'sonner';
+import { Payment } from '@/types/payment-types.unified';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -52,15 +36,12 @@ export function AgreementDetail({
   });
   
   // Use our loading states hook for PDF generation
-  const { loadingStates, setLoading } = useLoadingStates({
+  const { loadingStates, setLoading, setIdle } = useLoadingStates({
     generatingPdf: false
   });
 
-  const [lateFeeDetails, setLateFeeDetails] = useState<{
-    amount: number;
-    daysLate: number;
-  } | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [lateFeeDetails, setLateFeeDetails] = useState(null);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   // Use payment management hook
   const {
@@ -113,7 +94,7 @@ export function AgreementDetail({
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
-        setLoading('generatingPdf', true);
+        setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         const success = await generatePdfDocument(agreement);
         if (success) {
@@ -125,10 +106,10 @@ export function AgreementDetail({
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF");
       } finally {
-        setLoading('generatingPdf', false);
+        setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading]);
+  }, [agreement, setLoading, setIdle]);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {

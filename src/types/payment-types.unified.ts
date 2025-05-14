@@ -23,11 +23,11 @@ export type PaymentStatus =
 export interface Payment {
   id: DbId;
   amount: number;
+  lease_id: string;  // Make this required to match payment.types.ts
   amount_paid?: number;
   payment_date?: string | null;
   due_date?: string | null;
   status: PaymentStatus | string; // Allow string for backward compatibility
-  lease_id?: DbId;
   type?: string;
   description?: string;
   payment_method?: string;
@@ -68,5 +68,5 @@ export interface SpecialPaymentOptions {
   targetPaymentId?: string;
 }
 
-// Re-export types for backward compatibility
+// Export payment history types from a separate file
 export type { Payment as PaymentHistoryItem } from '@/types/payment-history.types';

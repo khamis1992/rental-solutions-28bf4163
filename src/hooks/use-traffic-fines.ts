@@ -76,7 +76,7 @@ export const useTrafficFines = () => {
         }
         
         // Get customer information for assigned fines
-        const finesWithLeaseIds = data.filter(fine => fine.lease_id);
+        const finesWithLeaseIds = data.filter(fine => fine.lease_id !== null && fine.lease_id !== undefined);
         let customerAndLeaseInfo: Record<string, { 
           customer_id: string; 
           customer_name?: string;
@@ -87,13 +87,16 @@ export const useTrafficFines = () => {
         if (finesWithLeaseIds.length > 0) {
           const leaseIds = finesWithLeaseIds
             .map(fine => fine.lease_id)
-            .filter((id): id is string => id !== null && id !== undefined);
+            .filter(Boolean);
             
           if (leaseIds.length > 0) {
+            // Create a properly typed array for the IN clause
+            const validLeaseIds = leaseIds as string[];
+            
             const { data: leases, error: leaseError } = await supabase
               .from('leases')
               .select('id, customer_id, start_date, end_date, profiles(full_name)')
-              .in('id', leaseIds);
+              .in('id', validLeaseIds);
               
             if (leaseError) {
               console.error('Error fetching lease information:', leaseError);
@@ -113,30 +116,33 @@ export const useTrafficFines = () => {
           }
         }
         
-        // Transform the data to match our TrafficFine interface
-        return data.map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
-          licensePlate: fine.license_plate,
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine.fine_amount || 0,
-          violationCharge: fine.violation_charge,
-          paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
-          location: fine.fine_location,
-          vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-          leaseId: fine.lease_id,
-          // Add customer information if available
-          customerId: fine.lease_id && customerAndLeaseInfo[fine.lease_id] ? 
-              customerAndLeaseInfo[fine.lease_id].customer_id : undefined,
-          customerName: fine.lease_id && customerAndLeaseInfo[fine.lease_id] ? 
-              customerAndLeaseInfo[fine.lease_id].customer_name : undefined,
-          // Add lease dates for validation
-          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
-            new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,
-          leaseEndDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.end_date ?
-            new Date(customerAndLeaseInfo[fine.lease_id].end_date as string) : undefined
-        }));
+        // Transform the data to match our TrafficFine interface with proper null checks
+        return data.map(fine => {
+          const leaseId = fine.lease_id;
+          const customerInfo = leaseId && customerAndLeaseInfo[leaseId] ? customerAndLeaseInfo[leaseId] : null;
+          
+          return {
+            id: fine.id,
+            violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+            licensePlate: fine.license_plate,
+            violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+            fineAmount: fine.fine_amount || 0,
+            violationCharge: fine.violation_charge,
+            paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
+            location: fine.fine_location,
+            vehicleId: fine.vehicle_id,
+            paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+            leaseId: fine.lease_id,
+            // Add customer information if available with null checks
+            customerId: customerInfo ? customerInfo.customer_id : undefined,
+            customerName: customerInfo ? customerInfo.customer_name : undefined,
+            // Add lease dates for validation with null checks
+            leaseStartDate: customerInfo && customerInfo.start_date ? 
+              new Date(customerInfo.start_date) : undefined,
+            leaseEndDate: customerInfo && customerInfo.end_date ?
+              new Date(customerInfo.end_date) : undefined
+          };
+        });
       } catch (error) {
         console.error('Error in traffic fines data fetching:', error);
         throw error;

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,29 +32,25 @@ import VehicleSelector from '../selectors/VehicleSelector';
 import CustomerSelector from '../selectors/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import AgreementTermsEditor from '../terms/AgreementTermsEditor';
+import { Agreement } from '@/types/agreement';
+import { CustomerInfo } from '@/types/customer';
 
-// Define the validation schema
-const agreementSchema = z.object({
-  agreement_number: z.string().optional(),
-  agreement_type: z.string().min(1, "Agreement type is required"),
-  status: z.string().min(1, "Status is required"),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  start_date: z.date(),
-  end_date: z.date(),
-  total_amount: z.number().min(0, "Amount must be a positive number"),
-  rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
-  payment_frequency: z.string().optional(),
-  payment_day: z.number().min(1).max(31).optional(),
-  notes: z.string().optional(),
-  daily_late_fee: z.number().min(0).optional(),
-  deposit_amount: z.number().min(0).optional(),
-  terms_accepted: z.boolean().optional(),
-  additional_drivers: z.array(z.string()).optional(),
-});
+// Define the props interface for AgreementEditor
+interface AgreementEditorProps {
+  agreement: Agreement;
+  id: string;
+  userId?: string;
+  vehicleData?: any;
+  customerData?: CustomerInfo;
+}
 
-const AgreementEditor = () => {
-  const { id } = useParams<{ id: string }>();
+const AgreementEditor: React.FC<AgreementEditorProps> = ({
+  agreement,
+  id,
+  userId,
+  vehicleData,
+  customerData
+}) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -63,75 +58,74 @@ const AgreementEditor = () => {
   
   const agreementService = useAgreementService();
   
+  // Define the validation schema
+  const agreementSchema = z.object({
+    agreement_number: z.string().optional(),
+    agreement_type: z.string().min(1, "Agreement type is required"),
+    status: z.string().min(1, "Status is required"),
+    customer_id: z.string().min(1, "Customer is required"),
+    vehicle_id: z.string().min(1, "Vehicle is required"),
+    start_date: z.date(),
+    end_date: z.date(),
+    total_amount: z.number().min(0, "Amount must be a positive number"),
+    rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
+    payment_frequency: z.string().optional(),
+    payment_day: z.number().min(1).max(31).optional(),
+    notes: z.string().optional(),
+    daily_late_fee: z.number().min(0).optional(),
+    deposit_amount: z.number().min(0).optional(),
+    terms_accepted: z.boolean().optional(),
+    additional_drivers: z.array(z.string()).optional(),
+  });
+  
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
-      agreement_number: '',
-      agreement_type: 'rental',
-      status: 'draft',
-      customer_id: '',
-      vehicle_id: '',
-      start_date: new Date(),
-      end_date: new Date(new Date().setDate(new Date().getDate() + 30)),
-      total_amount: 0,
-      rent_amount: 0,
-      payment_frequency: 'monthly',
-      payment_day: 1,
-      notes: '',
-      daily_late_fee: 0,
-      deposit_amount: 0,
-      terms_accepted: false,
-      additional_drivers: [],
+      agreement_number: agreement.agreement_number || '',
+      agreement_type: agreement.agreement_type || 'rental',
+      status: agreement.status || 'draft',
+      customer_id: agreement.customer_id || '',
+      vehicle_id: agreement.vehicle_id || '',
+      start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
+      end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(new Date().setDate(new Date().getDate() + 30)),
+      total_amount: agreement.total_amount || 0,
+      rent_amount: agreement.rent_amount || 0,
+      payment_frequency: agreement.payment_frequency || 'monthly',
+      payment_day: agreement.payment_day || 1,
+      notes: agreement.notes || '',
+      daily_late_fee: agreement.daily_late_fee || 0,
+      deposit_amount: agreement.deposit_amount || 0,
+      terms_accepted: agreement.terms_accepted || false,
+      additional_drivers: agreement.additional_drivers || [],
     },
   });
   
   // Load agreement data if editing
   useEffect(() => {
-    const loadAgreement = async () => {
-      if (!id) return;
-      
-      setIsLoading(true);
-      try {
-        const agreement = await agreementService.getAgreementDetails(id);
-        if (agreement) {
-          // Format dates properly
-          const startDate = agreement.start_date ? new Date(agreement.start_date) : new Date();
-          const endDate = agreement.end_date ? new Date(agreement.end_date) : new Date();
-          
-          form.reset({
-            agreement_number: agreement.agreement_number || '',
-            agreement_type: agreement.agreement_type || 'rental',
-            status: agreement.status || 'draft',
-            customer_id: agreement.customer_id || '',
-            vehicle_id: agreement.vehicle_id || '',
-            start_date: startDate,
-            end_date: endDate,
-            total_amount: agreement.total_amount || 0,
-            rent_amount: agreement.rent_amount || 0,
-            payment_frequency: agreement.payment_frequency || 'monthly',
-            payment_day: agreement.payment_day || 1,
-            notes: agreement.notes || '',
-            daily_late_fee: agreement.daily_late_fee || 0,
-            deposit_amount: agreement.deposit_amount || 0,
-            terms_accepted: agreement.terms_accepted || false,
-            additional_drivers: agreement.additional_drivers || [],
-          });
-        }
-      } catch (error) {
-        console.error("Error loading agreement:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load agreement details",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Format dates properly
+    const startDate = agreement.start_date ? new Date(agreement.start_date) : new Date();
+    const endDate = agreement.end_date ? new Date(agreement.end_date) : new Date();
     
-    loadAgreement();
-  }, [id, agreementService, form, toast]);
+    form.reset({
+      agreement_number: agreement.agreement_number || '',
+      agreement_type: agreement.agreement_type || 'rental',
+      status: agreement.status || 'draft',
+      customer_id: agreement.customer_id || '',
+      vehicle_id: agreement.vehicle_id || '',
+      start_date: startDate,
+      end_date: endDate,
+      total_amount: agreement.total_amount || 0,
+      rent_amount: agreement.rent_amount || 0,
+      payment_frequency: agreement.payment_frequency || 'monthly',
+      payment_day: agreement.payment_day || 1,
+      notes: agreement.notes || '',
+      daily_late_fee: agreement.daily_late_fee || 0,
+      deposit_amount: agreement.deposit_amount || 0,
+      terms_accepted: agreement.terms_accepted || false,
+      additional_drivers: agreement.additional_drivers || [],
+    });
+  }, [agreement, form]);
   
   // Handle form submission
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
