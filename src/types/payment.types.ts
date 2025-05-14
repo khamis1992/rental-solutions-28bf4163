@@ -8,44 +8,25 @@ export interface SpecialPaymentOptions {
   paymentType?: string;
 }
 
-export interface PaymentRecord {
+export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled' | 'partially_paid';
+
+export interface Payment {
   id: string;
   lease_id: string;
   amount: number;
-  amount_paid?: number;
-  balance?: number;
   payment_date: string;
+  description?: string;
   payment_method?: string;
   reference_number?: string;
-  description?: string;
-  status: string;
+  status: PaymentStatus;
   type?: string;
   days_overdue?: number;
   late_fine_amount?: number;
+  due_date?: string;
   original_due_date?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface PaymentResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-  payment?: any;
-}
-
-// Type guards
-export function isPaymentRecord(obj: any): obj is PaymentRecord {
-  return obj
-    && typeof obj === 'object'
-    && 'id' in obj
-    && 'lease_id' in obj
-    && 'amount' in obj
-    && 'payment_date' in obj
-    && 'status' in obj;
-}
-
-export function isErrorResponse(obj: any): boolean {
-  return obj
-    && typeof obj === 'object'
-    && 'error' in obj
-    && obj.error !== null;
-}
+export type PaymentInsert = Omit<Payment, 'id'>;
+export type PaymentUpdate = Partial<Payment>;

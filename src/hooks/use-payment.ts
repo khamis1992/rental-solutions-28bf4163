@@ -2,10 +2,14 @@
 import { usePaymentManagement } from './payment/use-payment-management';
 import { useQuery } from '@tanstack/react-query';
 import { SpecialPaymentOptions } from '@/types/payment.types';
+import { usePaymentSchedule } from './payment/use-payment-schedule';
 
 export function usePayment(agreementId?: string) {
   // Use the centralized payment management hook
   const paymentManagement = usePaymentManagement(agreementId);
+  
+  // Use the payment schedule hook for generatePayment functionality
+  const paymentSchedule = usePaymentSchedule();
   
   // For backwards compatibility
   const { data: paymentHistory } = useQuery({
@@ -58,5 +62,15 @@ export function usePayment(agreementId?: string) {
     ...paymentManagement,
     payments: paymentHistory,
     handlePaymentSubmit,
+    // Expose the generatePayment function from usePaymentSchedule
+    generatePayment: paymentSchedule.generatePayment,
+    runPaymentMaintenance: paymentSchedule.runMaintenanceJob,
+    fixPaymentAnomalies: paymentSchedule.fixPaymentAnomalies,
+    isPending: {
+      ...paymentManagement.loadingStates,
+      generatePayment: paymentSchedule.isPending.generatePayment,
+      runMaintenance: paymentSchedule.isPending.runMaintenanceJob,
+      fixAnomalies: paymentSchedule.isPending.fixPaymentAnomalies
+    }
   };
 }

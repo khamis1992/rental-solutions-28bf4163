@@ -1,52 +1,56 @@
 
-import { useState, useCallback } from 'react';
-
-interface StatusHandlers<T extends Record<string, boolean>> {
-  setLoading: <K extends keyof T>(status: K) => void;
-  setIdle: <K extends keyof T>(status: K) => void;
-  isLoading: <K extends keyof T>(status: K) => boolean;
-  isAnyLoading: () => boolean;
-}
+import { useState } from 'react';
 
 /**
- * Hook to manage multiple loading states
+ * Hook for managing loading states for multiple operations
  */
-export function useLoadingStates<T extends Record<string, boolean>>(initialStates: T): {
-  loadingStates: T;
-  setLoading: <K extends keyof T>(status: K) => void;
-  setIdle: <K extends keyof T>(status: K) => void;
-  isLoading: <K extends keyof T>(status: K) => boolean;
-  isAnyLoading: () => boolean;
-} {
+export function useLoadingStates<T extends Record<string, boolean>>(initialStates: T) {
   const [loadingStates, setLoadingStates] = useState<T>(initialStates);
-  
-  const setLoading = useCallback(<K extends keyof T>(status: K) => {
+
+  /**
+   * Set a specific loading state to true
+   */
+  const setLoading = (key: keyof T) => {
     setLoadingStates(prev => ({
       ...prev,
-      [status]: true
+      [key]: true
     }));
-  }, []);
-  
-  const setIdle = useCallback(<K extends keyof T>(status: K) => {
+  };
+
+  /**
+   * Set a specific loading state to false
+   */
+  const setIdle = (key: keyof T) => {
     setLoadingStates(prev => ({
       ...prev,
-      [status]: false
+      [key]: false
     }));
-  }, []);
-  
-  const isLoading = useCallback(<K extends keyof T>(status: K): boolean => {
-    return !!loadingStates[status];
-  }, [loadingStates]);
-  
-  const isAnyLoading = useCallback((): boolean => {
-    return Object.values(loadingStates).some(state => !!state);
-  }, [loadingStates]);
-  
+  };
+
+  /**
+   * Check if any loading state is true
+   */
+  const isAnyLoading = Object.values(loadingStates).some(state => state === true);
+
+  /**
+   * Wrap a function with loading state management
+   */
+  const wrapWithLoading = <R>(key: keyof T, fn: (...args: any[]) => Promise<R>) => {
+    return async (...args: any[]): Promise<R> => {
+      try {
+        setLoading(key);
+        return await fn(...args);
+      } finally {
+        setIdle(key);
+      }
+    };
+  };
+
   return {
     loadingStates,
     setLoading,
     setIdle,
-    isLoading,
-    isAnyLoading
+    isAnyLoading,
+    wrapWithLoading
   };
 }

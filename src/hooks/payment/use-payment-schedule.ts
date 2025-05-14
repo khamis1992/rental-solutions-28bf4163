@@ -3,15 +3,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { PaymentStatus } from '@/types/payment.types';
-import { useLoadingStates } from '../use-loading-states';
+import { useLoadingStates } from './use-loading-states';
 
 /**
  * Hook for payment schedule management operations
  */
 export function usePaymentSchedule() {
   const queryClient = useQueryClient();
-  const { loadingStates, wrapWithLoading } = useLoadingStates({
+  const { loadingStates, setLoading, setIdle } = useLoadingStates({
     generatePayment: false,
     runMaintenanceJob: false,
     fixPaymentAnomalies: false
@@ -101,26 +100,35 @@ export function usePaymentSchedule() {
   });
 
   // Wrapper functions with loading state management
-  const generatePayment = wrapWithLoading('generatePayment', 
-    async (agreementId: string) => {
+  const generatePayment = async (agreementId: string) => {
+    try {
+      setLoading('generatePayment');
       const result = await generatePaymentMutation.mutateAsync(agreementId);
       return result;
+    } finally {
+      setIdle('generatePayment');
     }
-  );
+  };
 
-  const runMaintenanceJob = wrapWithLoading('runMaintenanceJob',
-    async () => {
+  const runMaintenanceJob = async () => {
+    try {
+      setLoading('runMaintenanceJob');
       const result = await maintenanceJobMutation.mutateAsync();
       return result;
+    } finally {
+      setIdle('runMaintenanceJob');
     }
-  );
+  };
 
-  const fixPaymentAnomalies = wrapWithLoading('fixPaymentAnomalies',
-    async () => {
+  const fixPaymentAnomalies = async () => {
+    try {
+      setLoading('fixPaymentAnomalies');
       const result = await fixPaymentAnomaliesMutation.mutateAsync();
       return result;
+    } finally {
+      setIdle('fixPaymentAnomalies');
     }
-  );
+  };
 
   return {
     generatePayment,
