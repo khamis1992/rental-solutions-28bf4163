@@ -17,8 +17,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Calendar } from 'lucide-react';
-import { useTrafficFines } from '@/hooks/traffic';
-import { TrafficFineCreatePayload } from '@/hooks/traffic/types';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -45,7 +44,7 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { addNewFine } = useTrafficFines();
+  const { addNewFine } = useTrafficFineAdapter();
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -59,11 +58,10 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
       paymentStatus: 'pending',
     },
   });
-
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      // Convert form data to the expected TrafficFineCreatePayload format
-      const fineData: TrafficFineCreatePayload = {
+      // Convert form data to the expected format for the adapter
+      const fineData = {
         violation_number: data.violationNumber,
         license_plate: data.licensePlate,
         violation_date: data.violationDate.toISOString(),
@@ -73,9 +71,9 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
         payment_status: data.paymentStatus,
       };
       
-      const success = await addNewFine(fineData);
+      const result = await addNewFine(fineData);
       
-      if (success) {
+      if (result.success) {
         toast.success("Traffic fine created successfully");
         form.reset();
         if (onFineSaved) {

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLegalCases } from '@/hooks/legal/useLegalCases';
+import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Table, 
@@ -32,7 +32,8 @@ import { formatDistance } from 'date-fns';
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'];
 
 const LegalReport = () => {
-  const { legalCases, isLoading, error } = useLegalCases();
+  const { getLegalCases } = useLegalCaseQuery();
+  const { data: legalCases, isLoading, isError, error } = getLegalCases({});
 
   if (isLoading) {
     return (

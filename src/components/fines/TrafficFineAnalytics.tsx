@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFines } from '@/hooks/traffic';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
 import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -14,7 +14,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TrafficFineAnalytics = () => {
-  const { fines: dbFines, isLoading } = useTrafficFines();
+  const { trafficFines: dbFines, isLoading } = useTrafficFineAdapter();
   const fines = dbFines.map(adaptTrafficFineToUI);
   
   if (isLoading) {

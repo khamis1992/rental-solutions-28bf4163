@@ -1,5 +1,5 @@
 
-import { TrafficFine } from '@/hooks/traffic/types';
+import { TrafficFine } from '@/types/traffic-fine.types';
 
 // Interface for how traffic fines appear in the UI components
 export interface UITrafficFine {

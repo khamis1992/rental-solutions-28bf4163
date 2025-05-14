@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { useTrafficFines } from '@/hooks/traffic';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
@@ -13,7 +13,7 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading: hookIsLoading, fines: dbFines } = useTrafficFines(agreementId);
+  const { isLoading: hookIsLoading, trafficFines: dbFines } = useTrafficFineAdapter(undefined, agreementId);
   const [showLoader, setShowLoader] = useState(false);
 
   // Update showLoader only when the hook's loading state changes

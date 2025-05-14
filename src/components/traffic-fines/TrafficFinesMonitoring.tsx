@@ -16,7 +16,7 @@ import {
   runTrafficFinesSystemHealthCheck, 
   testTrafficFineAssignment 
 } from '@/utils/traffic-fines-test-utils';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFineQuery } from '@/hooks/use-traffic-fine-query';
 import { toast } from 'sonner';
 
 const TrafficFinesMonitoring: React.FC = () => {
@@ -28,7 +28,8 @@ const TrafficFinesMonitoring: React.FC = () => {
   const [testResults, setTestResults] = useState<any>(null);
   const [testInProgress, setTestInProgress] = useState(false);
   
-  const { trafficFines } = useTrafficFines();
+  const { getTrafficFines } = useTrafficFineQuery();
+  const { data: trafficFines, isLoading: trafficFinesLoading } = getTrafficFines({}, 5, 0);
   
   // Load operations and metrics
   useEffect(() => {
@@ -323,8 +324,7 @@ const TrafficFinesMonitoring: React.FC = () => {
                         <TableHead>Status</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    </TableHeader>                    <TableBody>
                       {trafficFines && trafficFines.slice(0, 5).map((fine) => (
                         <TableRow key={fine.id}>
                           <TableCell>{fine.violationNumber}</TableCell>
@@ -342,6 +342,21 @@ const TrafficFinesMonitoring: React.FC = () => {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {trafficFinesLoading && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4">
+                            <RefreshCw className="h-5 w-5 animate-spin mx-auto" />
+                            <p className="text-sm text-muted-foreground mt-2">Loading traffic fines...</p>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!trafficFinesLoading && (!trafficFines || trafficFines.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4">
+                            <p className="text-sm text-muted-foreground">No traffic fines found</p>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>

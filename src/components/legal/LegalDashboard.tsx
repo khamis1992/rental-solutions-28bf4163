@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, ArrowUpRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useLegalCases } from '@/hooks/legal/useLegalCases';
+import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
 import { LegalStats } from './stats/LegalStats';
 import { RecentLegalActivity } from './activity/RecentLegalActivity';
 import { UpcomingDeadlines } from './deadlines/UpcomingDeadlines';
@@ -28,7 +28,8 @@ import ComplianceCalendar from './ComplianceCalendar';
 
 const LegalDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { legalCases, isLoading } = useLegalCases();
+  const { getLegalCases } = useLegalCaseQuery();
+  const { data: legalCases, isLoading } = getLegalCases({});
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   

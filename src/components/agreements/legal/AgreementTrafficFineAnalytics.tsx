@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useTrafficFines } from '@/hooks/traffic';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
 import TrafficFineAnalytics from '@/components/fines/TrafficFineAnalytics';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -10,7 +10,7 @@ interface AgreementTrafficFineAnalyticsProps {
 }
 
 export function AgreementTrafficFineAnalytics({ agreementId }: AgreementTrafficFineAnalyticsProps) {
-  const { fines, isLoading, error } = useTrafficFines(agreementId);
+  const { trafficFines: fines, isLoading, error } = useTrafficFineAdapter(undefined, agreementId);
 
   if (isLoading) {
     return (

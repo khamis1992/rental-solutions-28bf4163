@@ -1,32 +1,27 @@
 
-import { useTrafficFines } from '@/hooks/traffic';
-import { TrafficFine, TrafficFineCreatePayload } from '@/hooks/traffic/types';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
+import { TrafficFine } from '@/types/traffic-fine.types';
 
 export function useTrafficFineService() {
   const { 
-    fines, 
-    fetchFines, 
+    trafficFines: fines, 
     addNewFine,
-    markFineAsPaid,
     payTrafficFine, 
     disputeTrafficFine,
     assignToCustomer,
     cleanupInvalidAssignments,
     isLoading, 
     error 
-  } = useTrafficFines();
-
+  } = useTrafficFineAdapter();
   const getTrafficFines = async () => {
-    await fetchFines();
     return fines;
   };
 
   const getTrafficFineById = async (id: string) => {
-    await fetchFines();
     return fines.find(fine => fine.id === id) || null;
   };
 
-  const createTrafficFine = async (data: TrafficFineCreatePayload) => {
+  const createTrafficFine = async (data: Partial<TrafficFine>) => {
     return await addNewFine(data);
   };
 

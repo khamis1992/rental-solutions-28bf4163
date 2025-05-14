@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Plus, Gavel, Loader2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useLegalCases } from '@/hooks/legal/useLegalCases';
-import { LegalCase } from '@/types/legal-case';
+import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
+import { LegalCase } from '@/types/legal-case.types';
 import { CustomerObligation } from './CustomerLegalObligations';
 import LegalCaseDetails from './LegalCaseDetails';
 import { LegalCaseTable } from './cases/LegalCaseTable';
@@ -15,11 +15,12 @@ const LegalCaseManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<CustomerObligation | null>(null);
   const navigate = useNavigate();
-  const { legalCases, isLoading, error } = useLegalCases();
+  
+  const { getLegalCases } = useLegalCaseQuery();
+  const { data: legalCases, isLoading, error } = getLegalCases({});
 
   const filteredCases = useMemo(() => {
     if (!legalCases) return [];
-    
     return legalCases.filter(legalCase => {
       const fullName = legalCase.profiles?.full_name || '';
       const caseType = legalCase.case_type || '';

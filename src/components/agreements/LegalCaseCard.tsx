@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import LegalCaseCompactView from '@/components/legal/LegalCaseCompactView';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useLegalCases } from '@/hooks/legal/useLegalCases';
+import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
 
 interface LegalCaseCardProps {
   customerId: string;
@@ -17,9 +17,8 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({
   onNewCase,
   onViewCase
 }) => {
-  const { legalCases, isLoading, createLegalCase, updateLegalCase } = useLegalCases({ 
-    customerId
-  });
+  const { getLegalCases, createLegalCase, updateLegalCase } = useLegalCaseQuery(); 
+  const { data: legalCases, isLoading } = getLegalCases({ customerId });
 
   const handleShowDetails = (caseId: string) => {
     if (onViewCase) {

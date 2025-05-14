@@ -8,9 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useTrafficFines } from '@/hooks/traffic';
+import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
 import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
 
 const validationSchema = z.object({
@@ -24,8 +23,8 @@ const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
-  const { fines: dbFines, assignToCustomer } = useTrafficFines();
-  const fines = dbFines.map(adaptTrafficFineToUI);
+  const { trafficFines, validateFine, assignToCustomer: assignToCustomerLegacy } = useTrafficFineAdapter();
+  const fines = trafficFines.map(adaptTrafficFineToUI);
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -33,12 +32,18 @@ const TrafficFineValidation: React.FC = () => {
       licensePlate: '',
     },
   });
-
   const onSubmit = async (data: ValidationFormValues) => {
     setIsValidating(true);
     setValidationResult(null);
     
     try {
+      // Use the validateFine method from the adapter
+      const result = await validateFine(data.licensePlate);
+      
+      if (!result.success) {
+        throw new Error("Validation failed");
+      }
+      
       const relevantFines = fines?.filter(fine => 
         fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
       ) || [];
@@ -47,33 +52,6 @@ const TrafficFineValidation: React.FC = () => {
       const pendingAmount = relevantFines
         .filter(fine => fine.paymentStatus === 'pending')
         .reduce((sum, fine) => sum + fine.fineAmount, 0);
-      
-      // Use type assertion to bypass TypeScript checking since we know the structure is correct
-      const { error: validationError } = await supabase
-        .from('traffic_fine_validations' as any)
-        .insert([{
-          license_plate: data.licensePlate,
-          validation_date: new Date().toISOString(),
-          validation_source: 'manual',
-          result: {
-            fines_found: relevantFines.length,
-            total_amount: totalAmount,
-            pending_amount: pendingAmount,
-            fines: relevantFines.map(fine => ({
-              id: fine.id,
-              violation_number: fine.violationNumber,
-              violation_date: fine.violationDate,
-              amount: fine.fineAmount,
-              status: fine.paymentStatus
-            }))
-          },
-          status: 'completed'
-        }] as any);
-        
-      if (validationError) {
-        console.error('Error recording validation:', validationError);
-        toast.error('Error recording validation result');
-      }
       
       setValidationResult({
         licensePlate: data.licensePlate,
@@ -90,7 +68,6 @@ const TrafficFineValidation: React.FC = () => {
       setIsValidating(false);
     }
   };
-
   const handleAssignToCustomer = async (id: string) => {
     if (!id) {
       toast.error("Invalid fine ID");
@@ -99,7 +76,14 @@ const TrafficFineValidation: React.FC = () => {
 
     try {
       setAssigningFine(id);
-      await assignToCustomer.mutateAsync({ id });
+      
+      // Use the assignToCustomer method from the adapter
+      const result = await assignToCustomerLegacy(id, "auto-assigned");
+      
+      if (!result.success) {
+        throw new Error("Failed to assign fine to customer");
+      }
+      
       toast.success("Fine assigned to customer successfully");
       
       if (validationResult && validationResult.fines) {
