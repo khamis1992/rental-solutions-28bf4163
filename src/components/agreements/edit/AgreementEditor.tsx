@@ -1,3 +1,3 @@
 
-// Make the AgreementEditor component exportable
+// Export the AgreementEditor component from EditAgreementContent
 export { AgreementEditor } from './EditAgreementContent';

@@ -1,3 +1,4 @@
+
 /**
  * Simple NetworkStatusIndicator Component
  * 
@@ -17,5 +18,4 @@ export function NetworkStatusIndicator() {
       </span>
     </div>
   );
-}
 }

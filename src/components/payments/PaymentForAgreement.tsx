@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,6 @@ interface PaymentForAgreementProps {
   onClose: () => void;
 }
 
-export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
 export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProps) {
   const [carNumber, setCarNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,7 +90,9 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         
         if (!selectedPayment) {
           throw new Error('Selected payment not found');
-        }        if (selectedPayment) {
+        }
+        
+        if (selectedPayment) {
           // Use the standardized service to update the payment
           const updatePaymentMutation = paymentQuery.updatePayment();
           await updatePaymentMutation.mutateAsync({
@@ -112,7 +112,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         } else {
           throw new Error('Selected payment not found');
         }
-      } else {        // Create a new payment if no specific payment was selected or "new" was selected
+      } else {
+        // Create a new payment if no specific payment was selected or "new" was selected
         paymentData = {
           amount: data.rentAmount,
           payment_date: new Date().toISOString(),

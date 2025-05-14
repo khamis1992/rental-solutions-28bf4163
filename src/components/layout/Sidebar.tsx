@@ -326,7 +326,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "User"}</span>
               <span className="text-xs text-gray-400 truncate max-w-[120px]">
                 Admin
-              </span>            </div>
+              </span>
+            </div>
             <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
               <LogOut className="h-4 w-4" />
             </Button>

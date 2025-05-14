@@ -61,36 +61,6 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     }
   }, [customerId, legalCases, casesLoading, isError, queryError]);
 
-        // For now, we'll use mock data while implementing the actual functionality
-        const mockObligations: CustomerObligation[] = [
-          {
-            id: "ob-1",
-            customerId: customerId,
-            customerName: customerData?.full_name || "Unknown Customer",
-            description: "Monthly vehicle lease payment",
-            status: "overdue",
-            dueDate: new Date(),
-            createdAt: new Date(), // Make sure createdAt is provided
-            amount: 1200,
-            urgency: "high",
-            daysOverdue: 5,
-            obligationType: "payment"
-          }
-        ];
-        
-        setObligations(mockObligations);
-        setError(null);
-      } catch (err: any) {
-        console.error("LegalObligationsTab: Failed to load legal obligations:", err);
-        setError(err.message || "Failed to load legal obligations");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadObligations();
-  }, [customerId]); // Keep customerId in dependency array
-
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {

@@ -24,43 +24,7 @@ export function handleApiError(error: unknown, context?: string): void {
  * Legacy type guard for PostgrestError
  * @deprecated Use the standardized error handler instead
  */
-        errorMessage = 'A record with this information already exists.';
-        break;
-      case '23503':
-        errorMessage = 'This record cannot be modified because it is referenced by other data.';
-        break;
-      case '42P01':
-        errorMessage = 'Database table not found. Please contact support.';
-        break;
-      case '42703':
-        errorMessage = 'Database column not found. Please contact support.';
-        break;
-      case '28000':
-        errorMessage = 'Authentication failed. Please try signing in again.';
-        break;
-      case '40001':
-        errorMessage = 'Database is temporarily unavailable. Please try again.';
-        break;
-      case '57014':
-        errorMessage = 'Query timed out. Please try again with a simpler request.';
-        break;
-    }
-  }
-  
-  if (context) {
-    errorMessage = `${context}: ${errorMessage}`;
-  }
-  
-  toast.error('Error', {
-    description: errorMessage,
-    duration: 5000,
-  });
-}
-
-/**
- * Type guard for Postgrest errors
- */
-function isPostgrestError(error: unknown): error is PostgrestError {
+export function isPostgrestError(error: unknown): error is PostgrestError {
   return (
     typeof error === 'object' &&
     error !== null &&
