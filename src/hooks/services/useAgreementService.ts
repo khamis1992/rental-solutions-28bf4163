@@ -1,54 +1,65 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { AgreementService } from '@/services/AgreementService';
 import { Agreement } from '@/types/agreement';
 import { AgreementFilters } from '@/types/filters';
+import { adaptToValidationAgreement } from '@/utils/agreement-type-adapter';
 
-export interface SaveResponse {
-  success: boolean;
-  error?: string;
-  data?: any;
-}
-
-export function useAgreementService() {
-  const service = useMemo(() => new AgreementService(), []);
-  const [isLoading, setIsLoading] = useState(false);
+export const useAgreementService = (filters?: AgreementFilters) => {
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const getAgreements = async (filters?: AgreementFilters) => {
-    setIsLoading(true);
-    setError(null);
+  const agreementService = new AgreementService();
+
+  const fetchAgreements = async () => {
     try {
-      return await service.findAgreements(filters);
+      setIsLoading(true);
+      const data = await agreementService.findAgreements(filters);
+      setAgreements(data);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to get agreements'));
-      return [];
+      console.error('Error fetching agreements:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error fetching agreements'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getAgreementById = async (id: string) => {
-    setIsLoading(true);
-    setError(null);
+  const deleteAgreement = async (id: string) => {
     try {
-      const agreements = await service.findAgreements({ id });
-      return agreements[0] || null;
+      setIsLoading(true);
+      await agreementService.delete(id);
+      setAgreements(prevAgreements => prevAgreements.filter(a => a.id !== id));
+      setError(null);
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to get agreement'));
-      return null;
+      console.error('Error deleting agreement:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error deleting agreement'));
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateAgreement = async (agreement: Agreement) => {
-    setIsLoading(true);
-    setError(null);
     try {
-      return await service.save(agreement);
+      setIsLoading(true);
+      // Use the adapter to convert to validation schema format
+      const validationAgreement = adaptToValidationAgreement(agreement);
+      const result = await agreementService.save(validationAgreement);
+      
+      if (result.success) {
+        setAgreements(prevAgreements => 
+          prevAgreements.map(a => a.id === agreement.id ? agreement : a)
+        );
+      }
+      
+      setError(null);
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to update agreement'));
+      console.error('Error updating agreement:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error updating agreement'));
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
     } finally {
       setIsLoading(false);
@@ -56,52 +67,45 @@ export function useAgreementService() {
   };
 
   const createAgreement = async (agreement: Agreement) => {
-    setIsLoading(true);
-    setError(null);
     try {
-      return await service.save(agreement);
+      setIsLoading(true);
+      // Use the adapter to convert to validation schema format
+      const validationAgreement = adaptToValidationAgreement(agreement);
+      const result = await agreementService.save(validationAgreement);
+      
+      if (result.success && result.data) {
+        setAgreements(prevAgreements => [...prevAgreements, result.data as Agreement]);
+      }
+      
+      setError(null);
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to create agreement'));
+      console.error('Error creating agreement:', err);
+      setError(err instanceof Error ? err : new Error('Unknown error creating agreement'));
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const deleteAgreement = async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      return await service.delete(id);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to delete agreement'));
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateRemainingAmount = async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      return await service.calculateRemainingAmount(id);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to calculate remaining amount'));
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error', amount: 0 };
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Expose both function-based and property-based APIs for backward compatibility
+  useEffect(() => {
+    fetchAgreements();
+  }, [filters]);
 
   return {
-    getAgreements,
-    getAgreementById,
+    // Function-based API
+    getAgreements: agreementService.findAgreements,
+    getAgreementById: agreementService.findById,
     updateAgreement,
-    createAgreement,
     deleteAgreement,
-    calculateRemainingAmount,
+    createAgreement,
+    calculateRemainingAmount: agreementService.calculateRemainingAmount,
+    // Property-based API
+    agreements,
     isLoading,
-    error
+    error,
+    // Refresh utility
+    fetchAgreements
   };
-}
+};

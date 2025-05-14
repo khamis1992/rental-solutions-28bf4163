@@ -1,13 +1,14 @@
 
 import { Agreement as ValidationAgreement } from '@/lib/validation-schemas/agreement';
 import { Agreement as DataAgreement } from '@/types/agreement';
+import { LeaseStatus, ValidationLeaseStatus } from '@/types/lease-types';
 
 /**
  * Adapts an Agreement object from the database/API model to the validation model
  */
 export function adaptToValidationAgreement(agreement: DataAgreement): ValidationAgreement {
   // Map LeaseStatus to the specific string literals expected by ValidationAgreement
-  const mapStatus = (status: string): "active" | "pending" | "cancelled" | "draft" | "closed" | "expired" => {
+  const mapStatus = (status: string): ValidationLeaseStatus => {
     switch (status.toLowerCase()) {
       case 'active':
         return 'active';
@@ -19,7 +20,7 @@ export function adaptToValidationAgreement(agreement: DataAgreement): Validation
         return 'draft';
       case 'closed':
         return 'closed';
-      case 'completed': // Special case mapping
+      case 'completed': // Special case mapping "completed" to "closed"
         return 'closed';
       case 'expired':
         return 'expired';

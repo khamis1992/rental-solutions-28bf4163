@@ -1,170 +1,111 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, FileText, Clock, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertTriangle, CheckCircle, Scale, FileText, Plus } from 'lucide-react';
+import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { format } from 'date-fns';
-import { hasData } from '@/utils/supabase-type-helpers';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
-export interface LegalCaseCardProps {
+interface LegalCaseCardProps {
   agreementId: string;
 }
 
-export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [legalCase, setLegalCase] = useState<any>(null);
-  const [customerInfo, setCustomerInfo] = useState<any>(null);
-  const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false);
-  const [resolutionNotes, setResolutionNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
+  const { cases, isLoading, error, createCase, updateCase } = useLegalCases(agreementId);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'pending',
+    case_number: '',
+    court_date: '',
+    court_location: '',
+    assigned_attorney: '',
+    notes: ''
+  });
 
-  useEffect(() => {
-    fetchLegalCase();
-  }, [agreementId]);
-
-  const fetchLegalCase = async () => {
-    try {
-      setIsLoading(true);
-      
-      // First get the customer ID from the agreement
-      const { data: agreementData, error: agreementError } = await supabase
-        .from('leases')
-        .select('customer_id')
-        .eq('id', agreementId)
-        .single();
-        
-      if (agreementError) {
-        console.error("Error fetching agreement:", agreementError);
-        return;
-      }
-      
-      if (!agreementData?.customer_id) {
-        console.error("No customer ID found for agreement");
-        return;
-      }
-      
-      // Get customer info
-      const { data: customerData, error: customerError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('id', agreementData.customer_id)
-        .single();
-        
-      if (!customerError && customerData) {
-        setCustomerInfo(customerData);
-      }
-      
-      // Get legal case for this customer
-      const { data: caseData, error: caseError } = await supabase
-        .from('legal_cases')
-        .select('*')
-        .eq('customer_id', agreementData.customer_id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-        
-      if (caseError) {
-        console.error("Error fetching legal case:", caseError);
-        return;
-      }
-      
-      if (caseData && caseData.length > 0) {
-        setLegalCase(caseData[0]);
-      }
-    } catch (error) {
-      console.error("Error in fetchLegalCase:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleResolveCase = async () => {
-    if (!legalCase) return;
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     try {
-      setIsSubmitting(true);
+      await createCase({
+        ...formData,
+        lease_id: agreementId
+      });
       
-      const { error } = await supabase
-        .from('legal_cases')
-        .update({
-          status: 'resolved',
-          resolution_notes: resolutionNotes,
-          resolution_date: new Date().toISOString()
-        })
-        .eq('id', legalCase.id);
-        
-      if (error) {
-        console.error("Error resolving case:", error);
-        toast.error("Failed to resolve legal case");
-        return;
-      }
+      setIsDialogOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        status: 'pending',
+        case_number: '',
+        court_date: '',
+        court_location: '',
+        assigned_attorney: '',
+        notes: ''
+      });
       
-      toast.success("Legal case resolved successfully");
-      setIsResolutionDialogOpen(false);
-      fetchLegalCase();
+      toast.success('Legal case created successfully');
     } catch (error) {
-      console.error("Error in handleResolveCase:", error);
-      toast.error("An error occurred while resolving the case");
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error creating legal case:', error);
+      toast.error('Failed to create legal case');
     }
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-red-500">Active</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
+    switch (status.toLowerCase()) {
       case 'resolved':
-        return <Badge className="bg-green-500">Resolved</Badge>;
-      case 'escalated':
-        return <Badge className="bg-purple-500">Escalated</Badge>;
+        return <Badge className="bg-green-500 text-white"><CheckCircle className="mr-1 h-3 w-3" /> Resolved</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-500 text-white"><Scale className="mr-1 h-3 w-3" /> In Progress</Badge>;
+      case 'pending':
       default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge className="bg-red-500">High Priority</Badge>;
-      case 'medium':
-        return <Badge className="bg-yellow-500">Medium Priority</Badge>;
-      case 'low':
-        return <Badge className="bg-blue-500">Low Priority</Badge>;
-      default:
-        return <Badge>{priority}</Badge>;
+        return <Badge className="bg-amber-500 text-white"><AlertTriangle className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Legal Case Information</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Legal Cases</CardTitle>
+          <CardDescription>Legal cases associated with this agreement</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center py-6">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CardContent className="pt-0">
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!legalCase) {
+  if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Legal Case Information</CardTitle>
-          <CardDescription>No legal cases found for this agreement</CardDescription>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Legal Cases</CardTitle>
+          <CardDescription>Legal cases associated with this agreement</CardDescription>
         </CardHeader>
-        <CardContent className="text-center py-6">
-          <div className="flex flex-col items-center justify-center">
-            <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No legal cases have been filed for this customer.</p>
+        <CardContent className="pt-0">
+          <div className="py-4 text-center text-red-500">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+            <p>Error loading legal cases: {error.message}</p>
           </div>
         </CardContent>
       </Card>
@@ -172,120 +113,219 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Legal Case Information</CardTitle>
-            <CardDescription>Details about the legal case for this agreement</CardDescription>
+            <CardTitle className="text-lg">Legal Cases</CardTitle>
+            <CardDescription>Legal cases associated with this agreement</CardDescription>
           </div>
-          <div className="flex items-center space-x-2">
-            {getStatusBadge(legalCase.status)}
-            {legalCase.priority && getPriorityBadge(legalCase.priority)}
-          </div>
+          <Button size="sm" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" /> Add Case
+          </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Case Type</h3>
-              <p>{legalCase.case_type || 'N/A'}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount Owed</h3>
-              <p className="font-semibold text-red-600">
-                {legalCase.amount_owed ? `QAR ${legalCase.amount_owed.toLocaleString()}` : 'N/A'}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Created Date</h3>
-              <p>{legalCase.created_at ? format(new Date(legalCase.created_at), 'PPP') : 'N/A'}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h3>
-              <p>{legalCase.assigned_to || 'Unassigned'}</p>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-            <p className="text-sm whitespace-pre-line">{legalCase.description || 'No description provided'}</p>
-          </div>
-          
-          {legalCase.status === 'resolved' && (
-            <div className="bg-green-50 p-3 rounded-md border border-green-200">
-              <div className="flex items-center mb-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-                <h3 className="text-sm font-medium text-green-800">Case Resolved</h3>
+      <CardContent className="pt-0">
+        {cases && cases.length > 0 ? (
+          <div className="space-y-4">
+            {cases.map((legalCase) => (
+              <div key={legalCase.id} className="border rounded-md p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{legalCase.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{legalCase.description}</p>
+                  </div>
+                  {getStatusBadge(legalCase.status)}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                  {legalCase.case_number && (
+                    <div>
+                      <p className="text-muted-foreground">Case Number</p>
+                      <p>{legalCase.case_number}</p>
+                    </div>
+                  )}
+                  
+                  {legalCase.court_date && (
+                    <div>
+                      <p className="text-muted-foreground">Court Date</p>
+                      <p>{format(new Date(legalCase.court_date), 'PPP')}</p>
+                    </div>
+                  )}
+                  
+                  {legalCase.court_location && (
+                    <div>
+                      <p className="text-muted-foreground">Court Location</p>
+                      <p>{legalCase.court_location}</p>
+                    </div>
+                  )}
+                  
+                  {legalCase.assigned_attorney && (
+                    <div>
+                      <p className="text-muted-foreground">Assigned Attorney</p>
+                      <p>{legalCase.assigned_attorney}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {legalCase.notes && (
+                  <div className="mt-4 text-sm">
+                    <p className="text-muted-foreground">Notes</p>
+                    <p className="whitespace-pre-line">{legalCase.notes}</p>
+                  </div>
+                )}
+                
+                <div className="flex justify-end mt-4">
+                  <Button variant="outline" size="sm">
+                    <FileText className="mr-1 h-4 w-4" /> View Details
+                  </Button>
+                </div>
               </div>
-              <p className="text-sm text-green-700 whitespace-pre-line">{legalCase.resolution_notes || 'No resolution notes provided'}</p>
-              {legalCase.resolution_date && (
-                <p className="text-xs text-green-600 mt-2">
-                  Resolved on {format(new Date(legalCase.resolution_date), 'PPP')}
-                </p>
-              )}
-            </div>
-          )}
-          
-          {legalCase.status !== 'resolved' && (
-            <div className="flex justify-end">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsResolutionDialogOpen(true)}
-              >
-                Mark as Resolved
-              </Button>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-4 text-center text-muted-foreground">
+            No legal cases found for this agreement.
+          </div>
+        )}
       </CardContent>
-      
-      <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
-        <DialogContent>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Resolve Legal Case</DialogTitle>
+            <DialogTitle>Add New Legal Case</DialogTitle>
             <DialogDescription>
-              Enter resolution details to close this legal case.
+              Create a new legal case associated with this agreement.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Resolution Notes</h4>
-              <Textarea
-                placeholder="Enter details about how this case was resolved..."
-                value={resolutionNotes}
-                onChange={(e) => setResolutionNotes(e.target.value)}
-                rows={5}
-              />
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">
+                  Title
+                </Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleSelectChange('status', value)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="case_number" className="text-right">
+                  Case Number
+                </Label>
+                <Input
+                  id="case_number"
+                  name="case_number"
+                  value={formData.case_number}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="court_date" className="text-right">
+                  Court Date
+                </Label>
+                <Input
+                  id="court_date"
+                  name="court_date"
+                  type="date"
+                  value={formData.court_date}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="court_location" className="text-right">
+                  Court Location
+                </Label>
+                <Input
+                  id="court_location"
+                  name="court_location"
+                  value={formData.court_location}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="assigned_attorney" className="text-right">
+                  Attorney
+                </Label>
+                <Input
+                  id="assigned_attorney"
+                  name="assigned_attorney"
+                  value={formData.assigned_attorney}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="notes" className="text-right">
+                  Notes
+                </Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  className="col-span-3"
+                />
+              </div>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsResolutionDialogOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleResolveCase}
-              disabled={isSubmitting || !resolutionNotes.trim()}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Resolving...
-                </>
-              ) : (
-                'Resolve Case'
-              )}
-            </Button>
-          </DialogFooter>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Case</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Card>
   );
-}
+};
+
+export default LegalCaseCard;

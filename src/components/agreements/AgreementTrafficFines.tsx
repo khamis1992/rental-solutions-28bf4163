@@ -12,7 +12,7 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading: hookIsLoading, trafficFines } = useTrafficFines();
+  const { isLoading: hookIsLoading, fines } = useTrafficFines(agreementId);
   const [showLoader, setShowLoader] = useState(false);
 
   // Update showLoader only when the hook's loading state changes
@@ -31,9 +31,9 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   // Memoize the filtered fines to prevent recalculation on each render
   const filteredFines = React.useMemo(() => {
-    if (!trafficFines) return [];
-    return trafficFines.filter(fine => fine.leaseId === agreementId);
-  }, [trafficFines, agreementId]);
+    if (!fines) return [];
+    return fines.filter(fine => fine.lease_id === agreementId);
+  }, [fines, agreementId]);
 
   if (showLoader) {
     return (
@@ -75,24 +75,24 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             {filteredFines.map((fine) => (
               <tr key={fine.id} className="border-b hover:bg-muted/50">
                 <td className="py-3 px-4">
-                  {fine.violationDate 
-                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
+                  {fine.violation_date 
+                    ? format(new Date(fine.violation_date), 'dd MMM yyyy') 
                     : 'N/A'}
                 </td>
-                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.fine_location || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.violation_charge || 'N/A'}</td>
                 <td className="py-3 px-4 text-right">
-                  {fine.fineAmount 
-                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
+                  {fine.fine_amount 
+                    ? `QAR ${fine.fine_amount.toLocaleString()}` 
                     : 'N/A'}
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.paymentStatus === 'paid' 
+                    fine.payment_status === 'paid' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                    {fine.payment_status === 'paid' ? 'Paid' : 'Pending'}
                   </span>
                 </td>
               </tr>

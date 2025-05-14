@@ -9,6 +9,7 @@ import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { toast } from 'sonner';
 import { Payment } from '@/types/payment-types.unified';
 import { Agreement } from '@/types/agreement';
+import { adaptToValidationAgreement } from '@/utils/agreement-type-adapter';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -225,6 +226,9 @@ export function AgreementDetail({
       </Alert>;
   }
 
+  // Use agreement adapter for type compatibility when needed
+  const validationAgreement = adaptToValidationAgreement(agreement);
+  
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = differenceInMonths(endDate, startDate) || 1;
@@ -263,12 +267,12 @@ export function AgreementDetail({
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <CustomerInformationCard agreement={agreement} />
-        <VehicleInformationCard agreement={agreement} />
+        <CustomerInformationCard agreement={validationAgreement} />
+        <VehicleInformationCard agreement={validationAgreement} />
       </div>
 
       <AgreementDetailsCard 
-        agreement={agreement}
+        agreement={validationAgreement}
         duration={duration}
         rentAmount={rentAmount}
         contractAmount={contractAmount}

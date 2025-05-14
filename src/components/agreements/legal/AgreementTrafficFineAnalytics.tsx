@@ -1,7 +1,6 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Loader2, AlertCircle, CheckCircle2, CircleDollarSign, CalendarDays } from 'lucide-react';
 import { format, differenceInMonths } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -13,22 +12,22 @@ interface AgreementTrafficFineAnalyticsProps {
 }
 
 export function AgreementTrafficFineAnalytics({ agreementId, startDate, endDate }: AgreementTrafficFineAnalyticsProps) {
-  const { trafficFines = [], isLoading } = useTrafficFines();
+  const { fines = [], isLoading } = useTrafficFines(agreementId);
   
   const agreementFines = useMemo(() => {
-    if (!trafficFines) return [];
-    return trafficFines.filter(fine => fine.leaseId === agreementId);
-  }, [trafficFines, agreementId]);
+    if (!fines) return [];
+    return fines.filter(fine => fine.lease_id === agreementId);
+  }, [fines, agreementId]);
   
   const totalFineAmount = useMemo(() => {
-    return agreementFines.reduce((total, fine) => total + (fine.fineAmount || 0), 0);
+    return agreementFines.reduce((total, fine) => total + (fine.fine_amount || 0), 0);
   }, [agreementFines]);
   
   const paymentStatusData = useMemo(() => {
     const statusCounts: Record<string, number> = { paid: 0, pending: 0, disputed: 0 };
     
     agreementFines.forEach(fine => {
-      const status = fine.paymentStatus || 'pending';
+      const status = fine.payment_status || 'pending';
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
     
@@ -51,8 +50,8 @@ export function AgreementTrafficFineAnalytics({ agreementId, startDate, endDate 
     
     // Count fines in each month
     agreementFines.forEach(fine => {
-      if (!fine.violationDate) return;
-      const date = new Date(fine.violationDate);
+      if (!fine.violation_date) return;
+      const date = new Date(fine.violation_date);
       const monthKey = format(date, 'MMM yyyy');
       
       // Only count if it's within our range

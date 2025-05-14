@@ -1,63 +1,47 @@
 
+import { LeaseStatus } from './lease-types';
+
 export interface AgreementFilters {
-  id?: string;
+  status?: LeaseStatus[];
   customerId?: string;
   vehicleId?: string;
-  status?: string | string[];
-  startDateFrom?: Date | string;
-  startDateTo?: Date | string;
-  endDateFrom?: Date | string;
-  endDateTo?: Date | string;
+  startDate?: Date;
+  endDate?: Date;
   searchTerm?: string;
+  agreementNumber?: string;
+  page?: number;
+  limit?: number;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
-  limit?: number;
-  offset?: number;
-  page?: number;
-  pageSize?: number;
 }
 
 export interface VehicleFilters {
-  id?: string;
+  status?: string[];
   make?: string;
   model?: string;
-  year?: number | string;
-  licensePlate?: string;
-  status?: string | string[];
+  year?: number;
   searchTerm?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  limit?: number;
-  offset?: number;
+  licenseplate?: string;
   page?: number;
-  pageSize?: number;
+  limit?: number;
 }
 
 export interface CustomerFilters {
-  id?: string;
-  status?: string | string[];
+  status?: string[];
   searchTerm?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  limit?: number;
-  offset?: number;
+  email?: string;
+  phone?: string;
   page?: number;
-  pageSize?: number;
+  limit?: number;
 }
 
 export interface PaymentFilters {
-  id?: string;
+  status?: string[];
+  startDate?: Date;
+  endDate?: Date;
   leaseId?: string;
-  status?: string | string[];
-  paymentDateFrom?: Date | string;
-  paymentDateTo?: Date | string;
-  dueDateFrom?: Date | string;
-  dueDateTo?: Date | string;
-  searchTerm?: string;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
-  limit?: number;
-  offset?: number;
+  minAmount?: number;
+  maxAmount?: number;
   page?: number;
-  pageSize?: number;
+  limit?: number;
 }
