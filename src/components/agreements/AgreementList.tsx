@@ -19,7 +19,7 @@ const AgreementList: React.FC = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  // Process agreement data for display
+  // Process agreement data for display with correct type conversion
   const typedAgreements = processAgreementData(agreements || []);
 
   return (

@@ -4,6 +4,7 @@ import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
 import { SimplePagination } from '@/components/ui/simple-pagination';
+import { processAgreementData } from './table/agreement-data';
 
 export function AgreementList() {
   const {
@@ -22,9 +23,8 @@ export function AgreementList() {
     return <div>Error: {error.message}</div>;
   }
 
-  // Cast agreements to the correct type with the required fields
-  // We'll avoid the map transformations that were causing type errors
-  const typedAgreements: Agreement[] = agreements || [];
+  // Process the agreements data to ensure correct types
+  const typedAgreements: Agreement[] = processAgreementData(agreements || []);
 
   return (
     <div className="space-y-6">

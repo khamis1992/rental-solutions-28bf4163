@@ -1,30 +1,37 @@
 
-import { useState } from "react";
+import { useState } from 'react';
 
-interface LoadingStates {
-  [key: string]: boolean;
+export interface LoadingStates {
+  loadPayments: boolean;
+  createPayment: boolean;
+  updatePayment: boolean;
+  deletePayment: boolean;
+  generatePayment: boolean;
+  recurringPayment: boolean;
+  processSpecialPayment: boolean;
 }
 
-export function useLoadingStates(initialStates: LoadingStates = {}) {
-  const [loadingStates, setLoadingStates] = useState<LoadingStates>(initialStates);
+export function useLoadingStates() {
+  const [loadingStates, setLoadingStates] = useState<LoadingStates>({
+    loadPayments: false,
+    createPayment: false,
+    updatePayment: false,
+    deletePayment: false,
+    generatePayment: false,
+    recurringPayment: false,
+    processSpecialPayment: false,
+  });
 
-  const setLoading = (key: string, isLoading: boolean) => {
-    setLoadingStates(prev => ({
-      ...prev,
-      [key]: isLoading
-    }));
+  const setLoading = (key: keyof LoadingStates, value: boolean) => {
+    setLoadingStates(prev => ({ ...prev, [key]: value }));
   };
 
-  const startLoading = (key: string) => {
+  const startLoading = (key: keyof LoadingStates) => {
     setLoading(key, true);
   };
 
-  const stopLoading = (key: string) => {
+  const stopLoading = (key: keyof LoadingStates) => {
     setLoading(key, false);
-  };
-
-  const isLoading = (key: string) => {
-    return !!loadingStates[key];
   };
 
   return {
@@ -32,6 +39,8 @@ export function useLoadingStates(initialStates: LoadingStates = {}) {
     setLoading,
     startLoading,
     stopLoading,
-    isLoading
+    isLoading: (key: keyof LoadingStates) => loadingStates[key]
   };
 }
+
+export default useLoadingStates;

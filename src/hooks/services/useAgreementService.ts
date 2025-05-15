@@ -1,14 +1,14 @@
 
 import { useState } from 'react';
 import { AgreementFilters } from '@/types/filters';
-import { Agreement } from '@/types/agreement';
+import { Agreement, SimpleAgreement } from '@/types/agreement';
 import { supabase } from '@/lib/supabase';
 import { adaptApiResponseToAgreement, adaptApiResponseToAgreements } from '@/utils/agreement-type-adapter';
 
 export const useAgreementService = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [agreements, setAgreements] = useState<Agreement[]>([]);
+  const [agreements, setAgreements] = useState<SimpleAgreement[]>([]);
 
   const getAgreements = async (filters?: AgreementFilters) => {
     setIsLoading(true);
@@ -164,6 +164,15 @@ export const useAgreementService = () => {
     }
   };
 
+  // Add a save method for backward compatibility
+  const save = async (agreement: Agreement) => {
+    if (agreement.id) {
+      return updateAgreement(agreement);
+    } else {
+      return createAgreement(agreement as Omit<Agreement, 'id'>);
+    }
+  };
+
   return {
     agreements,
     isLoading,
@@ -172,6 +181,7 @@ export const useAgreementService = () => {
     getAgreementById,
     updateAgreement,
     createAgreement,
-    deleteAgreement
+    deleteAgreement,
+    save
   };
 };

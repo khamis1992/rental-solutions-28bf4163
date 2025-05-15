@@ -18,6 +18,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { DbId } from "@/types/database-common";
+import { asPaymentStatus } from "@/types/database-common";
 
 // Define the pending payment interface to match our state structure
 interface PendingPayment {
@@ -93,8 +95,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         .from("unified_payments")
         .select("id, payment_date, amount")
         .eq("lease_id", agreementId)
-        .eq("status", "pending")
-        .order("payment_date", { ascending: true });
+        .eq("status", "pending");
       
       if (error) throw error;
       
@@ -179,7 +180,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         const { error: updateError } = await supabase
           .from("unified_payments")
           .update({
-            status: paymentStatus,
+            status: asPaymentStatus(paymentStatus),
             payment_method: data.paymentMethod,
             reference_number: data.referenceNumber || null,
             notes: data.notes || null,
@@ -187,27 +188,31 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
             days_overdue: lateFeeDetails?.daysLate || 0,
             amount_paid: data.amount,
             balance: remainingBalance
-          })
-          .eq("id", data.pendingPaymentId);
+          } as any)
+          .eq("id", data.pendingPaymentId as DbId);
 
         if (updateError) throw updateError;
       } else {
         // Record a new payment if not updating a pending one
-        const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
+        const paymentData = {
           lease_id: agreementId,
           amount: originalAmount,
           amount_paid: data.amount,
           balance: remainingBalance,
           payment_date: data.paymentDate.toISOString(),
           payment_method: data.paymentMethod,
-          status: paymentStatus,
+          status: asPaymentStatus(paymentStatus),
           type: "Income",
           reference_number: data.referenceNumber || null,
           notes: data.notes || null,
           days_overdue: lateFeeDetails?.daysLate || 0,
           original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
           late_fine_amount: lateFeeDetails?.amount || 0,
-        });
+        };
+
+        const { error: paymentError } = await supabase
+          .from("unified_payments")
+          .insert(paymentData as any);
 
         if (paymentError) {
           throw paymentError;
@@ -216,15 +221,15 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
       // If late fee is applicable and user opted to include it
       if (lateFeeDetails && data.includeLatePaymentFee) {
-        // Record late fee payment - IMPORTANT: Using late_fine_amount instead of daily_late_fee
-        const { error: lateFeeError } = await supabase.from("unified_payments").insert({
+        // Record late fee payment
+        const lateFeeData = {
           lease_id: agreementId,
           amount: lateFeeDetails.amount,
           amount_paid: lateFeeDetails.amount,
           balance: 0, // Fully paid
           payment_date: data.paymentDate.toISOString(),
           payment_method: data.paymentMethod,
-          status: "completed",
+          status: asPaymentStatus("completed"),
           type: "LATE_PAYMENT_FEE",
           description: `Late payment fee for ${format(data.paymentDate, "MMMM yyyy")} (${lateFeeDetails.daysLate} days late)`,
           reference_number: data.referenceNumber || null,
@@ -232,7 +237,11 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
           late_fine_amount: lateFeeDetails.amount,
           days_overdue: lateFeeDetails.daysLate,
           original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
-        });
+        };
+
+        const { error: lateFeeError } = await supabase
+          .from("unified_payments")
+          .insert(lateFeeData as any);
 
         if (lateFeeError) {
           toast.error("Payment recorded but failed to record late fee");

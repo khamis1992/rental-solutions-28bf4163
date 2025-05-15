@@ -1,118 +1,92 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import { useTrafficFineService } from '@/hooks/services/useTrafficFineService';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
+import { PaginatedTrafficFineResult, TrafficFine } from '@/types/traffic-fine';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
-  startDate: Date;
-  endDate: Date;
 }
 
-export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading: hookIsLoading, trafficFines: dbFines } = useTrafficFineAdapter(undefined, agreementId);
-  const [showLoader, setShowLoader] = useState(false);
+export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId }) => {
+  const { trafficFines, isLoading, error } = useTrafficFineService(agreementId);
 
-  // Update showLoader only when the hook's loading state changes
-  useEffect(() => {
-    setShowLoader(hookIsLoading);
-  }, [hookIsLoading]);
-
-  // Memoize handleRefresh to prevent recreation on each render
-  const handleRefresh = useCallback(async () => {
-    setShowLoader(true);
-    // Wait a moment for visual feedback
-    setTimeout(() => {
-      setShowLoader(false);
-    }, 1000);
-  }, []);
-
-  // Memoize the filtered fines to prevent recalculation on each render
-  const filteredFines = React.useMemo(() => {
-    if (!dbFines) return [];
-    return dbFines.filter(fine => fine.lease_id === agreementId);
-  }, [dbFines, agreementId]);
-
-  if (showLoader) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (isLoading) {
+    return <div>Loading traffic fines...</div>;
   }
 
-  if (filteredFines.length === 0) {
-    return (
-      <div className="space-y-4">
-        <p className="text-center py-4 text-muted-foreground">
-          No traffic fines recorded for this rental period.
-        </p>
-        <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            Check for new fines
-          </Button>
-        </div>
-      </div>
-    );
+  if (error) {
+    return <div>Error: {error.message}</div>;
   }
+
+  // Handle different return types safely
+  const finesArray = Array.isArray(trafficFines) 
+    ? trafficFines 
+    : (trafficFines as PaginatedTrafficFineResult)?.data || [];
+
+  // Filter unpaid fines - safely handle potential different return types
+  const unpaidFines = finesArray.filter(fine => 
+    fine.payment_status === 'pending' || fine.payment_status === 'overdue'
+  );
+
+  const hasFines = finesArray.length > 0;
+  const hasUnpaidFines = unpaidFines.length > 0;
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4">Date</th>
-              <th className="text-left py-3 px-4">Location</th>
-              <th className="text-left py-3 px-4">Violation</th>
-              <th className="text-right py-3 px-4">Amount</th>
-              <th className="text-right py-3 px-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFines.map((fine) => (
-              <tr key={fine.id} className="border-b hover:bg-muted/50">
-                <td className="py-3 px-4">
-                  {fine.violation_date 
-                    ? format(new Date(fine.violation_date), 'dd MMM yyyy') 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4">{fine.fine_location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violation_charge || 'N/A'}</td>
-                <td className="py-3 px-4 text-right">
-                  {fine.fine_amount 
-                    ? `QAR ${fine.fine_amount.toLocaleString()}` 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.payment_status === 'paid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {fine.payment_status === 'paid' ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      <div className="flex justify-between items-center pt-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredFines.length} fine{filteredFines.length !== 1 ? 's' : ''}
-          </p>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Traffic Violations</CardTitle>
+            <CardDescription>Recent traffic violations for this agreement</CardDescription>
+          </div>
+          {hasUnpaidFines && (
+            <Badge variant="destructive">{unpaidFines.length} Unpaid</Badge>
+          )}
         </div>
-        
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          Refresh
-        </Button>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent>
+        {!hasFines ? (
+          <div className="text-center py-4 text-muted-foreground">
+            No traffic violations found for this agreement.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Violation</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {finesArray.map((fine: TrafficFine) => (
+                <TableRow key={fine.id}>
+                  <TableCell>
+                    {fine.violation_date && format(new Date(fine.violation_date), 'MMM d, yyyy')}
+                  </TableCell>
+                  <TableCell>{fine.fine_location || 'Unknown'}</TableCell>
+                  <TableCell>{fine.violation_charge || 'Traffic Violation'}</TableCell>
+                  <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={fine.payment_status === 'completed' ? 'outline' : 'destructive'}
+                    >
+                      {fine.payment_status === 'completed' ? 'Paid' : 'Unpaid'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
