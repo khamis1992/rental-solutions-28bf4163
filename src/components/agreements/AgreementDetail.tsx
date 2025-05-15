@@ -35,6 +35,12 @@ interface AgreementDetailProps {
   onPaymentAdded?: () => void;
   isLoading?: boolean;
   error?: Error | null;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  onDelete?: (id: string) => void;
+  onDataRefresh?: () => void;
+  onPaymentDeleted?: () => void;
+  onGenerateDocument?: () => void;
 }
 
 export function AgreementDetail({ 
@@ -42,7 +48,13 @@ export function AgreementDetail({
   onEdit, 
   onPaymentAdded, 
   isLoading = false, 
-  error = null 
+  error = null,
+  rentAmount = 0,
+  contractAmount = 0,
+  onDelete,
+  onDataRefresh,
+  onPaymentDeleted,
+  onGenerateDocument
 }: AgreementDetailProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
@@ -57,6 +69,20 @@ export function AgreementDetail({
       setShowExpiredWarning(endDate < new Date() && agreement.status === 'active');
     }
   }, [agreement]);
+
+  // Calculate duration in months
+  const calculateDuration = () => {
+    if (!agreement.start_date || !agreement.end_date) return 0;
+    
+    const start = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+    const end = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+    
+    // Calculate months difference
+    const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+    return Math.max(1, monthsDiff); // Ensure minimum of 1 month
+  };
+  
+  const duration = calculateDuration();
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading agreement details...</div>;
@@ -115,6 +141,8 @@ export function AgreementDetail({
         <AgreementActionButtons 
           agreement={adaptedAgreement} 
           onEdit={onEdit}
+          onDelete={onDelete ? () => onDelete(agreement.id) : undefined}
+          onGenerateDocument={onGenerateDocument}
         />
       </div>
       
@@ -147,19 +175,18 @@ export function AgreementDetail({
 
         <TabsContent value="details" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <AgreementDetailsCard agreement={adaptedAgreement} />
+            <AgreementDetailsCard 
+              agreement={adaptedAgreement} 
+              duration={duration} 
+              rentAmount={rentAmount} 
+              contractAmount={contractAmount} 
+            />
             <CustomerInformationCard 
-              customerName={agreement.customer_name || agreement.customers?.full_name || 'Unknown Customer'} 
-              customerId={agreement.customer_id}
-              customerDetails={agreement.customers || {}}
+              customer={agreement.customers || {}}
             />
           </div>
           <VehicleInformationCard 
-            vehicleId={agreement.vehicle_id} 
-            licensePlate={agreement.license_plate || agreement.vehicles?.license_plate || 'Unknown'} 
-            make={agreement.vehicle_make || agreement.vehicles?.make || 'Unknown'} 
-            model={agreement.vehicle_model || agreement.vehicles?.model || 'Unknown'} 
-            year={agreement.vehicles?.year || 0}
+            vehicle={agreement.vehicles || {}}
           />
         </TabsContent>
 
@@ -170,8 +197,13 @@ export function AgreementDetail({
             </CardHeader>
             <CardContent>
               <PaymentHistory 
-                agreement={adaptedAgreement}
-                onPaymentAdded={onPaymentAdded} 
+                leaseId={agreement.id}
+                onPaymentAdded={onPaymentAdded}
+                leaseStartDate={agreement.start_date}
+                leaseEndDate={agreement.end_date}
+                rentAmount={rentAmount || 0}
+                contractAmount={contractAmount || agreement?.total_amount}
+                onPaymentDeleted={onPaymentDeleted}
               />
             </CardContent>
           </Card>

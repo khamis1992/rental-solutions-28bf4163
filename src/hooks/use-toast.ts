@@ -1,4 +1,5 @@
 
+// Import directly from the toast component file
 import { useToast as useToastOriginal, toast as toastOriginal } from "@/components/ui/toast";
 
 export const useToast = useToastOriginal;

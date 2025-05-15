@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { CalendarDays } from 'lucide-react';
 
-interface AgreementDetailsCardProps {
+export interface AgreementDetailsCardProps {
   agreement: Agreement;
   duration: number;
   rentAmount: number | null;
