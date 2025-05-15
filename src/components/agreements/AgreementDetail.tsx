@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { useNavigate } from 'react-router-dom';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle, Ban, CalendarIcon, InfoIcon } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, InfoIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { LegalCaseCompactView } from '../legal/LegalCaseCompactView';
 import { Agreement } from '@/types/agreement';
@@ -139,10 +139,10 @@ export function AgreementDetail({
         </div>
         
         <AgreementActionButtons 
-          agreement={adaptedAgreement} 
           onEdit={onEdit}
-          onDelete={onDelete ? () => onDelete(agreement.id) : undefined}
-          onGenerateDocument={onGenerateDocument}
+          onDownloadPdf={() => console.log('Download PDF')}
+          onDelete={() => onDelete && onDelete(agreement.id)}
+          onGenerateDocument={onGenerateDocument || (() => {})}
         />
       </div>
       

@@ -5,16 +5,17 @@ import { PaymentHistorySection } from '@/components/payments/PaymentHistorySecti
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 
 interface PaymentHistoryProps {
-  payments: Payment[];
-  isLoading: boolean;
-  rentAmount: number | null;
-  contractAmount: number | null;
-  onPaymentDeleted: (paymentId: string) => void;
-  onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
-  onRecordPayment: (payment: Partial<Payment>) => void;
-  leaseStartDate: string | Date | null;
-  leaseEndDate: string | Date | null;
+  payments?: Payment[];
+  isLoading?: boolean;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  onPaymentDeleted?: (paymentId: string) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
+  leaseStartDate?: string | Date | null;
+  leaseEndDate?: string | Date | null;
   leaseId?: string;
+  onPaymentAdded?: () => void;
 }
 
 export function PaymentHistory({
@@ -27,18 +28,19 @@ export function PaymentHistory({
   onRecordPayment,
   leaseStartDate,
   leaseEndDate,
-  leaseId
+  leaseId,
+  onPaymentAdded
 }: PaymentHistoryProps) {
   return (
     <PaymentHistorySection 
-      payments={payments} 
-      isLoading={isLoading} 
+      payments={payments || []} 
+      isLoading={isLoading || false} 
       rentAmount={rentAmount}
       contractAmount={contractAmount}
       leaseId={leaseId}
-      onPaymentDeleted={onPaymentDeleted}
-      onRecordPayment={onRecordPayment}
-      onPaymentUpdated={onPaymentUpdated}
+      onPaymentDeleted={onPaymentDeleted || (() => {})}
+      onRecordPayment={onRecordPayment || (() => {})}
+      onPaymentUpdated={onPaymentUpdated || (async () => false)}
       showAnalytics={true}
     />
   );
