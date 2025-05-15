@@ -1,120 +1,149 @@
 
 import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Plus } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import { useTrafficFineService } from '@/hooks/services/useTrafficFineService';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
-import { PaginatedTrafficFineResult, TrafficFine } from '@/types/traffic-fine';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: Date | string;
+  endDate?: Date | string;
 }
 
-export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ 
+export function AgreementTrafficFines({ 
   agreementId,
   startDate,
   endDate 
-}) => {
+}: AgreementTrafficFinesProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const trafficFineService = useTrafficFineService();
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
+  const [error, setError] = useState<Error | null>(null);
+  const [trafficFines, setTrafficFines] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchTrafficFines = async () => {
-      try {
-        setIsLoading(true);
-        const fines = await trafficFineService.getTrafficFines();
-        
-        // Handle different return types safely
-        const finesArray = Array.isArray(fines) 
-          ? fines 
-          : (fines as PaginatedTrafficFineResult)?.data || [];
-        
-        setTrafficFines(finesArray);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching traffic fines:", err);
-        setError(err instanceof Error ? err.message : 'Failed to load traffic fines');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchTrafficFines();
-  }, [agreementId, trafficFineService]);
+  }, [agreementId, currentPage]);
 
-  if (isLoading) {
-    return <div>Loading traffic fines...</div>;
-  }
+  const fetchTrafficFines = async () => {
+    setIsLoading(true);
+    try {
+      const result = await trafficFineService.getTrafficFines({ 
+        leaseId: agreementId,
+        page: currentPage,
+        pageSize: 5
+      });
 
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+      // Handle any type conversion issues by mapping to a common structure
+      if (result && result.data) {
+        setTrafficFines(result.data);
+        setTotalPages(result.meta?.totalPages || 1);
+      } else {
+        setTrafficFines([]);
+      }
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching traffic fines:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load traffic fines'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Filter unpaid fines - safely handle potential different return types
-  const unpaidFines = trafficFines.filter(fine => 
-    fine.payment_status === 'pending' || fine.payment_status === 'overdue'
-  );
+  // Status badge renderer
+  const renderStatusBadge = (status: string) => {
+    switch(status?.toLowerCase()) {
+      case 'paid':
+        return <Badge variant="success">Paid</Badge>;
+      case 'pending':
+        return <Badge variant="outline">Pending</Badge>;
+      case 'disputed':
+        return <Badge variant="warning">Disputed</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
 
-  const hasFines = trafficFines.length > 0;
-  const hasUnpaidFines = unpaidFines.length > 0;
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Traffic Violations</CardTitle>
-            <CardDescription>Recent traffic violations for this agreement</CardDescription>
-          </div>
-          {hasUnpaidFines && (
-            <Badge variant="destructive">{unpaidFines.length} Unpaid</Badge>
-          )}
-        </div>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-xl">Traffic Fines</CardTitle>
+        <Button size="sm">
+          <Plus className="mr-1 h-4 w-4" /> Add Fine
+        </Button>
       </CardHeader>
       <CardContent>
-        {!hasFines ? (
-          <div className="text-center py-4 text-muted-foreground">
-            No traffic violations found for this agreement.
+        {isLoading ? (
+          <div className="py-4 text-center">Loading traffic fines...</div>
+        ) : error ? (
+          <div className="py-4 text-center text-red-500">{error.message}</div>
+        ) : trafficFines.length === 0 ? (
+          <div className="py-4 text-center text-muted-foreground">
+            No traffic fines recorded for this agreement.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Violation</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trafficFines.map((fine: TrafficFine) => (
-                <TableRow key={fine.id}>
-                  <TableCell>
-                    {fine.violation_date && format(new Date(fine.violation_date), 'MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>{fine.fine_location || 'Unknown'}</TableCell>
-                  <TableCell>{fine.violation_charge || 'Traffic Violation'}</TableCell>
-                  <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={fine.payment_status === 'completed' ? 'outline' : 'destructive'}
-                    >
-                      {fine.payment_status === 'completed' ? 'Paid' : 'Unpaid'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+          <>
+            <div className="space-y-4">
+              {trafficFines.map((fine) => (
+                <div 
+                  key={fine.id} 
+                  className="border rounded-md p-3 bg-slate-50"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Label>Violation #{fine.violationNumber || 'Unknown'}</Label>
+                      <p className="text-sm mt-1">{fine.violationCharge || 'No description available'}</p>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {fine.violationDate ? new Date(fine.violationDate).toLocaleDateString() : 'Date unknown'} 
+                        {fine.location ? ` • ${fine.location}` : ''}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{formatCurrency(fine.fineAmount || 0)}</div>
+                      {renderStatusBadge(fine.paymentStatus)}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+            
+            {/* Simple pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-4 space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="py-2 px-3 text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
   );
-};
+}

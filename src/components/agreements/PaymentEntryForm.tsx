@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { DbId } from "@/types/database-common";
-import { asPaymentStatus, asLeaseId } from '@/lib/database/type-utils';
+import { asPaymentStatus, asLeaseId, asPaymentId } from '@/lib/database/type-utils';
 
 // Define the pending payment interface to match our state structure
 interface PendingPayment {
@@ -189,7 +189,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
             amount_paid: data.amount,
             balance: remainingBalance
           } as any)
-          .eq("id", data.pendingPaymentId as DbId);
+          .eq("id", asPaymentId(data.pendingPaymentId as string));
 
         if (updateError) throw updateError;
       } else {

@@ -30,8 +30,8 @@ export function PaymentHistory({
   leaseId,
   onPaymentAdded
 }: PaymentHistoryProps) {
-  // Convert payments to the expected format if needed
-  const formattedPayments = payments || [];
+  // We need to ensure we're using the correct type of Payment
+  const formattedPayments = (payments || []) as any[];
 
   return (
     <PaymentHistorySection 

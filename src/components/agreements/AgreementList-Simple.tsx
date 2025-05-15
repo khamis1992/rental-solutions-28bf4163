@@ -1,91 +1,92 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
-import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
 
-export const SimpleAgreementList = () => {
-  const [agreements, setAgreements] = useState<Agreement[]>([]);
-  const [loading, setLoading] = useState(true);
+interface AgreementListSimpleProps {
+  onAgreementSelected: (agreement: Agreement) => void;
+}
 
-  useEffect(() => {
+// This is a simplified agreement list for demonstration purposes
+const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSelected }) => {
+  const [agreements, setAgreements] = React.useState<Agreement[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<Error | null>(null);
+
+  React.useEffect(() => {
     const fetchAgreements = async () => {
-      setLoading(true);
+      setIsLoading(true);
+      setError(null);
+      
       try {
         const { data, error } = await supabase
           .from('leases')
           .select('id, status, customer_id, vehicle_id, start_date, end_date, total_amount, rent_amount, created_at')
-          .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(5);
 
         if (error) throw error;
 
         if (data) {
-          // Make sure to map the data to include total_amount
-          const mappedData = data.map(item => ({
-            id: item.id,
-            status: item.status,
-            customer_id: item.customer_id,
-            vehicle_id: item.vehicle_id,
-            start_date: item.start_date,
-            end_date: item.end_date,
-            total_amount: item.total_amount || 0, // Ensure total_amount is present
-            rent_amount: item.rent_amount,
-            created_at: item.created_at
-          })) as Agreement[];
+          // Map Supabase results to Agreement type
+          const mappedAgreements: Agreement[] = data.map(item => ({
+            id: item.id || '',
+            status: item.status || '',
+            customer_id: item.customer_id || '',
+            vehicle_id: item.vehicle_id || '',
+            start_date: item.start_date ? new Date(item.start_date) : new Date(),
+            end_date: item.end_date ? new Date(item.end_date) : new Date(),
+            total_amount: item.total_amount || 0,
+            rent_amount: item.rent_amount || 0,
+            created_at: item.created_at ? new Date(item.created_at) : new Date(),
+          }));
           
-          setAgreements(mappedData);
+          setAgreements(mappedAgreements);
         }
-      } catch (error) {
-        console.error('Error fetching agreements:', error);
+      } catch (err) {
+        console.error('Error fetching agreements:', err);
+        setError(err instanceof Error ? err : new Error('Failed to load agreements'));
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchAgreements();
   }, []);
 
-  if (loading) return <div>Loading agreements...</div>;
+  if (isLoading) {
+    return <div>Loading agreements...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+    <div className="space-y-2">
+      <h3 className="font-medium">Recent Agreements</h3>
+      {agreements.length === 0 ? (
+        <div className="text-sm text-gray-500">No agreements found</div>
+      ) : (
+        <ul className="divide-y divide-gray-100">
           {agreements.map((agreement) => (
-            <tr key={agreement.id}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{agreement.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                  ${agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
-                  agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-gray-100 text-gray-800'}`}>
-                  {agreement.status}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {agreement.start_date ? format(new Date(agreement.start_date), 'PP') : 'N/A'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {agreement.end_date ? format(new Date(agreement.end_date), 'PP') : 'N/A'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {formatCurrency(agreement.total_amount)}
-              </td>
-            </tr>
+            <li 
+              key={agreement.id}
+              className="py-2 px-1 hover:bg-gray-50 cursor-pointer rounded"
+              onClick={() => onAgreementSelected(agreement)}
+            >
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Agreement #{agreement.id.substring(0, 8)}</span>
+                <span className="text-xs text-gray-500">{agreement.total_amount} QAR</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                {new Date(agreement.start_date).toLocaleDateString()} - {new Date(agreement.end_date).toLocaleDateString()}
+              </div>
+            </li>
           ))}
-        </tbody>
-      </table>
+        </ul>
+      )}
     </div>
   );
 };
+
+export default AgreementListSimple;

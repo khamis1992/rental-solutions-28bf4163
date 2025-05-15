@@ -1,40 +1,23 @@
 
-/**
- * Type utility functions for safely casting values to database column types
- */
+import { Database } from "@/types/supabase";
 
-// Helper function to cast string to lease ID
-export function asLeaseId(id: string): string {
-  return id;
+// Helper functions to safely type database IDs and enum values when passing them to Supabase
+export function asLeaseId(id: string): Database['public']['Tables']['leases']['Row']['id'] {
+  return id as Database['public']['Tables']['leases']['Row']['id'];
 }
 
-// Helper function to cast string to vehicle ID
-export function asVehicleId(id: string): string {
-  return id;
+export function asVehicleId(id: string): Database['public']['Tables']['vehicles']['Row']['id'] {
+  return id as Database['public']['Tables']['vehicles']['Row']['id'];
 }
 
-// Helper function to cast string to payment status
-export function asPaymentStatus(status: string): string {
-  return status;
+export function asPaymentStatus(status: string): Database['public']['Tables']['unified_payments']['Row']['status'] {
+  return status as Database['public']['Tables']['unified_payments']['Row']['status'];
 }
 
-// Helper function to cast string to traffic fine status
-export function asTrafficFineStatus(status: string): string {
-  return status;
+export function asTrafficFineStatus(status: string): Database['public']['Tables']['traffic_fines']['Row']['payment_status'] {
+  return status as Database['public']['Tables']['traffic_fines']['Row']['payment_status'];
 }
 
-// Helper function to safely cast string to UUID
-export function asUUID(id: string): string {
-  return id;
-}
-
-// Helper function to safely cast string to JSON
-export function asJSON(data: any): any {
-  return typeof data === 'string' ? JSON.parse(data) : data;
-}
-
-// Helper function to safely cast date to ISO string
-export function asDateString(date: Date | string | null): string | null {
-  if (!date) return null;
-  return date instanceof Date ? date.toISOString() : date;
+export function asPaymentId(id: string): Database['public']['Tables']['unified_payments']['Row']['id'] {
+  return id as Database['public']['Tables']['unified_payments']['Row']['id'];
 }

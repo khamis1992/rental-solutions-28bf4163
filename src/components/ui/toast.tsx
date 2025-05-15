@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -114,6 +115,37 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+// Create a hook function to expose the toast functionality
+const useToast = () => {
+  const [toasts, setToasts] = React.useState<
+    { id: string; title?: string; description?: React.ReactNode; action?: ToastActionElement }[]
+  >([]);
+
+  const toast = ({ title, description, action, ...props }: ToastProps & {
+    title?: string,
+    description?: React.ReactNode,
+    action?: ToastActionElement,
+  }) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prevToasts) => [...prevToasts, { id, title, description, action, ...props }]);
+    return id;
+  };
+
+  const dismiss = (toastId?: string) => {
+    setToasts((prevToasts) => 
+      toastId 
+        ? prevToasts.filter((toast) => toast.id !== toastId) 
+        : []
+    );
+  };
+
+  return {
+    toast,
+    dismiss,
+    toasts
+  };
+};
+
 export {
   type ToastProps,
   type ToastActionElement,
@@ -124,4 +156,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  useToast
 }
