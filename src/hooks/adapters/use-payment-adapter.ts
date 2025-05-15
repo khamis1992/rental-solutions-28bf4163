@@ -1,3 +1,4 @@
+
 /**
  * Payment Service Migration Adapter
  * 
@@ -8,7 +9,7 @@
  * once all components have been updated to use the new hooks directly.
  */
 import { useMemo, useCallback } from 'react';
-import { usePaymentQuery } from './use-payment-query';
+import { usePaymentQuery } from '@/hooks/use-payment-query';
 import { Payment } from '@/types/payment.types';
 
 export const usePaymentsAdapter = (agreementId?: string) => {

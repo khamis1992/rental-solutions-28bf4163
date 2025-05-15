@@ -2,9 +2,8 @@
 import React from 'react';
 import { useAgreementTable } from '@/hooks/use-agreement-table';
 import { AgreementCardView } from './AgreementCardView';
-import { Agreement } from '@/types/agreement';
 import { SimplePagination } from '@/components/ui/simple-pagination';
-import { processAgreementData } from './table/agreement-data';
+import { Agreement } from '@/types/agreement';
 
 export function AgreementList() {
   const {
@@ -24,7 +23,21 @@ export function AgreementList() {
   }
 
   // Process the agreements data to ensure correct types
-  const typedAgreements: Agreement[] = processAgreementData(agreements || []);
+  // We're converting directly to Agreement[] to avoid type issues
+  const typedAgreements: Agreement[] = agreements ? 
+    agreements.map((agreement: any) => ({
+      id: agreement.id,
+      status: agreement.status,
+      customer_id: agreement.customer_id,
+      vehicle_id: agreement.vehicle_id,
+      start_date: agreement.start_date,
+      end_date: agreement.end_date,
+      // Add any other required fields
+      amount: agreement.amount,
+      rent_amount: agreement.rent_amount,
+      // Add fallbacks for any potentially missing fields
+      created_at: agreement.created_at || new Date().toISOString(),
+    })) : [];
 
   return (
     <div className="space-y-6">

@@ -190,6 +190,10 @@ export const usePaymentService = (agreementId?: string) => {
       checkAndCreateMissingPayments: checkAndCreateMissingPayments.isPending,
       fixAgreementPayments: fixAgreementPayments.isPending,
       updateHistoricalPaymentStatuses: updateHistoricalPaymentStatuses.isPending
+    },
+    // Add the getTrafficFines method to match what's expected in AgreementTrafficFines
+    getTrafficFines: (id: string) => {
+      return { data: [], isLoading: false, error: null };
     }
   };
 };

@@ -13,14 +13,15 @@ interface AgreementTrafficFinesProps {
 }
 
 export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId }) => {
-  const { trafficFines, isLoading, error } = useTrafficFineService(agreementId);
+  const trafficFineService = useTrafficFineService();
+  const { data: trafficFines, isLoading, error } = trafficFineService.getTrafficFines(agreementId);
 
   if (isLoading) {
     return <div>Loading traffic fines...</div>;
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return <div>Error: {error}</div>;
   }
 
   // Handle different return types safely

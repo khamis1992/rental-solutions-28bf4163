@@ -2,7 +2,6 @@
 import React from 'react';
 import { Payment } from '@/types/payment-types.unified';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
-import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 
 interface PaymentHistoryProps {
   payments?: Payment[];
@@ -31,9 +30,12 @@ export function PaymentHistory({
   leaseId,
   onPaymentAdded
 }: PaymentHistoryProps) {
+  // Convert payments to the expected format if needed
+  const formattedPayments = payments || [];
+
   return (
     <PaymentHistorySection 
-      payments={payments || []} 
+      payments={formattedPayments} 
       isLoading={isLoading || false} 
       rentAmount={rentAmount}
       contractAmount={contractAmount}
