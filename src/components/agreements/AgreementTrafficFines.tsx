@@ -14,6 +14,16 @@ interface AgreementTrafficFinesProps {
   endDate?: Date | string;
 }
 
+// Define a type for the paginated result
+export interface PaginatedTrafficFineResult {
+  data: any[];
+  meta?: {
+    totalPages: number;
+    currentPage: number;
+    totalItems: number;
+  }
+}
+
 export function AgreementTrafficFines({ 
   agreementId,
   startDate,
@@ -33,19 +43,26 @@ export function AgreementTrafficFines({
   const fetchTrafficFines = async () => {
     setIsLoading(true);
     try {
-      const result = await trafficFineService.getTrafficFines({ 
+      const result = await trafficFineService.getTrafficFines({
         leaseId: agreementId,
         page: currentPage,
         pageSize: 5
       });
 
-      // Handle any type conversion issues by mapping to a common structure
-      if (result && result.data) {
-        setTrafficFines(result.data);
+      if (Array.isArray(result)) {
+        // Handle array response
+        setTrafficFines(result);
+        setTotalPages(1); // No pagination info available
+      } else if (result && 'data' in result) {
+        // Handle paginated response
+        setTrafficFines(result.data || []);
         setTotalPages(result.meta?.totalPages || 1);
       } else {
+        // Handle unexpected response format
         setTrafficFines([]);
+        setTotalPages(1);
       }
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching traffic fines:', err);

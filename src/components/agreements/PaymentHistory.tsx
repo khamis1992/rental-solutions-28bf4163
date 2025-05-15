@@ -11,10 +11,11 @@ interface PaymentHistoryProps {
   onPaymentDeleted?: (paymentId: string) => void;
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<Payment>) => void;
-  leaseStartDate?: string | Date | null;
-  leaseEndDate?: string | Date | null;
   leaseId?: string;
   onPaymentAdded?: () => void;
+  showAnalytics?: boolean;
+  leaseStartDate?: string | Date | null;
+  leaseEndDate?: string | Date | null;
 }
 
 export function PaymentHistory({
@@ -28,7 +29,8 @@ export function PaymentHistory({
   leaseStartDate,
   leaseEndDate,
   leaseId,
-  onPaymentAdded
+  onPaymentAdded,
+  showAnalytics = true
 }: PaymentHistoryProps) {
   // We need to ensure we're using the correct type of Payment
   const formattedPayments = (payments || []) as any[];
@@ -43,7 +45,7 @@ export function PaymentHistory({
       onPaymentDeleted={onPaymentDeleted || (() => {})}
       onRecordPayment={onRecordPayment || (() => {})}
       onPaymentUpdated={onPaymentUpdated || (async () => false)}
-      showAnalytics={true}
+      showAnalytics={showAnalytics}
       leaseStartDate={leaseStartDate}
       leaseEndDate={leaseEndDate}
     />

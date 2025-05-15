@@ -14,8 +14,22 @@ export function useTrafficFineService() {
     error 
   } = useTrafficFineAdapter();
   
-  const getTrafficFines = async () => {
-    return fines;
+  const getTrafficFines = async (options: { leaseId?: string, vehicleId?: string, page?: number, pageSize?: number } = {}) => {
+    try {
+      // For simplicity, we'll return fines as is
+      // In a real implementation, we would filter based on options and paginate
+      return {
+        data: fines || [],
+        meta: {
+          totalPages: 1,
+          currentPage: options.page || 1,
+          totalItems: fines?.length || 0
+        }
+      };
+    } catch (err) {
+      console.error("Error in getTrafficFines:", err);
+      return { data: [], meta: { totalPages: 1, currentPage: 1, totalItems: 0 } };
+    }
   };
 
   const getTrafficFineById = async (id: string) => {

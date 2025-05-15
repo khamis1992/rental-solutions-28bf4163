@@ -2,6 +2,7 @@
 import React from 'react';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
+import { handleSupabaseResponse } from '@/types/database-types';
 
 interface AgreementListSimpleProps {
   onAgreementSelected: (agreement: Agreement) => void;
@@ -19,13 +20,13 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSe
       setError(null);
       
       try {
-        const { data, error } = await supabase
+        const response = await supabase
           .from('leases')
           .select('id, status, customer_id, vehicle_id, start_date, end_date, total_amount, rent_amount, created_at')
           .limit(5);
 
-        if (error) throw error;
-
+        const data = handleSupabaseResponse(response);
+        
         if (data) {
           // Map Supabase results to Agreement type
           const mappedAgreements: Agreement[] = data.map(item => ({
@@ -41,6 +42,8 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSe
           }));
           
           setAgreements(mappedAgreements);
+        } else {
+          setAgreements([]);
         }
       } catch (err) {
         console.error('Error fetching agreements:', err);
