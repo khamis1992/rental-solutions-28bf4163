@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { DbId } from "@/types/database-common";
-import { asPaymentStatus } from "@/types/database-common";
+import { asPaymentStatus, asLeaseId } from '@/lib/database/type-utils';
 
 // Define the pending payment interface to match our state structure
 interface PendingPayment {
@@ -94,8 +94,8 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
       const { data, error } = await supabase
         .from("unified_payments")
         .select("id, payment_date, amount")
-        .eq("lease_id", agreementId)
-        .eq("status", "pending");
+        .eq("lease_id", asLeaseId(agreementId))
+        .eq("status", asPaymentStatus("pending"));
       
       if (error) throw error;
       

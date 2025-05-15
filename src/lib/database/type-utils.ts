@@ -1,50 +1,40 @@
 
-import { Database } from '@/types/database.types';
-
 /**
- * Type-safe utility functions for working with database columns
+ * Type utility functions for safely casting values to database column types
  */
 
-// Generic type for any database column
-export type DbColumnValue<T extends keyof Database['public']['Tables'], K extends keyof Database['public']['Tables'][T]['Row']> = 
-  Database['public']['Tables'][T]['Row'][K];
-
-// Function to safely cast status values to their proper types
-export function asColumnValue<
-  T extends keyof Database['public']['Tables'], 
-  K extends keyof Database['public']['Tables'][T]['Row']
->(tableName: T, columnName: K, value: unknown): DbColumnValue<T, K> {
-  return value as DbColumnValue<T, K>;
+// Helper function to cast string to lease ID
+export function asLeaseId(id: string): string {
+  return id;
 }
 
-// Commonly used column types
-export type LeaseStatus = DbColumnValue<'leases', 'status'>;
-export type PaymentStatus = DbColumnValue<'unified_payments', 'status'>;
-export type TrafficFineStatus = DbColumnValue<'traffic_fines', 'payment_status'>;
-export type VehicleId = DbColumnValue<'vehicles', 'id'>;
-export type LeaseId = DbColumnValue<'leases', 'id'>;
-export type CustomerId = DbColumnValue<'profiles', 'id'>;
-export type PaymentId = DbColumnValue<'unified_payments', 'id'>;
-export type TrafficFineId = DbColumnValue<'traffic_fines', 'id'>;
+// Helper function to cast string to vehicle ID
+export function asVehicleId(id: string): string {
+  return id;
+}
 
-// Helper functions for common columns
-export const asLeaseStatus = (value: string): LeaseStatus => 
-  asColumnValue('leases', 'status', value);
+// Helper function to cast string to payment status
+export function asPaymentStatus(status: string): string {
+  return status;
+}
 
-export const asPaymentStatus = (value: string): PaymentStatus => 
-  asColumnValue('unified_payments', 'status', value);
+// Helper function to cast string to traffic fine status
+export function asTrafficFineStatus(status: string): string {
+  return status;
+}
 
-export const asTrafficFineStatus = (value: string): TrafficFineStatus => 
-  asColumnValue('traffic_fines', 'payment_status', value);
+// Helper function to safely cast string to UUID
+export function asUUID(id: string): string {
+  return id;
+}
 
-export const asVehicleId = (value: string): VehicleId => 
-  asColumnValue('vehicles', 'id', value);
+// Helper function to safely cast string to JSON
+export function asJSON(data: any): any {
+  return typeof data === 'string' ? JSON.parse(data) : data;
+}
 
-export const asLeaseId = (value: string): LeaseId => 
-  asColumnValue('leases', 'id', value);
-
-export const asCustomerId = (value: string): CustomerId => 
-  asColumnValue('profiles', 'id', value);
-
-export const asPaymentId = (value: string): PaymentId =>
-  asColumnValue('unified_payments', 'id', value);
+// Helper function to safely cast date to ISO string
+export function asDateString(date: Date | string | null): string | null {
+  if (!date) return null;
+  return date instanceof Date ? date.toISOString() : date;
+}

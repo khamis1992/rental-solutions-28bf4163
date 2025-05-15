@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTrafficFineService } from '@/hooks/services/useTrafficFineService';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +10,43 @@ import { PaginatedTrafficFineResult, TrafficFine } from '@/types/traffic-fine';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
-export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ agreementId }) => {
+export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ 
+  agreementId,
+  startDate,
+  endDate 
+}) => {
   const trafficFineService = useTrafficFineService();
-  const { data: trafficFines, isLoading, error } = trafficFineService.getTrafficFines(agreementId);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
+
+  useEffect(() => {
+    const fetchTrafficFines = async () => {
+      try {
+        setIsLoading(true);
+        const fines = await trafficFineService.getTrafficFines();
+        
+        // Handle different return types safely
+        const finesArray = Array.isArray(fines) 
+          ? fines 
+          : (fines as PaginatedTrafficFineResult)?.data || [];
+        
+        setTrafficFines(finesArray);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching traffic fines:", err);
+        setError(err instanceof Error ? err.message : 'Failed to load traffic fines');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrafficFines();
+  }, [agreementId, trafficFineService]);
 
   if (isLoading) {
     return <div>Loading traffic fines...</div>;
@@ -24,17 +56,12 @@ export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ ag
     return <div>Error: {error}</div>;
   }
 
-  // Handle different return types safely
-  const finesArray = Array.isArray(trafficFines) 
-    ? trafficFines 
-    : (trafficFines as PaginatedTrafficFineResult)?.data || [];
-
   // Filter unpaid fines - safely handle potential different return types
-  const unpaidFines = finesArray.filter(fine => 
+  const unpaidFines = trafficFines.filter(fine => 
     fine.payment_status === 'pending' || fine.payment_status === 'overdue'
   );
 
-  const hasFines = finesArray.length > 0;
+  const hasFines = trafficFines.length > 0;
   const hasUnpaidFines = unpaidFines.length > 0;
 
   return (
@@ -67,7 +94,7 @@ export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({ ag
               </TableRow>
             </TableHeader>
             <TableBody>
-              {finesArray.map((fine: TrafficFine) => (
+              {trafficFines.map((fine: TrafficFine) => (
                 <TableRow key={fine.id}>
                   <TableCell>
                     {fine.violation_date && format(new Date(fine.violation_date), 'MMM d, yyyy')}

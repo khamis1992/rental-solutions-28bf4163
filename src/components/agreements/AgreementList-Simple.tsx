@@ -1,64 +1,91 @@
 
-import React from 'react';
-import { useAgreementTable } from '@/hooks/use-agreement-table';
-import { AgreementCardView } from './AgreementCardView';
-import { SimplePagination } from '@/components/ui/simple-pagination';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
+import { formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
 
-export function AgreementList() {
-  const {
-    agreements,
-    isLoading,
-    error,
-    handleBulkDelete,
-    pagination,
-  } = useAgreementTable();
+export const SimpleAgreementList = () => {
+  const [agreements, setAgreements] = useState<Agreement[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (isLoading) {
-    return <div>Loading agreements...</div>;
-  }
+  useEffect(() => {
+    const fetchAgreements = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .select('id, status, customer_id, vehicle_id, start_date, end_date, total_amount, rent_amount, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
+        if (error) throw error;
 
-  // Process the agreements data to ensure correct types
-  // We're converting directly to Agreement[] to avoid type issues
-  const typedAgreements: Agreement[] = agreements ? 
-    agreements.map((agreement: any) => ({
-      id: agreement.id,
-      status: agreement.status,
-      customer_id: agreement.customer_id,
-      vehicle_id: agreement.vehicle_id,
-      start_date: agreement.start_date,
-      end_date: agreement.end_date,
-      // Add any other required fields
-      amount: agreement.amount,
-      rent_amount: agreement.rent_amount,
-      // Add fallbacks for any potentially missing fields
-      created_at: agreement.created_at || new Date().toISOString(),
-    })) : [];
+        if (data) {
+          // Make sure to map the data to include total_amount
+          const mappedData = data.map(item => ({
+            id: item.id,
+            status: item.status,
+            customer_id: item.customer_id,
+            vehicle_id: item.vehicle_id,
+            start_date: item.start_date,
+            end_date: item.end_date,
+            total_amount: item.total_amount || 0, // Ensure total_amount is present
+            rent_amount: item.rent_amount,
+            created_at: item.created_at
+          })) as Agreement[];
+          
+          setAgreements(mappedData);
+        }
+      } catch (error) {
+        console.error('Error fetching agreements:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgreements();
+  }, []);
+
+  if (loading) return <div>Loading agreements...</div>;
 
   return (
-    <div className="space-y-6">
-      <AgreementCardView 
-        agreements={typedAgreements}
-        isLoading={isLoading}
-        onDeleteAgreement={(id) => handleBulkDelete(id)}
-      />
-      
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-col items-center justify-center mt-6">
-          <SimplePagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.handlePageChange}
-          />
-          <div className="text-sm text-muted-foreground text-center mt-2">
-            Showing {agreements?.length || 0} of {pagination.totalCount} agreements
-          </div>
-        </div>
-      )}
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {agreements.map((agreement) => (
+            <tr key={agreement.id}>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{agreement.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  ${agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
+                  agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                  'bg-gray-100 text-gray-800'}`}>
+                  {agreement.status}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {agreement.start_date ? format(new Date(agreement.start_date), 'PP') : 'N/A'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {agreement.end_date ? format(new Date(agreement.end_date), 'PP') : 'N/A'}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {formatCurrency(agreement.total_amount)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-}
+};

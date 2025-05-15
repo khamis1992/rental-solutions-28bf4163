@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
 import { CustomerInfo } from '@/types/customer';
-import AgreementEditorComponent from './AgreementEditor';
+import { AgreementEditor } from './AgreementEditor';
 
 interface EditAgreementContentProps {
   id?: string;
@@ -13,32 +14,6 @@ interface EditAgreementContentProps {
   customerData?: CustomerInfo;
 }
 
-export const AgreementEditor: React.FC<EditAgreementContentProps> = ({ 
-  id, 
-  userId, 
-  agreement, 
-  isLoading, 
-  vehicleData,
-  customerData
-}) => {
-  return (
-    <div>
-      {/* Your agreement editor content here */}
-      {/* Example: */}
-      {agreement ? (
-        <div>
-          <h2>Edit Agreement</h2>
-          {/* Display agreement details and form elements for editing */}
-          <p>Agreement ID: {id}</p>
-          {/* Add form elements to edit agreement properties */}
-        </div>
-      ) : (
-        <p>No agreement data available.</p>
-      )}
-    </div>
-  );
-};
-
 export function EditAgreementContent(props: EditAgreementContentProps) {
   return (
     <>
@@ -47,7 +22,7 @@ export function EditAgreementContent(props: EditAgreementContentProps) {
         hasAgreement={!!props.agreement} 
       />
       {!props.isLoading && props.agreement && props.id && props.userId && (
-        <AgreementEditorComponent
+        <AgreementEditor
           agreement={props.agreement}
           id={props.id}
           userId={props.userId}

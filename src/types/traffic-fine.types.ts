@@ -1,110 +1,71 @@
-/**
- * Traffic Fines Types
- * Type definitions for traffic violations and fines
- */
-import { DbId } from './database-common';
 
-/**
- * Status of a traffic fine
- */
+import { DbId } from '@/types/database-common';
+
+// Status options for traffic fines
 export enum TrafficFineStatus {
   PENDING = 'pending',
   PAID = 'paid',
   DISPUTED = 'disputed',
   OVERDUE = 'overdue',
-  WAIVED = 'waived',
-  BILLED_TO_CUSTOMER = 'billed_to_customer',
-  PROCESSING = 'processing'
+  COMPLETED = 'completed',
+  WAIVED = 'waived'
 }
 
-/**
- * Types of traffic violations
- */
-export enum ViolationType {
-  SPEEDING = 'speeding',
-  PARKING = 'parking',
-  RED_LIGHT = 'red_light',
-  NO_PERMIT = 'no_permit',
-  IMPROPER_LANE_CHANGE = 'improper_lane_change',
-  OTHER = 'other'
-}
-
-/**
- * Traffic fine record
- */
+// Base interface for TrafficFines
 export interface TrafficFine {
-  id: DbId;
-  vehicle_id: DbId;
-  license_plate: string;
-  violation_date: string;
-  violation_type: ViolationType;
-  violation_location?: string;
+  id: string;
+  license_plate?: string;
+  fine_location?: string;
   fine_amount: number;
-  status: TrafficFineStatus;
-  due_date?: string;
+  payment_status: string;
+  validation_status?: string;
+  violation_date?: string;
   payment_date?: string;
-  reference_number?: string;
-  issuing_authority?: string;
-  driver_name?: string;
-  notes?: string;
-  agreement_id?: DbId;
-  customer_id?: DbId;
-  created_at?: string;
-  updated_at?: string;
-  image_url?: string;
-  payment_receipt_url?: string;
+  violation_charge?: string;
+  violation_points?: number;
+  violation_number?: string;
+  serial_number?: string;
+  lease_id?: string;
+  vehicle_id?: string;
+  customer_id?: string;
+  agreement_id?: string;
+  payment_reference?: string;
   disputed_reason?: string;
   disputed_date?: string;
-  disputed_status?: 'pending' | 'approved' | 'rejected';
-}
-
-/**
- * Traffic fine validation record
- */
-export interface TrafficFineValidation {
-  id: DbId;
-  license_plate: string;
-  validation_date: string;
-  result: 'clean' | 'found' | 'error';
-  status: 'pending' | 'processed' | 'failed';
-  fine_id?: DbId;
-  batch_id?: string;
   created_at?: string;
-  error_message?: string;
-  validated_by?: string;
-  source?: string;
+  updated_at?: string;
 }
 
-/**
- * Paginated traffic fine result
- */
+// For paginated responses
 export interface PaginatedTrafficFineResult {
   data: TrafficFine[];
-  count: number;
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
-/**
- * For creating new traffic fine records
- */
-export type TrafficFineInsert = Omit<TrafficFine, 'id' | 'created_at' | 'updated_at'>;
+// For insertions
+export interface TrafficFineInsert extends Omit<TrafficFine, 'id'> {
+  id?: string;
+}
 
-/**
- * For updating traffic fine records
- */
-export type TrafficFineUpdate = Partial<TrafficFine>;
+// For API parameters
+export interface TrafficFineParams {
+  vehicleId?: string;
+  agreementId?: string;
+  customerId?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
 
-/**
- * Traffic fine statistics
- */
-export interface TrafficFineStatistics {
-  totalCount: number;
-  totalAmount: number;
-  paidCount: number;
-  paidAmount: number;
-  pendingCount: number;
-  pendingAmount: number;
-  overdueCount: number;
-  overdueAmount: number;
-  byVehicleType: Array<{type: string, count: number, amount: number}>;
-  byViolationType: Array<{type: string, count: number, amount: number}>;
+// For fine payment
+export interface TrafficFinePaymentDetails {
+  payment_date?: string;
+  payment_method?: string;
+  reference_number?: string;
+  amount?: number;
+  notes?: string;
 }

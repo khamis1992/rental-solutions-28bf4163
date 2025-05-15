@@ -127,8 +127,8 @@ export function VehicleAssignmentDialog({
       // Update the lease with the new vehicle ID
       const { error } = await supabase
         .from('leases')
-        .update({ vehicle_id: vehicleId })
-        .eq('id', leaseId);
+        .update({ vehicle_id: asVehicleId(vehicleId) })
+        .eq('id', asLeaseId(leaseId));
       
       if (error) throw error;
       

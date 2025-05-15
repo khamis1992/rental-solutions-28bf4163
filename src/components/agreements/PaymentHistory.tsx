@@ -37,13 +37,15 @@ export function PaymentHistory({
     <PaymentHistorySection 
       payments={formattedPayments} 
       isLoading={isLoading || false} 
-      rentAmount={rentAmount}
-      contractAmount={contractAmount}
+      rentAmount={rentAmount || 0}
+      contractAmount={contractAmount || 0}
       leaseId={leaseId}
       onPaymentDeleted={onPaymentDeleted || (() => {})}
       onRecordPayment={onRecordPayment || (() => {})}
       onPaymentUpdated={onPaymentUpdated || (async () => false)}
       showAnalytics={true}
+      leaseStartDate={leaseStartDate}
+      leaseEndDate={leaseEndDate}
     />
   );
 }

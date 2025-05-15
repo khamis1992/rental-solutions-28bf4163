@@ -13,6 +13,7 @@ export function useTrafficFineService() {
     isLoading, 
     error 
   } = useTrafficFineAdapter();
+  
   const getTrafficFines = async () => {
     return fines;
   };
@@ -23,6 +24,18 @@ export function useTrafficFineService() {
 
   const createTrafficFine = async (data: Partial<TrafficFine>) => {
     return await addNewFine(data);
+  };
+
+  const markFineAsPaid = async (id: string, paymentDate: string) => {
+    try {
+      return await payTrafficFine.mutateAsync({ 
+        id, 
+        paymentDetails: { payment_date: paymentDate } 
+      });
+    } catch (error) {
+      console.error("Error marking fine as paid:", error);
+      return false;
+    }
   };
 
   const updateTrafficFine = async (id: string, updates: Partial<TrafficFine>) => {
@@ -43,6 +56,7 @@ export function useTrafficFineService() {
     getTrafficFineById,
     createTrafficFine,
     updateTrafficFine,
+    markFineAsPaid,
     assignToCustomer,
     cleanupInvalidAssignments,
     payTrafficFine,
