@@ -2,6 +2,7 @@
 import React from 'react';
 import { Payment } from '@/types/payment-types.unified';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
+import { DbId } from '@/types/database-common';
 
 interface PaymentHistoryProps {
   payments?: Payment[];
@@ -9,9 +10,9 @@ interface PaymentHistoryProps {
   rentAmount?: number | null;
   contractAmount?: number | null;
   onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
   onRecordPayment?: (payment: Partial<Payment>) => void;
-  leaseId?: string;
+  leaseId?: DbId;
   onPaymentAdded?: () => void;
   showAnalytics?: boolean;
   leaseStartDate?: string | Date | null;

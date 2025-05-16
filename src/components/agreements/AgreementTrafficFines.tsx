@@ -9,29 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { Spinner } from '@/components/ui/spinner';
 import { asUUID } from '@/lib/uuid-helpers';
-
-export interface TrafficFine {
-  id: string;
-  fine_date: string;
-  fine_number: string;
-  amount: number;
-  vehicle_id: string;
-  agreement_id?: string;
-  payment_status: string;
-  description?: string;
-  status?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle?: {
-    license_plate?: string;
-    make?: string;
-    model?: string;
-  };
-  customer_id?: string;
-  created_at?: string;
-  customer_name?: string;
-}
+import { TrafficFine } from '@/types/traffic-fine';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -98,10 +76,10 @@ export function AgreementTrafficFines({
         const finesWithAgreement = finesData || [];
         
         for (const fine of finesWithAgreement) {
-          if (!fine.agreement_id) {
+          if (fine && !fine.agreement_id) {
             const { error: updateError } = await supabase
               .from('traffic_fines')
-              .update({ agreement_id: asUUID(agreementId) })
+              .update({ agreement_id: asUUID(agreementId) } as any)
               .eq('id', fine.id);
               
             if (updateError) {
@@ -110,7 +88,7 @@ export function AgreementTrafficFines({
           }
         }
         
-        setTrafficFines(finesWithAgreement as TrafficFine[]);
+        setTrafficFines(finesWithAgreement as unknown as TrafficFine[]);
       } catch (err) {
         console.error('Unexpected error fetching traffic fines:', err);
         setError('An unexpected error occurred');
@@ -141,7 +119,7 @@ export function AgreementTrafficFines({
     try {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({ payment_status: 'paid' })
+        .update({ payment_status: 'paid' } as any)
         .eq('id', asUUID(fineId));
         
       if (error) {

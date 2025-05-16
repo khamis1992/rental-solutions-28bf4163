@@ -43,7 +43,7 @@ export function VehicleAssignmentDialog({
       if (currentVehicleId) {
         const { error: currentVehicleError } = await supabase
           .from('vehicles')
-          .update({ status: 'available' })
+          .update({ status: 'available' } as any)
           .eq('id', asUUID(currentVehicleId));
         
         if (currentVehicleError) {
@@ -69,7 +69,7 @@ export function VehicleAssignmentDialog({
         .from('leases')
         .update({ 
           vehicle_id: asUUID(selectedVehicleId)
-        })
+        } as any)
         .eq('id', asUUID(leaseId));
       
       if (updateLeaseError) {
@@ -82,7 +82,7 @@ export function VehicleAssignmentDialog({
         .from('vehicles')
         .update({ 
           status: 'rented'
-        })
+        } as any)
         .eq('id', asUUID(selectedVehicleId));
       
       if (newVehicleError) {
@@ -113,7 +113,11 @@ export function VehicleAssignmentDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => {
+      if (!isSubmitting && !open) {
+        onOpenChange(false);
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Assign Vehicle</DialogTitle>
