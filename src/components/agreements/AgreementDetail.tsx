@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -197,13 +196,17 @@ export function AgreementDetail({
             </CardHeader>
             <CardContent>
               <PaymentHistory 
+                payments={paymentData || []}
+                isLoading={isLoadingPayments}
+                rentAmount={rentAmount}
+                contractAmount={contractAmount}
                 leaseId={agreement.id}
-                onPaymentAdded={onPaymentAdded}
-                leaseStartDate={agreement.start_date}
-                leaseEndDate={agreement.end_date}
-                rentAmount={rentAmount || 0}
-                contractAmount={contractAmount || agreement?.total_amount}
-                onPaymentDeleted={onPaymentDeleted}
+                onPaymentDeleted={handleDeletePayment}
+                onRecordPayment={addPaymentAndUpdate}
+                onEditPayment={updatePaymentRecord}
+                onPaymentAdded={refreshPayments}
+                leaseStartDate={leaseStartDate}
+                leaseEndDate={leaseEndDate}
               />
             </CardContent>
           </Card>

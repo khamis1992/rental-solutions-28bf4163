@@ -27,7 +27,7 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
         let query = supabase.from('vehicles').select('*');
         
         if (statusFilter) {
-          query = query.eq('status', statusFilter);
+          query = query.eq('status', statusFilter as any);
         }
         
         const { data, error } = await query;

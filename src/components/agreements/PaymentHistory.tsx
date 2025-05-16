@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +9,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { PaymentEditDialog } from '@/components/agreements/PaymentEditDialog';
-import { Payment } from '@/types/payment';
+import { Payment } from '@/types/payment-history.types';
 import { Calendar } from 'lucide-react';
-import { CalendarDate } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-// Update the PaymentHistoryProps interface
+// Update the PaymentHistoryProps interface to match the imported type
 export interface PaymentHistoryProps {
   payments: any[];
   isLoading: boolean;
@@ -26,8 +27,8 @@ export interface PaymentHistoryProps {
   depositPaid?: boolean;
   depositAmount?: number;
   onPaymentAdded: () => void;
-  // Make leaseStartDate optional
   leaseStartDate?: Date;
+  leaseEndDate?: Date;
 }
 
 export function PaymentHistory({
@@ -42,7 +43,8 @@ export function PaymentHistory({
   depositPaid = false,
   depositAmount = 0,
   onPaymentAdded,
-  leaseStartDate
+  leaseStartDate,
+  leaseEndDate
 }: PaymentHistoryProps) {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -98,21 +100,30 @@ export function PaymentHistory({
       payment_date: newPaymentDate.toISOString(),
     };
 
-    const success = await onRecordPayment(paymentData);
-    setIsRecordingPayment(false);
+    try {
+      const success = await onRecordPayment(paymentData);
+      setIsRecordingPayment(false);
 
-    if (success) {
-      toast({
-        title: 'Success',
-        description: 'Payment recorded successfully.',
-      });
-      setNewPaymentAmount('');
-      setNewPaymentDate(undefined);
-      onPaymentAdded();
-    } else {
+      if (success) {
+        toast({
+          title: 'Success',
+          description: 'Payment recorded successfully.',
+        });
+        setNewPaymentAmount('');
+        setNewPaymentDate(undefined);
+        onPaymentAdded();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to record payment. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      setIsRecordingPayment(false);
       toast({
         title: 'Error',
-        description: 'Failed to record payment. Please try again.',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
     }
@@ -200,7 +211,7 @@ export function PaymentHistory({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center" side="bottom">
-                <CalendarDate
+                <CalendarComponent
                   mode="single"
                   selected={newPaymentDate}
                   onSelect={setNewPaymentDate}
@@ -217,13 +228,15 @@ export function PaymentHistory({
           {isRecordingPayment ? 'Recording...' : 'Record Payment'}
         </Button>
       </CardContent>
-      <PaymentEditDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        payment={paymentToEdit}
-        onEditPayment={onEditPayment}
-        onClose={handleCloseEditDialog}
-      />
+      {paymentToEdit && onEditPayment && (
+        <PaymentEditDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          payment={paymentToEdit}
+          onEdit={onEditPayment}
+          onClose={handleCloseEditDialog}
+        />
+      )}
     </Card>
   );
 }
