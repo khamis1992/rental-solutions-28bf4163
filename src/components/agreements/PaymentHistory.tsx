@@ -46,8 +46,8 @@ export function PaymentHistory({
       onRecordPayment={onRecordPayment || (() => {})}
       onPaymentUpdated={onPaymentUpdated || (async () => false)}
       showAnalytics={showAnalytics}
-      leaseStartDate={leaseStartDate}
-      leaseEndDate={leaseEndDate}
+      leaseStartDate={leaseStartDate as string | Date}
+      leaseEndDate={leaseEndDate as string | Date}
     />
   );
 }

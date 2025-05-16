@@ -1,14 +1,7 @@
 
 // This file creates a wrapper around the toast component
 import { useToast as useToastOriginal } from "@/components/ui/toast";
-import { ToastActionElement } from "@/components/ui/toast";
-
-export type ToastProps = {
-  title?: string;
-  description?: React.ReactNode;
-  action?: ToastActionElement;
-  variant?: 'default' | 'destructive';
-};
+import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 // Create our toast function 
 const toast = ({ title, description, action, variant }: ToastProps) => {

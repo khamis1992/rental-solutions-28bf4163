@@ -27,7 +27,7 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSe
 
         const data = handleSupabaseResponse(response);
         
-        if (data) {
+        if (data && Array.isArray(data)) {
           // Map Supabase results to Agreement type
           const mappedAgreements: Agreement[] = data.map(item => ({
             id: item.id || '',
