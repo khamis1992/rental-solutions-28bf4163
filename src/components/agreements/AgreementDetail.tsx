@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,8 @@ export function AgreementDetail({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
   const [showExpiredWarning, setShowExpiredWarning] = useState(false);
+  const [paymentData, setPaymentData] = useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   
   // Check if agreement is expired
   useEffect(() => {
@@ -82,6 +85,37 @@ export function AgreementDetail({
   };
   
   const duration = calculateDuration();
+  
+  // Payment handling functions
+  const handleDeletePayment = (paymentId: string) => {
+    if (onPaymentDeleted) {
+      onPaymentDeleted();
+    }
+  };
+  
+  const addPaymentAndUpdate = async (payment: Partial<any>) => {
+    // Implement payment addition logic or use provided callback
+    if (onPaymentAdded) {
+      onPaymentAdded();
+      return true;
+    }
+    return false;
+  };
+  
+  const updatePaymentRecord = async (payment: any) => {
+    // Implement payment update logic
+    return true;
+  };
+  
+  const refreshPayments = () => {
+    if (onDataRefresh) {
+      onDataRefresh();
+    }
+  };
+  
+  // Date handling for payments
+  const leaseStartDate = agreement?.start_date ? new Date(agreement.start_date) : null;
+  const leaseEndDate = agreement?.end_date ? new Date(agreement.end_date) : null;
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading agreement details...</div>;
@@ -198,8 +232,8 @@ export function AgreementDetail({
               <PaymentHistory 
                 payments={paymentData || []}
                 isLoading={isLoadingPayments}
-                rentAmount={rentAmount}
-                contractAmount={contractAmount}
+                rentAmount={rentAmount || 0}
+                contractAmount={contractAmount || 0}
                 leaseId={agreement.id}
                 onPaymentDeleted={handleDeletePayment}
                 onRecordPayment={addPaymentAndUpdate}
@@ -219,9 +253,7 @@ export function AgreementDetail({
             </CardHeader>
             <CardContent>
               <AgreementTrafficFines 
-                agreementId={agreement.id} 
-                startDate={startDate}
-                endDate={endDate}
+                agreementId={agreement.id}
               />
             </CardContent>
           </Card>

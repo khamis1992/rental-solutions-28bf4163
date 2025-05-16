@@ -32,7 +32,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number, status')
-          .eq('role', 'customer' as string);
+          .eq('role', 'customer');
 
         if (error) {
           throw error;
@@ -40,7 +40,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
 
         if (data) {
           // Map to the expected CustomerInfo format
-          const customerData: CustomerInfo[] = data.map(customer => ({
+          const customerData: CustomerInfo[] = data.map((customer: any) => ({
             id: customer.id,
             full_name: customer.full_name,
             email: customer.email || '',
@@ -97,11 +97,9 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         </CardHeader>
         <CardContent>
           <VehicleSelector
-            onVehicleSelected={(vehicleId, vehicleDetails) => {
-              onVehicleChange(vehicleId, vehicleDetails);
-            }}
+            onVehicleSelect={onVehicleChange}
             statusFilter="available"
-            selectedVehicleId={selectedVehicleId}
+            excludeVehicleId={selectedVehicleId || undefined}
           />
         </CardContent>
       </Card>

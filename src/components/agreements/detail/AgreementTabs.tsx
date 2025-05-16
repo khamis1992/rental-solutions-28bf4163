@@ -9,11 +9,22 @@ import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficF
 import { Badge } from '@/components/ui/badge';
 import { Payment } from '@/types/payment-history.types';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { Lease } from '@/types/agreement-types';
 import CustomerSection from '@/components/agreements/CustomerSection';
 
+// Define interfaces for the agreement type
+interface Agreement {
+  id: string;
+  agreement_number: string;
+  status: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  [key: string]: any;
+}
+
 interface AgreementTabsProps {
-  agreement: Lease;
+  agreement: Agreement;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   payments: any[];
@@ -57,7 +68,7 @@ export const AgreementTabs = ({
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="payments">
             Payments
-            {agreement.status === AgreementStatus.OVERDUE && (
+            {agreement.status === 'overdue' && (
               <Badge variant="destructive" className="ml-2">Overdue</Badge>
             )}
           </TabsTrigger>
@@ -69,7 +80,7 @@ export const AgreementTabs = ({
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <CustomerSection customerId={agreement.customer_id} />
-            <VehicleSection vehicleId={agreement.vehicle_id} leaseId={agreement.id} />
+            <VehicleSection vehicle={agreement.vehicle_id} leaseId={agreement.id} />
           </div>
         </TabsContent>
         
@@ -94,7 +105,7 @@ export const AgreementTabs = ({
         
         {/* Vehicle tab content */}
         <TabsContent value="vehicle">
-          <VehicleSection vehicleId={agreement.vehicle_id} leaseId={agreement.id} />
+          <VehicleSection vehicle={agreement.vehicle_id} leaseId={agreement.id} />
         </TabsContent>
         
         {/* Traffic Fines tab content */}
