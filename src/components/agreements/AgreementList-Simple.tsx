@@ -92,4 +92,6 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSe
   );
 };
 
+// Export both the original component name and an alias matching what's being imported
 export default AgreementListSimple;
+export { AgreementListSimple as AgreementList };

@@ -1,157 +1,148 @@
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Plus } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
 import { useTrafficFineService } from '@/hooks/services/useTrafficFineService';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TrafficFine } from '@/types/traffic-fine';
+
+interface PaginatedTrafficFineResult {
+  items: TrafficFine[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
 
 interface AgreementTrafficFinesProps {
-  agreementId: string;
-  startDate?: Date | string;
-  endDate?: Date | string;
+  leaseId: string;
+  vehicleId?: string;
+  className?: string;
 }
 
-// Define a type for the paginated result
-export interface PaginatedTrafficFineResult {
-  data: any[];
-  meta?: {
-    totalPages: number;
-    currentPage: number;
-    totalItems: number;
-  }
-}
-
-export function AgreementTrafficFines({ 
-  agreementId,
-  startDate,
-  endDate 
-}: AgreementTrafficFinesProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+export const AgreementTrafficFines: React.FC<AgreementTrafficFinesProps> = ({
+  leaseId,
+  vehicleId,
+  className = '',
+}) => {
+  const [fines, setFines] = useState<TrafficFine[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  
+  // Use the traffic fine service
   const trafficFineService = useTrafficFineService();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [trafficFines, setTrafficFines] = useState<any[]>([]);
-
+  
+  // Fetch traffic fines
   useEffect(() => {
-    fetchTrafficFines();
-  }, [agreementId, currentPage]);
-
-  const fetchTrafficFines = async () => {
-    setIsLoading(true);
-    try {
-      const result = await trafficFineService.getTrafficFines({
-        leaseId: agreementId,
-        page: currentPage,
-        pageSize: 5
-      });
-
-      if (Array.isArray(result)) {
-        // Handle array response
-        setTrafficFines(result);
-        setTotalPages(1); // No pagination info available
-      } else if (result && 'data' in result) {
-        // Handle paginated response
-        setTrafficFines(result.data || []);
-        setTotalPages(result.meta?.totalPages || 1);
-      } else {
-        // Handle unexpected response format
-        setTrafficFines([]);
-        setTotalPages(1);
+    const fetchFines = async () => {
+      try {
+        setIsLoading(true);
+        
+        const filters = { lease_id: leaseId };
+        if (vehicleId) {
+          Object.assign(filters, { vehicle_id: vehicleId });
+        }
+        
+        const result = await trafficFineService.getTrafficFines({
+          page: currentPage,
+          pageSize: 5,
+          filters
+        });
+        
+        if (result && Array.isArray(result.items)) {
+          setFines(result.items);
+          setTotalPages(result.totalPages || 1);
+        } else if (Array.isArray(result)) {
+          // Handle if the result is just an array
+          setFines(result);
+          setTotalPages(1);
+        } else {
+          setFines([]);
+        }
+      } catch (error) {
+        console.error('Error fetching traffic fines:', error);
+        setFines([]);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching traffic fines:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load traffic fines'));
-    } finally {
-      setIsLoading(false);
+    };
+    
+    fetchFines();
+  }, [leaseId, vehicleId, currentPage, trafficFineService]);
+  
+  const getStatusColor = (status: string): string => {
+    switch (status?.toLowerCase()) {
+      case 'paid': return 'bg-green-500 text-white';
+      case 'pending': return 'bg-yellow-500 text-white';
+      case 'overdue': return 'bg-red-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
-
-  // Status badge renderer
-  const renderStatusBadge = (status: string) => {
-    switch(status?.toLowerCase()) {
-      case 'paid':
-        return <Badge variant="success">Paid</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'disputed':
-        return <Badge variant="warning">Disputed</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-  };
-
+  
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Traffic Fines</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Loading traffic fines...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-xl">Traffic Fines</CardTitle>
-        <Button size="sm">
-          <Plus className="mr-1 h-4 w-4" /> Add Fine
-        </Button>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>Traffic Fines</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="py-4 text-center">Loading traffic fines...</div>
-        ) : error ? (
-          <div className="py-4 text-center text-red-500">{error.message}</div>
-        ) : trafficFines.length === 0 ? (
-          <div className="py-4 text-center text-muted-foreground">
-            No traffic fines recorded for this agreement.
-          </div>
+        {fines.length === 0 ? (
+          <p className="text-muted-foreground">No traffic fines found for this agreement.</p>
         ) : (
           <>
-            <div className="space-y-4">
-              {trafficFines.map((fine) => (
-                <div 
-                  key={fine.id} 
-                  className="border rounded-md p-3 bg-slate-50"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Label>Violation #{fine.violationNumber || 'Unknown'}</Label>
-                      <p className="text-sm mt-1">{fine.violationCharge || 'No description available'}</p>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {fine.violationDate ? new Date(fine.violationDate).toLocaleDateString() : 'Date unknown'} 
-                        {fine.location ? ` • ${fine.location}` : ''}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{formatCurrency(fine.fineAmount || 0)}</div>
-                      {renderStatusBadge(fine.paymentStatus)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Violation Date</TableHead>
+                  <TableHead>Fine Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {fines.map((fine) => (
+                  <TableRow key={fine.id}>
+                    <TableCell>{new Date(fine.violation_date || '').toLocaleDateString()}</TableCell>
+                    <TableCell>{fine.fine_amount} QAR</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(fine.payment_status || '')}>
+                        {fine.payment_status || 'Unknown'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             
-            {/* Simple pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-4 space-x-2">
-                <Button 
-                  variant="outline" 
+              <div className="flex justify-center mt-4 gap-2">
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
                 </Button>
-                <span className="py-2 px-3 text-sm">
+                <span className="px-2 py-1">
                   Page {currentPage} of {totalPages}
                 </span>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                 >
                   Next
@@ -163,4 +154,4 @@ export function AgreementTrafficFines({
       </CardContent>
     </Card>
   );
-}
+};

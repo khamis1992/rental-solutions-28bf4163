@@ -1,214 +1,160 @@
 
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useForm } from 'react-hook-form';
-import { formatCurrency } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
-import { handleSupabaseResponse } from '@/types/database-types';
+import { useToast } from '@/hooks/use-toast';
+import { Payment } from '@/types/payment-types.unified';
 
 interface PaymentEntryFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  agreementId: string;
-  onPaymentComplete?: () => void;
+  leaseId: string;
+  onSuccess?: (payment: Payment) => void;
+  onCancel?: () => void;
 }
 
-const PaymentEntryForm: React.FC<PaymentEntryFormProps> = ({
-  open,
-  onOpenChange,
-  agreementId,
-  onPaymentComplete
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastPayment, setLastPayment] = useState<{
-    id: string;
-    payment_date: string;
-    amount: number;
-  } | null>(null);
+export function PaymentEntryForm({ leaseId, onSuccess, onCancel }: PaymentEntryFormProps) {
+  const [amount, setAmount] = React.useState<number | ''>('');
+  const [paymentDate, setPaymentDate] = React.useState<string>(new Date().toISOString().split('T')[0]);
+  const [description, setDescription] = React.useState<string>('');
+  const [paymentMethod, setPaymentMethod] = React.useState<string>('cash');
+  const [transactionId, setTransactionId] = React.useState<string>('');
+  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   
-  const form = useForm({
-    defaultValues: {
-      amount: 0,
-      paymentDate: new Date().toISOString().split('T')[0],
-      notes: '',
-      method: 'cash',
-      reference: ''
-    }
-  });
+  const { toast } = useToast();
 
-  // Fetch last payment for this agreement
-  useEffect(() => {
-    if (!open || !agreementId) return;
-
-    const fetchLastPayment = async () => {
-      try {
-        const response = await supabase
-          .from('unified_payments')
-          .select('id, payment_date, amount')
-          .eq('lease_id', agreementId)
-          .order('payment_date', { ascending: false })
-          .limit(1)
-          .single();
-
-        const data = handleSupabaseResponse(response);
-        
-        if (data) {
-          setLastPayment({
-            id: data.id,
-            payment_date: data.payment_date,
-            amount: data.amount
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching last payment:', error);
-      }
-    };
-
-    fetchLastPayment();
-  }, [open, agreementId]);
-
-  const handleSubmit = async (values: any) => {
-    if (!agreementId) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setIsLoading(true);
+    if (!amount) {
+      toast({ 
+        title: 'Error',
+        description: 'Please enter a valid amount',
+        variant: 'destructive'
+      });
+      return;
+    }
     
     try {
-      // Record payment in the database
-      const { error } = await supabase
+      setIsSubmitting(true);
+
+      // Record the payment in the unified_payments table
+      const paymentData = {
+        lease_id: leaseId as string,
+        amount: amount,
+        payment_date: paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString(),
+        description: description || 'Manual payment entry',
+        payment_method: paymentMethod || 'cash',
+        transaction_id: transactionId || undefined,
+        status: 'paid',
+        amount_paid: amount,
+        balance: 0,
+        type: 'Income'
+      };
+
+      const { data, error } = await supabase
         .from('unified_payments')
-        .insert({
-          lease_id: agreementId,
-          amount: values.amount,
-          payment_date: values.paymentDate,
-          description: values.notes || 'Payment',
-          payment_method: values.method,
-          transaction_id: values.reference,
-          status: 'completed',
-          amount_paid: values.amount,
-          balance: 0,
-          type: 'regular_payment'
+        .insert([paymentData])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        toast({
+          title: 'Success',
+          description: 'Payment recorded successfully',
         });
 
-      if (error) throw error;
-      
-      // Close dialog and refresh data
-      onOpenChange(false);
-      if (onPaymentComplete) onPaymentComplete();
-      
+        if (onSuccess) {
+          onSuccess(data as Payment);
+        }
+      }
     } catch (error) {
       console.error('Error recording payment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to record payment. Please try again.',
+        variant: 'destructive'
+      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Record New Payment</DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {lastPayment && (
-              <div className="p-3 bg-slate-50 rounded-md text-sm">
-                <p className="font-medium">Last payment:</p>
-                <p>
-                  {formatCurrency(lastPayment.amount)} on {new Date(lastPayment.payment_date).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-            
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (QAR)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="0.01" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="paymentDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="method"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
-                  <FormControl>
-                    <select 
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="card">Credit/Debit Card</option>
-                      <option value="cheque">Cheque</option>
-                    </select>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="reference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference Number (Optional)</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Processing...' : 'Record Payment'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="amount">Amount</Label>
+        <Input
+          id="amount"
+          type="number"
+          placeholder="Enter amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')}
+          min={0}
+          step={0.01}
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="paymentDate">Payment Date</Label>
+        <Input
+          id="paymentDate"
+          type="date"
+          value={paymentDate}
+          onChange={(e) => setPaymentDate(e.target.value)}
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="paymentMethod">Payment Method</Label>
+        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <SelectTrigger id="paymentMethod">
+            <SelectValue placeholder="Select payment method" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cash">Cash</SelectItem>
+            <SelectItem value="card">Card</SelectItem>
+            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="transactionId">Transaction ID (Optional)</Label>
+        <Input
+          id="transactionId"
+          placeholder="Enter transaction ID"
+          value={transactionId}
+          onChange={(e) => setTransactionId(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (Optional)</Label>
+        <Input
+          id="description"
+          placeholder="Enter description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Record Payment'}
+        </Button>
+      </div>
+    </form>
   );
-};
-
-export default PaymentEntryForm;
+}

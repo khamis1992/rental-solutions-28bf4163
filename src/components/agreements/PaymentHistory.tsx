@@ -48,6 +48,7 @@ export function PaymentHistory({
       showAnalytics={showAnalytics}
       leaseStartDate={leaseStartDate as string | Date}
       leaseEndDate={leaseEndDate as string | Date}
+      onPaymentAdded={onPaymentAdded}
     />
   );
 }

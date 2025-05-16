@@ -27,6 +27,6 @@ export * from './alert';
 export * from './accordion';
 export * from './ai-badge';
 export * from './agreement-pagination';
-export * from './tabs'; // Add export for Tabs component
-export * from './mobile-tabs'; // Add export for MobileTabs component
-export * from './textarea'; // Add export for Textarea component that might be needed
+export * from './tabs'; // Export for Tabs component
+export * from './mobile-tabs'; // Export for MobileTabs component
+export * from './textarea'; // Export for Textarea component that might be needed
