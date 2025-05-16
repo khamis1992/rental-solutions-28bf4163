@@ -1,62 +1,81 @@
 
 import React, { useState, useEffect } from 'react';
-import { useVehicleService } from '@/hooks/services/useVehicleService';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { Spinner } from '@/components/ui/spinner';
 
 interface VehicleSelectorProps {
-  value: string;
-  onChange: (value: string) => void;
+  onVehicleSelect: (vehicleId: string) => void;
+  statusFilter?: string;
+  excludeVehicleId?: string;
 }
 
-const VehicleSelector: React.FC<VehicleSelectorProps> = ({ value, onChange }) => {
-  const { vehicles, isLoading, error } = useVehicleService();
-  const [selectedVehicle, setSelectedVehicle] = useState<string>(value || '');
+const VehicleSelector: React.FC<VehicleSelectorProps> = ({ 
+  onVehicleSelect, 
+  statusFilter,
+  excludeVehicleId 
+}) => {
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (value) {
-      setSelectedVehicle(value);
-    }
-  }, [value]);
-
-  const handleChange = (newValue: string) => {
-    setSelectedVehicle(newValue);
-    onChange(newValue);
-  };
+    const fetchVehicles = async () => {
+      try {
+        setIsLoading(true);
+        
+        let query = supabase.from('vehicles').select('*');
+        
+        if (statusFilter) {
+          query = query.eq('status', statusFilter);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Filter out excluded vehicle if specified
+        const filteredVehicles = excludeVehicleId
+          ? data?.filter(v => v.id !== excludeVehicleId)
+          : data || [];
+          
+        setVehicles(filteredVehicles);
+      } catch (err: any) {
+        console.error('Error fetching vehicles:', err);
+        setError(err.message || 'Failed to load vehicles');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchVehicles();
+  }, [statusFilter, excludeVehicleId]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        <span>Loading vehicles...</span>
-      </div>
-    );
+    return <div className="flex justify-center py-4"><Spinner /></div>;
   }
 
   if (error) {
-    return <div className="text-red-500">Error loading vehicles</div>;
+    return <div className="text-red-500 text-sm">{error}</div>;
+  }
+
+  if (vehicles.length === 0) {
+    return <div className="text-muted-foreground text-sm">No vehicles available</div>;
   }
 
   return (
-    <Select value={selectedVehicle} onValueChange={handleChange}>
+    <Select onValueChange={onVehicleSelect}>
       <SelectTrigger>
-        <SelectValue placeholder="Select vehicle" />
+        <SelectValue placeholder="Select a vehicle" />
       </SelectTrigger>
       <SelectContent>
-        {vehicles && vehicles.map(vehicle => {
-          const displayName = `${vehicle.make} ${vehicle.model} (${vehicle.license_plate || 'No plate'})`;
-          return (
-            <SelectItem key={vehicle.id} value={vehicle.id || ''}>
-              {displayName}
-            </SelectItem>
-          );
-        })}
+        {vehicles.map((vehicle) => (
+          <SelectItem key={vehicle.id} value={vehicle.id}>
+            {vehicle.make} {vehicle.model} - {vehicle.license_plate} ({vehicle.year})
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

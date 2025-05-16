@@ -41,7 +41,7 @@ export function AgreementTrafficFines({
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId as any);
+          .eq('id', asUUID(agreementId));
         
         if (agreementError) {
           console.error('Error fetching agreement vehicle:', agreementError);
@@ -50,8 +50,18 @@ export function AgreementTrafficFines({
           return;
         }
         
-        if (!agreementData || agreementData.length === 0 || !agreementData[0]?.vehicle_id) {
+        if (!agreementData || agreementData.length === 0) {
           setError('No vehicle associated with this agreement');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Safely extract vehicle_id
+        const vehicleId = agreementData[0] && 'vehicle_id' in agreementData[0] ? 
+          agreementData[0].vehicle_id : null;
+        
+        if (!vehicleId) {
+          setError('No vehicle ID found for this agreement');
           setIsLoading(false);
           return;
         }
@@ -60,7 +70,7 @@ export function AgreementTrafficFines({
         const { data: finesData, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*, vehicle:vehicles(license_plate, make, model)')
-          .eq('vehicle_id', agreementData[0].vehicle_id)
+          .eq('vehicle_id', vehicleId)
           .gte('fine_date', formattedStartDate)
           .lte('fine_date', formattedEndDate);
         

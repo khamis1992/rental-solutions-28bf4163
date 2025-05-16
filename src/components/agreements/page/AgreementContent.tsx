@@ -29,7 +29,7 @@ export const AgreementContent: React.FC<AgreementContentProps> = ({
   // Content component for agreement tabs
   const AgreementTabContent = () => (
     <div className="p-4">
-      {viewMode === 'card' && <AgreementList />}
+      {viewMode === 'card' && <AgreementList onAgreementSelected={() => {}} />}
       {viewMode === 'table' && <AgreementTable />}
       {viewMode === 'compact' && <AgreementTable compact />}
     </div>
@@ -61,7 +61,7 @@ export const AgreementContent: React.FC<AgreementContentProps> = ({
             <Database className="h-5 w-5 mr-2" />
             Import History
           </h2>
-          <ImportHistoryList />
+          <ImportHistoryList items={[]} isLoading={false} />
         </div>
       </TabsContent>
     </>
