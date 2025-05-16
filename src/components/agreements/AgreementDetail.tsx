@@ -1,271 +1,364 @@
-
-import React, { useEffect, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useCallback, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { format, differenceInMonths } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { AgreementDetailsCard } from './details/AgreementDetailsCard';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { generatePdfDocument } from '@/utils/agreementUtils';
+import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import LegalCaseCard from './LegalCaseCard';
+import { Payment } from '@/types/payment-types.unified';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
-import { PaymentHistory } from './PaymentHistory';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { useNavigate } from 'react-router-dom';
+import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle, CalendarIcon, InfoIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { LegalCaseCompactView } from '../legal/LegalCaseCompactView';
-import { Agreement } from '@/types/agreement';
-import { adaptAgreementToValidationSchema } from '@/utils/agreement-type-adapter';
-
-const statusColor = {
-  active: 'bg-green-500',
-  expired: 'bg-amber-500',
-  pending: 'bg-blue-500',
-  cancelled: 'bg-red-500',
-  draft: 'bg-slate-500',
-  closed: 'bg-zinc-500',
-  completed: 'bg-emerald-500',
-};
+import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
+import { useLoadingStates } from '@/hooks/payment/use-loading-states';
+import { useDialogVisibility } from '@/utils/api/dialog-utils';
+import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
 
 interface AgreementDetailProps {
-  agreement: Agreement;
-  onEdit: () => void;
-  onPaymentAdded?: () => void;
-  isLoading?: boolean;
-  error?: Error | null;
-  rentAmount?: number | null;
-  contractAmount?: number | null;
-  onDelete?: (id: string) => void;
-  onDataRefresh?: () => void;
-  onPaymentDeleted?: () => void;
+  agreement: Agreement | null;
+  onDelete: (id: string) => void;
+  rentAmount: number | null;
+  contractAmount: number | null;
+  onPaymentDeleted: () => void;
+  onDataRefresh: () => void;
   onGenerateDocument?: () => void;
 }
 
-export function AgreementDetail({ 
-  agreement, 
-  onEdit, 
-  onPaymentAdded, 
-  isLoading = false, 
-  error = null,
-  rentAmount = 0,
-  contractAmount = 0,
+export function AgreementDetail({
+  agreement,
   onDelete,
-  onDataRefresh,
+  rentAmount,
+  contractAmount,
   onPaymentDeleted,
+  onDataRefresh,
   onGenerateDocument
 }: AgreementDetailProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('details');
-  const [showExpiredWarning, setShowExpiredWarning] = useState(false);
-  const [paymentData, setPaymentData] = useState<any[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   
-  // Check if agreement is expired
-  useEffect(() => {
-    if (agreement && agreement.end_date) {
-      const endDate = agreement.end_date instanceof Date 
-        ? agreement.end_date 
-        : new Date(agreement.end_date);
-      setShowExpiredWarning(endDate < new Date() && agreement.status === 'active');
-    }
-  }, [agreement]);
+  // Use the dialog management hook
+  const { dialogs, openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
+    delete: false,
+    payment: false
+  });
+  
+  // Use our loading states hook for PDF generation
+  const { loadingStates, setLoading } = useLoadingStates({
+    generatingPdf: false
+  });
 
-  // Calculate duration in months
-  const calculateDuration = () => {
-    if (!agreement.start_date || !agreement.end_date) return 0;
-    
-    const start = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-    const end = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-    
-    // Calculate months difference
-    const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-    return Math.max(1, monthsDiff); // Ensure minimum of 1 month
-  };
+  const [lateFeeDetails, setLateFeeDetails] = useState<{
+    amount: number;
+    daysLate: number;
+  } | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+
+  // Use payment management hook
+  const {
+    payments = [],
+    isLoading,
+    updatePayment,
+    addPayment,
+    deletePayment,
+    updateHistoricalStatuses,
+    loadingStates: paymentLoadingStates
+  } = usePaymentManagement(agreement?.id);
   
-  const duration = calculateDuration();
+  // Use special payment hook
+  const { processPayment, calculateLateFee } = useSpecialPayment(agreement?.id);
   
-  // Payment handling functions
-  const handleDeletePayment = (paymentId: string) => {
-    if (onPaymentDeleted) {
-      onPaymentDeleted();
+  // Calculate late fee on component mount
+  useEffect(() => {
+    const today = new Date();
+    if (today.getDate() > 1) {
+      const { amount, daysLate } = calculateLateFee(today);
+      setLateFeeDetails({ amount, daysLate });
+    } else {
+      setLateFeeDetails(null);
     }
-  };
-  
-  const addPaymentAndUpdate = async (payment: Partial<any>) => {
-    // Implement payment addition logic or use provided callback
-    if (onPaymentAdded) {
-      onPaymentAdded();
-      return true;
+  }, [calculateLateFee]);
+
+  const handleDelete = useCallback(() => {
+    if (agreement) {
+      onDelete(agreement.id);
+    }
+  }, [agreement, onDelete]);
+
+  const confirmDelete = useCallback(() => {
+    if (agreement) {
+      onDelete(agreement.id);
+      closeDialog('delete');
+    }
+  }, [agreement, onDelete, closeDialog]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleEdit = useCallback(() => {
+    if (agreement) {
+      navigate(`/agreements/edit/${agreement.id}`);
+    }
+  }, [agreement, navigate]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (agreement) {
+      try {
+        setLoading('generatingPdf', true);
+        toast.info("Preparing agreement PDF document...");
+        const success = await generatePdfDocument(agreement);
+        if (success) {
+          toast.success("Agreement PDF downloaded successfully");
+        } else {
+          toast.error("Failed to generate PDF");
+        }
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast.error("Failed to generate PDF");
+      } finally {
+        setLoading('generatingPdf', false);
+      }
+    }
+  }, [agreement, setLoading]);
+
+  const handleGenerateDocument = useCallback(() => {
+    if (agreement && onGenerateDocument) {
+      onGenerateDocument();
+    } else {
+      toast.info("Document generation functionality is being configured");
+    }
+  }, [agreement, onGenerateDocument]);
+
+  const handlePaymentSubmit = useCallback(async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string
+  ) => {
+    if (agreement && agreement.id) {
+      try {
+        const success = await processPayment(amount, paymentDate, {
+          notes,
+          paymentMethod,
+          referenceNumber,
+          includeLatePaymentFee,
+          isPartialPayment,
+          paymentType
+        });
+        
+        if (success) {
+          closeDialog('payment');
+          onDataRefresh();
+          toast.success("Payment recorded successfully");
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error recording payment:", error);
+        toast.error("Failed to record payment");
+        return false;
+      }
     }
     return false;
-  };
-  
-  const updatePaymentRecord = async (payment: any) => {
-    // Implement payment update logic
-    return true;
-  };
-  
-  const refreshPayments = () => {
-    if (onDataRefresh) {
+  }, [agreement, processPayment, onDataRefresh, closeDialog]);
+
+  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
+    if (!agreement?.id || !updatedPayment.id) return false;
+    
+    try {
+      await updatePayment({
+        id: updatedPayment.id,
+        data: updatedPayment
+      });
       onDataRefresh();
+      toast.success("Payment updated successfully");
+      return true;
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      toast.error("Failed to update payment");
+      return false;
+    }
+  }, [agreement?.id, updatePayment, onDataRefresh]);
+
+  const handleDeletePayment = useCallback(async (paymentId: string) => {
+    if (!agreement?.id) return;
+    
+    try {
+      await deletePayment(paymentId);
+      onDataRefresh();
+      if (onPaymentDeleted) {
+        onPaymentDeleted();
+      }
+      toast.success("Payment deleted successfully");
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast.error("Failed to delete payment");
+    }
+  }, [agreement?.id, deletePayment, onDataRefresh, onPaymentDeleted]);
+
+  const handleUpdateHistoricalPaymentStatuses = async () => {
+    if (!agreement) return;
+    
+    try {
+      await updateHistoricalStatuses();
+      onDataRefresh();
+    } catch (error) {
+      console.error("Error updating payment statuses:", error);
+      toast.error("Failed to update payment statuses");
     }
   };
-  
-  // Date handling for payments
-  const leaseStartDate = agreement?.start_date ? new Date(agreement.start_date) : null;
-  const leaseEndDate = agreement?.end_date ? new Date(agreement.end_date) : null;
 
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading agreement details...</div>;
+  if (!agreement) {
+    return <Alert>
+        <AlertDescription>Agreement details not available.</AlertDescription>
+      </Alert>;
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load agreement details: {error.message}
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+  const duration = differenceInMonths(endDate, startDate) || 1;
 
-  if (!agreement || !agreement.id) {
-    return (
-      <Alert>
-        <InfoIcon className="h-4 w-4" />
-        <AlertTitle>Not Found</AlertTitle>
-        <AlertDescription>
-          The requested agreement could not be found.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const formattedStatus = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
+      case 'closed':
+        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+      case 'expired':
+        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
+      case 'draft':
+        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
+      default:
+        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+    }
+  };
 
-  const adaptedAgreement = adaptAgreementToValidationSchema(agreement);
-  const startDate = agreement.start_date instanceof Date 
-    ? agreement.start_date 
-    : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date 
-    ? agreement.end_date 
-    : new Date(agreement.end_date);
+  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Agreement {agreement.agreement_number || agreement.id}
-          </h1>
-          <div className="flex items-center space-x-2 mt-1">
-            <Badge className={`${statusColor[agreement.status] || 'bg-slate-500'}`}>
-              {agreement.status?.toUpperCase()}
-            </Badge>
-            <div className="text-sm text-muted-foreground flex items-center">
-              <CalendarIcon className="mr-1 h-3 w-3" />
-              {format(startDate, 'dd MMM yyyy')} - {format(endDate, 'dd MMM yyyy')}
-            </div>
-          </div>
-        </div>
-        
-        <AgreementActionButtons 
-          onEdit={onEdit}
-          onDownloadPdf={() => console.log('Download PDF')}
-          onDelete={() => onDelete && onDelete(agreement.id)}
-          onGenerateDocument={onGenerateDocument || (() => {})}
-        />
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
+          Agreement {agreement.agreement_number}
+          {formattedStatus(agreement.status)}
+        </h2>
+        <p className="text-muted-foreground">
+          Created on {format(createdDate, 'MMMM d, yyyy')}
+        </p>
       </div>
-      
-      <Separator />
-      
-      {showExpiredWarning && (
-        <Alert variant="warning">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Agreement Expired</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span>This agreement has passed its end date but is still marked as active.</span>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate(`/agreements/${agreement.id}/edit`)}
-            >
-              Update Status
-            </Button>
-          </AlertDescription>
-        </Alert>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <CustomerInformationCard agreement={agreement} />
+        <VehicleInformationCard agreement={agreement} />
+      </div>
+
+      <AgreementDetailsCard 
+        agreement={agreement}
+        duration={duration}
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+      />
+
+      <div className="flex items-center justify-between">
+        <AgreementActionButtons 
+          onEdit={handleEdit}
+          onDownloadPdf={handleDownloadPdf}
+          onGenerateDocument={handleGenerateDocument}
+          onDelete={() => openDialog('delete')}
+          isGeneratingPdf={loadingStates.generatingPdf}
+          loadingStates={loadingStates}
+        />
+        
+        <LoadingButton
+          variant="outline"
+          onClick={handleUpdateHistoricalPaymentStatuses}
+          loadingKey="updateHistoricalStatuses"
+          loadingStates={paymentLoadingStates}
+          loadingText="Updating..."
+        >
+          Complete Historical Payments
+        </LoadingButton>
+      </div>
+
+      {agreement && <PaymentHistory 
+        payments={Array.isArray(payments) ? payments : []} 
+        isLoading={isLoading} 
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+        onPaymentDeleted={handleDeletePayment}
+        onPaymentUpdated={handlePaymentUpdate}
+        onRecordPayment={(payment) => {
+          if (payment && agreement.id) {
+            const fullPayment = {
+              ...payment,
+              lease_id: agreement.id,
+              status: 'completed'
+            };
+            addPayment(fullPayment);
+          }
+        }}
+        leaseStartDate={agreement.start_date} 
+        leaseEndDate={agreement.end_date}
+        leaseId={agreement.id}
+      />}
+
+      {agreement.start_date && agreement.end_date && (
+        <LegalCaseCard agreementId={agreement.id} />
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="details">Agreement Details</TabsTrigger>
-          <TabsTrigger value="payments">Payment History</TabsTrigger>
-          <TabsTrigger value="trafficFines">Traffic Fines</TabsTrigger>
-          <TabsTrigger value="legal">Legal Cases</TabsTrigger>
-        </TabsList>
+      {agreement.start_date && agreement.end_date && <Card>
+          <CardContent className="pt-6">
+            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
+          </CardContent>
+        </Card>}
 
-        <TabsContent value="details" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <AgreementDetailsCard 
-              agreement={adaptedAgreement} 
-              duration={duration} 
-              rentAmount={rentAmount} 
-              contractAmount={contractAmount} 
-            />
-            <CustomerInformationCard 
-              customer={agreement.customers || {}}
-            />
-          </div>
-          <VehicleInformationCard 
-            vehicle={agreement.vehicles || {}}
-          />
-        </TabsContent>
+      {/* Dialog for delete confirmation - now using the centralized dialog state */}
+      <Dialog open={isDialogVisible('delete')} onOpenChange={open => !open && closeDialog('delete')}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => closeDialog('delete')}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <TabsContent value="payments">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Payment History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PaymentHistory 
-                payments={paymentData || []}
-                isLoading={isLoadingPayments}
-                rentAmount={rentAmount || 0}
-                contractAmount={contractAmount || 0}
-                leaseId={agreement.id}
-                onPaymentDeleted={handleDeletePayment}
-                onRecordPayment={addPaymentAndUpdate}
-                onEditPayment={updatePaymentRecord}
-                onPaymentAdded={refreshPayments}
-                leaseStartDate={leaseStartDate}
-                leaseEndDate={leaseEndDate}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="trafficFines">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Traffic Fines</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AgreementTrafficFines 
-                agreementId={agreement.id}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="legal">
-          <LegalCaseCompactView 
-            customerId={agreement.customer_id}
-            agreementId={agreement.id}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Payment dialog - now using the centralized dialog state */}
+      <PaymentEntryDialog 
+        open={isDialogVisible('payment')} 
+        onOpenChange={open => {
+          if (!open) closeDialog('payment');
+          else openDialog('payment');
+        }}
+        onSubmit={handlePaymentSubmit} 
+        defaultAmount={rentAmount || 0} 
+        title="Record Rent Payment" 
+        description="Record a new rental payment for this agreement." 
+        lateFeeDetails={lateFeeDetails} 
+        selectedPayment={selectedPayment}
+      />
     </div>
   );
 }

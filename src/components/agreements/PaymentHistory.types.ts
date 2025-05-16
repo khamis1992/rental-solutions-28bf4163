@@ -5,7 +5,7 @@ import { DbId, PaymentStatus } from '@/types/database-common';
 export interface Payment {
   id: DbId;
   amount: number;
-  payment_date?: string | null;
+  payment_date?: string | null; // Updated to be string | null, not Date
   payment_method?: string;
   reference_number?: string | null;
   transaction_id?: string | null;
@@ -19,7 +19,7 @@ export interface Payment {
   amount_paid?: number;
   balance?: number;
   description?: string;
-  due_date?: string | null;
+  due_date?: string | null; // Updated to be string | null, not Date
   include_late_fee?: boolean;
   is_partial?: boolean;
 }
@@ -31,15 +31,11 @@ export interface PaymentHistoryProps {
   isLoading?: boolean;
   rentAmount?: number | null;
   contractAmount?: number | null;
-  onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
+  onPaymentDeleted?: () => void;
+  onPaymentCreated?: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
-  onRecordPayment?: (payment: Partial<Payment>) => Promise<boolean>;
+  onRecordPayment?: (payment: Partial<Payment>) => void;
+  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
   leaseId?: DbId;
-  onPaymentAdded?: () => void;
-  showAnalytics?: boolean;
-  onEditPayment?: (payment: Payment) => void;
-  depositPaid?: boolean;
-  depositAmount?: number;
 }

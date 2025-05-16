@@ -1,51 +1,139 @@
 
-import { useState, useCallback } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
+import { useLoadingStates } from './use-loading-states';
 
-// Define the loading states interface with a string index signature
-export interface PaymentScheduleLoadingStates extends Record<string, boolean> {
-  generating: boolean;
-  calculating: boolean;
-  updating: boolean;
-}
-
+/**
+ * Hook for payment schedule management operations
+ */
 export function usePaymentSchedule() {
-  const [loadingStates, setLoadingStates] = useState<PaymentScheduleLoadingStates>({
-    generating: false,
-    calculating: false,
-    updating: false
+  const queryClient = useQueryClient();
+  const { loadingStates, setLoading, setIdle } = useLoadingStates({
+    generatePayment: false,
+    runMaintenanceJob: false,
+    fixPaymentAnomalies: false
   });
 
-  const setLoading = useCallback((key: keyof PaymentScheduleLoadingStates) => {
-    setLoadingStates(prev => ({ ...prev, [key]: true }));
-  }, []);
-
-  const setIdle = useCallback((key: keyof PaymentScheduleLoadingStates) => {
-    setLoadingStates(prev => ({ ...prev, [key]: false }));
-  }, []);
-
-  const isAnyLoading = Object.values(loadingStates).some(Boolean);
-
-  const wrapWithLoading = useCallback(
-    <R>(key: keyof PaymentScheduleLoadingStates, fn: (...args: any[]) => Promise<R>) => {
-      return async (...args: any[]): Promise<R> => {
-        setLoading(key);
-        try {
-          const result = await fn(...args);
-          return result;
-        } finally {
-          setIdle(key);
-        }
-      };
+  // Generate a payment for a specific agreement
+  const generatePaymentMutation = useMutation({
+    mutationFn: async (agreementId: string) => {
+      try {
+        const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
+        return result;
+      } catch (error) {
+        console.error("Error generating payment:", error);
+        throw error;
+      }
     },
-    [setLoading, setIdle]
-  );
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success(data.message || 'Payment schedule generated successfully');
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
+      } else {
+        toast.error(data.message || 'Failed to generate payment schedule');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Error generating payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Run maintenance job for all agreements - this will generate missing payments
+  const maintenanceJobMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        const { data: leasesMissingPayments, error: viewError } = await supabase
+          .from('leases_missing_payments')
+          .select('*');
+
+        if (viewError) {
+          throw new Error(`Database error: ${viewError.message}`);
+        }
+
+        const { data: triggerResult, error: triggerError } = await supabase
+          .rpc('generate_missing_payment_records');
+
+        if (triggerError) {
+          throw new Error(`Maintenance job error: ${triggerError.message}`);
+        }
+
+        return { success: true, data: triggerResult };
+      } catch (error) {
+        console.error("Error running maintenance job:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Payment maintenance job completed');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      toast.error(`Error running maintenance job: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Fix payment anomalies (duplicate payments, incorrect statuses)
+  const fixPaymentAnomaliesMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        const { data, error } = await supabase.rpc('fix_payment_anomalies');
+        
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        return { success: true, data };
+      } catch (error) {
+        console.error("Error fixing payment anomalies:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Payment anomalies fixed successfully');
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      toast.error(`Error fixing payment anomalies: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Wrapper functions with loading state management
+  const generatePayment = async (agreementId: string) => {
+    try {
+      setLoading('generatePayment');
+      const result = await generatePaymentMutation.mutateAsync(agreementId);
+      return result;
+    } finally {
+      setIdle('generatePayment');
+    }
+  };
+
+  const runMaintenanceJob = async () => {
+    try {
+      setLoading('runMaintenanceJob');
+      const result = await maintenanceJobMutation.mutateAsync();
+      return result;
+    } finally {
+      setIdle('runMaintenanceJob');
+    }
+  };
+
+  const fixPaymentAnomalies = async () => {
+    try {
+      setLoading('fixPaymentAnomalies');
+      const result = await fixPaymentAnomaliesMutation.mutateAsync();
+      return result;
+    } finally {
+      setIdle('fixPaymentAnomalies');
+    }
+  };
 
   return {
-    loadingStates,
-    setLoading,
-    setIdle,
-    isAnyLoading,
-    wrapWithLoading,
-    isLoading: isAnyLoading // Adding isLoading for compatibility
+    generatePayment,
+    runMaintenanceJob,
+    fixPaymentAnomalies,
+    isPending: loadingStates
   };
 }

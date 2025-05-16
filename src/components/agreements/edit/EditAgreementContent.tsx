@@ -2,8 +2,9 @@
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
+import AgreementEditor from '@/components/agreements/edit/AgreementEditor';
 import { CustomerInfo } from '@/types/customer';
-import { AgreementEditor } from './AgreementEditor';
+import { adaptAgreementForValidation } from '@/utils/type-adapters';
 
 interface EditAgreementContentProps {
   id?: string;
@@ -14,20 +15,28 @@ interface EditAgreementContentProps {
   customerData?: CustomerInfo;
 }
 
-export function EditAgreementContent(props: EditAgreementContentProps) {
+export function EditAgreementContent({ 
+  id, 
+  userId, 
+  agreement, 
+  isLoading, 
+  vehicleData,
+  customerData
+}: EditAgreementContentProps) {
   return (
     <>
       <AgreementLoadingState 
-        isLoading={props.isLoading} 
-        hasAgreement={!!props.agreement} 
+        isLoading={isLoading} 
+        hasAgreement={!!agreement} 
       />
-      {!props.isLoading && props.agreement && props.id && props.userId && (
+
+      {!isLoading && agreement && id && (
         <AgreementEditor
-          agreement={props.agreement}
-          id={props.id}
-          userId={props.userId}
-          vehicleData={props.vehicleData}
-          customerData={props.customerData}
+          id={id}
+          agreement={agreement}
+          userId={userId}
+          vehicleData={vehicleData}
+          customerData={customerData}
         />
       )}
     </>

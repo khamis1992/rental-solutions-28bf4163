@@ -8,7 +8,6 @@ import { ChevronLeft } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePaymentQuery } from '@/hooks/use-payment-query';
 
 interface NewPaymentEntryProps {
   onBack: () => void;
@@ -21,8 +20,6 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const { createPayment } = usePaymentQuery();
-  const createPaymentMutation = createPayment();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {

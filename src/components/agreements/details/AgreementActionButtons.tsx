@@ -2,10 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react";
-import { Agreement } from "@/types/agreement";
 
 interface AgreementActionButtonsProps {
-  agreement?: Agreement;
   onEdit: () => void;
   onDownloadPdf: () => void;
   onGenerateDocument: () => void;
@@ -15,7 +13,6 @@ interface AgreementActionButtonsProps {
 }
 
 export function AgreementActionButtons({ 
-  agreement,
   onEdit, 
   onDownloadPdf, 
   onGenerateDocument, 

@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
-import { adaptTrafficFineToUI } from '@/components/traffic-fines/TrafficFineAdapter';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -14,9 +14,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TrafficFineAnalytics = () => {
-  const { trafficFines: dbFines, isLoading } = useTrafficFineAdapter();
-  const fines = dbFines.map(adaptTrafficFineToUI);
-  
+  const { trafficFines, isLoading } = useTrafficFines();
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -32,7 +31,7 @@ const TrafficFineAnalytics = () => {
     { name: 'Paid', value: 0 }
   ];
 
-  fines?.forEach(fine => {
+  trafficFines?.forEach(fine => {
     switch (fine.paymentStatus) {
       case 'pending':
         statusDistribution[0].value += 1;
@@ -47,12 +46,12 @@ const TrafficFineAnalytics = () => {
   });
 
   // Calculate financial metrics
-  const totalFineAmount = fines?.reduce((sum, fine) => sum + fine.fineAmount, 0) || 0;
-  const pendingAmount = fines?.filter(fine => fine.paymentStatus === 'pending')
+  const totalFineAmount = trafficFines?.reduce((sum, fine) => sum + fine.fineAmount, 0) || 0;
+  const pendingAmount = trafficFines?.filter(fine => fine.paymentStatus === 'pending')
     .reduce((sum, fine) => sum + fine.fineAmount, 0) || 0;
-  const paidAmount = fines?.filter(fine => fine.paymentStatus === 'paid')
+  const paidAmount = trafficFines?.filter(fine => fine.paymentStatus === 'paid')
     .reduce((sum, fine) => sum + fine.fineAmount, 0) || 0;
-  const disputedAmount = fines?.filter(fine => fine.paymentStatus === 'disputed')
+  const disputedAmount = trafficFines?.filter(fine => fine.paymentStatus === 'disputed')
     .reduce((sum, fine) => sum + fine.fineAmount, 0) || 0;
 
   // Prepare data for financial chart
@@ -65,7 +64,7 @@ const TrafficFineAnalytics = () => {
   // Prepare data for monthly trend
   const monthlyData: Record<string, { month: string, count: number, amount: number }> = {};
   
-  fines?.forEach(fine => {
+  trafficFines?.forEach(fine => {
     const date = new Date(fine.violationDate);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const monthName = date.toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -90,7 +89,7 @@ const TrafficFineAnalytics = () => {
   // Get top vehicles with most fines
   const vehicleFines: Record<string, { count: number, amount: number }> = {};
   
-  fines?.forEach(fine => {
+  trafficFines?.forEach(fine => {
     if (fine.licensePlate) {
       if (!vehicleFines[fine.licensePlate]) {
         vehicleFines[fine.licensePlate] = {
@@ -122,7 +121,7 @@ const TrafficFineAnalytics = () => {
             <CardTitle className="text-sm font-medium">Total Fines</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fines?.length || 0}</div>
+            <div className="text-2xl font-bold">{trafficFines?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
               Worth {formatCurrency(totalFineAmount)}
             </p>

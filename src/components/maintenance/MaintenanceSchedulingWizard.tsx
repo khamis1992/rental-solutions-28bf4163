@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { MaintenanceType, MaintenanceStatus, MaintenancePriority } from '@/types/maintenance.types';
-import { useMaintenanceQuery } from '@/hooks/use-maintenance-query';
+import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
+import { useMaintenance } from '@/hooks/use-maintenance';
 import { toast } from "sonner";
-import 'react/jsx-runtime';
 
 interface MaintenanceSchedulingWizardProps {
   open: boolean;
@@ -27,27 +26,24 @@ export function MaintenanceSchedulingWizard({
 }: MaintenanceSchedulingWizardProps) {
   const [currentStep, setCurrentStep] = useState('type');
   const [formData, setFormData] = useState({
+    id: '',  // Empty ID for new records
     vehicle_id: vehicleId || '',
-    service_type: MaintenanceType.INSPECTION,
+    maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+    service_type: 'maintenance', // Add missing property
     description: '',
-    scheduled_date: new Date().toISOString().split('T')[0] + 'T12:00',
-    cost: 0,
+    scheduled_date: '',
+    estimated_cost: '',
     notes: '',
     assigned_to: '',
-    status: MaintenanceStatus.SCHEDULED,
-    priority: MaintenancePriority.MEDIUM,
-    category_id: ''
+    status: MaintenanceStatus.SCHEDULED
   });
-  
-  // Use the standardized service through React Query hooks
-  const { scheduleRoutineMaintenance } = useMaintenanceQuery();
-  const scheduleMaintenance = scheduleRoutineMaintenance();
-  const isProcessing = scheduleMaintenance.isPending;
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { create } = useMaintenance();
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = e.target.name === 'cost' ? parseFloat(e.target.value) : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: value
+      [e.target.name]: e.target.value
     });
   };
 
@@ -75,34 +71,28 @@ export function MaintenanceSchedulingWizard({
   };
 
   const handleSubmit = async () => {
-    if (!formData.vehicle_id) {
-      toast.error("Vehicle ID is required");
-      return;
-    }
-
+    setIsProcessing(true);
     try {
-      // Use the standardized service to schedule maintenance
-      await scheduleMaintenance.mutateAsync({
-        vehicleId: formData.vehicle_id,
-        scheduledDate: new Date(formData.scheduled_date),
-        maintenanceType: formData.service_type as MaintenanceType
-      });
-      
+      // The formData now includes the required id field
+      await create.mutateAsync(formData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();
     } catch (error) {
       toast.error("Failed to schedule maintenance");
       console.error(error);
+    } finally {
+      setIsProcessing(false);
     }
   };
+
   const renderTypeSelection = () => (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Maintenance Type</Label>
         <Select
-          value={formData.service_type}
-          onValueChange={(value) => handleSelectChange('service_type', value)}
+          value={formData.maintenance_type}
+          onValueChange={(value) => handleSelectChange('maintenance_type', value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select maintenance type" />
@@ -111,25 +101,6 @@ export function MaintenanceSchedulingWizard({
             {Object.values(MaintenanceType).map((type) => (
               <SelectItem key={type} value={type}>
                 {type.replace(/_/g, ' ')}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="space-y-2">
-        <Label>Priority</Label>
-        <Select
-          value={formData.priority}
-          onValueChange={(value) => handleSelectChange('priority', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select priority" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.values(MaintenancePriority).map((priority) => (
-              <SelectItem key={priority} value={priority}>
-                {priority.charAt(0).toUpperCase() + priority.slice(1)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -148,6 +119,7 @@ export function MaintenanceSchedulingWizard({
       </div>
     </div>
   );
+
   const renderDetails = () => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -162,12 +134,12 @@ export function MaintenanceSchedulingWizard({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="cost">Estimated Cost</Label>
+        <Label htmlFor="estimated_cost">Estimated Cost</Label>
         <Input
           type="number"
-          id="cost"
-          name="cost"
-          value={formData.cost.toString()}
+          id="estimated_cost"
+          name="estimated_cost"
+          value={formData.estimated_cost}
           onChange={handleInputChange}
           placeholder="0.00"
         />
@@ -196,6 +168,7 @@ export function MaintenanceSchedulingWizard({
       </div>
     </div>
   );
+
   const renderConfirmation = () => (
     <div className="space-y-4">
       <div className="bg-slate-50 p-4 rounded-md">
@@ -203,11 +176,7 @@ export function MaintenanceSchedulingWizard({
         <div className="space-y-2 text-sm">
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500">Type:</span>
-            <span>{formData.service_type.replace(/_/g, ' ')}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <span className="text-slate-500">Priority:</span>
-            <span>{formData.priority.charAt(0).toUpperCase() + formData.priority.slice(1)}</span>
+            <span>{formData.maintenance_type.replace(/_/g, ' ')}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500">Scheduled Date:</span>
@@ -215,7 +184,7 @@ export function MaintenanceSchedulingWizard({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500">Estimated Cost:</span>
-            <span>${parseFloat(formData.cost.toString()).toFixed(2)}</span>
+            <span>${parseFloat(formData.estimated_cost || '0').toFixed(2)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <span className="text-slate-500">Assigned To:</span>

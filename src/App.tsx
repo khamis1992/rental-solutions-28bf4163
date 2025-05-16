@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,9 +12,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-
-// Database Connection Monitoring
-import { startConnectionMonitoring, ConnectionStatus } from "./utils/database-connection";
 
 // Auth components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -84,23 +82,9 @@ function App() {
       },
     },
   }));
-  
-  // Track database connection status
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
   useEffect(() => {
-    // Initialize application
     initializeApp();
-    
-    // Start database connection monitoring
-    const stopMonitoring = startConnectionMonitoring((status) => {
-      setConnectionStatus(status);
-    });
-    
-    // Clean up on unmount
-    return () => {
-      stopMonitoring();
-    };
   }, []);
 
   return (

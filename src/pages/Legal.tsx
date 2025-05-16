@@ -22,15 +22,13 @@ import { SectionHeader } from '@/components/ui/section-header';
 import LegalDashboard from '@/components/legal/LegalDashboard';
 // Import the named export from the CustomerLegalObligations.tsx file
 import { CustomerLegalObligations } from '@/components/legal/CustomerLegalObligations';
-import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
+import { useLegalCases } from '@/hooks/legal/useLegalCases';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 const Legal = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  const { getLegalCases } = useLegalCaseQuery();
-  const { data: legalCases, isLoading } = getLegalCases({});
+  const { legalCases, isLoading } = useLegalCases();
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);

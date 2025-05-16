@@ -3,57 +3,25 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Maintenance, MaintenanceCategory } from '@/types/maintenance.types';
-import { useMaintenanceQuery } from '@/hooks/use-maintenance-query';
-import { AlertTriangle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { typeGuards } from '@/lib/database';
 
-// Add missing types with proper typing
+// Add missing types
 interface MaintenanceListProps {
-  maintenanceRecords?: Maintenance[];
-  categories?: MaintenanceCategory[];
+  maintenanceRecords?: any[];
+  categories?: any[];
   isLoading?: boolean;
   onStatusChange?: (id: string, status: string) => Promise<void>;
-  vehicleId?: string;
-  useExternalData?: boolean;
 }
 
 const MaintenanceList: React.FC<MaintenanceListProps> = ({
   maintenanceRecords = [],
   categories = [],
-  isLoading: externalIsLoading = false,
-  onStatusChange,
-  vehicleId,
-  useExternalData = false
+  isLoading = false,
+  onStatusChange
 }) => {
   const navigate = useNavigate();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [filter, setFilter] = useState('all');
-
-  // Use the standardized maintenance service through React Query hooks
-  const { 
-    getMaintenance, 
-    getVehicleMaintenance,
-    updateMaintenanceStatus
-  } = useMaintenanceQuery();
-
-  // Get maintenance data from the standardized service if not using external data
-  const maintenanceQuery = vehicleId && !useExternalData
-    ? getVehicleMaintenance(vehicleId)
-    : !vehicleId && !useExternalData
-      ? getMaintenance()
-      : null;
-
-  // Determine which data source to use
-  const records = useExternalData 
-    ? maintenanceRecords 
-    : (maintenanceQuery?.data?.data || []);
-  const isLoading = useExternalData 
-    ? externalIsLoading 
-    : (maintenanceQuery?.isLoading || false);
-  const error = !useExternalData 
-    ? maintenanceQuery?.error 
-    : null;
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => 
@@ -62,54 +30,30 @@ const MaintenanceList: React.FC<MaintenanceListProps> = ({
   };
 
   const handleStatusChange = async (id: string, status: string) => {
-    if (useExternalData && onStatusChange) {
-      // Use the external handler if provided
+    if (onStatusChange) {
       try {
         await onStatusChange(id, status);
       } catch (error) {
         console.error("Error changing status:", error);
       }
-    } else {
-      // Use React Query mutation
-      try {
-        const statusUpdate = updateMaintenanceStatus();
-        await statusUpdate.mutateAsync({ id, status: status as any });
-      } catch (error) {
-        console.error("Error updating maintenance status:", error);
-      }
     }
   };
 
   const getCategoryName = (categoryId: string) => {
-    if (!categories || !Array.isArray(categories)) return 'Unknown';
+    if (!typeGuards.isArray(categories)) return 'Unknown';
     
     const category = categories.find(cat => cat?.id === categoryId);
     return category?.name || 'Unknown';
   };
-  const filteredMaintenance = Array.isArray(records)
+
+  const filteredMaintenance = typeGuards.isArray(maintenanceRecords) 
     ? (filter === 'all' 
-        ? records 
-        : records.filter(record => record?.status === filter))
+        ? maintenanceRecords 
+        : maintenanceRecords.filter(record => record?.status === filter))
     : [];
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading maintenance records...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTriangle className="h-4 w-4 mr-2" />
-        <AlertDescription>
-          There was an error loading maintenance records. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
+    return <div>Loading maintenance records...</div>;
   }
 
   return (

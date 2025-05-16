@@ -1,42 +1,63 @@
 
-import { DbId } from './database-common';
+import { Database } from './database.types';
+import { DbId } from '@/types/database-common';
 
-// Using a string type instead of an enum for better compatibility
-export type PaymentStatus = string;
+export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
+export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
+export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
 
+/**
+ * Unified payment status types for the entire application
+ */
+export type PaymentStatus = 
+  | 'pending'
+  | 'completed'
+  | 'partially_paid'
+  | 'overdue'
+  | 'cancelled'
+  | 'voided';
+
+/**
+ * Unified payment type for the entire application
+ */
 export interface Payment {
-  id: string;
-  lease_id: string;
+  id: DbId;
   amount: number;
+  amount_paid?: number;
   payment_date?: string | null;
   due_date?: string | null;
-  status: PaymentStatus;
-  payment_method?: string;
-  reference_number?: string | null;
-  transaction_id?: string | null;
-  notes?: string;
+  status: PaymentStatus | string; // Allow string for backward compatibility
+  lease_id?: DbId;
   type?: string;
-  days_overdue?: number;
-  late_fine_amount?: number;
   description?: string;
-  amount_paid?: number;
+  payment_method?: string;
+  transaction_id?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
   balance?: number;
+  next_payment_date?: string | null;
+  reference_number?: string;
+  notes?: string;
   original_due_date?: string | null;
 }
 
-export interface PaymentHistoryProps {
-  payments: Payment[];
-  isLoading: boolean;
-  rentAmount: number | null;
-  contractAmount?: number | null;
-  onPaymentDeleted: (paymentId: string) => void;
-  onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
-  onRecordPayment: (payment: Partial<Payment>) => void;
-  leaseStartDate: string | Date | null;
-  leaseEndDate: string | Date | null;
-  leaseId?: string;
+/**
+ * Payment metrics for analytics
+ */
+export interface PaymentMetrics {
+  totalAmount: number;
+  amountPaid: number;
+  balance: number;
+  lateFees: number;
+  paidOnTime: number;
+  paidLate: number;
+  unpaid: number;
+  totalPayments: number;
 }
 
+/**
+ * Options for special payment operations
+ */
 export interface SpecialPaymentOptions {
   notes?: string;
   paymentMethod?: string;
@@ -44,5 +65,8 @@ export interface SpecialPaymentOptions {
   includeLatePaymentFee?: boolean;
   isPartialPayment?: boolean;
   paymentType?: string;
-  targetPaymentId?: string; // Add this missing property
+  targetPaymentId?: string;
 }
+
+// Re-export types for backward compatibility
+export type { Payment as PaymentHistoryItem } from '@/types/payment-history.types';

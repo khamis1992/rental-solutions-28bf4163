@@ -1,76 +1,44 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Mail, Phone, User } from 'lucide-react';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 
-interface CustomerType {
-  id?: string;
-  full_name?: string;
-  email?: string;
-  phone_number?: string;
-  driver_license?: string;
-  nationality?: string;
-  address?: string;
+interface CustomerInformationCardProps {
+  agreement: Agreement;
 }
 
-export interface CustomerInformationCardProps {
-  customer: CustomerType;
-}
-
-export function CustomerInformationCard({ customer }: CustomerInformationCardProps) {
+export function CustomerInformationCard({ agreement }: CustomerInformationCardProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Customer Information</CardTitle>
-        <CardDescription>Details about the renter</CardDescription>
+        <CardDescription>Details about the customer</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <div className="bg-primary/10 rounded-full p-2">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">{customer?.full_name || 'Unknown Customer'}</p>
-              <p className="text-sm text-muted-foreground">{customer?.nationality || 'No nationality'}</p>
-            </div>
-          </div>
-          
-          {customer?.email && (
-            <div className="flex items-center space-x-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>{customer.email}</span>
-            </div>
-          )}
-          
-          {customer?.phone_number && (
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{customer.phone_number}</span>
-            </div>
-          )}
-          
           <div>
-            <p className="font-medium">Driver License</p>
-            <p>{customer?.driver_license || 'Not provided'}</p>
+            <p className="font-medium">Name</p>
+            <p>{agreement.customers?.full_name || 'N/A'}</p>
           </div>
-          
+          <div>
+            <p className="font-medium">Email</p>
+            <p>{agreement.customers?.email || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="font-medium">Phone</p>
+            <p>{agreement.customers?.phone_number || 'N/A'}</p>
+          </div>
           <div>
             <p className="font-medium">Address</p>
-            <p>{customer?.address || 'Not provided'}</p>
+            <p>{agreement.customers?.address || 'N/A'}</p>
           </div>
-          
-          {customer?.id && (
-            <div className="mt-4">
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/customers/${customer.id}`}>View Full Profile</Link>
-              </Button>
-            </div>
-          )}
+          <div>
+            <p className="font-medium">Driver License</p>
+            <p>{agreement.customers?.driver_license || 'N/A'}</p>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+

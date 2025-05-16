@@ -1,109 +1,194 @@
 
-import { useState, useCallback } from 'react';
-import { usePayments } from '@/hooks/use-payments';
+import { useState, useCallback, useMemo } from 'react';
+import { usePayments } from '@/hooks/use-payments'; 
+import { usePaymentCalculation } from './use-payment-calculation';
+import { useSpecialPayment } from './use-special-payment';
 import { useLoadingStates } from './use-loading-states';
-import { Payment } from '@/types/payment-types.unified';
-import { toast } from 'sonner';
-import { isAfter, differenceInDays, parseISO } from 'date-fns';
+import { Payment } from '@/types/payment.types';
+import { PaymentStatus } from '@/types/payment.types';
 
-// Define payment status types for filtering
-type PaymentStatusFilter = 'completed_ontime' | 'completed_late' | 'pending' | 'overdue' | null;
+export type PaymentFilter = null | 'pending' | 'completed' | 'overdue' | 'completed_ontime' | 'completed_late';
 
+/**
+ * Hook for managing payments with comprehensive functionality
+ */
 export const usePaymentManagement = (agreementId?: string) => {
-  const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>(null);
-  const { loadingStates, setLoading, setIdle } = useLoadingStates({
-    updateHistoricalStatuses: false
-  });
-
+  // Use the base payment hooks
   const { 
     payments, 
     isLoading, 
     error, 
-    addPayment, 
-    updatePayment, 
-    deletePayment,
-    fetchPayments 
+    addPayment: baseAddPayment, 
+    updatePayment: baseUpdatePayment,
+    deletePayment: baseDeletePayment,
+    fetchPayments
   } = usePayments(agreementId);
 
-  const isLatePayment = useCallback((payment: Payment): boolean => {
-    // If there's no payment_date or due_date, we can't determine if it's late
-    if (!payment.payment_date || !payment.due_date) return false;
+  // Payment calculation hook
+  const paymentCalculations = usePaymentCalculation(payments);
 
-    try {
-      const paymentDate = parseISO(payment.payment_date);
-      const dueDate = parseISO(payment.due_date);
-      return isAfter(paymentDate, dueDate);
-    } catch (e) {
-      console.error('Error parsing dates:', e);
-      return false;
-    }
+  // Special payment operations
+  const specialPaymentOperations = useSpecialPayment(agreementId);
+
+  // Payment filtering state
+  const [statusFilter, setStatusFilter] = useState<PaymentFilter>(null);
+
+  // Loading states
+  const { loadingStates, setLoading, setIdle, isAnyLoading } = useLoadingStates({
+    updating: false,
+    deleting: false,
+    adding: false,
+    processing: false,
+    updateHistoricalStatuses: false
+  });
+
+  /**
+   * Check if a payment is late
+   */
+  const isLatePayment = useCallback((payment: Payment): boolean => {
+    if (!payment.payment_date || !payment.due_date) return false;
+    
+    const paymentDate = new Date(payment.payment_date);
+    const dueDate = new Date(payment.due_date);
+    
+    return paymentDate > dueDate;
   }, []);
 
+  /**
+   * Get human-readable filter label
+   */
   const getFilterLabel = useCallback((): string => {
-    switch(statusFilter) {
-      case 'completed_ontime':
-        return 'Paid On Time';
-      case 'completed_late':
-        return 'Paid Late';
-      case 'pending':
-        return 'Pending';
-      case 'overdue':
-        return 'Overdue';
-      default:
-        return 'All Payments';
+    switch (statusFilter) {
+      case 'completed_ontime': return 'Paid On Time';
+      case 'completed_late': return 'Paid Late';
+      case 'pending': return 'Pending';
+      case 'overdue': return 'Overdue';
+      case 'completed': return 'Completed';
+      default: return 'All Payments';
     }
   }, [statusFilter]);
 
-  const updateHistoricalStatuses = useCallback(async (): Promise<{ updatedCount: number }> => {
-    if (!agreementId || !Array.isArray(payments)) {
-      return { updatedCount: 0 };
+  /**
+   * Add payment with loading state management
+   */
+  const addPayment = useCallback(async (payment: Partial<Payment>) => {
+    try {
+      setLoading('adding');
+      return await baseAddPayment(payment);
+    } finally {
+      setIdle('adding');
     }
-    
-    setLoading('updateHistoricalStatuses');
+  }, [baseAddPayment, setLoading, setIdle]);
+
+  /**
+   * Update payment with loading state management
+   */
+  const updatePayment = useCallback(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
+    try {
+      setLoading('updating');
+      return await baseUpdatePayment(paymentUpdate);
+    } finally {
+      setIdle('updating');
+    }
+  }, [baseUpdatePayment, setLoading, setIdle]);
+
+  /**
+   * Delete payment with loading state management
+   */
+  const deletePayment = useCallback(async (paymentId: string) => {
+    try {
+      setLoading('deleting');
+      return await baseDeletePayment(paymentId);
+    } finally {
+      setIdle('deleting');
+    }
+  }, [baseDeletePayment, setLoading, setIdle]);
+
+  /**
+   * Update historical payment statuses
+   */
+  const updateHistoricalStatuses = useCallback(async () => {
+    if (!agreementId) return { updatedCount: 0 };
     
     try {
-      let updatedCount = 0;
-      const paymentsToUpdate = payments.filter(payment => 
-        // Only consider payments with a payment_date (already paid) but status isn't 'completed'
-        payment.payment_date && payment.status !== 'completed'
-      );
+      setLoading('updateHistoricalStatuses');
       
-      for (const payment of paymentsToUpdate) {
-        await updatePayment({
+      // Find payments that need status updates
+      const updatedPayments = payments.filter(payment => {
+        // Only process completed payments with payment dates
+        if (payment.status !== 'completed' || !payment.payment_date) return false;
+        
+        const paymentDate = new Date(payment.payment_date);
+        const dueDate = payment.due_date ? new Date(payment.due_date) : null;
+        
+        // If payment has due date and was paid after due date, mark as late payment
+        if (dueDate && paymentDate > dueDate) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      // Update each payment
+      for (const payment of updatedPayments) {
+        await baseUpdatePayment({
           id: payment.id,
-          data: { ...payment, status: 'completed' as string }
+          data: {
+            status: 'completed' as PaymentStatus,
+            days_overdue: payment.days_overdue || 0
+          }
         });
-        updatedCount++;
       }
       
-      if (updatedCount > 0) {
-        toast.success(`Updated ${updatedCount} historical payment records`);
-        fetchPayments();
-      }
-      
-      return { updatedCount };
-    } catch (error) {
-      console.error('Error updating historical payment statuses:', error);
-      toast.error('Failed to update historical payment records');
-      return { updatedCount: 0 };
+      return { updatedCount: updatedPayments.length };
     } finally {
       setIdle('updateHistoricalStatuses');
     }
-  }, [agreementId, payments, updatePayment, fetchPayments, setLoading, setIdle]);
+  }, [agreementId, payments, baseUpdatePayment, setLoading, setIdle]);
+
+  // Filtered payments based on status filter
+  const filteredPayments = useMemo(() => {
+    if (!statusFilter) return payments;
+    
+    return payments.filter(payment => {
+      if (statusFilter === 'completed_ontime') {
+        return payment.status === 'completed' && !isLatePayment(payment);
+      } else if (statusFilter === 'completed_late') {
+        return payment.status === 'completed' && isLatePayment(payment);
+      } else {
+        return payment.status === statusFilter;
+      }
+    });
+  }, [payments, statusFilter, isLatePayment]);
 
   return {
-    payments,
+    // Base payment data
+    payments: filteredPayments,
+    allPayments: payments,
     isLoading,
     error,
-    addPayment,
-    updatePayment,
-    deletePayment,
-    fetchPayments,
+    
+    // Payment filtering
     statusFilter,
     setStatusFilter,
     getFilterLabel,
     isLatePayment,
+    
+    // Payment operations
+    addPayment,
+    updatePayment,
+    deletePayment,
+    fetchPayments,
     updateHistoricalStatuses,
-    loadingStates
+    
+    // Loading states
+    loadingStates,
+    isAnyLoading,
+    
+    // Special payment operations
+    ...specialPaymentOperations,
+    
+    // Payment calculations
+    ...paymentCalculations
   };
 };

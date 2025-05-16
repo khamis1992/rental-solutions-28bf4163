@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -27,7 +27,7 @@ interface CustomerFineGroup {
 }
 
 const TrafficFineReport = () => {
-  const { trafficFines, isLoading, assignToCustomer, cleanupInvalidAssignments } = useTrafficFineAdapter();
+  const { trafficFines, isLoading, assignToCustomer, cleanupInvalidAssignments } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
   const [finesData, setFinesData] = useState<any[]>([]);
   const [showUnassigned, setShowUnassigned] = useState(true);

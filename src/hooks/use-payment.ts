@@ -1,9 +1,8 @@
 
 import { usePaymentManagement } from './payment/use-payment-management';
 import { useQuery } from '@tanstack/react-query';
-import { SpecialPaymentOptions } from '@/types/payment-types.unified'; // Use the unified type
+import { SpecialPaymentOptions } from '@/types/payment.types';
 import { usePaymentSchedule } from './payment/use-payment-schedule';
-import { Payment } from '@/types/payment-types.unified'; // Use the unified type
 
 export function usePayment(agreementId?: string) {
   // Use the centralized payment management hook
@@ -47,12 +46,11 @@ export function usePayment(agreementId?: string) {
         lease_id: agreementId,
         amount,
         payment_date: paymentDate.toISOString(),
-        description: notes || '', // Use description instead of notes
+        notes: notes || '',
         payment_method: paymentMethod || 'cash',
         reference_number: referenceNumber || '',
         status: 'completed'
-      } as Partial<Payment>); // Cast to Partial<Payment> for compatibility
-      
+      });
       return true;
     } catch (error) {
       console.error("Error submitting payment:", error);
@@ -66,7 +64,6 @@ export function usePayment(agreementId?: string) {
     handlePaymentSubmit,
     // Expose the generatePayment function from usePaymentSchedule
     generatePayment: paymentSchedule.generatePayment,
-    generatePaymentSchedule: paymentSchedule.generatePayment, // Alias for backward compatibility
     runPaymentMaintenance: paymentSchedule.runMaintenanceJob,
     fixPaymentAnomalies: paymentSchedule.fixPaymentAnomalies,
     isPending: {

@@ -1,46 +1,56 @@
 
 import { useState } from 'react';
 
-export interface LoadingStates {
-  loadPayments: boolean;
-  createPayment: boolean;
-  updatePayment: boolean;
-  deletePayment: boolean;
-  generatePayment: boolean;
-  recurringPayment: boolean;
-  processSpecialPayment: boolean;
-}
+/**
+ * Hook for managing loading states for multiple operations
+ */
+export function useLoadingStates<T extends Record<string, boolean>>(initialStates: T) {
+  const [loadingStates, setLoadingStates] = useState<T>(initialStates);
 
-export function useLoadingStates() {
-  const [loadingStates, setLoadingStates] = useState<LoadingStates>({
-    loadPayments: false,
-    createPayment: false,
-    updatePayment: false,
-    deletePayment: false,
-    generatePayment: false,
-    recurringPayment: false,
-    processSpecialPayment: false,
-  });
-
-  const setLoading = (key: keyof LoadingStates, value: boolean) => {
-    setLoadingStates(prev => ({ ...prev, [key]: value }));
+  /**
+   * Set a specific loading state to true
+   */
+  const setLoading = (key: keyof T) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [key]: true
+    }));
   };
 
-  const startLoading = (key: keyof LoadingStates) => {
-    setLoading(key, true);
+  /**
+   * Set a specific loading state to false
+   */
+  const setIdle = (key: keyof T) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [key]: false
+    }));
   };
 
-  const stopLoading = (key: keyof LoadingStates) => {
-    setLoading(key, false);
+  /**
+   * Check if any loading state is true
+   */
+  const isAnyLoading = Object.values(loadingStates).some(state => state === true);
+
+  /**
+   * Wrap a function with loading state management
+   */
+  const wrapWithLoading = <R>(key: keyof T, fn: (...args: any[]) => Promise<R>) => {
+    return async (...args: any[]): Promise<R> => {
+      try {
+        setLoading(key);
+        return await fn(...args);
+      } finally {
+        setIdle(key);
+      }
+    };
   };
 
   return {
     loadingStates,
     setLoading,
-    startLoading,
-    stopLoading,
-    isLoading: (key: keyof LoadingStates) => loadingStates[key]
+    setIdle,
+    isAnyLoading,
+    wrapWithLoading
   };
 }
-
-export default useLoadingStates;

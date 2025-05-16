@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft } from 'lucide-react';
 import { usePaymentDetails } from '@/hooks/use-payment-details';
+import { usePayments } from '@/hooks/use-payments';
+import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { usePaymentAdapter } from '@/hooks/adapters/use-payment-adapter';
 
 interface PaymentForAgreementProps {
   onBack: () => void;
@@ -23,7 +25,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
   const { data, isLoading, error } = usePaymentDetails(carNumber);
-  const { paymentQuery, addPayment } = usePaymentAdapter(data?.leaseId);
+  const { addPayment } = usePayments();
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
     return format(new Date(dateString), 'dd MMM yyyy');
@@ -91,27 +94,24 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         if (!selectedPayment) {
           throw new Error('Selected payment not found');
         }
+
+        // Update the existing payment to mark it as completed
+        const { error: updateError } = await supabase
+          .from('unified_payments')
+          .update({
+            status: 'completed',
+            payment_date: new Date().toISOString(),
+            payment_method: 'cash',
+            description: `Payment for ${data.agreementNumber}`
+          })
+          .eq('id', selectedPaymentId);
+
+        if (updateError) throw updateError;
         
-        if (selectedPayment) {
-          // Use the standardized service to update the payment
-          const updatePaymentMutation = paymentQuery.updatePayment();
-          await updatePaymentMutation.mutateAsync({
-            id: selectedPaymentId,
-            data: {
-              status: 'completed',
-              payment_date: new Date().toISOString(),
-              payment_method: 'cash',
-              description: `Payment for ${data.agreementNumber}`
-            }
-          });
-        
-          toast({
-            title: "Payment Recorded",
-            description: `The selected payment of ${selectedPayment.amount} QAR has been marked as completed.`,
-          });
-        } else {
-          throw new Error('Selected payment not found');
-        }
+        toast({
+          title: "Payment Recorded",
+          description: `The selected payment of ${selectedPayment.amount} QAR has been marked as completed.`,
+        });
       } else {
         // Create a new payment if no specific payment was selected or "new" was selected
         paymentData = {
@@ -125,9 +125,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
           late_fine_amount: data.lateFeeAmount || 0
         };
 
-        // Use the standardized service to create the payment
-        const createPaymentMutation = paymentQuery.createPayment();
-        await createPaymentMutation.mutateAsync(paymentData);
+        await addPayment(paymentData);
         
         toast({
           title: "Payment Recorded",

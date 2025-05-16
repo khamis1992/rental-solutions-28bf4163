@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -111,23 +110,9 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast> & {
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-}
+type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
-
-// Modified toast function
-const toast = ({ title, description, action, variant }: ToastProps) => {
-  const { toast: originalToast } = useToast();
-  return originalToast({
-    title,
-    description,
-    action,
-    variant
-  });
-};
 
 export {
   type ToastProps,
@@ -139,39 +124,4 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
-  toast
-}
-
-export function useToast() {
-  const [toasts, setToasts] = React.useState<{
-    id: string
-    title?: React.ReactNode
-    description?: React.ReactNode
-    action?: ToastActionElement
-    variant?: "default" | "destructive"
-  }[]>([])
-
-  const toast = React.useCallback(
-    ({ title, description, action, variant }: Omit<ToastProps, "id">) => {
-      const id = Math.random().toString(36).substring(2, 9)
-      setToasts((toasts) => [...toasts, { id, title, description, action, variant }])
-      return id
-    },
-    []
-  )
-
-  const dismiss = React.useCallback((id: string) => {
-    setToasts((toasts) => toasts.filter((toast) => toast.id !== id))
-  }, [])
-
-  const dismissAll = React.useCallback(() => {
-    setToasts([])
-  }, [])
-
-  return {
-    toasts,
-    toast,
-    dismiss,
-    dismissAll,
-  }
 }

@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   Card,
   CardContent,
@@ -18,55 +20,119 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, FileText, Loader2, Plus, MapPin, Calendar } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
-import { useTrafficFineQuery } from '@/hooks/use-traffic-fine-query';
-import { TrafficFine } from '@/types/traffic-fine.types';
-import { cn } from "@/lib/utils";
+
+interface TrafficFine {
+  id: string;
+  violation_date: string;
+  fine_location: string;
+  violation_charge: string;
+  fine_amount: number;
+  payment_status: string;
+  validation_status: string;
+  license_plate: string;
+  vehicle_id: string | null;
+  lease_id: string | null;
+}
 
 interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
 const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId }) => {
+  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { getCustomerTrafficFines } = useTrafficFineQuery();
-  const { data: trafficFines, isLoading, isError, error: queryError } = getCustomerTrafficFines(customerId);
 
-  // Update error state if query fails
-  React.useEffect(() => {
-    if (isError && queryError) {
-      setError(queryError instanceof Error ? queryError.message : 'An error occurred while fetching traffic fines');
-    } else {
-      setError(null);
-    }
-  }, [isError, queryError]);
+  useEffect(() => {
+    const fetchTrafficFines = async () => {
+      if (!customerId) {
+        setError("No customer ID provided");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        console.log("Fetching traffic fines for customer ID:", customerId);
+        
+        // First get all leases for this customer
+        const { data: leases, error: leaseError } = await supabase
+          .from('leases')
+          .select('id')
+          .eq('customer_id', customerId);
+        
+        if (leaseError) {
+          console.error("Error fetching leases:", leaseError);
+          setError(leaseError.message);
+          setIsLoading(false);
+          return;
+        }
+        
+        const leaseIds = leases?.map(lease => lease.id) || [];
+        
+        if (leaseIds.length === 0) {
+          console.log("No leases found for customer");
+          setTrafficFines([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Now get traffic fines for these leases
+        const { data: fines, error: finesError } = await supabase
+          .from('traffic_fines')
+          .select('*')
+          .in('lease_id', leaseIds);
+          
+        if (finesError) {
+          console.error("Error fetching traffic fines:", finesError);
+          setError(finesError.message);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log(`Found ${fines?.length || 0} traffic fines`);
+        setTrafficFines(fines || []);
+        
+      } catch (error: any) {
+        console.error("Unexpected error fetching traffic fines:", error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrafficFines();
+  }, [customerId]);
 
   const getStatusBadge = (status: string) => {
-    if (!status) return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "border border-gray-200 text-gray-800")}>Unknown</div>;
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
     
     switch (status.toLowerCase()) {
       case 'paid':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-green-500 text-white")}>Paid</div>;
+        return <Badge className="bg-green-500">Paid</Badge>;
       case 'pending':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-yellow-500 text-white")}>Pending</div>;
+        return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'disputed':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-blue-500 text-white")}>Disputed</div>;
+        return <Badge className="bg-blue-500">Disputed</Badge>;
       default:
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "border border-gray-200 text-gray-800")}>{status}</div>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const getValidationBadge = (status: string) => {
-    if (!status) return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "border border-gray-200 text-gray-800")}>Unknown</div>;
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
     
     switch (status.toLowerCase()) {
       case 'verified':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-green-500 text-white")}>Verified</div>;
+        return <Badge className="bg-green-500">Verified</Badge>;
       case 'pending':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-yellow-500 text-white")}>Pending</div>;
+        return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'failed':
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "bg-red-500 text-white")}>Failed</div>;
+        return <Badge className="bg-red-500">Failed</Badge>;
       default:
-        return <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", "border border-gray-200 text-gray-800")}>{status}</div>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -108,10 +174,10 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
     );
   }
 
-  const totalFineAmount = trafficFines ? trafficFines.reduce((sum, fine) => 
-    sum + (fine.fine_amount || 0), 0) : 0;
-  const pendingFines = trafficFines ? trafficFines.filter(fine => 
-    fine.status && fine.status.toLowerCase() !== "paid") : [];
+  const totalFineAmount = trafficFines.reduce((sum, fine) => sum + (fine.fine_amount || 0), 0);
+  const pendingFines = trafficFines.filter(fine => 
+    fine.payment_status && fine.payment_status.toLowerCase() !== "paid"
+  );
 
   return (
     <div className="space-y-6">
@@ -134,7 +200,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{trafficFines ? trafficFines.length : 0}</div>
+            <div className="text-2xl font-bold">{trafficFines.length}</div>
             <p className="text-xs text-muted-foreground">
               Total traffic fines recorded
             </p>
@@ -179,7 +245,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
           <CardDescription>All traffic fines associated with this customer</CardDescription>
         </CardHeader>
         <CardContent>
-          {trafficFines && trafficFines.length > 0 ? (
+          {trafficFines.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -205,10 +271,10 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
                     <TableCell>
                       <div className="flex items-center">
                         <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
-                        {fine.violation_location || 'N/A'}
+                        {fine.fine_location || 'N/A'}
                       </div>
                     </TableCell>
-                    <TableCell>{fine.violation_type || 'N/A'}</TableCell>
+                    <TableCell>{fine.violation_charge || 'N/A'}</TableCell>
                     <TableCell>
                       {fine.fine_amount ? (
                         new Intl.NumberFormat('en-US', {
@@ -219,7 +285,7 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
                         }).format(fine.fine_amount)
                       ) : 'N/A'}
                     </TableCell>
-                    <TableCell>{getStatusBadge(fine.status || '')}</TableCell>
+                    <TableCell>{getStatusBadge(fine.payment_status || '')}</TableCell>
                     <TableCell>{getValidationBadge(fine.validation_status || '')}</TableCell>
                   </TableRow>
                 ))}

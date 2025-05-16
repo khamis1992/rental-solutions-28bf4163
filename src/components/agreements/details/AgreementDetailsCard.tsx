@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { CalendarDays } from 'lucide-react';
 
-export interface AgreementDetailsCardProps {
+interface AgreementDetailsCardProps {
   agreement: Agreement;
   duration: number;
   rentAmount: number | null;
@@ -82,3 +82,4 @@ export function AgreementDetailsCard({
     </Card>
   );
 }
+

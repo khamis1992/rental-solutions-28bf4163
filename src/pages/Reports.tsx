@@ -17,18 +17,19 @@ import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
 const Reports = () => {
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState('fleet');  const { vehicles, reportData } = useFleetReport();
+  const [selectedTab, setSelectedTab] = useState('fleet');
+  const { vehicles, reportData } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
-  const { trafficFines } = useTrafficFineAdapter();
+  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {

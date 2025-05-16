@@ -1,187 +1,142 @@
 
 import { useState } from 'react';
-import { AgreementFilters } from '@/types/filters';
-import { Agreement, SimpleAgreement } from '@/types/agreement';
-import { supabase } from '@/lib/supabase';
-import { adaptApiResponseToAgreement, adaptApiResponseToAgreements } from '@/utils/agreement-type-adapter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { agreementService, AgreementFilters } from '@/services/AgreementService';
+import { toast } from 'sonner';
 
-export const useAgreementService = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [agreements, setAgreements] = useState<SimpleAgreement[]>([]);
+/**
+ * Hook for working with the Agreement Service
+ */
+export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
+  const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
+  const queryClient = useQueryClient();
 
-  const getAgreements = async (filters?: AgreementFilters) => {
-    setIsLoading(true);
-    setError(null);
-
-    let query = supabase
-      .from('leases')
-      .select('*, customers:profiles(*), vehicles(*)');
-
-    // Apply filters if provided
-    if (filters) {
-      if (filters.status && filters.status.length > 0) {
-        query = query.in('status', filters.status);
+  // Query for fetching agreements with filters
+  const {
+    data: agreements = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['agreements', searchParams],
+    queryFn: async () => {
+      console.log('Fetching agreements with filters:', searchParams);
+      const result = await agreementService.findAgreements(searchParams);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to fetch agreements');
       }
+      return result.data;
+    },
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
+  });
 
-      if (filters.search && filters.search.trim() !== '') {
-        const searchTerm = `%${filters.search.toLowerCase()}%`;
-        query = query.or(`customers.full_name.ilike.${searchTerm},vehicles.license_plate.ilike.${searchTerm}`);
-      }
-
-      if (filters.customerId) {
-        query = query.eq('customer_id', filters.customerId);
-      }
-
-      if (filters.vehicleId) {
-        query = query.eq('vehicle_id', filters.vehicleId);
-      }
-
-      if (filters.date && filters.date[0] && filters.date[1]) {
-        const startDate = filters.date[0].toISOString();
-        const endDate = filters.date[1].toISOString();
-        query = query
-          .or(`start_date.gte.${startDate},end_date.lte.${endDate}`);
-      }
+  // Function for getting agreement details
+  const getAgreementDetails = async (id: string) => {
+    const result = await agreementService.getAgreementDetails(id);
+    if (!result.success) {
+      throw new Error(result.error?.toString() || 'Failed to fetch agreement details');
     }
-
-    try {
-      const { data, error } = await query;
-
-      if (error) {
-        throw new Error(`Failed to fetch agreements: ${error.message}`);
-      }
-
-      const adaptedData = adaptApiResponseToAgreements(data || []);
-      setAgreements(adaptedData);
-      return adaptedData;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching agreements';
-      setError(new Error(errorMessage));
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
+    return result.data;
   };
 
-  const getAgreementById = async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .select('*, customers:profiles(*), vehicles(*)')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to fetch agreement: ${error.message}`);
+  // Mutation for updating an agreement
+  const updateAgreement = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+      const result = await agreementService.update(id, data);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to update agreement');
       }
-
-      return adaptApiResponseToAgreement(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching agreement';
-      setError(new Error(errorMessage));
-      return null;
-    } finally {
-      setIsLoading(false);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Agreement updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
+  });
 
-  const updateAgreement = async (agreement: Agreement) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .update(agreement)
-        .eq('id', agreement.id)
-        .select('*')
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to update agreement: ${error.message}`);
+  // Mutation for changing agreement status
+  const changeStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const result = await agreementService.changeStatus(id, status);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to update agreement status');
       }
-
-      return adaptApiResponseToAgreement(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error updating agreement';
-      setError(new Error(errorMessage));
-      return null;
-    } finally {
-      setIsLoading(false);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Status updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Status update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
+  });
 
-  const createAgreement = async (agreement: Omit<Agreement, 'id'>) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .insert(agreement)
-        .select('*')
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to create agreement: ${error.message}`);
+  // Mutation for deleting an agreement
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await agreementService.deleteAgreement(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to delete agreement');
       }
-
-      return adaptApiResponseToAgreement(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error creating agreement';
-      setError(new Error(errorMessage));
-      return null;
-    } finally {
-      setIsLoading(false);
+      return id;
+    },
+    onSuccess: () => {
+      toast.success('Agreement deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
+  });
 
-  const deleteAgreement = async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(`Failed to delete agreement: ${error.message}`);
+  // Calculate remaining amount
+  const calculateRemainingAmount = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await agreementService.calculateRemainingAmount(id);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to calculate remaining amount');
       }
-
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting agreement';
-      setError(new Error(errorMessage));
-      return false;
-    } finally {
-      setIsLoading(false);
+      return result.data;
     }
-  };
-
-  // Add a save method for backward compatibility
-  const save = async (agreement: Agreement) => {
-    if (agreement.id) {
-      return updateAgreement(agreement);
-    } else {
-      return createAgreement(agreement as Omit<Agreement, 'id'>);
-    }
-  };
+  });
 
   return {
     agreements,
     isLoading,
     error,
-    getAgreements,
-    getAgreementById,
-    updateAgreement,
-    createAgreement,
-    deleteAgreement,
-    save
+    searchParams,
+    setSearchParams: (newParams: AgreementFilters) => {
+      setSearchParams(prev => {
+        const merged = { ...prev, ...newParams };
+        
+        // Remove undefined values
+        Object.keys(merged).forEach(key => {
+          if (merged[key] === undefined) {
+            delete merged[key];
+          }
+        });
+        
+        return merged;
+      });
+    },
+    refetch,
+    getAgreementDetails,
+    updateAgreement: updateAgreement.mutateAsync,
+    changeStatus: changeStatus.mutateAsync,
+    deleteAgreement: deleteAgreement.mutateAsync,
+    calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
+    // Expose isPending states for UI loading indicators
+    isPending: {
+      getAgreement: false,
+      updateAgreement: updateAgreement.isPending,
+      changeStatus: changeStatus.isPending,
+      deleteAgreement: deleteAgreement.isPending,
+      calculateRemainingAmount: calculateRemainingAmount.isPending,
+    }
   };
 };

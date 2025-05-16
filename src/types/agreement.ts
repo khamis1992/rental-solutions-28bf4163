@@ -1,55 +1,6 @@
 
 import { LeaseStatus } from '@/types/lease-types';
 
-export interface SimpleAgreement {
-  id: string;
-  status: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: string;
-  end_date: string;
-  total_amount: number;
-  rent_amount?: number;
-  payment_frequency?: string;
-  payment_day?: number;
-  created_at?: string;
-  updated_at?: string;
-  agreement_number?: string;
-  agreement_type?: string;
-  next_payment_date?: string;
-  last_payment_date?: string;
-  notes?: string;
-  customers?: {
-    id?: string;
-    full_name?: string;
-    email?: string;
-    phone_number?: string;
-    driver_license?: string;
-    nationality?: string;
-    address?: string;
-  };
-  vehicles?: {
-    id?: string;
-    make?: string;
-    model?: string;
-    year?: number;
-    license_plate?: string;
-    color?: string;
-    vehicle_type?: string;
-    vin?: string;
-  };
-  customer_name?: string;
-  payments?: any[];
-  daily_late_fee?: number;
-  deposit_amount?: number;
-  remaining_amount?: number;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-}
-
 export interface Agreement {
   id: string;
   status: LeaseStatus;

@@ -1,60 +1,19 @@
 
 import React from 'react';
-import { supabase } from '@/lib/supabase';
+import { useAgreementTable } from '@/hooks/use-agreement-table';
+import { AgreementCardView } from './AgreementCardView';
 import { Agreement } from '@/types/agreement';
-import { handleSupabaseResponse } from '@/types/database-types';
+import { SimpleAgreement } from '@/hooks/use-agreements';
+import { SimplePagination } from '@/components/ui/simple-pagination';
 
-interface AgreementListSimpleProps {
-  onAgreementSelected: (agreement: Agreement) => void;
-}
-
-// This is a simplified agreement list for demonstration purposes
-const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSelected }) => {
-  const [agreements, setAgreements] = React.useState<Agreement[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<Error | null>(null);
-
-  React.useEffect(() => {
-    const fetchAgreements = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await supabase
-          .from('leases')
-          .select('id, status, customer_id, vehicle_id, start_date, end_date, total_amount, rent_amount, created_at')
-          .limit(5);
-
-        const data = handleSupabaseResponse(response);
-        
-        if (data && Array.isArray(data)) {
-          // Map Supabase results to Agreement type
-          const mappedAgreements: Agreement[] = data.map(item => ({
-            id: item.id || '',
-            status: item.status || '',
-            customer_id: item.customer_id || '',
-            vehicle_id: item.vehicle_id || '',
-            start_date: item.start_date ? new Date(item.start_date) : new Date(),
-            end_date: item.end_date ? new Date(item.end_date) : new Date(),
-            total_amount: item.total_amount || 0,
-            rent_amount: item.rent_amount || 0,
-            created_at: item.created_at ? new Date(item.created_at) : new Date(),
-          }));
-          
-          setAgreements(mappedAgreements);
-        } else {
-          setAgreements([]);
-        }
-      } catch (err) {
-        console.error('Error fetching agreements:', err);
-        setError(err instanceof Error ? err : new Error('Failed to load agreements'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAgreements();
-  }, []);
+export function AgreementList() {
+  const {
+    agreements,
+    isLoading,
+    error,
+    handleBulkDelete,
+    pagination,
+  } = useAgreementTable();
 
   if (isLoading) {
     return <div>Loading agreements...</div>;
@@ -64,34 +23,42 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({ onAgreementSe
     return <div>Error: {error.message}</div>;
   }
 
+  // Cast agreements to the correct type with the required fields
+  const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
+    ...agreement,
+    payment_frequency: agreement.payment_frequency || 'monthly', // Default value for type compatibility
+    payment_day: agreement.payment_day || 1, // Default value for type compatibility
+    customers: {
+      full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
+      id: agreement.customers?.id || agreement.customer_id
+    },
+    // Convert string dates to Date objects
+    start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
+    end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
+    created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
+    updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined
+  })) as Agreement[];
+
   return (
-    <div className="space-y-2">
-      <h3 className="font-medium">Recent Agreements</h3>
-      {agreements.length === 0 ? (
-        <div className="text-sm text-gray-500">No agreements found</div>
-      ) : (
-        <ul className="divide-y divide-gray-100">
-          {agreements.map((agreement) => (
-            <li 
-              key={agreement.id}
-              className="py-2 px-1 hover:bg-gray-50 cursor-pointer rounded"
-              onClick={() => onAgreementSelected(agreement)}
-            >
-              <div className="flex justify-between">
-                <span className="text-sm font-medium">Agreement #{agreement.id.substring(0, 8)}</span>
-                <span className="text-xs text-gray-500">{agreement.total_amount} QAR</span>
-              </div>
-              <div className="text-xs text-gray-500">
-                {new Date(agreement.start_date).toLocaleDateString()} - {new Date(agreement.end_date).toLocaleDateString()}
-              </div>
-            </li>
-          ))}
-        </ul>
+    <div className="space-y-6">
+      <AgreementCardView 
+        agreements={typedAgreements}
+        isLoading={isLoading}
+        onDeleteAgreement={(id) => handleBulkDelete(id)}
+      />
+      
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex flex-col items-center justify-center mt-6">
+          <SimplePagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.handlePageChange}
+          />
+          <div className="text-sm text-muted-foreground text-center mt-2">
+            Showing {agreements.length} of {pagination.totalCount} agreements
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-// Export both the original component name and an alias matching what's being imported
-export default AgreementListSimple;
-export { AgreementListSimple as AgreementList };
+}

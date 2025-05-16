@@ -4,16 +4,6 @@
 
 **URL**: https://lovable.dev/projects/3443e083-f60b-43c2-aa17-354a2369068f
 
-## Recent Updates
-
-### Service Migration (Completed: May 14, 2025)
-We've successfully completed a major service migration to improve our application architecture:
-- Standardized service implementations with React Query
-- Added Zod validation for data integrity
-- Improved TypeScript typing throughout the codebase
-- Created adapter patterns for backward compatibility
-- For detailed information, see the [Service Migration Summary](./docs/service-migration-summary.md)
-
 ## How can I edit this code?
 
 There are several ways of editing your application.

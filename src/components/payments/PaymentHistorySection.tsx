@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Payment } from '@/types/payment.types';
+import { PaymentHistoryItem } from '@/types/payment-history.types';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { PaymentStatsCards } from './stats/PaymentStatsCards';
 import { PaymentStatusBar } from './status/PaymentStatusBar';
@@ -11,7 +11,7 @@ import { EmptyPaymentState } from './empty/EmptyPaymentState';
 import { PaymentAnalytics } from './analytics/PaymentAnalytics';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Filter, AlertTriangle } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 import { formatDate } from '@/lib/date-utils';
 import { 
@@ -22,61 +22,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
-import { usePaymentQuery } from '@/hooks/use-payment-query';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PaymentHistoryProps {
-  payments?: Payment[];
-  isLoading?: boolean;
-  rentAmount?: number | null;
+  payments: PaymentHistoryItem[];
+  isLoading: boolean;
+  rentAmount: number | null;
   leaseId?: string;
   contractAmount?: number | null;
   onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
-  onRecordPayment?: (payment: Partial<Payment>) => void;
+  onPaymentUpdated?: (payment: Partial<PaymentHistoryItem>) => Promise<boolean>;
+  onRecordPayment?: (payment: Partial<PaymentHistoryItem>) => void;
   showAnalytics?: boolean;
-  // Added for standalone usage without parent passing payments
-  useExternalData?: boolean;
 }
 
 export function PaymentHistorySection({
   payments = [],
-  isLoading: externalIsLoading,
+  isLoading,
   rentAmount,
   leaseId,
   contractAmount = null,
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  showAnalytics = true,
-  useExternalData = false
+  showAnalytics = true
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-
-  // Use React Query hooks for payments data
-  const {
-    getAgreementPayments,
-    createPayment,
-    updatePayment: updatePaymentMutation,
-    deletePayment: deletePaymentMutation,
-    getPaymentStatistics
-  } = usePaymentQuery();
-
-  // Get payments data from React Query if not using external data
-  const paymentsQuery = !useExternalData && leaseId ? 
-    getAgreementPayments(leaseId) : 
-    { data: null, isLoading: false, error: null };
-  
-  // Get payment statistics
-  const statisticsQuery = !useExternalData && leaseId ?
-    getPaymentStatistics(leaseId) :
-    { data: null, isLoading: false, error: null };
-
-  // Determine which data source to use
-  const paymentData = useExternalData ? payments : (paymentsQuery.data?.data || []);
-  const isLoading = useExternalData ? externalIsLoading : paymentsQuery.isLoading;
-  const error = !useExternalData ? paymentsQuery.error : null;
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem | null>(null);
 
   // Use the payment management hook
   const {
@@ -92,23 +63,24 @@ export function PaymentHistorySection({
     amountPaid,
     balance,
     lateFees
-  } = usePaymentCalculation(paymentData, contractAmount);
-    // Calculate payment status counts
-  const paidOnTime = paymentData.filter(p => 
+  } = usePaymentCalculation(payments, contractAmount);
+  
+  // Calculate payment status counts
+  const paidOnTime = payments.filter(p => 
     p.status === 'completed' && !isLatePayment(p)
   ).length;
   
-  const paidLate = paymentData.filter(p => 
+  const paidLate = payments.filter(p => 
     p.status === 'completed' && isLatePayment(p)
   ).length;
   
-  const unpaid = paymentData.filter(p => 
+  const unpaid = payments.filter(p => 
     p.status === 'pending' || p.status === 'overdue'
   ).length;
 
   // Filter payments based on selected status
   const filteredPayments = statusFilter
-    ? paymentData.filter(payment => {
+    ? payments.filter(payment => {
         if (statusFilter === 'completed_ontime') {
           return payment.status === 'completed' && !isLatePayment(payment);
         } else if (statusFilter === 'completed_late') {
@@ -117,29 +89,16 @@ export function PaymentHistorySection({
           return payment.status === statusFilter;
         }
       })
-    : paymentData;
-  const handlePaymentCreated = (payment: Partial<Payment>) => {
-    if (useExternalData && onRecordPayment) {
-      // Use external handler if provided
+    : payments;
+
+  const handlePaymentCreated = (payment: Partial<PaymentHistoryItem>) => {
+    if (onRecordPayment) {
       onRecordPayment(payment);
       setIsPaymentDialogOpen(false);
-    } else if (leaseId) {
-      // Use React Query mutation
-      const createPaymentMutation = createPayment();
-      createPaymentMutation.mutate(payment, {
-        onSuccess: () => {
-          setIsPaymentDialogOpen(false);
-          toast.success("Payment recorded successfully");
-        },
-        onError: (error) => {
-          toast.error("Failed to record payment");
-          console.error("Error creating payment:", error);
-        }
-      });
     }
   };
 
-  const handleEditPayment = (payment: Payment) => {
+  const handleEditPayment = (payment: PaymentHistoryItem) => {
     setSelectedPayment(payment);
     setIsPaymentDialogOpen(true);
   };
@@ -148,10 +107,11 @@ export function PaymentHistorySection({
     setSelectedPayment(null);
     setIsPaymentDialogOpen(true);
   };
+
   const handleExportHistoryClick = () => {
     try {
       // Format payment data for the PDF export - now with formatted dates (without time)
-      const paymentHistoryData = paymentData.map(payment => {
+      const paymentHistoryData = payments.map(payment => {
         return {
           description: payment.description || 'Payment',
           amount: payment.amount || 0,
@@ -177,30 +137,16 @@ export function PaymentHistorySection({
       toast.error("Failed to export payment history");
     }
   };
+
   const handleDeletePayment = (paymentId: string) => {
-    // Confirm deletion with the user
-    if (window.confirm('Are you sure you want to delete this payment?')) {
-      if (useExternalData && onPaymentDeleted) {
-        // Use external handler if provided
+    if (onPaymentDeleted) {
+      // Confirm deletion with the user
+      if (window.confirm('Are you sure you want to delete this payment?')) {
         onPaymentDeleted(paymentId);
-      } else if (leaseId) {
-        // Use React Query mutation
-        const deletePayment = deletePaymentMutation();
-        deletePayment.mutate(
-          { id: paymentId, agreementId: leaseId },
-          {
-            onSuccess: () => {
-              toast.success("Payment deleted successfully");
-            },
-            onError: (error) => {
-              toast.error("Failed to delete payment");
-              console.error("Error deleting payment:", error);
-            }
-          }
-        );
       }
     }
   };
+
   const handlePaymentSubmit = async (
     amount: number, 
     date: Date, 
@@ -211,7 +157,7 @@ export function PaymentHistorySection({
     isPartial?: boolean,
     paymentType?: string
   ): Promise<boolean> => {
-    if (selectedPayment && selectedPayment.id) {
+    if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
       try {
         // Calculate if there's a late fee applicable based on the payment date
         let daysOverdue = 0;
@@ -235,7 +181,7 @@ export function PaymentHistorySection({
         // If amount is zero, set status to voided instead of completed
         const paymentStatus = amount === 0 ? 'voided' : 'completed';
         
-        const paymentData: Partial<Payment> = {
+        const paymentData: Partial<PaymentHistoryItem> = {
           id: selectedPayment.id,
           amount,
           payment_date: date.toISOString(),
@@ -248,80 +194,41 @@ export function PaymentHistorySection({
           late_fine_amount: lateFineAmount,
         };
         
-        if (useExternalData && onPaymentUpdated) {
-          // Use external handler if provided
-          const success = await onPaymentUpdated(paymentData);
-          if (success) {
-            toast.success(amount === 0 
-              ? "Payment voided successfully" 
-              : "Payment updated successfully");
-            setIsPaymentDialogOpen(false);
-            return true;
-          } else {
-            toast.error("Failed to update payment");
-            return false;
-          }
-        } else {
-          // Use React Query mutation
-          const updatePayment = updatePaymentMutation();
-          await updatePayment.mutateAsync({ id: selectedPayment.id, data: paymentData });
+        const success = await onPaymentUpdated(paymentData);
+        if (success) {
           toast.success(amount === 0 
             ? "Payment voided successfully" 
             : "Payment updated successfully");
           setIsPaymentDialogOpen(false);
           return true;
+        } else {
+          toast.error("Failed to update payment");
+          return false;
         }
       } catch (error) {
         console.error("Error updating payment:", error);
         toast.error("Failed to update payment");
         return false;
       }
-    } else if (leaseId) {
-      if (useExternalData && onRecordPayment) {
-        // Use external handler if provided
-        const paymentData: Partial<Payment> = {
-          amount,
-          payment_date: date.toISOString(),
-          description: notes,
-          payment_method: method,
-          transaction_id: reference,
-          lease_id: leaseId,
-          status: 'completed',
-          type: paymentType || 'rent'
-        };
-        
-        handlePaymentCreated(paymentData);
-        return true;
-      } else {
-        // Use React Query mutation - process special payment
-        try {
-          const processSpecialPayment = usePaymentQuery().processSpecialPayment();
-          await processSpecialPayment.mutateAsync({
-            agreementId: leaseId,
-            amount,
-            paymentDate: date,
-            options: {
-              notes,
-              paymentMethod: method,
-              referenceNumber: reference,
-              includeLatePaymentFee,
-              isPartialPayment: isPartial,
-              paymentType: paymentType || 'rent'
-            }
-          });
-          toast.success("Payment recorded successfully");
-          setIsPaymentDialogOpen(false);
-          return true;
-        } catch (error) {
-          console.error("Error creating payment:", error);
-          toast.error("Failed to record payment");
-          return false;
-        }
-      }
+    } else if (onRecordPayment && leaseId) {
+      const paymentData: Partial<PaymentHistoryItem> = {
+        amount,
+        payment_date: date.toISOString(),
+        description: notes,
+        payment_method: method,
+        transaction_id: reference,
+        lease_id: leaseId,
+        status: 'completed',
+        type: paymentType || 'rent'
+      };
+      
+      handlePaymentCreated(paymentData);
+      return true;
     }
     
     return false;
   };
+
   const renderPaymentHistory = () => {
     if (isLoading) {
       return (
@@ -331,18 +238,7 @@ export function PaymentHistorySection({
       );
     }
 
-    if (error) {
-      return (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          <AlertDescription>
-            There was an error loading payment data. Please try again later.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
-    if (paymentData.length === 0) {
+    if (payments.length === 0) {
       return <EmptyPaymentState onRecordPayment={handleRecordPaymentClick} />;
     }
 
@@ -359,12 +255,12 @@ export function PaymentHistorySection({
           paidOnTime={paidOnTime} 
           paidLate={paidLate} 
           unpaid={unpaid} 
-          totalPayments={paymentData.length} 
+          totalPayments={payments.length} 
         />
 
         <div className="flex justify-between items-center mb-4">
           <PaymentActions 
-            rentAmount={rentAmount || 0} 
+            rentAmount={rentAmount} 
             onRecordPaymentClick={handleRecordPaymentClick}
             onExportHistoryClick={handleExportHistoryClick}
           />
@@ -421,6 +317,7 @@ export function PaymentHistorySection({
       </>
     );
   };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -442,18 +339,17 @@ export function PaymentHistorySection({
           title={selectedPayment ? "Edit Payment" : "Record Payment"}
           description={selectedPayment ? "Update payment details or set amount to 0 to void transaction" : "Add a new payment to this agreement"}
           leaseId={leaseId}
-          rentAmount={rentAmount || 0}
+          rentAmount={rentAmount}
           selectedPayment={selectedPayment}
         />
       )}
       
-      {/* Only render the analytics section if showAnalytics is true and we have data */}
-      {showAnalytics && !isLoading && !error && (
+      {/* Only render the analytics section if showAnalytics is true */}
+      {showAnalytics && (
         <PaymentAnalytics
           amountPaid={amountPaid}
           balance={balance}
           lateFees={lateFees}
-          statistics={!useExternalData ? statisticsQuery.data : undefined}
         />
       )}
     </div>

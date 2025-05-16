@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -17,7 +18,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Calendar } from 'lucide-react';
-import { useTrafficFineAdapter } from '@/hooks/adapters/use-traffic-fine-adapter';
+import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,7 +45,7 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { addNewFine } = useTrafficFineAdapter();
+  const { createTrafficFine } = useTrafficFines();
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -58,29 +59,14 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
       paymentStatus: 'pending',
     },
   });
+
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      // Convert form data to the expected format for the adapter
-      const fineData = {
-        violation_number: data.violationNumber,
-        license_plate: data.licensePlate,
-        violation_date: data.violationDate.toISOString(),
-        fine_amount: data.fineAmount,
-        violation_charge: data.violationCharge || '',
-        fine_location: data.location || '',
-        payment_status: data.paymentStatus,
-      };
-      
-      const result = await addNewFine(fineData);
-      
-      if (result.success) {
-        toast.success("Traffic fine created successfully");
-        form.reset();
-        if (onFineSaved) {
-          onFineSaved();
-        }
-      } else {
-        toast.error("Failed to create traffic fine");
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload);
+      toast.success("Traffic fine created successfully");
+      form.reset();
+      if (onFineSaved) {
+        onFineSaved();
       }
     } catch (error) {
       toast.error("Failed to create traffic fine", {

@@ -1,112 +1,103 @@
 
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { PaymentHistoryItem } from '@/types/payment-history.types';
+import { Edit, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Payment } from '@/types/payment-types.unified';
-import { format } from 'date-fns';
-import { formatCurrency } from '@/lib/utils';
-import { Edit, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface PaymentTableProps {
-  payments: Payment[];
-  onEditPayment?: (payment: Payment) => void;
+  payments: PaymentHistoryItem[];
+  onEditPayment?: (payment: PaymentHistoryItem) => void;
   onDeletePayment?: (paymentId: string) => void;
 }
 
-export function PaymentTable({ 
-  payments, 
-  onEditPayment, 
-  onDeletePayment 
-}: PaymentTableProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+export function PaymentTable({ payments, onEditPayment, onDeletePayment }: PaymentTableProps) {
+  // Function to get payment status badge class
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
       case 'completed':
-        return <Badge variant="success">Completed</Badge>;
+        return 'bg-green-100 text-green-800';
       case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
+        return 'bg-yellow-100 text-yellow-800';
       case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
-      case 'voided':
-        return <Badge variant="secondary">Voided</Badge>;
+        return 'bg-red-100 text-red-800';
+      case 'partially_paid':
+        return 'bg-blue-100 text-blue-800';
       default:
-        return <Badge>{status}</Badge>;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const formatPaymentDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return 'Not paid';
+  // Function to format payment type for display
+  const formatPaymentType = (type?: string) => {
+    if (!type) return 'N/A';
     
-    try {
-      const date = new Date(dateStr);
-      return format(date, 'MMM dd, yyyy');
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return 'Invalid date';
-    }
+    // Convert to title case and replace underscores with spaces
+    return type.charAt(0).toUpperCase() + 
+           type.slice(1).toLowerCase().replace(/_/g, ' ');
   };
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Payment Date</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {payments.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                No payment records found
-              </TableCell>
-            </TableRow>
-          ) : (
-            payments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>{formatPaymentDate(payment.payment_date)}</TableCell>
-                <TableCell>
-                  {payment.description || 'Monthly Rent'}
-                  {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                    <span className="ml-2 text-xs text-red-500">
-                      (Late fee: {formatCurrency(payment.late_fine_amount)})
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                <TableCell>{payment.payment_method || 'Not specified'}</TableCell>
-                <TableCell>{getStatusBadge(payment.status || '')}</TableCell>
-                <TableCell className="text-right space-x-2">
+    <div className="relative overflow-x-auto rounded-md border">
+      <table className="w-full text-sm text-left">
+        <thead className="text-xs uppercase bg-gray-50">
+          <tr>
+            <th scope="col" className="px-4 py-3">Date</th>
+            <th scope="col" className="px-4 py-3">Type</th>
+            <th scope="col" className="px-4 py-3">Amount</th>
+            <th scope="col" className="px-4 py-3">Late Fee</th>
+            <th scope="col" className="px-4 py-3">Status</th>
+            <th scope="col" className="px-4 py-3">Method</th>
+            <th scope="col" className="px-4 py-3">Description</th>
+            <th scope="col" className="px-4 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payments.map((payment) => (
+            <tr key={payment.id} className="bg-white border-b hover:bg-gray-50">
+              <td className="px-4 py-3">{formatDate(payment.payment_date)}</td>
+              <td className="px-4 py-3">{formatPaymentType(payment.type)}</td>
+              <td className="px-4 py-3 font-medium">{formatCurrency(payment.amount)}</td>
+              <td className="px-4 py-3">
+                {payment.late_fine_amount && payment.late_fine_amount > 0 
+                  ? formatCurrency(payment.late_fine_amount) 
+                  : '-'}
+              </td>
+              <td className="px-4 py-3">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}>
+                  {payment.status}
+                </span>
+              </td>
+              <td className="px-4 py-3">{payment.payment_method || 'N/A'}</td>
+              <td className="px-4 py-3 max-w-xs truncate">{payment.description || 'N/A'}</td>
+              <td className="px-4 py-3">
+                <div className="flex space-x-2">
                   {onEditPayment && (
                     <Button 
-                      onClick={() => onEditPayment(payment)} 
-                      size="sm" 
-                      variant="ghost"
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => onEditPayment(payment)}
+                      className="h-8 w-8"
                     >
-                      <Edit className="h-4 w-4 mr-1" /> Edit
+                      <Edit className="h-4 w-4" />
                     </Button>
                   )}
-                  {onDeletePayment && (
+                  {onDeletePayment && payment.id && (
                     <Button 
-                      onClick={() => onDeletePayment(payment.id)} 
-                      size="sm" 
-                      variant="ghost"
-                      className="text-red-500 hover:text-red-700"
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => onDeletePayment(payment.id)}
+                      className="h-8 w-8 text-red-500 hover:text-red-600"
                     >
-                      <Trash2 className="h-4 w-4 mr-1" /> Delete
+                      <Trash className="h-4 w-4" />
                     </Button>
                   )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

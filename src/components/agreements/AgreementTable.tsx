@@ -16,7 +16,7 @@ export default function AgreementTable({ compact = false }: AgreementTableProps)
     deleteAgreement
   } = useAgreementService();
   
-  // Process agreement data for display with correct type conversion
+  // Process agreement data for display
   const typedAgreements = processAgreementData(agreements || []);
 
   if (error) {

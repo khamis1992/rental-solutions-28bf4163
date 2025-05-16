@@ -3,61 +3,34 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { useMaintenanceQuery } from '@/hooks/use-maintenance-query';
-import { 
-  Maintenance, 
-  MaintenanceInsert, 
-  MaintenanceUpdate, 
-  MaintenanceCategory 
-} from '@/types/maintenance.types';
+import { typeGuards } from '@/lib/database';
 
-// Add proper typing
+// Add missing types
 interface MaintenanceFormProps {
-  initialData?: Partial<Maintenance>;
-  onSubmit?: (data: MaintenanceInsert | MaintenanceUpdate) => Promise<void>;
-  categories?: MaintenanceCategory[];
+  initialData?: any;
+  onSubmit: (data: any) => void;
+  categories?: any[];
   isSubmitting?: boolean;
-  useExternalSubmit?: boolean;
-  vehicleId?: string;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ 
   initialData, 
   onSubmit, 
   categories = [],
-  isSubmitting: externalIsSubmitting = false,
-  useExternalSubmit = true,
-  vehicleId
+  isSubmitting = false
 }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   
-  // Use React Query hooks
-  const { 
-    createMaintenance, 
-    updateMaintenance 
-  } = useMaintenanceQuery();
-  
-  // Set up mutations for create and update
-  const createMaintenanceMutation = createMaintenance();
-  const updateMaintenanceMutation = updateMaintenance();
-  
-  // Track submission state
-  const isSubmitting = useExternalSubmit 
-    ? externalIsSubmitting 
-    : (createMaintenanceMutation.isPending || updateMaintenanceMutation.isPending);
-  
-  const form = useForm<MaintenanceInsert | MaintenanceUpdate>({
+  const form = useForm({
     defaultValues: {
       ...initialData || {
-        vehicle_id: vehicleId || '',
+        vehicle_id: '',
         service_type: '',
         description: '',
-        scheduled_date: new Date().toISOString(),
+        scheduled_date: new Date(),
         cost: 0,
         notes: '',
-        category_id: '',
-        status: 'scheduled',
-        priority: 'medium'
+        category_id: ''
       }
     }
   });
@@ -73,34 +46,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     form.setValue('category_id', event.target.value);
   };
 
-  const handleSubmit = async (data: MaintenanceInsert | MaintenanceUpdate) => {
+  const handleSubmit = async (data: any) => {
     try {
-      if (useExternalSubmit && onSubmit) {
-        // Use external submit handler if provided
-        await onSubmit(data);
-      } else {
-        // Use React Query mutations
-        if (initialData?.id) {
-          // Update existing record
-          await updateMaintenanceMutation.mutateAsync({
-            id: initialData.id,
-            data: data as MaintenanceUpdate
-          });
-          toast.success('Maintenance record updated successfully');
-        } else {
-          // Create new record
-          await createMaintenanceMutation.mutateAsync(data as MaintenanceInsert);
-          toast.success('Maintenance record created successfully');
-          form.reset();
-        }
-      }
+      await onSubmit(data);
     } catch (error) {
       toast.error('Failed to save maintenance record');
       console.error('Error in maintenance form:', error);
     }
   };
+
   // Safely filter categories
-  const filteredCategories = Array.isArray(categories) 
+  const filteredCategories = typeGuards.isArray(categories) 
     ? categories.filter(cat => cat?.is_active !== false)
     : [];
 
