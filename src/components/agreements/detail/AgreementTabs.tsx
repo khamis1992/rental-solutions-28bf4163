@@ -6,8 +6,8 @@ import { BarChart, FileText, User, Gavel } from 'lucide-react';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { AgreementTrafficFineAnalytics } from '@/components/agreements/legal/AgreementTrafficFineAnalytics';
-import { LegalCaseCard } from '@/components/agreements/LegalCaseCard';
-import { CustomerSection } from '@/components/agreements/CustomerSection';
+import LegalCaseCard from '@/components/agreements/LegalCaseCard';
+import CustomerSection from '@/components/agreements/CustomerSection';
 import { VehicleSection } from '@/components/agreements/VehicleSection';
 import { useNavigate } from 'react-router-dom';
 import { Payment } from '@/types/payment-types.unified';
@@ -178,9 +178,7 @@ export function AgreementTabs({
       <TabsContent value="legal" className="space-y-6">
         {agreement.start_date && agreement.end_date && (
           <AgreementTrafficFineAnalytics 
-            agreementId={agreement.id} 
-            startDate={new Date(agreement.start_date)} 
-            endDate={new Date(agreement.end_date)} 
+            agreementId={agreement.id}
           />
         )}
         

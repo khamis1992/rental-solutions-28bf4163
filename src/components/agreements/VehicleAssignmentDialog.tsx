@@ -44,7 +44,7 @@ export function VehicleAssignmentDialog({
         const { error: currentVehicleError } = await supabase
           .from('vehicles')
           .update({ status: 'available' } as any)
-          .eq('id', asUUID(currentVehicleId));
+          .eq('id', currentVehicleId as any);
         
         if (currentVehicleError) {
           console.error('Error updating current vehicle:', currentVehicleError);
@@ -56,7 +56,7 @@ export function VehicleAssignmentDialog({
       const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
         .select('*')
-        .eq('id', asUUID(leaseId))
+        .eq('id', leaseId as any)
         .single();
       
       if (leaseError) {
@@ -68,9 +68,9 @@ export function VehicleAssignmentDialog({
       const { error: updateLeaseError } = await supabase
         .from('leases')
         .update({ 
-          vehicle_id: asUUID(selectedVehicleId)
+          vehicle_id: selectedVehicleId 
         } as any)
-        .eq('id', asUUID(leaseId));
+        .eq('id', leaseId as any);
       
       if (updateLeaseError) {
         console.error('Error updating lease:', updateLeaseError);
@@ -83,7 +83,7 @@ export function VehicleAssignmentDialog({
         .update({ 
           status: 'rented'
         } as any)
-        .eq('id', asUUID(selectedVehicleId));
+        .eq('id', selectedVehicleId as any);
       
       if (newVehicleError) {
         console.error('Error updating new vehicle:', newVehicleError);
@@ -129,7 +129,7 @@ export function VehicleAssignmentDialog({
           </p>
           
           <VehicleSelector 
-            onVehicleSelected={(vehicleId) => setSelectedVehicleId(vehicleId)}
+            onVehicleSelected={setSelectedVehicleId}
             statusFilter="available"
             excludeVehicleId={currentVehicleId}
           />

@@ -41,8 +41,7 @@ export function AgreementTrafficFines({
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', asUUID(agreementId))
-          .single();
+          .eq('id', agreementId as any);
         
         if (agreementError) {
           console.error('Error fetching agreement vehicle:', agreementError);
@@ -51,7 +50,7 @@ export function AgreementTrafficFines({
           return;
         }
         
-        if (!agreementData || !agreementData.vehicle_id) {
+        if (!agreementData || agreementData.length === 0 || !agreementData[0]?.vehicle_id) {
           setError('No vehicle associated with this agreement');
           setIsLoading(false);
           return;
@@ -61,7 +60,7 @@ export function AgreementTrafficFines({
         const { data: finesData, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*, vehicle:vehicles(license_plate, make, model)')
-          .eq('vehicle_id', agreementData.vehicle_id)
+          .eq('vehicle_id', agreementData[0].vehicle_id)
           .gte('fine_date', formattedStartDate)
           .lte('fine_date', formattedEndDate);
         
@@ -79,8 +78,8 @@ export function AgreementTrafficFines({
           if (fine && !fine.agreement_id) {
             const { error: updateError } = await supabase
               .from('traffic_fines')
-              .update({ agreement_id: asUUID(agreementId) } as any)
-              .eq('id', fine.id);
+              .update({ agreement_id: agreementId } as any)
+              .eq('id', fine.id as any);
               
             if (updateError) {
               console.error('Error associating fine with agreement:', updateError);
@@ -88,6 +87,7 @@ export function AgreementTrafficFines({
           }
         }
         
+        // Cast to TrafficFine[] explicitly to handle typing
         setTrafficFines(finesWithAgreement as unknown as TrafficFine[]);
       } catch (err) {
         console.error('Unexpected error fetching traffic fines:', err);
@@ -120,7 +120,7 @@ export function AgreementTrafficFines({
       const { error } = await supabase
         .from('traffic_fines')
         .update({ payment_status: 'paid' } as any)
-        .eq('id', asUUID(fineId));
+        .eq('id', fineId as any);
         
       if (error) {
         throw error;
