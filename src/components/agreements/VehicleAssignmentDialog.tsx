@@ -68,7 +68,7 @@ export function VehicleAssignmentDialog({
       const { error: updateLeaseError } = await supabase
         .from('leases')
         .update({ 
-          vehicle_id: asUUID(selectedVehicleId) 
+          vehicle_id: asUUID(selectedVehicleId)
         })
         .eq('id', asUUID(leaseId));
       
@@ -81,7 +81,7 @@ export function VehicleAssignmentDialog({
       const { error: newVehicleError } = await supabase
         .from('vehicles')
         .update({ 
-          status: 'rented' 
+          status: 'rented'
         })
         .eq('id', asUUID(selectedVehicleId));
       

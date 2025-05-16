@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
-import { Loading } from '@/components/ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
+import { asUUID } from '@/lib/uuid-helpers';
 
 export interface TrafficFine {
   id: string;
@@ -62,7 +63,7 @@ export function AgreementTrafficFines({
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId)
+          .eq('id', asUUID(agreementId))
           .single();
         
         if (agreementError) {
@@ -79,7 +80,7 @@ export function AgreementTrafficFines({
         }
         
         // Now get traffic fines for this vehicle within the date range
-        const { data: fines, error: finesError } = await supabase
+        const { data: finesData, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*, vehicle:vehicles(license_plate, make, model)')
           .eq('vehicle_id', agreementData.vehicle_id)
@@ -94,13 +95,13 @@ export function AgreementTrafficFines({
         }
         
         // Associate these fines with the agreement if not already associated
-        const finesWithAgreement = fines || [];
+        const finesWithAgreement = finesData || [];
         
         for (const fine of finesWithAgreement) {
           if (!fine.agreement_id) {
             const { error: updateError } = await supabase
               .from('traffic_fines')
-              .update({ agreement_id: agreementId })
+              .update({ agreement_id: asUUID(agreementId) })
               .eq('id', fine.id);
               
             if (updateError) {
@@ -109,7 +110,7 @@ export function AgreementTrafficFines({
           }
         }
         
-        setTrafficFines(finesWithAgreement);
+        setTrafficFines(finesWithAgreement as TrafficFine[]);
       } catch (err) {
         console.error('Unexpected error fetching traffic fines:', err);
         setError('An unexpected error occurred');
@@ -141,7 +142,7 @@ export function AgreementTrafficFines({
       const { error } = await supabase
         .from('traffic_fines')
         .update({ payment_status: 'paid' })
-        .eq('id', fineId);
+        .eq('id', asUUID(fineId));
         
       if (error) {
         throw error;
@@ -161,7 +162,7 @@ export function AgreementTrafficFines({
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <div className="flex justify-center py-6"><Spinner /></div>;
   }
 
   if (error) {
