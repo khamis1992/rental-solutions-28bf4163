@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CustomerSelector } from '@/components/agreements/selectors/CustomerSelector';
-import { VehicleSelector } from '@/components/agreements/selectors/VehicleSelector';
+import CustomerSelector from '@/components/agreements/selectors/CustomerSelector';
+import VehicleSelector from '@/components/agreements/selectors/VehicleSelector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomerInfo } from '@/types/customer';
 
@@ -32,7 +32,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number, status')
-          .eq('role', 'customer');
+          .eq('role', 'customer' as string);
 
         if (error) {
           throw error;
@@ -42,9 +42,9 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
           // Map to the expected CustomerInfo format
           const customerData: CustomerInfo[] = data.map(customer => ({
             id: customer.id,
-            fullName: customer.full_name,
+            full_name: customer.full_name,
             email: customer.email || '',
-            phoneNumber: customer.phone_number || '',
+            phone_number: customer.phone_number || '',
             status: customer.status || 'active'
           }));
           setCustomers(customerData);

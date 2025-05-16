@@ -26,11 +26,11 @@ export function PaymentHistory({
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  leaseStartDate,
-  leaseEndDate,
   leaseId,
   onPaymentAdded,
-  showAnalytics = true
+  showAnalytics = true,
+  leaseStartDate,
+  leaseEndDate
 }: PaymentHistoryProps) {
   // We need to ensure we're using the correct type of Payment
   const formattedPayments = (payments || []) as any[];
@@ -46,8 +46,8 @@ export function PaymentHistory({
       onRecordPayment={onRecordPayment || (() => {})}
       onPaymentUpdated={onPaymentUpdated || (async () => false)}
       showAnalytics={showAnalytics}
-      leaseStartDate={leaseStartDate as string | Date}
-      leaseEndDate={leaseEndDate as string | Date}
+      leaseStartDate={leaseStartDate}
+      leaseEndDate={leaseEndDate}
       onPaymentAdded={onPaymentAdded}
     />
   );

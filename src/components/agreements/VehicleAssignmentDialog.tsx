@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { VehicleSelector } from '@/components/agreements/selectors/VehicleSelector';
+import VehicleSelector from '@/components/agreements/selectors/VehicleSelector';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { asUUID } from '@/lib/uuid-helpers';
 
 interface VehicleAssignmentDialogProps {
   open: boolean;
@@ -43,7 +44,7 @@ export function VehicleAssignmentDialog({
         const { error: currentVehicleError } = await supabase
           .from('vehicles')
           .update({ status: 'available' })
-          .eq('id', currentVehicleId);
+          .eq('id', asUUID(currentVehicleId));
         
         if (currentVehicleError) {
           console.error('Error updating current vehicle:', currentVehicleError);
@@ -55,7 +56,7 @@ export function VehicleAssignmentDialog({
       const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
         .select('*')
-        .eq('id', leaseId)
+        .eq('id', asUUID(leaseId))
         .single();
       
       if (leaseError) {
@@ -67,9 +68,9 @@ export function VehicleAssignmentDialog({
       const { error: updateLeaseError } = await supabase
         .from('leases')
         .update({ 
-          vehicle_id: selectedVehicleId 
+          vehicle_id: asUUID(selectedVehicleId) 
         })
-        .eq('id', leaseId);
+        .eq('id', asUUID(leaseId));
       
       if (updateLeaseError) {
         console.error('Error updating lease:', updateLeaseError);
@@ -82,7 +83,7 @@ export function VehicleAssignmentDialog({
         .update({ 
           status: 'rented' 
         })
-        .eq('id', selectedVehicleId);
+        .eq('id', asUUID(selectedVehicleId));
       
       if (newVehicleError) {
         console.error('Error updating new vehicle:', newVehicleError);

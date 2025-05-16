@@ -1,32 +1,19 @@
-import React, { Suspense, useState } from 'react';
-import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList-Simple';
-import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
-import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload } from 'lucide-react';
-import { AgreementStats } from '@/components/agreements/AgreementStats';
+import PageContainer from '@/components/layout/PageContainer';
 import { Card, CardContent } from '@/components/ui/card';
-import { CustomerInfo } from '@/types/customer';
-import { CustomerListFilterClone } from '@/components/agreements/CustomerListFilterClone';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import AgreementTable from '@/components/agreements/AgreementTable';
-import { Badge } from '@/components/ui/badge';
-import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSelectors';
-import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
+import { Tabs } from '@/components/ui/tabs';
+import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
-import { useNavigate } from 'react-router-dom';
+import { AgreementHeader } from '@/components/agreements/page/AgreementHeader';
+import { SearchActionBar } from '@/components/agreements/page/SearchActionBar';
+import { AgreementContent } from '@/components/agreements/page/AgreementContent';
+import { AgreementTopSection } from '@/components/agreements/page/AgreementTopSection';
+import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
+import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const Agreements = () => {
@@ -40,16 +27,12 @@ const Agreements = () => {
   
   // Use the agreement service hook
   const { 
-    agreements, 
-    isLoading, 
     searchParams, 
     setSearchParams, 
     refetch 
   } = useAgreementService();
   
-  // Add state for customer search functionality
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
-  
+  // Initial edge function check
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
       const cachedStatus = sessionStorage.getItem('edge_function_available_process-agreement-imports');
@@ -106,7 +89,7 @@ const Agreements = () => {
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    setSearchParams(filters); // Simplified to match CustomerListFilter behavior
+    setSearchParams(filters);
   };
 
   // Updated to ensure pagination resets when tab changes
@@ -120,7 +103,7 @@ const Agreements = () => {
     }
   };
 
-  // Handle search using the component - matching the CustomerListFilter behavior exactly
+  // Handle search using the component
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setSearchParams({ searchTerm: query || undefined });
@@ -142,93 +125,30 @@ const Agreements = () => {
       className="max-w-full"
     >
       <div className="flex flex-col gap-6">
-        {/* Analytics Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Stats Overview */}
-          <div className="xl:col-span-2">
-            <AgreementStats className="h-full" />
-          </div>
-          
-          {/* Analytics Preview */}
-          <div className="xl:col-span-1">
-            <AgreementAnalytics />
-          </div>
-        </div>
+        {/* Analytics and Stats Section */}
+        <AgreementTopSection />
         
         {/* Main Content Area with Tabs */}
         <Card>
           <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <Tabs 
-                defaultValue={activeTab} 
-                value={activeTab} 
-                onValueChange={handleTabChange}
-                className="w-full sm:w-auto"
-              >
-                <TabsList>
-                  <TabsTrigger value="agreements">All Agreements</TabsTrigger>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
-                  <TabsTrigger value="history">Import History</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              {/* View Mode Selector */}
-              <div className="flex items-center gap-2">
-                <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
-              </div>
-            </div>
+            {/* Tabs and View Mode Selection */}
+            <AgreementHeader 
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+            />
             
             {/* Search and Action Bar */}
-            <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
-              <CustomerListFilterClone
-                searchTerm={searchQuery}
-                onSearch={handleSearch}
-                onFilterChange={handleFilterChange}
-              />
-              
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {showFilters ? "Hide Filters" : "Advanced Filters"}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                      Import from CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>Download Template</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button 
-                  size="sm"
-                  onClick={handleAddAgreement}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Agreement
-                </Button>
-              </div>
-            </div>
+            <SearchActionBar 
+              searchQuery={searchQuery}
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+              onSearch={handleSearch}
+              onFilterChange={handleFilterChange}
+              onImportClick={() => setIsImportModalOpen(true)}
+              onAddAgreementClick={handleAddAgreement}
+            />
             
             {/* Active Filters */}
             {activeFilters.length > 0 && (
@@ -244,72 +164,26 @@ const Agreements = () => {
           {/* Filter Panel */}
           {showFilters && (
             <div className="border-b">
-              <AgreementFilterPanel onFilterChange={handleFilterChange} currentFilters={searchParams} />
+              <AgreementFilterPanel 
+                onFilterChange={handleFilterChange} 
+                currentFilters={searchParams} 
+              />
             </div>
           )}
           
           {/* Content Area */}
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsContent value="agreements" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <div className="flex items-center space-x-2">
-                      <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                      <span className="text-lg font-medium">Loading agreements...</span>
-                    </div>
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
-                  </div>
-                </Suspense>
-              </TabsContent>
-              
-              <TabsContent value="active" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
-                  </div>
-                </Suspense>
-              </TabsContent>
-              
-              <TabsContent value="pending" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
-                  </div>
-                </Suspense>
-              </TabsContent>
-
-              <TabsContent value="history" className="m-0">
-                <div className="p-4">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center">
-                    <Database className="h-5 w-5 mr-2" />
-                    Import History
-                  </h2>
-                  <ImportHistoryList />
-                </div>
-              </TabsContent>
+              <AgreementContent 
+                activeTab={activeTab} 
+                viewMode={viewMode}
+              />
             </Tabs>
           </CardContent>
         </Card>
       </div>
       
+      {/* Import Modal */}
       <CSVImportModal 
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}

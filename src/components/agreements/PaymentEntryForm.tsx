@@ -1,61 +1,57 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
 import { Payment } from '@/types/payment-types.unified';
+import { toast } from 'sonner';
+import { asUUID } from '@/lib/uuid-helpers';
 
 interface PaymentEntryFormProps {
   leaseId: string;
-  onSuccess?: (payment: Payment) => void;
-  onCancel?: () => void;
+  onPaymentAdded: () => void;
+  onCancel: () => void;
 }
 
-export function PaymentEntryForm({ leaseId, onSuccess, onCancel }: PaymentEntryFormProps) {
-  const [amount, setAmount] = React.useState<number | ''>('');
-  const [paymentDate, setPaymentDate] = React.useState<string>(new Date().toISOString().split('T')[0]);
-  const [description, setDescription] = React.useState<string>('');
-  const [paymentMethod, setPaymentMethod] = React.useState<string>('cash');
-  const [transactionId, setTransactionId] = React.useState<string>('');
-  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
-  
-  const { toast } = useToast();
+const PaymentEntryForm: React.FC<PaymentEntryFormProps> = ({
+  leaseId,
+  onPaymentAdded,
+  onCancel
+}) => {
+  const [amount, setAmount] = useState<number>(0);
+  const [description, setDescription] = useState<string>('');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [transactionId, setTransactionId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount) {
-      toast({ 
-        title: 'Error',
-        description: 'Please enter a valid amount',
-        variant: 'destructive'
-      });
+    if (amount <= 0) {
+      toast.error('Payment amount must be greater than zero');
       return;
     }
-    
-    try {
-      setIsSubmitting(true);
 
-      // Record the payment in the unified_payments table
+    setIsSubmitting(true);
+
+    try {
+      // Create a payment record
       const paymentData = {
-        lease_id: leaseId as string,
+        lease_id: leaseId,
         amount: amount,
-        payment_date: paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString(),
-        description: description || 'Manual payment entry',
-        payment_method: paymentMethod || 'cash',
+        payment_date: paymentDate,
+        description: description,
+        payment_method: paymentMethod,
         transaction_id: transactionId || undefined,
-        status: 'paid',
+        status: 'completed',
         amount_paid: amount,
         balance: 0,
         type: 'Income'
       };
 
+      // Insert the payment
       const { data, error } = await supabase
         .from('unified_payments')
-        .insert([paymentData])
+        .insert([paymentData as any])
         .select()
         .single();
 
@@ -63,23 +59,15 @@ export function PaymentEntryForm({ leaseId, onSuccess, onCancel }: PaymentEntryF
         throw error;
       }
 
-      if (data) {
-        toast({
-          title: 'Success',
-          description: 'Payment recorded successfully',
-        });
+      toast.success('Payment recorded successfully');
+      
+      // Call the onPaymentAdded callback with the new payment
+      onPaymentAdded();
+      onCancel(); // Close the form
 
-        if (onSuccess) {
-          onSuccess(data as Payment);
-        }
-      }
     } catch (error) {
       console.error('Error recording payment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to record payment. Please try again.',
-        variant: 'destructive'
-      });
+      toast.error('Failed to record payment');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,74 +75,94 @@ export function PaymentEntryForm({ leaseId, onSuccess, onCancel }: PaymentEntryF
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="amount">Amount</Label>
-        <Input
-          id="amount"
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Amount
+        </label>
+        <input
           type="number"
-          placeholder="Enter amount"
+          min="0"
+          step="0.01"
           value={amount}
-          onChange={(e) => setAmount(e.target.value !== '' ? parseFloat(e.target.value) : '')}
-          min={0}
-          step={0.01}
+          onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+          className="w-full p-2 border rounded-md"
           required
         />
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="paymentDate">Payment Date</Label>
-        <Input
-          id="paymentDate"
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full p-2 border rounded-md"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Payment Date
+        </label>
+        <input
           type="date"
           value={paymentDate}
           onChange={(e) => setPaymentDate(e.target.value)}
+          className="w-full p-2 border rounded-md"
           required
         />
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="paymentMethod">Payment Method</Label>
-        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-          <SelectTrigger id="paymentMethod">
-            <SelectValue placeholder="Select payment method" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="cash">Cash</SelectItem>
-            <SelectItem value="card">Card</SelectItem>
-            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-            <SelectItem value="cheque">Cheque</SelectItem>
-          </SelectContent>
-        </Select>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Payment Method
+        </label>
+        <select
+          value={paymentMethod}
+          onChange={(e) => setPaymentMethod(e.target.value)}
+          className="w-full p-2 border rounded-md"
+        >
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="check">Check</option>
+          <option value="other">Other</option>
+        </select>
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="transactionId">Transaction ID (Optional)</Label>
-        <Input
-          id="transactionId"
-          placeholder="Enter transaction ID"
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Transaction ID (Optional)
+        </label>
+        <input
+          type="text"
           value={transactionId}
           onChange={(e) => setTransactionId(e.target.value)}
+          className="w-full p-2 border rounded-md"
         />
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="description">Description (Optional)</Label>
-        <Input
-          id="description"
-          placeholder="Enter description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-      
+
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-100 rounded-md text-gray-700 hover:bg-gray-200"
+          disabled={isSubmitting}
+        >
           Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? 'Submitting...' : 'Record Payment'}
-        </Button>
+        </button>
       </div>
     </form>
   );
-}
+};
+
+export default PaymentEntryForm;
