@@ -95,7 +95,6 @@ export const useVehicles = () => {
           try {
             const cachedData = CacheManager.get(cacheKey);
             if (cachedData) {
-              console.log('Using cached vehicle data');
               return cachedData;
             }
           } catch (error) {
@@ -164,7 +163,6 @@ export const useVehicles = () => {
                   lastError = error;
                   attempts++;
                   if (attempts < maxAttempts) {
-                    console.log(`Query attempt ${attempts} failed, retrying...`);
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     continue;
                   }
@@ -177,7 +175,6 @@ export const useVehicles = () => {
                 lastError = err;
                 attempts++;
                 if (attempts < maxAttempts) {
-                  console.log(`Query attempt ${attempts} failed with error:`, err);
                   await new Promise(resolve => setTimeout(resolve, 1000));
                 } else {
                   break;
@@ -207,7 +204,6 @@ export const useVehicles = () => {
               throw new Error('Vehicle ID is required');
             }
             
-            console.log(`Fetching vehicle with ID: ${id}`);
             
             const { isHealthy, error: healthCheckError } = await checkSupabaseHealth();
             if (!isHealthy) {
@@ -230,9 +226,7 @@ export const useVehicles = () => {
               throw new Error(`Vehicle with ID ${id} not found`);
             }
             
-            console.log(`Successfully fetched vehicle data:`, data);
             const mappedVehicle = mapDatabaseRecordToVehicle(data);
-            console.log(`Mapped vehicle with status: ${mappedVehicle.status}`);
             return mappedVehicle;
           } catch (error) {
             console.error(`Failed to fetch vehicle ${id}:`, error);
@@ -333,8 +327,6 @@ export const useVehicles = () => {
       return useMutation({
         mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }): Promise<Vehicle> => {
           try {
-            console.log('Starting vehicle update process for ID:', id);
-            console.log('Received update data:', data);
             
             if (!id) {
               throw new Error('Vehicle ID is required for update');
@@ -361,14 +353,11 @@ export const useVehicles = () => {
               throw new Error(`Vehicle with ID ${id} not found`);
             }
             
-            console.log('Current vehicle status in database:', existingVehicle.status);
             
             let imageUrl = null;
             if (data.image) {
               try {
-                console.log('Uploading new vehicle image');
                 imageUrl = await uploadVehicleImage(data.image, id);
-                console.log('Image uploaded successfully:', imageUrl);
               } catch (error) {
                 console.error('Error uploading image:', error);
                 toast.error('Failed to upload image', {
@@ -391,7 +380,6 @@ export const useVehicles = () => {
             if (data.status !== undefined) {
               const newStatus = mapToDBStatus(data.status);
               vehicleData.status = newStatus;
-              console.log('Status being updated to:', newStatus, 'from form value:', data.status);
             }
             
             if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
@@ -413,7 +401,6 @@ export const useVehicles = () => {
             
             vehicleData.updated_at = new Date().toISOString();
             
-            console.log('Updating vehicle with data:', vehicleData);
             
             let attempt = 0;
             const maxAttempts = 3;
@@ -441,7 +428,6 @@ export const useVehicles = () => {
                 }
     
                 if (!result) {
-                  console.log('Update succeeded but no data returned, fetching vehicle data separately');
                   const { data: fetchedVehicle, error: fetchError } = await supabase
                     .from('vehicles')
                     .select('*, vehicle_types(*)')
@@ -458,13 +444,9 @@ export const useVehicles = () => {
                     throw new Error('Vehicle was updated but could not be found afterwards');
                   }
                   
-                  console.log('Successfully fetched vehicle after update:', fetchedVehicle);
                   updatedVehicle = mapDatabaseRecordToVehicle(fetchedVehicle);
-                  console.log('Mapped updated vehicle:', updatedVehicle);
                 } else {
-                  console.log('Vehicle updated successfully with data returned:', result);
                   updatedVehicle = mapDatabaseRecordToVehicle(result);
-                  console.log('Mapped updated vehicle from result:', updatedVehicle);
                 }
               } catch (e) {
                 console.error(`Update attempt ${attempt + 1} failed with exception:`, e);
@@ -498,8 +480,6 @@ export const useVehicles = () => {
           // Update the cache directly with the new data to avoid flickering
           queryClient.setQueryData(['vehicles', variables.id], updatedVehicle);
           
-          console.log(`Cache invalidated and updated for vehicle ID: ${variables.id}`);
-          console.log('Updated vehicle data in cache:', updatedVehicle);
         },
       });
     },
@@ -579,7 +559,6 @@ export const useVehicles = () => {
               table: 'vehicles' 
             }, 
             (payload) => {
-              console.log('Real-time update:', payload);
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
               
               if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
