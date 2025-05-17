@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Wrench, CheckCircle, Clock, AlertTriangle } from 'lucide-react';

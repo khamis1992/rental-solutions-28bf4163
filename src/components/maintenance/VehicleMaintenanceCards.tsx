@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { AlertTriangle, Car, CheckCircle, Clock, Settings, Wrench } from 'lucide-react';
+import { AlertTriangle, Car, Clock, Settings, Wrench, Calendar, Tools } from 'lucide-react';
 
 interface Vehicle {
   id: string;
@@ -54,6 +55,15 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
     }
   };
 
+  const getMaintenanceTypeIcon = (type: string) => {
+    switch(type?.toLowerCase()) {
+      case 'oil change':
+        return <Tools className="h-4 w-4 mr-1" />;
+      default:
+        return <Wrench className="h-4 w-4 mr-1" />;
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -102,7 +112,9 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
                 </div>
               )}
               <div className="absolute top-2 right-2">
-                <Badge className="bg-red-500 text-white">In Maintenance</Badge>
+                <Badge className={vehicle.status === 'accident' ? "bg-red-500 text-white" : "bg-orange-500 text-white"}>
+                  {vehicle.status === 'accident' ? 'Accident Repair' : 'In Maintenance'}
+                </Badge>
               </div>
             </div>
             
@@ -130,10 +142,14 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
               </div>
               
               {maintenanceRecord && (
-                <div className="mt-4 space-y-1 text-sm">
-                  <p><span className="font-medium">Service:</span> {maintenanceRecord.service_type}</p>
+                <div className="mt-4 space-y-2 text-sm">
                   <p className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {getMaintenanceTypeIcon(maintenanceRecord.service_type)}
+                    <span className="font-medium">{maintenanceRecord.service_type || 'General Maintenance'}</span>
+                  </p>
+                  
+                  <p className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
                     <span>
                       {maintenanceRecord.scheduled_date ? 
                         format(new Date(maintenanceRecord.scheduled_date), 'MMM d, yyyy') : 
@@ -141,6 +157,10 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
                       }
                     </span>
                   </p>
+                  
+                  {maintenanceRecord.description && (
+                    <p className="text-muted-foreground line-clamp-2">{maintenanceRecord.description}</p>
+                  )}
                 </div>
               )}
             </CardContent>

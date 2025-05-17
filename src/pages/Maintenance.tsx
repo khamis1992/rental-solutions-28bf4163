@@ -6,18 +6,14 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MaintenanceDashboard from '@/components/maintenance/MaintenanceDashboard';
 import MaintenanceFilters, { MaintenanceFilterOptions } from '@/components/maintenance/MaintenanceFilters';
-import MaintenanceTable from '@/components/maintenance/MaintenanceTable';
 import VehicleMaintenanceCards from '@/components/maintenance/VehicleMaintenanceCards';
 import { useMaintenance, MaintenanceRecord } from '@/hooks/use-maintenance';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 const Maintenance = () => {
   const navigate = useNavigate();
-  const [view, setView] = useState<'cards' | 'table'>('table');
-  const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<MaintenanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +25,8 @@ const Maintenance = () => {
     dateTo: undefined,
     maintenanceType: ''
   });
+
+  const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
 
   // Get vehicles that are in maintenance
   const { vehicles, isLoading: isLoadingVehicles } = useVehicleService({
@@ -139,12 +137,7 @@ const Maintenance = () => {
       systemDate={new Date()}
     >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <Tabs value={view} onValueChange={(v) => setView(v as 'cards' | 'table')} className="w-auto">
-          <TabsList>
-            <TabsTrigger value="table">Table View</TabsTrigger>
-            <TabsTrigger value="cards">Card View</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex-1" /> {/* Empty div to maintain spacing */}
         <Button onClick={handleAddMaintenance}>
           <Plus className="mr-2 h-4 w-4" />
           Add Maintenance
@@ -158,21 +151,12 @@ const Maintenance = () => {
         vehicleOptions={vehicleOptions}
       />
 
-      {view === 'table' ? (
-        <Card className="p-4">
-          <MaintenanceTable 
-            records={filteredRecords}
-            isLoading={isLoading}
-            onEdit={handleEditMaintenance}
-            onDelete={handleDeleteMaintenance}
-          />
-        </Card>
-      ) : (
+      <Card className="p-4">
         <VehicleMaintenanceCards 
           vehicles={vehicles || []}
           isLoading={isLoadingVehicles}
         />
-      )}
+      </Card>
     </PageContainer>
   );
 };
