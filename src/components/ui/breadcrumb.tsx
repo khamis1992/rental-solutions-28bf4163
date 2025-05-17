@@ -95,7 +95,7 @@ const BreadcrumbEllipsis = React.forwardRef<
     <span className="flex h-1 w-1 rounded-full bg-muted-foreground/60" />
   </span>
 ))
-BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+BreadcrumbEllipsis.displayName = "BreadcrumbEllipsis"
 
 export {
   Breadcrumb,
