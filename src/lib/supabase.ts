@@ -1,12 +1,238 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Connection status cache to avoid repeated health checks
+let lastHealthCheck = {
+  timestamp: 0,
+  isHealthy: true,
+  error: null as string | null,
+};
+const HEALTH_CACHE_TTL = 5000; // 5 seconds
+
+/**
+ * Test the database connection with caching
+ */
+export const testConnection = async (): Promise<boolean> => {
+  try {
+    const now = Date.now();
+    if (now - lastHealthCheck.timestamp < HEALTH_CACHE_TTL) {
+      return lastHealthCheck.isHealthy;
+    }
+
+    const { error } = await supabase.from('vehicles').select('count', {
+      count: 'exact',
+      head: true,
+    });
+
+    const isHealthy = !error;
+    lastHealthCheck = {
+      timestamp: now,
+      isHealthy,
+      error: error ? error.message : null,
+    };
+
+    return isHealthy;
+  } catch (err) {
+    console.error('Supabase connection test failed:', err);
+    lastHealthCheck = {
+      timestamp: Date.now(),
+      isHealthy: false,
+      error: err instanceof Error ? err.message : 'Unknown connection error',
+    };
+    return false;
+  }
+};
+
+/**
+ * Detailed health check with retries and latency measurement
+ */
+export const checkSupabaseHealth = async (): Promise<{
+  isHealthy: boolean;
+  error?: string;
+  latency?: number;
+  timestamp: number;
+  connectionCount?: number;
+}> => {
+  const MAX_RETRIES = 3;
+  let retryCount = 0;
+  try {
+    const now = Date.now();
+    if (now - lastHealthCheck.timestamp < HEALTH_CACHE_TTL) {
+      return {
+        isHealthy: lastHealthCheck.isHealthy,
+        error: lastHealthCheck.error || undefined,
+        timestamp: lastHealthCheck.timestamp,
+      };
+    }
+
+    let error: any = null;
+    let isHealthy = false;
+    const startTime = performance.now();
+
+    while (retryCount < MAX_RETRIES && !isHealthy) {
+      try {
+        if (retryCount === 0) {
+          const res = await supabase.from('vehicles').select('count', {
+            count: 'exact',
+            head: true,
+          });
+          error = res.error;
+        } else if (retryCount === 1) {
+          const res = await supabase.from('vehicle_types').select('count', {
+            count: 'exact',
+            head: true,
+          });
+          error = res.error;
+        } else {
+          const res = await supabase.rpc('get_server_time');
+          error = res.error;
+        }
+
+        isHealthy = !error;
+        if (isHealthy) break;
+
+        console.log(
+          `Health check attempt ${retryCount + 1} failed: ${error?.message}`,
+        );
+        retryCount++;
+        await new Promise((r) => setTimeout(r, 500 * retryCount));
+      } catch (err) {
+        error = err;
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 500 * retryCount));
+        }
+      }
+    }
+
+    const endTime = performance.now();
+    const latency = Math.round(endTime - startTime);
+
+    if (!isHealthy) {
+      console.error('All Supabase health check attempts failed:', error);
+      lastHealthCheck = {
+        timestamp: now,
+        isHealthy: false,
+        error: error
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : 'Unknown database error',
+      };
+      return {
+        isHealthy: false,
+        error:
+          error && error instanceof Error
+            ? error.message
+            : error
+              ? String(error)
+              : 'Unknown database error',
+        latency,
+        timestamp: now,
+      };
+    }
+
+    lastHealthCheck = {
+      timestamp: now,
+      isHealthy: true,
+      error: null,
+    };
+
+    return { isHealthy: true, latency, timestamp: now };
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : 'Unknown error checking Supabase connection';
+    console.error('Supabase connection error:', errorMessage);
+    lastHealthCheck = {
+      timestamp: Date.now(),
+      isHealthy: false,
+      error: errorMessage,
+    };
+    return {
+      isHealthy: false,
+      error: errorMessage,
+      timestamp: Date.now(),
+    };
+  }
+};
+
+/**
+ * Retry connection attempts with exponential backoff
+ */
+export const checkConnectionWithRetry = async (
+  retries = 3,
+  initialDelay = 1000,
+): Promise<boolean> => {
+  let attempts = 0;
+  let delay = initialDelay;
+
+  while (attempts < retries) {
+    const { isHealthy } = await checkSupabaseHealth();
+    if (isHealthy) return true;
+
+    attempts++;
+    if (attempts < retries) {
+      console.log(`Connection attempt ${attempts} failed, retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, 10000);
+    }
+  }
+
+  console.error(`Failed to connect to database after ${retries} attempts`);
+  return false;
+};
+
+/**
+ * Monitor database connectivity and show UI notifications
+ */
+export const monitorDatabaseConnection = (
+  onConnectionChange?: (status: { isConnected: boolean; error?: string }) => void,
+  pollingIntervalMs = 30000,
+): (() => void) => {
+  let previousStatus = true;
+
+  const checkConnection = async () => {
+    const { isHealthy, error, latency } = await checkSupabaseHealth();
+    if (isHealthy !== previousStatus) {
+      previousStatus = isHealthy;
+
+      if (!isHealthy) {
+        console.error(`Database connection lost: ${error}`);
+        toast.error('Database connection lost', {
+          description: `Cannot connect to database: ${error || 'Check your internet connection'}`,
+          duration: 0,
+          id: 'db-connection-error',
+        });
+      } else {
+        console.log(`Database connection restored (latency: ${latency}ms)`);
+        toast.success('Database connection restored', {
+          description: 'Your connection to the database has been re-established',
+          id: 'db-connection-error',
+        });
+      }
+
+      if (onConnectionChange) {
+        onConnectionChange({ isConnected: isHealthy, error });
+      }
+    }
+  };
+
+  checkConnection();
+  const interval = setInterval(checkConnection, pollingIntervalMs);
+  return () => clearInterval(interval);
+};
 
 /**
  * Runs payment schedule maintenance job

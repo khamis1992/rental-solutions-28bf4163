@@ -10,7 +10,7 @@ import { Pencil, Trash2, Calendar, Car, ClipboardList, CreditCard, MapPin, User,
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
