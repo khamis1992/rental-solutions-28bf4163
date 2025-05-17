@@ -70,7 +70,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
-import { UserData, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
+// Import with both named and default import to ensure compatibility
+import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 
 interface PermissionSettings {
   view: boolean;
@@ -105,7 +106,7 @@ const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
 };
 
 const UserList = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<UserDataType[]>([]);
   const [loading, setLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -120,11 +121,11 @@ const UserList = () => {
     staff: 0
   });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserDataType | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserData | null(null);
+  const [userToDelete, setUserToDelete] = useState<UserDataType | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
@@ -182,7 +183,7 @@ const UserList = () => {
 
       if (error) throw error;
 
-      setUsers(data as unknown as UserData[]);
+      setUsers(data as unknown as UserDataType[]);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
       toast.error("Failed to load users: " + error.message);
@@ -276,7 +277,7 @@ const UserList = () => {
     }
   };
 
-  const openDeleteDialog = (user: UserData) => {
+  const openDeleteDialog = (user: UserDataType) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
   };
@@ -323,7 +324,7 @@ const UserList = () => {
     }
   };
 
-  const openPermissionDialog = (user: UserData) => {
+  const openPermissionDialog = (user: UserDataType) => {
     setSelectedUser(user);
     setShowPermissionDialog(true);
   };
@@ -378,7 +379,7 @@ const UserList = () => {
     return true;
   });
 
-  const columns: ColumnDef<UserData>[] = [
+  const columns: ColumnDef<UserDataType>[] = [
     {
       accessorKey: "full_name",
       header: "Name",
