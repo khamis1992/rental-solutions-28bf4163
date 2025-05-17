@@ -12,6 +12,43 @@ interface PaymentHistoryRow {
 }
 
 /**
+ * Helper function to add company logo to PDF documents
+ * @param doc jsPDF document instance
+ * @param x X position (left)
+ * @param y Y position (top)
+ * @param width Width of the logo
+ * @param height Height of the logo
+ */
+export const addCompanyLogo = (doc: jsPDF, x: number = 20, y: number = 10, width: number = 30, height: number = 15) => {
+  const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  try {
+    doc.addImage(logoPath, 'PNG', x, y, width, height);
+  } catch (error) {
+    console.error('Failed to add logo to PDF:', error);
+  }
+};
+
+/**
+ * Helper function to add footer image to PDF documents
+ * @param doc jsPDF document instance
+ * @param width Width of the image
+ * @param height Height of the image
+ */
+export const addFooterImage = (doc: jsPDF, width: number = 30, height: number = 15) => {
+  const logoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
+  try {
+    // Calculate center position
+    const pageWidth = doc.internal.pageSize.width;
+    const x = (pageWidth - width) / 2;
+    const y = doc.internal.pageSize.height - height - 5; // Place 5 units from bottom
+    
+    doc.addImage(logoPath, 'PNG', x, y, width, height);
+  } catch (error) {
+    console.error('Failed to add footer image to PDF:', error);
+  }
+};
+
+/**
  * Generate a standard report with consistent styling and headers
  * @param title Title of the report
  * @param dateRange Optional date range for the report
@@ -24,13 +61,15 @@ export const generateStandardReport = (
   contentRenderer: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
   const doc = new jsPDF();
-  
-  doc.setProperties({
+    doc.setProperties({
     title: title,
     subject: 'Report',
     author: 'Alaraf Car Rental',
     creator: 'Alaraf Car Rental System'
   });
+  
+  // Add company logo to the left corner
+  addCompanyLogo(doc);
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
@@ -60,13 +99,15 @@ export const generateStandardReport = (
   doc.line(20, 35, doc.internal.pageSize.getWidth() - 20, 35);
   
   const endY = contentRenderer(doc, 45);
-  
-  const pageCount = doc.getNumberOfPages();
+    const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    // Add footer image to the center of the footer
+    addFooterImage(doc);
+    
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 25, { align: 'center' });
     doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
   }
   
@@ -82,18 +123,20 @@ export const generatePaymentHistoryPdf = (
     orientation: 'landscape',
     unit: 'mm'
   });
-  
-  doc.setProperties({
+    doc.setProperties({
     title: title,
     subject: 'Invoice',
     author: 'Alaraf Car Rental',
     creator: 'Alaraf Car Rental System'
   });
   
+  // Add company logo to the left corner
+  addCompanyLogo(doc);
+  
   doc.setFontSize(24);
   doc.setTextColor(44, 62, 80);
   doc.setFont('helvetica', 'bold');
-  doc.text('ALARAF CAR RENTAL', 20, 20);
+  doc.text('ALARAF CAR RENTAL', 55, 20); // Moved text position to make room for logo
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -196,24 +239,27 @@ export const generatePaymentHistoryPdf = (
     
     currentY += 10;
   });
-  
-  const pageCount = doc.getNumberOfPages();
+    const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    
+    // Add footer image to the center of the footer
+    addFooterImage(doc);
+    
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     const pageText = `Page ${i} of ${pageCount}`;
-    doc.text(pageText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(pageText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 25, { align: 'center' });
     
     if (i === pageCount) {
       doc.setFont('helvetica', 'bold');
-      doc.text('Payment Terms:', 20, doc.internal.pageSize.getHeight() - 30);
+      doc.text('Payment Terms:', 20, doc.internal.pageSize.getHeight() - 45);
       doc.setFont('helvetica', 'normal');
       doc.text([
         '1. Payment is due within 30 days of invoice date',
         '2. Please include invoice number in payment reference',
         '3. Late payments are subject to additional fees'
-      ], 20, doc.internal.pageSize.getHeight() - 25);
+      ], 20, doc.internal.pageSize.getHeight() - 40);
     }
     
     doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });

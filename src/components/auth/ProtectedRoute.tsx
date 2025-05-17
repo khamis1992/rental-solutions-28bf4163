@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,22 +16,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   if (authLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  // Not authenticated
   if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Role-based access control (if roles are specified)
-  if (roles && roles.length > 0) {
-    const userRole = profile?.role || 'staff';
-    if (!roles.includes(userRole)) {
-      return <Navigate to="/unauthorized" replace />;
-    }
+  if (roles?.length && !roles.includes(profile?.role ?? "staff")) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Shield, UserCog } from "lucide-react";
 import { 
@@ -19,42 +18,38 @@ interface UserRoleManagerProps {
   disabled?: boolean;
 }
 
-export const UserRoleManager = ({ userId, currentRole, fullName, disabled = false }: UserRoleManagerProps) => {
+export const UserRoleManager = ({ 
+  userId, 
+  currentRole, 
+  fullName, 
+  disabled = false 
+}: UserRoleManagerProps) => {
   const [role, setRole] = useState<string>(currentRole);
   const [isChanging, setIsChanging] = useState(false);
 
-  // Update the role state when currentRole prop changes
+  // Sync role with prop updates
   useEffect(() => {
     setRole(currentRole);
   }, [currentRole]);
 
   const handleRoleChange = async (newRole: string) => {
-    if (newRole === role || disabled) return;
-    
+    if (newRole === role || disabled || isChanging) return;
+
     try {
       setIsChanging(true);
-      console.log(`Attempting to update user ${userId} from role ${role} to ${newRole}`);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("profiles")
-        .update({ role: newRole as UserRole } as any)
-        .eq("id", userId as any)
-        .select("role");
+        .update({ role: newRole as UserRole })
+        .eq("id", userId);
       
-      if (error) {
-        console.error("Update role error details:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("Update response:", data);
-      
-      // Only update the local role state if the server update succeeded
       setRole(newRole);
       toast.success(`${fullName}'s role updated to ${newRole}`);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role: " + error.message);
-      // Reset to the previous role on error
+      toast.error(`Failed to update ${fullName}'s role`);
       setRole(currentRole);
     } finally {
       setIsChanging(false);
@@ -79,16 +74,12 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="admin" className="flex items-center">
-            <div className="flex items-center">
-              <Shield className="h-4 w-4 mr-2 text-primary" />
-              <span>Admin</span>
-            </div>
+            <Shield className="h-4 w-4 mr-2 text-primary" />
+            Admin
           </SelectItem>
           <SelectItem value="staff" className="flex items-center">
-            <div className="flex items-center">
-              <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-              <span>Staff</span>
-            </div>
+            <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+            Staff
           </SelectItem>
         </SelectContent>
       </Select>

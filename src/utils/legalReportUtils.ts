@@ -4,6 +4,7 @@ import { LegalCase } from '@/types/legal-case';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
+import { addCompanyLogo, addFooterImage } from './report-utils';
 
 // Define our styles object manually instead of using createStyles from react-to-pdf
 const legalReportStyles = {
@@ -85,9 +86,11 @@ export const generateLegalCustomerReport = async (
   customerId: string,
   customerName: string,
   obligations: CustomerObligation[]
-): Promise<jsPDF> => {
-  // Create a new PDF document
+): Promise<jsPDF> => {  // Create a new PDF document
   const doc = new jsPDF();
+  
+  // Add company logo
+  addCompanyLogo(doc);
   
   // Set up document
   doc.setFont('helvetica', 'bold');
@@ -209,18 +212,20 @@ export const generateLegalCustomerReport = async (
     
     y += 10;
   });
-  
-  // Add footer
+    // Add footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    
+    // Add footer image
+    addFooterImage(doc);
     
     // Footer with page number
     doc.setFontSize(8);
     doc.text(
       `Page ${i} of ${pageCount}`,
       105,
-      doc.internal.pageSize.height - 10,
+      doc.internal.pageSize.height - 25,
       { align: 'center' }
     );
     

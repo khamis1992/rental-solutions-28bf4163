@@ -3,11 +3,14 @@ import jsPDF from 'jspdf';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
+import { addCompanyLogo, addFooterImage } from './report-utils';
 
 export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
-  try {
-    // Create a new PDF document
+  try {    // Create a new PDF document
     const doc = new jsPDF();
+    
+    // Add company logo
+    addCompanyLogo(doc);
     
     // Set font size and style for the header
     doc.setFontSize(16);
@@ -255,10 +258,24 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     doc.text('Party One:', leftMargin, y);
     doc.text('Party Two:', leftMargin + 100, y);
     y += lineHeight;
-    
-    doc.setFont('helvetica', 'normal');
+      doc.setFont('helvetica', 'normal');
     doc.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
     doc.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
+    
+    // Add footer image to all pages
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      
+      // Add footer image to center of the page
+      addFooterImage(doc);
+      
+      // Add page number
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 25, { align: 'center' });
+      doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 5, { align: 'center' });
+    }
     
     // Save the PDF with the agreement number
     doc.save(`Rental_Agreement-${agreement.agreement_number}.pdf`);

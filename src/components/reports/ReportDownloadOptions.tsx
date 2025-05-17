@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
-import { generateStandardReport } from '@/utils/report-utils';
+import { generateStandardReport, addCompanyLogo, addFooterImage } from '@/utils/report-utils';
 
 export interface ReportDownloadOptionsProps {
   reportType: string;
@@ -160,12 +160,14 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         
         doc.save('traffic-fines-report.pdf');
         toast.success('PDF Report downloaded successfully');
-      } else {
-        // Handle other report types with proper pagination
+      } else {        // Handle other report types with proper pagination
         const pdf = new jsPDF();
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const marginBottom = 30;
+        
+        // Add company logo
+        addCompanyLogo(pdf);
         
         pdf.setFontSize(20);
         pdf.setTextColor(44, 62, 80);
@@ -395,15 +397,18 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             y += 8;
           });
         }
-        
-        // Add page numbers and footer to each page
+          // Add page numbers and footer to each page
         const pageCount = pdf.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           pdf.setPage(i);
+          
+          // Add footer image
+          addFooterImage(pdf);
+          
           pdf.setFont('helvetica', 'italic');
           pdf.setFontSize(10);
           pdf.setTextColor(150, 150, 150);
-          pdf.text(`Page ${i} of ${pageCount}`, 105, 280, { align: 'center' });
+          pdf.text(`Page ${i} of ${pageCount}`, 105, 260, { align: 'center' });
           pdf.text('CONFIDENTIAL - ALARAF CAR RENTAL', 105, 287, { align: 'center' });
         }
         

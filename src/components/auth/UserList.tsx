@@ -72,7 +72,6 @@ import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
 import { UserData, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 
-// Define the permission settings interface
 interface PermissionSettings {
   view: boolean;
   create: boolean;
@@ -125,12 +124,11 @@ const UserList = () => {
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserData | null(null);
   const [deletingUser, setDeletingUser] = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
   const { profile } = useProfile();
-  
   const form = useForm({
     defaultValues: {
       role: "",
@@ -145,12 +143,24 @@ const UserList = () => {
     if (users.length > 0) {
       const stats = {
         total: users.length,
-        active: users.filter(user => user.status === 'active').length,
-        pending: users.filter(user => user.status === 'pending_review').length,
-        inactive: users.filter(user => user.status === 'inactive').length,
-        admins: users.filter(user => user.role === 'admin').length,
-        staff: users.filter(user => user.role === 'staff').length
+        active: 0,
+        pending: 0,
+        inactive: 0,
+        admins: 0,
+        staff: 0
       };
+
+      users.forEach(user => {
+        switch (user.status) {
+          case "active": stats.active++; break;
+          case "pending_review": stats.pending++; break;
+          case "inactive": stats.inactive++; break;
+        }
+
+        if (user.role === "admin") stats.admins++;
+        else if (user.role === "staff") stats.staff++;
+      });
+
       setUserStats(stats);
     }
   }, [users]);
@@ -158,7 +168,6 @@ const UserList = () => {
   useEffect(() => {
     if (selectedUser) {
       form.setValue("role", selectedUser.role);
-      
       setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
     }
   }, [selectedUser, form]);
@@ -166,19 +175,13 @@ const UserList = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .not('role', 'eq', 'customer');
-      
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
-      
-      console.log("Fetched users:", data);
-      // Cast the data to unknown first, then to UserData[] to bypass TypeScript's strict type checking
+        .not('role', 'eq', 'customer') as { data: DbProfileRow[] | null; error: any };
+
+      if (error) throw error;
+
       setUsers(data as unknown as UserData[]);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
@@ -191,20 +194,15 @@ const UserList = () => {
   const deleteUser = async (userId: string) => {
     try {
       setDeletingUser(true);
-      
       const { error: profileError } = await supabase
         .from("profiles")
         .delete()
-        .eq("id", userId as any);
-      
-      if (profileError) {
-        console.error("Error deleting user profile:", profileError);
-        throw profileError;
-      }
-      
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+
       setUsers(users.filter(user => user.id !== userId));
       toast.success("User deleted successfully");
-      
       setShowDeleteDialog(false);
       setUserToDelete(null);
     } catch (error: any) {
@@ -218,32 +216,22 @@ const UserList = () => {
   const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
     try {
       setBulkDeletingUsers(true);
-      
       const usersToDelete = users.filter(user => 
         user.email === email && user.id !== excludeUserId
       );
-      
-      if (usersToDelete.length === 0) {
+
+      if (!usersToDelete.length) {
         toast.info("No duplicate users found with this email");
         return;
       }
-      
+
       for (const user of usersToDelete) {
-        const { error } = await supabase
-          .from("profiles")
-          .delete()
-          .eq("id", user.id as any);
-        
-        if (error) {
-          console.error(`Error deleting user ${user.id}:`, error);
-          throw error;
-        }
+        const { error } = await supabase.from("profiles").delete().eq("id", user.id);
+        if (error) throw error;
       }
-      
+
       await fetchUsers();
-      
       toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
-      
       setShowBulkDeleteDialog(false);
     } catch (error: any) {
       console.error("Error performing bulk deletion:", error.message);
@@ -258,49 +246,30 @@ const UserList = () => {
       toast.error("Cannot delete users: Your profile is not loaded");
       return;
     }
-    
+
     try {
       setBulkDeletingUsers(true);
-      console.log("Starting deletion of duplicate Khamis accounts");
-      
-      // Find all Khamis accounts except the current user's account
       const khamisUsers = users.filter(user => 
         user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
       );
-      
-      console.log(`Found ${khamisUsers.length} duplicate Khamis accounts to delete`);
-      
-      if (khamisUsers.length === 0) {
-        toast.info("No duplicate users found with this email");
+
+      if (!khamisUsers.length) {
+        toast.info("No duplicate Khamis accounts found");
         setBulkDeletingUsers(false);
         return;
       }
-      
-      // Loop through and delete each duplicate account
+
       const deletionPromises = khamisUsers.map(async (user) => {
-        console.log(`Attempting to delete user ${user.id}`);
-        const { error } = await supabase
-          .from("profiles")
-          .delete()
-          .eq("id", user.id as any);
-        
-        if (error) {
-          console.error(`Error deleting user ${user.id}:`, error);
-          throw error;
-        }
-        console.log(`Successfully deleted user ${user.id}`);
+        const { error } = await supabase.from("profiles").delete().eq("id", user.id);
+        if (error) throw error;
         return user.id;
       });
-      
-      // Wait for all deletions to complete
+
       await Promise.all(deletionPromises);
-      
-      // Refresh user list
       await fetchUsers();
-      
       toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
     } catch (error: any) {
-      console.error("Error deleting duplicate Khamis accounts:", error.message);
+      console.error("Error deleting Khamis duplicates:", error.message);
       toast.error("Failed to delete users: " + error.message);
     } finally {
       setBulkDeletingUsers(false);
@@ -316,31 +285,21 @@ const UserList = () => {
     try {
       const { error: tarekError } = await supabase
         .from("profiles")
-        .update({ role: "admin" } as any)
-        .eq("email", "tareklaribi25914@gmail.com" as any);
-      
-      if (tarekError) {
-        console.error("Error updating Tarek's role:", tarekError);
-        throw tarekError;
-      }
-      
-      console.log("Tarek's account has been set as admin");
-      
+        .update({ role: "admin" })
+        .eq("email", "tareklaribi25914@gmail.com");
+
+      if (tarekError) throw tarekError;
+
       const { error: khamisError } = await supabase
         .from("profiles")
-        .update({ role: "admin" } as any)
-        .eq("email", "khamis-1992@hotmail.com" as any);
-      
-      if (khamisError) {
-        console.error("Error updating Khamis's role:", khamisError);
-        throw khamisError;
-      }
-      
-      console.log("Khamis's account has been set as admin");
-      
+        .update({ role: "admin" })
+        .eq("email", "khamis-1992@hotmail.com");
+
+      if (khamisError) throw khamisError;
+
       fetchUsers();
     } catch (error: any) {
-      console.error("Error updating user roles:", error.message);
+      console.error("Error updating roles:", error.message);
     }
   };
 
@@ -348,18 +307,15 @@ const UserList = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ status: newStatus } as any)
-        .eq("id", userId as any);
-      
-      if (error) {
-        console.error("Update status error details:", error);
-        throw error;
-      }
-      
+        .update({ status: newStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newStatus } : user
       ));
-      
+
       toast.success(`User status updated to ${newStatus}`);
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
@@ -374,21 +330,19 @@ const UserList = () => {
 
   const savePermissions = async () => {
     if (!selectedUser || !userPermissions) return;
-    
     setSaving(true);
+
     try {
       const newRole = form.getValues("role") as UserRole;
-      
       if (newRole !== selectedUser.role) {
         await supabase
           .from("profiles")
-          .update({ role: newRole } as any)
-          .eq("id", selectedUser.id as any);
+          .update({ role: newRole })
+          .eq("id", selectedUser.id);
       }
-      
+
       toast.success("User permissions updated successfully");
       setShowPermissionDialog(false);
-      
       fetchUsers();
     } catch (error: any) {
       console.error("Error saving permissions:", error.message);
@@ -400,16 +354,12 @@ const UserList = () => {
 
   const handleRoleChange = (value: string) => {
     form.setValue("role", value);
-    
     setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
   };
 
   const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
-    if (!userPermissions) return;
-    
     setUserPermissions(prev => {
       if (!prev) return prev;
-      
       return {
         ...prev,
         [section]: {
@@ -420,9 +370,7 @@ const UserList = () => {
     });
   };
 
-  const isCurrentUser = (userId: string) => {
-    return profile?.id === userId;
-  };
+  const isCurrentUser = (userId: string) => profile?.id === userId;
 
   const filteredUsers = users.filter(user => {
     if (roleFilter !== "all" && user.role !== roleFilter) return false;
@@ -453,7 +401,6 @@ const UserList = () => {
         const user = row.original;
         const isAdmin = profile?.role === "admin";
         const isSelf = isCurrentUser(user.id);
-        
         return (
           <UserRoleManager 
             userId={user.id}
@@ -503,7 +450,6 @@ const UserList = () => {
         const user = row.original;
         const currentUserProfile = profile?.id === user.id;
         const isAdmin = profile?.role === "admin";
-        
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -632,7 +578,6 @@ const UserList = () => {
           </CardContent>
         </Card>
       </div>
-      
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex-1">
           <div className="relative">
@@ -656,7 +601,6 @@ const UserList = () => {
               <SelectItem value="staff">Staff</SelectItem>
             </SelectContent>
           </Select>
-          
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Filter by status" />
@@ -668,13 +612,11 @@ const UserList = () => {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-          
           <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading}>
             <Filter className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      
       <div className="flex justify-end space-x-2">
         <Button 
           variant="destructive" 
@@ -682,17 +624,9 @@ const UserList = () => {
           onClick={handleDeleteKhamis}
           disabled={bulkDeletingUsers}
         >
-          {bulkDeletingUsers ? (
-            <>Deleting...</>
-          ) : (
-            <>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Duplicate Khamis Accounts
-            </>
-          )}
+          {bulkDeletingUsers ? "Deleting..." : "Delete Duplicate Khamis Accounts"}
         </Button>
       </div>
-      
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -735,7 +669,6 @@ const UserList = () => {
           </TableBody>
         </Table>
       </div>
-      
       <div className="flex items-center justify-between py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
@@ -760,6 +693,7 @@ const UserList = () => {
         </div>
       </div>
 
+      {/* Permission Dialog */}
       {selectedUser && (
         <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
           <DialogContent className="sm:max-w-md">
@@ -786,7 +720,6 @@ const UserList = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-5 font-medium">
                   <div>Feature</div>
@@ -795,11 +728,9 @@ const UserList = () => {
                   <div className="text-center">Edit</div>
                   <div className="text-center">Delete</div>
                 </div>
-                
                 {userPermissions && Object.entries(userPermissions).map(([key, permissions]) => {
                   const section = key as keyof UserPermissions;
                   const featureName = key.replace(/([A-Z])/g, ' $1').trim();
-                  
                   return (
                     <div key={key} className="grid grid-cols-5 items-center border-t pt-4">
                       <div className="font-medium">{featureName}</div>
@@ -835,7 +766,6 @@ const UserList = () => {
                   );
                 })}
               </div>
-              
               {(profile?.role !== "admin" || isCurrentUser(selectedUser.id)) && (
                 <p className="mt-4 text-sm text-amber-600">
                   {isCurrentUser(selectedUser.id) 
@@ -861,6 +791,7 @@ const UserList = () => {
         </Dialog>
       )}
 
+      {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -885,6 +816,7 @@ const UserList = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Bulk Delete Dialog */}
       <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

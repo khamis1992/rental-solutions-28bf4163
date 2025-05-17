@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -43,11 +42,7 @@ const UserProfile = () => {
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       setIsUpdating(true);
-      // Only include fields that are editable
-      const updates: Partial<Profile> = {
-        full_name: data.full_name,
-      };
-      await updateProfile(updates);
+      await updateProfile({ full_name: data.full_name });
     } catch (error) {
       console.error("Profile update error:", error);
     } finally {
@@ -85,6 +80,7 @@ const UserProfile = () => {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="email"
@@ -98,27 +94,20 @@ const UserProfile = () => {
                 </FormItem>
               )}
             />
+
             <div className="flex items-center space-x-2">
               <div className="font-medium">Role:</div>
-              <div className="text-muted-foreground">
-                {profile?.role || "User"}
-              </div>
+              <div className="text-muted-foreground">{profile?.role || "User"}</div>
             </div>
+
             <div className="flex items-center space-x-2">
               <div className="font-medium">Account Status:</div>
-              <div className="text-muted-foreground">
-                {profile?.role ? "Active" : "Pending"}
-              </div>
+              <div className="text-muted-foreground">{profile?.status ? capitalize(profile.status) : "Pending"}</div>
             </div>
+
             <Button type="submit" disabled={isUpdating}>
-              {isUpdating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Save changes"
-              )}
+              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUpdating ? "Updating..." : "Save changes"}
             </Button>
           </form>
         </Form>
@@ -129,3 +118,8 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+
+// Helper function
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
