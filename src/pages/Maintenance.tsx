@@ -1,34 +1,178 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import MaintenanceList from '@/components/maintenance/MaintenanceList';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import MaintenanceDashboard from '@/components/maintenance/MaintenanceDashboard';
+import MaintenanceFilters, { MaintenanceFilterOptions } from '@/components/maintenance/MaintenanceFilters';
+import MaintenanceTable from '@/components/maintenance/MaintenanceTable';
+import VehicleMaintenanceCards from '@/components/maintenance/VehicleMaintenanceCards';
+import { useMaintenance, MaintenanceRecord } from '@/hooks/use-maintenance';
+import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { Card } from '@/components/ui/card';
-import VehiclesInMaintenanceGrid from '@/components/maintenance/VehiclesInMaintenanceGrid';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 const Maintenance = () => {
-  const [activeTab, setActiveTab] = useState('records');
+  const navigate = useNavigate();
+  const [view, setView] = useState<'cards' | 'table'>('table');
+  const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<MaintenanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState<MaintenanceFilterOptions>({
+    searchTerm: '',
+    status: '',
+    vehicle: '',
+    dateFrom: undefined,
+    dateTo: undefined,
+    maintenanceType: ''
+  });
+
+  // Get vehicles that are in maintenance
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicleService({
+    statuses: ['maintenance', 'accident']
+  });
+
+  // Fetch all maintenance records
+  useEffect(() => {
+    const fetchRecords = async () => {
+      setIsLoading(true);
+      try {
+        const records = await getAllRecords();
+        setMaintenanceRecords(records);
+        setFilteredRecords(records);
+      } catch (error) {
+        console.error('Error fetching maintenance records:', error);
+        toast.error('Failed to load maintenance records');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRecords();
+  }, [getAllRecords]);
+
+  // Apply filters to maintenance records
+  useEffect(() => {
+    if (!maintenanceRecords) return;
+    
+    let filtered = [...maintenanceRecords];
+    
+    // Apply search term
+    if (filters.searchTerm) {
+      const search = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(record => 
+        (record.service_type && record.service_type.toLowerCase().includes(search)) ||
+        (record.description && record.description.toLowerCase().includes(search)) ||
+        (record.notes && record.notes.toLowerCase().includes(search))
+      );
+    }
+    
+    // Apply status filter
+    if (filters.status) {
+      filtered = filtered.filter(record => record.status === filters.status);
+    }
+    
+    // Apply vehicle filter
+    if (filters.vehicle) {
+      filtered = filtered.filter(record => record.vehicle_id === filters.vehicle);
+    }
+    
+    // Apply maintenance type filter
+    if (filters.maintenanceType) {
+      filtered = filtered.filter(record => record.maintenance_type === filters.maintenanceType);
+    }
+    
+    // Apply date range filters
+    if (filters.dateFrom) {
+      filtered = filtered.filter(record => 
+        record.scheduled_date && new Date(record.scheduled_date) >= filters.dateFrom!
+      );
+    }
+    
+    if (filters.dateTo) {
+      filtered = filtered.filter(record => 
+        record.scheduled_date && new Date(record.scheduled_date) <= filters.dateTo!
+      );
+    }
+    
+    setFilteredRecords(filtered);
+  }, [filters, maintenanceRecords]);
+
+  // Vehicle options for filter dropdown
+  const vehicleOptions = vehicles?.map(vehicle => ({
+    id: vehicle.id,
+    label: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`
+  })) || [];
+
+  const handleFilterChange = (newFilters: MaintenanceFilterOptions) => {
+    setFilters(newFilters);
+  };
+
+  const handleAddMaintenance = () => {
+    navigate('/maintenance/add');
+  };
+
+  const handleEditMaintenance = (record: MaintenanceRecord) => {
+    navigate(`/maintenance/${record.id}/edit`);
+  };
+
+  const handleDeleteMaintenance = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this maintenance record?')) {
+      try {
+        await deleteMaintenanceRecord(id);
+        setMaintenanceRecords(prev => prev.filter(record => record.id !== id));
+        toast.success('Maintenance record deleted successfully');
+      } catch (error) {
+        console.error('Error deleting maintenance record:', error);
+        toast.error('Failed to delete maintenance record');
+      }
+    }
+  };
 
   return (
     <PageContainer
       title="Vehicle Maintenance"
-      description="Track maintenance records and schedule service for your vehicles"
+      description="Track and manage all your vehicle maintenance activities"
       systemDate={new Date()}
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="records" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="records">Maintenance Records</TabsTrigger>
-          <TabsTrigger value="vehicles">Vehicles In Maintenance</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <Tabs value={view} onValueChange={(v) => setView(v as 'cards' | 'table')} className="w-auto">
+          <TabsList>
+            <TabsTrigger value="table">Table View</TabsTrigger>
+            <TabsTrigger value="cards">Card View</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button onClick={handleAddMaintenance}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Maintenance
+        </Button>
+      </div>
 
-        <TabsContent value="records">
-          <MaintenanceList />
-        </TabsContent>        <TabsContent value="vehicles">
-          <Card className="p-4">
-            <VehiclesInMaintenanceGrid />
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <MaintenanceDashboard />
+
+      <MaintenanceFilters 
+        onFilterChange={handleFilterChange}
+        vehicleOptions={vehicleOptions}
+      />
+
+      {view === 'table' ? (
+        <Card className="p-4">
+          <MaintenanceTable 
+            records={filteredRecords}
+            isLoading={isLoading}
+            onEdit={handleEditMaintenance}
+            onDelete={handleDeleteMaintenance}
+          />
+        </Card>
+      ) : (
+        <VehicleMaintenanceCards 
+          vehicles={vehicles || []}
+          isLoading={isLoadingVehicles}
+        />
+      )}
     </PageContainer>
   );
 };
