@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { useQuery } from '@tanstack/react-query';
 import {
   Select,
@@ -9,31 +8,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
 
 interface VehicleSelectorProps {
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
+  placeholder?: string;
+  selectedVehicle?: any;
+  onVehicleSelect?: (vehicle: any) => void;
 }
 
-const VehicleSelector: React.FC<VehicleSelectorProps> = ({ value, onChange }) => {
-  const vehicleService = useVehicleService();
-  
+const VehicleSelector: React.FC<VehicleSelectorProps> = ({ 
+  value, 
+  onChange, 
+  placeholder = "Select a vehicle",
+  selectedVehicle,
+  onVehicleSelect
+}) => {
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ['vehicles'],
     queryFn: async () => {
       try {
-        return await vehicleService.getAvailableVehicles();
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('status', 'available')
+          .order('make');
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data || [];
       } catch (error) {
         console.error("Error fetching vehicles:", error);
         return [];
       }
     }
   });
+  
+  // Handle the vehicle selection
+  const handleSelectionChange = (vehicleId: string) => {
+    onChange(vehicleId);
+    
+    if (onVehicleSelect) {
+      const selectedVehicle = vehicles?.find(v => v.id === vehicleId);
+      if (selectedVehicle) {
+        onVehicleSelect(selectedVehicle);
+      }
+    }
+  };
 
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select 
+      value={value} 
+      onValueChange={handleSelectionChange}
+    >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select a vehicle" />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {isLoading ? (

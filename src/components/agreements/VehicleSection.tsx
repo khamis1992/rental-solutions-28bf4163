@@ -1,17 +1,85 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, Calendar, FileText } from 'lucide-react';
 import { Vehicle } from '@/types/vehicle';
+import { supabase } from '@/lib/supabase';
 
 interface VehicleSectionProps {
-  vehicle: Vehicle;
+  vehicle?: Vehicle;
+  vehicleId?: string; 
+  leaseId?: string;
   onViewDetails?: () => void;
 }
 
-const VehicleSection = ({ vehicle, onViewDetails }: VehicleSectionProps) => {
+const VehicleSection = ({ 
+  vehicle: initialVehicle, 
+  vehicleId,
+  onViewDetails 
+}: VehicleSectionProps) => {
+  const [vehicle, setVehicle] = useState<Vehicle | null>(initialVehicle || null);
+  const [loading, setLoading] = useState<boolean>(!initialVehicle && !!vehicleId);
+
+  useEffect(() => {
+    if (vehicleId && !initialVehicle) {
+      const fetchVehicle = async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('id', vehicleId)
+            .single();
+          
+          if (error) throw error;
+          
+          if (data) {
+            setVehicle(data as Vehicle);
+          }
+        } catch (error) {
+          console.error('Error fetching vehicle:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchVehicle();
+    }
+  }, [vehicleId, initialVehicle]);
+
+  if (loading) {
+    return (
+      <Card className="bg-gradient-to-br from-zinc-50 to-slate-50 border-0 shadow-md">
+        <CardHeader className="pb-4">
+          <div className="animate-pulse">
+            <div className="bg-gray-200 h-8 w-48 rounded"></div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            <div className="bg-gray-200 h-4 w-3/4 rounded"></div>
+            <div className="bg-gray-200 h-4 w-1/2 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!vehicle) {
+    return (
+      <Card className="bg-gradient-to-br from-zinc-50 to-slate-50 border-0 shadow-md">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">Vehicle information unavailable</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Vehicle information could not be loaded</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-gradient-to-br from-zinc-50 to-slate-50 border-0 shadow-md">
       <CardHeader className="pb-4">
@@ -72,7 +140,7 @@ const VehicleSection = ({ vehicle, onViewDetails }: VehicleSectionProps) => {
                   <span>Expires: {new Date(vehicle.insurance_expiry).toLocaleDateString()}</span>
                 </div>
               )}
-              {vehicle.mileage && (
+              {vehicle.mileage !== undefined && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Mileage:</span>
                   <span>{vehicle.mileage.toLocaleString()} km</span>

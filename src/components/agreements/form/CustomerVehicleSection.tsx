@@ -45,8 +45,8 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')
-          .eq('role', 'customer')
           .ilike('full_name', `%${searchQuery}%`)
+          .eq('role', 'customer' as any) // Type assertion to resolve the type issue
           .order('full_name')
           .limit(10);
 
@@ -56,7 +56,22 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
           return;
         }
 
-        setCustomers(Array.isArray(data) ? data : []);
+        // Safely handle the data
+        if (data && Array.isArray(data)) {
+          const typedCustomers = data.map(item => ({
+            id: item.id,
+            full_name: item.full_name || '',
+            email: item.email || '',
+            phone_number: item.phone_number || '',
+            // Add other required fields with defaults
+            driver_license: '',
+            nationality: '',
+            address: ''
+          }));
+          setCustomers(typedCustomers);
+        } else {
+          setCustomers([]);
+        }
       } catch (err) {
         console.error('Unexpected error:', err);
         setCustomers([]);

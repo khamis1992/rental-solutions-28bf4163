@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -64,8 +65,8 @@ export function AgreementDetail({
 
   // Use payment management hook
   const {
-    payments = [],
-    isLoading,
+    payments,
+    isLoading: isLoadingPayments,
     updatePayment,
     addPayment,
     deletePayment,
@@ -87,12 +88,14 @@ export function AgreementDetail({
     }
   }, [calculateLateFee]);
 
+  // Handle agreement deletion
   const handleDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
     }
   }, [agreement, onDelete]);
 
+  // Confirm delete dialog
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
@@ -100,16 +103,19 @@ export function AgreementDetail({
     }
   }, [agreement, onDelete, closeDialog]);
 
+  // Print functionality
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
+  // Edit agreement
   const handleEdit = useCallback(() => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
     }
   }, [agreement, navigate]);
 
+  // Download PDF
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
@@ -130,6 +136,7 @@ export function AgreementDetail({
     }
   }, [agreement, setLoading]);
 
+  // Generate document
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
       onGenerateDocument();
@@ -138,6 +145,7 @@ export function AgreementDetail({
     }
   }, [agreement, onGenerateDocument]);
 
+  // Handle payment submission
   const handlePaymentSubmit = useCallback(async (
     amount: number, 
     paymentDate: Date, 
@@ -175,6 +183,7 @@ export function AgreementDetail({
     return false;
   }, [agreement, processPayment, onDataRefresh, closeDialog]);
 
+  // Handle payment update
   const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
     if (!agreement?.id || !updatedPayment.id) return false;
     
@@ -193,6 +202,7 @@ export function AgreementDetail({
     }
   }, [agreement?.id, updatePayment, onDataRefresh]);
 
+  // Handle payment deletion
   const handleDeletePayment = useCallback(async (paymentId: string) => {
     if (!agreement?.id) return;
     
@@ -209,6 +219,7 @@ export function AgreementDetail({
     }
   }, [agreement?.id, deletePayment, onDataRefresh, onPaymentDeleted]);
 
+  // Update historical payment statuses
   const handleUpdateHistoricalPaymentStatuses = async () => {
     if (!agreement) return;
     
@@ -220,6 +231,15 @@ export function AgreementDetail({
       toast.error("Failed to update payment statuses");
     }
   };
+
+  // Get agreement dates
+  const leaseStartDate = agreement?.start_date instanceof Date 
+    ? agreement.start_date 
+    : new Date(agreement?.start_date || new Date());
+    
+  const leaseEndDate = agreement?.end_date instanceof Date 
+    ? agreement.end_date 
+    : new Date(agreement?.end_date || new Date());
 
   if (!agreement) {
     return <Alert>
@@ -299,7 +319,7 @@ export function AgreementDetail({
 
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments : []} 
-        isLoading={isLoading} 
+        isLoading={isLoadingPayments} 
         rentAmount={rentAmount}
         contractAmount={contractAmount}
         onPaymentDeleted={handleDeletePayment}
@@ -314,8 +334,8 @@ export function AgreementDetail({
             addPayment(fullPayment);
           }
         }}
-        leaseStartDate={agreement.start_date} 
-        leaseEndDate={agreement.end_date}
+        leaseStartDate={leaseStartDate} 
+        leaseEndDate={leaseEndDate}
         leaseId={agreement.id}
       />}
 
@@ -323,9 +343,9 @@ export function AgreementDetail({
         <LegalCaseCard agreementId={agreement.id} />
       )}
 
-      {agreement.start_date && agreement.end_date && <Card>
+      {agreement.id && <Card>
           <CardContent className="pt-6">
-            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
+            <AgreementTrafficFines agreementId={agreement.id} />
           </CardContent>
         </Card>}
 
