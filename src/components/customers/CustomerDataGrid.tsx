@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTable } from '@/components/ui/data-table';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCustomerService } from '@/hooks/services/useCustomerService';
+import { toast } from "sonner";
 
 interface CustomerDataGridProps {
   customers: CustomerInfo[];
@@ -49,21 +49,18 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  // Get deleteCustomer from the service
   const { deleteCustomer } = useCustomerService();
-  
-  // Calculate pagination
+
   const totalPages = Math.ceil((customers?.length || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentCustomers = Array.isArray(customers) ? customers.slice(startIndex, endIndex) : [];
-  
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
   const getStatusBadge = (status: string) => {
-    // Map status to appropriate badge variants
     const statusConfig: Record<string, { variant: string, icon: any }> = {
       active: { variant: "success", icon: CheckCircle },
       inactive: { variant: "inactive", icon: XCircle },
@@ -71,14 +68,28 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
       pending_review: { variant: "warning", icon: AlertTriangle },
       pending_payment: { variant: "info", icon: AlertTriangle },
     };
-
     const { variant, icon: Icon } = statusConfig[status] || statusConfig.active;
-    
+
     return (
       <Badge variant={variant as any} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {status.replace('_', ' ')}
+        <Icon className="h-3 w-3" aria-hidden="true" />
+        <span className="capitalize">{status.replace('_', ' ')}</span>
       </Badge>
+    );
+  };
+
+  const handleDeleteCustomer = (e: React.MouseEvent, customer: CustomerInfo) => {
+    e.stopPropagation();
+    
+    toast.warning(
+      "Delete Customer",
+      {
+        description: `Are you sure you want to delete ${customer.full_name}?`,
+        action: {
+          label: "Delete",
+          onClick: () => deleteCustomer(customer.id)
+        }
+      }
     );
   };
 
@@ -135,7 +146,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
   if (!Array.isArray(customers) || customers.length === 0) {
     return (
       <div className="rounded-md border p-8 flex flex-col items-center justify-center">
-        <User className="h-12 w-12 text-muted-foreground mb-4" />
+        <User className="h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
         <h3 className="font-medium text-lg">No customers found</h3>
         <p className="text-muted-foreground text-sm mb-4">Try adjusting your search filters or add a new customer.</p>
         <Button asChild>
@@ -181,19 +192,21 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                 <TableCell>
                   <div className="flex flex-col text-sm">
                     <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3 text-muted-foreground" />
-                      {customer.email}
+                      <Mail className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                      <span>{customer.email}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3 text-muted-foreground" />
-                      {customer.phone_number}
+                      <Phone className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                      <span>{customer.phone_number}</span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm">{customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}</span>
+                    <Calendar className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                    <span className="text-sm">
+                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -220,12 +233,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
-                            deleteCustomer(customer.id);
-                          }
-                        }}
+                        onClick={(e) => handleDeleteCustomer(e, customer)}
                       >
                         Delete customer
                       </DropdownMenuItem>
@@ -272,3 +280,5 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
     </div>
   );
 };
+
+export default CustomerDataGrid;

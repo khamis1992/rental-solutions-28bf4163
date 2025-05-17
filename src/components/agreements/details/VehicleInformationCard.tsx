@@ -21,14 +21,17 @@ export function VehicleInformationCard({ agreement }: VehicleInformationCardProp
               {agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year ?? 'N/A'})
             </p>
           </div>
+
           <div>
             <p className="font-medium text-sm">License Plate</p>
             <p className="text-sm">{agreement.vehicles?.license_plate ?? 'N/A'}</p>
           </div>
+
           <div>
             <p className="font-medium text-sm">Color</p>
             <p className="text-sm">{agreement.vehicles?.color ?? 'N/A'}</p>
           </div>
+
           <div>
             <p className="font-medium text-sm">VIN</p>
             <p className="text-sm">{agreement.vehicles?.vin ?? 'N/A'}</p>

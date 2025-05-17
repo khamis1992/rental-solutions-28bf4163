@@ -14,7 +14,7 @@ import {
 interface CustomerListFilterProps {
   onSearch: (query: string) => void;
   searchTerm: string;
-  onFilterChange?: (filters: { [key: string]: string }) => void;
+  onFilterChange?: (filters: Record<string, string>) => void;
 }
 
 export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
@@ -31,30 +31,27 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
     "Without documents",
   ];
 
+  // Sync search input with external search term
   useEffect(() => {
     setSearchValue(searchTerm);
   }, [searchTerm]);
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setSearchValue(value);
+  // Debounced search handler
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchValue(value);
 
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
+    if (timeoutId.current) clearTimeout(timeoutId.current);
 
-      timeoutId.current = setTimeout(() => {
-        onSearch(value);
-      }, 300);
-    },
-    [onSearch]
-  );
+    timeoutId.current = setTimeout(() => {
+      onSearch(value);
+    }, 300);
+  }, [onSearch]);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchValue('');
     onSearch('');
-  };
+  }, [onSearch]);
 
   const resetFilters = useCallback(() => {
     if (onFilterChange) onFilterChange({});
@@ -62,6 +59,7 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
 
   return (
     <div className="flex items-center gap-2 w-full sm:w-auto max-w-md">
+      {/* Search Input */}
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -82,6 +80,7 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
         )}
       </div>
 
+      {/* Filter Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
@@ -110,3 +109,5 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
     </div>
   );
 };
+
+export default CustomerListFilter;
