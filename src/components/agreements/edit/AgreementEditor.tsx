@@ -149,10 +149,9 @@ const AgreementEditor = () => {
         result = await agreementService.updateAgreement({
           id,
           data
-        });
-      } else {
+        });      } else {
         // Create new agreement
-        result = await agreementService.createAgreement(data);
+        result = await agreementService.save(data);
       }
       
       if (result) {

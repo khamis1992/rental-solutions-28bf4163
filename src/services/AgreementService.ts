@@ -145,16 +145,47 @@ export const agreementService = {
       
       if (filters.end_date_before) {
         query = query.lte('end_date', filters.end_date_before);
-      }
-      
-      // Changed to only search by customer name, exactly like CustomerService
+      }      // Search by customer name or vehicle license plate
       if (filters.searchTerm && filters.searchTerm.trim() !== '') {
         const searchTerm = filters.searchTerm.trim();
         
-        // Only search on customer name (profile.full_name)
-        query = query.textSearch('profiles.full_name', searchTerm);
+        // We need to search in both related tables using separate queries then combine results
+        // First, get agreements that match by customer name
+        const { data: customerMatches, error: customerError } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            customers:profiles(*),
+            vehicles(*)
+          `)
+          .ilike('profiles.full_name', `%${searchTerm}%`);
+          
+        // Second, get agreements that match by license plate
+        const { data: vehicleMatches, error: vehicleError } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            customers:profiles(*),
+            vehicles(*)
+          `)
+          .ilike('vehicles.license_plate', `%${searchTerm}%`);
+          
+        // Merge and deduplicate the results
+        if (customerMatches || vehicleMatches) {
+          const mergedData = [...(customerMatches || []), ...(vehicleMatches || [])];
+          
+          // Deduplicate by agreement id
+          const uniqueData = Array.from(
+            new Map(mergedData.map(item => [item.id, item])).values()
+          );
+          
+          return { success: true, data: uniqueData };
+        }
+            // If no matches found, return empty array
+        return { success: true, data: [] };
       }
 
+      // For other filter cases, continue with the original query
       const { data, error, count } = await query;
       
       if (error) throw error;

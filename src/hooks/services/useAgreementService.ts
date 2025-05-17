@@ -93,7 +93,6 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       toast.error(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
-
   // Calculate remaining amount
   const calculateRemainingAmount = useMutation({
     mutationFn: async (id: string) => {
@@ -102,6 +101,24 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
         throw new Error(result.error?.toString() || 'Failed to calculate remaining amount');
       }
       return result.data;
+    }
+  });
+
+  // Create new agreement
+  const createAgreement = useMutation({
+    mutationFn: async (data: any) => {
+      const result = await agreementService.save(data);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to create agreement');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Agreement created successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
@@ -123,9 +140,9 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
         
         return merged;
       });
-    },
-    refetch,
+    },    refetch,
     getAgreementDetails,
+    createAgreement: createAgreement.mutateAsync,
     updateAgreement: updateAgreement.mutateAsync,
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
@@ -133,6 +150,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     // Expose isPending states for UI loading indicators
     isPending: {
       getAgreement: false,
+      createAgreement: createAgreement.isPending,
       updateAgreement: updateAgreement.isPending,
       changeStatus: changeStatus.isPending,
       deleteAgreement: deleteAgreement.isPending,

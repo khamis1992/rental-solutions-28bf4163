@@ -72,10 +72,9 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo((
   return (
     <div className="flex items-center space-x-2">
       <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />        <Input
           type="search"
-          placeholder="Search customers..."
+          placeholder="Search by customer name or license plate..."
           className="pl-8 w-full"
           value={searchValue}
           onChange={handleSearchChange}
