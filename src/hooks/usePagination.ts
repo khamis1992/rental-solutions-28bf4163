@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface UsePaginationProps {
   totalItems: number;
@@ -32,9 +32,14 @@ export const usePagination = ({
   
   // Ensure current page is within bounds
   const validatedCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
-  if (validatedCurrentPage !== currentPage) {
-    setCurrentPage(validatedCurrentPage);
-  }
+
+  useEffect(() => {
+    const newPage = Math.max(1, Math.min(currentPage, totalPages));
+    if (newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+    // We intentionally exclude setCurrentPage from deps to avoid unnecessary loops
+  }, [currentPage, totalPages]);
   
   const setPage = (page: number) => {
     const pageNumber = Math.max(1, Math.min(page, totalPages));
