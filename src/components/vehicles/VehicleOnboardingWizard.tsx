@@ -65,6 +65,7 @@ export function VehicleOnboardingWizard({
       // Format the date properly if it exists
       const submissionData = {
         ...formData,
+        year: formData.year ? parseInt(formData.year as unknown as string, 10) : undefined,
         insurance_expiry: insuranceExpiryDate ? insuranceExpiryDate.toISOString().split('T')[0] : '',
       };
       

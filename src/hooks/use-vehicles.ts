@@ -262,7 +262,7 @@ export const useVehicles = () => {
             const vehicleData: VehicleInsertData = {
               make: formData.make,
               model: formData.model,
-              year: formData.year,
+              year: typeof formData.year === 'string' ? parseInt(formData.year, 10) : formData.year,
               license_plate: formData.license_plate,
               vin: formData.vin,
               color: formData.color || null,

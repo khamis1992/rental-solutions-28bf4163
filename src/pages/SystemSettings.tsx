@@ -119,6 +119,16 @@ const SystemSettings = () => {
       [name]: checked
     }));
   };
+
+  const isValidUrl = (url: string) => {
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
@@ -161,6 +171,14 @@ const SystemSettings = () => {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.logo_url && !isValidUrl(formData.logo_url)) {
+      toast({
+        title: 'Invalid URL',
+        description: 'Please provide a valid logo URL.',
+        variant: 'destructive',
+      });
+      return;
+    }
     saveSettingsMutation.mutate(formData);
   };
   
@@ -271,9 +289,10 @@ const SystemSettings = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="logo_url">Logo URL</Label>
-                      <Input 
+                      <Input
                         id="logo_url"
                         name="logo_url"
+                        type="url"
                         value={formData.logo_url}
                         onChange={handleInputChange}
                         placeholder="Enter logo URL"
