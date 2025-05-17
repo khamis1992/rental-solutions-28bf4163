@@ -2,8 +2,9 @@
 import React from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Users, UserPlus, Shield } from "lucide-react";
+import { Users, UserPlus, Shield, ShieldCheck } from "lucide-react";
 import UserList from "@/components/auth/UserList";
+import SecurityPreferences from "@/components/auth/SecurityPreferences";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,7 +52,7 @@ const UserManagement = () => {
       
       <div className="space-y-6">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full md:w-auto grid-cols-2 md:inline-flex">
+          <TabsList className="grid w-full md:w-auto grid-cols-3 md:inline-flex">
             <TabsTrigger value="users" className="flex items-center">
               <Users className="h-4 w-4 mr-2" />
               Users
@@ -59,6 +60,10 @@ const UserManagement = () => {
             <TabsTrigger value="permissions" className="flex items-center">
               <Shield className="h-4 w-4 mr-2" />
               Permissions
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center">
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              Security
             </TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="mt-6">
@@ -171,6 +176,9 @@ const UserManagement = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="security" className="mt-6">
+            <SecurityPreferences />
           </TabsContent>
         </Tabs>
       </div>
