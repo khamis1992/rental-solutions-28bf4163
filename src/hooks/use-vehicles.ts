@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';
-import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
+import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/lib/supabase';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';

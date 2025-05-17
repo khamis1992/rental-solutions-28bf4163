@@ -43,7 +43,7 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { StatCard } from '@/components/ui/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import TrafficFineImport from './TrafficFineImport';

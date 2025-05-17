@@ -629,7 +629,7 @@ The `useCarInstallments` hook manages data fetching and state for the installmen
 ```typescript
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { 
   CarInstallmentContract, 
   CarInstallmentPayment,

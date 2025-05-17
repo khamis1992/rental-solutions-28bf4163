@@ -2,7 +2,7 @@
 /**
  * Testing utilities for traffic fines functionality
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { TrafficFine } from '@/hooks/use-traffic-fines';
 import { logOperation } from './monitoring-utils';
 

@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // Ensure the vehicle-images bucket exists
 export async function ensureVehicleImagesBucket(): Promise<boolean> {

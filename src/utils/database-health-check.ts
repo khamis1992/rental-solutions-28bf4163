@@ -1,5 +1,5 @@
 
-import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
+import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 /**
@@ -29,7 +29,7 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
 };
 
 // Re-export connection retry functionality from the client
-export { checkConnectionWithRetry } from '@/integrations/supabase/client';
+export { checkConnectionWithRetry } from '@/lib/supabase';
 
 /**
  * Monitor database connectivity and show UI feedback
@@ -37,7 +37,7 @@ export { checkConnectionWithRetry } from '@/integrations/supabase/client';
  * @param pollingIntervalMs How often to check connection (default: 30 seconds)
  * @returns Function to stop the monitoring
  */
-export { monitorDatabaseConnection } from '@/integrations/supabase/client';
+export { monitorDatabaseConnection } from '@/lib/supabase';
 
 /**
  * Show database connection status in UI
