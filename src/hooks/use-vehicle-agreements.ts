@@ -14,7 +14,7 @@ export function useVehicleAgreements(vehicleId?: string) {
       
       const { data, error } = await supabase
         .from('leases')
-        .select('*, customers(full_name)')
+        .select('*, customers:profiles(full_name)')
         .eq('vehicle_id', asVehicleId(vehicleId))
         .order('created_at', { ascending: false });
       
