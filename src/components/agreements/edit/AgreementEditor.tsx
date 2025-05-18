@@ -153,7 +153,7 @@ const AgreementEditor = () => {
         });
       } else {
         // Create new agreement
-        result = await agreementService.save(data);
+        result = await agreementService.createAgreement(data);
       }
       
       if (result) {
