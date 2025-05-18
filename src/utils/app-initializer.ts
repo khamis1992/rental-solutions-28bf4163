@@ -3,11 +3,13 @@ import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
+import { registerPaymentEventHandlers } from '@/events/payment-handlers';
 
 // Initialize services check status flag
 let servicesChecked = false;
 
 export const initializeApp = async () => {
+  registerPaymentEventHandlers();
   // Set up database tables and other requirements
   await setupInvoiceTemplatesTable();
   
