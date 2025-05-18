@@ -134,11 +134,12 @@ export const agreementService = {
    */
   async findAgreements(filters: AgreementFilters = {}): Promise<SaveResponse> {
     try {
-      let query = supabase.from('leases').select(`
+      const selectClause = `
         *,
         customers:profiles(*),
-        vehicles(*)
-      `);
+        vehicles${filters.license_plate ? '!inner' : ''}(*)
+      `;
+      let query = supabase.from('leases').select(selectClause);
       
       // Apply filters
       if (filters.status && filters.status !== 'all') {
