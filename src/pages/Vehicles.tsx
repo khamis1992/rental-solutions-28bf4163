@@ -95,9 +95,9 @@ const Vehicles = () => {
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    setFilters(prev => ({ 
-      ...prev, 
-      search: query.trim() !== '' ? query : undefined 
+    setFilters(prev => ({
+      ...prev,
+      searchTerm: query.trim() !== '' ? query : undefined
     }));
     
     // Reset to first page when searching
@@ -125,9 +125,11 @@ const Vehicles = () => {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
-    // Handle search parameter if it exists
-    if (searchQuery && searchQuery.trim() !== '') {
-      convertedFilters.search = searchQuery.trim();
+    // Handle search parameter from filters or search bar
+    if (newFilters.search && newFilters.search.trim() !== '') {
+      convertedFilters.searchTerm = newFilters.search.trim();
+    } else if (searchQuery && searchQuery.trim() !== '') {
+      convertedFilters.searchTerm = searchQuery.trim();
     }
     
     setFilters(convertedFilters);
@@ -139,10 +141,11 @@ const Vehicles = () => {
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(filters)
-    .filter(([key, value]) => 
-      key !== 'status' && 
-      key !== 'search' && 
-      value !== undefined && 
+    .filter(([key, value]) =>
+      key !== 'status' &&
+      key !== 'search' &&
+      key !== 'searchTerm' &&
+      value !== undefined &&
       value !== '');
 
   return (
@@ -240,12 +243,12 @@ const Vehicles = () => {
             {activeFilters.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {activeFilters.map(([key, value]) => (
-                  <Badge 
-                    key={key} 
+                  <Badge
+                    key={key}
                     variant="secondary"
                     className="flex items-center gap-1"
                   >
-                    {key}: {value}
+                    {key === 'searchTerm' ? 'search' : key}: {value}
                     <button
                       onClick={() => {
                         const updatedFilters = { ...filters };
@@ -268,7 +271,7 @@ const Vehicles = () => {
                   onClick={() => {
                     const cleanFilters: VehicleFilterParams = {};
                     if (filters.status) cleanFilters.status = filters.status;
-                    if (searchQuery) cleanFilters.search = searchQuery;
+                    if (searchQuery) cleanFilters.searchTerm = searchQuery;
                     setFilters(cleanFilters);
                     updateFilters(cleanFilters);
                   }}
@@ -290,7 +293,7 @@ const Vehicles = () => {
                   location: filters.location || 'all',
                   year: filters.year?.toString() || 'all',
                   category: filters.vehicle_type_id || 'all',
-                  search: filters.search || ''
+                  search: filters.searchTerm || ''
                 }}
               />
             </div>
