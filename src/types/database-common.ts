@@ -1,9 +1,11 @@
 
 import { Database } from '@/types/database.types';
+export { isSuccessResponse } from '@/lib/database/validation/typeGuards';
 
 // Core database types with consistent naming
 export type DatabaseSchema = Database['public'];
 export type DatabaseTables = DatabaseSchema['Tables'];
+export type Tables = DatabaseTables;
 
 // Standardized ID types
 export type DbId = string;
@@ -19,7 +21,13 @@ export type AgreementId = LeaseId; // Maintaining legacy compatibility
 // Standardized status types from database schema
 export type LeaseStatus = DatabaseTables['leases']['Row']['status'];
 export type VehicleStatus = DatabaseTables['vehicles']['Row']['status'];
-export type PaymentStatus = string; // Using string since it could have different values
+export type PaymentStatus =
+  | 'pending'
+  | 'completed'
+  | 'partially_paid'
+  | 'overdue'
+  | 'cancelled'
+  | 'voided';
 export type ProfileStatus = string;
 export type MaintenanceStatus = string;
 
@@ -108,10 +116,6 @@ export type ListResponse<T> = DatabaseResponse<T[]>;
 export type SingleResponse<T> = DatabaseResponse<T>;
 
 // Helper type guards with consistent naming
-export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
-  return !response?.error && response?.data !== null;
-}
-
 export function hasEntityData<T>(response: any): response is { data: T; error: null } {
   return !response?.error && response?.data !== null;
 }

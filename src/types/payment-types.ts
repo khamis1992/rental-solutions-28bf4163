@@ -4,7 +4,13 @@ import { Database } from './database.types';
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
 export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
-export type PaymentStatus = string;
+export type PaymentStatus =
+  | 'pending'
+  | 'completed'
+  | 'partially_paid'
+  | 'overdue'
+  | 'cancelled'
+  | 'voided';
 
 export interface PaymentMetrics {
   sent: number;
@@ -21,7 +27,7 @@ export interface PaymentRecord {
   amount: number;
   amount_paid: number;
   balance: number;
-  status: string;
+  status: PaymentStatus;
   payment_date: string;
   payment_method: string;
   reference_number: string;

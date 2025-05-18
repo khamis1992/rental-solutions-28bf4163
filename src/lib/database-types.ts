@@ -1,6 +1,8 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+export { isSuccessResponse } from './database/validation/typeGuards';
+export * from '@/types/database-common';
 
 // Helper type for easy table access
 export type Tables = Database['public']['Tables'];
@@ -25,11 +27,6 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
 }
 
 // Type guard for responses
-export function isSuccessResponse<T>(
-  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
-): response is { data: T | T[]; error: null } {
-  return !response.error && response.data !== null;
-}
 
 // Type safe ID converter
 export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
@@ -54,19 +51,9 @@ export function isValidStatus<T extends { status: string }>(record: T, status: T
   return record.status === status;
 }
 
-// Export commonly used table types
-export type LeaseRow = Tables['leases']['Row'];
-export type PaymentRow = Tables['unified_payments']['Row'];
-export type VehicleRow = Tables['vehicles']['Row'];
-export type ProfileRow = Tables['profiles']['Row'];
-export type TrafficFineRow = Tables['traffic_fines']['Row'];
-export type LegalCaseRow = Tables['legal_cases']['Row'];
-
-// Common status types
-export type VehicleStatus = VehicleRow['status']; 
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status']; 
-export type ProfileStatus = ProfileRow['status'];
+// Re-export common types
+export type { LeaseRow, PaymentRow, VehicleRow, ProfileRow, TrafficFineRow, LegalCaseRow } from '@/types/database-common';
+export type { VehicleStatus, LeaseStatus, PaymentStatus, ProfileStatus } from '@/types/database-common';
 
 export function asStatus<T extends { status: string }>(status: string): T['status'] {
   return status as T['status'];
