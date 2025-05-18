@@ -6,8 +6,8 @@ import { Loader2 } from 'lucide-react';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {

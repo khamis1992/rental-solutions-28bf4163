@@ -330,7 +330,7 @@ export function AgreementDetail({
               ...payment,
               lease_id: agreement.id,
               status: 'completed'
-            };
+            } as Partial<Payment>;
             addPayment(fullPayment);
           }
         }}

@@ -2,25 +2,7 @@
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { paymentRepository } from '@/lib/database';
 import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
-
-export type Payment = {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string | null;
-  description: string | null;
-  type: string;
-  late_fine_amount: number;
-  days_overdue: number;
-  original_due_date: string | null;
-  transaction_id: string | null;
-  [key: string]: any; // Allow additional properties
-};
+import type { Payment } from '@/types/payment.types';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
