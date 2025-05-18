@@ -11,6 +11,7 @@ export interface Profile {
   avatar_url?: string;
   phone_number?: string;
   role?: string;
+  status?: string | null;
   created_at?: string;
   updated_at?: string;
 }

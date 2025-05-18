@@ -34,7 +34,7 @@ export function handleApiError(
     errorMessage = getPostgrestErrorMessage(error, context);
   } else if (isServiceError(error)) {
     errorMessage = error.error?.toString() || 'Service operation failed';
-    errorDetails = JSON.stringify(error.meta || {});
+    errorDetails = JSON.stringify((error as any).meta || {});
   }
   
   if (context) {

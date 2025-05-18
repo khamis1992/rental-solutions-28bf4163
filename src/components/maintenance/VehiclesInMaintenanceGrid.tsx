@@ -20,7 +20,7 @@ const VehiclesInMaintenanceGrid = () => {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
         <p className="font-medium">Error loading vehicles in maintenance</p>
-        <p>{error?.message || 'An unknown error occurred'}</p>
+        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
       </div>
     );
   }

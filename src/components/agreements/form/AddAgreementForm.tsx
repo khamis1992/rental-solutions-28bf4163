@@ -11,7 +11,7 @@ import {
   FormMessage 
 } from '@/components/ui/form';
 import { useTemplateSetup } from './TemplateSetup';
-import { AgreementTemplateStatus } from './AgreementTemplateStatus';
+import { AgreementTemplateStatus } from './TemplateSetup';
 import { Agreement } from '@/types/agreement';
 
 interface AddAgreementFormProps {

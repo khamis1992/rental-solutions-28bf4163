@@ -1,5 +1,6 @@
 
 import { Tables, DbListResponse, DbSingleResponse } from './types';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Base Repository class for database operations
@@ -100,4 +101,8 @@ export class Repository<T extends keyof Tables> {
     
     return response.count || 0;
   }
+}
+
+export function createRepository<T extends keyof Tables>(tableName: T) {
+  return new Repository<typeof tableName>(supabase, tableName);
 }

@@ -9,7 +9,7 @@ import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnectio
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
-import { safelyGetRecordFromResponse, safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
+import { safelyGetRecordFromResponse } from '@/types/supabase-helpers';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -169,8 +169,8 @@ export const useVehicles = () => {
                   throw error;
                 }
                 
-                const safeData = safelyGetRecordsFromResponse(data ? { data, error: null } : null);
-                return safeData.map(record => mapDatabaseRecordToVehicle(record));
+                const records = Array.isArray(data) ? data : [];
+                return records.map(record => mapDatabaseRecordToVehicle(record));
               } catch (err) {
                 lastError = err;
                 attempts++;
@@ -274,7 +274,7 @@ export const useVehicles = () => {
               rent_amount: formData.rent_amount || null,
               vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
               image_url: imageUrl,
-              status: formData.status ? mapToDBStatus(formData.status) : 'available',
+                status: formData.status ? mapToDBStatus(formData.status) as VehicleStatus : 'available',
             };
             
             const { data, error } = await supabase
@@ -378,7 +378,7 @@ export const useVehicles = () => {
             if (data.color !== undefined) vehicleData.color = data.color;
             
             if (data.status !== undefined) {
-              const newStatus = mapToDBStatus(data.status);
+              const newStatus = mapToDBStatus(data.status) as VehicleStatus;
               vehicleData.status = newStatus;
             }
             

@@ -66,6 +66,7 @@ export interface VehicleFormData {
   rent_amount?: number | null;
   vehicle_type_id?: string | null;
   notes?: string | null;
+  image?: File | null;
 }
 
 /**
@@ -147,4 +148,7 @@ export interface DatabaseVehicleType {
 }
 
 export type VehicleInsertData = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>;
-export type VehicleUpdateData = Partial<VehicleInsertData>;
+export type VehicleUpdateData = Partial<VehicleInsertData> & {
+  updated_at?: string;
+  image_url?: string | null;
+};

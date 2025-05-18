@@ -22,8 +22,19 @@ export const profileRepository = createProfileRepository(supabase);
 export { utils, validation, typeGuards };
 
 // Export types
-export * from './types';
 export * from './database-types';
+export {
+  Tables,
+  Schema,
+  TableRow,
+  TableInsert,
+  TableUpdate,
+  DatabaseId,
+  DbListResponse,
+  DbSingleResponse,
+  hasData,
+  isValidStatus
+} from './types';
 
 // Export repositories for backwards compatibility
 export { leaseRepository as leaseRepo };

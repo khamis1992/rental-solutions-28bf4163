@@ -1,7 +1,8 @@
 
 import { supabase } from '@/lib/supabase';
-import { VehicleRow, isSuccessResponse } from './types';
+import { VehicleRow } from './types';
 import { createRepository } from './repository';
+import { isSuccessResponse } from './validation/typeGuards';
 import { asVehicleStatus } from './validation';
 
 // Get base repository functionality

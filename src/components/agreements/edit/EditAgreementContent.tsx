@@ -29,13 +29,7 @@ export function EditAgreementContent({
       />
 
       {!isLoading && agreement && id && (
-        <AgreementEditor
-          id={id}
-          userId={userId}
-          agreement={agreement}
-          vehicleData={vehicleData}
-          customerData={customerData}
-        />
+        <AgreementEditor />
       )}
     </>
   );

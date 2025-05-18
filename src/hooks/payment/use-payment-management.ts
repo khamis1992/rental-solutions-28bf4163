@@ -4,8 +4,8 @@ import { usePayments } from '@/hooks/use-payments';
 import { usePaymentCalculation } from './use-payment-calculation';
 import { useSpecialPayment } from './use-special-payment';
 import { useLoadingStates } from './use-loading-states';
-import { Payment } from '@/types/payment.types';
-import { PaymentStatus } from '@/types/payment.types';
+import { Payment, PaymentStatus } from '@/types/payment.types';
+import { PaymentHistoryItem } from '@/types/payment-history.types';
 
 export type PaymentFilter = null | 'pending' | 'completed' | 'overdue' | 'completed_ontime' | 'completed_late';
 
@@ -45,7 +45,7 @@ export const usePaymentManagement = (agreementId?: string) => {
   /**
    * Check if a payment is late
    */
-  const isLatePayment = useCallback((payment: Payment): boolean => {
+  const isLatePayment = useCallback((payment: PaymentHistoryItem): boolean => {
     if (!payment.payment_date || !payment.due_date) return false;
     
     const paymentDate = new Date(payment.payment_date);

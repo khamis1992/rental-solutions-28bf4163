@@ -21,12 +21,12 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
     console.error('Database error:', response.error);
     return null;
   }
-  return response.data || null;
+  return (response as any).data || null;
 }
 
 // Type guard for responses
-export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
+  return !!response && !response.error && response.data !== null;
 }
 
 // Type safe ID converter
@@ -35,8 +35,8 @@ export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[
 }
 
 // Type guard for checking if response has data
-export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function hasData<T>(response: any): response is { data: T; error: null } {
+  return !!response && !response.error && response.data !== null;
 }
 
 // Type-safe column selector

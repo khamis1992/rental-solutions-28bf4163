@@ -17,8 +17,8 @@ export const defaultQueryConfig = {
 };
 
 export function createQueryConfig<TData>(
-  options?: Partial<UseQueryOptions<TData, Error>>
-): UseQueryOptions<TData, Error> {
+  options?: Partial<UseQueryOptions<TData, Error, TData, string[]>>
+): Partial<UseQueryOptions<TData, Error, TData, string[]>> {
   return {
     ...defaultQueryConfig,
     ...options
