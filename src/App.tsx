@@ -49,6 +49,7 @@ import Maintenance from "./pages/Maintenance";
 import AddMaintenance from "./pages/AddMaintenance";
 import EditMaintenance from "./pages/EditMaintenance";
 import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
+import MaintenanceJobCard from "./pages/MaintenanceJobCard";
 
 // Legal pages
 import Legal from "./pages/Legal";
@@ -141,6 +142,7 @@ function App() {
                               {/* Maintenance Management Routes */}
                               <Route path="/maintenance" element={<Maintenance />} />
                               <Route path="/maintenance/add" element={<AddMaintenance />} />
+                              <Route path="/maintenance/job/:vehicleId" element={<MaintenanceJobCard />} />
                               <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
                               <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
                               

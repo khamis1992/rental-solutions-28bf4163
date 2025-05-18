@@ -88,15 +88,17 @@ export function useMaintenance() {
         .select()
         .single();
 
-      if (error) throw error;
-      
-      // Invalidate and refetch
+      // Some Supabase clients may return both data and error even when the
+      // insert succeeds. Treat it as success if a record was returned.
+      if (error && !data) throw error;
+
       await queryClient.invalidateQueries({ queryKey: ['maintenance'] });
-      
+
       toast.success('Maintenance record created successfully');
       return data;
     } catch (error) {
       console.error('Error creating maintenance record:', error);
+      // Only notify the user if the insert truly failed
       toast.error('Failed to create maintenance record');
       return null;
     } finally {
