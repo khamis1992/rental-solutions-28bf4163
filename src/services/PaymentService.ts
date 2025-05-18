@@ -1,5 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
+import { eventBus } from '@/lib/event-bus';
+import { Events, PaymentRecordedPayload } from '@/events';
 import { castDbId } from '@/utils/supabase-type-helpers';
 import { BaseService } from './base/BaseService';
 import { Payment, PaymentInsert, SpecialPaymentOptions } from '@/types/payment.types';
@@ -20,7 +22,16 @@ export class PaymentService extends BaseService {
       if (error) {
         return this.handleError(error, 'Failed to record payment');
       }
-      
+
+      if (data) {
+        const payload: PaymentRecordedPayload = {
+          paymentId: data.id,
+          agreementId: data.lease_id,
+          amount: data.amount_paid ?? data.amount
+        };
+        eventBus.publish(Events.PaymentRecorded, payload);
+      }
+
       return this.success(data);
     } catch (error) {
       return this.handleError(error, 'An unexpected error occurred recording payment');
