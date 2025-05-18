@@ -124,7 +124,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               <FormItem>
                 <FormLabel>Maintenance Type</FormLabel>
                 <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) =>
+                      field.onChange(value === 'none' ? '' : value)
+                    }
+                    value={field.value}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
@@ -149,7 +154,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               <FormItem>
                 <FormLabel>Status</FormLabel>
                 <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) =>
+                      field.onChange(value === 'none' ? '' : value)
+                    }
+                    value={field.value}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -174,12 +184,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) =>
+                      field.onChange(value === 'none' ? '' : value)
+                    }
+                    value={field.value}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {filteredCategories.map(cat => (
                         <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                       ))}
