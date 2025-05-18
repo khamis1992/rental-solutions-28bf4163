@@ -2,6 +2,10 @@ import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
 import { ensureStorageBuckets } from './setupBuckets';
 
+// Primary template filename and alternate names used across multiple helpers
+export const AGREEMENT_TEMPLATE_FILE = 'agreement_template.docx';
+export const ALTERNATE_TEMPLATE_FILES = ['agreement temp.docx', 'agreement_temp.docx'];
+
 /**
  * Fixes double slash issues in URLs
  */
@@ -56,8 +60,8 @@ export const uploadAgreementTemplate = async (
       }
     });
     
-    // Set the filename to agreement_template.docx (with underscore, not space)
-    const safeFileName = 'agreement_template.docx';
+    // Set the filename to the standardized template name
+    const safeFileName = AGREEMENT_TEMPLATE_FILE;
     
     // Upload the template file with the safe filename using service role client
     const { error: uploadError } = await serviceClient.storage
@@ -122,8 +126,8 @@ export const downloadAgreementTemplate = async (): Promise<{
       return { success: false, error: bucketCheck.error || "Failed to ensure bucket exists" };
     }
     
-    // Primary filename with underscore (standardized format)
-    const primaryFileName = 'agreement_template.docx';
+    // Primary filename in standardized format
+    const primaryFileName = AGREEMENT_TEMPLATE_FILE;
     
     // First attempt with service role client (more reliable)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -149,7 +153,7 @@ export const downloadAgreementTemplate = async (): Promise<{
         }
         
         // If primary file not found, try secondary variations
-        const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+        const alternateFiles = ALTERNATE_TEMPLATE_FILES;
         
         for (const fileName of alternateFiles) {
           const { data: altData, error: altError } = await serviceClient.storage
@@ -181,7 +185,7 @@ export const downloadAgreementTemplate = async (): Promise<{
       }
       
       // If primary file not found, try secondary variations
-      const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+      const alternateFiles = ALTERNATE_TEMPLATE_FILES;
       
       for (const fileName of alternateFiles) {
         const { data: altData, error: altError } = await supabase.storage
@@ -218,7 +222,7 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
     }
     
     // Primary filename (standardized format)
-    const primaryFileName = 'agreement_template.docx';
+    const primaryFileName = AGREEMENT_TEMPLATE_FILE;
     
     // Try with service role client first (more reliable)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -246,7 +250,7 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
             templateFileName = primaryFileName;
           } else {
             // Fall back to alternate filenames
-            const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+            const alternateFiles = ALTERNATE_TEMPLATE_FILES;
             for (const fileName of alternateFiles) {
               if (fileList.some(file => file.name === fileName)) {
                 templateFileName = fileName;
@@ -287,10 +291,10 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
         // Check for primary file first
         if (fileList.some(file => file.name === primaryFileName)) {
           templateFileName = primaryFileName;
-        } else {
-          // Fall back to alternate filenames
-          const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
-          for (const fileName of alternateFiles) {
+          } else {
+            // Fall back to alternate filenames
+            const alternateFiles = ALTERNATE_TEMPLATE_FILES;
+            for (const fileName of alternateFiles) {
             if (fileList.some(file => file.name === fileName)) {
               templateFileName = fileName;
               break;
@@ -429,13 +433,12 @@ export const diagnoseTemplateUrl = async (): Promise<{
     }
     
     // Primary filename is agreement_template.docx (with underscore)
-    const primaryFileName = 'agreement_template.docx';
+    const primaryFileName = AGREEMENT_TEMPLATE_FILE;
     
     // Check for template files with various names, prioritizing primary filename
-    const templateFiles = files.filter(file => 
-      file.name === primaryFileName || 
-      file.name === 'agreement temp.docx' || 
-      file.name === 'agreement_temp.docx'
+    const templateFiles = files.filter(file =>
+      file.name === primaryFileName ||
+      ALTERNATE_TEMPLATE_FILES.includes(file.name)
     );
     
     if (templateFiles.length === 0) {
