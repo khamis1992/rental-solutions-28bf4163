@@ -7,7 +7,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { supabase } from "@/lib/supabase";
+import { userService } from "@/services";
 import { toast } from "sonner";
 import { UserRole } from "@/types/user-types";
 
@@ -37,18 +37,16 @@ export const UserRoleManager = ({
 
     try {
       setIsChanging(true);
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole as UserRole })
-        .eq("id", userId);
-      
-      if (error) throw error;
-      
+      const result = await userService.updateRole(userId, newRole as UserRole);
+
+      if (!result.success) {
+        throw result.error || new Error('Role update failed');
+      }
+
       setRole(newRole);
       toast.success(`${fullName}'s role updated to ${newRole}`);
     } catch (error: any) {
-      console.error("Error updating user role:", error.message);
+      console.error('Error updating user role:', error?.message || error);
       toast.error(`Failed to update ${fullName}'s role`);
       setRole(currentRole);
     } finally {

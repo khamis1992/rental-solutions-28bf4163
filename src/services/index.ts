@@ -4,3 +4,4 @@ export * from './VehicleService';
 export * from './CustomerService';
 export * from './PaymentService';
 export * from './base/BaseService';
+export * from './UserService';
