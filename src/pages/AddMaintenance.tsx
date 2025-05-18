@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import PageContainer from '@/components/layout/PageContainer';
@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefilledVehicleId = searchParams.get('vehicle_id') || '';
   const { create } = useMaintenance();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,6 +89,7 @@ const AddMaintenance = () => {
       <MaintenanceForm
         onSubmit={handleSubmit}
         isLoading={isSubmitting}
+        initialData={{ vehicle_id: prefilledVehicleId }}
       />
     </PageContainer>
   );
