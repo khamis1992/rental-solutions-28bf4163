@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -28,8 +29,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
-import VehicleSelector from '../selectors/VehicleSelector';
-import CustomerSelector from '@/components/customers/CustomerSelector'; // Updated import
+import VehicleSelector from '@/components/vehicles/VehicleSelector';
+import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import AgreementTermsEditor from '../terms/AgreementTermsEditor';
 import { CustomerInfo } from '@/types/customer';
@@ -61,6 +62,7 @@ const AgreementEditor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   
   const agreementService = useAgreementService();
   
@@ -207,6 +209,12 @@ const AgreementEditor = () => {
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };
+
+  // Handle vehicle selection
+  const handleVehicleSelect = (vehicle: any) => {
+    setSelectedVehicle(vehicle);
+    form.setValue('vehicle_id', vehicle.id);
+  };
   
   if (isLoading && !form.formState.isSubmitting) {
     return (
@@ -329,8 +337,9 @@ const AgreementEditor = () => {
                           <FormLabel>Vehicle</FormLabel>
                           <FormControl>
                             <VehicleSelector 
-                              value={field.value} 
-                              onChange={field.onChange}
+                              selectedVehicle={selectedVehicle}
+                              onVehicleSelect={handleVehicleSelect}
+                              placeholder="Search for a vehicle..."
                             />
                           </FormControl>
                           <FormMessage />

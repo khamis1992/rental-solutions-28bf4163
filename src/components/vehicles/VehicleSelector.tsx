@@ -33,16 +33,23 @@ const VehicleSelector = ({
   disabled = false
 }: VehicleSelectorProps) => {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { vehicles, isLoading, error, setFilters } = useVehicleService({
     statuses: ['available']
   });
 
+  // Update filters when search query changes
   useEffect(() => {
-    // Set filter to only show available vehicles
-    setFilters({
+    const filters: any = {
       statuses: ['available']
-    });
-  }, [setFilters]);
+    };
+    
+    if (searchQuery && searchQuery.length >= 2) {
+      filters.search = searchQuery;
+    }
+    
+    setFilters(filters);
+  }, [searchQuery, setFilters]);
 
   const handleSelect = (vehicle: any) => {
     onVehicleSelect(vehicle);
@@ -68,7 +75,11 @@ const VehicleSelector = ({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder="Search vehicles..." />
+          <CommandInput 
+            placeholder="Search vehicles..." 
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
           <CommandList>
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
@@ -77,7 +88,9 @@ const VehicleSelector = ({
             ) : (
               <>
                 <CommandEmpty>
-                  {error ? "Error loading vehicles" : "No vehicles found."}
+                  {error ? "Error loading vehicles" : 
+                    searchQuery.length < 2 ? "Enter at least 2 characters to search" : "No vehicles found"
+                  }
                 </CommandEmpty>
                 <CommandGroup>
                   {safeVehicles.length > 0 ? (
@@ -94,13 +107,20 @@ const VehicleSelector = ({
                               selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                          <div className="flex flex-col">
+                            <span>{vehicle.make} {vehicle.model} ({vehicle.license_plate})</span>
+                            <span className="text-xs text-muted-foreground">
+                              Year: {vehicle.year} • VIN: {vehicle.vin?.substring(0, 8)}...
+                            </span>
+                          </div>
                         </CommandItem>
                       ))}
                     </ScrollArea>
                   ) : (
                     <div className="py-6 text-center text-sm">
-                      No available vehicles found
+                      {searchQuery.length < 2 
+                        ? "Enter at least 2 characters to search" 
+                        : "No available vehicles found"}
                     </div>
                   )}
                 </CommandGroup>
