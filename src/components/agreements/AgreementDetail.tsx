@@ -53,7 +53,7 @@ export function AgreementDetail({
   });
   
   // Use our loading states hook for PDF generation
-  const { loadingStates, setLoading } = useLoadingStates({
+  const { loadingStates, setLoading, setIdle } = useLoadingStates({
     generatingPdf: false
   });
 
@@ -119,7 +119,7 @@ export function AgreementDetail({
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
-        setLoading('generatingPdf', true);
+        setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         const success = await generatePdfDocument(agreement);
         if (success) {
@@ -131,10 +131,10 @@ export function AgreementDetail({
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF");
       } finally {
-        setLoading('generatingPdf', false);
+        setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading]);
+  }, [agreement, setLoading, setIdle]);
 
   // Generate document
   const handleGenerateDocument = useCallback(() => {
