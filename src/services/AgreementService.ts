@@ -20,6 +20,7 @@ export interface AgreementFilters {
   end_date_before?: string;
   rent_min?: number;
   rent_max?: number;
+  license_plate?: string;
   [key: string]: any;
 }
 
@@ -178,6 +179,10 @@ export const agreementService = {
 
       if (filters.rent_max !== undefined) {
         query = query.lte('rent_amount', filters.rent_max);
+      }
+
+      if (filters.license_plate) {
+        query = query.ilike('vehicles.license_plate', `%${filters.license_plate}%`);
       }
       
       if (filters.end_date_after) {

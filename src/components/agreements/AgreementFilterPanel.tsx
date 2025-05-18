@@ -40,6 +40,7 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
   const [endDateTo, setEndDateTo] = useState<Date | undefined>(
     currentFilters?.end_date_before ? new Date(currentFilters.end_date_before) : undefined
   );
+  const [licensePlate, setLicensePlate] = useState(currentFilters?.license_plate || '');
   const [minRent, setMinRent] = useState(currentFilters?.rent_min || '');
   const [maxRent, setMaxRent] = useState(currentFilters?.rent_max || '');
   const [status, setStatus] = useState(currentFilters?.status || 'all');
@@ -49,6 +50,7 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
     
     if (agreementNumber) filters.agreement_number = agreementNumber;
     if (status && status !== 'all') filters.status = status;
+    if (licensePlate) filters.license_plate = licensePlate;
     
     // Date filters
     if (startDateFrom) filters.start_date_after = startDateFrom.toISOString();
@@ -72,6 +74,7 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
     setMinRent('');
     setMaxRent('');
     setStatus('all');
+    setLicensePlate('');
     
     onFilterChange({
       agreement_number: undefined,
@@ -82,6 +85,7 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
       end_date_before: undefined,
       rent_min: undefined,
       rent_max: undefined,
+      license_plate: undefined,
     });
   };
 
@@ -129,21 +133,31 @@ export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: Ag
         {/* Main Filter Form */}
         <div className="md:col-span-2 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="agreement-number">Agreement Number</Label>
-              <Input
-                id="agreement-number"
-                placeholder="Filter by number"
-                value={agreementNumber}
-                onChange={(e) => setAgreementNumber(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select 
-                value={status} 
-                onValueChange={setStatus}
+          <div className="space-y-2">
+            <Label htmlFor="agreement-number">Agreement Number</Label>
+            <Input
+              id="agreement-number"
+              placeholder="Filter by number"
+              value={agreementNumber}
+              onChange={(e) => setAgreementNumber(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="license-plate">License Plate</Label>
+            <Input
+              id="license-plate"
+              placeholder="Filter by plate"
+              value={licensePlate}
+              onChange={(e) => setLicensePlate(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={status}
+              onValueChange={setStatus}
               >
                 <SelectTrigger id="status" className="h-9">
                   <SelectValue placeholder="Select status" />
