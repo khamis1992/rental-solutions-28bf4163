@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { PaymentHistoryItem } from '@/types/payment-history.types';
+import { Payment } from '@/types/payment.types';
 import { Edit, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PaymentTableProps {
-  payments: PaymentHistoryItem[];
-  onEditPayment?: (payment: PaymentHistoryItem) => void;
+  payments: Payment[];
+  onEditPayment?: (payment: Payment) => void;
   onDeletePayment?: (paymentId: string) => void;
 }
 

@@ -66,6 +66,7 @@ export interface VehicleFormData {
   rent_amount?: number | null;
   vehicle_type_id?: string | null;
   notes?: string | null;
+  image?: File | null;
 }
 
 /**

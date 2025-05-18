@@ -15,7 +15,7 @@ import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
-import { Payment } from '@/types/payment-types.unified';
+import { Payment } from '@/types/payment.types';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Payment } from '@/types/payment-types.unified';
+import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 

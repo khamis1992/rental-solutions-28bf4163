@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { Payment } from '@/types/payment-types.unified';
+import { Payment } from '@/types/payment.types';
 
 /**
  * Hook for calculating payment-related metrics and statistics

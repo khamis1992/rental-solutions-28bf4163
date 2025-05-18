@@ -10,7 +10,7 @@ import {
   FormLabel,
   FormMessage 
 } from '@/components/ui/form';
-import { useTemplateSetup } from './TemplateSetup';
+import { useTemplateSetup } from '@/hooks/form/useTemplateSetup';
 import { AgreementTemplateStatus } from './AgreementTemplateStatus';
 import { Agreement } from '@/types/agreement';
 
