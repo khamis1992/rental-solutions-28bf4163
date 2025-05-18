@@ -116,7 +116,12 @@ const Agreements = () => {
     setActiveTab(value);
     if (value === 'all' || value === 'agreements') {
       setSearchParams({ status: undefined });
-    } else if (value === 'active' || value === 'pending' || value === 'history') {
+    } else if (
+      value === 'active' ||
+      value === 'closed' ||
+      value === 'cancelled' ||
+      value === 'history'
+    ) {
       // Only set the status filter for valid status values
       setSearchParams({ status: value === 'history' ? undefined : value });
     }
@@ -185,7 +190,8 @@ const Agreements = () => {
                 <TabsList>
                   <TabsTrigger value="agreements">All Agreements</TabsTrigger>
                   <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
+                  <TabsTrigger value="closed">Closed</TabsTrigger>
+                  <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                   <TabsTrigger value="history">Import History</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -333,7 +339,38 @@ const Agreements = () => {
                 </Suspense>
               </TabsContent>
               
-              <TabsContent value="pending" className="m-0">
+              <TabsContent value="closed" className="m-0">
+                <Suspense fallback={
+                  <div className="flex items-center justify-center h-64">
+                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                }>
+                  <div className="p-4">
+                    {viewMode === 'card' && (
+                      <AgreementList
+                        agreements={agreements}
+                        isLoading={isLoading}
+                        onDeleteAgreement={deleteAgreement}
+                      />
+                    )}
+                    {viewMode === 'table' && (
+                      <AgreementTable
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
+                    {viewMode === 'compact' && (
+                      <AgreementTable
+                        compact
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
+                  </div>
+                </Suspense>
+              </TabsContent>
+
+              <TabsContent value="cancelled" className="m-0">
                 <Suspense fallback={
                   <div className="flex items-center justify-center h-64">
                     <RefreshCw className="h-6 w-6 animate-spin text-primary" />
