@@ -2,24 +2,19 @@ import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
 import AgreementEditor from '@/components/agreements/edit/AgreementEditor';
-import { CustomerInfo } from '@/types/customer';
 
 interface EditAgreementContentProps {
   id?: string;
   userId?: string;
   agreement: Agreement | null;
   isLoading: boolean;
-  vehicleData: any;
-  customerData?: CustomerInfo;
 }
 
 export function EditAgreementContent({ 
-  id, 
-  userId, 
-  agreement, 
-  isLoading, 
-  vehicleData,
-  customerData
+  id,
+  userId,
+  agreement,
+  isLoading
 }: EditAgreementContentProps) {
   return (
     <>
@@ -28,15 +23,7 @@ export function EditAgreementContent({
         hasAgreement={!!agreement} 
       />
 
-      {!isLoading && agreement && id && (
-        <AgreementEditor
-          id={id}
-          userId={userId}
-          agreement={agreement}
-          vehicleData={vehicleData}
-          customerData={customerData}
-        />
-      )}
+      {!isLoading && agreement && id && <AgreementEditor />}
     </>
   );
 }

@@ -303,14 +303,12 @@ export function AgreementDetail({
           onGenerateDocument={handleGenerateDocument}
           onDelete={() => openDialog('delete')}
           isGeneratingPdf={loadingStates.generatingPdf}
-          loadingStates={loadingStates}
         />
-        
+
         <LoadingButton
           variant="outline"
           onClick={handleUpdateHistoricalPaymentStatuses}
-          loadingKey="updateHistoricalStatuses"
-          loadingStates={paymentLoadingStates}
+          isLoading={paymentLoadingStates.updateHistoricalStatuses}
           loadingText="Updating..."
         >
           Complete Historical Payments

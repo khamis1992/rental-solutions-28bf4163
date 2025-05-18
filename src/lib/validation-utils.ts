@@ -1,6 +1,5 @@
 
 import { z } from 'zod';
-import { validators } from '@/utils/validation';
 
 /**
  * Enhanced validateData function that properly types and formats errors
@@ -46,7 +45,7 @@ export function withValidation<T, R>(
     const validationResult = validateData(schema, data);
     
     if (!validationResult.success) {
-      return validationResult;
+      return validationResult as { success: false; errors: Record<string, string> };
     }
     
     try {
@@ -62,5 +61,3 @@ export function withValidation<T, R>(
   };
 }
 
-// Re-export validation functions for convenience
-export { validators };

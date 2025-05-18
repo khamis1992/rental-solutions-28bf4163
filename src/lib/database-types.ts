@@ -21,11 +21,13 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
     console.error('Database error:', response.error);
     return null;
   }
-  return response.data || null;
+  return (response.data as unknown as T) || null;
 }
 
 // Type guard for responses
-export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
+export function isSuccessResponse<T>(
+  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
+): response is { data: T | T[]; error: null } {
   return !response.error && response.data !== null;
 }
 

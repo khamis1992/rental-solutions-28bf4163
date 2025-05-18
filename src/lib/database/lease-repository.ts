@@ -1,7 +1,8 @@
 
 import { supabase } from '@/lib/supabase';
-import { LeaseRow, isSuccessResponse } from './types';
+import { LeaseRow } from './types';
 import { createRepository } from './repository';
+import { isSuccessResponse } from './validation/typeGuards';
 import { asLeaseStatus } from '@/types/database-common';
 
 // Get base repository functionality

@@ -157,19 +157,19 @@ export const useVehicles = () => {
             
             while (attempts < maxAttempts) {
               try {
-                const { data, error } = await query.order('created_at', { ascending: false });
-                
-                if (error) {
-                  lastError = error;
+                const response = await query.order('created_at', { ascending: false });
+
+                if (response.error) {
+                  lastError = response.error;
                   attempts++;
                   if (attempts < maxAttempts) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     continue;
                   }
-                  throw error;
+                  throw response.error;
                 }
-                
-                const safeData = safelyGetRecordsFromResponse(data ? { data, error: null } : null);
+
+                const safeData = safelyGetRecordsFromResponse(response as any);
                 return safeData.map(record => mapDatabaseRecordToVehicle(record));
               } catch (err) {
                 lastError = err;
@@ -274,7 +274,7 @@ export const useVehicles = () => {
               rent_amount: formData.rent_amount || null,
               vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
               image_url: imageUrl,
-              status: formData.status ? mapToDBStatus(formData.status) : 'available',
+              status: (formData.status ? mapToDBStatus(formData.status) : 'available') as VehicleStatus,
             };
             
             const { data, error } = await supabase
@@ -377,10 +377,10 @@ export const useVehicles = () => {
             
             if (data.color !== undefined) vehicleData.color = data.color;
             
-            if (data.status !== undefined) {
-              const newStatus = mapToDBStatus(data.status);
-              vehicleData.status = newStatus;
-            }
+              if (data.status !== undefined) {
+                const newStatus = mapToDBStatus(data.status);
+                vehicleData.status = newStatus as VehicleStatus;
+              }
             
             if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
             if (data.description !== undefined) vehicleData.description = data.description;
@@ -397,9 +397,7 @@ export const useVehicles = () => {
               vehicleData.vehicle_type_id = data.vehicle_type_id === 'none' ? null : data.vehicle_type_id;
             }
             
-            if (imageUrl) vehicleData.image_url = imageUrl;
-            
-            vehicleData.updated_at = new Date().toISOString();
+              if (imageUrl) vehicleData.image_url = imageUrl;
             
             
             let attempt = 0;

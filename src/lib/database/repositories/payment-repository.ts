@@ -74,9 +74,15 @@ export class PaymentRepository extends Repository<'unified_payments'> {
   async update(paymentId: string, paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
     const safePaymentId = asPaymentId(paymentId);
     if (!safePaymentId) {
-      return { 
-        data: null, 
-        error: { message: "Invalid payment ID", details: "", code: "", hint: "" } 
+      return {
+        data: null,
+        error: {
+          name: 'InvalidPaymentId',
+          message: 'Invalid payment ID',
+          details: '',
+          code: '',
+          hint: ''
+        }
       };
     }
     

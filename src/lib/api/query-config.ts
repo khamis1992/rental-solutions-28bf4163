@@ -1,7 +1,7 @@
 
 import { UseQueryOptions } from '@tanstack/react-query';
 
-export const defaultQueryConfig = {
+export const defaultQueryConfig: Partial<UseQueryOptions<any, Error>> = {
   retry: (failureCount: number, error: any) => {
     // Don't retry on specific error types
     if (error && typeof error === 'object' && 'code' in error) {
@@ -20,7 +20,7 @@ export function createQueryConfig<TData>(
   options?: Partial<UseQueryOptions<TData, Error>>
 ): UseQueryOptions<TData, Error> {
   return {
-    ...defaultQueryConfig,
-    ...options
+    ...(defaultQueryConfig as UseQueryOptions<TData, Error>),
+    ...(options as UseQueryOptions<TData, Error>)
   };
 }

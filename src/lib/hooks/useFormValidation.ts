@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { useToast } from '@/components/ui/use-toast';
 
-export function useFormValidation<T extends z.ZodType<any, any>>(schema: T) {
+export function useFormValidation<T extends z.AnyZodObject>(schema: T) {
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
 

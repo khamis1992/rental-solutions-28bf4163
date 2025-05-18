@@ -42,13 +42,13 @@ export function hasResponseData<T>(
 export function extractResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
-  if (!hasResponseData(response)) {
+  if (!response || response.error) {
     if (response?.error) {
       console.error('Database error:', response.error);
     }
     return null;
   }
-  return response.data;
+  return response.data ?? null;
 }
 
 /**
@@ -88,7 +88,7 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
     return null;
   }
   
-  return response?.data || null;
+  return (response?.data as unknown as T) || null;
 }
 
 /**
