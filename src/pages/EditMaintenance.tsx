@@ -138,7 +138,7 @@ const EditMaintenance = () => {
     status: mapStringToMaintenanceStatus(maintenance.status),
     // Convert string dates to Date objects if they exist, otherwise use current date
     scheduled_date: maintenance.scheduled_date ? new Date(maintenance.scheduled_date) : new Date(),
-    completion_date: maintenance.completion_date ? new Date(maintenance.completion_date) : undefined,
+    completed_date: maintenance.completed_date ? new Date(maintenance.completed_date) : undefined,
     // Ensure vehicle_id is never an empty string
     vehicle_id: maintenance.vehicle_id || null,
   };
