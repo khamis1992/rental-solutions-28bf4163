@@ -1,69 +1,31 @@
 
-import React from "react";
-import { Button, type ButtonProps } from "./button";
-import { Loader } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { ButtonProps } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
-export interface LoadingButtonProps extends ButtonProps {
-  /**
-   * Key in the loading states object to determine if this button is loading
-   */
-  loadingKey?: string;
-  
-  /**
-   * Loading states object from useLoadingStates hook
-   */
-  loadingStates?: Record<string, boolean>;
-  
-  /**
-   * Text to display when button is loading
-   */
-  loadingText?: string;
-  
-  /**
-   * Whether to show the loading spinner
-   */
-  showSpinner?: boolean;
-  
-  /**
-   * Alternative way to specify loading state directly
-   * @deprecated Use loadingKey and loadingStates instead
-   */
+interface LoadingButtonProps extends ButtonProps {
   isLoading?: boolean;
+  loadingText?: string;
 }
 
-export function LoadingButton({
-  loadingKey,
-  loadingStates = {},
-  loadingText = "Loading...",
-  showSpinner = true,
-  isLoading: isLoadingProp,
-  disabled,
-  className,
+export const LoadingButton: React.FC<LoadingButtonProps> = ({
   children,
+  isLoading = false,
+  loadingText,
+  disabled,
   ...props
-}: LoadingButtonProps) {
-  // Determine if the button is in loading state (priority to direct isLoading prop)
-  const isLoading = isLoadingProp !== undefined 
-    ? isLoadingProp 
-    : loadingKey 
-      ? !!loadingStates[loadingKey] 
-      : false;
-  
+}) => {
   return (
-    <Button
-      disabled={isLoading || disabled}
-      className={cn(className)}
-      {...props}
-    >
+    <Button disabled={disabled || isLoading} {...props}>
       {isLoading ? (
-        <span className="flex items-center gap-2">
-          {showSpinner && <Loader className="h-4 w-4 animate-spin" />}
-          {loadingText}
-        </span>
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          {loadingText || children}
+        </>
       ) : (
         children
       )}
     </Button>
   );
-}
+};

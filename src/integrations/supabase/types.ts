@@ -10476,6 +10476,10 @@ export type Database = {
         Args: { import_id: string }
         Returns: boolean
       }
+      recalculate_car_installment_contract_summary: {
+        Args: { contract_id: string }
+        Returns: Json
+      }
       record_payment_with_late_fee: {
         Args: {
           p_lease_id: string

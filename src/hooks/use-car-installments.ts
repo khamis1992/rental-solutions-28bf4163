@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { CarInstallmentContract, CarInstallmentPayment, ContractFilters, ContractSummary, PaymentFilters, PaymentStatusType } from '@/types/car-installment';
 import { toast } from 'sonner';
+import { carInstallmentService } from '@/services/CarInstallmentService';
 
 export const useCarInstallments = () => {
   const queryClient = useQueryClient();
@@ -143,6 +143,27 @@ export const useCarInstallments = () => {
     }
   });
 
+  // Recalculate contract summary mutation
+  const recalculateContractSummary = useMutation({
+    mutationFn: async (contractId: string) => {
+      const result = await carInstallmentService.recalculateContractSummary(contractId);
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to recalculate contract summary');
+      }
+      return result.data;
+    },
+    onSuccess: (data, contractId) => {
+      // Invalidate both the contract and payments queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['car-installment-contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['car-installment-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['car-installment-payments', contractId] });
+      toast.success('Contract summary recalculated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to recalculate contract summary: ${error.message}`);
+    }
+  });
+
   // Update payment status mutation
   const updatePaymentStatus = async (
     id: string, 
@@ -248,6 +269,8 @@ export const useCarInstallments = () => {
     isLoadingContracts,
     isLoadingSummary,
     isLoadingPayments,
-    addPayment: recordPayment.mutate // Added this line to fix the error
+    recalculateContractSummary: recalculateContractSummary.mutate,
+    isRecalculating: recalculateContractSummary.isPending,
+    addPayment: recordPayment.mutate
   };
 };

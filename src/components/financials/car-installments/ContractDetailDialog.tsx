@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileDown, Plus, FileUp } from 'lucide-react';
+import { Loader2, FileDown, Plus, FileUp, RefreshCw } from 'lucide-react';
 import { CarInstallmentContract, CarInstallmentPayment } from '@/types/car-installment';
 import { useCarInstallments } from '@/hooks/use-car-installments';
 import { ContractDetailSummary } from './ContractDetailSummary';
@@ -16,6 +16,7 @@ import { ContractPaymentsTable } from './ContractPaymentsTable';
 import { PaymentDialog } from './PaymentDialog';
 import { ImportPaymentsDialog } from './ImportPaymentsDialog';
 import { PaymentFiltersBar } from './PaymentFiltersBar';
+import { LoadingButton } from '@/components/ui/loading-button';
 
 interface ContractDetailDialogProps {
   open: boolean;
@@ -43,7 +44,9 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   const { 
     recordPayment, 
     importPayments,
-    fetchContractPayments
+    fetchContractPayments,
+    recalculateContractSummary,
+    isRecalculating
   } = useCarInstallments();
 
   const loadPayments = async () => {
@@ -141,13 +144,30 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
     });
   };
 
+  const handleRefreshSummary = () => {
+    if (contract?.id) {
+      recalculateContractSummary(contract.id);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {contract.car_type} ({contract.model_year})
-          </DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle>
+              {contract.car_type} ({contract.model_year})
+            </DialogTitle>
+            <LoadingButton
+              size="sm"
+              variant="outline"
+              onClick={handleRefreshSummary}
+              isLoading={isRecalculating}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh Summary
+            </LoadingButton>
+          </div>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
