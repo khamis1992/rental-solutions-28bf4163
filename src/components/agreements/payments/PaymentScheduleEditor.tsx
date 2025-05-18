@@ -60,7 +60,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
       
       let currentDate = new Date(start);
       
-      // Set day of month if specified
+      // Set day of month if specified (this is the payment day)
       if (paymentDay && paymentDay >= 1 && paymentDay <= 31) {
         currentDate.setDate(paymentDay);
         // If the payment day is before the start date, move to next month
@@ -136,7 +136,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
         </div>
         
         <div>
-          <Label htmlFor="paymentDay">Payment Day (1-31)</Label>
+          <Label htmlFor="paymentDay">Payment Day of Month (1-31)</Label>
           <Input 
             id="paymentDay"
             type="number" 
@@ -145,6 +145,11 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
             value={paymentDay} 
             onChange={(e) => onPaymentDayChange(parseInt(e.target.value) || 1)}
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            {paymentFrequency === 'monthly' || paymentFrequency === 'quarterly' 
+              ? "Day of the month when payment is due" 
+              : "Will be used for the first payment date"}
+          </p>
         </div>
         
         <div className="flex items-end">
