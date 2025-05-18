@@ -43,7 +43,11 @@ const UserManagement = () => {
         description="Manage system users, roles, and permissions"
         icon={Users}
         actions={
-          <CustomButton size="sm" variant="default">
+          <CustomButton
+            size="sm"
+            variant="default"
+            onClick={() => toast('User invitation sent')}
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite User
           </CustomButton>

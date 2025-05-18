@@ -71,7 +71,7 @@ const Reports = () => {
     console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
       case 'fleet':
-        return reportData || [];
+        return reportData?.vehicles || [];
       case 'financial':
         return transactions;
       case 'customers':
