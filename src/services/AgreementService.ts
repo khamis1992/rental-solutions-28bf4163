@@ -39,11 +39,19 @@ export const agreementService = {
           .update({
             vehicle_id: agreement.vehicle_id,
             customer_id: agreement.customer_id,
+            agreement_number:
+              agreement.agreement_number || generateAgreementNumber(),
             start_date: agreement.start_date,
             end_date: agreement.end_date,
             status: agreement.status,
             deposit_amount: agreement.deposit_amount,
             total_amount: agreement.total_amount,
+            rent_amount: agreement.rent_amount,
+            daily_late_fee: agreement.daily_late_fee,
+            agreement_type: agreement.agreement_type,
+            agreement_duration: agreement.agreement_duration,
+            rent_due_day:
+              (agreement as any).payment_day ?? (agreement as any).rent_due_day,
             notes: agreement.notes,
             updated_at: new Date().toISOString()
           })
@@ -61,12 +69,19 @@ export const agreementService = {
           .insert({
             vehicle_id: agreement.vehicle_id,
             customer_id: agreement.customer_id,
-            agreement_number: agreement.agreement_number || generateAgreementNumber(),
+            agreement_number:
+              agreement.agreement_number || generateAgreementNumber(),
             start_date: agreement.start_date,
             end_date: agreement.end_date,
             status: agreement.status,
             deposit_amount: agreement.deposit_amount,
             total_amount: agreement.total_amount,
+            rent_amount: agreement.rent_amount,
+            daily_late_fee: agreement.daily_late_fee,
+            agreement_type: agreement.agreement_type || 'rental',
+            agreement_duration: agreement.agreement_duration,
+            rent_due_day:
+              (agreement as any).payment_day ?? (agreement as any).rent_due_day,
             notes: agreement.notes
           })
           .select()
