@@ -35,7 +35,13 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findByStatus:", error);
       return {
         data: [],
-        error: error instanceof Error ? error : new Error('Unknown error in findByStatus')
+        error: {
+          name: 'FindByStatusError',
+          message: error instanceof Error ? error.message : 'Unknown error in findByStatus',
+          details: '',
+          hint: '',
+          code: ''
+        }
       };
     }
   }
@@ -59,7 +65,13 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findAvailable:", error);
       return {
         data: [],
-        error: error instanceof Error ? error : new Error('Unknown error in findAvailable')
+        error: {
+          name: 'FindAvailableError',
+          message: error instanceof Error ? error.message : 'Unknown error in findAvailable',
+          details: '',
+          hint: '',
+          code: ''
+        }
       };
     }
   }
@@ -105,7 +117,13 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in updateStatus:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in updateStatus')
+        error: {
+          name: 'UpdateStatusError',
+          message: error instanceof Error ? error.message : 'Unknown error in updateStatus',
+          details: '',
+          hint: '',
+          code: ''
+        }
       };
     }
   }
@@ -142,7 +160,13 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in getWithLease:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in getWithLease')
+        error: {
+          name: 'GetWithLeaseError',
+          message: error instanceof Error ? error.message : 'Unknown error in getWithLease',
+          details: '',
+          hint: '',
+          code: ''
+        }
       };
     }
   }
@@ -190,7 +214,13 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findWithDetails:", error);
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error in findWithDetails')
+        error: {
+          name: 'FindWithDetailsError',
+          message: error instanceof Error ? error.message : 'Unknown error in findWithDetails',
+          details: '',
+          hint: '',
+          code: ''
+        }
       };
     }
   }

@@ -1,8 +1,9 @@
 
 import { supabase } from '@/lib/supabase';
-import { VehicleRow, isSuccessResponse } from './types';
+import { VehicleRow } from './types';
 import { createRepository } from './repository';
 import { asVehicleStatus } from './validation';
+import { isSuccessResponse } from './validation/typeGuards';
 
 // Get base repository functionality
 const baseRepository = createRepository('vehicles');

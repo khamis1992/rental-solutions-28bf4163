@@ -187,7 +187,7 @@ export function PaymentHistorySection({
           payment_date: date.toISOString(),
           description: notes,
           payment_method: method,
-          transaction_id: reference,
+          reference_number: reference,
           status: paymentStatus,
           type: paymentType || selectedPayment.type || 'rent',
           days_overdue: daysOverdue,
@@ -211,16 +211,16 @@ export function PaymentHistorySection({
         return false;
       }
     } else if (onRecordPayment && leaseId) {
-      const paymentData: Partial<Payment> = {
-        amount,
-        payment_date: date.toISOString(),
-        description: notes,
-        payment_method: method,
-        transaction_id: reference,
-        lease_id: leaseId,
-        status: 'completed',
-        type: paymentType || 'rent'
-      };
+        const paymentData: Partial<Payment> = {
+          amount,
+          payment_date: date.toISOString(),
+          description: notes,
+          payment_method: method,
+          reference_number: reference,
+          lease_id: leaseId,
+          status: 'completed',
+          type: paymentType || 'rent'
+        };
       
       handlePaymentCreated(paymentData);
       return true;

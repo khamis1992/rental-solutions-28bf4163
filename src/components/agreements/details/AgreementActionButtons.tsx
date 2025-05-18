@@ -8,7 +8,6 @@ interface AgreementActionButtonsProps {
   onGenerateDocument: () => void;
   onDelete: () => void;
   isGeneratingPdf?: boolean;
-  loadingStates?: Record<string, boolean>;
 }
 
 export function AgreementActionButtons({
@@ -17,7 +16,6 @@ export function AgreementActionButtons({
   onGenerateDocument,
   onDelete,
   isGeneratingPdf = false,
-  loadingStates = {},
 }: AgreementActionButtonsProps) {
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
@@ -28,8 +26,6 @@ export function AgreementActionButtons({
       <LoadingButton
         variant="outline"
         onClick={onDownloadPdf}
-        loadingKey="generatingPdf"
-        loadingStates={loadingStates}
         isLoading={isGeneratingPdf}
         loadingText="Generating PDF..."
       >

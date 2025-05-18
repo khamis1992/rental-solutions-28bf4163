@@ -9,12 +9,19 @@ export interface SpecialPaymentOptions {
   targetPaymentId?: string;
 }
 
-export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled' | 'partially_paid';
+export type PaymentStatus =
+  | 'pending'
+  | 'completed'
+  | 'overdue'
+  | 'cancelled'
+  | 'partially_paid'
+  | 'voided';
 
 export interface Payment {
   id: string;
   lease_id: string;
   amount: number;
+  amount_paid?: number;
   payment_date: string;
   description?: string;
   payment_method?: string;

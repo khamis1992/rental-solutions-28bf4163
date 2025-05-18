@@ -23,7 +23,6 @@ export { utils, validation, typeGuards };
 
 // Export types
 export * from './types';
-export * from './database-types';
 
 // Export repositories for backwards compatibility
 export { leaseRepository as leaseRepo };
