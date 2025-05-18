@@ -6,15 +6,19 @@ import { processAgreementData } from './table/agreement-data';
 
 interface AgreementTableProps {
   compact?: boolean;
+  agreements?: any[];
+  isLoading?: boolean;
 }
 
-export default function AgreementTable({ compact = false }: AgreementTableProps) {
+export default function AgreementTable({ compact = false, agreements: externalAgreements, isLoading: externalLoading }: AgreementTableProps) {
   const {
-    agreements,
-    isLoading,
+    agreements: internalAgreements,
+    isLoading: internalLoading,
     error,
-    deleteAgreement
   } = useAgreementService();
+
+  const agreements = externalAgreements ?? internalAgreements;
+  const isLoading = externalLoading ?? internalLoading;
   
   // Process agreement data for display
   const typedAgreements = processAgreementData(agreements || []);

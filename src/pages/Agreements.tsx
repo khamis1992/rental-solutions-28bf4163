@@ -40,12 +40,13 @@ const Agreements = () => {
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
   
   // Use the agreement service hook
-  const { 
-    agreements, 
-    isLoading, 
-    searchParams, 
-    setSearchParams, 
-    refetch 
+  const {
+    agreements,
+    isLoading,
+    searchParams,
+    setSearchParams,
+    refetch,
+    deleteAgreement
   } = useAgreementService();
   
   // Add state for customer search functionality
@@ -277,9 +278,26 @@ const Agreements = () => {
                   </div>
                 }>
                   <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
+                    {viewMode === 'card' && (
+                      <AgreementList
+                        agreements={agreements}
+                        isLoading={isLoading}
+                        onDeleteAgreement={deleteAgreement}
+                      />
+                    )}
+                    {viewMode === 'table' && (
+                      <AgreementTable
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
+                    {viewMode === 'compact' && (
+                      <AgreementTable
+                        compact
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
                   </div>
                 </Suspense>
               </TabsContent>
@@ -291,9 +309,26 @@ const Agreements = () => {
                   </div>
                 }>
                   <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
+                    {viewMode === 'card' && (
+                      <AgreementList
+                        agreements={agreements}
+                        isLoading={isLoading}
+                        onDeleteAgreement={deleteAgreement}
+                      />
+                    )}
+                    {viewMode === 'table' && (
+                      <AgreementTable
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
+                    {viewMode === 'compact' && (
+                      <AgreementTable
+                        compact
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
                   </div>
                 </Suspense>
               </TabsContent>
@@ -305,9 +340,26 @@ const Agreements = () => {
                   </div>
                 }>
                   <div className="p-4">
-                    {viewMode === 'card' && <AgreementList />}
-                    {viewMode === 'table' && <AgreementTable />}
-                    {viewMode === 'compact' && <AgreementTable compact />}
+                    {viewMode === 'card' && (
+                      <AgreementList
+                        agreements={agreements}
+                        isLoading={isLoading}
+                        onDeleteAgreement={deleteAgreement}
+                      />
+                    )}
+                    {viewMode === 'table' && (
+                      <AgreementTable
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
+                    {viewMode === 'compact' && (
+                      <AgreementTable
+                        compact
+                        agreements={agreements}
+                        isLoading={isLoading}
+                      />
+                    )}
                   </div>
                 </Suspense>
               </TabsContent>
