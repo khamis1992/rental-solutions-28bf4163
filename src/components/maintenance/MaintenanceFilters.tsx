@@ -93,13 +93,15 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
               <label className="text-sm font-medium mb-1 block">Status</label>
               <Select
                 value={filters.status}
-                onValueChange={(value) => handleInputChange('status', value)}
+                onValueChange={(value) =>
+                  handleInputChange('status', value === 'all' ? '' : value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -112,13 +114,15 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
               <label className="text-sm font-medium mb-1 block">Vehicle</label>
               <Select
                 value={filters.vehicle}
-                onValueChange={(value) => handleInputChange('vehicle', value)}
+                onValueChange={(value) =>
+                  handleInputChange('vehicle', value === 'all' ? '' : value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Vehicles</SelectItem>
+                  <SelectItem value="all">All Vehicles</SelectItem>
                   {vehicleOptions.map(vehicle => (
                     <SelectItem key={vehicle.id} value={vehicle.id}>
                       {vehicle.label}
@@ -132,13 +136,15 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
               <label className="text-sm font-medium mb-1 block">Maintenance Type</label>
               <Select
                 value={filters.maintenanceType}
-                onValueChange={(value) => handleInputChange('maintenanceType', value)}
+                onValueChange={(value) =>
+                  handleInputChange('maintenanceType', value === 'all' ? '' : value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   {maintenanceTypes.map(type => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
