@@ -68,42 +68,44 @@ const VehicleSelector = ({
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder="Search vehicles..." />
-          {isLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <>
-              <CommandEmpty>
-                {error ? "Error loading vehicles" : "No vehicles found."}
-              </CommandEmpty>
-              <CommandGroup>
-                {safeVehicles.length > 0 ? (
-                  <ScrollArea className="h-72">
-                    {safeVehicles.map((vehicle) => (
-                      <CommandItem
-                        key={vehicle.id}
-                        value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
-                        onSelect={() => handleSelect(vehicle)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                ) : (
-                  <div className="py-6 text-center text-sm">
-                    No available vehicles found
-                  </div>
-                )}
-              </CommandGroup>
-            </>
-          )}
+          <CommandList>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>
+                  {error ? "Error loading vehicles" : "No vehicles found."}
+                </CommandEmpty>
+                <CommandGroup>
+                  {safeVehicles.length > 0 ? (
+                    <ScrollArea className="h-72">
+                      {safeVehicles.map((vehicle) => (
+                        <CommandItem
+                          key={vehicle.id}
+                          value={`${vehicle.make} ${vehicle.model} ${vehicle.license_plate}`}
+                          onSelect={() => handleSelect(vehicle)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedVehicle?.id === vehicle.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                        </CommandItem>
+                      ))}
+                    </ScrollArea>
+                  ) : (
+                    <div className="py-6 text-center text-sm">
+                      No available vehicles found
+                    </div>
+                  )}
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
