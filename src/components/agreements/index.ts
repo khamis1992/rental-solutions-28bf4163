@@ -32,3 +32,4 @@ export * from './page/ActiveFilters';
 // Table components
 export * from './table/AgreementTable';
 export * from './table/AgreementTableColumns';
+export * from './AgreementTabPanel';

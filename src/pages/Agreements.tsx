@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList-Simple';
+
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import AgreementTable from '@/components/agreements/AgreementTable';
+import { AgreementTabPanel } from '@/components/agreements/AgreementTabPanel';
 import { Badge } from '@/components/ui/badge';
 import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSelectors';
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
@@ -274,132 +274,41 @@ const Agreements = () => {
           {/* Content Area */}
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsContent value="agreements" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <div className="flex items-center space-x-2">
-                      <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                      <span className="text-lg font-medium">Loading agreements...</span>
-                    </div>
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && (
-                      <AgreementList
-                        agreements={agreements}
-                        isLoading={isLoading}
-                        onDeleteAgreement={deleteAgreement}
-                      />
-                    )}
-                    {viewMode === 'table' && (
-                      <AgreementTable
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                    {viewMode === 'compact' && (
-                      <AgreementTable
-                        compact
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                  </div>
-                </Suspense>
-              </TabsContent>
-              
-              <TabsContent value="active" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && (
-                      <AgreementList
-                        agreements={agreements}
-                        isLoading={isLoading}
-                        onDeleteAgreement={deleteAgreement}
-                      />
-                    )}
-                    {viewMode === 'table' && (
-                      <AgreementTable
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                    {viewMode === 'compact' && (
-                      <AgreementTable
-                        compact
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                  </div>
-                </Suspense>
-              </TabsContent>
-              
-              <TabsContent value="closed" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && (
-                      <AgreementList
-                        agreements={agreements}
-                        isLoading={isLoading}
-                        onDeleteAgreement={deleteAgreement}
-                      />
-                    )}
-                    {viewMode === 'table' && (
-                      <AgreementTable
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                    {viewMode === 'compact' && (
-                      <AgreementTable
-                        compact
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                  </div>
-                </Suspense>
-              </TabsContent>
+              <AgreementTabPanel
+                value="agreements"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText="Loading agreements..."
+              />
 
-              <TabsContent value="cancelled" className="m-0">
-                <Suspense fallback={
-                  <div className="flex items-center justify-center h-64">
-                    <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }>
-                  <div className="p-4">
-                    {viewMode === 'card' && (
-                      <AgreementList
-                        agreements={agreements}
-                        isLoading={isLoading}
-                        onDeleteAgreement={deleteAgreement}
-                      />
-                    )}
-                    {viewMode === 'table' && (
-                      <AgreementTable
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                    {viewMode === 'compact' && (
-                      <AgreementTable
-                        compact
-                        agreements={agreements}
-                        isLoading={isLoading}
-                      />
-                    )}
-                  </div>
-                </Suspense>
-              </TabsContent>
+              <AgreementTabPanel
+                value="active"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
+
+              <AgreementTabPanel
+                value="closed"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
+
+              <AgreementTabPanel
+                value="cancelled"
+                viewMode={viewMode}
+                agreements={agreements}
+                isLoading={isLoading}
+                onDeleteAgreement={deleteAgreement}
+                loadingText=""
+              />
 
               <TabsContent value="history" className="m-0">
                 <div className="p-4">
