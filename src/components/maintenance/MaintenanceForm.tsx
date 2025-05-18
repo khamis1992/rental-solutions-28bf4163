@@ -34,7 +34,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         status: MaintenanceStatus.SCHEDULED,
         description: '',
         scheduled_date: new Date().toISOString().split('T')[0],
-        completion_date: '',
+        completed_date: '',
         cost: 0,
         service_provider: '',
         invoice_number: '',
@@ -57,8 +57,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     if (initialData.status) {
       form.setValue('status', initialData.status);
     }
-    if (initialData.completion_date) {
-      form.setValue('completion_date', initialData.completion_date);
+    if (initialData.completed_date) {
+      form.setValue('completed_date', initialData.completed_date);
     }
     if (initialData.service_provider) {
       form.setValue('service_provider', initialData.service_provider);
@@ -222,7 +222,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
-            name="completion_date"
+            name="completed_date"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Completion Date</FormLabel>

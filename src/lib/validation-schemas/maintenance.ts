@@ -60,7 +60,7 @@ export const maintenanceSchema = z.object({
   description: z.string().optional(),
   cost: z.number().min(0, "Cost must be a positive number").optional(),
   scheduled_date: z.date(),
-  completion_date: z.date().optional(),
+  completed_date: z.date().optional(),
   service_provider: z.string().optional(),
   invoice_number: z.string().optional(),
   odometer_reading: z.number().optional(),
