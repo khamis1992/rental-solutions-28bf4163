@@ -34,7 +34,7 @@ const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('query') || '');
+  const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('searchTerm') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
@@ -124,20 +124,27 @@ const Agreements = () => {
   // Handle search using the component - matching the CustomerListFilter behavior exactly
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setSearchParams({ query: query || undefined });
+    setSearchParams({ searchTerm: query || undefined });
 
     const newParams = new URLSearchParams(urlSearchParams.toString());
     if (query) {
-      newParams.set('query', query);
+      newParams.set('searchTerm', query);
     } else {
-      newParams.delete('query');
+      newParams.delete('searchTerm');
     }
     setUrlSearchParams(newParams);
   };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && value !== undefined && value !== '');
+    .filter(
+      ([key, value]) =>
+        key !== 'status' &&
+        key !== 'customerId' &&
+        key !== 'searchTerm' &&
+        value !== undefined &&
+        value !== ''
+    );
 
   // Function to navigate to add agreement page
   const handleAddAgreement = () => {
