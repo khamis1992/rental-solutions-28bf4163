@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { AlertTriangle, Car, Clock, Settings, Wrench, Calendar, Tool } from 'lucide-react';
+import { AlertTriangle, Car, Clock, Settings, Wrench, Calendar } from 'lucide-react';
 
 interface Vehicle {
   id: string;
@@ -58,7 +58,7 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
   const getMaintenanceTypeIcon = (type: string) => {
     switch(type?.toLowerCase()) {
       case 'oil change':
-        return <Tool className="h-4 w-4 mr-1" />;
+        return <Wrench className="h-4 w-4 mr-1" />;
       default:
         return <Wrench className="h-4 w-4 mr-1" />;
     }
