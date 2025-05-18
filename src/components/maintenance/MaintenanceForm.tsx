@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { typeGuards } from '@/lib/database';
 
@@ -19,15 +22,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   categories = [],
   isSubmitting = false
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState('');
-  
   const form = useForm({
     defaultValues: {
       ...initialData || {
         vehicle_id: '',
         service_type: '',
         description: '',
-        scheduled_date: new Date(),
+        scheduled_date: new Date().toISOString().split('T')[0],
         cost: 0,
         notes: '',
         category_id: ''
@@ -37,14 +38,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   useEffect(() => {
     if (initialData?.category_id) {
-      setSelectedCategory(initialData.category_id);
+      form.setValue('category_id', initialData.category_id);
     }
-  }, [initialData]);
-
-  const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCategory(event.target.value);
-    form.setValue('category_id', event.target.value);
-  };
+  }, [initialData, form]);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -63,7 +59,120 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Form fields go here */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="vehicle_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="Vehicle ID" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="service_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Service Type</FormLabel>
+                <FormControl>
+                  <Input placeholder="Service type" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {filteredCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="scheduled_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Scheduled Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Estimated Cost</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="md:col-span-2">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} placeholder="Describe the maintenance" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea rows={2} placeholder="Additional notes" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={() => window.history.back()}>
             Cancel
