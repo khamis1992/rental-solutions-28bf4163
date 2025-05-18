@@ -6,6 +6,7 @@ export interface SpecialPaymentOptions {
   includeLatePaymentFee?: boolean;
   isPartialPayment?: boolean;
   paymentType?: string;
+  targetPaymentId?: string;
 }
 
 export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled' | 'partially_paid';
