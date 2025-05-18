@@ -109,39 +109,41 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
           </PopoverTrigger>
           <PopoverContent className="w-full p-0" align="start" sideOffset={4}>
             <Command>
-              <CommandInput 
-                placeholder="Search customer by name..." 
+              <CommandInput
+                placeholder="Search customer by name..."
                 value={searchQuery}
                 onValueChange={setSearchQuery}
               />
-              <CommandEmpty>
-                {isLoading ? 'Loading...' : (
-                  searchQuery.length < 2 ? 'Type at least 2 characters to search' : 'No customer found'
-                )}
-              </CommandEmpty>
-              <CommandGroup>
-                {safeCustomers.map((customer) => (
-                  <CommandItem
-                    key={customer.id}
-                    value={customer.full_name}
-                    onSelect={() => {
-                      setSelectedCustomer(customer);
-                      setOpen(false);
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <span className="flex-1">{customer.full_name}</span>
-                    {customer.phone_number && (
-                      <span className="text-xs text-muted-foreground">
-                        ({customer.phone_number})
-                      </span>
-                    )}
-                    {selectedCustomer?.id === customer.id && (
-                      <Check className="h-4 w-4 text-green-500" />
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              <CommandList>
+                <CommandEmpty>
+                  {isLoading ? 'Loading...' : (
+                    searchQuery.length < 2 ? 'Type at least 2 characters to search' : 'No customer found'
+                  )}
+                </CommandEmpty>
+                <CommandGroup>
+                  {safeCustomers.map((customer) => (
+                    <CommandItem
+                      key={customer.id}
+                      value={customer.full_name}
+                      onSelect={() => {
+                        setSelectedCustomer(customer);
+                        setOpen(false);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="flex-1">{customer.full_name}</span>
+                      {customer.phone_number && (
+                        <span className="text-xs text-muted-foreground">
+                          ({customer.phone_number})
+                        </span>
+                      )}
+                      {selectedCustomer?.id === customer.id && (
+                        <Check className="h-4 w-4 text-green-500" />
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

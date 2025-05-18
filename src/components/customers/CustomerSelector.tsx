@@ -95,46 +95,48 @@ const CustomerSelector = ({
       </PopoverTrigger>
       <PopoverContent className="p-0 w-full min-w-[300px]" align="start" sideOffset={4}>
         <Command>
-          <CommandInput 
-            placeholder="Search for customers..." 
+          <CommandInput
+            placeholder="Search for customers..."
             onValueChange={setSearchQuery}
             value={searchQuery}
           />
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {error && (
-            <div className="flex items-center justify-center py-4 text-destructive text-sm">
-              {error}
-            </div>
-          )}
-          {!loading && !error && safeCustomers.length === 0 && (
-            <CommandEmpty>No customers found.</CommandEmpty>
-          )}
-          <CommandGroup>
-            {!loading && !error && safeCustomers.map((customer) => (
-              <CommandItem
-                key={customer.id}
-                value={customer.id}
-                onSelect={() => handleSelect(customer.id)}
-                className="flex items-center"
-              >
-                <span className="flex-1 truncate">
-                  {customer.full_name}
-                  {customer.phone_number && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      ({customer.phone_number})
-                    </span>
+          <CommandList>
+            {loading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center justify-center py-4 text-destructive text-sm">
+                {error}
+              </div>
+            )}
+            {!loading && !error && safeCustomers.length === 0 && (
+              <CommandEmpty>No customers found.</CommandEmpty>
+            )}
+            <CommandGroup>
+              {!loading && !error && safeCustomers.map((customer) => (
+                <CommandItem
+                  key={customer.id}
+                  value={customer.id}
+                  onSelect={() => handleSelect(customer.id)}
+                  className="flex items-center"
+                >
+                  <span className="flex-1 truncate">
+                    {customer.full_name}
+                    {customer.phone_number && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({customer.phone_number})
+                      </span>
+                    )}
+                  </span>
+                  {selectedCustomer?.id === customer.id && (
+                    <Check className="h-4 w-4 text-green-500" />
                   )}
-                </span>
-                {selectedCustomer?.id === customer.id && (
-                  <Check className="h-4 w-4 text-green-500" />
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
