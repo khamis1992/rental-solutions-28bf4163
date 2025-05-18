@@ -1,5 +1,6 @@
 import React from 'react';
 import { Agreement } from '@/types/agreement';
+import { CustomerInfo } from '@/types/customer';
 import { AgreementLoadingState } from '@/components/agreements/AgreementLoadingState';
 import AgreementEditor from '@/components/agreements/edit/AgreementEditor';
 
@@ -8,6 +9,8 @@ interface EditAgreementContentProps {
   userId?: string;
   agreement: Agreement | null;
   isLoading: boolean;
+  vehicleData?: any;
+  customerData?: CustomerInfo;
 }
 
 export function EditAgreementContent({ 
