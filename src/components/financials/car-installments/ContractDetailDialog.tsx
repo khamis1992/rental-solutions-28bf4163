@@ -70,7 +70,18 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
     if (open && contract?.id) {
       loadPayments();
     }
-  }, [open, contract?.id, paymentFilters]);
+  }, [open, contract?.id]);
+
+  // Reload payments when filters change with a debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (open && contract?.id) {
+        loadPayments();
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [paymentFilters]);
 
   const handleAddPayment = () => {
     setRecordMode(false);
@@ -198,16 +209,24 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
                   <FileUp className="h-4 w-4 mr-1" />
                   Import
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={handleExportTemplate}
                 >
                   <FileDown className="h-4 w-4 mr-1" />
                   Template
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={loadPayments}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
               </div>
-              <PaymentFiltersBar 
+              <PaymentFiltersBar
                 filters={paymentFilters}
                 onFilterChange={handleFilterChange}
               />
