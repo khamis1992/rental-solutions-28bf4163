@@ -72,38 +72,11 @@ import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
 // Import with both named and default import to ensure compatibility
 import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
+import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from "@/types/permissions";
 
-interface PermissionSettings {
-  view: boolean;
-  create: boolean;
-  edit: boolean;
-  delete: boolean;
-}
+type UserPermissions = RolePermissions;
 
-interface UserPermissions {
-  vehicles: PermissionSettings;
-  customers: PermissionSettings;
-  agreements: PermissionSettings;
-  financials: PermissionSettings;
-  userManagement: PermissionSettings;
-}
-
-const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
-  admin: {
-    vehicles: { view: true, create: true, edit: true, delete: true },
-    customers: { view: true, create: true, edit: true, delete: true },
-    agreements: { view: true, create: true, edit: true, delete: true },
-    financials: { view: true, create: true, edit: true, delete: true },
-    userManagement: { view: true, create: true, edit: true, delete: true }
-  },
-  staff: {
-    vehicles: { view: true, create: true, edit: true, delete: false },
-    customers: { view: true, create: true, edit: true, delete: false },
-    agreements: { view: true, create: true, edit: true, delete: false },
-    financials: { view: true, create: false, edit: false, delete: false },
-    userManagement: { view: false, create: false, edit: false, delete: false }
-  }
-};
+const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = DEFAULT_ROLE_PERMISSIONS;
 
 const UserList = () => {
   const [users, setUsers] = useState<UserDataType[]>([]);
