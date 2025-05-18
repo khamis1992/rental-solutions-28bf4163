@@ -1,6 +1,7 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+export { isSuccessResponse } from './database/validation/typeGuards';
 
 // Helper type for easy table access
 export type Tables = Database['public']['Tables'];
@@ -25,11 +26,6 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
 }
 
 // Type guard for responses
-export function isSuccessResponse<T>(
-  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
-): response is { data: T | T[]; error: null } {
-  return !response.error && response.data !== null;
-}
 
 // Type safe ID converter
 export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {

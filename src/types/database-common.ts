@@ -1,5 +1,6 @@
 
 import { Database } from '@/types/database.types';
+export { isSuccessResponse } from '@/lib/database/validation/typeGuards';
 
 // Core database types with consistent naming
 export type DatabaseSchema = Database['public'];
@@ -108,10 +109,6 @@ export type ListResponse<T> = DatabaseResponse<T[]>;
 export type SingleResponse<T> = DatabaseResponse<T>;
 
 // Helper type guards with consistent naming
-export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
-  return !response?.error && response?.data !== null;
-}
-
 export function hasEntityData<T>(response: any): response is { data: T; error: null } {
   return !response?.error && response?.data !== null;
 }
