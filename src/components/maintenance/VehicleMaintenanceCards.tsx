@@ -26,8 +26,13 @@ interface VehicleMaintenanceCardsProps {
 const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMaintenanceCardsProps) => {
   const navigate = useNavigate();
 
-  const handleVehicleClick = (id: string) => {
-    navigate(`/vehicles/${id}`);
+  const handleVehicleClick = (vehicle: Vehicle) => {
+    const record = vehicle.maintenance && vehicle.maintenance[0];
+    if (record?.id) {
+      navigate(`/maintenance/job/${vehicle.id}`);
+    } else {
+      navigate(`/vehicles/${vehicle.id}`);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -97,7 +102,7 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
           <Card 
             key={vehicle.id} 
             className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => handleVehicleClick(vehicle.id)}
+            onClick={() => handleVehicleClick(vehicle)}
           >
             <div className="relative h-40">
               {vehicle.image_url ? (
