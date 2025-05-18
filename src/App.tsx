@@ -56,6 +56,9 @@ import Legal from "./pages/Legal";
 import NewLegalCasePage from "./pages/NewLegalCasePage";
 import LegalCasesPage from "./pages/LegalCasesPage";
 import LegalDocumentsPage from "./pages/LegalDocumentsPage";
+import LegalCalendarPage from "./pages/LegalCalendarPage";
+import LegalCompliancePage from "./pages/LegalCompliancePage";
+import LegalActivityPage from "./pages/LegalActivityPage";
 
 // Traffic Fines pages
 import TrafficFines from "./pages/TrafficFines";
@@ -151,6 +154,9 @@ function App() {
                               <Route path="/legal/cases" element={<LegalCasesPage />} />
                               <Route path="/legal/documents" element={<LegalDocumentsPage />} />
                               <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
+                              <Route path="/legal/calendar" element={<LegalCalendarPage />} />
+                              <Route path="/legal/compliance" element={<LegalCompliancePage />} />
+                              <Route path="/legal/activity" element={<LegalActivityPage />} />
                               
                               {/* Traffic Fines Management Route */}
                               <Route path="/fines" element={<TrafficFines />} />
