@@ -1,10 +1,12 @@
 
 import { Database } from './database.types';
+import type { PaymentStatus } from '@/types/database-common';
+
+export type { PaymentStatus };
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
 export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
-export type PaymentStatus = string;
 
 export interface PaymentMetrics {
   sent: number;

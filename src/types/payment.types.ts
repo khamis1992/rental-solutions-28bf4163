@@ -9,13 +9,7 @@ export interface SpecialPaymentOptions {
   targetPaymentId?: string;
 }
 
-export type PaymentStatus =
-  | 'pending'
-  | 'completed'
-  | 'overdue'
-  | 'cancelled'
-  | 'partially_paid'
-  | 'voided';
+import type { PaymentStatus } from '@/types/database-common';
 
 export interface Payment {
   id: string;

@@ -1,4 +1,6 @@
 
+import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+
 /**
  * Type guards for validating data structures
  */
@@ -77,6 +79,9 @@ export function isEntity<T extends Record<string, any>>(
 /**
  * Type guard for success responses
  */
-export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
-  return !response?.error && response?.data !== null;
+
+export function isSuccessResponse<T>(
+  response: PostgrestResponse<T> | PostgrestSingleResponse<T>
+): response is { data: T | T[]; error: null } {
+  return !response.error && response.data !== null;
 }

@@ -1,6 +1,6 @@
 
 import { Database } from './database.types';
-import { DbId } from '@/types/database-common';
+import { DbId, PaymentStatus } from '@/types/database-common';
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
@@ -9,13 +9,6 @@ export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Up
 /**
  * Unified payment status types for the entire application
  */
-export type PaymentStatus = 
-  | 'pending'
-  | 'completed'
-  | 'partially_paid'
-  | 'overdue'
-  | 'cancelled'
-  | 'voided';
 
 /**
  * Unified payment type for the entire application
