@@ -1,7 +1,14 @@
 
-import { 
-  ShieldCheck, Car, WrenchIcon, Clock, AlertTriangle, 
-  ShieldAlert, CircleOff, ShieldX, CircleDashed 
+import {
+  ShieldCheck,
+  Car,
+  Wrench,
+  Clock,
+  AlertTriangle,
+  ShieldAlert,
+  CircleOff,
+  ShieldX,
+  CircleDashed,
 } from 'lucide-react';
 import { StatusConfig } from './types';
 
@@ -26,7 +33,7 @@ export const statusConfig: StatusConfig[] = [
     key: 'maintenance', 
     name: 'In Maintenance', 
     color: '#f59e0b', 
-    icon: WrenchIcon,
+    icon: Wrench,
     description: 'Undergoing service or repair',
     filterValue: 'maintenance'
   },
