@@ -36,7 +36,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
       }
     },
     staleTime: 60000, // Data remains fresh for 1 minute
-    cacheTime: 300000, // Keep in cache for 5 minutes
+    gcTime: 300000, // Keep in cache for 5 minutes
     retry: 1, // Only retry once on failure
     enabled: !!vehicleId // Only run query if vehicleId is provided
   });

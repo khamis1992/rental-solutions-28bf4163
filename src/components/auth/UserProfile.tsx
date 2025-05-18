@@ -102,7 +102,7 @@ const UserProfile = () => {
 
             <div className="flex items-center space-x-2">
               <div className="font-medium">Account Status:</div>
-              <div className="text-muted-foreground">{profile?.status ? capitalize(profile.status) : "Pending"}</div>
+              <div className="text-muted-foreground">{profile ? "Active" : "Pending"}</div>
             </div>
 
             <Button type="submit" disabled={isUpdating}>

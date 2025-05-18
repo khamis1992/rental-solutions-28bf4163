@@ -46,7 +46,6 @@ export function usePayment(agreementId?: string) {
         lease_id: agreementId,
         amount,
         payment_date: paymentDate.toISOString(),
-        notes: notes || '',
         payment_method: paymentMethod || 'cash',
         reference_number: referenceNumber || '',
         status: 'completed'

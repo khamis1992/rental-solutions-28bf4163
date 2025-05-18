@@ -103,7 +103,7 @@ export const useTrafficFines = () => {
                 if (lease && lease.id) {
                   customerAndLeaseInfo[lease.id] = {
                     customer_id: lease.customer_id,
-                    customer_name: lease.profiles?.full_name,
+                    customer_name: (lease as any).profiles?.full_name,
                     start_date: lease.start_date,
                     end_date: lease.end_date
                   };

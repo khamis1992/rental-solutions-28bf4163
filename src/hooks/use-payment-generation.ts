@@ -14,7 +14,7 @@ interface PaymentGenerationLoadingStates extends Record<string, boolean> {
 }
 
 export const usePaymentGeneration = () => {
-  const { loadingStates, setLoading, setIdle, isLoading } = 
+  const { loadingStates, setLoading, setIdle, isAnyLoading } =
     useLoadingStates<PaymentGenerationLoadingStates>({
       generating: false,
       retrieving: false,
@@ -255,6 +255,6 @@ export const usePaymentGeneration = () => {
     createPayment,
     generateSpecialPayment,
     loadingStates,
-    isLoading
+    isAnyLoading
   };
 };
