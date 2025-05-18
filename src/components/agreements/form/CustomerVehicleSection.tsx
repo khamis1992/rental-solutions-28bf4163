@@ -123,6 +123,7 @@ export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
                 {safeCustomers.map((customer) => (
                   <CommandItem
                     key={customer.id}
+                    value={customer.full_name}
                     onSelect={() => {
                       setSelectedCustomer(customer);
                       setOpen(false);
