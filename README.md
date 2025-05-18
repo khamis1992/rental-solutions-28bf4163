@@ -71,3 +71,5 @@ We don't support custom domains (yet). If you want to deploy your project under 
 ## Service Boundaries
 
 For an overview of how domain logic is organized within the monolithic repository, see [docs/service-boundaries.md](docs/service-boundaries.md). Following these boundaries helps keep each feature cohesive and prepares the system for future microservice extraction.
+
+See also [docs/modular-monolith.md](docs/modular-monolith.md) for guidelines on maintaining strict module boundaries.
