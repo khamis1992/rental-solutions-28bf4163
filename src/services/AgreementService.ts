@@ -12,8 +12,14 @@ export interface AgreementFilters {
   startDate?: Date;
   endDate?: Date;
   searchTerm?: string;  // Changed from 'search' to 'searchTerm' to match CustomerService
+  /** Advanced filter fields */
+  agreement_number?: string;
+  start_date_after?: string;
+  start_date_before?: string;
   end_date_after?: string;
   end_date_before?: string;
+  rent_min?: number;
+  rent_max?: number;
   [key: string]: any;
 }
 
@@ -152,6 +158,26 @@ export const agreementService = {
       
       if (filters.endDate) {
         query = query.lte('end_date', filters.endDate.toISOString());
+      }
+
+      if (filters.agreement_number) {
+        query = query.ilike('agreement_number', `%${filters.agreement_number}%`);
+      }
+
+      if (filters.start_date_after) {
+        query = query.gte('start_date', filters.start_date_after);
+      }
+
+      if (filters.start_date_before) {
+        query = query.lte('start_date', filters.start_date_before);
+      }
+
+      if (filters.rent_min !== undefined) {
+        query = query.gte('rent_amount', filters.rent_min);
+      }
+
+      if (filters.rent_max !== undefined) {
+        query = query.lte('rent_amount', filters.rent_max);
       }
       
       if (filters.end_date_after) {
