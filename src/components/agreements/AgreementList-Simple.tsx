@@ -6,14 +6,36 @@ import { Agreement } from '@/types/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 
-export function AgreementList() {
+interface AgreementListProps {
+  agreements?: SimpleAgreement[];
+  isLoading?: boolean;
+  onDeleteAgreement?: (id: string) => void;
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalCount: number;
+    handlePageChange: (page: number) => void;
+  };
+}
+
+export function AgreementList({
+  agreements: externalAgreements,
+  isLoading: externalLoading,
+  onDeleteAgreement,
+  pagination: externalPagination,
+}: AgreementListProps) {
   const {
-    agreements,
-    isLoading,
+    agreements: internalAgreements,
+    isLoading: internalLoading,
     error,
     handleBulkDelete,
-    pagination,
+    pagination: internalPagination,
   } = useAgreementTable();
+
+  const agreements = externalAgreements ?? internalAgreements;
+  const isLoading = externalLoading ?? internalLoading;
+  const handleDelete = onDeleteAgreement ?? ((id: string) => handleBulkDelete(id));
+  const pagination = externalPagination ?? internalPagination;
 
   if (isLoading) {
     return <div>Loading agreements...</div>;
@@ -41,10 +63,10 @@ export function AgreementList() {
 
   return (
     <div className="space-y-6">
-      <AgreementCardView 
+      <AgreementCardView
         agreements={typedAgreements}
         isLoading={isLoading}
-        onDeleteAgreement={(id) => handleBulkDelete(id)}
+        onDeleteAgreement={handleDelete}
       />
       
       {pagination && pagination.totalPages > 1 && (
