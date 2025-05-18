@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { typeGuards } from '@/lib/database';
+import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
 
 // Add missing types
 interface MaintenanceFormProps {
@@ -14,22 +15,30 @@ interface MaintenanceFormProps {
   onSubmit: (data: any) => void;
   categories?: any[];
   isSubmitting?: boolean;
+  isEditMode?: boolean;
 }
 
-const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ 
-  initialData, 
-  onSubmit, 
+const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
+  initialData,
+  onSubmit,
   categories = [],
-  isSubmitting = false
+  isSubmitting = false,
+  isEditMode = false,
 }) => {
   const form = useForm({
     defaultValues: {
       ...initialData || {
         vehicle_id: '',
         service_type: '',
+        maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+        status: MaintenanceStatus.SCHEDULED,
         description: '',
         scheduled_date: new Date().toISOString().split('T')[0],
+        completion_date: '',
         cost: 0,
+        service_provider: '',
+        invoice_number: '',
+        odometer_reading: 0,
         notes: '',
         category_id: ''
       }
@@ -37,8 +46,28 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   });
 
   useEffect(() => {
-    if (initialData?.category_id) {
+    if (!initialData) return;
+
+    if (initialData.category_id) {
       form.setValue('category_id', initialData.category_id);
+    }
+    if (initialData.maintenance_type) {
+      form.setValue('maintenance_type', initialData.maintenance_type);
+    }
+    if (initialData.status) {
+      form.setValue('status', initialData.status);
+    }
+    if (initialData.completion_date) {
+      form.setValue('completion_date', initialData.completion_date);
+    }
+    if (initialData.service_provider) {
+      form.setValue('service_provider', initialData.service_provider);
+    }
+    if (initialData.invoice_number) {
+      form.setValue('invoice_number', initialData.invoice_number);
+    }
+    if (initialData.odometer_reading) {
+      form.setValue('odometer_reading', initialData.odometer_reading);
     }
   }, [initialData, form]);
 
@@ -90,6 +119,56 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
+            name="maintenance_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Maintenance Type</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(MaintenanceType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(MaintenanceStatus).map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="category_id"
             render={({ field }) => (
               <FormItem>
@@ -128,12 +207,68 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
           <FormField
             control={form.control}
+            name="completion_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Completion Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="cost"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Estimated Cost</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="service_provider"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Service Provider</FormLabel>
+                <FormControl>
+                  <Input placeholder="Service provider" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="invoice_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Invoice Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Invoice number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="odometer_reading"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Odometer Reading</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
