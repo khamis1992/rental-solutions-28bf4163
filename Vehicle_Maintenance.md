@@ -185,7 +185,7 @@ Key maintenance workflows have automated tests:
 3. Parts allocation
 4. Cost calculation
 
-Test suite location: `src/tests/maintenance/`
+*Note:* Automated tests for these workflows have not yet been implemented.
 
 ## Configuration Parameters
 

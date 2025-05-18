@@ -6,7 +6,7 @@ This guide provides detailed steps to manually test all functionality after the 
 
 1. Start the application:
 ```
-cd "c:\Users\khamis\coodebase rental\rental-solutions-28bf4163"
+cd "c:\Users\khamis\codebase rental\rental-solutions-28bf4163"
 npm run dev
 ```
 

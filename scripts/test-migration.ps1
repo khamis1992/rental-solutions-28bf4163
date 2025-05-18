@@ -7,7 +7,7 @@ Write-Host "This script will test the core functionality of migrated services" -
 Write-Host ""
 
 # Navigate to project directory
-Set-Location "c:\Users\khamis\coodebase rental\rental-solutions-28bf4163"
+Set-Location "c:\Users\khamis\codebase rental\rental-solutions-28bf4163"
 
 # Step 1: Run type checking to verify no type errors
 Write-Host "Step 1: Running TypeScript type checking..." -ForegroundColor Green
