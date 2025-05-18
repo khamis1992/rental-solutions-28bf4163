@@ -14,11 +14,11 @@ import { CustomButton } from "@/components/ui/custom-button";
 import { toast } from "sonner";
 
 const UserManagement = () => {
-  const { profile, loading } = useProfile();
+  const { profile, isLoading } = useProfile();
   const navigate = useNavigate();
   
   // Show loading state while profile is loading
-  if (loading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <div className="flex items-center justify-center h-64">
