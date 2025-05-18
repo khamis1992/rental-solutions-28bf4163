@@ -26,14 +26,15 @@ import { AgreementViewSelectors } from '@/components/agreements/AgreementViewSel
 import { AgreementAnalytics } from '@/components/agreements/AgreementAnalytics';
 import { AgreementFilterPanel } from '@/components/agreements/AgreementFilterPanel';
 import { ActiveFilters } from '@/components/agreements/page/ActiveFilters';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const Agreements = () => {
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('query') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
   const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
@@ -123,12 +124,20 @@ const Agreements = () => {
   // Handle search using the component - matching the CustomerListFilter behavior exactly
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setSearchParams({ searchTerm: query || undefined });
+    setSearchParams({ query: query || undefined });
+
+    const newParams = new URLSearchParams(urlSearchParams.toString());
+    if (query) {
+      newParams.set('query', query);
+    } else {
+      newParams.delete('query');
+    }
+    setUrlSearchParams(newParams);
   };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(searchParams || {})
-    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && key !== 'searchTerm' && value !== undefined && value !== '');
+    .filter(([key, value]) => key !== 'status' && key !== 'customerId' && value !== undefined && value !== '');
 
   // Function to navigate to add agreement page
   const handleAddAgreement = () => {
