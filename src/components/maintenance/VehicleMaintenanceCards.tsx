@@ -56,13 +56,13 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
   };
 
   const getMaintenanceTypeIcon = (type: string) => {
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'oil change':
         return <Wrench className="h-4 w-4 mr-1" />;
       default:
         return <Wrench className="h-4 w-4 mr-1" />;
     }
-  }
+  };
 
   if (isLoading) {
     return (
