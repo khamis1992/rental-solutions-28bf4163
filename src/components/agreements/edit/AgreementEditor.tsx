@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -30,9 +29,10 @@ import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '../selectors/VehicleSelector';
-import CustomerSelector from '../selectors/CustomerSelector';
+import CustomerSelector from '@/components/customers/CustomerSelector'; // Updated import
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import AgreementTermsEditor from '../terms/AgreementTermsEditor';
+import { CustomerInfo } from '@/types/customer';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -60,6 +60,7 @@ const AgreementEditor = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   
   const agreementService = useAgreementService();
   
@@ -149,7 +150,8 @@ const AgreementEditor = () => {
         result = await agreementService.updateAgreement({
           id,
           data
-        });      } else {
+        });
+      } else {
         // Create new agreement
         result = await agreementService.save(data);
       }
@@ -199,6 +201,12 @@ const AgreementEditor = () => {
     
     return () => subscription.unsubscribe();
   }, [form]);
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer: CustomerInfo) => {
+    setSelectedCustomer(customer);
+    form.setValue('customer_id', customer.id);
+  };
   
   if (isLoading && !form.formState.isSubmitting) {
     return (
@@ -303,8 +311,9 @@ const AgreementEditor = () => {
                           <FormLabel>Customer</FormLabel>
                           <FormControl>
                             <CustomerSelector 
-                              value={field.value} 
-                              onChange={field.onChange}
+                              onCustomerSelect={handleCustomerSelect}
+                              selectedCustomer={selectedCustomer}
+                              placeholder="Search for a customer..."
                             />
                           </FormControl>
                           <FormMessage />

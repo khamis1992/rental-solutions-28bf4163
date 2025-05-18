@@ -22,7 +22,8 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({ value, onChange }) 
     queryKey: ['customers'],
     queryFn: async () => {
       try {
-        return await customerService.getCustomers();
+        // Using the customers data directly from the service
+        return customerService.customers || [];
       } catch (error) {
         console.error("Error fetching customers:", error);
         return [];
