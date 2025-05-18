@@ -41,6 +41,8 @@ export function ActiveFilters({ activeFilters, setSearchParams }: ActiveFiltersP
         return `Min Rent: $${value}`;
       case 'rent_max':
         return `Max Rent: $${value}`;
+      case 'license_plate':
+        return `Plate: ${value}`;
       case 'searchTerm':
         return `Search: ${value}`;
       default:
