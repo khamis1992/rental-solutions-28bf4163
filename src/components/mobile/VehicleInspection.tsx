@@ -28,6 +28,16 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
     { name: 'Brakes', status: 'pending', notes: '', photos: [] },
     { name: 'Dashboard Warning Lights', status: 'pending', notes: '', photos: [] }
   ]);
+  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {}
+      );
+    }
+  }, []);
 
   const handlePhotoCapture = async (itemIndex: number) => {
     try {
@@ -76,6 +86,27 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
     setInspectionItems(updatedItems);
   };
 
+  const savePendingInspection = (data: any) => {
+    const existing = JSON.parse(localStorage.getItem('pendingInspections') || '[]');
+    existing.push(data);
+    localStorage.setItem('pendingInspections', JSON.stringify(existing));
+  };
+
+  useEffect(() => {
+    const syncPending = async () => {
+      if (!navigator.onLine) return;
+      const pending = JSON.parse(localStorage.getItem('pendingInspections') || '[]');
+      if (!pending.length) return;
+      for (const item of pending) {
+        await supabase.from('vehicle_inspections').insert(item);
+      }
+      localStorage.removeItem('pendingInspections');
+    };
+    window.addEventListener('online', syncPending);
+    syncPending();
+    return () => window.removeEventListener('online', syncPending);
+  }, []);
+
   const handleSubmitInspection = async () => {
     setIsSubmitting(true);
     try {
@@ -85,7 +116,8 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
         inspection_items: inspectionItems,
         status: inspectionItems.every(item => item.status === 'pass') ? 'passed' : 'failed',
         inspector_notes: inspectionItems.map(item => item.notes).filter(Boolean).join('\n'),
-        inspection_photos: inspectionItems.flatMap(item => item.photos)
+        inspection_photos: inspectionItems.flatMap(item => item.photos),
+        location
       };
 
       const { error } = await supabase
@@ -93,11 +125,20 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
         .insert([inspection]);
 
       if (error) throw error;
-      
+
       toast.success('Inspection submitted successfully');
     } catch (error) {
       console.error('Failed to submit inspection:', error);
-      toast.error('Failed to submit inspection');
+      savePendingInspection({
+        vehicle_id: vehicle.id,
+        inspection_date: new Date().toISOString(),
+        inspection_items: inspectionItems,
+        status: inspectionItems.every(item => item.status === 'pass') ? 'passed' : 'failed',
+        inspector_notes: inspectionItems.map(item => item.notes).filter(Boolean).join('\n'),
+        inspection_photos: inspectionItems.flatMap(item => item.photos),
+        location
+      });
+      toast.error('Failed to submit inspection. Saved offline.');
     } finally {
       setIsSubmitting(false);
     }
