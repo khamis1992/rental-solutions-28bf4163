@@ -27,12 +27,8 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
   const navigate = useNavigate();
 
   const handleVehicleClick = (vehicle: Vehicle) => {
-    const record = vehicle.maintenance && vehicle.maintenance[0];
-    if (record?.id) {
-      navigate(`/maintenance/job/${vehicle.id}`);
-    } else {
-      navigate(`/vehicles/${vehicle.id}`);
-    }
+    // Always navigate to maintenance job card page when clicked
+    navigate(`/maintenance/job/${vehicle.id}`);
   };
 
   const getStatusIcon = (status: string) => {
