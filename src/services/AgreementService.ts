@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
@@ -39,6 +38,15 @@ export const agreementService = {
     try {
       // Determine if this is a create or update operation
       const isUpdate = Boolean(agreement.id);
+
+      // Calculate agreement duration if not provided
+      if (!agreement.agreement_duration && agreement.start_date && agreement.end_date) {
+        const startDate = new Date(agreement.start_date);
+        const endDate = new Date(agreement.end_date);
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        agreement.agreement_duration = `${diffDays} days`;
+      }
       
       if (isUpdate) {
         // Update existing agreement
@@ -56,7 +64,7 @@ export const agreementService = {
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
             daily_late_fee: agreement.daily_late_fee,
-            agreement_type: agreement.agreement_type,
+            agreement_type: agreement.agreement_type || 'short_term',
             agreement_duration: agreement.agreement_duration,
             rent_due_day:
               (agreement as any).payment_day ?? (agreement as any).rent_due_day,
@@ -86,7 +94,7 @@ export const agreementService = {
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
             daily_late_fee: agreement.daily_late_fee,
-            agreement_type: agreement.agreement_type || 'rental',
+            agreement_type: agreement.agreement_type || 'short_term', // Changed default from 'rental' to 'short_term'
             agreement_duration: agreement.agreement_duration,
             rent_due_day:
               (agreement as any).payment_day ?? (agreement as any).rent_due_day,
