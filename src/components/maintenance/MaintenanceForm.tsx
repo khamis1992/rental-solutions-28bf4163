@@ -29,6 +29,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     defaultValues: {
       ...initialData || {
         vehicle_id: '',
+        agreement_id: '',
         service_type: '',
         maintenance_type: MaintenanceType.REGULAR_INSPECTION,
         status: MaintenanceStatus.SCHEDULED,
@@ -50,6 +51,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
     if (initialData.category_id) {
       form.setValue('category_id', initialData.category_id);
+    }
+    if (initialData.agreement_id) {
+      form.setValue('agreement_id', initialData.agreement_id);
     }
     if (initialData.maintenance_type) {
       form.setValue('maintenance_type', initialData.maintenance_type);
@@ -97,6 +101,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <FormLabel>Vehicle ID</FormLabel>
                 <FormControl>
                   <Input placeholder="Vehicle ID" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="agreement_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Agreement ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="Agreement ID" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -39,6 +39,7 @@ export const VehicleRefSchema = z.object({
 export const maintenanceSchema = z.object({
   id: z.string().optional(),
   vehicle_id: z.string().min(1, "Vehicle is required"),
+  agreement_id: z.string().optional(),
   maintenance_type: z.enum([
     MaintenanceType.OIL_CHANGE,
     MaintenanceType.TIRE_REPLACEMENT,
@@ -87,6 +88,7 @@ export type MaintenanceFilters = Partial<{
 // Helper for creating a new maintenance record
 export const createEmptyMaintenance = (): Omit<Maintenance, "id"> => ({
   vehicle_id: "",
+  agreement_id: "",
   maintenance_type: MaintenanceType.REGULAR_INSPECTION,
   status: MaintenanceStatus.SCHEDULED,
   scheduled_date: new Date(),
