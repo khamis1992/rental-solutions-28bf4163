@@ -1,5 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
+import { eventBus } from '@/lib/event-bus';
+import { Events, PaymentRecordedPayload } from '@/events';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
@@ -769,6 +771,18 @@ export function useFinancials() {
       }
     }
   );
+
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe<PaymentRecordedPayload>(
+      Events.PaymentRecorded,
+      () => {
+        refetchTransactions();
+        refetchSummary();
+        refetchExpenses();
+      }
+    );
+    return () => unsubscribe();
+  }, [refetchTransactions, refetchSummary, refetchExpenses]);
 
   return {
     transactions,

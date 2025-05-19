@@ -1,5 +1,6 @@
 
 import { Database } from '@/types/database.types';
+import { PaymentStatus as PaymentStatusUnion } from '@/types/payment.types';
 export { isSuccessResponse } from '@/lib/database/validation/typeGuards';
 
 // Core database types with consistent naming
@@ -20,7 +21,7 @@ export type AgreementId = LeaseId; // Maintaining legacy compatibility
 // Standardized status types from database schema
 export type LeaseStatus = DatabaseTables['leases']['Row']['status'];
 export type VehicleStatus = DatabaseTables['vehicles']['Row']['status'];
-export type PaymentStatus = string; // Using string since it could have different values
+export type PaymentStatus = PaymentStatusUnion;
 export type ProfileStatus = string;
 export type MaintenanceStatus = string;
 

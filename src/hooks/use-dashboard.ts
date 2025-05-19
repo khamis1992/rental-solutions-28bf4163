@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
 import { CacheManager, useCachedData } from '@/lib/cache-utils';
+import { eventBus } from '@/lib/event-bus';
+import { Events, PaymentRecordedPayload } from '@/events';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -365,6 +367,18 @@ export function useDashboardData() {
     },
     staleTime: 3 * 60 * 1000,
   });
+
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe<PaymentRecordedPayload>(
+      Events.PaymentRecorded,
+      () => {
+        statsQuery.refetch();
+        revenueQuery.refetch();
+        activityQuery.refetch();
+      }
+    );
+    return () => unsubscribe();
+  }, [statsQuery, revenueQuery, activityQuery]);
 
   return {
     stats: statsQuery.data,

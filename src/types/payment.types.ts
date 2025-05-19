@@ -15,7 +15,9 @@ export type PaymentStatus =
   | 'overdue'
   | 'cancelled'
   | 'partially_paid'
-  | 'voided';
+  | 'voided'
+  | 'failed'
+  | 'refunded';
 
 export interface Payment {
   id: string;

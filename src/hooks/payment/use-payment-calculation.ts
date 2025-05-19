@@ -19,10 +19,15 @@ export const usePaymentCalculation = (payments: Payment[], contractAmount: numbe
     
     // Sum up all payment amounts and paid amounts
     payments.forEach(payment => {
+      // Skip cancelled or voided payments entirely
+      if (payment.status === 'cancelled' || payment.status === 'voided') {
+        return;
+      }
+
       // Only count rent/income type payments for totals
       if (payment.type === 'rent' || payment.type === 'Income') {
         total += payment.amount || 0;
-        paid += payment.amount_paid || 0;
+        paid += payment.amount_paid ?? payment.amount ?? 0;
       }
       
       // Sum up late fees separately
@@ -61,7 +66,7 @@ export const usePaymentCalculation = (payments: Payment[], contractAmount: numbe
         } else {
           onTime++;
         }
-      } else if (payment.status === 'pending' || payment.status === 'overdue') {
+      } else if (payment.status === 'pending' || payment.status === 'overdue' || payment.status === 'partially_paid') {
         pending++;
       }
     });
@@ -70,7 +75,7 @@ export const usePaymentCalculation = (payments: Payment[], contractAmount: numbe
       paidOnTime: onTime,
       paidLate: late,
       unpaid: pending,
-      totalPayments: payments.length
+      totalPayments: payments.filter(p => p.status !== 'cancelled' && p.status !== 'voided').length
     };
   }, [payments]);
 

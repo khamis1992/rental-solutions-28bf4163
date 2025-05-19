@@ -9,13 +9,15 @@ export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Up
 /**
  * Unified payment status types for the entire application
  */
-export type PaymentStatus = 
+export type PaymentStatus =
   | 'pending'
   | 'completed'
   | 'partially_paid'
   | 'overdue'
   | 'cancelled'
-  | 'voided';
+  | 'voided'
+  | 'failed'
+  | 'refunded';
 
 /**
  * Unified payment type for the entire application

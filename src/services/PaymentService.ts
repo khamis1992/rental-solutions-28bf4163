@@ -5,6 +5,7 @@ import { Events, PaymentRecordedPayload } from '@/events';
 import { castDbId } from '@/utils/supabase-type-helpers';
 import { BaseService } from './base/BaseService';
 import { Payment, PaymentInsert, SpecialPaymentOptions } from '@/types/payment.types';
+import { paymentSchema } from '@/lib/validation-schemas/payment';
 import { ServiceResponse } from '@/types/service.types';
 
 export class PaymentService extends BaseService {
@@ -13,9 +14,14 @@ export class PaymentService extends BaseService {
    */
   async recordPayment(paymentData: PaymentInsert): Promise<ServiceResponse<Payment>> {
     try {
+      const parsed = paymentSchema.safeParse(paymentData);
+      if (!parsed.success) {
+        return this.handleError(parsed.error, 'Invalid payment data');
+      }
+
       const { data, error } = await supabase
         .from('unified_payments')
-        .insert(paymentData)
+        .insert(parsed.data)
         .select()
         .single();
       
@@ -160,11 +166,16 @@ export class PaymentService extends BaseService {
         late_fine_amount: lateFineAmount,
         original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
       };
+
+      const parsedPayment = paymentSchema.safeParse(paymentData);
+      if (!parsedPayment.success) {
+        return this.handleError(parsedPayment.error, 'Invalid payment data');
+      }
       
       // Record the payment
       const { data, error } = await supabase
         .from('unified_payments')
-        .insert([paymentData])
+        .insert([parsedPayment.data])
         .select()
         .single();
       
@@ -189,10 +200,13 @@ export class PaymentService extends BaseService {
           late_fine_amount: lateFineAmount,
           original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
         };
-        
-        await supabase
-          .from('unified_payments')
-          .insert([lateFeePayment]);
+
+        const parsedLateFee = paymentSchema.safeParse(lateFeePayment);
+        if (parsedLateFee.success) {
+          await supabase
+            .from('unified_payments')
+            .insert([parsedLateFee.data]);
+        }
       }
       
       return this.success(data);
