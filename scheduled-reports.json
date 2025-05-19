@@ -1,0 +1,9 @@
+[
+  {
+    "id": "1",
+    "name": "Monthly Fleet Status",
+    "type": "fleet",
+    "cron": "0 8 1 * *",
+    "recipients": ["manager@example.com"]
+  }
+]

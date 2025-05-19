@@ -69,6 +69,7 @@ import Financials from "./pages/Financials";
 // Reports pages
 import Reports from "./pages/Reports";
 import ScheduledReports from "./pages/ScheduledReports";
+import ReportBuilder from "./pages/ReportBuilder";
 
 // System Settings pages
 import SystemSettings from "./pages/SystemSettings";
@@ -166,6 +167,7 @@ function App() {
                               
                               {/* Reports Routes */}
                               <Route path="/reports" element={<Reports />} />
+                              <Route path="/reports/builder" element={<ReportBuilder />} />
                               <Route path="/reports/scheduled" element={<ScheduledReports />} />
                               
                               {/* System Settings Route */}

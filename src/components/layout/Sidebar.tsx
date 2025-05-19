@@ -248,6 +248,14 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               />
 
               <NavLink
+                to="/reports/builder"
+                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
+                label="Report Builder"
+                isActive={isActive('/reports/builder')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
                 to="/user-management"
                 icon={<Users className="h-5 w-5 flex-shrink-0" />}
                 label="User Management"
