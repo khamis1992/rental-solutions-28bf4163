@@ -15,11 +15,11 @@ import { supabase } from '@/lib/supabase';
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { useOne, useDelete } = useMaintenance();
+  const { useMaintenanceDetails, useDeleteMaintenance } = useMaintenance();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { data: maintenance, isLoading, error } = useOne(id!);
-  const deleteMutation = useDelete;
+  const { data: maintenance, isLoading, error } = useMaintenanceDetails(id!);
+  const deleteMutation = useDeleteMaintenance();
 
   if (isLoading) {
     return (

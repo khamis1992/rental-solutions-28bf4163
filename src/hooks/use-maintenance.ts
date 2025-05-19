@@ -239,8 +239,9 @@ export function useMaintenance() {
     });
   };
 
-  // Create function for MaintenanceSchedulingWizard
+  // Convenient mutation hooks
   const create = useCreateMaintenance();
+  const update = useUpdateMaintenance();
 
   return {
     loading,
@@ -259,6 +260,7 @@ export function useMaintenance() {
     useCreateMaintenance,
     useUpdateMaintenance,
     useDeleteMaintenance,
-    create
+    create,
+    update
   };
 }
