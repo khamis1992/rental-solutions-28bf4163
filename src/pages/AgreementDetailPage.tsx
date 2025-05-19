@@ -29,6 +29,7 @@ import LegalCaseCard from '@/components/agreements/LegalCaseCard';
 import { AgreementTrafficFines } from '@/components/agreements/AgreementTrafficFines';
 import { AgreementTrafficFineAnalytics } from '@/components/agreements/legal/AgreementTrafficFineAnalytics';
 import { asDbId, AgreementId } from '@/types/database-types';
+import type { PaymentStatus } from '@/types/payment.types';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
@@ -60,9 +61,9 @@ const AgreementDetailPage = () => {
   const [isUpdatingHistoricalPayments, setIsUpdatingHistoricalPayments] = useState(false);
   
   const {
-    rentAmount,
-    contractAmount
+    rentAmount
   } = useRentAmount(agreement, id);
+  const contractAmount = agreement?.total_amount || null;
   
   // Use our payment hooks with all the necessary functionality
   const {
@@ -74,9 +75,9 @@ const AgreementDetailPage = () => {
     fetchPayments
   } = usePayments(id || '');
   
-  const { 
+  const {
     updateHistoricalStatuses,
-    generatePaymentSchedule,
+    generatePayment,
     runPaymentMaintenance,
     isPending: paymentIsPending
   } = usePayment(id);
@@ -139,7 +140,7 @@ const AgreementDetailPage = () => {
     if (!id || !agreement) return;
     
     try {
-      await generatePaymentSchedule();
+      await generatePayment();
       refreshAgreementData();
     } catch (error) {
       console.error("Error generating payment:", error);
@@ -221,7 +222,7 @@ const AgreementDetailPage = () => {
         payment_method: paymentMethod,
         reference_number: referenceNumber,
         notes,
-        status: 'completed',
+        status: 'completed' as PaymentStatus,
         description: notes || 'Payment'
       };
       
@@ -531,7 +532,7 @@ const AgreementDetailPage = () => {
                     const fullPayment = {
                       ...payment,
                       lease_id: id,
-                      status: 'completed'
+                      status: 'completed' as PaymentStatus
                     };
                     addPayment(fullPayment);
                     fetchPayments();

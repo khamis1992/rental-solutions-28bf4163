@@ -244,7 +244,7 @@ export function useDashboardData() {
         
         const result = Object.entries(monthlyData).map(([name, revenue]) => ({
           name,
-          revenue
+          revenue: revenue as number
         }));
         
         CacheManager.set('dashboardRevenue', result, 5 * 60 * 1000);

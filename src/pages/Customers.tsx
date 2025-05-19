@@ -8,7 +8,7 @@ import { CustomerStatsCards } from '@/components/customers/CustomerStatsCards';
 import { CustomerImportHistory } from '@/components/customers/CustomerImportHistory';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
-import { CustomerInfo } from '@/types/customer';
+import type { Customer } from '@/lib/validation-schemas/customer';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Upload, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +21,7 @@ const Customers = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -72,7 +72,7 @@ const Customers = () => {
   };
 
   // Handle customer selection for sidebar view
-  const handleCustomerSelect = (customer: CustomerInfo) => {
+  const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsSidebarOpen(true);
   };

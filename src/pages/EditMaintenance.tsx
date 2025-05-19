@@ -161,7 +161,7 @@ const EditMaintenance = () => {
       <MaintenanceForm
         initialData={formattedMaintenance}
         onSubmit={handleSubmit}
-        isLoading={isSubmitting}
+        isSubmitting={isSubmitting}
         isEditMode={true}
       />
     </PageContainer>
