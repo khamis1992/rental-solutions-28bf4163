@@ -33,8 +33,8 @@ const EditVehicle = () => {
     refetch 
   } = useVehicle(id || '');
   
-  const { 
-    mutate: updateVehicle, 
+  const {
+    mutateAsync: updateVehicle,
     isPending: isUpdating,
   } = useUpdate();
   
@@ -80,7 +80,7 @@ const EditVehicle = () => {
         formData.status = vehicle.status;
       }
 
-      await updateVehicle.mutateAsync({ id, data: formData });
+      await updateVehicle({ id, data: formData });
       await refetch();
 
       toast.success('Vehicle updated successfully');
@@ -173,7 +173,7 @@ const EditVehicle = () => {
     <PageContainer>
       <SectionHeader
         title={`Edit Vehicle: ${vehicle.make} ${vehicle.model}`}
-        description={`${vehicle.year} • ${vehicle.licensePlate || vehicle.license_plate}`}
+        description={`${vehicle.year} • ${vehicle.license_plate}`}
         icon={Car}
         actions={
           <>
@@ -220,7 +220,7 @@ const EditVehicle = () => {
         vehicleDetails={{
           make: vehicle.make,
           model: vehicle.model,
-          licensePlate: vehicle.licensePlate || vehicle.license_plate || ''
+          licensePlate: vehicle.license_plate || ''
         }}
         onStatusUpdated={handleStatusUpdated}
       />

@@ -9,6 +9,7 @@ import {
   VehicleInsertData,
   VehicleUpdateData,
   VehicleStatus,
+  DatabaseVehicleRecord,
 } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';

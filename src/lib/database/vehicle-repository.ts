@@ -54,7 +54,7 @@ export const vehicleRepository = {
   
   // Update vehicle status with validation
   async updateStatus(id: string, status: string): Promise<VehicleRow | null> {
-    const validatedStatus = asVehicleStatus(status);
+    const validatedStatus = asVehicleStatus(status) as VehicleRow['status'];
     
     const result = await baseRepository.update(id, {
       status: validatedStatus,

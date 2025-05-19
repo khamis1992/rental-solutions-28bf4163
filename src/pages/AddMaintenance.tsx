@@ -90,7 +90,7 @@ const AddMaintenance = () => {
       
       <MaintenanceForm
         onSubmit={handleSubmit}
-        isLoading={isSubmitting}
+        isSubmitting={isSubmitting}
         initialData={{ vehicle_id: prefilledVehicleId, agreement_id: prefilledAgreementId }}
       />
     </PageContainer>
