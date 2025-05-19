@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { maintenanceService } from '@/services/MaintenanceService';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { asMaintenanceId, asVehicleId, isQueryDataValid } from '@/utils/database-type-helpers';
@@ -10,6 +11,7 @@ import { asMaintenanceId, asVehicleId, isQueryDataValid } from '@/utils/database
 export type MaintenanceRecord = {
   id: string;
   vehicle_id: string;
+  agreement_id?: string;
   service_type: string;
   maintenance_type?: string;
   status: string;
@@ -82,20 +84,11 @@ export function useMaintenance() {
   const createMaintenanceRecord = async (record: MaintenanceRecord) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('maintenance')
-        .insert(record)
-        .select()
-        .single();
-
-      // Some Supabase clients may return both data and error even when the
-      // insert succeeds. Treat it as success if a record was returned.
-      if (error && !data) throw error;
-
+      const result = await maintenanceService.createMaintenance(record as any);
+      if (!result.success) throw result.error;
       await queryClient.invalidateQueries({ queryKey: ['maintenance'] });
-
       toast.success('Maintenance record created successfully');
-      return data;
+      return result.data;
     } catch (error) {
       console.error('Error creating maintenance record:', error);
       // Only notify the user if the insert truly failed
@@ -110,20 +103,11 @@ export function useMaintenance() {
   const updateMaintenanceRecord = async (maintenanceId: string, updates: Partial<MaintenanceRecord>) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('maintenance')
-        .update(updates)
-        .eq('id', asMaintenanceId(maintenanceId))
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Invalidate and refetch
+      const result = await maintenanceService.updateMaintenance(maintenanceId, updates as any);
+      if (!result.success) throw result.error;
       await queryClient.invalidateQueries({ queryKey: ['maintenance'] });
-      
       toast.success('Maintenance record updated successfully');
-      return data;
+      return result.data;
     } catch (error) {
       console.error('Error updating maintenance record:', error);
       toast.error('Failed to update maintenance record');

@@ -13,6 +13,7 @@ const AddMaintenance = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const prefilledVehicleId = searchParams.get('vehicle_id') || '';
+  const prefilledAgreementId = searchParams.get('agreement_id') || '';
   const { create } = useMaintenance();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,7 @@ const AddMaintenance = () => {
         status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
         // Ensure vehicle_id is never empty
         vehicle_id: formData.vehicle_id || null,
+        agreement_id: formData.agreement_id || null,
         // Ensure cost is a number
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
@@ -89,7 +91,7 @@ const AddMaintenance = () => {
       <MaintenanceForm
         onSubmit={handleSubmit}
         isLoading={isSubmitting}
-        initialData={{ vehicle_id: prefilledVehicleId }}
+        initialData={{ vehicle_id: prefilledVehicleId, agreement_id: prefilledAgreementId }}
       />
     </PageContainer>
   );

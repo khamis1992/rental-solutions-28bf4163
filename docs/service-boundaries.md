@@ -10,6 +10,8 @@ The monolith currently organizes domain logic under `src/services`. Each file ex
 - **VehicleService** – fleet information and maintenance history
 - **AgreementService** – rental agreements and lifecycle actions
 - **PaymentService** – payment processing and billing
+- **MaintenanceService** – maintenance records and cost tracking
+- **MaintenanceProviderService** – management of external service providers
 
 While they live in a single repository, treat each service as an independent boundary with its own database tables and types. Avoid cross‑service data access and share data only through well-defined interfaces.
 

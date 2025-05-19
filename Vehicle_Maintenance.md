@@ -11,12 +11,14 @@ The Vehicle Maintenance system manages scheduled and unscheduled maintenance for
 - `maintenance_categories`: Categorizes different types of maintenance
 - `maintenance_tasks`: Specific maintenance tasks assigned to vehicles
 - `maintenance_documents`: Documents related to maintenance (receipts, reports)
+- `maintenance_service_providers`: Directory of external maintenance providers
 - `parts_inventory`: Inventory of vehicle parts
 - `vehicle_parts`: Parts associated with specific vehicles/maintenance records
 - `vehicle_inspections`: Pre/post-rental inspections that may trigger maintenance
 
 ### Key Relationships
 - Maintenance records are linked to vehicles via `vehicle_id`
+- Maintenance records can reference rental agreements via `agreement_id`
 - Maintenance records may be associated with categories
 - Maintenance may be linked to specific parts from inventory
 - Inspections may trigger maintenance tasks
@@ -160,6 +162,11 @@ Maintenance directly relates to vehicle records, updating:
 - Maintenance scheduling impacts vehicle availability
 - Coordinates with rental schedule to minimize disruption
 - Sends notifications to relevant staff
+
+### 5. Service Provider Management
+- Providers are stored in `maintenance_service_providers`
+- Active providers can be selected on maintenance forms
+- Provider records include contact details and activity status
 
 ## Maintenance Predictions
 
