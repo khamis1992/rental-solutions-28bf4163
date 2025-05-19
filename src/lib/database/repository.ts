@@ -1,5 +1,5 @@
 
-import { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
+import { SupabaseClient, type PostgrestError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Tables, DbListResponse, DbSingleResponse } from './types'
 import { Database } from '@/types/database.types'

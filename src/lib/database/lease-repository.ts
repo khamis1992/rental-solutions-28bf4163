@@ -25,7 +25,7 @@ export const leaseRepository = {
       return null;
     }
     
-    return response.data;
+    return response.data as LeaseRow[];
   },
   
   // Find agreements by status
@@ -42,18 +42,19 @@ export const leaseRepository = {
       return null;
     }
     
-    return response.data;
+    return response.data as LeaseRow[];
   },
   
   // Update agreement status with validation
   async updateStatus(id: string, status: string, notes?: string): Promise<LeaseRow | null> {
     const validatedStatus = asLeaseStatus(status);
     
-    return await baseRepository.update(id, { 
+    const result = await baseRepository.update(id, {
       status: validatedStatus,
       notes: notes,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     });
+    return result.data;
   },
   
   // Find agreement with related data
@@ -69,6 +70,6 @@ export const leaseRepository = {
       return null;
     }
     
-    return response.data;
+    return response.data as LeaseRow;
   }
 };

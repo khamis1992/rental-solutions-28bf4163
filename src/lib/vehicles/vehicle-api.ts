@@ -31,7 +31,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
       // Map all statuses to DB format
       const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
-      query = query.in('status', dbStatuses);
+      query = query.in('status', dbStatuses as any);
       console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
     }
     // Single status filter (backward compatibility)

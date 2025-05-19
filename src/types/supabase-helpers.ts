@@ -1,6 +1,9 @@
 
 import { Database } from './database.types';
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
 import { castDbId } from '@/utils/supabase-type-helpers';
 import { exists } from '@/utils/response-mapper';
 // Removed the castToUUID import to avoid duplication

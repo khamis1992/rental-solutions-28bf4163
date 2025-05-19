@@ -1,6 +1,9 @@
 
 import { Tables, TableRow, TableInsert, TableUpdate, UUID } from './database-types';
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 import { supabase } from '@/lib/supabase';
 

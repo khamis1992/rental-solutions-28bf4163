@@ -1,5 +1,5 @@
 
-import { PostgrestError } from '@supabase/supabase-js';
+import { type PostgrestError } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 
 // Helper type for easy table access
@@ -29,7 +29,11 @@ export type DbSingleResponse<T> = {
 /**
  * Type guard for checking if response has data
  */
-export function hasData<T>(response: DbListResponse<T> | DbSingleResponse<T>): response is { data: T | T[]; error: null } {
+export function hasData<T>(
+  response: DbListResponse<T> | DbSingleResponse<T>
+): response is
+  | (DbListResponse<T> & { data: T[] })
+  | (DbSingleResponse<T> & { data: T }) {
   return !response.error && response.data !== null;
 }
 

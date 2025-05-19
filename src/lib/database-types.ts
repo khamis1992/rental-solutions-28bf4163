@@ -1,5 +1,8 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 export { isSuccessResponse } from './database/validation/typeGuards';
 
