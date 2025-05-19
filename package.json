@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "check-boundaries": "node scripts/check-boundaries.cjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "send-scheduled-reports": "node scripts/send-scheduled-reports.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -70,7 +71,9 @@
     "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "xlsx": "^0.18.5",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "nodemailer": "^6.9.11",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
