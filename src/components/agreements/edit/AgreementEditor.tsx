@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -31,7 +32,6 @@ import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
-import AgreementTermsEditor from '../terms/AgreementTermsEditor';
 import { CustomerInfo } from '@/types/customer';
 
 // Define the validation schema
@@ -70,7 +70,7 @@ const AgreementEditor = () => {
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
-      agreement_type: 'rental',
+      agreement_type: 'short_term', // Changed from 'rental' to 'short_term'
       status: 'draft',
       customer_id: '',
       vehicle_id: '',
@@ -103,7 +103,7 @@ const AgreementEditor = () => {
           
           form.reset({
             agreement_number: agreement.agreement_number || '',
-            agreement_type: agreement.agreement_type || 'rental',
+            agreement_type: agreement.agreement_type || 'short_term',
             status: agreement.status || 'draft',
             customer_id: agreement.customer_id || '',
             vehicle_id: agreement.vehicle_id || '',
@@ -231,10 +231,9 @@ const AgreementEditor = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 mb-6">
+            <TabsList className="grid grid-cols-2 mb-6">
               <TabsTrigger value="details">Agreement Details</TabsTrigger>
               <TabsTrigger value="payments">Payment Schedule</TabsTrigger>
-              <TabsTrigger value="terms">Terms & Conditions</TabsTrigger>
             </TabsList>
             
             <Form {...form}>
@@ -271,10 +270,8 @@ const AgreementEditor = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="rental">Rental</SelectItem>
-                              <SelectItem value="lease">Lease</SelectItem>
-                              <SelectItem value="finance">Finance</SelectItem>
-                              <SelectItem value="subscription">Subscription</SelectItem>
+                              <SelectItem value="short_term">Short Term</SelectItem>
+                              <SelectItem value="lease_to_own">Lease to Own</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -494,15 +491,6 @@ const AgreementEditor = () => {
                     paymentDay={form.getValues('payment_day')}
                     onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
                     onPaymentDayChange={(value) => form.setValue('payment_day', value)}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="terms">
-                  <AgreementTermsEditor 
-                    termsAccepted={form.getValues('terms_accepted')}
-                    onTermsAcceptedChange={(value) => form.setValue('terms_accepted', value)}
-                    additionalDrivers={form.getValues('additional_drivers')}
-                    onAdditionalDriversChange={(value) => form.setValue('additional_drivers', value)}
                   />
                 </TabsContent>
                 

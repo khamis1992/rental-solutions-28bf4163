@@ -4944,7 +4944,6 @@ export type Database = {
           service_type: string
           status: Database["public"]["Enums"]["maintenance_status"] | null
           updated_at: string
-          agreement_id: string | null
           vehicle_id: string
         }
         Insert: {
@@ -4961,7 +4960,6 @@ export type Database = {
           service_type: string
           status?: Database["public"]["Enums"]["maintenance_status"] | null
           updated_at?: string
-          agreement_id?: string | null
           vehicle_id: string
         }
         Update: {
@@ -4978,7 +4976,6 @@ export type Database = {
           service_type?: string
           status?: Database["public"]["Enums"]["maintenance_status"] | null
           updated_at?: string
-          agreement_id?: string | null
           vehicle_id?: string
         }
         Relationships: [
@@ -4994,20 +4991,6 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_agreement_id_fkey"
-            columns: ["agreement_id"]
-            isOneToOne: false
-            referencedRelation: "leases"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_agreement_id_fkey"
-            columns: ["agreement_id"]
-            isOneToOne: false
-            referencedRelation: "leases_missing_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -5191,42 +5174,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      maintenance_service_providers: {
-        Row: {
-          id: string
-          name: string
-          contact_info: string | null
-          phone: string | null
-          email: string | null
-          address: string | null
-          is_active: boolean | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          contact_info?: string | null
-          phone?: string | null
-          email?: string | null
-          address?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          contact_info?: string | null
-          phone?: string | null
-          email?: string | null
-          address?: string | null
-          is_active?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       master_sheet_data: {
         Row: {

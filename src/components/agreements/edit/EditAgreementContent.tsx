@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Agreement } from '@/types/agreement';
 import { CustomerInfo } from '@/types/customer';
@@ -27,6 +28,7 @@ export function EditAgreementContent({
       />
 
       {!isLoading && agreement && id && <AgreementEditor />}
+      {!isLoading && !agreement && <AgreementEditor />}
     </>
   );
 }

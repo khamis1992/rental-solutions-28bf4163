@@ -26,6 +26,7 @@ export const agreementSchema = z.object({
   deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
   total_amount: z.number().positive("Total amount must be positive"),
   daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
   // Mark as optional with a default value so it's available in the UI but not sent to DB
@@ -189,4 +190,3 @@ export const forceGeneratePaymentForAgreement = async (
     };
   }
 };
-
