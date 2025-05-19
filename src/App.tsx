@@ -73,6 +73,7 @@ import ReportBuilder from "./pages/ReportBuilder";
 
 // System Settings pages
 import SystemSettings from "./pages/SystemSettings";
+import CustomerPortal from "./pages/CustomerPortal";
 
 import initializeApp from "./utils/app-initializer";
 
@@ -114,7 +115,16 @@ function App() {
                       <Route path="forgot-password" element={<ForgotPassword />} />
                       <Route path="reset-password" element={<ResetPassword />} />
                     </Route>
-                    
+
+                    <Route
+                      path="/portal"
+                      element={
+                        <ProtectedRoute>
+                          <CustomerPortal />
+                        </ProtectedRoute>
+                      }
+                    />
+
                     {/* Protected Routes */}
                     <Route
                       path="/*"
