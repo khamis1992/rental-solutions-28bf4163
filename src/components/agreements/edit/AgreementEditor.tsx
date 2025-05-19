@@ -33,11 +33,13 @@ import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import AgreementTermsEditor from '../terms/AgreementTermsEditor';
 import { CustomerInfo } from '@/types/customer';
+import { useAgreementTemplates } from '@/hooks/use-agreement-templates';
 
 // Define the validation schema
 const agreementSchema = z.object({
   agreement_number: z.string().optional(),
-  agreement_type: z.string().min(1, "Agreement type is required"),
+  agreement_type: z.enum(['short_term', 'lease_to_own']).optional(),
+  template_id: z.string().optional(),
   status: z.string().min(1, "Status is required"),
   customer_id: z.string().min(1, "Customer is required"),
   vehicle_id: z.string().min(1, "Vehicle is required"),
@@ -62,6 +64,7 @@ const AgreementEditor = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const { data: templates } = useAgreementTemplates();
   
   const agreementService = useAgreementService();
   
@@ -70,7 +73,8 @@ const AgreementEditor = () => {
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
-      agreement_type: 'rental',
+      agreement_type: 'short_term',
+      template_id: '',
       status: 'draft',
       customer_id: '',
       vehicle_id: '',
@@ -103,7 +107,8 @@ const AgreementEditor = () => {
           
           form.reset({
             agreement_number: agreement.agreement_number || '',
-            agreement_type: agreement.agreement_type || 'rental',
+            agreement_type: agreement.agreement_type || 'short_term',
+            template_id: agreement.template_id || '',
             status: agreement.status || 'draft',
             customer_id: agreement.customer_id || '',
             vehicle_id: agreement.vehicle_id || '',
@@ -271,10 +276,34 @@ const AgreementEditor = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="rental">Rental</SelectItem>
-                              <SelectItem value="lease">Lease</SelectItem>
-                              <SelectItem value="finance">Finance</SelectItem>
-                              <SelectItem value="subscription">Subscription</SelectItem>
+                              <SelectItem value="short_term">Short Term</SelectItem>
+                              <SelectItem value="lease_to_own">Lease to Own</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="template_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Template</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select template" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {templates?.map(t => (
+                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />

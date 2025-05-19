@@ -14,7 +14,7 @@ export interface Database {
           total_amount: number;
           deposit_amount: number | null;
           daily_late_fee: number | null;
-          agreement_type: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
+          agreement_type: 'short_term' | 'lease_to_own';
           agreement_duration: unknown;
           rent_due_day: number | null;
           notes: string | null;
@@ -34,7 +34,7 @@ export interface Database {
           total_amount: number;
           deposit_amount?: number | null;
           daily_late_fee?: number | null;
-          agreement_type: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
+          agreement_type: 'short_term' | 'lease_to_own';
           agreement_duration: unknown;
           rent_due_day?: number | null;
           notes?: string | null;
@@ -51,7 +51,7 @@ export interface Database {
           total_amount?: number;
           deposit_amount?: number | null;
           daily_late_fee?: number | null;
-          agreement_type?: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
+          agreement_type?: 'short_term' | 'lease_to_own';
           agreement_duration?: unknown;
           rent_due_day?: number | null;
           notes?: string | null;

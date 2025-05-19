@@ -1,5 +1,5 @@
 
-import { LeaseStatus } from '@/types/lease-types';
+import { LeaseStatus, AgreementType } from '@/types/lease-types';
 
 export interface Agreement {
   id: string;
@@ -15,7 +15,8 @@ export interface Agreement {
   created_at?: Date;
   updated_at?: Date;
   agreement_number?: string;
-  agreement_type?: string;
+  agreement_type?: AgreementType;
+  template_id?: string;
   next_payment_date?: string;
   last_payment_date?: string;
   notes?: string;

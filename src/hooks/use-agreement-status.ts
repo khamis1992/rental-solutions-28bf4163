@@ -30,6 +30,23 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       return false;
     }
     
+    const currentStatus = agreement?.status as AgreementStatus | undefined;
+
+    const allowedTransitions: Record<AgreementStatus, AgreementStatus[]> = {
+      draft: ['active', 'cancelled'],
+      active: ['completed', 'cancelled', 'closed'],
+      pending: ['active', 'cancelled'],
+      expired: [],
+      cancelled: [],
+      closed: [],
+      completed: []
+    };
+
+    if (currentStatus && !allowedTransitions[currentStatus]?.includes(newStatus as AgreementStatus)) {
+      toast.error(`Cannot change status from ${currentStatus} to ${newStatus}`);
+      return false;
+    }
+
     setIsProcessing(true);
     setStatusUpdateProgress("Preparing status update...");
     

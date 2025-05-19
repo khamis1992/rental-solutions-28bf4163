@@ -16,13 +16,25 @@ export type LeaseStatus =
  * Subset of lease status values used for validation
  * These are the accepted values in forms and validation schemas
  */
-export type ValidationLeaseStatus = 
-  | 'draft' 
-  | 'active' 
-  | 'pending' 
-  | 'expired' 
-  | 'cancelled' 
+export type ValidationLeaseStatus =
+  | 'draft'
+  | 'active'
+  | 'pending'
+  | 'expired'
+  | 'cancelled'
   | 'closed';
+
+/**
+ * Agreement type enum matching database values
+ */
+export type AgreementType = 'short_term' | 'lease_to_own';
+
+/**
+ * Ensure a valid agreement type, defaulting to 'short_term'
+ */
+export function ensureAgreementType(type: string | null | undefined): AgreementType {
+  return type === 'lease_to_own' ? 'lease_to_own' : 'short_term';
+}
 
 /**
  * Converts a LeaseStatus to a ValidationLeaseStatus

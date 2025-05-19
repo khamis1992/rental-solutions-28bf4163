@@ -37,12 +37,8 @@ const paymentFrequencyOptions = [
 ];
 
 const agreementTypeOptions = [
-  { value: 'lease', label: 'Lease' },
-  { value: 'rental', label: 'Rental' },
-  { value: 'service', label: 'Service' },
-  { value: 'sales', label: 'Sales' },
-  { value: 'partnership', label: 'Partnership' },
-  { value: 'other', label: 'Other' },
+  { value: 'short_term', label: 'Short Term' },
+  { value: 'lease_to_own', label: 'Lease to Own' },
 ];
 
 // Define the actual component with a minimal implementation
@@ -53,7 +49,7 @@ const AgreementFormWithVehicleCheck: React.FC<AgreementFormWithVehicleCheckProps
   isCheckingTemplate = false 
 }) => {
   const [formData, setFormData] = React.useState({
-    agreement_type: 'lease',
+    agreement_type: 'short_term',
     status: 'pending',
     payment_frequency: 'monthly',
   });

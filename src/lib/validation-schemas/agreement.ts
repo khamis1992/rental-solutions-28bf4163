@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { ValidationLeaseStatus } from '@/types/lease-types';
+import { ValidationLeaseStatus, AgreementType } from '@/types/lease-types';
 
 // Enum for agreement status
 export const AgreementStatus = {
@@ -21,6 +21,8 @@ export const agreementSchema = z.object({
   end_date: z.date(),
   customer_id: z.string().min(1, "Customer is required"),
   vehicle_id: z.string().min(1, "Vehicle is required"),
+  agreement_type: z.enum(['short_term', 'lease_to_own']).optional(),
+  template_id: z.string().optional(),
   status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]) as z.ZodEnum<[ValidationLeaseStatus, ...ValidationLeaseStatus[]]>,
   rent_amount: z.number().positive("Rent amount must be positive"),
   deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
@@ -57,7 +59,7 @@ export interface Agreement {
   vehicle_id: string;
   start_date: Date;
   end_date: Date;
-  agreement_type?: string;
+  agreement_type?: AgreementType;
   agreement_number?: string;
   status: typeof AgreementStatus[keyof typeof AgreementStatus];
   total_amount?: number;
@@ -68,6 +70,7 @@ export interface Agreement {
   vehicle_make?: string;
   vehicle_model?: string;
   vehicle_year?: number;
+  template_id?: string;
   created_at?: Date;
   updated_at?: Date;
   signature_url?: string;

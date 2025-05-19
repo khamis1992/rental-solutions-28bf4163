@@ -55,11 +55,12 @@ export const agreementService = {
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
             daily_late_fee: agreement.daily_late_fee,
-            agreement_type: agreement.agreement_type,
+            agreement_type: agreement.agreement_type || 'short_term',
             agreement_duration: agreement.agreement_duration,
             rent_due_day:
               (agreement as any).payment_day ?? (agreement as any).rent_due_day,
             notes: agreement.notes,
+            template_id: (agreement as any).template_id || null,
             updated_at: new Date().toISOString()
           })
           .eq('id', asLeaseId(agreement.id!))
@@ -85,11 +86,12 @@ export const agreementService = {
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
             daily_late_fee: agreement.daily_late_fee,
-            agreement_type: agreement.agreement_type || 'rental',
+            agreement_type: agreement.agreement_type || 'short_term',
             agreement_duration: agreement.agreement_duration,
             rent_due_day:
               (agreement as any).payment_day ?? (agreement as any).rent_due_day,
-            notes: agreement.notes
+            notes: agreement.notes,
+            template_id: (agreement as any).template_id || null
           })
           .select()
           .single();
