@@ -95,10 +95,12 @@ const Vehicles = () => {
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    setFilters(prev => ({
-      ...prev,
+    const updated = {
+      ...filters,
       searchTerm: query.trim() !== '' ? query : undefined
-    }));
+    } as VehicleFilterParams;
+    setFilters(updated);
+    updateFilters(updated);
     
     // Reset to first page when searching
     pagination.setPage(1);
