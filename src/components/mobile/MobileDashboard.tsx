@@ -12,7 +12,7 @@ export function MobileDashboard() {
     { 
       name: 'Start Vehicle Inspection', 
       icon: Car, 
-      route: '/inspection',
+      route: '/field-ops/inspection',
       primary: true,
       description: 'Perform digital vehicle inspection with photos'
     },
@@ -53,7 +53,7 @@ export function MobileDashboard() {
         ))}
       </div>
       
-      <Button className="w-full mt-4" variant="outline">
+      <Button className="w-full mt-4" variant="outline" onClick={() => navigate('/field-ops/scan')}>
         Scan Vehicle QR Code
       </Button>
     </div>

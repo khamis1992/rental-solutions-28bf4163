@@ -75,6 +75,11 @@ import ReportBuilder from "./pages/ReportBuilder";
 import SystemSettings from "./pages/SystemSettings";
 import CustomerPortal from "./pages/CustomerPortal";
 
+// Mobile Field Operations pages
+import FieldOperations from "./pages/mobile/FieldOperations";
+import QRScanPage from "./pages/mobile/QRScanPage";
+import VehicleInspectionPage from "./pages/mobile/VehicleInspectionPage";
+
 import initializeApp from "./utils/app-initializer";
 
 function App() {
@@ -131,6 +136,11 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <>
+                            <Routes>
+                              <Route path="/field-ops" element={<FieldOperations />} />
+                              <Route path="/field-ops/scan" element={<QRScanPage />} />
+                              <Route path="/field-ops/inspection/:vehicleId" element={<VehicleInspectionPage />} />
+                            </Routes>
                             <Sidebar />
                             <Routes>
                               <Route path="/dashboard" element={<Dashboard />} />
