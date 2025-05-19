@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
+import { ensureValidLeaseStatus } from '@/types/lease-types';
 import { BaseService, handleServiceOperation, ServiceResult } from '@/services/base/BaseService';
 
 // Define AgreementFilters interface
@@ -50,7 +51,7 @@ export const agreementService = {
               agreement.agreement_number || generateAgreementNumber(),
             start_date: agreement.start_date,
             end_date: agreement.end_date,
-            status: agreement.status,
+            status: ensureValidLeaseStatus(agreement.status),
             deposit_amount: agreement.deposit_amount,
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
@@ -80,7 +81,7 @@ export const agreementService = {
               agreement.agreement_number || generateAgreementNumber(),
             start_date: agreement.start_date,
             end_date: agreement.end_date,
-            status: agreement.status,
+            status: ensureValidLeaseStatus(agreement.status),
             deposit_amount: agreement.deposit_amount,
             total_amount: agreement.total_amount,
             rent_amount: agreement.rent_amount,
@@ -357,7 +358,7 @@ export const agreementService = {
     try {
       // This is a placeholder implementation - in reality you would need to implement this
       // based on your business logic and database structure
-      const { data, error } = await supabase.rpc('calculate_remaining_amount', { agreement_id: id });
+      const { data, error } = await supabase.rpc('calculate_remaining_amount', { lease_id: id });
       
       if (error) throw error;
       

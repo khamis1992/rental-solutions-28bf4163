@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { ValidationLeaseStatus } from '@/types/lease-types';
+import { LeaseStatus, ValidationLeaseStatus } from '@/types/lease-types';
 
 // Enum for agreement status
 export const AgreementStatus = {
@@ -59,7 +59,7 @@ export interface Agreement {
   end_date: Date;
   agreement_type?: string;
   agreement_number?: string;
-  status: typeof AgreementStatus[keyof typeof AgreementStatus];
+  status: LeaseStatus;
   total_amount?: number;
   monthly_payment?: number;
   agreement_duration?: any;
