@@ -199,6 +199,17 @@ export const useCarInstallments = () => {
         .from('car_installment_payments')
         .insert([newPayment])
         .select();
+
+      if (!error && data && data[0]) {
+        await supabase.from('unified_payments').insert({
+          amount: newPayment.amount ?? 0,
+          amount_paid: newPayment.paid_amount ?? newPayment.amount ?? 0,
+          payment_date: newPayment.payment_date,
+          description: 'Car Installment Payment',
+          type: 'Expense',
+          status: newPayment.status
+        });
+      }
         
       if (error) throw error;
       return data[0];

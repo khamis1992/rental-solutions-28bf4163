@@ -357,7 +357,7 @@ export const agreementService = {
     try {
       // This is a placeholder implementation - in reality you would need to implement this
       // based on your business logic and database structure
-      const { data, error } = await supabase.rpc('calculate_remaining_amount', { agreement_id: id });
+      const { data, error } = await supabase.rpc('calculate_remaining_amount', { lease_id: id });
       
       if (error) throw error;
       
