@@ -3,6 +3,17 @@ import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
 import { asVehicleId, asVehicleStatus } from '../utils';
 import { supabase } from '@/lib/supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
+
+function toPostgrestError(error: unknown, name: string): PostgrestError {
+  return {
+    name,
+    message: error instanceof Error ? error.message : String(error),
+    details: '',
+    hint: '',
+    code: ''
+  };
+}
 
 type VehicleRow = TableRow<'vehicles'>;
 
@@ -35,13 +46,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findByStatus:", error);
       return {
         data: [],
-        error: {
-          name: 'FindByStatusError',
-          message: error instanceof Error ? error.message : 'Unknown error in findByStatus',
-          details: '',
-          hint: '',
-          code: ''
-        }
+        error: toPostgrestError(error, 'FindByStatusError')
       };
     }
   }
@@ -65,13 +70,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findAvailable:", error);
       return {
         data: [],
-        error: {
-          name: 'FindAvailableError',
-          message: error instanceof Error ? error.message : 'Unknown error in findAvailable',
-          details: '',
-          hint: '',
-          code: ''
-        }
+        error: toPostgrestError(error, 'FindAvailableError')
       };
     }
   }
@@ -117,13 +116,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in updateStatus:", error);
       return {
         data: null,
-        error: {
-          name: 'UpdateStatusError',
-          message: error instanceof Error ? error.message : 'Unknown error in updateStatus',
-          details: '',
-          hint: '',
-          code: ''
-        }
+        error: toPostgrestError(error, 'UpdateStatusError')
       };
     }
   }
@@ -160,13 +153,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in getWithLease:", error);
       return {
         data: null,
-        error: {
-          name: 'GetWithLeaseError',
-          message: error instanceof Error ? error.message : 'Unknown error in getWithLease',
-          details: '',
-          hint: '',
-          code: ''
-        }
+        error: toPostgrestError(error, 'GetWithLeaseError')
       };
     }
   }
@@ -214,13 +201,7 @@ export class VehicleRepository extends Repository<'vehicles'> {
       console.error("Error in findWithDetails:", error);
       return {
         data: null,
-        error: {
-          name: 'FindWithDetailsError',
-          message: error instanceof Error ? error.message : 'Unknown error in findWithDetails',
-          details: '',
-          hint: '',
-          code: ''
-        }
+        error: toPostgrestError(error, 'FindWithDetailsError')
       };
     }
   }
