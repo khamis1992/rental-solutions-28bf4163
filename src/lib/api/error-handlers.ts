@@ -1,5 +1,5 @@
 
-import { PostgrestError } from '@supabase/supabase-js';
+import { type PostgrestError } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { ServiceResult } from '@/services/base/BaseService';
 

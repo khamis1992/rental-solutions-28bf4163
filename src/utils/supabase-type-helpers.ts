@@ -1,5 +1,8 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
 
 /**
  * Type guard to check if a Supabase response has data

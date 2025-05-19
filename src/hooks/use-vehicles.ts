@@ -2,7 +2,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
+import {
+  Vehicle,
+  VehicleFilterParams,
+  VehicleFormData,
+  VehicleInsertData,
+  VehicleUpdateData,
+  VehicleStatus,
+} from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { CacheManager } from '@/lib/cache-utils';
 import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/lib/supabase';
@@ -169,8 +176,12 @@ export const useVehicles = () => {
                   throw response.error;
                 }
 
-                const safeData = safelyGetRecordsFromResponse(response as any);
-                return safeData.map(record => mapDatabaseRecordToVehicle(record));
+                const safeData = safelyGetRecordsFromResponse<DatabaseVehicleRecord>(
+                  response as any
+                );
+                return safeData.map(record =>
+                  mapDatabaseRecordToVehicle(record)
+                );
               } catch (err) {
                 lastError = err;
                 attempts++;

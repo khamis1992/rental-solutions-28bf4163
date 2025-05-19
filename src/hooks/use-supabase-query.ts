@@ -1,5 +1,9 @@
 
-import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import {
+  type PostgrestError,
+  type PostgrestResponse,
+  type PostgrestSingleResponse,
+} from '@supabase/supabase-js';
 import { useQuery, useMutation, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import { QueryKey, QueryFunction } from '@tanstack/react-query';
 

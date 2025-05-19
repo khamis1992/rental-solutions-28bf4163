@@ -6,7 +6,7 @@
  */
 
 import { toast } from 'sonner';
-import { PostgrestError } from '@supabase/supabase-js';
+import { type PostgrestError } from '@supabase/supabase-js';
 export * from './api/index';
 
 /**

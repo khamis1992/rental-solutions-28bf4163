@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabase';
 import { VehicleRow } from './types';
 import { createRepository } from './repository';
-import { asVehicleStatus } from './validation';
+import { asVehicleStatus } from './utils';
 import { isSuccessResponse } from './validation/typeGuards';
 
 // Get base repository functionality
@@ -49,17 +49,18 @@ export const vehicleRepository = {
       return null;
     }
     
-    return response.data;
+    return response.data as VehicleRow[];
   },
   
   // Update vehicle status with validation
   async updateStatus(id: string, status: string): Promise<VehicleRow | null> {
     const validatedStatus = asVehicleStatus(status);
     
-    return await baseRepository.update(id, { 
+    const result = await baseRepository.update(id, {
       status: validatedStatus,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     });
+    return result.data;
   },
   
   // Find available vehicles

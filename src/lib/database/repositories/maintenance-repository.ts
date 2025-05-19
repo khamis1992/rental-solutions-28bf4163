@@ -1,13 +1,12 @@
 import { Repository } from '../repository';
-import { Tables, TableRow, DbListResponse } from '../types';
-import { asMaintenanceId } from '../database-types';
+import { DbListResponse } from '../types';
 import { supabase } from '@/lib/supabase';
 
-export type MaintenanceRow = TableRow<'maintenance'>;
+export type MaintenanceRow = Record<string, unknown>;
 
-export class MaintenanceRepository extends Repository<'maintenance'> {
+export class MaintenanceRepository extends Repository<'vehicles'> {
   constructor(client: any) {
-    super(client, 'maintenance');
+    super(client as any, 'maintenance' as any);
   }
 
   async findByVehicle(vehicleId: string): Promise<DbListResponse<MaintenanceRow>> {

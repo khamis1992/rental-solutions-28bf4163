@@ -208,9 +208,9 @@ export function useDashboardData() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const revenueQuery = useQuery({
+  const revenueQuery = useQuery<Array<{ name: string; revenue: number }>>({
     queryKey: ['dashboard', 'revenue'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Array<{ name: string; revenue: number }>> => {
       try {
         const cachedRevenue = CacheManager.get<Array<{name: string; revenue: number}>>(
           'dashboardRevenue'
