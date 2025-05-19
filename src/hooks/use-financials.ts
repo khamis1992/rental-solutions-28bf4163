@@ -95,7 +95,7 @@ export function useFinancials() {
         }
 
         const { data: installmentData, error: installmentError } = await supabase
-          .from('car_installments')
+          .from('car_installment_payments')
           .select('*');
 
         if (installmentError) {
@@ -493,15 +493,13 @@ export function useFinancials() {
       if (typeof id === 'string' && id.startsWith('inst-')) {
         const actualId = id.replace('inst-', '');
         const { data: updatedData, error } = await supabase
-          .from('car_installments')
+          .from('car_installment_payments')
           .update({
-            payment_amount: data.amount,
+            amount: data.amount,
             payment_date: data.date?.toISOString(),
-            payment_status: data.status,
-            vehicle_description: data.description,
-            payment_method: data.paymentMethod,
-            reference: data.reference,
-            vehicle_id: data.vehicleId
+            status: data.status,
+            payment_notes: data.description,
+            payment_reference: data.reference
           })
           .eq('id', actualId)
           .select()
@@ -515,14 +513,12 @@ export function useFinancials() {
         return {
           id: `inst-${updatedData.id}`,
           date: new Date(updatedData.payment_date),
-          amount: updatedData.payment_amount,
-          description: updatedData.vehicle_description,
+          amount: updatedData.amount,
+          description: updatedData.payment_notes ?? 'Installment Payment',
           type: 'expense',
           category: 'Installment',
-          status: updatedData.payment_status as TransactionStatusType,
-          reference: updatedData.reference,
-          paymentMethod: updatedData.payment_method,
-          vehicleId: updatedData.vehicle_id
+          status: updatedData.status as TransactionStatusType,
+          reference: updatedData.payment_reference,
         };
       } else {
         const { data: updatedData, error } = await supabase
@@ -585,7 +581,7 @@ export function useFinancials() {
       if (typeof id === 'string' && id.startsWith('inst-')) {
         const actualId = id.replace('inst-', '');
         const { error } = await supabase
-          .from('car_installments')
+          .from('car_installment_payments')
           .delete()
           .eq('id', actualId);
 
