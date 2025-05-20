@@ -1,7 +1,7 @@
 
 import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asVehicleId, asVehicleStatus } from '../utils';
+import { asVehicleId, asVehicleStatus } from '../database-types';
 import { supabase } from '@/lib/supabase';
 import type { PostgrestError } from '@supabase/supabase-js';
 
