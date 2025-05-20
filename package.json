@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "check-boundaries": "node scripts/check-boundaries.cjs",
     "preview": "vite preview",
-    "send-scheduled-reports": "node scripts/send-scheduled-reports.js"
+    "send-scheduled-reports": "node scripts/send-scheduled-reports.js",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

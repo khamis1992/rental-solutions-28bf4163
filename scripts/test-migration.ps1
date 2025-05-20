@@ -6,8 +6,9 @@ Write-Host "=== Service Migration Testing Script ===" -ForegroundColor Cyan
 Write-Host "This script will test the core functionality of migrated services" -ForegroundColor Cyan
 Write-Host ""
 
-# Navigate to project directory
-Set-Location "c:\Users\khamis\coodebase rental\rental-solutions-28bf4163"
+# The script assumes it is run from the project root. Remove any
+# hard-coded directory changes so it can be executed from the current
+# working directory.
 
 # Step 1: Run type checking to verify no type errors
 Write-Host "Step 1: Running TypeScript type checking..." -ForegroundColor Green
