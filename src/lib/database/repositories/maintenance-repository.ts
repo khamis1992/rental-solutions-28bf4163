@@ -1,10 +1,11 @@
+
 import { Repository } from '../repository';
 import { DbListResponse } from '../types';
 import { supabase } from '@/lib/supabase';
 
 export type MaintenanceRow = Record<string, unknown>;
 
-export class MaintenanceRepository extends Repository<'vehicles'> {
+export class MaintenanceRepository extends Repository<'maintenance'> {
   constructor(client: any) {
     super(client as any, 'maintenance' as any);
   }

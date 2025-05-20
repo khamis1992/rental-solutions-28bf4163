@@ -17,7 +17,7 @@ const MaintenanceJobCard = () => {
   const { useMaintenanceList } = useMaintenance();
 
   // Fetch maintenance records for the vehicle
-  const { data: records = [], isLoading: isLoadingMaintenance } = useMaintenanceList(vehicleId);
+  const { data: records = [], isLoading: isLoadingMaintenance } = useMaintenanceList(vehicleId || '');
 
   // Fetch vehicle details
   const { data: vehicle, isLoading: isLoadingVehicle } = useQuery({

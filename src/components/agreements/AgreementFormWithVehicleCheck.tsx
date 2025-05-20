@@ -46,12 +46,12 @@ const agreementTypeOptions = [
 ];
 
 // Define the actual component with a minimal implementation
-const AgreementFormWithVehicleCheck: React.FC<AgreementFormWithVehicleCheckProps> = ({ 
+const AgreementFormWithVehicleCheck = ({ 
   onSubmit, 
   isSubmitting, 
   standardTemplateExists = false, 
   isCheckingTemplate = false 
-}) => {
+}: AgreementFormWithVehicleCheckProps) => {
   const [formData, setFormData] = React.useState({
     agreement_type: 'lease',
     status: 'pending',

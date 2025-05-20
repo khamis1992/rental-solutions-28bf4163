@@ -7,7 +7,7 @@ interface AgreementContentProps {
   isLoading?: boolean;
 }
 
-const AgreementContent: React.FC<AgreementContentProps> = ({ content, isLoading = false }) => {
+const AgreementContent = ({ content, isLoading = false }: AgreementContentProps) => {
   if (isLoading) {
     return (
       <Card>

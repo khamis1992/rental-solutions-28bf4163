@@ -6,10 +6,10 @@ interface AgreementFormStatusProps {
   validationErrors: Record<string, string> | null | undefined;
 }
 
-export const AgreementFormStatus: React.FC<AgreementFormStatusProps> = ({
+export const AgreementFormStatus = ({
   updateProgress,
   validationErrors
-}) => {
+}: AgreementFormStatusProps) => {
   // Determine if updateProgress is a number that should be displayed
   const showProgress = typeof updateProgress === 'number' && updateProgress > 0 && updateProgress < 100;
   

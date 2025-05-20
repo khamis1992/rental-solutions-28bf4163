@@ -9,7 +9,7 @@ interface AgreementCardProps {
   onClick?: () => void;
 }
 
-export const AgreementCard: React.FC<AgreementCardProps> = ({ agreement, onClick }) => {
+export const AgreementCard = ({ agreement, onClick }: AgreementCardProps) => {
   return (
     <Card 
       className="hover:shadow-md transition-shadow cursor-pointer"

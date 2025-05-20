@@ -56,14 +56,18 @@ export const vehicleRepository = {
   },
   
   // Update vehicle status with validation
-  async updateStatus(id: string, status: string): Promise<VehicleRow | null> {
+  async updateStatus(id: string, status: string): Promise<{ data: VehicleRow | null, error: any }> {
     const validatedStatus = asVehicleStatus(status) as VehicleStatus;
     
-    const result = await baseRepository.update(id, {
-      status: validatedStatus,
-      updated_at: new Date().toISOString(),
-    });
-    return result.data;
+    try {
+      const result = await baseRepository.update(id, {
+        status: validatedStatus,
+        updated_at: new Date().toISOString(),
+      });
+      return { data: result.data as VehicleRow | null, error: result.error };
+    } catch (error) {
+      return { data: null, error };
+    }
   },
   
   // Find available vehicles
@@ -94,5 +98,10 @@ export const vehicleRepository = {
       console.error('Exception in findById:', error);
       return { data: null, error };
     }
+  },
+  
+  // Find vehicles in maintenance
+  async findMaintenanceVehicles(): Promise<VehicleRow[] | null> {
+    return this.findVehicles({ status: 'maintenance' });
   }
 };

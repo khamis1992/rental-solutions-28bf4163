@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +51,7 @@ const VehicleMaintenanceCards = ({ vehicles, isLoading = false }: VehicleMainten
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Completed</Badge>;
       default:
-        return <Badge>{record.status}</Badge>;
+        return <Badge>{record.status || 'Unknown'}</Badge>;
     }
   };
 
