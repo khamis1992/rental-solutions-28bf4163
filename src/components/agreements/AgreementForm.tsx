@@ -20,12 +20,12 @@ interface AgreementFormProps {
   validationErrors?: Record<string, string> | null;
 }
 
-const AgreementForm: React.FC<AgreementFormProps> = ({
+const AgreementForm = ({
   initialData,
   onSubmit,
   isSubmitting = false,
   validationErrors
-}) => {
+}: AgreementFormProps) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);

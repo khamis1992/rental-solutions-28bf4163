@@ -27,11 +27,11 @@ interface ReassignmentHistoryItemProps {
   onToggleExpand?: () => void;
 }
 
-export const ReassignmentHistoryItem: React.FC<ReassignmentHistoryItemProps> = ({
+export const ReassignmentHistoryItem = ({
   record,
   isExpanded = false,
   onToggleExpand
-}) => {
+}: ReassignmentHistoryItemProps) => {
   const formattedDate = format(new Date(record.reassignedAt), 'MMM d, yyyy • h:mm a');
   
   return (

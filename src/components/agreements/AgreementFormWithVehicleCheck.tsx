@@ -1,5 +1,6 @@
 
 import React from 'react';
+import type { FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -70,7 +71,7 @@ const AgreementFormWithVehicleCheck = ({
     }
   ];
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     onSubmit(formData);
   };

@@ -28,16 +28,16 @@ interface AgreementFilterPanelProps {
 
 export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: AgreementFilterPanelProps) {
   const [agreementNumber, setAgreementNumber] = useState(currentFilters?.agreement_number || '');
-  const [startDateFrom, setStartDateFrom] = useState<Date | undefined>(
+  const [startDateFrom, setStartDateFrom] = useState(
     currentFilters?.start_date_after ? new Date(currentFilters.start_date_after) : undefined
   );
-  const [startDateTo, setStartDateTo] = useState<Date | undefined>(
+  const [startDateTo, setStartDateTo] = useState(
     currentFilters?.start_date_before ? new Date(currentFilters.start_date_before) : undefined
   );
-  const [endDateFrom, setEndDateFrom] = useState<Date | undefined>(
+  const [endDateFrom, setEndDateFrom] = useState(
     currentFilters?.end_date_after ? new Date(currentFilters.end_date_after) : undefined
   );
-  const [endDateTo, setEndDateTo] = useState<Date | undefined>(
+  const [endDateTo, setEndDateTo] = useState(
     currentFilters?.end_date_before ? new Date(currentFilters.end_date_before) : undefined
   );
   const [licensePlate, setLicensePlate] = useState(currentFilters?.license_plate || '');

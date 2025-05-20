@@ -19,7 +19,7 @@ interface AgreementDetailsProps {
   standardTemplateExists: boolean;
 }
 
-export const AgreementDetails: React.FC<AgreementDetailsProps> = ({
+export const AgreementDetails = ({
   agreementNumber,
   setAgreementNumber,
   startDate,
@@ -31,7 +31,7 @@ export const AgreementDetails: React.FC<AgreementDetailsProps> = ({
   status,
   setStatus,
   standardTemplateExists
-}) => {
+}: AgreementDetailsProps) => {
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Agreement Details</h3>

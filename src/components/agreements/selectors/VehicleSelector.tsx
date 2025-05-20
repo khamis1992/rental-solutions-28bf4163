@@ -18,13 +18,13 @@ interface VehicleSelectorProps {
   onVehicleSelect?: (vehicle: any) => void;
 }
 
-const VehicleSelector: React.FC<VehicleSelectorProps> = ({ 
-  value, 
-  onChange, 
+const VehicleSelector = ({
+  value,
+  onChange,
   placeholder = "Select a vehicle",
   selectedVehicle,
   onVehicleSelect
-}) => {
+}: VehicleSelectorProps) => {
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ['vehicles'],
     queryFn: async () => {

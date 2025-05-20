@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,15 +19,15 @@ interface AgreementListFilterProps {
   onFilterChange?: (filters: Record<string, any>) => void;
 }
 
-export const AgreementListFilter: React.FC<AgreementListFilterProps> = ({
+export const AgreementListFilter = ({
   onSearch,
   searchTerm,
   onFilterChange
-}) => {
+}: AgreementListFilterProps) => {
   const [searchValue, setSearchValue] = useState(searchTerm);
   
   // Handle search input changes with direct debounce implementation
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
     

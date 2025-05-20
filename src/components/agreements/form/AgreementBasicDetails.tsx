@@ -18,12 +18,12 @@ interface AgreementBasicDetailsProps {
   onCustomerChange: (customerId: string, customerData: CustomerInfo) => void;
 }
 
-export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({ 
-  form, 
+export const AgreementBasicDetails = ({
+  form,
   isEdit,
   onVehicleChange,
   onCustomerChange
-}) => {
+}: AgreementBasicDetailsProps) => {
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();

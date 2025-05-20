@@ -14,12 +14,12 @@ interface AgreementTermsEditorProps {
   onAdditionalDriversChange: (drivers: string[]) => void;
 }
 
-const AgreementTermsEditor: React.FC<AgreementTermsEditorProps> = ({
+const AgreementTermsEditor = ({
   termsAccepted,
   onTermsAcceptedChange,
   additionalDrivers,
   onAdditionalDriversChange,
-}) => {
+}: AgreementTermsEditorProps) => {
   const [newDriver, setNewDriver] = React.useState('');
 
   const handleAddDriver = () => {
