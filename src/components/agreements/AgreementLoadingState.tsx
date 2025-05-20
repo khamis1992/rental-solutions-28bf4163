@@ -7,10 +7,10 @@ interface AgreementLoadingStateProps {
   hasAgreement: boolean;
 }
 
-export const AgreementLoadingState: React.FC<AgreementLoadingStateProps> = ({
+export const AgreementLoadingState = ({
   isLoading,
   hasAgreement
-}) => {
+}: AgreementLoadingStateProps) => {
   if (isLoading) {
     return (
       <div className="space-y-6">

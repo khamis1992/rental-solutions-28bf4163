@@ -19,7 +19,7 @@ interface PaymentInformationProps {
   rentError?: string;
 }
 
-export const PaymentInformation: React.FC<PaymentInformationProps> = ({
+export const PaymentInformation = ({
   rentAmount,
   setRentAmount,
   depositAmount,
@@ -31,7 +31,7 @@ export const PaymentInformation: React.FC<PaymentInformationProps> = ({
   notes,
   setNotes,
   rentError
-}) => {
+}: PaymentInformationProps) => {
   return (
     <div className="mt-8 space-y-4">
       <h3 className="font-medium text-lg">Payment Information</h3>

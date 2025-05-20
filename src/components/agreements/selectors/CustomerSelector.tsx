@@ -15,7 +15,7 @@ interface CustomerSelectorProps {
   onChange: (value: string) => void;
 }
 
-const CustomerSelector: React.FC<CustomerSelectorProps> = ({ value, onChange }) => {
+const CustomerSelector = ({ value, onChange }: CustomerSelectorProps) => {
   const customerService = useCustomerService();
   
   const { data: customers, isLoading } = useQuery({

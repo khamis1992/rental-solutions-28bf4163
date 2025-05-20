@@ -26,11 +26,11 @@ interface AgreementSubmitHandlerProps {
   redirectTo?: string;
 }
 
-export const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({
+export const AgreementSubmitHandler = ({
   children,
   onSubmit,
   redirectTo = '/agreements',
-}) => {
+}: AgreementSubmitHandlerProps) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string> | null>(null);

@@ -21,11 +21,11 @@ import type { ReassignmentWizardProps } from '@/types/reassignment.types';
  * @param onComplete - Optional callback function executed on successful reassignment
  * @param onCancel - Optional callback function executed when reassignment is cancelled
  */
-const ReassignmentWizard: React.FC<ReassignmentWizardProps> = ({ 
-  leaseId, 
-  onComplete, 
-  onCancel 
-}) => {
+const ReassignmentWizard = ({
+  leaseId,
+  onComplete,
+  onCancel
+}: ReassignmentWizardProps) => {
   const navigate = useNavigate();
   const {
     lease,

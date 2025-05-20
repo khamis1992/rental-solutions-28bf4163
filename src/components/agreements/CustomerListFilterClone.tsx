@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, memo } from 'react';
+import type { ChangeEvent } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,11 @@ interface CustomerListFilterProps {
   onFilterChange?: (filters: { [key: string]: string }) => void;
 }
 
-export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo(({
+export const CustomerListFilterClone = memo(({
   onSearch,
   searchTerm,
   onFilterChange
-}) => {
+}: CustomerListFilterProps) => {
   const [searchValue, setSearchValue] = useState(searchTerm);
 
   // Only update search value when searchTerm prop changes
@@ -45,7 +46,7 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = memo((
 
   // Handle search input change
   const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setSearchValue(value);
       handleDebouncedSearch(value);

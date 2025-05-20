@@ -13,7 +13,7 @@ interface VehicleDetailsCardProps {
   };
 }
 
-export const VehicleDetailsCard: React.FC<VehicleDetailsCardProps> = ({ vehicle }) => {
+export const VehicleDetailsCard = ({ vehicle }: VehicleDetailsCardProps) => {
   if (!vehicle) return null;
   
   return (

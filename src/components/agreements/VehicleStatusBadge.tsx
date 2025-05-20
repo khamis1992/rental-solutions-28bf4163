@@ -26,12 +26,12 @@ interface VehicleStatusBadgeProps {
   showIcon?: boolean;
 }
 
-export const VehicleStatusBadge: React.FC<VehicleStatusBadgeProps> = ({
+export const VehicleStatusBadge = ({
   status,
   className = '',
   size = 'md',
   showIcon = true
-}) => {
+}: VehicleStatusBadgeProps) => {
   const getStatusConfig = (status: VehicleStatusType) => {
     const lowerStatus = status.toLowerCase();
     

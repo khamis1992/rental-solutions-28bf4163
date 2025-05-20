@@ -20,14 +20,14 @@ interface CustomerVehicleSectionProps {
   vehicleError?: string;
 }
 
-export const CustomerVehicleSection: React.FC<CustomerVehicleSectionProps> = ({
+export const CustomerVehicleSection = ({
   selectedCustomer,
   setSelectedCustomer,
   selectedVehicle,
   setSelectedVehicle,
   customerError,
   vehicleError
-}) => {
+}: CustomerVehicleSectionProps) => {
   const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<CustomerInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

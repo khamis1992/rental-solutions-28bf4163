@@ -14,11 +14,11 @@ interface AgreementContractTermsProps {
   setTermsAccepted: (value: boolean) => void;
 }
 
-export const AgreementContractTerms: React.FC<AgreementContractTermsProps> = ({ 
-  form, 
-  termsAccepted, 
-  setTermsAccepted 
-}) => {
+export const AgreementContractTerms = ({
+  form,
+  termsAccepted,
+  setTermsAccepted
+}: AgreementContractTermsProps) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <h2 className="text-xl font-semibold mb-4">Contract Terms & Dates</h2>
