@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CustomerInfo } from "@/types/customer";
 import VehicleSelector from "@/components/vehicles/VehicleSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface CustomerVehicleSectionProps {
   selectedCustomer: CustomerInfo | null;
@@ -33,55 +34,70 @@ export const CustomerVehicleSection = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Debounced search to prevent too many requests
+  const debouncedFetch = useCallback((query: string) => {
+    if (query.length < 2) {
+      setCustomers([]);
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Small delay to prevent too many requests while typing
+    const timeoutId = setTimeout(() => {
+      fetchCustomers(query);
+    }, 300); 
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Effect to trigger search when query changes
   useEffect(() => {
-    const fetchCustomers = async () => {
-      if (searchQuery.length < 2) {
+    const cleanup = debouncedFetch(searchQuery);
+    return cleanup;
+  }, [searchQuery, debouncedFetch]);
+
+  const fetchCustomers = async (query: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone_number')
+        .ilike('full_name', `%${query}%`)
+        .eq('role', 'customer' as any) // Type assertion to resolve the type issue
+        .order('full_name')
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching customers:', error);
+        toast.error('Failed to load customers');
         setCustomers([]);
         return;
       }
 
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, phone_number')
-          .ilike('full_name', `%${searchQuery}%`)
-          .eq('role', 'customer' as any) // Type assertion to resolve the type issue
-          .order('full_name')
-          .limit(10);
-
-        if (error) {
-          console.error('Error fetching customers:', error);
-          setCustomers([]);
-          return;
-        }
-
-        // Safely handle the data
-        if (data && Array.isArray(data)) {
-          const typedCustomers = data.map(item => ({
-            id: item.id,
-            full_name: item.full_name || '',
-            email: item.email || '',
-            phone_number: item.phone_number || '',
-            // Add other required fields with defaults
-            driver_license: '',
-            nationality: '',
-            address: ''
-          }));
-          setCustomers(typedCustomers);
-        } else {
-          setCustomers([]);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
+      // Safely handle the data
+      if (data && Array.isArray(data)) {
+        const typedCustomers = data.map(item => ({
+          id: item.id,
+          full_name: item.full_name || '',
+          email: item.email || '',
+          phone_number: item.phone_number || '',
+          // Add other required fields with defaults
+          driver_license: '',
+          nationality: '',
+          address: ''
+        }));
+        setCustomers(typedCustomers);
+      } else {
         setCustomers([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchCustomers();
-  }, [searchQuery]);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast.error('An unexpected error occurred');
+      setCustomers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Ensure customers is always an array
   const safeCustomers = Array.isArray(customers) ? customers : [];

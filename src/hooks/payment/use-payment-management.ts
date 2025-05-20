@@ -11,6 +11,7 @@ export type PaymentFilter = null | 'pending' | 'completed' | 'overdue' | 'comple
 
 /**
  * Hook for managing payments with comprehensive functionality
+ * Designed to support microservice architecture with clear domain boundaries
  */
 export const usePaymentManagement = (agreementId?: string) => {
   // Use the base payment hooks
@@ -74,7 +75,15 @@ export const usePaymentManagement = (agreementId?: string) => {
   const addPayment = useCallback(async (payment: Partial<Payment>) => {
     try {
       setLoading('adding');
-      return await baseAddPayment(payment);
+      const response = await baseAddPayment(payment);
+      
+      // Enhanced logging for microservices traceability
+      console.log('Payment added through microservice gateway', {
+        paymentId: response.data?.id,
+        status: response.error ? 'error' : 'success'
+      });
+      
+      return response;
     } finally {
       setIdle('adding');
     }
@@ -86,7 +95,16 @@ export const usePaymentManagement = (agreementId?: string) => {
   const updatePayment = useCallback(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
     try {
       setLoading('updating');
-      return await baseUpdatePayment(paymentUpdate);
+      const response = await baseUpdatePayment(paymentUpdate);
+      
+      // Enhanced logging for microservices traceability
+      console.log('Payment updated through microservice gateway', {
+        paymentId: paymentUpdate.id,
+        updatedFields: Object.keys(paymentUpdate.data),
+        status: response.error ? 'error' : 'success'
+      });
+      
+      return response;
     } finally {
       setIdle('updating');
     }
@@ -98,7 +116,15 @@ export const usePaymentManagement = (agreementId?: string) => {
   const deletePayment = useCallback(async (paymentId: string) => {
     try {
       setLoading('deleting');
-      return await baseDeletePayment(paymentId);
+      const response = await baseDeletePayment(paymentId);
+      
+      // Enhanced logging for microservices traceability
+      console.log('Payment deleted through microservice gateway', {
+        paymentId,
+        status: response.error ? 'error' : 'success'
+      });
+      
+      return response;
     } finally {
       setIdle('deleting');
     }
@@ -140,11 +166,37 @@ export const usePaymentManagement = (agreementId?: string) => {
         });
       }
       
+      // Log for microservice tracing
+      console.log('Batch updated payment historical statuses', {
+        count: updatedPayments.length,
+        agreementId
+      });
+      
       return { updatedCount: updatedPayments.length };
     } finally {
       setIdle('updateHistoricalStatuses');
     }
   }, [agreementId, payments, baseUpdatePayment, setLoading, setIdle]);
+
+  /**
+   * Export payment data for external system integration
+   * Added to support microservices
+   */
+  const exportPaymentsData = useCallback(() => {
+    // Map payments to a format suitable for external systems
+    return payments.map(payment => ({
+      id: payment.id,
+      amount: payment.amount,
+      status: payment.status,
+      dueDate: payment.due_date,
+      paymentDate: payment.payment_date,
+      paymentMethod: payment.payment_method,
+      agreementId: payment.agreement_id,
+      receiptNumber: payment.receipt_number || undefined,
+      externalRef: payment.external_reference || undefined,
+      notes: payment.notes || undefined
+    }));
+  }, [payments]);
 
   // Filtered payments based on status filter
   const filteredPayments = useMemo(() => {
@@ -180,6 +232,7 @@ export const usePaymentManagement = (agreementId?: string) => {
     deletePayment,
     fetchPayments,
     updateHistoricalStatuses,
+    exportPaymentsData, // New export function for microservices
     
     // Loading states
     loadingStates,

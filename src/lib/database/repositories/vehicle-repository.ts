@@ -205,6 +205,118 @@ export class VehicleRepository extends Repository<'vehicles'> {
       };
     }
   }
+
+  /**
+   * Get vehicles requiring maintenance based on service interval
+   * Added for microservices
+   */
+  async findVehiclesRequiringMaintenance(): Promise<DbListResponse<VehicleRow>> {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Find vehicles with maintenance records older than 30 days or no maintenance records
+      const response = await this.client
+        .from('vehicles')
+        .select('*, maintenance(*)')
+        .or(`status.neq.maintenance,status.eq.available`)
+        .order('created_at', { ascending: false });
+      
+      if (response.error) {
+        console.error("Error in findVehiclesRequiringMaintenance:", response.error);
+        return {
+          data: [],
+          error: response.error
+        };
+      }
+      
+      // Filter vehicles that need maintenance (no maintenance records or old ones)
+      const vehiclesNeedingMaintenance = (response.data || []).filter(vehicle => {
+        const maintenance = Array.isArray(vehicle.maintenance) ? vehicle.maintenance : [];
+        
+        // If no maintenance records, needs maintenance
+        if (maintenance.length === 0) return true;
+        
+        // Find newest maintenance record
+        const newestMaintenance = maintenance.reduce((newest, current) => {
+          const currentDate = new Date(current.completion_date || current.created_at);
+          const newestDate = new Date(newest.completion_date || newest.created_at);
+          return currentDate > newestDate ? current : newest;
+        }, maintenance[0]);
+        
+        // Check if newest maintenance is older than 30 days
+        const newestDate = new Date(newestMaintenance.completion_date || newestMaintenance.created_at);
+        return newestDate < thirtyDaysAgo;
+      });
+      
+      return {
+        data: vehiclesNeedingMaintenance,
+        error: null
+      };
+    } catch (error) {
+      console.error("Error in findVehiclesRequiringMaintenance:", error);
+      return {
+        data: [],
+        error: toPostgrestError(error, 'FindVehiclesRequiringMaintenanceError')
+      };
+    }
+  }
+
+  /**
+   * Find vehicles with filtering options 
+   * Added for microservices
+   */
+  async findVehicles(filters: {
+    status?: string | string[];
+    make?: string;
+    model?: string;
+    licensePlate?: string;
+    available?: boolean;
+  } = {}): Promise<DbListResponse<VehicleRow>> {
+    try {
+      let query = this.client
+        .from('vehicles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (filters.status) {
+        if (Array.isArray(filters.status)) {
+          query = query.in('status', filters.status.map(s => asVehicleStatus(s)));
+        } else {
+          query = query.eq('status', asVehicleStatus(filters.status));
+        }
+      }
+      
+      if (filters.make) {
+        query = query.ilike('make', `%${filters.make}%`);
+      }
+      
+      if (filters.model) {
+        query = query.ilike('model', `%${filters.model}%`);
+      }
+      
+      if (filters.licensePlate) {
+        query = query.ilike('license_plate', `%${filters.licensePlate}%`);
+      }
+      
+      if (filters.available === true) {
+        query = query.eq('status', asVehicleStatus('available'));
+      }
+      
+      const response = await query;
+      
+      return {
+        data: response.data || [],
+        error: response.error
+      };
+    } catch (error) {
+      console.error("Error in findVehicles:", error);
+      return {
+        data: [],
+        error: toPostgrestError(error, 'FindVehiclesError')
+      };
+    }
+  }
 }
 
 // Export the repository instance and the factory function

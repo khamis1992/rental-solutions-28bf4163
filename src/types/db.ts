@@ -1,3 +1,4 @@
+
 import { Database } from './database.types'
 
 export type Tables = Database['public']['Tables']
@@ -30,13 +31,21 @@ export type TrafficFineId = TrafficFineRow['id']
 export type LegalCaseRow = Tables['legal_cases']['Row']
 export type LegalCaseId = LegalCaseRow['id']
 
+// Type-safe ID conversion functions
 export const asLeaseId = (id: string): LeaseId => id as LeaseId
 export const asVehicleId = (id: string): VehicleId => id as VehicleId
 export const asProfileId = (id: string): ProfileId => id as ProfileId
 export const asPaymentId = (id: string): PaymentId => id as PaymentId
 export const asTrafficFineId = (id: string): TrafficFineId => id as TrafficFineId
 export const asLegalCaseId = (id: string): LegalCaseId => id as LegalCaseId
+
+// Type-safe status conversion functions
 export const asLeaseStatus = (status: string): LeaseStatus => status as LeaseStatus
 export const asVehicleStatus = (status: string): VehicleStatus => status as VehicleStatus
 export const asPaymentStatus = (status: string): PaymentStatus => status as PaymentStatus
 
+// ID validation helper
+export const isValidUuid = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
