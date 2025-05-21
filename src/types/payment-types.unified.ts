@@ -69,4 +69,4 @@ export interface SpecialPaymentOptions {
 }
 
 // Re-export types for backward compatibility
-export type { Payment as PaymentHistoryItem } from '@/types/payment-history.types';
+export type { Payment as PaymentHistoryItem } from './payment.types';

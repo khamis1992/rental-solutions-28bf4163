@@ -343,7 +343,11 @@ export function AgreementDetail({
 
       {agreement.id && <Card>
           <CardContent className="pt-6">
-            <AgreementTrafficFines agreementId={agreement.id} />
+            <AgreementTrafficFines
+              agreementId={agreement.id}
+              startDate={leaseStartDate}
+              endDate={leaseEndDate}
+            />
           </CardContent>
         </Card>}
 

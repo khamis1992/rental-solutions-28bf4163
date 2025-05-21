@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
 import { Input } from "@/components/ui/input";
-import { Payment } from '@/types/payment-history.types';
+import { Payment } from '@/types/payment.types';
 import { 
   Select,
   SelectContent,

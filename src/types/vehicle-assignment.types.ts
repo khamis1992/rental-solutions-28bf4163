@@ -1,5 +1,5 @@
 
-import { Payment } from './payment-history.types';
+import { Payment } from './payment.types';
 import { TrafficFine } from '@/hooks/use-traffic-fines';
 
 export interface VehicleInfo {
