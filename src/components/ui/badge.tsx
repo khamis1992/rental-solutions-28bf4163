@@ -32,12 +32,12 @@ export interface BadgeProps
   children?: React.ReactNode;
 }
 
-function Badge({ className, variant, children, ...props }: BadgeProps) {
+const Badge: React.FC<BadgeProps> = ({ className, variant, children, ...props }) => {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props}>
       {children}
     </div>
   )
 }
-
 export { Badge, badgeVariants }
+export type { BadgeProps }
