@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import type { DropzoneOptions } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -48,7 +49,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         setShowPreview(false);
       }
     },
-  });
+  } as DropzoneOptions);
 
   const handlePreviewFile = async () => {
     if (!file) return;

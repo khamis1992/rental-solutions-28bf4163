@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { agreementService } from '@/services/AgreementService';
@@ -18,7 +19,7 @@ interface AgreementSubmitHandlerProps {
     isSubmitting: boolean;
     updateProgress?: (progress: number) => void;
     validationErrors?: Record<string, string> | null;
-  }) => React.ReactNode;
+  }) => ReactNode;
   id?: string;
   agreement?: Agreement;
   userId?: string;
