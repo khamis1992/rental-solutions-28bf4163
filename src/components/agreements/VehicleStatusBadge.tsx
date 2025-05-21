@@ -51,7 +51,7 @@ export const VehicleStatusBadge = ({
       case 'maintenance':
         return {
           color: 'bg-amber-500 hover:bg-amber-600',
-          icon: Wrench, // Using Wrench instead of Tool
+          icon: Wrench,
           text: 'Maintenance'
         };
       case 'reserved':

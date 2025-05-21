@@ -42,7 +42,7 @@ export const CustomerStatusBadge: React.FC<CustomerStatusBadgeProps> = ({
         };
       case 'inactive':
         return {
-          variant: 'inactive',
+          variant: 'outline',
           icon: XCircle,
           text: 'Inactive'
         };
@@ -54,7 +54,7 @@ export const CustomerStatusBadge: React.FC<CustomerStatusBadgeProps> = ({
         };
       case 'pending_payment':
         return {
-          variant: 'info',
+          variant: 'secondary',
           icon: Clock,
           text: 'Pending Payment'
         };
