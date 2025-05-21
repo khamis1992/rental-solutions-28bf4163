@@ -44,7 +44,7 @@ const PROFILE_STATUSES = [
   'pending_payment'
 ] as const;
 
-type ProfileStatus = typeof PROFILE_STATUSES[number];
+export type ProfileStatus = typeof PROFILE_STATUSES[number];
 
 /**
  * Validates and returns a profile status
