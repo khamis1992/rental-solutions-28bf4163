@@ -6,8 +6,8 @@ import { Loader2 } from 'lucide-react';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate: Date;
+  endDate: Date;
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
@@ -31,8 +31,13 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
   // Memoize the filtered fines to prevent recalculation on each render
   const filteredFines = React.useMemo(() => {
     if (!trafficFines) return [];
-    return trafficFines.filter(fine => fine.leaseId === agreementId);
-  }, [trafficFines, agreementId]);
+    return trafficFines.filter(
+      fine =>
+        fine.leaseId === agreementId &&
+        new Date(fine.violationDate) >= startDate &&
+        new Date(fine.violationDate) <= endDate
+    );
+  }, [trafficFines, agreementId, startDate, endDate]);
 
   if (showLoader) {
     return (

@@ -1,23 +1,6 @@
-export interface PaymentHistoryItem {
-  id: string;
-  amount: number;
-  amount_paid?: number;
-  payment_date?: string | null; // Updated to handle null values
-  due_date?: string | null; // Updated to handle null values
-  status: string; // 'completed', 'pending', 'overdue', etc.
-  lease_id?: string;
-  type?: string;
-  description?: string;
-  payment_method?: string;
-  transaction_id?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  balance?: number;
-  next_payment_date?: string | null; // Updated to handle null values
-  reference_number?: string;
-  notes?: string;
-  original_due_date?: string | null; // Added this field to fix the TypeScript error
-}
+import { Payment } from './payment.types';
+
+export type PaymentHistoryItem = Payment;
 
 export interface PaymentHistoryResponse {
   data: PaymentHistoryItem[];
@@ -36,6 +19,4 @@ export interface PaymentSchedule {
   balance?: number;
 }
 
-export interface Payment extends PaymentHistoryItem {
-  // Additional fields specific to Payment if needed
-}
+export type Payment = PaymentHistoryItem;

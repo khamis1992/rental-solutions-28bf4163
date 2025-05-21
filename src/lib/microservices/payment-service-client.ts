@@ -49,8 +49,8 @@ export class PaymentServiceClient {
           .insert(payment)
           .select()
           .single();
-        
-        return { data: data as PaymentRow || null, error };
+
+        return { data: data as PaymentRow | null, error };
       }
     } catch (error) {
       console.error('Error creating payment:', error);
@@ -82,8 +82,8 @@ export class PaymentServiceClient {
           .select('*')
           .eq('agreement_id', agreementId)
           .order('due_date', { ascending: true });
-        
-        return { data: data as PaymentRow[] || null, error };
+
+        return { data: data as PaymentRow[] | null, error };
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -119,8 +119,8 @@ export class PaymentServiceClient {
           .eq('id', id)
           .select()
           .single();
-        
-        return { data: data as PaymentRow || null, error };
+
+        return { data: data as PaymentRow | null, error };
       }
     } catch (error) {
       console.error('Error updating payment:', error);
@@ -192,8 +192,8 @@ export class PaymentServiceClient {
           .eq('id', id)
           .select()
           .single();
-        
-        return { data: data as PaymentRow || null, error };
+
+        return { data: data as PaymentRow | null, error };
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
