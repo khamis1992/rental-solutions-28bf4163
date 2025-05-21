@@ -36,37 +36,37 @@ export const CustomerStatusBadge: React.FC<CustomerStatusBadgeProps> = ({
     switch(lowerStatus) {
       case 'active':
         return {
-          variant: 'success',
+          variant: 'success' as const,
           icon: CheckCircle,
           text: 'Active'
         };
       case 'inactive':
         return {
-          variant: 'outline',
+          variant: 'outline' as const,
           icon: XCircle,
           text: 'Inactive'
         };
       case 'pending_review':
         return {
-          variant: 'warning',
+          variant: 'warning' as const,
           icon: AlertTriangle,
           text: 'Pending Review'
         };
       case 'pending_payment':
         return {
-          variant: 'secondary',
+          variant: 'secondary' as const,
           icon: Clock,
           text: 'Pending Payment'
         };
       case 'blacklisted':
         return {
-          variant: 'destructive',
+          variant: 'destructive' as const,
           icon: XCircle,
           text: 'Blacklisted'
         };
       default:
         return {
-          variant: 'default',
+          variant: 'default' as const,
           icon: HelpCircle,
           text: status || 'Unknown'
         };
@@ -83,7 +83,7 @@ export const CustomerStatusBadge: React.FC<CustomerStatusBadgeProps> = ({
   
   return (
     <Badge 
-      variant={variant as any} 
+      variant={variant}
       className={`${sizeClasses} ${className} flex items-center gap-1`}
     >
       {showIcon && <Icon className="h-3 w-3" />}
