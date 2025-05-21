@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Card, CardContent, 
   Badge, Button, 
@@ -31,7 +32,6 @@ const updateCustomer = (id: string, data: any) => {
 };
 
 export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
-  const [isEditing, setIsEditing] = useState(false);
   const [customer, setCustomer] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -243,9 +243,11 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               </div>
             </div>
             <div className="flex gap-2 mt-4 md:mt-0">
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+              <Button asChild variant="outline">
+                <Link to={`/customers/edit/${customerId}`}> 
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Link>
               </Button>
               <Button variant="destructive" onClick={handleDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
