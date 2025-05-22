@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { maintenanceService } from '@/services/MaintenanceService';
@@ -261,6 +261,56 @@ export function useMaintenance() {
     useUpdateMaintenance,
     useDeleteMaintenance,
     create,
-    update
+    update,
+    useRealtimeUpdates: () => {
+      useEffect(() => {
+        const subscription = supabase
+          .channel('maintenance-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'maintenance' 
+            }, 
+            (payload) => {
+              // Invalidate all maintenance queries
+              queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+              
+              // Invalidate specific maintenance record if we have an ID
+              if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['maintenanceDetails', payload.new.id] 
+                });
+                
+                // If the record has a vehicle_id, invalidate that vehicle's maintenance records
+                if ('vehicle_id' in payload.new && payload.new.vehicle_id) {
+                  queryClient.invalidateQueries({ 
+                    queryKey: ['maintenanceList', payload.new.vehicle_id] 
+                  });
+                  queryClient.invalidateQueries({ 
+                    queryKey: ['maintenanceHistory', payload.new.vehicle_id] 
+                  });
+                }
+              }
+              
+              if (payload.eventType === 'UPDATE' && 
+                  payload.old && payload.new && 
+                  typeof payload.old === 'object' && typeof payload.new === 'object' &&
+                  'status' in payload.old && 'status' in payload.new &&
+                  'service_type' in payload.new &&
+                  payload.old.status !== payload.new.status) {
+                toast.info(`Maintenance status updated`, {
+                  description: `${payload.new.service_type} is now ${payload.new.status}`,
+                });
+              }
+            }
+          )
+          .subscribe();
+          
+        return () => {
+          supabase.removeChannel(subscription);
+        };
+      }, [queryClient]);
+    }
   };
 }

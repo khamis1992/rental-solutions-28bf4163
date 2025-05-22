@@ -14,10 +14,10 @@ import { toast } from 'sonner';
 
 const Maintenance = () => {
   const navigate = useNavigate();
-  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
-  const [filteredRecords, setFilteredRecords] = useState<MaintenanceRecord[]>([]);
+  const [maintenanceRecords, setMaintenanceRecords] = useState([] as MaintenanceRecord[]);
+  const [filteredRecords, setFilteredRecords] = useState([] as MaintenanceRecord[]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState<MaintenanceFilterOptions>({
+  const [filters, setFilters] = useState({
     searchTerm: '',
     status: '',
     vehicle: '',
@@ -26,7 +26,9 @@ const Maintenance = () => {
     maintenanceType: ''
   });
 
-  const { getAllRecords, deleteMaintenanceRecord } = useMaintenance();
+  const { getAllRecords, deleteMaintenanceRecord, useRealtimeUpdates } = useMaintenance();
+  
+  useRealtimeUpdates();
 
   // Get vehicles that are in maintenance
   const { vehicles, isLoading: isLoadingVehicles } = useVehicleService({
