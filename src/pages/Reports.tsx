@@ -11,6 +11,8 @@ import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
 import TrafficFineReport from '@/components/reports/TrafficFineReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import CrossReportAnalytics from '@/components/reports/CrossReportAnalytics';
+import TrendAnalysis from '@/components/reports/TrendAnalysis';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
@@ -18,18 +20,23 @@ import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useVehicles } from '@/hooks/use-vehicles';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
+import { calculateYearOverYear, calculateMonthOverMonth, calculateMovingAverage, calculateCumulativeSum } from '@/utils/trend-analysis-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('fleet');
-  const { vehicles, reportData } = useFleetReport();
+  const { reportData } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
   const { trafficFines } = useTrafficFines();
+  const vehiclesHook = useVehicles();
+  const { data: vehicles = [] } = vehiclesHook.useList();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -170,53 +177,106 @@ const Reports = () => {
         </AlertDescription>
       </Alert>
       
-      <Card className="mb-16"> {/* Increased bottom margin to prevent overlap with footer */}
-        <CardContent className="pt-6">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-6 mb-8 space-x-2">
-              <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
-              <TabsTrigger value="financial">Financial Report</TabsTrigger>
-              <TabsTrigger value="customers">Customer Report</TabsTrigger>
-              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
-              <TabsTrigger value="traffic">Traffic Fines</TabsTrigger>
-              <TabsTrigger value="legal">Legal Report</TabsTrigger>
-            </TabsList>
-            
-            <div className="mb-6 px-4">
-              <ReportDownloadOptions 
-                reportType={selectedTab} 
-                getReportData={getReportData} 
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <TabsContent value="fleet" className="mt-0">
-                <FleetReport />
-              </TabsContent>
-              
-              <TabsContent value="financial" className="mt-0">
-                <FinancialReport />
-              </TabsContent>
-              
-              <TabsContent value="customers" className="mt-0">
-                <CustomerReport />
-              </TabsContent>
-              
-              <TabsContent value="maintenance" className="mt-0">
-                <MaintenanceReport />
-              </TabsContent>
-              
-              <TabsContent value="traffic" className="mt-0">
-                <TrafficFineReport />
-              </TabsContent>
-              
-              <TabsContent value="legal" className="mt-0">
-                <LegalReport />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="standard-reports" className="mb-8">
+        <TabsList className="mb-4">
+          <TabsTrigger value="standard-reports">Standard Reports</TabsTrigger>
+          <TabsTrigger value="cross-domain">Cross-Domain Analytics</TabsTrigger>
+          <TabsTrigger value="trend-analysis">Trend Analysis</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="standard-reports">
+          <Card className="mb-16"> {/* Increased bottom margin to prevent overlap with footer */}
+            <CardContent className="pt-6">
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+                <TabsList className="grid grid-cols-6 mb-8 space-x-2">
+                  <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
+                  <TabsTrigger value="financial">Financial Report</TabsTrigger>
+                  <TabsTrigger value="customers">Customer Report</TabsTrigger>
+                  <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+                  <TabsTrigger value="traffic">Traffic Fines</TabsTrigger>
+                  <TabsTrigger value="legal">Legal Report</TabsTrigger>
+                </TabsList>
+                
+                <div className="mb-6 px-4">
+                  <ReportDownloadOptions 
+                    reportType={selectedTab} 
+                    getReportData={getReportData} 
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <TabsContent value="fleet" className="mt-0">
+                    <FleetReport />
+                  </TabsContent>
+                  
+                  <TabsContent value="financial" className="mt-0">
+                    <FinancialReport />
+                  </TabsContent>
+                  
+                  <TabsContent value="customers" className="mt-0">
+                    <CustomerReport />
+                  </TabsContent>
+                  
+                  <TabsContent value="maintenance" className="mt-0">
+                    <MaintenanceReport />
+                  </TabsContent>
+                  
+                  <TabsContent value="traffic" className="mt-0">
+                    <TrafficFineReport />
+                  </TabsContent>
+                  
+                  <TabsContent value="legal" className="mt-0">
+                    <LegalReport />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="cross-domain">
+          <CrossReportAnalytics />
+        </TabsContent>
+        
+        <TabsContent value="trend-analysis">
+          <TrendAnalysis 
+            title="Financial Trends Analysis"
+            description="Analyze financial trends over time with various comparison methods"
+            data={transactions}
+            timeField="date"
+            metrics={[
+              { key: 'amount', name: 'Transaction Amount', color: '#3b82f6', formatter: formatCurrency },
+              { key: 'balance', name: 'Account Balance', color: '#22c55e', formatter: formatCurrency }
+            ]}
+            comparisonOptions={[
+              { 
+                key: 'year-over-year', 
+                name: 'Year over Year', 
+                calculate: (data, timeField, metric) => 
+                  calculateYearOverYear(data, timeField, metric)
+              },
+              { 
+                key: 'month-over-month', 
+                name: 'Month over Month', 
+                calculate: (data, timeField, metric) => 
+                  calculateMonthOverMonth(data, timeField, metric)
+              },
+              { 
+                key: 'moving-average', 
+                name: 'Moving Average (3 periods)', 
+                calculate: (data, timeField, metric) => 
+                  calculateMovingAverage(data, timeField, metric, 3)
+              },
+              { 
+                key: 'cumulative', 
+                name: 'Cumulative Sum', 
+                calculate: (data, timeField, metric) => 
+                  calculateCumulativeSum(data, timeField, metric)
+              }
+            ]}
+          />
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 };

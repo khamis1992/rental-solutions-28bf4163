@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +10,9 @@ import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import AdvancedFilterPanel, { FilterOption, FilterGroup } from '@/components/reports/filters/AdvancedFilterPanel';
+import InteractiveChart from '@/components/reports/charts/InteractiveChart';
+import { Card, CardContent } from '@/components/ui/card';
 
 const useDatasetData = () => {
   const { reportData } = useFleetReport();
@@ -23,8 +27,9 @@ const useDatasetData = () => {
 };
 
 const ReportBuilder = () => {
-  const [dataset, setDataset] = useState<string>('fleet');
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [dataset, setDataset] = useState('fleet');
+  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [filters, setFilters] = useState([]);
 
   const datasets = useDatasetData();
 
@@ -42,13 +47,163 @@ const ReportBuilder = () => {
     );
   };
 
+  const getFilterGroups = () => {
+    switch (dataset) {
+      case 'fleet':
+        return [
+          {
+            id: 'status',
+            name: 'Vehicle Status',
+            options: [
+              { id: 'available', label: 'Available', value: 'available' },
+              { id: 'rented', label: 'Rented', value: 'rented' },
+              { id: 'maintenance', label: 'Maintenance', value: 'maintenance' },
+              { id: 'out_of_service', label: 'Out of Service', value: 'out_of_service' }
+            ],
+            type: 'select' as const
+          },
+          {
+            id: 'vehicle_type',
+            name: 'Vehicle Type',
+            options: Array.from(new Set(data.map(v => v.vehicle_type)))
+              .filter(Boolean)
+              .map(type => ({ id: type, label: type, value: type })),
+            type: 'select' as const
+          },
+          {
+            id: 'purchase_date',
+            name: 'Purchase Date',
+            options: [],
+            type: 'dateRange' as const
+          }
+        ];
+      case 'financial':
+        return [
+          {
+            id: 'transaction_type',
+            name: 'Transaction Type',
+            options: Array.from(new Set(data.map(t => t.transaction_type)))
+              .filter(Boolean)
+              .map(type => ({ id: type, label: type, value: type })),
+            type: 'select' as const
+          },
+          {
+            id: 'amount',
+            name: 'Amount',
+            options: [],
+            type: 'number' as const
+          },
+          {
+            id: 'date',
+            name: 'Transaction Date',
+            options: [],
+            type: 'dateRange' as const
+          }
+        ];
+      case 'customers':
+        return [
+          {
+            id: 'status',
+            name: 'Customer Status',
+            options: Array.from(new Set(data.map(c => c.status)))
+              .filter(Boolean)
+              .map(status => ({ id: status, label: status, value: status })),
+            type: 'select' as const
+          },
+          {
+            id: 'created_at',
+            name: 'Registration Date',
+            options: [],
+            type: 'dateRange' as const
+          }
+        ];
+      case 'traffic':
+        return [
+          {
+            id: 'paymentStatus',
+            name: 'Payment Status',
+            options: Array.from(new Set(data.map(f => f.paymentStatus)))
+              .filter(Boolean)
+              .map(status => ({ id: status, label: status, value: status })),
+            type: 'select' as const
+          },
+          {
+            id: 'violationDate',
+            name: 'Violation Date',
+            options: [],
+            type: 'dateRange' as const
+          },
+          {
+            id: 'fineAmount',
+            name: 'Fine Amount',
+            options: [],
+            type: 'number' as const
+          }
+        ];
+      default:
+        return [];
+    }
+  };
+  
+  const applyFilters = (dataToFilter) => {
+    if (filters.length === 0) return dataToFilter;
+    
+    return dataToFilter.filter(item => {
+      return filters.every(filter => {
+        const value = item[filter.field];
+        
+        switch (filter.operator) {
+          case 'equals':
+            return value === filter.value;
+          case 'contains':
+            return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
+          case 'greaterThan':
+            return Number(value) > Number(filter.value);
+          case 'lessThan':
+            return Number(value) < Number(filter.value);
+          case 'between':
+            if (filter.value.from && filter.value.to) {
+              const itemDate = new Date(value);
+              const fromDate = new Date(filter.value.from);
+              const toDate = new Date(filter.value.to);
+              return itemDate >= fromDate && itemDate <= toDate;
+            }
+            return true;
+          case 'in':
+            return value === filter.value;
+          default:
+            return true;
+        }
+      });
+    });
+  };
+  
+  const handleApplyFilter = (filter) => {
+    setFilters(prev => [...prev, filter]);
+  };
+  
+  const handleRemoveFilter = (filterToRemove) => {
+    setFilters(prev => prev.filter(filter => 
+      filter.field !== filterToRemove.field || 
+      filter.value !== filterToRemove.value
+    ));
+  };
+  
+  const handleClearFilters = () => {
+    setFilters([]);
+  };
+
   const getReportData = () => {
     if (!data) return [];
-    if (selectedColumns.length === 0) return data;
-    return data.map(item => {
-      const obj: Record<string, any> = {};
+    
+    const filteredData = applyFilters(data);
+    
+    if (selectedColumns.length === 0) return filteredData;
+    
+    return filteredData.map(item => {
+      const obj = {};
       selectedColumns.forEach(col => {
-        obj[col] = (item as any)[col];
+        obj[col] = item[col];
       });
       return obj;
     });
@@ -75,6 +230,21 @@ const ReportBuilder = () => {
             <SelectItem value="traffic">Traffic Fines</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      
+      {/* Add Advanced Filtering */}
+      <div className="mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <AdvancedFilterPanel
+              filterGroups={getFilterGroups()}
+              appliedFilters={filters}
+              onApplyFilter={handleApplyFilter}
+              onRemoveFilter={handleRemoveFilter}
+              onClearFilters={handleClearFilters}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       {columns.length > 0 && (
