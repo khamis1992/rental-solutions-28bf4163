@@ -4,10 +4,12 @@ import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, WifiOff } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNetworkStatus } from '@/hooks/use-network-status';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -30,11 +32,12 @@ const PageContainer: React.FC<PageContainerProps> = ({
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { isOnline } = useNetworkStatus();
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   
   // Force new component mount when key properties change
-  const [contentKey, setContentKey] = useState<string>(
+  const [contentKey, setContentKey] = useState(
     `${title || ''}-${description || ''}-${Date.now()}`
   );
   
@@ -63,6 +66,15 @@ const PageContainer: React.FC<PageContainerProps> = ({
           onToggleSidebar={toggleSidebar} 
           isSidebarOpen={sidebarOpen} 
         />
+        
+        {!isOnline && (
+          <Alert variant="warning" className="mx-4 mt-2">
+            <WifiOff className="h-4 w-4" />
+            <AlertDescription className="flex items-center">
+              You are currently offline. Some features may be unavailable.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <main 
           key={contentKey}

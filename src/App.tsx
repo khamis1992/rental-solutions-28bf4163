@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { LoadingFallback } from "./components/ui/loading-fallback";
+import { ErrorBoundary } from "./components/ui/error-boundary";
+import { defaultRetryConfig } from "./lib/api/retry-utils";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -89,7 +91,9 @@ function App() {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 1,
+        retry: defaultRetryConfig.retries,
+        retryDelay: (retryAttempt) => defaultRetryConfig.retryDelay(retryAttempt),
+        retryOnMount: true,
         refetchOnWindowFocus: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000,  // 10 minutes
@@ -111,11 +115,12 @@ function App() {
                 <TooltipProvider>
                   <Toaster />
                   <Sonner />
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    
-                    {/* Auth Routes */}
-                    <Route path="auth" element={<AuthLayout />}>
+                  <ErrorBoundary>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      
+                      {/* Auth Routes */}
+                      <Route path="auth" element={<AuthLayout />}>
                       <Route path="login" element={<Login />} />
                       <Route path="register" element={<Register />} />
                       <Route path="forgot-password" element={<ForgotPassword />} />
@@ -342,6 +347,7 @@ function App() {
                       }
                     />
                   </Routes>
+                </ErrorBoundary>
                 </TooltipProvider>
               </NotificationProvider>
             </SettingsProvider>

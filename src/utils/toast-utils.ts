@@ -1,70 +1,153 @@
 
 import { toast } from 'sonner';
+import { ZodError } from 'zod';
+import { formatValidationErrors as formatErrorsRecord } from '@/lib/api/error-handlers';
 
 /**
  * Unified toast notification utilities to ensure consistent messaging throughout the application
  */
 
+type ToastOptions = {
+  duration?: number;
+  id?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+};
+
 /**
  * Display a success toast notification
- * @param message The success message to display
- * @param details Optional additional details
+ * @param title The success title to display
+ * @param description Optional additional details
+ * @param options Additional toast options
  */
-export function showSuccessToast(message: string, details?: string): void {
-  toast.success(message, {
-    description: details,
-    duration: 4000,
+export function showSuccessToast(
+  title: string, 
+  description?: string,
+  options?: ToastOptions
+): void {
+  toast.success(title, {
+    description,
+    duration: options?.duration || 4000,
+    id: options?.id,
+    action: options?.actionLabel ? {
+      label: options.actionLabel,
+      onClick: options.onAction || (() => {}),
+    } : undefined,
   });
 }
 
 /**
  * Display an error toast notification with intelligent error extraction
  * @param error The error object or message
- * @param context Optional context for where the error occurred
+ * @param title Optional title for the error toast
+ * @param options Additional toast options
  */
-export function showErrorToast(error: unknown, context?: string): void {
-  let errorMessage = 'An unexpected error occurred';
+export function showErrorToast(
+  error: unknown, 
+  title = "Error", 
+  options?: ToastOptions
+): void {
+  let description: string | undefined;
   
   if (error instanceof Error) {
-    errorMessage = error.message;
+    description = error.message;
+  } else if (error instanceof ZodError) {
+    // Format ZodError into a readable string
+    description = error.errors
+      .map(err => {
+        const path = err.path.join('.') || 'form';
+        return `${path}: ${err.message}`;
+      })
+      .join('\n');
   } else if (typeof error === 'string') {
-    errorMessage = error;
+    description = error;
   } else if (isObjectWithMessage(error)) {
-    errorMessage = error.message;
+    description = error.message;
+  } else {
+    description = 'An unexpected error occurred';
   }
   
-  if (context) {
-    errorMessage = `${context}: ${errorMessage}`;
-  }
-  
-  toast.error('Error', {
-    description: errorMessage,
-    duration: 5000,
+  toast.error(title, {
+    description,
+    duration: options?.duration || 5000,
+    id: options?.id,
+    action: options?.actionLabel ? {
+      label: options.actionLabel,
+      onClick: options.onAction || (() => {}),
+    } : undefined,
   });
 }
 
 /**
  * Display a warning toast notification
- * @param message The warning message to display
- * @param details Optional additional details
+ * @param title The warning title to display
+ * @param description Optional additional details
+ * @param options Additional toast options
  */
-export function showWarningToast(message: string, details?: string): void {
-  toast.warning(message, {
-    description: details,
-    duration: 4000,
+export function showWarningToast(
+  title: string, 
+  description?: string,
+  options?: ToastOptions
+): void {
+  toast.warning(title, {
+    description,
+    duration: options?.duration || 5000,
+    id: options?.id,
+    action: options?.actionLabel ? {
+      label: options.actionLabel,
+      onClick: options.onAction || (() => {}),
+    } : undefined,
   });
 }
 
 /**
  * Display an info toast notification
- * @param message The info message to display
- * @param details Optional additional details
+ * @param title The info title to display
+ * @param description Optional additional details
+ * @param options Additional toast options
  */
-export function showInfoToast(message: string, details?: string): void {
-  toast.info(message, {
-    description: details,
-    duration: 3000,
+export function showInfoToast(
+  title: string, 
+  description?: string,
+  options?: ToastOptions
+): void {
+  toast.info(title, {
+    description,
+    duration: options?.duration || 4000,
+    id: options?.id,
+    action: options?.actionLabel ? {
+      label: options.actionLabel,
+      onClick: options.onAction || (() => {}),
+    } : undefined,
   });
+}
+
+/**
+ * Display an offline toast notification
+ */
+export function showOfflineToast(): void {
+  toast.error('You are offline', {
+    description: 'Some features may be unavailable until you reconnect.',
+    duration: Infinity,
+    id: 'offline-toast',
+    action: {
+      label: 'Retry',
+      onClick: () => {
+        if (navigator.onLine) {
+          toast.dismiss('offline-toast');
+          showSuccessToast('Back online', 'Your connection has been restored.');
+        }
+      },
+    },
+  });
+}
+
+/**
+ * Dismiss a toast by ID
+ * @param id The ID of the toast to dismiss
+ */
+export function dismissToast(id: string): void {
+  toast.dismiss(id);
 }
 
 /**
