@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import type { FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,14 +52,14 @@ const AgreementFormWithVehicleCheck = ({
   standardTemplateExists = false, 
   isCheckingTemplate = false 
 }: AgreementFormWithVehicleCheckProps) => {
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     agreement_type: 'lease',
     status: 'pending',
     payment_frequency: 'monthly',
   });
   
-  const [acknowledgedPayments, setAcknowledgedPayments] = React.useState(false);
-  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = React.useState(false);
+  const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   
   const mockPendingPayments = [
     {
@@ -71,8 +70,8 @@ const AgreementFormWithVehicleCheck = ({
     }
   ];
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     onSubmit(formData);
   };
 

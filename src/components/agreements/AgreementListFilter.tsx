@@ -1,104 +1,65 @@
-
-import React, { useState } from 'react';
-import type { ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Input } from "@/components/ui/input";
-import { Search, X, Filter } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Search, X } from "lucide-react";
 
 interface AgreementListFilterProps {
-  onSearch: (query: string) => void;
   searchTerm: string;
-  onFilterChange?: (filters: Record<string, any>) => void;
+  onSearch: (searchTerm: string) => void;
+  onFilterChange: (filters: Record<string, any>) => void;
 }
 
-export const AgreementListFilter = ({
-  onSearch,
-  searchTerm,
-  onFilterChange
-}: AgreementListFilterProps) => {
-  const [searchValue, setSearchValue] = useState(searchTerm);
+export const AgreementListFilter = ({ searchTerm, onSearch, onFilterChange }: AgreementListFilterProps) => {
+  const [search, setSearch] = useState(searchTerm || '');
   
-  // Handle search input changes with direct debounce implementation
+  useEffect(() => {
+    setSearch(searchTerm || '');
+  }, [searchTerm]);
+  
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSearchValue(value);
-    
-    // Add debounce for search - same implementation as CustomerListFilter
-    const timeoutId = setTimeout(() => {
-      onSearch(value);
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
+    setSearch(value);
   };
   
-  // Clear search input - directly calling onSearch like in CustomerListFilter
+  const handleSearchSubmit = () => {
+    onSearch(search);
+  };
+  
   const handleClearSearch = () => {
-    setSearchValue('');
+    setSearch('');
     onSearch('');
   };
-
+  
   return (
-    <div className="flex items-center gap-2 w-full sm:w-auto max-w-md">
-      <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="flex items-center space-x-4">
+      <div className="relative w-full md:w-80">
         <Input
-          type="search"
-          placeholder="Search agreements by customer name..."
-          className="pl-9 pr-8 h-10"
-          value={searchValue}
+          type="text"
+          placeholder="Search agreements..."
+          value={search}
           onChange={handleSearchChange}
+          className="pr-10"
         />
-        {searchValue && (
-          <button 
+        {search && (
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClearSearch}
-            className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+            className="absolute right-1 top-1/2 -translate-y-1/2 hover:bg-accent"
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">Clear search</span>
-          </button>
-        )}
-      </div>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
-            <Filter className="h-4 w-4" />
-            <span className="sr-only">Filter</span>
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => onFilterChange && onFilterChange({ status: 'active' })}>Active Agreements</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onFilterChange && onFilterChange({ status: 'pending' })}>Pending Agreements</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            const next30Days = new Date();
-            next30Days.setDate(next30Days.getDate() + 30);
-            onFilterChange && onFilterChange({ 
-              end_date_after: new Date().toISOString(),
-              end_date_before: next30Days.toISOString()
-            });
-          }}>Expiring Soon</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="justify-center">
-            <Button 
-              variant="ghost" 
-              className="w-full text-xs" 
-              onClick={() => onFilterChange && onFilterChange({})}
-            >
-              Reset all filters
-            </Button>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSearchSubmit}
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };

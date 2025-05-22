@@ -1,3 +1,4 @@
+
 import 'react';
 
 declare module 'react' {
@@ -10,4 +11,6 @@ declare module 'react' {
   export type RefObject<T> = React.RefObject<T>;
   export type Ref<T> = React.Ref<T>;
   export type PropsWithChildren<P> = P & { children?: ReactNode };
+  export type FormEvent<T = Element> = React.FormEvent<T>;
+  export type ChangeEvent<T = Element> = React.ChangeEvent<T>;
 }

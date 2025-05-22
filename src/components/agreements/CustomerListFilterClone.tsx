@@ -1,119 +1,75 @@
-
-import React, { useState, useEffect, useCallback, memo } from 'react';
-import type { ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Input } from "@/components/ui/input";
-import { Search, X, Filter } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
-
-// Memoized dropdown items to prevent recreation on each render
-const filterOptions = [
-  "Created this month",
-  "With active agreements",
-  "Without documents",
-];
+import { Search, X } from "lucide-react";
 
 interface CustomerListFilterProps {
-  onSearch: (query: string) => void;
   searchTerm: string;
-  onFilterChange?: (filters: { [key: string]: string }) => void;
+  onSearch: (searchTerm: string) => void;
+  onFilterChange: (filters: Record<string, any>) => void;
 }
 
-export const CustomerListFilterClone = memo(({
-  onSearch,
-  searchTerm,
-  onFilterChange
-}: CustomerListFilterProps) => {
-  const [searchValue, setSearchValue] = useState(searchTerm);
-
-  // Only update search value when searchTerm prop changes
+export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ searchTerm, onSearch, onFilterChange }) => {
+  const [search, setSearch] = useState(searchTerm || '');
+  
   useEffect(() => {
-    setSearchValue(searchTerm);
+    setSearch(searchTerm || '');
   }, [searchTerm]);
 
-  // Use the debounced callback hook
-  const handleDebouncedSearch = useDebouncedCallback((value: string) => {
-    onSearch(value);
-  }, 300);
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearch(value);
+  };
 
-  // Handle search input change
-  const handleSearchChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setSearchValue(value);
-      handleDebouncedSearch(value);
-    },
-    [handleDebouncedSearch]
-  );
-
-  // Clear search input
-  const handleClear = useCallback(() => {
-    setSearchValue("");
-    onSearch("");
-  }, [onSearch]);
-
-  // Apply filter
-  const handleFilterClick = useCallback(
-    (filter: string) => {
-      if (onFilterChange) {
-        onFilterChange({ type: filter });
-      }
-    },
-    [onFilterChange]
-  );
+  const handleSearchSubmit = () => {
+    onSearch(search);
+  };
+  
+  const handleClearSearch = () => {
+    setSearch('');
+    onSearch('');
+  };
 
   return (
-    <div className="flex items-center space-x-2">
-      <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />        <Input
-          type="search"
-          placeholder="Search by customer name or license plate..."
-          className="pl-8 w-full"
-          value={searchValue}
-          onChange={handleSearchChange}
-        />
-        {searchValue && (
+    <div className="flex items-center space-x-4">
+      <div className="w-full">
+        <Label htmlFor="search" className="sr-only">
+          Search customers...
+        </Label>
+        <div className="relative">
+          <Input
+            type="search"
+            id="search"
+            placeholder="Search agreements..."
+            value={search}
+            onChange={handleSearchChange}
+            className="pr-10"
+          />
+          {search && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearSearch}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear search</span>
+            </Button>
+          )}
           <Button
+            type="submit"
             variant="ghost"
             size="sm"
-            className="absolute right-1 top-1 h-6 w-6 p-0 rounded-full"
-            onClick={handleClear}
+            onClick={handleSearchSubmit}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full"
           >
-            <X className="h-4 w-4" />
+            <Search className="h-4 w-4" />
+            <span className="sr-only">Search</span>
           </Button>
-        )}
+        </div>
       </div>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[200px]">
-          <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {filterOptions.map((option) => (
-            <DropdownMenuItem
-              key={option}
-              onClick={() => handleFilterClick(option)}
-            >
-              {option}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
-});
-
-CustomerListFilterClone.displayName = 'CustomerListFilterClone';
+};
