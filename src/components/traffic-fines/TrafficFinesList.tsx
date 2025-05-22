@@ -127,19 +127,19 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
+        return <Badge variant="green"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
       case 'disputed':
-        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
+        return <Badge variant="amber"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
       case 'pending':
       default:
-        return <Badge className="bg-red-500 text-white border-red-600"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
+        return <Badge variant="red"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
 
   const getCustomerAssignmentStatus = (fine: any) => {
     if (fine.customerId) {
       return (
-        <Badge className="bg-blue-500 text-white border-blue-600">
+        <Badge variant="info">
           <UserCheck className="mr-1 h-3 w-3" /> Assigned
         </Badge>
       );

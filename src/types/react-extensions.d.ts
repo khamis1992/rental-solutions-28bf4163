@@ -10,4 +10,9 @@ declare module 'react' {
   export type RefObject<T> = React.RefObject<T>;
   export type Ref<T> = React.Ref<T>;
   export type PropsWithChildren<P> = P & { children?: ReactNode };
+  export type Dispatch<A> = React.Dispatch<A>;
+  export type SetStateAction<S> = React.SetStateAction<S>;
+  
+  function useState<S>(initialState: S | (() => S)): [S, Dispatch<SetStateAction<S>>];
+  function useState<S = undefined>(): [S | undefined, Dispatch<SetStateAction<S | undefined>>];
 }

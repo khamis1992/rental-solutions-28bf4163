@@ -103,11 +103,11 @@ const TrafficFinesMonitoring: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
-        return <Badge className="bg-green-500"><CheckCircle className="mr-1 h-3 w-3" /> Success</Badge>;
+        return <Badge variant="success"><CheckCircle className="mr-1 h-3 w-3" /> Success</Badge>;
       case 'warning':
-        return <Badge className="bg-amber-500"><AlertTriangle className="mr-1 h-3 w-3" /> Warning</Badge>;
+        return <Badge variant="warning"><AlertTriangle className="mr-1 h-3 w-3" /> Warning</Badge>;
       case 'error':
-        return <Badge className="bg-red-500"><XCircle className="mr-1 h-3 w-3" /> Error</Badge>;
+        return <Badge variant="error"><XCircle className="mr-1 h-3 w-3" /> Error</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }
@@ -351,11 +351,7 @@ const TrafficFinesMonitoring: React.FC = () => {
                 <div className="border rounded-md p-4">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-medium">Test Results</h3>
-                    <Badge className={
-                      testResults.success 
-                        ? "bg-green-500 text-white" 
-                        : "bg-red-500 text-white"
-                    }>
+                    <Badge variant={testResults.success ? "success" : "error"}>
                       {testResults.success ? 'PASSED' : 'FAILED'}
                     </Badge>
                   </div>

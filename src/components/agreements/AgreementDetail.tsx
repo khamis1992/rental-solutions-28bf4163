@@ -254,13 +254,13 @@ export function AgreementDetail({
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
+        return <Badge variant="success" className="ml-2">ACTIVE</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
+        return <Badge variant="warning" className="ml-2">PENDING</Badge>;
       case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
+        return <Badge variant="info" className="ml-2">CLOSED</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+        return <Badge variant="error" className="ml-2">CANCELLED</Badge>;
       case 'expired':
         return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
       case 'draft':

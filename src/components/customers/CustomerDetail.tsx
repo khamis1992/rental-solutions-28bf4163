@@ -223,7 +223,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
+                  <Badge variant="info">Active</Badge>
                 </div>
                 <p className="text-gray-500">Customer since {formatDate(customer.created_at)}</p>
                 <div className="mt-2 flex gap-6">
@@ -321,7 +321,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               <div className="space-y-4">
                 <div>
                   <p className="text-gray-500 mb-1">Status</p>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
+                  <Badge variant="info">Active</Badge>
                 </div>
                 
                 <div>
@@ -429,10 +429,10 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                         <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={
-                          agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
-                          agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'
+                        <Badge variant={
+                          agreement.status === 'active' ? 'success' : 
+                          agreement.status === 'pending' ? 'warning' : 
+                          'outline'
                         }>
                           {agreement.status}
                         </Badge>

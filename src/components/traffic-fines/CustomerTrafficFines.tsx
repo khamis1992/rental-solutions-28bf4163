@@ -111,11 +111,11 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
     
     switch (status.toLowerCase()) {
       case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
+        return <Badge variant="success">Paid</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
+        return <Badge variant="warning">Pending</Badge>;
       case 'disputed':
-        return <Badge className="bg-blue-500">Disputed</Badge>;
+        return <Badge variant="info">Disputed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -126,11 +126,11 @@ const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId 
     
     switch (status.toLowerCase()) {
       case 'verified':
-        return <Badge className="bg-green-500">Verified</Badge>;
+        return <Badge variant="success">Verified</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
+        return <Badge variant="warning">Pending</Badge>;
       case 'failed':
-        return <Badge className="bg-red-500">Failed</Badge>;
+        return <Badge variant="error">Failed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

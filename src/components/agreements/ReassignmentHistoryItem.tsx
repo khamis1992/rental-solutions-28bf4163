@@ -39,7 +39,7 @@ export const ReassignmentHistoryItem = ({
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center space-x-2 mb-1">
-            <Badge className="bg-blue-500">Reassignment</Badge>
+            <Badge variant="info">Reassignment</Badge>
             <span className="text-sm text-gray-500 flex items-center">
               <Clock className="h-3 w-3 mr-1" /> {formattedDate}
             </span>

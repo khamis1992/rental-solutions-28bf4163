@@ -116,11 +116,11 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-red-500">Active</Badge>;
+        return <Badge variant="error">Active</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
+        return <Badge variant="warning">Pending</Badge>;
       case 'resolved':
-        return <Badge className="bg-green-500">Resolved</Badge>;
+        return <Badge variant="success">Resolved</Badge>;
       case 'escalated':
         return <Badge className="bg-purple-500">Escalated</Badge>;
       default:
@@ -131,11 +131,11 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'high':
-        return <Badge className="bg-red-500">High Priority</Badge>;
+        return <Badge variant="error">High Priority</Badge>;
       case 'medium':
-        return <Badge className="bg-yellow-500">Medium Priority</Badge>;
+        return <Badge variant="warning">Medium Priority</Badge>;
       case 'low':
-        return <Badge className="bg-blue-500">Low Priority</Badge>;
+        return <Badge variant="info">Low Priority</Badge>;
       default:
         return <Badge>{priority}</Badge>;
     }

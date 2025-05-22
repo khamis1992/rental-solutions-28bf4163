@@ -23,9 +23,9 @@ export function PaymentWarningSection({
   const getStatusBadge = (status: string) => {
     switch(status.toLowerCase()) {
       case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
+        return <Badge variant="success">Paid</Badge>;
       case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
+        return <Badge variant="error">Overdue</Badge>;
       case 'pending':
         return <Badge className="bg-amber-500">Pending</Badge>;
       default:
