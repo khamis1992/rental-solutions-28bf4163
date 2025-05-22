@@ -254,6 +254,14 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 isActive={isActive('/reports/builder')}
                 onClick={handleNavClick}
               />
+              
+              <NavLink
+                to="/documents"
+                icon={<FileText className="h-5 w-5 flex-shrink-0" />}
+                label="Documents"
+                isActive={isActive('/documents')}
+                onClick={handleNavClick}
+              />
 
               <NavLink
                 to="/user-management"

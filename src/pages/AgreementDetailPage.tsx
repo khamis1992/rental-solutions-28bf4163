@@ -38,6 +38,8 @@ import { generateAgreementReport } from '@/utils/agreement-report-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { usePayment } from '@/hooks/use-payment';
+import DocumentList from '@/components/documents/DocumentList';
+import { DocumentEntityType } from '@/types/document.types';
 
 const AgreementDetailPage = () => {
   const {
@@ -447,13 +449,16 @@ const AgreementDetailPage = () => {
     </Card>
 
     <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="grid grid-cols-4">
+      <TabsList className="grid grid-cols-6">
         <TabsTrigger value="overview" className="flex gap-2">
           <FileText className="h-4 w-4" /> Overview
         </TabsTrigger>
         <TabsTrigger value="payments" className="flex gap-2">
           <BarChart className="h-4 w-4" /> Payments
           {isUpdatingHistoricalPayments && <span className="ml-1 h-3 w-3 rounded-full bg-blue-500 animate-pulse"></span>}
+        </TabsTrigger>
+        <TabsTrigger value="documents" className="flex gap-2">
+          <FileText className="h-4 w-4" /> Documents
         </TabsTrigger>
         <TabsTrigger value="details" className="flex gap-2">
           <User className="h-4 w-4" /> Customer & Vehicle
@@ -557,6 +562,24 @@ const AgreementDetailPage = () => {
                 leaseId={id}
               />
             }
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
+      <TabsContent value="documents" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents</CardTitle>
+            <CardDescription>Manage documents related to this agreement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DocumentList 
+              entityType={DocumentEntityType.AGREEMENT} 
+              entityId={id} 
+              showUploadButton={true}
+              showSearch={true}
+              showFilters={false}
+            />
           </CardContent>
         </Card>
       </TabsContent>
