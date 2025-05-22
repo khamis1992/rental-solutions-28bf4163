@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
@@ -251,6 +251,46 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
       totalCount: totalCount,
       totalPages: Math.ceil(totalCount / pagination.pageSize),
       handlePageChange: handlePaginationChange,
+    },
+    useRealtimeUpdates: () => {
+      useEffect(() => {
+        const subscription = supabase
+          .channel('agreements-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'leases' 
+            }, 
+            (payload) => {
+              // Invalidate the agreements query cache
+              queryClient.invalidateQueries({ queryKey: ['agreements'] });
+              
+              // Invalidate specific agreement if we have an ID
+              if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['agreement', payload.new.id] 
+                });
+              }
+              
+              if (payload.eventType === 'UPDATE' && 
+                  payload.old && payload.new && 
+                  typeof payload.old === 'object' && typeof payload.new === 'object' &&
+                  'status' in payload.old && 'status' in payload.new &&
+                  'agreement_number' in payload.new &&
+                  payload.old.status !== payload.new.status) {
+                toast.info(`Agreement status updated`, {
+                  description: `Agreement #${payload.new.agreement_number} is now ${payload.new.status}`,
+                });
+              }
+            }
+          )
+          .subscribe();
+          
+        return () => {
+          supabase.removeChannel(subscription);
+        };
+      }, [queryClient]);
     }
   }), [
     agreementsData, 
@@ -263,6 +303,7 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
     customer, 
     pagination, 
     totalCount, 
-    handlePaginationChange
+    handlePaginationChange,
+    queryClient // Add queryClient to dependencies
   ]);
 }
