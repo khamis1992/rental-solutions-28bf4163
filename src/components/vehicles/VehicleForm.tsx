@@ -1,12 +1,15 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Vehicle } from '@/types/vehicle';
+import { showErrorToast } from '@/utils/toast-utils';
+import { Button } from '@/components/ui/button';
+import { FormProvider } from '@/components/forms/FormProvider';
+import { ButtonLoader } from '@/components/ui/loading-spinner';
 
-// Fix the error with instanceof File check
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any) => Promise<void>;
   isSubmitting?: boolean;
   isEditMode?: boolean;
   isLoading?: boolean;
@@ -19,7 +22,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isEditMode = false,
   isLoading = false
 }) => {
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedImage, setSelectedImage] = React.useState(null as File | null);
   
   const form = useForm({
     defaultValues: {
@@ -53,12 +56,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       await onSubmit(dataToSubmit);
     } catch (error) {
       console.error("Error submitting form:", error);
+      showErrorToast(error, 'Vehicle Form Error');
     }
   };
 
   // Fix the image upload handling
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+    <FormProvider form={form} onSubmit={handleSubmit} className="space-y-6">
       {/* Form fields */}
       
       <div className="mb-4">
@@ -81,16 +85,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </div>
       
       <div className="flex justify-end space-x-2">
-        <button type="button" className="px-4 py-2 border rounded-md">Cancel</button>
-        <button 
+        <Button type="button" variant="outline">Cancel</Button>
+        <Button 
           type="submit" 
-          className="px-4 py-2 bg-blue-600 text-white rounded-md"
           disabled={isSubmitting || isLoading}
         >
-          {isSubmitting ? 'Saving...' : isEditMode ? 'Update Vehicle' : 'Save Vehicle'}
-        </button>
+          {isSubmitting ? (
+            <ButtonLoader text={isEditMode ? 'Updating...' : 'Saving...'} />
+          ) : (
+            isEditMode ? 'Update Vehicle' : 'Save Vehicle'
+          )}
+        </Button>
       </div>
-    </form>
+    </FormProvider>
   );
 };
 
