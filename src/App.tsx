@@ -5,7 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
+import { LoadingFallback } from "./components/ui/loading-fallback";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -24,61 +25,61 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Vehicles from "./pages/Vehicles";
-import AddVehicle from "./pages/AddVehicle";
-import VehicleDetailPage from "./pages/VehicleDetailPage";
-import EditVehicle from "./pages/EditVehicle";
-import UserSettings from "./pages/UserSettings";
-import UserManagement from "./pages/UserManagement";
-import NotFound from "./pages/NotFound";
+const Vehicles = lazy(() => import("./pages/Vehicles"));
+const AddVehicle = lazy(() => import("./pages/AddVehicle"));
+const VehicleDetailPage = lazy(() => import("./pages/VehicleDetailPage"));
+const EditVehicle = lazy(() => import("./pages/EditVehicle"));
+const UserSettings = lazy(() => import("./pages/UserSettings"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Customer pages
-import Customers from "./pages/Customers";
-import AddCustomer from "./pages/AddCustomer";
-import CustomerDetailPage from "./pages/CustomerDetailPage";
-import EditCustomer from "./pages/EditCustomer";
+// Customer pages - lazy loaded
+const Customers = lazy(() => import("./pages/Customers"));
+const AddCustomer = lazy(() => import("./pages/AddCustomer"));
+const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
+const EditCustomer = lazy(() => import("./pages/EditCustomer"));
 
-// Agreement pages
-import Agreements from "./pages/Agreements";
-import AgreementDetailPage from "./pages/AgreementDetailPage";
-import AddAgreement from "./pages/AddAgreement";
-import EditAgreement from "./pages/EditAgreement";
+// Agreement pages - lazy loaded
+const Agreements = lazy(() => import("./pages/Agreements"));
+const AgreementDetailPage = lazy(() => import("./pages/AgreementDetailPage"));
+const AddAgreement = lazy(() => import("./pages/AddAgreement"));
+const EditAgreement = lazy(() => import("./pages/EditAgreement"));
 
-// Maintenance pages
-import Maintenance from "./pages/Maintenance";
-import AddMaintenance from "./pages/AddMaintenance";
-import EditMaintenance from "./pages/EditMaintenance";
-import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
-import MaintenanceJobCard from "./pages/MaintenanceJobCard";
+// Maintenance pages - lazy loaded
+const Maintenance = lazy(() => import("./pages/Maintenance"));
+const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
+const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
+const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
+const MaintenanceJobCard = lazy(() => import("./pages/MaintenanceJobCard"));
 
-// Legal pages
-import Legal from "./pages/Legal";
-import NewLegalCasePage from "./pages/NewLegalCasePage";
-import LegalCasesPage from "./pages/LegalCasesPage";
-import LegalDocumentsPage from "./pages/LegalDocumentsPage";
-import LegalCalendarPage from "./pages/LegalCalendarPage";
-import LegalCompliancePage from "./pages/LegalCompliancePage";
-import LegalActivityPage from "./pages/LegalActivityPage";
+// Legal pages - lazy loaded
+const Legal = lazy(() => import("./pages/Legal"));
+const NewLegalCasePage = lazy(() => import("./pages/NewLegalCasePage"));
+const LegalCasesPage = lazy(() => import("./pages/LegalCasesPage"));
+const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
+const LegalCalendarPage = lazy(() => import("./pages/LegalCalendarPage"));
+const LegalCompliancePage = lazy(() => import("./pages/LegalCompliancePage"));
+const LegalActivityPage = lazy(() => import("./pages/LegalActivityPage"));
 
-// Traffic Fines pages
-import TrafficFines from "./pages/TrafficFines";
+// Traffic Fines pages - lazy loaded
+const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 
-// Financials pages
-import Financials from "./pages/Financials";
+// Financials pages - lazy loaded
+const Financials = lazy(() => import("./pages/Financials"));
 
-// Reports pages
-import Reports from "./pages/Reports";
-import ScheduledReports from "./pages/ScheduledReports";
-import ReportBuilder from "./pages/ReportBuilder";
+// Reports pages - lazy loaded
+const Reports = lazy(() => import("./pages/Reports"));
+const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
+const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
 
-// System Settings pages
-import SystemSettings from "./pages/SystemSettings";
-import CustomerPortal from "./pages/CustomerPortal";
+// System Settings pages - lazy loaded
+const SystemSettings = lazy(() => import("./pages/SystemSettings"));
+const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 
-// Mobile Field Operations pages
-import FieldOperations from "./pages/mobile/FieldOperations";
-import QRScanPage from "./pages/mobile/QRScanPage";
-import VehicleInspectionPage from "./pages/mobile/VehicleInspectionPage";
+// Mobile Field Operations pages - lazy loaded
+const FieldOperations = lazy(() => import("./pages/mobile/FieldOperations"));
+const QRScanPage = lazy(() => import("./pages/mobile/QRScanPage"));
+const VehicleInspectionPage = lazy(() => import("./pages/mobile/VehicleInspectionPage"));
 
 import initializeApp from "./utils/app-initializer";
 
@@ -146,60 +147,186 @@ function App() {
                               <Route path="/dashboard" element={<Dashboard />} />
                               
                               {/* Vehicle Management Routes */}
-                              <Route path="/vehicles" element={<Vehicles />} />
-                              <Route path="/vehicles/add" element={<AddVehicle />} />
-                              <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
-                              <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                              <Route path="/vehicles" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Vehicles />
+                                </Suspense>
+                              } />
+                              <Route path="/vehicles/add" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <AddVehicle />
+                                </Suspense>
+                              } />
+                              <Route path="/vehicles/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <VehicleDetailPage />
+                                </Suspense>
+                              } />
+                              <Route path="/vehicles/edit/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <EditVehicle />
+                                </Suspense>
+                              } />
                               
                               {/* Customer Management Routes */}
-                              <Route path="/customers" element={<Customers />} />
-                              <Route path="/customers/add" element={<AddCustomer />} />
-                              <Route path="/customers/:id" element={<CustomerDetailPage />} />
-                              <Route path="/customers/edit/:id" element={<EditCustomer />} />
+                              <Route path="/customers" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Customers />
+                                </Suspense>
+                              } />
+                              <Route path="/customers/add" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <AddCustomer />
+                                </Suspense>
+                              } />
+                              <Route path="/customers/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <CustomerDetailPage />
+                                </Suspense>
+                              } />
+                              <Route path="/customers/edit/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <EditCustomer />
+                                </Suspense>
+                              } />
                               
                               {/* Agreement Management Routes */}
-                              <Route path="/agreements" element={<Agreements />} />
-                              <Route path="/agreements/add" element={<AddAgreement />} />
-                              <Route path="/agreements/edit/:id" element={<EditAgreement />} />
-                              <Route path="/agreements/:id" element={<AgreementDetailPage />} />
+                              <Route path="/agreements" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Agreements />
+                                </Suspense>
+                              } />
+                              <Route path="/agreements/add" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <AddAgreement />
+                                </Suspense>
+                              } />
+                              <Route path="/agreements/edit/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <EditAgreement />
+                                </Suspense>
+                              } />
+                              <Route path="/agreements/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <AgreementDetailPage />
+                                </Suspense>
+                              } />
                               
                               {/* Maintenance Management Routes */}
-                              <Route path="/maintenance" element={<Maintenance />} />
-                              <Route path="/maintenance/add" element={<AddMaintenance />} />
-                              <Route path="/maintenance/job/:vehicleId" element={<MaintenanceJobCard />} />
-                              <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-                              <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+                              <Route path="/maintenance" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Maintenance />
+                                </Suspense>
+                              } />
+                              <Route path="/maintenance/add" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <AddMaintenance />
+                                </Suspense>
+                              } />
+                              <Route path="/maintenance/job/:vehicleId" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <MaintenanceJobCard />
+                                </Suspense>
+                              } />
+                              <Route path="/maintenance/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <MaintenanceDetailPage />
+                                </Suspense>
+                              } />
+                              <Route path="/maintenance/edit/:id" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <EditMaintenance />
+                                </Suspense>
+                              } />
                               
                               {/* Legal Management Routes */}
-                              <Route path="/legal" element={<Legal />} />
-                              <Route path="/legal/cases" element={<LegalCasesPage />} />
-                              <Route path="/legal/documents" element={<LegalDocumentsPage />} />
-                              <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
-                              <Route path="/legal/calendar" element={<LegalCalendarPage />} />
-                              <Route path="/legal/compliance" element={<LegalCompliancePage />} />
-                              <Route path="/legal/activity" element={<LegalActivityPage />} />
+                              <Route path="/legal" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Legal />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/cases" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <LegalCasesPage />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/documents" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <LegalDocumentsPage />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/cases/new" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <NewLegalCasePage />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/calendar" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <LegalCalendarPage />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/compliance" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <LegalCompliancePage />
+                                </Suspense>
+                              } />
+                              <Route path="/legal/activity" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <LegalActivityPage />
+                                </Suspense>
+                              } />
                               
                               {/* Traffic Fines Management Route */}
-                              <Route path="/fines" element={<TrafficFines />} />
+                              <Route path="/fines" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <TrafficFines />
+                                </Suspense>
+                              } />
                               
                               {/* Financials Management Route */}
-                              <Route path="/financials" element={<Financials />} />
+                              <Route path="/financials" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Financials />
+                                </Suspense>
+                              } />
                               
                               {/* Reports Routes */}
-                              <Route path="/reports" element={<Reports />} />
-                              <Route path="/reports/builder" element={<ReportBuilder />} />
-                              <Route path="/reports/scheduled" element={<ScheduledReports />} />
+                              <Route path="/reports" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <Reports />
+                                </Suspense>
+                              } />
+                              <Route path="/reports/builder" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <ReportBuilder />
+                                </Suspense>
+                              } />
+                              <Route path="/reports/scheduled" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <ScheduledReports />
+                                </Suspense>
+                              } />
                               
                               {/* System Settings Route */}
-                              <Route path="/settings/system" element={<SystemSettings />} />
+                              <Route path="/settings/system" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <SystemSettings />
+                                </Suspense>
+                              } />
                               
                               {/* User Management Routes */}
-                              <Route path="/settings" element={<UserSettings />} />
+                              <Route path="/settings" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <UserSettings />
+                                </Suspense>
+                              } />
                               <Route 
                                 path="/user-management" 
                                 element={
                                   <ProtectedRoute roles={["admin"]}>
-                                    <UserManagement />
+                                    <Suspense fallback={<LoadingFallback />}>
+                                      <UserManagement />
+                                    </Suspense>
                                   </ProtectedRoute>
                                 } 
                               />

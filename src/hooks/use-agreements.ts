@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/types/agreement';
@@ -38,15 +38,14 @@ export interface SimpleAgreement {
   };
 }
 
-export function useAgreements(initialFilters = {}) {
+export function useAgreements(initialFilters: Record<string, any> = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
+  const [customer, setCustomer] = useState(null as CustomerInfo | null);
   
-  // Default to showing all agreements without pagination
   const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
-    pageSize: 1000 // Setting a high number to effectively show all agreements
+    pageSize: 25 // Reduced from 1000 to a more reasonable 25 items per page
   });
   
   const [totalCount, setTotalCount] = useState(0);
@@ -67,7 +66,7 @@ export function useAgreements(initialFilters = {}) {
   });
 
   // Function to update URL parameters based on filters
-  const updateSearchParams = (newFilters: { [key: string]: string | undefined | number }) => {
+  const updateSearchParams = useCallback((newFilters: { [key: string]: string | undefined | number }) => {
     const updatedFilters = { ...filters, ...newFilters };
     
     // Update the URL parameters
@@ -91,10 +90,10 @@ export function useAgreements(initialFilters = {}) {
         page: Number(newFilters.page) || 1
       }));
     }
-  };
+  }, [filters, searchParams, setSearchParams]);
 
   // Function to handle pagination changes
-  const handlePaginationChange = (newPage: number, newPageSize?: number) => {
+  const handlePaginationChange = useCallback((newPage: number, newPageSize?: number) => {
     setPagination(prev => ({
       page: newPage,
       pageSize: newPageSize || prev.pageSize
@@ -102,7 +101,7 @@ export function useAgreements(initialFilters = {}) {
     
     // Update URL with new page
     updateSearchParams({ page: newPage });
-  };
+  }, [updateSearchParams]);
 
   const {
     data: agreementsData,
@@ -151,13 +150,15 @@ export function useAgreements(initialFilters = {}) {
       setTotalCount(count || 0);
       console.log(`Total agreements count: ${count}`);
       
-      // Now fetch the actual data with pagination
+      // Now fetch the actual data with pagination - optimized to select only needed fields
       let query = supabase
         .from('leases')
         .select(`
-          *,
-          customers:profiles(*),
-          vehicles(*)
+          id, status, customer_id, vehicle_id, start_date, end_date, 
+          created_at, updated_at, total_amount, agreement_number, 
+          agreement_type, payment_frequency, payment_day,
+          customers:profiles(id, full_name),
+          vehicles(id, make, model, license_plate)
         `)
         .range(from, to);
 
@@ -233,7 +234,7 @@ export function useAgreements(initialFilters = {}) {
     await queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  return {
+  return useMemo(() => ({
     agreements: agreementsData?.data || [],
     isLoading,
     error,
@@ -251,5 +252,17 @@ export function useAgreements(initialFilters = {}) {
       totalPages: Math.ceil(totalCount / pagination.pageSize),
       handlePageChange: handlePaginationChange,
     }
-  };
+  }), [
+    agreementsData, 
+    isLoading, 
+    error, 
+    updateAgreement, 
+    deleteAgreements, 
+    searchParams, 
+    updateSearchParams, 
+    customer, 
+    pagination, 
+    totalCount, 
+    handlePaginationChange
+  ]);
 }
