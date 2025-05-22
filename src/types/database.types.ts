@@ -436,6 +436,58 @@ export interface Database {
       };
     };
   };
+    documents: {
+      Row: {
+        id: string;
+        title: string;
+        description: string | null;
+        file_name: string;
+        file_type: string;
+        file_size: number;
+        storage_path: string;
+        public_url: string | null;
+        category: string;
+        type: string;
+        status: string;
+        entity_type: string | null;
+        entity_id: string | null;
+        created_by: string;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        title: string;
+        description?: string | null;
+        file_name: string;
+        file_type: string;
+        file_size: number;
+        storage_path: string;
+        public_url?: string | null;
+        category: string;
+        type: string;
+        status?: string;
+        entity_type?: string | null;
+        entity_id?: string | null;
+        created_by: string;
+      };
+      Update: {
+        title?: string;
+        description?: string | null;
+        file_name?: string;
+        file_type?: string;
+        file_size?: number;
+        storage_path?: string;
+        public_url?: string | null;
+        category?: string;
+        type?: string;
+        status?: string;
+        entity_type?: string | null;
+        entity_id?: string | null;
+        updated_at?: string;
+      };
+    };
+  };
 }
 
 export type DbTables = Database['public']['Tables'];
@@ -447,3 +499,4 @@ export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type TrafficFineRow = Database['public']['Tables']['traffic_fines']['Row'];
 export type LegalCaseRow = Database['public']['Tables']['legal_cases']['Row'];
+export type DocumentRow = Database['public']['Tables']['documents']['Row'];

@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
+import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle, FileText } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleDetail from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicleDetail } from '@/hooks/use-vehicle-detail';
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import DocumentList from '@/components/documents/DocumentList';
+import { DocumentEntityType } from '@/types/document.types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -180,10 +184,41 @@ const VehicleDetailPage = () => {
       />
       
       <div className="section-transition mt-6">
-        <VehicleDetail 
-          vehicle={vehicle} 
-          key={`vehicle-detail-${vehicle.id}`} 
-        />
+        <Tabs defaultValue="details" className="space-y-6">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="details" className="flex gap-2">
+              <Car className="h-4 w-4" /> Vehicle Details
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex gap-2">
+              <FileText className="h-4 w-4" /> Documents
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details" className="space-y-6">
+            <VehicleDetail 
+              vehicle={vehicle} 
+              key={`vehicle-detail-${vehicle.id}`} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="documents" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documents</CardTitle>
+                <CardDescription>Manage documents related to this vehicle</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DocumentList 
+                  entityType={DocumentEntityType.VEHICLE} 
+                  entityId={vehicle.id} 
+                  showUploadButton={true}
+                  showSearch={true}
+                  showFilters={false}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </PageContainer>
   );

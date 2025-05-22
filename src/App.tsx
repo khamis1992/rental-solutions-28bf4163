@@ -74,6 +74,9 @@ const Reports = lazy(() => import("./pages/Reports"));
 const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
 
+// Documents page - lazy loaded
+const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
+
 // System Settings pages - lazy loaded
 const SystemSettings = lazy(() => import("./pages/SystemSettings"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
@@ -309,6 +312,13 @@ function App() {
                               <Route path="/reports/scheduled" element={
                                 <Suspense fallback={<LoadingFallback />}>
                                   <ScheduledReports />
+                                </Suspense>
+                              } />
+                              
+                              {/* Documents Route */}
+                              <Route path="/documents" element={
+                                <Suspense fallback={<LoadingFallback />}>
+                                  <DocumentsPage />
                                 </Suspense>
                               } />
                               
