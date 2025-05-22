@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
-import { SimplePagination } from '@/components/ui/simple-pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { getAgreementColumns } from './columns';
 
 interface TableContentProps {
@@ -21,7 +21,9 @@ interface TableContentProps {
     page: number;
     totalPages: number;
     totalCount: number;
+    pageSize: number;
     handlePageChange: (page: number) => void;
+    setItemsPerPage?: (pageSize: number) => void;
   };
 }
 
@@ -31,7 +33,7 @@ export function TableContent({
   compact = false,
   pagination
 }: TableContentProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState([] as SortingState);
 
   const columns = React.useMemo(
     () => getAgreementColumns(compact),
@@ -103,14 +105,15 @@ export function TableContent({
       
       {pagination && pagination.totalPages > 1 && (
         <div className="flex flex-col items-center justify-center mt-2">
-          <SimplePagination
+          <PaginationControls
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
+            totalItems={pagination.totalCount}
+            itemsPerPage={pagination.pageSize}
             onPageChange={pagination.handlePageChange}
+            onItemsPerPageChange={pagination.setItemsPerPage}
+            pageSizeOptions={[10, 25, 50, 100]}
           />
-          <div className="text-sm text-muted-foreground text-center mt-2">
-            Showing {agreements.length} of {pagination.totalCount} agreements
-          </div>
         </div>
       )}
     </div>

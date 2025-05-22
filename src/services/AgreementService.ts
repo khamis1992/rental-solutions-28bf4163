@@ -21,6 +21,10 @@ export interface AgreementFilters {
   rent_min?: number;
   rent_max?: number;
   license_plate?: string;
+  /** Pagination parameters */
+  limit?: number;
+  offset?: number;
+  page?: number;
   [key: string]: any;
 }
 
@@ -28,6 +32,7 @@ interface SaveResponse {
   success: boolean;
   data?: any;
   error?: Error;
+  count?: number;
 }
 
 export const agreementService = {
@@ -143,12 +148,17 @@ export const agreementService = {
    */
   async findAgreements(filters: AgreementFilters = {}): Promise<SaveResponse> {
     try {
+      const limit = filters.limit || 25;
+      const offset = filters.offset || 0;
+      
       const selectClause = `
-        *,
-        customers:profiles(*),
-        vehicles${filters.license_plate ? '!inner' : ''}(*)
+        id, status, customer_id, vehicle_id, start_date, end_date, 
+        created_at, updated_at, total_amount, agreement_number, 
+        agreement_type, payment_frequency, payment_day,
+        customers:profiles(id, full_name),
+        vehicles${filters.license_plate ? '!inner' : ''}(id, make, model, license_plate, year, color)
       `;
-      let query = supabase.from('leases').select(selectClause);
+      let query = supabase.from('leases').select(selectClause, { count: 'exact' });
       
       // Apply filters
       if (filters.status && filters.status !== 'all') {
@@ -242,11 +252,13 @@ export const agreementService = {
       }
 
       // For other filter cases, continue with the original query
-      const { data, error, count } = await query;
+      query = query.range(offset, offset + limit - 1);
+      
+      const { data, error, count } = await query.order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      return { success: true, data };
+      return { success: true, data, count };
     } catch (error) {
       console.error('Error finding agreements:', error);
       return { 

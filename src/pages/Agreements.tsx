@@ -37,7 +37,7 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState(() => urlSearchParams.get('searchTerm') || '');
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('agreements');
-  const [viewMode, setViewMode] = useState<'card' | 'table' | 'compact'>('card');
+  const [viewMode, setViewMode] = useState('card' as 'card' | 'table' | 'compact');
   
   // Use the agreement service hook
   const {
@@ -50,7 +50,7 @@ const Agreements = () => {
   } = useAgreementService();
   
   // Add state for customer search functionality
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
   
   React.useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -257,7 +257,7 @@ const Agreements = () => {
             {activeFilters.length > 0 && (
               <div className="mt-4">
                 <ActiveFilters 
-                  activeFilters={activeFilters}
+                  activeFilters={activeFilters as [string, string][]}
                   setSearchParams={setSearchParams}
                 />
               </div>
@@ -316,7 +316,7 @@ const Agreements = () => {
                     <Database className="h-5 w-5 mr-2" />
                     Import History
                   </h2>
-                  <ImportHistoryList />
+                  <ImportHistoryList items={[]} isLoading={false} />
                 </div>
               </TabsContent>
             </Tabs>

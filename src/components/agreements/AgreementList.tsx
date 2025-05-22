@@ -8,7 +8,8 @@ const AgreementList = () => {
   const {
     agreements,
     isLoading,
-    error
+    error,
+    pagination
   } = useAgreementService();
 
   if (isLoading) {
@@ -26,7 +27,7 @@ const AgreementList = () => {
     <TableContent 
       agreements={typedAgreements}
       isLoading={isLoading}
-      pagination={undefined}
+      pagination={pagination}
     />
   );
 };

@@ -18,6 +18,7 @@ interface PaginationControlsProps {
   onItemsPerPageChange?: (count: number) => void;
   showItemsPerPage?: boolean;
   className?: string;
+  pageSizeOptions?: number[];
 }
 
 export function PaginationControls({
@@ -29,6 +30,7 @@ export function PaginationControls({
   onItemsPerPageChange,
   showItemsPerPage = true,
   className = "",
+  pageSizeOptions = [10, 20, 50, 100],
 }: PaginationControlsProps) {
   const startItem = Math.min(totalItems, (currentPage - 1) * itemsPerPage + 1);
   const endItem = Math.min(totalItems, currentPage * itemsPerPage);
@@ -53,7 +55,7 @@ export function PaginationControls({
                 <SelectValue placeholder={itemsPerPage} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[10, 20, 50, 100].map((pageSize) => (
+                {(pageSizeOptions || [10, 20, 50, 100]).map((pageSize) => (
                   <SelectItem key={pageSize} value={String(pageSize)}>
                     {pageSize}
                   </SelectItem>

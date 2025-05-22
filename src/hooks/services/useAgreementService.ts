@@ -2,14 +2,22 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
+import { usePagination } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 
 /**
  * Hook for working with the Agreement Service
  */
 export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
-  const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
+  const [searchParams, setSearchParams] = useState(initialFilters as AgreementFilters);
   const queryClient = useQueryClient();
+  const [totalItems, setTotalItems] = useState(0);
+  
+  const pagination = usePagination({
+    totalItems, 
+    initialPage: Number(initialFilters.page) || 1,
+    itemsPerPage: 25
+  });
 
   // Query for fetching agreements with filters
   const {
@@ -18,12 +26,20 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['agreements', searchParams],
+    queryKey: ['agreements', searchParams, pagination.currentPage, pagination.itemsPerPage],
     queryFn: async () => {
       console.log('Fetching agreements with filters:', searchParams);
-      const result = await agreementService.findAgreements(searchParams);
+      const paginatedFilters = {
+        ...searchParams,
+        limit: pagination.itemsPerPage,
+        offset: (pagination.currentPage - 1) * pagination.itemsPerPage
+      };
+      const result = await agreementService.findAgreements(paginatedFilters);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to fetch agreements');
+      }
+      if (result.count !== undefined) {
+        setTotalItems(result.count);
       }
       return result.data;
     },
@@ -140,13 +156,22 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
         
         return merged;
       });
-    },    refetch,
+    },
+    refetch,
     getAgreementDetails,
     createAgreement: createAgreement.mutateAsync,
     updateAgreement: updateAgreement.mutateAsync,
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
+    pagination: {
+      page: pagination.currentPage,
+      pageSize: pagination.itemsPerPage,
+      totalCount: totalItems,
+      totalPages: pagination.totalPages,
+      handlePageChange: pagination.setPage,
+      setItemsPerPage: pagination.setItemsPerPage
+    },
     // Expose isPending states for UI loading indicators
     isPending: {
       getAgreement: false,

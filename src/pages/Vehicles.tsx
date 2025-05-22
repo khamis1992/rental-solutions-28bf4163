@@ -32,11 +32,11 @@ const VALID_STATUSES: VehicleStatus[] = [
 const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  const [filters, setFilters] = useState({} as VehicleFilterParams);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [viewMode, setViewMode] = useState('grid' as 'grid' | 'table');
+  const [activeTab, setActiveTab] = useState('all' as string);
   
   // Use the vehicle service hook with pagination
   const { 
@@ -250,7 +250,7 @@ const Vehicles = () => {
                     variant="secondary"
                     className="flex items-center gap-1"
                   >
-                    {key === 'searchTerm' ? 'search' : key}: {value}
+                    {key === 'searchTerm' ? 'search' : key}: {String(value)}
                     <button
                       onClick={() => {
                         const updatedFilters = { ...filters };
