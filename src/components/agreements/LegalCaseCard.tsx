@@ -16,8 +16,8 @@ export interface LegalCaseCardProps {
 
 export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [legalCase, setLegalCase] = useState<any>(null);
-  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [legalCase, setLegalCase] = useState(null as any);
+  const [customerInfo, setCustomerInfo] = useState(null as any);
   const [isResolutionDialogOpen, setIsResolutionDialogOpen] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

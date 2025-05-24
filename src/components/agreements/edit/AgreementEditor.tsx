@@ -60,8 +60,8 @@ const AgreementEditor = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
+  const [selectedVehicle, setSelectedVehicle] = useState(null as any);
   
   const agreementService = useAgreementService();
   

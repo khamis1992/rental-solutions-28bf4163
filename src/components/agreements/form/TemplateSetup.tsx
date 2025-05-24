@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export function useTemplateSetup() {
-  const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(false);
-  const [specificTemplateUrl, setSpecificTemplateUrl] = useState<string | null>(null);
-  const [templateError, setTemplateError] = useState<Error | null>(null);
-  const [specificUrlCheck, setSpecificUrlCheck] = useState<boolean>(false);
+  const [standardTemplateExists, setStandardTemplateExists] = useState(false as boolean);
+  const [specificTemplateUrl, setSpecificTemplateUrl] = useState(null as string | null);
+  const [templateError, setTemplateError] = useState(null as Error | null);
+  const [specificUrlCheck, setSpecificUrlCheck] = useState(false as boolean);
 
   useEffect(() => {
     const checkTemplates = async () => {

@@ -26,11 +26,11 @@ export function VehicleAssignmentDialog({
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
-  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [pendingPayments, setPendingPayments] = useState([] as any[]);
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
-  const [vehicleDetails, setVehicleDetails] = useState<any>(null);
-  const [customerDetails, setCustomerDetails] = useState<any>(null);
+  const [vehicleDetails, setVehicleDetails] = useState(null as any);
+  const [customerDetails, setCustomerDetails] = useState(null as any);
 
   useEffect(() => {
     if (open && vehicleId) {

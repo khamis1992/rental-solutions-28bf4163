@@ -46,13 +46,13 @@ interface PaymentEntryFormProps {
 }
 
 export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount }: PaymentEntryFormProps) {
-  const [lateFeeDetails, setLateFeeDetails] = useState<{
+  const [lateFeeDetails, setLateFeeDetails] = useState(null as {
     amount: number;
     daysLate: number;
-  } | null>(null);
-  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
-  const [selectedPendingPayment, setSelectedPendingPayment] = useState<string | null>(null);
-  const [originalAmount, setOriginalAmount] = useState<number>(0);
+  } | null);
+  const [pendingPayments, setPendingPayments] = useState([] as PendingPayment[]);
+  const [selectedPendingPayment, setSelectedPendingPayment] = useState(null as string | null);
+  const [originalAmount, setOriginalAmount] = useState(0 as number);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),

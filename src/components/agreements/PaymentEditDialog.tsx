@@ -33,11 +33,11 @@ export const PaymentEditDialog = ({
   onPaymentUpdated
 }: PaymentEditDialogProps) => {
   const [amount, setAmount] = useState(payment?.amount || 0);
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(payment?.payment_date ? new Date(payment.payment_date) : new Date());
+  const [paymentDate, setPaymentDate] = useState(payment?.payment_date ? new Date(payment.payment_date) : new Date() as Date | undefined);
   const [paymentMethod, setPaymentMethod] = useState(payment?.payment_method || 'cash');
   const [description, setDescription] = useState(payment?.description || '');
   const [referenceNumber, setReferenceNumber] = useState(payment?.reference_number || '');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState({} as Record<string, string>);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form when payment changes

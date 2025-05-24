@@ -19,8 +19,8 @@ const VehicleSection = ({
   vehicleId,
   onViewDetails 
 }: VehicleSectionProps) => {
-  const [vehicle, setVehicle] = useState<Vehicle | null>(initialVehicle || null);
-  const [loading, setLoading] = useState<boolean>(!initialVehicle && !!vehicleId);
+  const [vehicle, setVehicle] = useState(initialVehicle || null as Vehicle | null);
+  const [loading, setLoading] = useState(!initialVehicle && !!vehicleId as boolean);
 
   useEffect(() => {
     if (vehicleId && !initialVehicle) {

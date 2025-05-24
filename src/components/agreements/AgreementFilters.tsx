@@ -29,7 +29,7 @@ interface AgreementFiltersProps {
 
 export function AgreementFilters({ onFilterChange, currentFilters = {} }: AgreementFiltersProps) {
   const [agreementNumber, setAgreementNumber] = useState(currentFilters?.agreement_number || '');
-  const [dateRange, setDateRange] = useState<'rental_period' | 'creation_date'>('rental_period');
+  const [dateRange, setDateRange] = useState('rental_period' as 'rental_period' | 'creation_date');
   const [startDateFrom, setStartDateFrom] = useState(
     currentFilters?.start_date_after ? new Date(currentFilters.start_date_after) : undefined
   );
