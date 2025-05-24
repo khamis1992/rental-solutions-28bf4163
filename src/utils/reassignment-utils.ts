@@ -260,7 +260,7 @@ export const getReassignmentHistory = async (params: {
         reassigned_at,
         reassigned_by,
         reason,
-        vehicles:vehicle_id (make, model, license_plate)
+        vehicles:vehicles (make, model, license_plate)
       `)
       .order('reassigned_at', { ascending: false });
       

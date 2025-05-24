@@ -265,8 +265,8 @@ export const agreementService = {
         .from('leases')
         .select(`
           *,
-          customers:customer_id(*),
-          vehicles:vehicle_id(*)
+          customers:profiles(*),
+          vehicles:vehicles(*)
         `)
         .eq('id', id)
         .single();
