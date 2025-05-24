@@ -5,13 +5,13 @@ import { Payment } from '@/types/payment.types';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import { PaymentStatsCards } from './stats/PaymentStatsCards';
 import { PaymentStatusBar } from './status/PaymentStatusBar';
-import { PaymentTable } from './table/PaymentTable';
-import { PaymentActions, PaymentTableActions } from './actions/PaymentActions';
-import { EmptyPaymentState } from './empty/EmptyPaymentState';
+import { PaymentActions } from './actions/PaymentActions';
 import { PaymentAnalytics } from './analytics/PaymentAnalytics';
+import { UnifiedPaymentTable } from './UnifiedPaymentTable';
+import { useUnifiedPayments } from '@/hooks/payment/use-unified-payments';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Filter } from 'lucide-react';
+import { Filter, ToggleLeft, ToggleRight } from 'lucide-react';
 import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 import { formatDate } from '@/lib/date-utils';
 import { 
@@ -20,8 +20,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
+import { Agreement } from '@/types/agreement';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -33,6 +33,7 @@ interface PaymentHistoryProps {
   onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
   onRecordPayment?: (payment: Partial<Payment>) => void;
   showAnalytics?: boolean;
+  agreement?: Agreement | null;
 }
 
 export function PaymentHistorySection({
@@ -44,18 +45,23 @@ export function PaymentHistorySection({
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  showAnalytics = true
+  showAnalytics = true,
+  agreement = null
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [showProjectedPayments, setShowProjectedPayments] = useState(true);
 
-  // Use the payment management hook
+  // Use unified payments hook
   const {
-    statusFilter,
-    setStatusFilter,
-    getFilterLabel,
-    isLatePayment
-  } = usePaymentManagement(leaseId);
+    unifiedPayments,
+    hasSchedule,
+    recordProjectedPayment,
+    isLoading: isLoadingUnified
+  } = useUnifiedPayments({
+    agreement,
+    showProjectedPayments
+  });
   
   // Use the payment calculation hook
   const {
@@ -65,31 +71,10 @@ export function PaymentHistorySection({
     lateFees
   } = usePaymentCalculation(payments, contractAmount);
   
-  // Calculate payment status counts
-  const paidOnTime = payments.filter(p => 
-    p.status === 'completed' && !isLatePayment(p)
-  ).length;
-  
-  const paidLate = payments.filter(p => 
-    p.status === 'completed' && isLatePayment(p)
-  ).length;
-  
-  const unpaid = payments.filter(p => 
-    p.status === 'pending' || p.status === 'overdue'
-  ).length;
-
-  // Filter payments based on selected status
-  const filteredPayments = statusFilter
-    ? payments.filter(payment => {
-        if (statusFilter === 'completed_ontime') {
-          return payment.status === 'completed' && !isLatePayment(payment);
-        } else if (statusFilter === 'completed_late') {
-          return payment.status === 'completed' && isLatePayment(payment);
-        } else {
-          return payment.status === statusFilter;
-        }
-      })
-    : payments;
+  // Calculate payment status counts from actual payments only
+  const paidOnTime = payments.filter(p => p.status === 'completed').length;
+  const paidLate = 0; // TODO: Implement late payment detection
+  const unpaid = payments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
 
   const handlePaymentCreated = (payment: Partial<Payment>) => {
     if (onRecordPayment) {
@@ -98,9 +83,17 @@ export function PaymentHistorySection({
     }
   };
 
-  const handleEditPayment = (payment: Payment) => {
-    setSelectedPayment(payment);
-    setIsPaymentDialogOpen(true);
+  const handleRecordProjectedPayment = (scheduledPayment: any) => {
+    if (agreement) {
+      recordProjectedPayment(scheduledPayment)
+        .then(() => {
+          toast.success("Payment recorded successfully");
+        })
+        .catch((error) => {
+          console.error("Error recording payment:", error);
+          toast.error("Failed to record payment");
+        });
+    }
   };
 
   const handleRecordPaymentClick = () => {
@@ -110,40 +103,22 @@ export function PaymentHistorySection({
 
   const handleExportHistoryClick = () => {
     try {
-      // Format payment data for the PDF export - now with formatted dates (without time)
-      const paymentHistoryData = payments.map(payment => {
-        return {
-          description: payment.description || 'Payment',
-          amount: payment.amount || 0,
-          dueDate: payment.due_date ? formatDate(payment.due_date, 'MMM d, yyyy') : '',
-          paymentDate: payment.payment_date ? formatDate(payment.payment_date, 'MMM d, yyyy') : '',
-          status: payment.status || '',
-          lateFee: payment.late_fine_amount || 0,
-          total: (payment.amount || 0) + (payment.late_fine_amount || 0)
-        };
-      });
+      const paymentHistoryData = payments.map(payment => ({
+        description: payment.description || 'Payment',
+        amount: payment.amount || 0,
+        dueDate: payment.due_date ? formatDate(payment.due_date, 'MMM d, yyyy') : '',
+        paymentDate: payment.payment_date ? formatDate(payment.payment_date, 'MMM d, yyyy') : '',
+        status: payment.status || '',
+        lateFee: payment.late_fine_amount || 0,
+        total: (payment.amount || 0) + (payment.late_fine_amount || 0)
+      }));
 
-      // Generate the PDF
-      const doc = generatePaymentHistoryPdf(
-        paymentHistoryData,
-        "Payment History"
-      );
-
-      // Save the PDF
+      const doc = generatePaymentHistoryPdf(paymentHistoryData, "Payment History");
       doc.save("payment-history.pdf");
       toast.success("Payment history exported successfully");
     } catch (error) {
       console.error("Error exporting payment history:", error);
       toast.error("Failed to export payment history");
-    }
-  };
-
-  const handleDeletePayment = (paymentId: string) => {
-    if (onPaymentDeleted) {
-      // Confirm deletion with the user
-      if (window.confirm('Are you sure you want to delete this payment?')) {
-        onPaymentDeleted(paymentId);
-      }
     }
   };
 
@@ -159,28 +134,6 @@ export function PaymentHistorySection({
   ): Promise<boolean> => {
     if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
       try {
-        // Calculate if there's a late fee applicable based on the payment date
-        let daysOverdue = 0;
-        let lateFineAmount = 0;
-        
-        if (selectedPayment.due_date) {
-          const dueDate = new Date(selectedPayment.due_date);
-          // Only calculate late fee if payment is made after due date
-          if (date > dueDate) {
-            // Calculate days late
-            daysOverdue = Math.floor((date.getTime() - dueDate.getTime()) / (1000 * 3600 * 24));
-            // Assume daily_late_fee of 120 if not provided elsewhere
-            lateFineAmount = Math.min(daysOverdue * 120, 3000);
-          } else {
-            // Payment is on time or early, no late fee
-            daysOverdue = 0;
-            lateFineAmount = 0;
-          }
-        }
-        
-        // If amount is zero, set status to voided instead of completed
-        const paymentStatus = amount === 0 ? 'voided' : 'completed';
-        
         const paymentData: Partial<Payment> = {
           id: selectedPayment.id,
           amount,
@@ -188,17 +141,13 @@ export function PaymentHistorySection({
           description: notes,
           payment_method: method,
           reference_number: reference,
-          status: paymentStatus,
+          status: amount === 0 ? 'voided' : 'completed',
           type: paymentType || selectedPayment.type || 'rent',
-          days_overdue: daysOverdue,
-          late_fine_amount: lateFineAmount,
         };
         
         const success = await onPaymentUpdated(paymentData);
         if (success) {
-          toast.success(amount === 0 
-            ? "Payment voided successfully" 
-            : "Payment updated successfully");
+          toast.success(amount === 0 ? "Payment voided successfully" : "Payment updated successfully");
           setIsPaymentDialogOpen(false);
           return true;
         } else {
@@ -211,16 +160,16 @@ export function PaymentHistorySection({
         return false;
       }
     } else if (onRecordPayment && leaseId) {
-        const paymentData: Partial<Payment> = {
-          amount,
-          payment_date: date.toISOString(),
-          description: notes,
-          payment_method: method,
-          reference_number: reference,
-          lease_id: leaseId,
-          status: 'completed',
-          type: paymentType || 'rent'
-        };
+      const paymentData: Partial<Payment> = {
+        amount,
+        payment_date: date.toISOString(),
+        description: notes,
+        payment_method: method,
+        reference_number: reference,
+        lease_id: leaseId,
+        status: 'completed',
+        type: paymentType || 'rent'
+      };
       
       handlePaymentCreated(paymentData);
       return true;
@@ -230,7 +179,9 @@ export function PaymentHistorySection({
   };
 
   const renderPaymentHistory = () => {
-    if (isLoading) {
+    const currentIsLoading = isLoading || isLoadingUnified;
+    
+    if (currentIsLoading) {
       return (
         <div className="flex items-center justify-center h-48">
           <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
@@ -238,83 +189,70 @@ export function PaymentHistorySection({
       );
     }
 
-    if (payments.length === 0) {
-      return <EmptyPaymentState onRecordPayment={handleRecordPaymentClick} />;
-    }
-
-    return (
-      <>
-        <PaymentStatsCards 
-          totalAmount={totalAmount} 
-          amountPaid={amountPaid} 
-          balance={balance} 
-          lateFees={lateFees} 
-        />
-        
-        <PaymentStatusBar 
-          paidOnTime={paidOnTime} 
-          paidLate={paidLate} 
-          unpaid={unpaid} 
-          totalPayments={payments.length} 
-        />
-
-        <div className="flex justify-between items-center mb-4">
-          <PaymentActions 
-            rentAmount={rentAmount} 
-            onRecordPaymentClick={handleRecordPaymentClick}
-            onExportHistoryClick={handleExportHistoryClick}
+    // Show unified payments if we have a schedule or actual payments
+    if (hasSchedule || payments.length > 0) {
+      return (
+        <>
+          <PaymentStatsCards 
+            totalAmount={totalAmount} 
+            amountPaid={amountPaid} 
+            balance={balance} 
+            lateFees={lateFees} 
           />
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-2">
-                <Filter className="h-4 w-4 mr-2" />
-                {statusFilter ? getFilterLabel() : "Filter"}
+          <PaymentStatusBar 
+            paidOnTime={paidOnTime} 
+            paidLate={paidLate} 
+            unpaid={unpaid} 
+            totalPayments={payments.length} 
+          />
+
+          <div className="flex justify-between items-center mb-4">
+            <PaymentActions 
+              rentAmount={rentAmount} 
+              onRecordPaymentClick={handleRecordPaymentClick}
+              onExportHistoryClick={handleExportHistoryClick}
+            />
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowProjectedPayments(!showProjectedPayments)}
+                className="flex items-center gap-2"
+              >
+                {showProjectedPayments ? (
+                  <ToggleRight className="h-4 w-4" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4" />
+                )}
+                Show Schedule
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === null}
-                onCheckedChange={() => setStatusFilter(null)}
-              >
-                All Payments
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'completed_ontime'}
-                onCheckedChange={() => setStatusFilter('completed_ontime')}
-              >
-                Paid On Time
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'completed_late'}
-                onCheckedChange={() => setStatusFilter('completed_late')}
-              >
-                Paid Late
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'pending'}
-                onCheckedChange={() => setStatusFilter('pending')}
-              >
-                Pending
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={statusFilter === 'overdue'}
-                onCheckedChange={() => setStatusFilter('overdue')}
-              >
-                Overdue
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        <PaymentTable 
-          payments={filteredPayments} 
-          onEditPayment={handleEditPayment}
-          onDeletePayment={handleDeletePayment}
-        />
-        
-        <PaymentTableActions />
-      </>
+            </div>
+          </div>
+          
+          <UnifiedPaymentTable 
+            payments={unifiedPayments} 
+            onRecordPayment={handleRecordProjectedPayment}
+            isLoading={currentIsLoading}
+            showProjectedPayments={showProjectedPayments}
+          />
+        </>
+      );
+    }
+
+    // Empty state
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No payment history available</p>
+        <Button 
+          variant="outline" 
+          className="mt-4" 
+          onClick={handleRecordPaymentClick}
+        >
+          Record First Payment
+        </Button>
+      </div>
     );
   };
 
@@ -323,7 +261,14 @@ export function PaymentHistorySection({
       <Card>
         <CardHeader>
           <CardTitle>Payment History</CardTitle>
-          <CardDescription>Track all financial transactions for this agreement</CardDescription>
+          <CardDescription>
+            Track all financial transactions for this agreement
+            {hasSchedule && showProjectedPayments && (
+              <span className="block text-blue-600 text-sm mt-1">
+                Showing payment schedule with projected payments
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {renderPaymentHistory()}
@@ -344,7 +289,6 @@ export function PaymentHistorySection({
         />
       )}
       
-      {/* Only render the analytics section if showAnalytics is true */}
       {showAnalytics && (
         <PaymentAnalytics
           amountPaid={amountPaid}

@@ -1,502 +1,573 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export interface Database {
   public: {
     Tables: {
+      agreement_imports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          delimiter: string | null
+          file_name: string | null
+          id: string
+          original_name: string | null
+          processed_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          delimiter?: string | null
+          file_name?: string | null
+          id?: string
+          original_name?: string | null
+          processed_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          delimiter?: string | null
+          file_name?: string | null
+          id?: string
+          original_name?: string | null
+          processed_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreement_imports_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      error_logs: {
+        Row: {
+          created_at: string | null
+          error_details: Json | null
+          error_message: string
+          error_type: string
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_details?: Json | null
+          error_message: string
+          error_type: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_details?: Json | null
+          error_message: string
+          error_type: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      insurance_claims: {
+        Row: {
+          accident_date: string | null
+          claim_number: string | null
+          created_at: string | null
+          customer_id: string | null
+          description: string | null
+          id: string
+          insurance_company: string | null
+          policy_number: string | null
+          status: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          accident_date?: string | null
+          claim_number?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          insurance_company?: string | null
+          policy_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          accident_date?: string | null
+          claim_number?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          insurance_company?: string | null
+          policy_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claims_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_claims_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       leases: {
         Row: {
-          id: string;
-          status: 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
-          customer_id: string;
-          vehicle_id: string;
-          agreement_number: string;
-          start_date: string | null;
-          end_date: string | null;
-          rent_amount: number;
-          total_amount: number;
-          deposit_amount: number | null;
-          daily_late_fee: number | null;
-          agreement_type: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
-          agreement_duration: unknown;
-          rent_due_day: number | null;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-          last_payment_date: string | null;
-        };
+          agreement_number: string | null
+          agreement_type: string | null
+          confirmation_email_sent: boolean | null
+          created_at: string | null
+          customer_id: string | null
+          daily_late_fee: number | null
+          deposit_amount: number | null
+          down_payment: number | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          payment_day: number | null
+          payment_frequency: string | null
+          rent_amount: number | null
+          start_date: string | null
+          status: string | null
+          total_amount: number | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
         Insert: {
-          id?: string;
-          status?: 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
-          customer_id: string;
-          vehicle_id: string;
-          agreement_number?: string;
-          start_date?: string | null;
-          end_date?: string | null;
-          rent_amount?: number;
-          total_amount: number;
-          deposit_amount?: number | null;
-          daily_late_fee?: number | null;
-          agreement_type: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
-          agreement_duration: unknown;
-          rent_due_day?: number | null;
-          notes?: string | null;
-        };
+          agreement_number?: string | null
+          agreement_type?: string | null
+          confirmation_email_sent?: boolean | null
+          created_at?: string | null
+          customer_id?: string | null
+          daily_late_fee?: number | null
+          deposit_amount?: number | null
+          down_payment?: number | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_day?: number | null
+          payment_frequency?: string | null
+          rent_amount?: number | null
+          start_date?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
         Update: {
-          id?: string;
-          status?: 'active' | 'pending' | 'completed' | 'cancelled' | 'pending_payment' | 'pending_deposit' | 'draft' | 'terminated' | 'archived' | 'closed';
-          customer_id?: string;
-          vehicle_id?: string;
-          agreement_number?: string;
-          start_date?: string | null;
-          end_date?: string | null;
-          rent_amount?: number;
-          total_amount?: number;
-          deposit_amount?: number | null;
-          daily_late_fee?: number | null;
-          agreement_type?: 'short_term' | 'long_term' | 'rental' | 'lease_to_own';
-          agreement_duration?: unknown;
-          rent_due_day?: number | null;
-          notes?: string | null;
-          updated_at?: string;
-          last_payment_date?: string | null;
-        };
-      };
-      unified_payments: {
+          agreement_number?: string | null
+          agreement_type?: string | null
+          confirmation_email_sent?: boolean | null
+          created_at?: string | null
+          customer_id?: string | null
+          daily_late_fee?: number | null
+          deposit_amount?: number | null
+          down_payment?: number | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_day?: number | null
+          payment_frequency?: string | null
+          rent_amount?: number | null
+          start_date?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leases_customer_id_fkey"
+            columns: ["customer_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leases_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      maintenance: {
         Row: {
-          id: string;
-          lease_id: string;
-          amount: number;
-          amount_paid: number;
-          balance: number;
-          payment_date: string | null;
-          due_date: string | null;
-          status: string;
-          payment_method: string | null;
-          description: string | null;
-          type: string;
-          created_at: string;
-          updated_at: string;
-          late_fine_amount: number;
-          days_overdue: number;
-          original_due_date: string | null;
-          transaction_id: string | null;
-          import_reference: string | null;
-          is_recurring: boolean;
-          recurring_interval: unknown | null;
-          next_payment_date: string | null;
-        };
+          comments: string | null
+          cost: number | null
+          created_at: string | null
+          date: string | null
+          id: string
+          maintenance_provider_id: string | null
+          maintenance_type: string | null
+          notes: string | null
+          odometer_reading: number | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
         Insert: {
-          id?: string;
-          lease_id: string;
-          amount: number;
-          amount_paid?: number;
-          balance?: number;
-          payment_date?: string | null;
-          due_date?: string | null;
-          status?: string;
-          payment_method?: string | null;
-          description?: string | null;
-          type?: string;
-          created_at?: string;
-          updated_at?: string;
-          late_fine_amount?: number;
-          days_overdue?: number;
-          original_due_date?: string | null;
-          transaction_id?: string | null;
-          import_reference?: string | null;
-          is_recurring?: boolean;
-          recurring_interval?: unknown | null;
-          next_payment_date?: string | null;
-        };
+          comments?: string | null
+          cost?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          maintenance_provider_id?: string | null
+          maintenance_type?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
         Update: {
-          lease_id?: string;
-          amount?: number;
-          amount_paid?: number;
-          balance?: number;
-          payment_date?: string | null;
-          due_date?: string | null;
-          status?: string;
-          payment_method?: string | null;
-          description?: string | null;
-          type?: string;
-          updated_at?: string;
-          late_fine_amount?: number;
-          days_overdue?: number;
-          original_due_date?: string | null;
-          transaction_id?: string | null;
-          import_reference?: string | null;
-          is_recurring?: boolean;
-          recurring_interval?: unknown | null;
-          next_payment_date?: string | null;
-        };
-      };
-      traffic_fines: {
+          comments?: string | null
+          cost?: number | null
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          maintenance_provider_id?: string | null
+          maintenance_type?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_maintenance_provider_id_fkey"
+            columns: ["maintenance_provider_id"]
+            referencedRelation: "maintenance_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      maintenance_providers: {
         Row: {
-          id: string;
-          violation_number: string;
-          license_plate: string;
-          vehicle_id: string;
-          lease_id: string;
-          agreement_id: string;
-          violation_date: string;
-          fine_amount: number;
-          violation_charge: string;
-          payment_status: string;
-          fine_location: string;
-          payment_date: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          address: string | null
+          city: string | null
+          contact_name: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          phone_number: string | null
+          state: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
         Insert: {
-          id?: string;
-          violation_number: string;
-          license_plate: string;
-          vehicle_id?: string;
-          lease_id?: string;
-          agreement_id?: string;
-          violation_date: string;
-          fine_amount: number;
-          violation_charge?: string;
-          payment_status?: string;
-          fine_location?: string;
-          payment_date?: string | null;
-        };
+          address?: string | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
         Update: {
-          violation_number?: string;
-          license_plate?: string;
-          vehicle_id?: string;
-          lease_id?: string;
-          agreement_id?: string;
-          violation_date?: string;
-          fine_amount?: number;
-          violation_charge?: string;
-          payment_status?: string;
-          fine_location?: string;
-          payment_date?: string | null;
-          updated_at?: string;
-        };
-      };
-      vehicles: {
-        Row: {
-          id: string;
-          make: string;
-          model: string;
-          year: number;
-          license_plate: string;
-          vin: string;
-          color: string | null;
-          image_url: string | null;
-          mileage: number | null;
-          status: 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
-          created_at: string;
-          updated_at: string;
-          description: string | null;
-          location: string | null;
-          insurance_company: string | null;
-          insurance_expiry: string | null;
-          rent_amount: number | null;
-          vehicle_type_id: string | null;
-        };
-        Insert: {
-          id?: string;
-          make: string;
-          model: string;
-          year: number;
-          license_plate: string;
-          vin: string;
-          color?: string | null;
-          image_url?: string | null;
-          mileage?: number | null;
-          status?: 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
-          description?: string | null;
-          location?: string | null;
-          insurance_company?: string | null;
-          insurance_expiry?: string | null;
-          rent_amount?: number | null;
-          vehicle_type_id?: string | null;
-        };
-        Update: {
-          make?: string;
-          model?: string;
-          year?: number;
-          license_plate?: string;
-          vin?: string;
-          color?: string | null;
-          image_url?: string | null;
-          mileage?: number | null;
-          status?: 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
-          updated_at?: string;
-          description?: string | null;
-          location?: string | null;
-          insurance_company?: string | null;
-          insurance_expiry?: string | null;
-          rent_amount?: number | null;
-          vehicle_type_id?: string | null;
-        };
-      };
+          address?: string | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
-          id: string;
-          full_name: string | null;
-          email: string | null;
-          phone_number: string | null;
-          address: string | null;
-          driver_license: string | null;
-          nationality: string | null;
-          role: string | null;
-          status: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          address: string | null
+          city: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          phone_number: string | null
+          role: string | null
+          state: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
         Insert: {
-          id?: string;
-          full_name?: string | null;
-          email?: string | null;
-          phone_number?: string | null;
-          address?: string | null;
-          driver_license?: string | null;
-          nationality?: string | null;
-          role?: string | null;
-          status?: string | null;
-        };
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone_number?: string | null
+          role?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
         Update: {
-          full_name?: string | null;
-          email?: string | null;
-          phone_number?: string | null;
-          address?: string | null;
-          driver_license?: string | null;
-          nationality?: string | null;
-          role?: string | null;
-          status?: string | null;
-          updated_at?: string;
-        };
-      };
-      legal_cases: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone_number?: string | null
+          role?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      traffic_fines: {
         Row: {
-          id: string;
-          customer_id: string;
-          status: string;
-          amount_owed: number;
-          assigned_to: string | null;
-          last_reminder_sent: string | null;
-          reminder_count: number | null;
-          escalation_date: string | null;
-          resolution_notes: string | null;
-          description: string | null;
-          resolution_date: string | null;
-          case_type: string;
-          priority: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          comments: string | null
+          cost: number | null
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          payment_date: string | null
+          reference_number: string | null
+          status: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
         Insert: {
-          id?: string;
-          customer_id: string;
-          status?: string;
-          amount_owed?: number;
-          assigned_to?: string | null;
-          last_reminder_sent?: string | null;
-          reminder_count?: number | null;
-          escalation_date?: string | null;
-          resolution_notes?: string | null;
-          description?: string | null;
-          resolution_date?: string | null;
-          case_type: string;
-          priority?: string | null;
-        };
+          comments?: string | null
+          cost?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
         Update: {
-          customer_id?: string;
-          status?: string;
-          amount_owed?: number;
-          assigned_to?: string | null;
-          last_reminder_sent?: string | null;
-          reminder_count?: number | null;
-          escalation_date?: string | null;
-          resolution_notes?: string | null;
-          description?: string | null;
-          resolution_date?: string | null;
-          case_type?: string;
-          priority?: string | null;
-          updated_at?: string;
-        };
-      };
-      overdue_payments: {
+          comments?: string | null
+          cost?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          reference_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_fines_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      unified_payments: {
         Row: {
-          id: string;
-          agreement_id: string;
-          customer_id: string;
-          total_amount: number;
-          amount_paid: number;
-          balance: number;
-          last_payment_date: string | null;
-          days_overdue: number;
-          status: string;
-          created_at: string;
-          updated_at: string;
-          notes: string | null;
-        };
+          amount: number | null
+          amount_paid: number | null
+          balance: number | null
+          created_at: string | null
+          days_overdue: number | null
+          description: string | null
+          due_date: string | null
+          id: string
+          late_fine_amount: number | null
+          lease_id: string | null
+          notes: string | null
+          original_due_date: string | null
+          payment_date: string | null
+          payment_method: string | null
+          reference_number: string | null
+          status: string | null
+          transaction_id: string | null
+          type: string | null
+          updated_at: string | null
+        }
         Insert: {
-          id?: string;
-          agreement_id: string;
-          customer_id: string;
-          total_amount: number;
-          amount_paid: number;
-          balance: number;
-          last_payment_date?: string | null;
-          days_overdue?: number;
-          status?: string;
-          notes?: string | null;
-        };
+          amount?: number | null
+          amount_paid?: number | null
+          balance?: number | null
+          created_at?: string | null
+          days_overdue?: number | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          late_fine_amount?: number | null
+          lease_id?: string | null
+          notes?: string | null
+          original_due_date?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
         Update: {
-          agreement_id?: string;
-          customer_id?: string;
-          total_amount?: number;
-          amount_paid?: number;
-          balance?: number;
-          last_payment_date?: string | null;
-          days_overdue?: number;
-          status?: string;
-          updated_at?: string;
-          notes?: string | null;
-        };
-      };
-      agreement_import_reverts: {
+          amount?: number | null
+          amount_paid?: number | null
+          balance?: number | null
+          created_at?: string | null
+          days_overdue?: number | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          late_fine_amount?: number | null
+          lease_id?: string | null
+          notes?: string | null
+          original_due_date?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_payments_lease_id_fkey"
+            columns: ["lease_id"]
+            referencedRelation: "leases"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      vehicles: {
         Row: {
-          id: string;
-          import_id: string;
-          deleted_count: number;
-          reason: string | null;
-          created_at: string;
-          reverted_by: string | null;
-        };
+          attention_needed_notes: string | null
+          color: string | null
+          created_at: string | null
+          engine_number: string | null
+          id: string
+          license_plate: string | null
+          make: string | null
+          model: string | null
+          model_number: string | null
+          notes: string | null
+          registration_expiry_date: string | null
+          status: string | null
+          updated_at: string | null
+          vin_number: string | null
+          year: number | null
+        }
         Insert: {
-          id?: string;
-          import_id: string;
-          deleted_count: number;
-          reason?: string | null;
-          reverted_by?: string | null;
-        };
+          attention_needed_notes?: string | null
+          color?: string | null
+          created_at?: string | null
+          engine_number?: string | null
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          model_number?: string | null
+          notes?: string | null
+          registration_expiry_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
         Update: {
-          import_id?: string;
-          deleted_count?: number;
-          reason?: string | null;
-          reverted_by?: string | null;
-        };
-      };
-      company_settings: {
-        Row: {
-          id: string;
-          company_name: string | null;
-          business_email: string | null;
-          phone: string | null;
-          address: string | null;
-          logo_url: string | null;
-          created_at: string;
-          updated_at: string;
-          automatic_updates: boolean | null;
-          dark_mode: boolean | null;
-        };
-        Insert: {
-          id?: string;
-          company_name?: string | null;
-          business_email?: string | null;
-          phone?: string | null;
-          address?: string | null;
-          logo_url?: string | null;
-          automatic_updates?: boolean | null;
-          dark_mode?: boolean | null;
-        };
-        Update: {
-          company_name?: string | null;
-          business_email?: string | null;
-          phone?: string | null;
-          address?: string | null;
-          logo_url?: string | null;
-          updated_at?: string;
-          automatic_updates?: boolean | null;
-          dark_mode?: boolean | null;
-        };
-      };
-      system_settings: {
-        Row: {
-          id: string;
-          setting_key: string;
-          setting_value: unknown;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          setting_key: string;
-          setting_value: unknown;
-        };
-        Update: {
-          setting_key?: string;
-          setting_value?: unknown;
-          updated_at?: string;
-        };
-      };
-    };
-  };
-    documents: {
-      Row: {
-        id: string;
-        title: string;
-        description: string | null;
-        file_name: string;
-        file_type: string;
-        file_size: number;
-        storage_path: string;
-        public_url: string | null;
-        category: string;
-        type: string;
-        status: string;
-        entity_type: string | null;
-        entity_id: string | null;
-        created_by: string;
-        created_at: string;
-        updated_at: string;
-      };
-      Insert: {
-        id?: string;
-        title: string;
-        description?: string | null;
-        file_name: string;
-        file_type: string;
-        file_size: number;
-        storage_path: string;
-        public_url?: string | null;
-        category: string;
-        type: string;
-        status?: string;
-        entity_type?: string | null;
-        entity_id?: string | null;
-        created_by: string;
-      };
-      Update: {
-        title?: string;
-        description?: string | null;
-        file_name?: string;
-        file_type?: string;
-        file_size?: number;
-        storage_path?: string;
-        public_url?: string | null;
-        category?: string;
-        type?: string;
-        status?: string;
-        entity_type?: string | null;
-        entity_id?: string | null;
-        updated_at?: string;
-      };
-    };
-  };
+          attention_needed_notes?: string | null
+          color?: string | null
+          created_at?: string | null
+          engine_number?: string | null
+          id?: string
+          license_plate?: string | null
+          make?: string | null
+          model?: string | null
+          model_number?: string | null
+          notes?: string | null
+          registration_expiry_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      fix_agreement_payments: {
+        Args: {
+          agreement_id: string
+        }
+        Returns: undefined
+      }
+      generate_missing_payment_records: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
-
-export type DbTables = Database['public']['Tables'];
-
-// Generate helper types for each table
-export type LeaseRow = Database['public']['Tables']['leases']['Row'];
-export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
-export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
-export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-export type TrafficFineRow = Database['public']['Tables']['traffic_fines']['Row'];
-export type LegalCaseRow = Database['public']['Tables']['legal_cases']['Row'];
-export type DocumentRow = Database['public']['Tables']['documents']['Row'];

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
-import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
+import { Agreement } from '@/types/agreement';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -15,6 +15,7 @@ interface PaymentHistoryProps {
   leaseStartDate: string | Date | null;
   leaseEndDate: string | Date | null;
   leaseId?: string;
+  agreement?: Agreement | null;
 }
 
 export function PaymentHistory({
@@ -27,7 +28,8 @@ export function PaymentHistory({
   onRecordPayment,
   leaseStartDate,
   leaseEndDate,
-  leaseId
+  leaseId,
+  agreement
 }: PaymentHistoryProps) {
   return (
     <PaymentHistorySection 
@@ -40,6 +42,7 @@ export function PaymentHistory({
       onRecordPayment={onRecordPayment}
       onPaymentUpdated={onPaymentUpdated}
       showAnalytics={true}
+      agreement={agreement}
     />
   );
 }
