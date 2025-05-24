@@ -13,7 +13,7 @@ export const useLegalCases = () => {
       .from('legal_cases')
       .select(`
         *,
-        profiles:customer_id (
+        profiles:profiles (
           full_name,
           email,
           phone_number
@@ -36,7 +36,7 @@ export const useLegalCases = () => {
       .from('legal_cases')
       .select(`
         *,
-        profiles:customer_id (
+        profiles:profiles (
           full_name,
           email,
           phone_number
@@ -169,7 +169,7 @@ export const useLegalCases = () => {
         .from('legal_cases')
         .select(`
           *,
-          profiles:customer_id (
+          profiles:profiles (
             full_name,
             email,
             phone_number

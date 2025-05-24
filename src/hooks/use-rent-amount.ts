@@ -62,7 +62,7 @@ export function useRentAmount(agreement?: Agreement | null, agreementId?: string
           .select(`
             rent_amount,
             vehicle_type_id,
-            vehicle_types:vehicle_type_id (
+            vehicle_types:vehicle_types (
               monthly_rate
             )
           `)

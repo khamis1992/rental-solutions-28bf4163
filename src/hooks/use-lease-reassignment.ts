@@ -17,7 +17,7 @@ import { asVehicleId, asLeaseId } from '@/types/database-common';
  * @returns Object containing lease details, available vehicles, and reassignment functions
  */
 export function useLeaseReassignment(leaseId: string) {
-  const [lease, setLease] = useState<LeaseDetails>({
+  const [lease, setLease] = useState({
     id: null,
     agreement_number: null,
     status: null,
@@ -26,15 +26,15 @@ export function useLeaseReassignment(leaseId: string) {
     start_date: null,
     end_date: null,
     customerName: null,
-  });
+  } as LeaseDetails);
   
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [currentVehicle, setCurrentVehicle] = useState<VehicleDetails>({
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null as string | null);
+  const [currentVehicle, setCurrentVehicle] = useState({
     id: null,
     make: null,
     model: null,
     license_plate: null,
-  });
+  } as VehicleDetails);
 
   const { vehicles } = useVehicle();
 
@@ -52,8 +52,8 @@ export function useLeaseReassignment(leaseId: string) {
       const { data, error } = await supabase
         .from('leases')
         .select(`
-          id, agreement_number, status, customer_id, vehicle_id, start_date, end_date,
-          profiles:customer_id (id, full_name, email, phone_number)
+          leases.id, leases.agreement_number, leases.status, leases.customer_id, leases.vehicle_id, leases.start_date, leases.end_date,
+          profiles:profiles (id, full_name, email, phone_number)
         `)
         .eq('id', asLeaseId(leaseId))
         .single();

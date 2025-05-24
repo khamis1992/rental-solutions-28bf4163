@@ -206,7 +206,7 @@ export class CustomerService extends BaseService<'profiles'> {
       const agreementIds = agreements.map(a => a.id);
       const { data: payments, error: paymentsError } = await supabase
         .from('unified_payments')
-        .select('*, lease:lease_id(agreement_number)')
+        .select('*, lease:leases(agreement_number)')
         .in('lease_id', agreementIds)
         .order('payment_date', { ascending: false });
       

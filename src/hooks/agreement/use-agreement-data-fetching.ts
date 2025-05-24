@@ -10,8 +10,8 @@ import { toast } from 'sonner';
  * Hook for fetching vehicle and customer details for agreements
  */
 export function useAgreementDataFetching() {
-  const [vehicleData, setVehicleData] = useState<any>(null);
-  const [customerData, setCustomerData] = useState<CustomerInfo | null>(null);
+  const [vehicleData, setVehicleData] = useState(null as any);
+  const [customerData, setCustomerData] = useState(null as CustomerInfo | null);
   
   /**
    * Fetch vehicle details by ID
@@ -115,7 +115,7 @@ export function useAgreementDataFetching() {
     try {
       const { data, error } = await supabase
         .from('leases')
-        .select('*, vehicles(*), profiles:customer_id(*)')
+        .select('*, vehicles:vehicles(*), profiles:profiles(*)')
         .eq('id', id)
         .single();
         
