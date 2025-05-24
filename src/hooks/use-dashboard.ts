@@ -269,12 +269,12 @@ export function useDashboardData() {
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select(`
-            id, 
-            created_at, 
-            customer_id, 
-            vehicle_id, 
-            profiles:customer_id(full_name), 
-            vehicles:vehicle_id(make, model, license_plate)
+            leases.id, 
+            leases.created_at, 
+            leases.customer_id, 
+            leases.vehicle_id, 
+            profiles:profiles(full_name), 
+            vehicles:vehicles(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -292,11 +292,11 @@ export function useDashboardData() {
         const { data: maintenance, error: maintenanceError } = await supabase
           .from('maintenance')
           .select(`
-            id, 
-            created_at, 
-            vehicle_id, 
-            maintenance_type, 
-            vehicles:vehicle_id(make, model, license_plate)
+            maintenance.id, 
+            maintenance.created_at, 
+            maintenance.vehicle_id, 
+            maintenance.maintenance_type, 
+            vehicles:vehicles(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
           .limit(2);

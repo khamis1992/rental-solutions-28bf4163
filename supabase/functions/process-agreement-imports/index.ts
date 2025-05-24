@@ -56,9 +56,24 @@ function parseCorrectDateFormat(dateStr: string): Date {
       const month = parseInt(parts[1], 10) - 1;
       const year = parseInt(parts[2], 10);
       
-      date = new Date(year, month, day);
-      console.log(`Parsed date ${dateStr} as DD/MM/YYYY format: ${date.toISOString()}`);
-      return date;
+      if (day <= 31 && month < 12) {
+        date = new Date(year, month, day);
+        if (!isNaN(date.getTime())) {
+          console.log(`Parsed date ${dateStr} as DD/MM/YYYY format: ${date.toISOString()}`);
+          return date;
+        }
+      }
+      
+      const month2 = parseInt(parts[0], 10) - 1;
+      const day2 = parseInt(parts[1], 10);
+      
+      if (day2 <= 31 && month2 < 12) {
+        date = new Date(year, month2, day2);
+        if (!isNaN(date.getTime())) {
+          console.log(`Parsed date ${dateStr} as MM/DD/YYYY format: ${date.toISOString()}`);
+          return date;
+        }
+      }
     }
   }
   

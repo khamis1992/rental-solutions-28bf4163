@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { useProfile } from '@/hooks/use-profile';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import Dropzone from 'react-dropzone';
-import { File } from '@/types/supabase';
+import type { DropzoneOptions } from 'react-dropzone';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -23,15 +23,14 @@ interface CSVImportModalProps {
 }
 
 export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChange, onImportComplete }) => {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState(null);
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
-  const supabase = useSupabaseClient();
-  const { profile } = useProfile();
+  const { user } = useAuth();
   const [delimiter, setDelimiter] = useState(',');
 
   const handleSubmit = useCallback(async () => {
-    if (!file || !profile) {
+    if (!file || !user) {
       toast({
         title: "Error",
         description: "Please select a file to upload.",
@@ -42,32 +41,53 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChan
     setProcessing(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('user_id', profile.id);
-      formData.append('delimiter', delimiter);
-
-      const response = await fetch('/api/agreements/import', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: data.message || "Agreements imported successfully.",
-        });
-        onImportComplete();
-        onOpenChange(false);
-        setFile(null);
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to import agreements.",
-        });
+      const timestamp = new Date().getTime();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `agreement-import-${timestamp}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('agreement-imports')
+        .upload(fileName, file);
+        
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
+      
+      const { data: importData, error: importError } = await supabase
+        .from('agreement_imports')
+        .insert({
+          file_name: fileName,
+          original_name: file.name,
+          created_by: user.id,
+          status: 'pending',
+          delimiter: delimiter
+        })
+        .select()
+        .single();
+        
+      if (importError) {
+        throw new Error(`Import log creation failed: ${importError.message}`);
+      }
+      
+      const { data: processData, error: processError } = await supabase.functions.invoke(
+        'process-agreement-imports', 
+        { 
+          body: { importId: importData.id } 
+        }
+      );
+      
+      if (processError) {
+        throw new Error(`Processing failed: ${processError.message}`);
+      }
+      
+      toast({
+        title: "Success",
+        description: `Agreements imported successfully. Processed: ${processData.processed}, Errors: ${processData.errors}`,
+      });
+      
+      onImportComplete();
+      onOpenChange(false);
+      setFile(null);
     } catch (error: any) {
       console.error("Import error:", error);
       toast({
@@ -77,7 +97,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChan
     } finally {
       setProcessing(false);
     }
-  }, [file, profile, delimiter, toast, onImportComplete, onOpenChange]);
+  }, [file, user, delimiter, toast, onImportComplete, onOpenChange]);
 
   // Update the dropzone options with proper typing
   const dropzoneOptions = {
@@ -91,7 +111,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChan
         setFile(acceptedFiles[0]);
       }
     }
-  } as React.ComponentProps<typeof Dropzone>['options'];
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
