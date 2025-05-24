@@ -30,7 +30,7 @@ export const CustomerVehicleSection = ({
   vehicleError
 }: CustomerVehicleSectionProps) => {
   const [open, setOpen] = useState(false);
-  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
+  const [customers, setCustomers] = useState([] as CustomerInfo[]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

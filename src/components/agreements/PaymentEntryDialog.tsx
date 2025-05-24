@@ -60,15 +60,15 @@ export function PaymentEntryDialog({
   description = "Provide the necessary information to record the payment.",
   lateFeeDetails = null
 }: PaymentEntryDialogProps) {
-  const [amount, setAmount] = useState<number>(0);
-  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  const [referenceNumber, setReferenceNumber] = useState<string>('');
-  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
-  const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
-  const [paymentType, setPaymentType] = useState<string>('rent');
-  const [showVoidWarning, setShowVoidWarning] = useState<boolean>(false);
+  const [amount, setAmount] = useState(0 as number);
+  const [paymentDate, setPaymentDate] = useState(new Date() as Date);
+  const [notes, setNotes] = useState('' as string);
+  const [paymentMethod, setPaymentMethod] = useState('cash' as string);
+  const [referenceNumber, setReferenceNumber] = useState('' as string);
+  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState(false as boolean);
+  const [isPartialPayment, setIsPartialPayment] = useState(false as boolean);
+  const [paymentType, setPaymentType] = useState('rent' as string);
+  const [showVoidWarning, setShowVoidWarning] = useState(false as boolean);
 
   // Update form values when selected payment changes or default amount changes
   useEffect(() => {

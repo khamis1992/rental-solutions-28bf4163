@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import type { ChangeEvent } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,7 @@ export function AgreementSearch({
   const [searchValue, setSearchValue] = useState(searchQuery);
   
   // Handle search input changes with debounce
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchValue(value);
     

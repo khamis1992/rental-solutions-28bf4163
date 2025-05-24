@@ -20,8 +20,8 @@ const CustomerSection = ({
   customerId,
   onEdit
 }: CustomerSectionProps) => {
-  const [customer, setCustomer] = React.useState<CustomerInfo | null>(initialCustomer || null);
-  const [loading, setLoading] = React.useState<boolean>(!initialCustomer && !!customerId);
+  const [customer, setCustomer] = React.useState(initialCustomer || null as CustomerInfo | null);
+  const [loading, setLoading] = React.useState(!initialCustomer && !!customerId as boolean);
 
   React.useEffect(() => {
     if (customerId && !initialCustomer) {

@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -57,11 +57,11 @@ export function AgreementDetail({
     generatingPdf: false
   });
 
-  const [lateFeeDetails, setLateFeeDetails] = useState<{
+  const [lateFeeDetails, setLateFeeDetails] = useState(null as {
     amount: number;
     daysLate: number;
-  } | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  } | null);
+  const [selectedPayment, setSelectedPayment] = useState(null as Payment | null);
 
   // Use payment management hook
   const {

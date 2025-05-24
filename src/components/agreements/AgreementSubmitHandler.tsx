@@ -1,30 +1,35 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
-  AgreementSchema, 
-  AgreementFormData, 
-  defaultValues 
+  agreementSchema,
+  Agreement
 } from '@/lib/validation-schemas/agreement';
 
 interface AgreementSubmitHandlerProps {
   children: (props: {
-    form: ReturnType<typeof useForm<AgreementFormData>>;
-    methods: ReturnType<typeof useForm<AgreementFormData>>;
-  }) => ReactNode;
+    form: ReturnType<typeof useForm<Agreement>>;
+    methods: ReturnType<typeof useForm<Agreement>>;
+  }) => React.ReactNode;
 }
 
 const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ children }) => {
   // Fix type parameter usage
-  const form = useForm<AgreementFormData>({
-    resolver: zodResolver(AgreementSchema),
-    defaultValues: defaultValues,
+  const form = useForm<Agreement>({
+    resolver: zodResolver(agreementSchema),
+    defaultValues: {
+      status: 'draft',
+      terms_accepted: false,
+    },
     mode: "onChange"
   });
 
-  const methods = useForm<AgreementFormData>({
-    resolver: zodResolver(AgreementSchema),
-    defaultValues: defaultValues,
+  const methods = useForm<Agreement>({
+    resolver: zodResolver(agreementSchema),
+    defaultValues: {
+      status: 'draft',
+      terms_accepted: false,
+    },
     mode: "onChange"
   });
 

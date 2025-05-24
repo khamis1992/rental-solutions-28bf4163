@@ -27,8 +27,8 @@ const AgreementForm = ({
   validationErrors
 }: AgreementFormProps) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState(null as any);
+  const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
 
   // Initialize form with default values
   const form = useForm<Agreement>({
