@@ -154,9 +154,9 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
       let query = supabase
         .from('leases')
         .select(`
-          id, status, customer_id, vehicle_id, start_date, end_date, 
-          created_at, updated_at, total_amount, agreement_number, 
-          agreement_type, payment_frequency, payment_day,
+          leases.id, leases.status, leases.customer_id, leases.vehicle_id, leases.start_date, leases.end_date, 
+          leases.created_at, leases.updated_at, leases.total_amount, leases.agreement_number, 
+          leases.agreement_type, leases.payment_frequency, leases.payment_day,
           customers:profiles(id, full_name),
           vehicles(id, make, model, license_plate)
         `)
