@@ -51,10 +51,10 @@ const PaymentScheduleEditor = ({
   onPaymentDayChange,
 }: PaymentScheduleEditorProps) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   // Generate payment schedule based on inputs
-  const generatePaymentSchedule = () => {
+  const generatePaymentSchedule = (): PaymentItem[] => {
     if (!startDate || !endDate || !rentAmount) return [];
     
     setIsGenerating(true);

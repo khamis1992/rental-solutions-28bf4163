@@ -23,10 +23,10 @@ const CustomerSelector = ({
   placeholder = "Select a customer",
   disabled = false
 }: CustomerSelectorProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<boolean>(false);
   const [customers, setCustomers] = useState<CustomerInfo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // Debounced search function
@@ -45,7 +45,7 @@ const CustomerSelector = ({
   }, [searchQuery, debouncedFetch]);
 
   // Fetch customers function
-  const fetchCustomers = async (query: string = '') => {
+  const fetchCustomers = async (query: string = ''): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
@@ -90,7 +90,7 @@ const CustomerSelector = ({
   };
 
   // Handle customer selection
-  const handleSelect = (customerId: string) => {
+  const handleSelect = (customerId: string): void => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
       onCustomerSelect(customer);

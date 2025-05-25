@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -57,8 +58,8 @@ const AgreementEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   
@@ -89,7 +90,7 @@ const AgreementEditor = () => {
   
   // Load agreement data if editing
   useEffect(() => {
-    const loadAgreement = async () => {
+    const loadAgreement = async (): Promise<void> => {
       if (!id) return;
       
       setIsLoading(true);
@@ -153,7 +154,7 @@ const AgreementEditor = () => {
   }, [id, agreementService, form, toast]);
   
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
+  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
       const data = {
@@ -196,7 +197,7 @@ const AgreementEditor = () => {
   };
   
   // Calculate total amount based on rent and duration
-  const calculateTotalAmount = () => {
+  const calculateTotalAmount = (): void => {
     const startDate = form.getValues('start_date');
     const endDate = form.getValues('end_date');
     const rentAmount = form.getValues('rent_amount') || 0;
@@ -221,13 +222,13 @@ const AgreementEditor = () => {
   }, [form]);
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: CustomerInfo) => {
+  const handleCustomerSelect = (customer: CustomerInfo): void => {
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };
 
   // Handle vehicle selection
-  const handleVehicleSelect = (vehicle: any) => {
+  const handleVehicleSelect = (vehicle: any): void => {
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
   };
