@@ -241,6 +241,7 @@ const AgreementEditor = () => {
 
   // Handle customer selection
   const handleCustomerSelect = (customer: CustomerInfo): void => {
+    console.log('Customer selected in AgreementEditor:', customer);
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };

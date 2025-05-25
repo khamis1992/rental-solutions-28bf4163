@@ -46,6 +46,7 @@ const CustomerSelector = ({
 
   // Fetch customers function
   const fetchCustomers = async (query: string = ''): Promise<void> => {
+    console.log('Fetching customers with query:', query);
     setLoading(true);
     setError(null);
     try {
@@ -79,6 +80,7 @@ const CustomerSelector = ({
         address: ''
       }));
       
+      console.log('Fetched customers:', transformedCustomers);
       setCustomers(transformedCustomers);
     } catch (error: any) {
       console.error('Error in fetchCustomers:', error);
@@ -93,6 +95,7 @@ const CustomerSelector = ({
   const handleSelect = (customerId: string): void => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
+      console.log('Customer selected:', customer);
       onCustomerSelect(customer);
     }
     setOpen(false);
@@ -122,7 +125,10 @@ const CustomerSelector = ({
         <Command>
           <CommandInput
             placeholder="Search for customers..."
-            onValueChange={setSearchQuery}
+            onValueChange={(value) => {
+              console.log('Search input changed:', value);
+              setSearchQuery(value);
+            }}
             value={searchQuery}
           />
           <CommandList>
