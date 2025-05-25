@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -41,14 +42,14 @@ export interface SimpleAgreement {
 export function useAgreements(initialFilters: Record<string, any> = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [customer, setCustomer] = useState(null as CustomerInfo | null);
+  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
   const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
     pageSize: 25 // Reduced from 1000 to a more reasonable 25 items per page
   });
   
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   // Function to get initial filters from URL parameters
   const getInitialFilters = () => {
@@ -154,10 +155,10 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
       let query = supabase
         .from('leases')
         .select(`
-          leases.id, leases.status, leases.customer_id, leases.vehicle_id, leases.start_date, leases.end_date, 
-          leases.created_at, leases.updated_at, leases.total_amount, leases.agreement_number, 
-          leases.agreement_type, leases.payment_frequency, leases.payment_day,
-          customers:profiles(id, full_name),
+          id, status, customer_id, vehicle_id, start_date, end_date, 
+          created_at, updated_at, total_amount, agreement_number, 
+          agreement_type, payment_frequency, payment_day,
+          profiles(id, full_name),
           vehicles(id, make, model, license_plate)
         `)
         .range(from, to);
