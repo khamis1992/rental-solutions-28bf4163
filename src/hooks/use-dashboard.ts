@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -266,15 +267,16 @@ export function useDashboardData() {
           return cachedActivity;
         }
 
+        // Fixed: Removed redundant table names in select clauses
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select(`
-            leases.id, 
-            leases.created_at, 
-            leases.customer_id, 
-            leases.vehicle_id, 
-            profiles:profiles(full_name), 
-            vehicles:vehicles(make, model, license_plate)
+            id, 
+            created_at, 
+            customer_id, 
+            vehicle_id, 
+            profiles(full_name), 
+            vehicles(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -289,14 +291,15 @@ export function useDashboardData() {
           
         if (paymentsError) throw paymentsError;
         
+        // Fixed: Removed redundant table names in select clauses
         const { data: maintenance, error: maintenanceError } = await supabase
           .from('maintenance')
           .select(`
-            maintenance.id, 
-            maintenance.created_at, 
-            maintenance.vehicle_id, 
-            maintenance.maintenance_type, 
-            vehicles:vehicles(make, model, license_plate)
+            id, 
+            created_at, 
+            vehicle_id, 
+            maintenance_type, 
+            vehicles(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
           .limit(2);
