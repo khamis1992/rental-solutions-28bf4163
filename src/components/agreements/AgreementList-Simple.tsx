@@ -49,7 +49,7 @@ export function AgreementList({
   const typedAgreements = agreements?.map((agreement: SimpleAgreement) => ({
     ...agreement,
     payment_frequency: agreement.payment_frequency || 'monthly', // Default value for type compatibility
-    payment_day: agreement.payment_day || 1, // Default value for type compatibility
+    payment_day: agreement.rent_due_day || 1, // Map rent_due_day to payment_day for compatibility
     customers: {
       full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
       id: agreement.customers?.id || agreement.customer_id
