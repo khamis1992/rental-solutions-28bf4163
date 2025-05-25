@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { usePaymentSchedule } from '@/hooks/payment/use-payment-schedule';
 import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
@@ -53,7 +55,7 @@ const agreementSchema = z.object({
   additional_drivers: z.array(z.string()).optional(),
 });
 
-const AgreementEditor = () => {
+const AgreementEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,8 +63,10 @@ const AgreementEditor = () => {
   const [activeTab, setActiveTab] = useState<string>("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [isGeneratingPayments, setIsGeneratingPayments] = useState<boolean>(false);
   
   const agreementService = useAgreementService();
+  const { generatePayment } = usePaymentSchedule();
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
@@ -170,10 +174,70 @@ const AgreementEditor = () => {
     loadAgreement();
   }, [id, agreementService, form, toast, navigate]);
   
+  // Generate payment schedule for the agreement
+  const generatePaymentSchedule = async (agreementId: string): Promise<void> => {
+    try {
+      setIsGeneratingPayments(true);
+      console.log('Generating payment schedule for agreement:', agreementId);
+      
+      const result = await generatePayment(agreementId);
+      
+      if (result?.success) {
+        toast({
+          title: "Success",
+          description: "Payment schedule generated successfully",
+        });
+      } else {
+        console.warn('Payment generation completed but may not have created new payments');
+        toast({
+          title: "Info",
+          description: "Payment schedule generation completed",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating payment schedule:', error);
+      toast({
+        title: "Warning",
+        description: "Agreement saved but payment schedule generation failed. You can generate it manually later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPayments(false);
+    }
+  };
+  
   // Handle form submission
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
+      // Validate required fields for payment generation
+      if (!formData.rent_amount || formData.rent_amount <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter a valid rent amount before saving",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!formData.start_date || !formData.end_date) {
+        toast({
+          title: "Validation Error", 
+          description: "Please select valid start and end dates",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (formData.end_date <= formData.start_date) {
+        toast({
+          title: "Validation Error",
+          description: "End date must be after start date",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const data = {
         ...formData,
         total_amount: formData.total_amount || 0,
@@ -181,24 +245,53 @@ const AgreementEditor = () => {
       };
       
       let result;
-      if (id && id !== 'undefined' && id !== 'null') {
+      const isNewAgreement = !id || id === 'undefined' || id === 'null';
+      
+      if (isNewAgreement) {
+        // Create new agreement
+        console.log('Creating new agreement with data:', data);
+        result = await agreementService.createAgreement(data);
+        
+        if (result) {
+          toast({
+            title: "Success",
+            description: "Agreement created successfully",
+          });
+          
+          // Generate payment schedule for new agreement
+          await generatePaymentSchedule(result.id);
+          
+          // Navigate to the new agreement
+          navigate(`/agreements/${result.id}`);
+        }
+      } else {
         // Update existing agreement
+        console.log('Updating existing agreement:', id);
         result = await agreementService.updateAgreement({
           id,
           data
         });
-      } else {
-        // Create new agreement
-        result = await agreementService.createAgreement(data);
+        
+        if (result) {
+          toast({
+            title: "Success",
+            description: "Agreement updated successfully",
+          });
+          
+          // For existing agreements, ask user if they want to regenerate payments
+          const shouldRegeneratePayments = formData.rent_amount !== form.formState.defaultValues?.rent_amount ||
+                                         formData.payment_frequency !== form.formState.defaultValues?.payment_frequency ||
+                                         formData.rent_due_day !== form.formState.defaultValues?.rent_due_day;
+          
+          if (shouldRegeneratePayments) {
+            await generatePaymentSchedule(id);
+          }
+          
+          navigate(`/agreements/${result.id || id}`);
+        }
       }
       
-      if (result) {
-        toast({
-          title: "Success",
-          description: id ? "Agreement updated successfully" : "Agreement created successfully",
-        });
-        navigate(`/agreements/${result.id || id}`);
-      } else {
+      if (!result) {
         throw new Error("Failed to save agreement");
       }
     } catch (error) {
@@ -424,7 +517,7 @@ const AgreementEditor = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -445,7 +538,7 @@ const AgreementEditor = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -466,7 +559,7 @@ const AgreementEditor = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -487,7 +580,7 @@ const AgreementEditor = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e) => {
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -523,10 +616,10 @@ const AgreementEditor = () => {
                     startDate={form.getValues('start_date')}
                     endDate={form.getValues('end_date')}
                     rentAmount={form.getValues('rent_amount')}
-                    paymentFrequency={form.getValues('payment_frequency')}
-                    paymentDay={form.getValues('rent_due_day')}
-                    onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
-                    onPaymentDayChange={(value) => form.setValue('rent_due_day', value)}
+                    paymentFrequency={form.getValues('payment_frequency') || 'monthly'}
+                    paymentDay={form.getValues('rent_due_day') || 1}
+                    onFrequencyChange={(value: string) => form.setValue('payment_frequency', value)}
+                    onPaymentDayChange={(value: number) => form.setValue('rent_due_day', value)}
                   />
                 </TabsContent>
                 
@@ -535,13 +628,19 @@ const AgreementEditor = () => {
                     type="button" 
                     variant="outline" 
                     onClick={() => navigate('/agreements')}
-                    disabled={isLoading}
+                    disabled={isLoading || isGeneratingPayments}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement"}
+                  <Button type="submit" disabled={isLoading || isGeneratingPayments}>
+                    {(isLoading || isGeneratingPayments) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isGeneratingPayments 
+                      ? "Generating Payments..." 
+                      : isLoading 
+                        ? "Saving..." 
+                        : id && id !== 'undefined' 
+                          ? "Update Agreement" 
+                          : "Create Agreement"}
                   </Button>
                 </div>
               </form>

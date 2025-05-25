@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon, Loader2, RefreshCw } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { usePaymentSchedule } from '@/hooks/payment/use-payment-schedule';
+import { toast } from 'sonner';
 
 interface PaymentScheduleEditorProps {
   agreementId?: string;
@@ -52,6 +54,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
 }) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const { generatePayment } = usePaymentSchedule();
 
   // Generate payment schedule based on inputs
   const generatePaymentSchedule = (): PaymentItem[] => {
@@ -115,6 +118,32 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
     }
   };
 
+  // Handle manual payment generation for existing agreements
+  const handleGenerateActualPayments = async (): Promise<void> => {
+    if (!agreementId) {
+      toast.error("Agreement ID is required to generate payments");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      console.log('Generating actual payments for agreement:', agreementId);
+      
+      const result = await generatePayment(agreementId);
+      
+      if (result?.success) {
+        toast.success("Payment records generated successfully");
+      } else {
+        toast.info("Payment generation completed");
+      }
+    } catch (error) {
+      console.error("Error generating actual payments:", error);
+      toast.error("Failed to generate payment records");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Regenerate schedule when inputs change
   useEffect(() => {
     generatePaymentSchedule();
@@ -158,7 +187,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
           </p>
         </div>
         
-        <div className="flex items-end">
+        <div className="flex items-end space-x-2">
           <Button 
             variant="outline" 
             onClick={generatePaymentSchedule}
@@ -169,15 +198,29 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Regenerate Schedule
+            Preview Schedule
           </Button>
+          
+          {agreementId && (
+            <Button 
+              onClick={handleGenerateActualPayments}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CalendarIcon className="mr-2 h-4 w-4" />
+              )}
+              Generate Payments
+            </Button>
+          )}
         </div>
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
-            <span>Payment Schedule</span>
+            <span>Payment Schedule Preview</span>
             <span className="text-sm text-muted-foreground">
               {paymentSchedule.length} payments
             </span>
@@ -224,7 +267,12 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
                   <p>Generating payment schedule...</p>
                 </div>
               ) : (
-                <p>No payment schedule generated yet</p>
+                <div className="space-y-2">
+                  <p>No payment schedule generated yet</p>
+                  {!agreementId && (
+                    <p className="text-xs">Save the agreement first to generate actual payment records</p>
+                  )}
+                </div>
               )}
             </div>
           )}
