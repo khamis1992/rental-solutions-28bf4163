@@ -19,8 +19,10 @@ export class PaymentRepository extends Repository<'unified_payments'> {
    * Find payments by lease ID with validation
    */
   async findByLeaseId(leaseId: string | undefined | null): Promise<DbListResponse<PaymentRow>> {
+    console.log('PaymentRepository.findByLeaseId called with:', leaseId);
+    
     // Validate UUID before making the query
-    if (!isValidUUID(leaseId)) {
+    if (!leaseId || !isValidUUID(leaseId)) {
       console.error('PaymentRepository.findByLeaseId: Invalid lease ID:', leaseId);
       return { 
         data: [], 
@@ -36,11 +38,15 @@ export class PaymentRepository extends Repository<'unified_payments'> {
 
     try {
       const validLeaseId = asLeaseId(leaseId);
+      console.log('PaymentRepository.findByLeaseId: Making query with validated ID:', validLeaseId);
+      
       const response = await this.client
         .from('unified_payments')
         .select('*')
         .eq('lease_id', validLeaseId)
         .order('payment_date', { ascending: false });
+      
+      console.log('PaymentRepository.findByLeaseId: Query response:', { data: response.data?.length, error: response.error });
       
       return { data: response.data || [], error: response.error };
     } catch (error) {

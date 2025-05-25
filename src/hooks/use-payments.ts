@@ -4,9 +4,11 @@ import { paymentRepository } from '@/lib/database';
 import { isValidUUID } from '@/lib/uuid-validation';
 import type { Payment } from '@/types/payment.types';
 
-export const usePayments = (agreementId?: string) => {
+export const usePayments = (agreementId?: string | null | undefined) => {
   // Validate the agreementId before making any queries
   const isValidAgreementId = agreementId && isValidUUID(agreementId);
+  
+  console.log('usePayments called with:', { agreementId, isValidAgreementId });
   
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     ['payments', agreementId],
@@ -17,6 +19,7 @@ export const usePayments = (agreementId?: string) => {
         return [] as Payment[];
       }
       
+      console.log('usePayments: Making database query for agreementId:', agreementId);
       const response = await paymentRepository.findByLeaseId(agreementId);
       
       if (response.error) {
