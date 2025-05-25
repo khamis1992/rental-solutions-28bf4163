@@ -1,10 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Doughnut, DoughnutChartOptions, ChartData, ChartOptions } from 'chart.js';
-import { useTheme } from 'next-themes';
-import { useChart } from "@/hooks/use-chart";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/lib/supabase';
 
@@ -16,7 +13,19 @@ interface VehicleStatus {
 interface ChartData {
   name: string;
   value: number;
+  color: string;
 }
+
+const STATUS_COLORS = [
+  "#065F46", // Dark green
+  "#10B981", // Green
+  "#34D399", // Light green
+  "#A7F3D0", // Lighter green
+  "#D1FAE5", // Very light green
+  "#6366F1", // Indigo
+  "#8B5CF6", // Purple
+  "#F59E0B", // Amber
+];
 
 export function VehicleStatusChart() {
   const [vehicleStatuses, setVehicleStatuses] = useState<VehicleStatus[]>([]);
@@ -42,7 +51,7 @@ export function VehicleStatusChart() {
 
         const statuses: VehicleStatus[] = Object.entries(statusCounts).map(([status, count]) => ({
           status,
-          count,
+          count: count as number,
         }));
 
         setVehicleStatuses(statuses);
@@ -55,46 +64,11 @@ export function VehicleStatusChart() {
     fetchVehicleStatuses();
   }, []);
 
-  const chartData = useMemo<ChartData[]>(() => {
-    return vehicleStatuses.map(status => ({
-      name: status.status,
-      value: status.count,
-    }));
-  }, [vehicleStatuses]);
-
-  const { theme } = useTheme();
-  const { data: chartInput } = useChart({
-    type: "doughnut",
-    data: {
-      labels: chartData.map((item) => item.name),
-      datasets: [
-        {
-          data: chartData.map((item) => item.value),
-          backgroundColor: [
-            "#065F46",
-            "#10B981",
-            "#34D399",
-            "#A7F3D0",
-            "#D1FAE5",
-          ],
-          borderWidth: 0,
-        },
-      ],
-    },
-    options: {
-      cutout: "60%",
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false,
-        },
-      },
-      scales: {
-        x: { display: false },
-        y: { display: false },
-      },
-    },
-  });
+  const chartData: ChartData[] = vehicleStatuses.map((status, index) => ({
+    name: status.status,
+    value: status.count,
+    color: STATUS_COLORS[index % STATUS_COLORS.length],
+  }));
 
   return (
     <Card>
@@ -102,29 +76,49 @@ export function VehicleStatusChart() {
         <CardTitle>Vehicle Status</CardTitle>
         <CardDescription>Overview of vehicle availability</CardDescription>
       </CardHeader>
-      <CardContent className="pl-2 flex flex-col items-center justify-center">
-        <div className="relative w-full h-[240px] flex items-center justify-center">
-          {chartInput ? (
-            <Doughnut data={chartInput.data} options={chartInput.options as ChartOptions<"doughnut">} />
-          ) : (
-            <p>Loading chart...</p>
-          )}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-            <div className="text-2xl font-bold">{totalVehicles}</div>
-            <div className="text-sm text-muted-foreground">Total Vehicles</div>
+      <CardContent className="pl-2">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="relative w-full h-[240px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+              <div className="text-2xl font-bold">{totalVehicles}</div>
+              <div className="text-sm text-muted-foreground">Total Vehicles</div>
+            </div>
+          </div>
+          
+          <div className="w-full space-y-2">
+            {vehicleStatuses.map((status, index) => (
+              <div key={status.status} className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: STATUS_COLORS[index % STATUS_COLORS.length] }}
+                  />
+                  <Badge variant="secondary">{status.status}</Badge>
+                  <span className="capitalize">{status.status.replace('_', ' ')}</span>
+                </div>
+                <span className="font-medium">{status.count}</span>
+              </div>
+            ))}
           </div>
         </div>
-        <ul className="w-full space-y-2">
-          {vehicleStatuses.map((status) => (
-            <li key={status.status} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary">{status.status}</Badge>
-                <span>{status.status}</span>
-              </div>
-              <span>{status.count}</span>
-            </li>
-          ))}
-        </ul>
       </CardContent>
     </Card>
   );
