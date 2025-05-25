@@ -27,6 +27,16 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
       stroke: "#f1f5f9"
     };
 
+    const tooltipProps = {
+      formatter: (value: number) => [formatCurrency(value), 'Revenue'],
+      contentStyle: {
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '0.5rem',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      }
+    };
+
     switch(chartType) {
       case 'bar':
         return (
@@ -34,15 +44,7 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
             <CartesianGrid {...commonCartesianProps} />
             <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
             <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
-            <Tooltip 
-              formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-              contentStyle={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.5rem',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <Tooltip {...tooltipProps} />
             <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} animationDuration={800} />
           </BarChart>
         );
@@ -53,15 +55,7 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
             <CartesianGrid {...commonCartesianProps} />
             <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
             <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
-            <Tooltip 
-              formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-              contentStyle={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.5rem',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <Tooltip {...tooltipProps} />
             <Line 
               type="monotone" 
               dataKey="revenue" 
@@ -86,15 +80,7 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
             <CartesianGrid {...commonCartesianProps} />
             <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
             <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
-            <Tooltip 
-              formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-              contentStyle={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.5rem',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <Tooltip {...tooltipProps} />
             <Area 
               type="monotone" 
               dataKey="revenue" 
