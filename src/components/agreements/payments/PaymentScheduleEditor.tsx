@@ -40,7 +40,7 @@ interface PaymentItem {
   status: string;
 }
 
-const PaymentScheduleEditor = ({
+const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   agreementId,
   startDate,
   endDate,
@@ -49,7 +49,7 @@ const PaymentScheduleEditor = ({
   paymentDay,
   onFrequencyChange,
   onPaymentDayChange,
-}: PaymentScheduleEditorProps) => {
+}) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
@@ -149,7 +149,7 @@ const PaymentScheduleEditor = ({
             min={1} 
             max={31} 
             value={paymentDay} 
-            onChange={(e) => onPaymentDayChange(parseInt(e.target.value) || 1)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPaymentDayChange(parseInt(e.target.value) || 1)}
           />
           <p className="text-xs text-muted-foreground mt-1">
             {paymentFrequency === 'monthly' || paymentFrequency === 'quarterly' 

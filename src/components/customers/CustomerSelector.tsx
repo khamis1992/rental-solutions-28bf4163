@@ -16,13 +16,13 @@ interface CustomerSelectorProps {
   disabled?: boolean;
 }
 
-const CustomerSelector = ({
+const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   onCustomerSelect,
   selectedCustomer,
   inputClassName,
   placeholder = "Select a customer",
   disabled = false
-}: CustomerSelectorProps) => {
+}) => {
   const [open, setOpen] = useState<boolean>(false);
   const [customers, setCustomers] = useState<CustomerInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -125,7 +125,7 @@ const CustomerSelector = ({
         <Command>
           <CommandInput
             placeholder="Search for customers..."
-            onValueChange={(value) => {
+            onValueChange={(value: string) => {
               console.log('Search input changed:', value);
               setSearchQuery(value);
             }}
