@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -60,8 +59,8 @@ const AgreementEditor = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-  const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
-  const [selectedVehicle, setSelectedVehicle] = useState(null as any);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   
   const agreementService = useAgreementService();
   
@@ -70,7 +69,7 @@ const AgreementEditor = () => {
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
-      agreement_type: 'short_term', // Changed from 'rental' to 'short_term'
+      agreement_type: 'short_term',
       status: 'draft',
       customer_id: '',
       vehicle_id: '',
@@ -119,6 +118,24 @@ const AgreementEditor = () => {
             terms_accepted: agreement.terms_accepted || false,
             additional_drivers: agreement.additional_drivers || [],
           });
+
+          // Set selected customer and vehicle for display
+          if (agreement.customers) {
+            const customerData: CustomerInfo = {
+              id: agreement.customer_id || '',
+              full_name: agreement.customers.full_name || '',
+              email: agreement.customers.email || '',
+              phone_number: agreement.customers.phone_number || '',
+              driver_license: agreement.customers.driver_license || '',
+              nationality: agreement.customers.nationality || '',
+              address: agreement.customers.address || ''
+            };
+            setSelectedCustomer(customerData);
+          }
+
+          if (agreement.vehicles) {
+            setSelectedVehicle(agreement.vehicles);
+          }
         }
       } catch (error) {
         console.error("Error loading agreement:", error);

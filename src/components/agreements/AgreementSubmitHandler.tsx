@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +15,6 @@ interface AgreementSubmitHandlerProps {
 }
 
 const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ children }) => {
-  // Fix type parameter usage
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {

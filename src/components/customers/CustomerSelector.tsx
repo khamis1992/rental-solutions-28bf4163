@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -29,55 +29,80 @@ const CustomerSelector = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch customers when the component mounts or when search query changes
+  // Debounced search function
+  const debouncedFetch = useCallback((query: string) => {
+    const timeoutId = setTimeout(() => {
+      fetchCustomers(query);
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Effect to trigger search when query changes
   useEffect(() => {
-    const fetchCustomers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        let query = supabase
-          .from('profiles')
-          .select('id, full_name, email, phone_number')
-          .eq('role', 'customer')
-          .order('full_name');
+    const cleanup = debouncedFetch(searchQuery);
+    return cleanup;
+  }, [searchQuery, debouncedFetch]);
+
+  // Fetch customers function
+  const fetchCustomers = async (query: string = '') => {
+    setLoading(true);
+    setError(null);
+    try {
+      let supabaseQuery = supabase
+        .from('profiles')
+        .select('id, full_name, email, phone_number')
+        .eq('role', 'customer')
+        .order('full_name');
           
-        if (searchQuery) {
-          query = query.ilike('full_name', `%${searchQuery}%`);
-        }
-        
-        const { data, error } = await query.limit(20);
-        
-        if (error) {
-          console.error('Error fetching customers:', error);
-          setError('Failed to load customers');
-          setCustomers([]);
-          return;
-        }
-        
-        // Ensure data is an array before setting state
-        setCustomers(Array.isArray(data) ? data : []);
-      } catch (error: any) {
-        console.error('Error in fetchCustomers:', error);
-        setError('An unexpected error occurred');
-        setCustomers([]);
-      } finally {
-        setLoading(false);
+      if (query.trim()) {
+        supabaseQuery = supabaseQuery.ilike('full_name', `%${query.trim()}%`);
       }
-    };
+      
+      const { data, error } = await supabaseQuery.limit(20);
+      
+      if (error) {
+        console.error('Error fetching customers:', error);
+        setError('Failed to load customers');
+        setCustomers([]);
+        return;
+      }
+      
+      // Transform data to CustomerInfo format
+      const transformedCustomers: CustomerInfo[] = (data || []).map(item => ({
+        id: item.id,
+        full_name: item.full_name || '',
+        email: item.email || '',
+        phone_number: item.phone_number || '',
+        driver_license: '',
+        nationality: '',
+        address: ''
+      }));
+      
+      setCustomers(transformedCustomers);
+    } catch (error: any) {
+      console.error('Error in fetchCustomers:', error);
+      setError('An unexpected error occurred');
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchCustomers();
-  }, [searchQuery]);
-
+  // Handle customer selection
   const handleSelect = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
       onCustomerSelect(customer);
     }
     setOpen(false);
+    setSearchQuery(''); // Clear search after selection
   };
 
-  // Ensure customers is always an array
-  const safeCustomers = Array.isArray(customers) ? customers : [];
+  // Initial load when component mounts
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -111,11 +136,13 @@ const CustomerSelector = ({
                 {error}
               </div>
             )}
-            {!loading && !error && safeCustomers.length === 0 && (
-              <CommandEmpty>No customers found.</CommandEmpty>
+            {!loading && !error && customers.length === 0 && (
+              <CommandEmpty>
+                {searchQuery ? 'No customers found.' : 'No customers available.'}
+              </CommandEmpty>
             )}
             <CommandGroup>
-              {!loading && !error && safeCustomers.map((customer) => (
+              {!loading && !error && customers.map((customer) => (
                 <CommandItem
                   key={customer.id}
                   value={customer.id}
