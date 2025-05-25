@@ -1,8 +1,9 @@
 
 import { Tables } from './types';
+import { isValidUUID, validateUUID } from '../uuid-validation';
 
 /**
- * Common ID types
+ * Common ID types with validation
  */
 export type UUID = string;
 export type LeaseId = UUID;
@@ -32,34 +33,34 @@ export type TrafficFineRow = Tables['traffic_fines']['Row'];
 export type LegalCaseRow = Tables['legal_cases']['Row'];
 
 /**
- * Type-safe ID conversion functions
+ * Type-safe ID conversion functions with validation
  */
-export function asLeaseId(id: string): LeaseId {
-  return id as LeaseId;
+export function asLeaseId(id: string | undefined | null): LeaseId {
+  return validateUUID(id, 'LeaseId');
 }
 
-export function asVehicleId(id: string): VehicleId {
-  return id as VehicleId;
+export function asVehicleId(id: string | undefined | null): VehicleId {
+  return validateUUID(id, 'VehicleId');
 }
 
-export function asProfileId(id: string): ProfileId {
-  return id as ProfileId;
+export function asProfileId(id: string | undefined | null): ProfileId {
+  return validateUUID(id, 'ProfileId');
 }
 
-export function asPaymentId(id: string): PaymentId {
-  return id as PaymentId;
+export function asPaymentId(id: string | undefined | null): PaymentId {
+  return validateUUID(id, 'PaymentId');
 }
 
-export function asTrafficFineId(id: string): TrafficFineId {
-  return id as TrafficFineId;
+export function asTrafficFineId(id: string | undefined | null): TrafficFineId {
+  return validateUUID(id, 'TrafficFineId');
 }
 
-export function asLegalCaseId(id: string): LegalCaseId {
-  return id as LegalCaseId;
+export function asLegalCaseId(id: string | undefined | null): LegalCaseId {
+  return validateUUID(id, 'LegalCaseId');
 }
 
-export function asMaintenanceId(id: string): MaintenanceId {
-  return id as MaintenanceId;
+export function asMaintenanceId(id: string | undefined | null): MaintenanceId {
+  return validateUUID(id, 'MaintenanceId');
 }
 
 /**

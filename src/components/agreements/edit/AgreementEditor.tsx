@@ -33,6 +33,7 @@ import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { CustomerInfo } from '@/types/customer';
+import { isValidUUID } from '@/lib/uuid-validation';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -67,6 +68,9 @@ const AgreementEditor: React.FC = () => {
   const agreementService = useAgreementService();
   const { generatePayment } = usePaymentSchedule();
   
+  // Check if we have a valid agreement ID
+  const isValidAgreementId = id && isValidUUID(id);
+  
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
@@ -93,9 +97,9 @@ const AgreementEditor: React.FC = () => {
   // Load agreement data if editing
   useEffect(() => {
     const loadAgreement = async () => {
-      // Validate ID before making API call
-      if (!id || id === 'undefined' || id === 'null') {
-        console.log('No valid ID provided for agreement loading');
+      // Only load if we have a valid UUID
+      if (!isValidAgreementId) {
+        console.log('No valid agreement ID provided for loading');
         return;
       }
       
@@ -171,7 +175,7 @@ const AgreementEditor: React.FC = () => {
     };
     
     loadAgreement();
-  }, [id, agreementService, form, toast, navigate]);
+  }, [id, agreementService, form, toast, navigate, isValidAgreementId]);
   
   // Generate payment schedule for the agreement
   const generatePaymentSchedule = async (agreementId: string) => {
@@ -244,7 +248,7 @@ const AgreementEditor: React.FC = () => {
       };
       
       let result;
-      const isNewAgreement = !id || id === 'undefined' || id === 'null';
+      const isNewAgreement = !isValidAgreementId;
       
       if (isNewAgreement) {
         // Create new agreement
@@ -267,7 +271,7 @@ const AgreementEditor: React.FC = () => {
         // Update existing agreement
         console.log('Updating existing agreement:', id);
         result = await agreementService.updateAgreement({
-          id,
+          id: id!,
           data
         });
         
@@ -283,7 +287,7 @@ const AgreementEditor: React.FC = () => {
                                          formData.rent_due_day !== form.formState.defaultValues?.rent_due_day;
           
           if (shouldRegeneratePayments) {
-            await generatePaymentSchedule(id);
+            await generatePaymentSchedule(id!);
           }
           
           navigate(`/agreements/${result.id || id}`);
@@ -355,7 +359,7 @@ const AgreementEditor: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{id && id !== 'undefined' ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
+          <CardTitle>{isValidAgreementId ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -637,7 +641,7 @@ const AgreementEditor: React.FC = () => {
                       ? "Generating Payments..." 
                       : isLoading 
                         ? "Saving..." 
-                        : id && id !== 'undefined' 
+                        : isValidAgreementId 
                           ? "Update Agreement" 
                           : "Create Agreement"}
                   </Button>

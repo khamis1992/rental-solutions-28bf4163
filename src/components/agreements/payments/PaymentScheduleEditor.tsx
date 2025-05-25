@@ -23,6 +23,7 @@ import { CalendarIcon, Loader2, RefreshCw } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { usePaymentSchedule } from '@/hooks/payment/use-payment-schedule';
+import { isValidUUID } from '@/lib/uuid-validation';
 import { toast } from 'sonner';
 
 interface PaymentScheduleEditorProps {
@@ -55,6 +56,9 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { generatePayment } = usePaymentSchedule();
+
+  // Check if agreementId is valid for payment generation
+  const canGeneratePayments = agreementId && isValidUUID(agreementId);
 
   // Generate payment schedule based on inputs
   const generatePaymentSchedule = (): PaymentItem[] => {
@@ -120,14 +124,8 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
 
   // Handle manual payment generation for existing agreements
   const handleGenerateActualPayments = async () => {
-    if (!agreementId) {
-      toast.error("Agreement ID is required to generate payments");
-      return;
-    }
-
-    // Validate that agreementId is a proper UUID and not "undefined"
-    if (agreementId === 'undefined' || agreementId === 'null' || !agreementId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      toast.error("Invalid agreement ID. Please save the agreement first.");
+    if (!canGeneratePayments) {
+      toast.error("Please save the agreement first to generate payment records");
       return;
     }
 
@@ -135,7 +133,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
       setIsGenerating(true);
       console.log('Generating actual payments for agreement:', agreementId);
       
-      const result = await generatePayment(agreementId);
+      const result = await generatePayment(agreementId!);
       
       if (result?.success) {
         toast.success("Payment records generated successfully");
@@ -207,7 +205,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
             Preview Schedule
           </Button>
           
-          {agreementId && agreementId !== 'undefined' && (
+          {canGeneratePayments && (
             <Button 
               onClick={handleGenerateActualPayments}
               disabled={isGenerating}
@@ -275,7 +273,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
               ) : (
                 <div className="space-y-2">
                   <p>No payment schedule generated yet</p>
-                  {!agreementId && (
+                  {!canGeneratePayments && (
                     <p className="text-xs">Save the agreement first to generate actual payment records</p>
                   )}
                 </div>

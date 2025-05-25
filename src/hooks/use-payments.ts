@@ -1,26 +1,33 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { paymentRepository } from '@/lib/database';
-import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
+import { isValidUUID } from '@/lib/uuid-validation';
 import type { Payment } from '@/types/payment.types';
 
 export const usePayments = (agreementId?: string) => {
+  // Validate the agreementId before making any queries
+  const isValidAgreementId = agreementId && isValidUUID(agreementId);
+  
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     ['payments', agreementId],
     async () => {
-      if (!agreementId) return [] as Payment[];
+      // Return empty array if agreementId is invalid
+      if (!isValidAgreementId) {
+        console.warn('usePayments: Invalid agreement ID provided:', agreementId);
+        return [] as Payment[];
+      }
       
       const response = await paymentRepository.findByLeaseId(agreementId);
       
       if (response.error) {
-        console.error("Error fetching payments:", response.error);
+        console.error("usePayments: Error fetching payments:", response.error);
         return [] as Payment[];
       }
       
       return response.data as Payment[] || [];
     },
     {
-      enabled: !!agreementId,
+      enabled: isValidAgreementId,
     }
   );
 
@@ -36,39 +43,37 @@ export const usePayments = (agreementId?: string) => {
     const response = await paymentRepository.recordPayment(paymentToAdd);
 
     if (response.error) {
-      console.error("Error adding payment:", response.error);
+      console.error("usePayments: Error adding payment:", response.error);
       return null;
     }
     return response.data;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    // Destructuring should happen outside the function for clarity
     const { id, data: paymentData } = paymentUpdate;
     
-    // Make sure we have a valid payment ID
-    if (!id) {
-      throw new Error("Invalid payment ID");
+    if (!isValidUUID(id)) {
+      throw new Error(`Invalid payment ID: ${id}`);
     }
 
     const response = await paymentRepository.update(id, paymentData);
 
     if (response.error) {
-      console.error("Error updating payment:", response.error);
+      console.error("usePayments: Error updating payment:", response.error);
       throw response.error;
     }
     return response.data;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    if (!paymentId) {
-      throw new Error("Invalid payment ID");
+    if (!isValidUUID(paymentId)) {
+      throw new Error(`Invalid payment ID: ${paymentId}`);
     }
 
     const response = await paymentRepository.delete(paymentId);
 
     if (response.error) {
-      console.error("Error deleting payment:", response.error);
+      console.error("usePayments: Error deleting payment:", response.error);
       throw response.error;
     }
     return { success: true };
@@ -86,5 +91,6 @@ export const usePayments = (agreementId?: string) => {
     updatePayment: updatePayment.mutateAsync,
     deletePayment: deletePayment.mutateAsync,
     fetchPayments,
+    isValidAgreementId, // Expose this for debugging
   };
 };
