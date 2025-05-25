@@ -91,10 +91,15 @@ const AgreementEditor = () => {
   // Load agreement data if editing
   useEffect(() => {
     const loadAgreement = async (): Promise<void> => {
-      if (!id) return;
+      // Validate ID before making API call
+      if (!id || id === 'undefined' || id === 'null') {
+        console.log('No valid ID provided for agreement loading');
+        return;
+      }
       
       setIsLoading(true);
       try {
+        console.log('Loading agreement with ID:', id);
         const agreement = await agreementService.getAgreementDetails(id);
         if (agreement) {
           // Format dates properly
@@ -137,21 +142,34 @@ const AgreementEditor = () => {
           if (agreement.vehicles) {
             setSelectedVehicle(agreement.vehicles);
           }
+        } else {
+          console.log('No agreement found with ID:', id);
+          toast({
+            title: "Not Found",
+            description: "Agreement not found",
+            variant: "destructive",
+          });
+          navigate('/agreements');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading agreement:", error);
+        const errorMessage = error?.message || 'Failed to load agreement details';
         toast({
           title: "Error",
-          description: "Failed to load agreement details",
+          description: errorMessage,
           variant: "destructive",
         });
+        // If it's a UUID error, redirect to agreements list
+        if (errorMessage.includes('uuid') || errorMessage.includes('UUID')) {
+          navigate('/agreements');
+        }
       } finally {
         setIsLoading(false);
       }
     };
     
     loadAgreement();
-  }, [id, agreementService, form, toast]);
+  }, [id, agreementService, form, toast, navigate]);
   
   // Handle form submission
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
@@ -164,7 +182,7 @@ const AgreementEditor = () => {
       };
       
       let result;
-      if (id) {
+      if (id && id !== 'undefined' && id !== 'null') {
         // Update existing agreement
         result = await agreementService.updateAgreement({
           id,
@@ -245,7 +263,7 @@ const AgreementEditor = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{id ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
+          <CardTitle>{id && id !== 'undefined' ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -523,7 +541,7 @@ const AgreementEditor = () => {
                   </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id ? "Update Agreement" : "Create Agreement"}
+                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement"}
                   </Button>
                 </div>
               </form>
