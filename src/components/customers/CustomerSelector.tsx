@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   const { customers, isLoading } = useCustomers(searchQuery);
 
   // Clear selection
-  const handleClearSelection = (e: React.MouseEvent) => {
+  const handleClearSelection = (e: React.MouseEvent<SVGSVGElement>) => {
     e.stopPropagation();
     onCustomerSelect({
       id: '',
@@ -85,7 +86,15 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                     key={customer.id}
                     value={customer.id}
                     onSelect={() => {
-                      onCustomerSelect(customer);
+                      onCustomerSelect({
+                        id: customer.id || '',
+                        full_name: customer.full_name || '',
+                        email: customer.email || '',
+                        phone_number: customer.phone || '',
+                        driver_license: customer.driver_license || '',
+                        nationality: customer.nationality || '',
+                        address: customer.address || ''
+                      });
                       setOpen(false);
                     }}
                   >
@@ -98,7 +107,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
                     <div className="flex flex-col">
                       <span>{customer.full_name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {customer.phone_number}
+                        {customer.phone}
                       </span>
                     </div>
                   </CommandItem>
