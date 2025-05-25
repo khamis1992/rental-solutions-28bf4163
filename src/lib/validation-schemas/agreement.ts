@@ -1,5 +1,74 @@
 
 import { supabase } from '@/lib/supabase';
+import { isValidUUID, validateUUID } from '@/lib/uuid-validation';
+
+// Define the Agreement type
+export interface Agreement {
+  id: string;
+  agreement_number: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  rent_amount: number;
+  total_amount: number;
+  status: AgreementStatus;
+  created_at: string | Date;
+  updated_at?: string | Date;
+  daily_late_fee?: number;
+  rent_due_day?: number;
+  agreement_duration?: string;
+  lease_duration?: string;
+  initial_mileage?: number;
+  agreement_type?: string;
+  notes?: string;
+  template_id?: string;
+  processed_content?: string;
+  // Related data that might be included in joins
+  customers?: any;
+  profiles?: any;
+  vehicles?: any;
+}
+
+// Define agreement status enum
+export type AgreementStatus = 'draft' | 'active' | 'pending' | 'closed' | 'cancelled' | 'expired';
+
+// Agreement validation schema
+export const agreementSchema = {
+  agreement_number: {
+    required: true,
+    type: 'string',
+    minLength: 1
+  },
+  customer_id: {
+    required: true,
+    type: 'string',
+    validate: (value: string) => isValidUUID(value)
+  },
+  vehicle_id: {
+    required: true,
+    type: 'string',
+    validate: (value: string) => isValidUUID(value)
+  },
+  start_date: {
+    required: true,
+    type: 'date'
+  },
+  end_date: {
+    required: true,
+    type: 'date'
+  },
+  rent_amount: {
+    required: true,
+    type: 'number',
+    min: 0
+  },
+  status: {
+    required: true,
+    type: 'string',
+    enum: ['draft', 'active', 'pending', 'closed', 'cancelled', 'expired']
+  }
+};
 
 export async function forceGeneratePaymentForAgreement(
   supabaseClient: any,
@@ -7,25 +76,33 @@ export async function forceGeneratePaymentForAgreement(
 ): Promise<{ success: boolean; message?: string }> {
   console.log('forceGeneratePaymentForAgreement called with:', agreementId);
   
-  // Validate agreement ID
-  if (!agreementId || agreementId === 'undefined' || agreementId.trim() === '') {
-    console.error('Invalid agreement ID provided:', agreementId);
-    return { success: false, message: 'Invalid agreement ID provided' };
+  // Validate agreement ID with comprehensive checks
+  if (!agreementId || typeof agreementId !== 'string') {
+    console.error('Invalid agreement ID provided (not a string):', agreementId);
+    return { success: false, message: 'Agreement ID must be a valid string' };
+  }
+
+  // Check for common invalid values
+  if (agreementId === 'undefined' || agreementId === 'null' || agreementId.trim() === '') {
+    console.error('Invalid agreement ID provided (undefined/null/empty):', agreementId);
+    return { success: false, message: 'Agreement ID cannot be undefined, null, or empty' };
   }
 
   // Validate UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(agreementId)) {
+  if (!isValidUUID(agreementId)) {
     console.error('Invalid UUID format:', agreementId);
     return { success: false, message: `Invalid UUID format: ${agreementId}` };
   }
 
   try {
+    // Validate the UUID one more time before database query
+    const validatedId = validateUUID(agreementId, 'Agreement ID');
+    
     // First check if agreement exists
     const { data: agreement, error: agreementError } = await supabaseClient
       .from('leases')
       .select('id, agreement_number, rent_amount, start_date, end_date, status')
-      .eq('id', agreementId)
+      .eq('id', validatedId)
       .single();
 
     if (agreementError) {
@@ -34,7 +111,7 @@ export async function forceGeneratePaymentForAgreement(
     }
 
     if (!agreement) {
-      console.error('Agreement not found with ID:', agreementId);
+      console.error('Agreement not found with ID:', validatedId);
       return { success: false, message: 'Agreement not found' };
     }
 
@@ -53,7 +130,7 @@ export async function forceGeneratePaymentForAgreement(
     const { data: existingPayments, error: paymentsError } = await supabaseClient
       .from('unified_payments')
       .select('id')
-      .eq('lease_id', agreementId)
+      .eq('lease_id', validatedId)
       .limit(1);
 
     if (paymentsError) {
@@ -76,7 +153,7 @@ export async function forceGeneratePaymentForAgreement(
     }
 
     const paymentData = {
-      lease_id: agreementId,
+      lease_id: validatedId,
       amount: agreement.rent_amount,
       due_date: firstPaymentDate.toISOString(),
       description: `Monthly rent - ${firstPaymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,

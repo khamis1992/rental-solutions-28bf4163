@@ -58,7 +58,14 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   const { generatePayment } = usePaymentSchedule();
 
   // Check if agreementId is valid for payment generation
-  const canGeneratePayments = agreementId && isValidUUID(agreementId);
+  const canGeneratePayments = Boolean(agreementId && isValidUUID(agreementId));
+
+  // Debug logging for agreement ID
+  useEffect(() => {
+    console.log('PaymentScheduleEditor - Agreement ID:', agreementId);
+    console.log('PaymentScheduleEditor - Is valid UUID:', isValidUUID(agreementId));
+    console.log('PaymentScheduleEditor - Can generate payments:', canGeneratePayments);
+  }, [agreementId, canGeneratePayments]);
 
   // Generate payment schedule based on inputs
   const generatePaymentSchedule = (): PaymentItem[] => {
@@ -126,15 +133,22 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   const handleGenerateActualPayments = async () => {
     console.log('handleGenerateActualPayments called with agreementId:', agreementId);
     
-    if (!agreementId) {
-      console.error('No agreement ID provided');
-      toast.error("No agreement ID available");
+    // Comprehensive validation
+    if (!agreementId || typeof agreementId !== 'string') {
+      console.error('No valid agreement ID provided:', agreementId);
+      toast.error("No valid agreement ID available");
+      return;
+    }
+
+    if (agreementId === 'undefined' || agreementId === 'null' || agreementId.trim() === '') {
+      console.error('Agreement ID is undefined, null, or empty:', agreementId);
+      toast.error("Invalid agreement ID. Please save the agreement first.");
       return;
     }
 
     if (!canGeneratePayments) {
-      console.error('Invalid agreement ID:', agreementId);
-      toast.error("Invalid agreement ID. Please save the agreement first.");
+      console.error('Invalid agreement ID (UUID validation failed):', agreementId);
+      toast.error("Invalid agreement ID format. Please check the agreement details.");
       return;
     }
 

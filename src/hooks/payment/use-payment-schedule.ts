@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { useLoadingStates } from './use-loading-states';
+import { isValidUUID, validateUUID } from '@/lib/uuid-validation';
 
 /**
  * Hook for payment schedule management operations
@@ -18,22 +19,33 @@ export function usePaymentSchedule() {
 
   // Generate a payment for a specific agreement
   const generatePaymentMutation = useMutation({
-    mutationFn: async (agreementId: string) => {
+    mutationFn: async (agreementId: string | undefined | null) => {
       console.log('Generating payment for agreement ID:', agreementId);
       
-      // Validate agreement ID before proceeding
-      if (!agreementId || agreementId === 'undefined' || agreementId.trim() === '') {
-        throw new Error('Invalid agreement ID provided');
+      // Comprehensive validation of agreement ID
+      if (!agreementId || typeof agreementId !== 'string') {
+        console.error('Invalid agreement ID provided (not a string):', agreementId);
+        throw new Error('Agreement ID must be a valid string');
+      }
+
+      // Check for common invalid values
+      if (agreementId === 'undefined' || agreementId === 'null' || agreementId.trim() === '') {
+        console.error('Invalid agreement ID provided (undefined/null/empty):', agreementId);
+        throw new Error('Agreement ID cannot be undefined, null, or empty');
       }
 
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(agreementId)) {
+      if (!isValidUUID(agreementId)) {
+        console.error('Invalid UUID format for agreement ID:', agreementId);
         throw new Error(`Invalid UUID format for agreement ID: ${agreementId}`);
       }
 
       try {
-        const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
+        // Additional validation before calling the function
+        const validatedId = validateUUID(agreementId, 'Agreement ID');
+        console.log('Validated agreement ID:', validatedId);
+        
+        const result = await forceGeneratePaymentForAgreement(supabase, validatedId);
         return result;
       } catch (error) {
         console.error("Error generating payment:", error);
@@ -114,13 +126,26 @@ export function usePaymentSchedule() {
   });
 
   // Wrapper functions with loading state management
-  const generatePayment = async (agreementId: string) => {
+  const generatePayment = async (agreementId: string | undefined | null) => {
     console.log('generatePayment called with:', agreementId);
     
-    if (!agreementId || agreementId === 'undefined') {
+    // Early validation before any processing
+    if (!agreementId || typeof agreementId !== 'string') {
       console.error('Invalid agreement ID provided to generatePayment:', agreementId);
       toast.error('Invalid agreement ID. Cannot generate payment schedule.');
       return { success: false, message: 'Invalid agreement ID' };
+    }
+
+    if (agreementId === 'undefined' || agreementId === 'null' || agreementId.trim() === '') {
+      console.error('Invalid agreement ID provided to generatePayment (undefined/null/empty):', agreementId);
+      toast.error('Invalid agreement ID. Cannot generate payment schedule.');
+      return { success: false, message: 'Invalid agreement ID' };
+    }
+
+    if (!isValidUUID(agreementId)) {
+      console.error('Invalid UUID format provided to generatePayment:', agreementId);
+      toast.error('Invalid agreement ID format. Please check the agreement details.');
+      return { success: false, message: 'Invalid UUID format' };
     }
 
     try {
