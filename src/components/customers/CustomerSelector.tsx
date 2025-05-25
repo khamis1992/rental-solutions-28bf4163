@@ -23,10 +23,10 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   placeholder = "Select a customer",
   disabled = false
 }) => {
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
   const [customers, setCustomers] = useState<CustomerInfo[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // Debounced search function
@@ -45,7 +45,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   }, [searchQuery, debouncedFetch]);
 
   // Fetch customers function
-  const fetchCustomers = async (query: string = ''): Promise<void> => {
+  const fetchCustomers = async (query: string = '') => {
     console.log('Fetching customers with query:', query);
     setLoading(true);
     setError(null);
@@ -92,7 +92,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   };
 
   // Handle customer selection
-  const handleSelect = (customerId: string): void => {
+  const handleSelect = (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
       console.log('Customer selected:', customer);

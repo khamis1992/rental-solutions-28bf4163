@@ -53,7 +53,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   onPaymentDayChange,
 }) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { generatePayment } = usePaymentSchedule();
 
   // Generate payment schedule based on inputs
@@ -119,9 +119,15 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   };
 
   // Handle manual payment generation for existing agreements
-  const handleGenerateActualPayments = async (): Promise<void> => {
+  const handleGenerateActualPayments = async () => {
     if (!agreementId) {
       toast.error("Agreement ID is required to generate payments");
+      return;
+    }
+
+    // Validate that agreementId is a proper UUID and not "undefined"
+    if (agreementId === 'undefined' || agreementId === 'null' || !agreementId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      toast.error("Invalid agreement ID. Please save the agreement first.");
       return;
     }
 
@@ -201,7 +207,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
             Preview Schedule
           </Button>
           
-          {agreementId && (
+          {agreementId && agreementId !== 'undefined' && (
             <Button 
               onClick={handleGenerateActualPayments}
               disabled={isGenerating}

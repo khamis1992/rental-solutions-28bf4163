@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -59,11 +58,11 @@ const AgreementEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("details");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [isGeneratingPayments, setIsGeneratingPayments] = useState<boolean>(false);
+  const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
   
   const agreementService = useAgreementService();
   const { generatePayment } = usePaymentSchedule();
@@ -93,7 +92,7 @@ const AgreementEditor: React.FC = () => {
   
   // Load agreement data if editing
   useEffect(() => {
-    const loadAgreement = async (): Promise<void> => {
+    const loadAgreement = async () => {
       // Validate ID before making API call
       if (!id || id === 'undefined' || id === 'null') {
         console.log('No valid ID provided for agreement loading');
@@ -175,7 +174,7 @@ const AgreementEditor: React.FC = () => {
   }, [id, agreementService, form, toast, navigate]);
   
   // Generate payment schedule for the agreement
-  const generatePaymentSchedule = async (agreementId: string): Promise<void> => {
+  const generatePaymentSchedule = async (agreementId: string) => {
     try {
       setIsGeneratingPayments(true);
       console.log('Generating payment schedule for agreement:', agreementId);
@@ -207,7 +206,7 @@ const AgreementEditor: React.FC = () => {
   };
   
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
+  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
     setIsLoading(true);
     try {
       // Validate required fields for payment generation
@@ -307,7 +306,7 @@ const AgreementEditor: React.FC = () => {
   };
   
   // Calculate total amount based on rent and duration
-  const calculateTotalAmount = (): void => {
+  const calculateTotalAmount = () => {
     const startDate = form.getValues('start_date');
     const endDate = form.getValues('end_date');
     const rentAmount = form.getValues('rent_amount') || 0;
@@ -332,14 +331,14 @@ const AgreementEditor: React.FC = () => {
   }, [form]);
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: CustomerInfo): void => {
+  const handleCustomerSelect = (customer: CustomerInfo) => {
     console.log('Customer selected in AgreementEditor:', customer);
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };
 
   // Handle vehicle selection
-  const handleVehicleSelect = (vehicle: any): void => {
+  const handleVehicleSelect = (vehicle: any) => {
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
   };
