@@ -19,6 +19,19 @@ export function usePaymentSchedule() {
   // Generate a payment for a specific agreement
   const generatePaymentMutation = useMutation({
     mutationFn: async (agreementId: string) => {
+      console.log('Generating payment for agreement ID:', agreementId);
+      
+      // Validate agreement ID before proceeding
+      if (!agreementId || agreementId === 'undefined' || agreementId.trim() === '') {
+        throw new Error('Invalid agreement ID provided');
+      }
+
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(agreementId)) {
+        throw new Error(`Invalid UUID format for agreement ID: ${agreementId}`);
+      }
+
       try {
         const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
         return result;
@@ -36,6 +49,7 @@ export function usePaymentSchedule() {
       }
     },
     onError: (error) => {
+      console.error('Payment generation error:', error);
       toast.error(`Error generating payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
@@ -101,6 +115,14 @@ export function usePaymentSchedule() {
 
   // Wrapper functions with loading state management
   const generatePayment = async (agreementId: string) => {
+    console.log('generatePayment called with:', agreementId);
+    
+    if (!agreementId || agreementId === 'undefined') {
+      console.error('Invalid agreement ID provided to generatePayment:', agreementId);
+      toast.error('Invalid agreement ID. Cannot generate payment schedule.');
+      return { success: false, message: 'Invalid agreement ID' };
+    }
+
     try {
       setLoading('generatePayment');
       const result = await generatePaymentMutation.mutateAsync(agreementId);

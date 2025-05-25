@@ -54,7 +54,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   onPaymentDayChange,
 }) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const { generatePayment } = usePaymentSchedule();
 
   // Check if agreementId is valid for payment generation
@@ -124,8 +124,17 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
 
   // Handle manual payment generation for existing agreements
   const handleGenerateActualPayments = async () => {
+    console.log('handleGenerateActualPayments called with agreementId:', agreementId);
+    
+    if (!agreementId) {
+      console.error('No agreement ID provided');
+      toast.error("No agreement ID available");
+      return;
+    }
+
     if (!canGeneratePayments) {
-      toast.error("Please save the agreement first to generate payment records");
+      console.error('Invalid agreement ID:', agreementId);
+      toast.error("Invalid agreement ID. Please save the agreement first.");
       return;
     }
 
@@ -133,7 +142,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
       setIsGenerating(true);
       console.log('Generating actual payments for agreement:', agreementId);
       
-      const result = await generatePayment(agreementId!);
+      const result = await generatePayment(agreementId);
       
       if (result?.success) {
         toast.success("Payment records generated successfully");
@@ -215,8 +224,20 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
               ) : (
                 <CalendarIcon className="mr-2 h-4 w-4" />
               )}
-              Generate Payments
+              Generate Payment Schedule
             </Button>
+          )}
+          
+          {!canGeneratePayments && agreementId && (
+            <div className="text-xs text-red-500">
+              Invalid agreement ID: {agreementId}
+            </div>
+          )}
+          
+          {!agreementId && (
+            <div className="text-xs text-muted-foreground">
+              Save agreement first to generate payments
+            </div>
           )}
         </div>
       </div>

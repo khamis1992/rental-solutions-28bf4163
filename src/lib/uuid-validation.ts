@@ -1,42 +1,38 @@
 
 /**
- * UUID validation utilities
+ * Validates if a string is a valid UUID v4 format
  */
-
-export function isValidUUID(value: string | undefined | null): value is string {
-  if (!value || typeof value !== 'string') {
+export function isValidUUID(uuid: string | undefined | null): boolean {
+  if (!uuid || typeof uuid !== 'string') {
     return false;
   }
   
-  // Check for the literal string "undefined" or "null"
-  if (value === 'undefined' || value === 'null') {
+  // Check for common invalid values
+  if (uuid === 'undefined' || uuid === 'null' || uuid.trim() === '') {
     return false;
   }
   
   // UUID v4 regex pattern
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
+  return uuidRegex.test(uuid);
 }
 
-export function validateUUID(value: string | undefined | null, context?: string): string {
-  if (!isValidUUID(value)) {
-    const errorMsg = context 
-      ? `Invalid UUID format in ${context}: ${value}`
-      : `Invalid UUID format: ${value}`;
-    console.error(errorMsg);
-    throw new Error(errorMsg);
+/**
+ * Validates if a string is a valid UUID and throws an error if not
+ */
+export function validateUUID(uuid: string | undefined | null, fieldName: string = 'UUID'): string {
+  if (!isValidUUID(uuid)) {
+    throw new Error(`Invalid ${fieldName}: ${uuid}`);
   }
-  return value;
+  return uuid as string;
 }
 
-export function safeUUID(value: string | undefined | null, fallback?: string): string | null {
-  if (isValidUUID(value)) {
-    return value;
+/**
+ * Safely converts a value to a UUID, returning null if invalid
+ */
+export function safeUUID(uuid: unknown): string | null {
+  if (typeof uuid === 'string' && isValidUUID(uuid)) {
+    return uuid;
   }
-  
-  if (fallback && isValidUUID(fallback)) {
-    return fallback;
-  }
-  
   return null;
 }
