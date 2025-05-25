@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CustomerInfo } from '@/types/customer';
 import {
@@ -36,16 +36,22 @@ import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { toast } from "sonner";
 
 interface CustomerDataGridProps {
-  customers: CustomerInfo[];
+  customers: Customer[];
   isLoading: boolean;
-  onCustomerSelect?: (customer: CustomerInfo) => void;
+  onCustomerSelect?: (customer: Customer) => void;
+  onCustomerEdit?: (customer: Customer) => void;
+  onCustomerDelete?: (customerId: string) => void;
+  showActions?: boolean;
 }
 
-export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({ 
-  customers, 
+export function CustomerDataGrid({
+  customers,
   isLoading,
-  onCustomerSelect
-}) => {
+  onCustomerSelect,
+  onCustomerEdit,
+  onCustomerDelete,
+  showActions = true
+}: CustomerDataGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -92,6 +98,12 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
       }
     );
   };
+
+  const handleRowClick = useCallback((customer: Customer, event: React.MouseEvent<HTMLTableRowElement>) => {
+    if (onCustomerSelect) {
+      onCustomerSelect(customer);
+    }
+  }, [onCustomerSelect]);
 
   if (isLoading) {
     return (
@@ -174,7 +186,7 @@ export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({
               <TableRow 
                 key={customer.id} 
                 className="hover:bg-muted/50 cursor-pointer"
-                onClick={() => onCustomerSelect?.(customer)}
+                onClick={(e) => handleRowClick(customer, e)}
               >
                 <TableCell>
                   <div className="flex items-center gap-3">

@@ -1,129 +1,131 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Doughnut, DoughnutChartOptions, ChartData, ChartOptions } from 'chart.js';
+import { useTheme } from 'next-themes';
+import { useChart } from "@/hooks/use-chart";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from '@/lib/supabase';
 
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { statusConfig } from './vehicle-status/status-config';
-import { VehicleStatusData } from './vehicle-status/types';
-import { StatusListItem } from './vehicle-status/StatusListItem';
-import { StatusChart } from './vehicle-status/StatusChart';
-import { ChartControls } from './vehicle-status/ChartControls';
-
-interface VehicleStatusChartProps {
-  data?: VehicleStatusData;
+interface VehicleStatus {
+  status: string;
+  count: number;
 }
 
-const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
-  const navigate = useNavigate();
-  const [chartType, setChartType] = useState<'pie' | 'donut'>('donut');
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  
-  if (!data) return null;
-  
-  const normalizedData = { ...data };
-  
-  statusConfig.forEach(status => {
-    if (normalizedData[status.key as keyof typeof normalizedData] === undefined) {
-      normalizedData[status.key as keyof typeof normalizedData] = 0;
-    }
-  });
-  
-  const chartData = statusConfig
-    .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
-    .filter(status => selectedFilter === 'all' || 
-           (selectedFilter === 'issues' && 
-            ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
-           (selectedFilter === 'available' && 
-            ['available', 'reserved'].includes(status.key)) ||
-           (selectedFilter === 'rented' && 
-            status.key === 'rented'))
-    .map(status => ({
-      name: status.name,
-      value: normalizedData[status.key as keyof typeof normalizedData],
-      color: status.color,
-      key: status.key,
-      filterValue: status.filterValue
-    }));
-  
-  const criticalVehicles = (normalizedData.stolen || 0) + 
-                          (normalizedData.accident || 0) + 
-                          (normalizedData.critical || 0);
-  
-  const hasCriticalVehicles = criticalVehicles > 0;
-  
-  const handleStatusClick = (data: any) => {
-    navigate(`/vehicles?status=${data.filterValue}`);
-  };
+interface ChartData {
+  name: string;
+  value: number;
+}
 
-  const handleFilterChange = useCallback((value: string) => {
-    setSelectedFilter(value);
+export function VehicleStatusChart() {
+  const [vehicleStatuses, setVehicleStatuses] = useState<VehicleStatus[]>([]);
+  const [totalVehicles, setTotalVehicles] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchVehicleStatuses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('status');
+
+        if (error) {
+          console.error("Error fetching vehicle statuses:", error);
+          return;
+        }
+
+        const statusCounts = data.reduce((acc: { [key: string]: number }, vehicle) => {
+          const status = vehicle.status || 'unknown';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statuses: VehicleStatus[] = Object.entries(statusCounts).map(([status, count]) => ({
+          status,
+          count,
+        }));
+
+        setVehicleStatuses(statuses);
+        setTotalVehicles(data.length);
+      } catch (error) {
+        console.error("Error fetching vehicle statuses:", error);
+      }
+    };
+
+    fetchVehicleStatuses();
   }, []);
 
+  const chartData = useMemo<ChartData[]>(() => {
+    return vehicleStatuses.map(status => ({
+      name: status.status,
+      value: status.count,
+    }));
+  }, [vehicleStatuses]);
+
+  const { theme } = useTheme();
+  const { data: chartInput } = useChart({
+    type: "doughnut",
+    data: {
+      labels: chartData.map((item) => item.name),
+      datasets: [
+        {
+          data: chartData.map((item) => item.value),
+          backgroundColor: [
+            "#065F46",
+            "#10B981",
+            "#34D399",
+            "#A7F3D0",
+            "#D1FAE5",
+          ],
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      cutout: "60%",
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+      scales: {
+        x: { display: false },
+        y: { display: false },
+      },
+    },
+  });
+
   return (
-    <Card className="col-span-full lg:col-span-4 card-transition dashboard-card">
-      <CardHeader className="pb-2">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <CardTitle>Fleet Status Overview</CardTitle>
-          <ChartControls 
-            selectedFilter={selectedFilter}
-            chartType={chartType}
-            onFilterChange={handleFilterChange}
-            onChartTypeChange={setChartType}
-          />
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Vehicle Status</CardTitle>
+        <CardDescription>Overview of vehicle availability</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col lg:flex-row items-start justify-between h-auto lg:h-96">
-          <div className="w-full lg:w-2/3 h-72 lg:h-full">
-            <StatusChart 
-              data={chartData}
-              chartType={chartType}
-              onSegmentClick={handleStatusClick}
-            />
-          </div>
-          
-          <div className="w-full lg:w-1/3 mt-4 lg:mt-0 pl-0 lg:pl-4 flex flex-col h-full">
-            <div className="text-sm text-center lg:text-left text-muted-foreground mb-4">
-              <div className="text-lg font-semibold text-foreground">
-                Total Fleet: {data.total} vehicles
-              </div>
-              {hasCriticalVehicles && (
-                <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
-                  {criticalVehicles} vehicle{criticalVehicles !== 1 ? 's' : ''} requiring immediate attention
-                </Badge>
-              )}
-            </div>
-            
-            <div className="space-y-3 flex-grow overflow-y-auto pr-2">
-              {statusConfig.map((status) => {
-                const count = normalizedData[status.key as keyof typeof normalizedData] || 0;
-                if (count === 0) return null;
-                
-                const isVisible = selectedFilter === 'all' || 
-                  (selectedFilter === 'issues' && 
-                   ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
-                  (selectedFilter === 'available' && 
-                   ['available', 'reserved'].includes(status.key)) ||
-                  (selectedFilter === 'rented' && 
-                   status.key === 'rented');
-                
-                if (!isVisible) return null;
-                
-                return (
-                  <StatusListItem 
-                    key={status.key}
-                    status={status}
-                    count={count}
-                    onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
-                  />
-                );
-              })}
-            </div>
+      <CardContent className="pl-2 flex flex-col items-center justify-center">
+        <div className="relative w-full h-[240px] flex items-center justify-center">
+          {chartInput ? (
+            <Doughnut data={chartInput.data} options={chartInput.options as ChartOptions<"doughnut">} />
+          ) : (
+            <p>Loading chart...</p>
+          )}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <div className="text-2xl font-bold">{totalVehicles}</div>
+            <div className="text-sm text-muted-foreground">Total Vehicles</div>
           </div>
         </div>
+        <ul className="w-full space-y-2">
+          {vehicleStatuses.map((status) => (
+            <li key={status.status} className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Badge variant="secondary">{status.status}</Badge>
+                <span>{status.status}</span>
+              </div>
+              <span>{status.count}</span>
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );
-};
-
-export default VehicleStatusChart;
+}

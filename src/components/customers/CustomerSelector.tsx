@@ -1,17 +1,17 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { useCustomers } from '@/hooks/use-customers';
 import { CustomerInfo } from '@/types/customer';
-import { supabase } from '@/lib/supabase';
 
 interface CustomerSelectorProps {
   onCustomerSelect: (customer: CustomerInfo) => void;
   selectedCustomer: CustomerInfo | null;
-  inputClassName?: string;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -19,93 +19,26 @@ interface CustomerSelectorProps {
 const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   onCustomerSelect,
   selectedCustomer,
-  inputClassName,
-  placeholder = "Select a customer",
+  placeholder = "Search customers...",
   disabled = false
 }) => {
-  const [open, setOpen] = useState(false);
-  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const { customers, isLoading } = useCustomers(searchQuery);
 
-  // Debounced search function
-  const debouncedFetch = useCallback((query: string) => {
-    const timeoutId = setTimeout(() => {
-      fetchCustomers(query);
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Effect to trigger search when query changes
-  useEffect(() => {
-    const cleanup = debouncedFetch(searchQuery);
-    return cleanup;
-  }, [searchQuery, debouncedFetch]);
-
-  // Fetch customers function
-  const fetchCustomers = async (query: string = '') => {
-    console.log('Fetching customers with query:', query);
-    setLoading(true);
-    setError(null);
-    try {
-      let supabaseQuery = supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('role', 'customer')
-        .order('full_name');
-          
-      if (query.trim()) {
-        supabaseQuery = supabaseQuery.ilike('full_name', `%${query.trim()}%`);
-      }
-      
-      const { data, error } = await supabaseQuery.limit(20);
-      
-      if (error) {
-        console.error('Error fetching customers:', error);
-        setError('Failed to load customers');
-        setCustomers([]);
-        return;
-      }
-      
-      // Transform data to CustomerInfo format
-      const transformedCustomers: CustomerInfo[] = (data || []).map(item => ({
-        id: item.id,
-        full_name: item.full_name || '',
-        email: item.email || '',
-        phone_number: item.phone_number || '',
-        driver_license: '',
-        nationality: '',
-        address: ''
-      }));
-      
-      console.log('Fetched customers:', transformedCustomers);
-      setCustomers(transformedCustomers);
-    } catch (error: any) {
-      console.error('Error in fetchCustomers:', error);
-      setError('An unexpected error occurred');
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
+  // Clear selection
+  const handleClearSelection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCustomerSelect({
+      id: '',
+      full_name: '',
+      email: '',
+      phone_number: '',
+      driver_license: '',
+      nationality: '',
+      address: ''
+    });
   };
-
-  // Handle customer selection
-  const handleSelect = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (customer) {
-      console.log('Customer selected:', customer);
-      onCustomerSelect(customer);
-    }
-    setOpen(false);
-    setSearchQuery(''); // Clear search after selection
-  };
-
-  // Initial load when component mounts
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -114,62 +47,65 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          className="w-full justify-between"
           disabled={disabled}
-          className={cn("justify-between w-full", inputClassName)}
         >
-          {selectedCustomer ? selectedCustomer.full_name : placeholder}
+          {selectedCustomer?.full_name ? (
+            <div className="flex items-center justify-between w-full">
+              <span>{selectedCustomer.full_name}</span>
+              <X 
+                className="h-4 w-4 opacity-50 hover:opacity-100" 
+                onClick={handleClearSelection} 
+              />
+            </div>
+          ) : (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-full min-w-[300px]" align="start" sideOffset={4}>
+      <PopoverContent className="w-[300px] p-0">
         <Command>
-          <CommandInput
-            placeholder="Search for customers..."
-            onValueChange={(value: string) => {
-              console.log('Search input changed:', value);
-              setSearchQuery(value);
-            }}
+          <CommandInput 
+            placeholder="Search customers..." 
             value={searchQuery}
+            onValueChange={setSearchQuery}
           />
-          <CommandList>
-            {loading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {error && (
-              <div className="flex items-center justify-center py-4 text-destructive text-sm">
-                {error}
-              </div>
-            )}
-            {!loading && !error && customers.length === 0 && (
-              <CommandEmpty>
-                {searchQuery ? 'No customers found.' : 'No customers available.'}
-              </CommandEmpty>
-            )}
-            <CommandGroup>
-              {!loading && !error && customers.map((customer) => (
-                <CommandItem
-                  key={customer.id}
-                  value={customer.id}
-                  onSelect={() => handleSelect(customer.id)}
-                  className="flex items-center"
-                >
-                  <span className="flex-1 truncate">
-                    {customer.full_name}
-                    {customer.phone_number && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({customer.phone_number})
+          {isLoading ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="ml-2">Loading...</span>
+            </div>
+          ) : (
+            <>
+              <CommandEmpty>No customers found.</CommandEmpty>
+              <CommandGroup>
+                {customers.map((customer) => (
+                  <CommandItem
+                    key={customer.id}
+                    value={customer.id}
+                    onSelect={() => {
+                      onCustomerSelect(customer);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span>{customer.full_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {customer.phone_number}
                       </span>
-                    )}
-                  </span>
-                  {selectedCustomer?.id === customer.id && (
-                    <Check className="h-4 w-4 text-green-500" />
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

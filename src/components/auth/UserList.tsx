@@ -1,17 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { 
-  ColumnDef, 
-  flexRender, 
-  getCoreRowModel, 
-  useReactTable, 
-  SortingState,
-  getSortedRowModel,
-  getPaginationRowModel,
-  ColumnFiltersState,
-  getFilteredRowModel
-} from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter, Trash2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -19,807 +6,245 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useProfile } from "@/contexts/ProfileContext";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
-import { UserRoleManager } from "./UserRoleManager";
-// Import with both named and default import to ensure compatibility
-import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
-import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from "@/types/permissions";
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Edit, Trash2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
-type UserPermissions = RolePermissions;
+interface User {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  created_at: string;
+}
 
-const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = DEFAULT_ROLE_PERMISSIONS;
+interface Permission {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+}
 
-const UserList = () => {
-  const [users, setUsers] = useState<UserDataType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [userStats, setUserStats] = useState({
-    total: 0,
-    active: 0,
-    pending: 0,
-    inactive: 0,
-    admins: 0,
-    staff: 0
-  });
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserDataType | null>(null);
-  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<UserDataType | null>(null);
-  const [deletingUser, setDeletingUser] = useState(false);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
-  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
-  const { profile } = useProfile();
-  const form = useForm({
-    defaultValues: {
-      role: "",
-    }
-  });
+interface Permissions {
+  [resource: string]: Permission;
+}
+
+export function UserList() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [permissions, setPermissions] = useState<Permissions>({});
 
   useEffect(() => {
+    // Fetch users and permissions from API
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        // Replace with actual API endpoint
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchPermissions = async () => {
+      try {
+        // Replace with actual API endpoint
+        const response = await fetch('/api/permissions');
+        const data = await response.json();
+        setPermissions(data);
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch permissions",
+          variant: "destructive",
+        });
+      }
+    };
+
     fetchUsers();
+    fetchPermissions();
   }, []);
 
-  useEffect(() => {
-    if (users.length > 0) {
-      const stats = {
-        total: users.length,
-        active: 0,
-        pending: 0,
-        inactive: 0,
-        admins: 0,
-        staff: 0
-      };
-
-      users.forEach(user => {
-        switch (user.status) {
-          case "active": stats.active++; break;
-          case "pending_review": stats.pending++; break;
-          case "inactive": stats.inactive++; break;
-        }
-
-        if (user.role === "admin") stats.admins++;
-        else if (user.role === "staff") stats.staff++;
-      });
-
-      setUserStats(stats);
-    }
-  }, [users]);
-
-  useEffect(() => {
-    if (selectedUser) {
-      form.setValue("role", selectedUser.role);
-      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
-    }
-  }, [selectedUser, form]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .not('role', 'eq', 'customer') as { data: DbProfileRow[] | null; error: any };
-
-      if (error) throw error;
-
-      setUsers(data as unknown as UserDataType[]);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteUser = async (userId: string) => {
-    try {
-      setDeletingUser(true);
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-
-      if (profileError) throw profileError;
-
-      setUsers(users.filter(user => user.id !== userId));
-      toast.success("User deleted successfully");
-      setShowDeleteDialog(false);
-      setUserToDelete(null);
-    } catch (error: any) {
-      console.error("Error deleting user:", error.message);
-      toast.error("Failed to delete user: " + error.message);
-    } finally {
-      setDeletingUser(false);
-    }
-  };
-
-  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
-    try {
-      setBulkDeletingUsers(true);
-      const usersToDelete = users.filter(user => 
-        user.email === email && user.id !== excludeUserId
-      );
-
-      if (!usersToDelete.length) {
-        toast.info("No duplicate users found with this email");
-        return;
-      }
-
-      for (const user of usersToDelete) {
-        const { error } = await supabase.from("profiles").delete().eq("id", user.id);
-        if (error) throw error;
-      }
-
-      await fetchUsers();
-      toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
-      setShowBulkDeleteDialog(false);
-    } catch (error: any) {
-      console.error("Error performing bulk deletion:", error.message);
-      toast.error("Failed to delete duplicate users: " + error.message);
-    } finally {
-      setBulkDeletingUsers(false);
-    }
-  };
-
-  const handleDeleteKhamis = async () => {
-    if (!profile) {
-      toast.error("Cannot delete users: Your profile is not loaded");
-      return;
-    }
-
-    try {
-      setBulkDeletingUsers(true);
-      const khamisUsers = users.filter(user => 
-        user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
-      );
-
-      if (!khamisUsers.length) {
-        toast.info("No duplicate Khamis accounts found");
-        setBulkDeletingUsers(false);
-        return;
-      }
-
-      const deletionPromises = khamisUsers.map(async (user) => {
-        const { error } = await supabase.from("profiles").delete().eq("id", user.id);
-        if (error) throw error;
-        return user.id;
-      });
-
-      await Promise.all(deletionPromises);
-      await fetchUsers();
-      toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
-    } catch (error: any) {
-      console.error("Error deleting Khamis duplicates:", error.message);
-      toast.error("Failed to delete users: " + error.message);
-    } finally {
-      setBulkDeletingUsers(false);
-    }
-  };
-
-  const openDeleteDialog = (user: UserDataType) => {
-    setUserToDelete(user);
-    setShowDeleteDialog(true);
-  };
-
-  const updateAdminAccounts = async () => {
-    try {
-      const { error: tarekError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "tareklaribi25914@gmail.com");
-
-      if (tarekError) throw tarekError;
-
-      const { error: khamisError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "khamis-1992@hotmail.com");
-
-      if (khamisError) throw khamisError;
-
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error updating roles:", error.message);
-    }
-  };
-
-  const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus) => {
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: newStatus })
-        .eq("id", userId);
-
-      if (error) throw error;
-
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      ));
-
-      toast.success(`User status updated to ${newStatus}`);
-    } catch (error: any) {
-      console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status: " + error.message);
-    }
-  };
-
-  const openPermissionDialog = (user: UserDataType) => {
+  const viewUser = (user: User) => {
     setSelectedUser(user);
-    setShowPermissionDialog(true);
+    // Implement view logic (e.g., open a modal)
   };
 
-  const savePermissions = async () => {
-    if (!selectedUser || !userPermissions) return;
-    setSaving(true);
+  const createUser = () => {
+    // Implement create logic (e.g., open a modal)
+  };
 
-    try {
-      const newRole = form.getValues("role") as UserRole;
-      if (newRole !== selectedUser.role) {
-        await supabase
-          .from("profiles")
-          .update({ role: newRole })
-          .eq("id", selectedUser.id);
+  const editUser = (user: User) => {
+    setSelectedUser(user);
+    setShowEditModal(true);
+  };
+
+  const deleteUser = (user: User) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedUser) {
+      try {
+        // Replace with actual API endpoint
+        await fetch(`/api/users/${selectedUser.id}`, { method: 'DELETE' });
+        setUsers(users.filter(user => user.id !== selectedUser.id));
+        setShowDeleteModal(false);
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+        });
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete user",
+          variant: "destructive",
+        });
       }
-
-      toast.success("User permissions updated successfully");
-      setShowPermissionDialog(false);
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error saving permissions:", error.message);
-      toast.error("Failed to save permissions");
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleRoleChange = (value: string) => {
-    form.setValue("role", value);
-    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
+  const checkPermission = (action: keyof Permission): boolean => {
+    const userPermissions = permissions['users'];
+    return userPermissions?.[action] || false;
   };
-
-  const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
-    setUserPermissions(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [action]: value
-        }
-      };
-    });
-  };
-
-  const isCurrentUser = (userId: string) => profile?.id === userId;
-
-  const filteredUsers = users.filter(user => {
-    if (roleFilter !== "all" && user.role !== roleFilter) return false;
-    if (statusFilter !== "all" && user.status !== statusFilter) return false;
-    return true;
-  });
-
-  const columns: ColumnDef<UserDataType>[] = [
-    {
-      accessorKey: "full_name",
-      header: "Name",
-      cell: ({ row }) => {
-        const value = row.getValue("full_name") as string;
-        return <div className="font-medium">{value || "N/A"}</div>;
-      },
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => {
-        return <div className="text-sm text-muted-foreground">{row.getValue("email")}</div>;
-      },
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const user = row.original;
-        const isAdmin = profile?.role === "admin";
-        const isSelf = isCurrentUser(user.id);
-        return (
-          <UserRoleManager 
-            userId={user.id}
-            currentRole={user.role}
-            fullName={user.full_name}
-            disabled={!isAdmin || isSelf}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        return (
-          <Badge 
-            variant={
-              status === "active" ? "success" : 
-              status === "pending_review" ? "warning" : 
-              "destructive"
-            }
-          >
-            {status === "active" ? (
-              <CheckCircle className="h-3 w-3 mr-1" />
-            ) : status === "pending_review" ? (
-              <Clock className="h-3 w-3 mr-1" />
-            ) : (
-              <XCircle className="h-3 w-3 mr-1" />
-            )}
-            <span className="capitalize">{status ? status.replace('_', ' ') : 'N/A'}</span>
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "created_at",
-      header: "Joined",
-      cell: ({ row }) => {
-        const date = row.getValue("created_at") as string;
-        return date ? new Date(date).toLocaleDateString() : 'N/A';
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const user = row.original;
-        const currentUserProfile = profile?.id === user.id;
-        const isAdmin = profile?.role === "admin";
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="z-50">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => openPermissionDialog(user)}
-                disabled={!isAdmin}
-              >
-                Manage Permissions
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "active")}
-                disabled={user.status === "active" || !isAdmin || currentUserProfile}
-              >
-                Set Active
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
-                disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
-              >
-                Set Pending
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserStatus(user.id, "inactive")}
-                disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
-              >
-                Set Inactive
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => openDeleteDialog(user)}
-                disabled={!isAdmin || currentUserProfile}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete User
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-
-  const table = useReactTable({
-    data: filteredUsers,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      sorting,
-      columnFilters,
-    },
-  });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Total Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.total}</div>
-            <div className="mt-2">
-              <Progress value={100} className="h-2" />
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>{user.role}</TableCell>
+              <TableCell>{user.status}</TableCell>
+              <TableCell className="py-2 px-4">
+                {checkPermission('view') && (
+                  <Button variant="ghost" size="sm" onClick={() => viewUser(user)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </Button>
+                )}
+                {checkPermission('create') && (
+                  <Button variant="ghost" size="sm" onClick={() => createUser()}>
+                    Create
+                  </Button>
+                )}
+                {checkPermission('edit') && (
+                  <Button variant="ghost" size="sm" onClick={() => editUser(user)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                {checkPermission('delete') && (
+                  <Button variant="ghost" size="sm" onClick={() => deleteUser(user)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                )}
+              </TableCell>
+            </tr>
+          ))}
+        </TableBody>
+      </Table>
+
+      {/* Edit Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Edit User</h3>
+              <div className="px-7 py-3">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={selectedUser.email}
+                  disabled
+                />
+                <Input
+                  type="text"
+                  placeholder="Role"
+                  value={selectedUser.role}
+                />
+                <Input
+                  type="text"
+                  placeholder="Status"
+                  value={selectedUser.status}
+                />
+              </div>
+              <div className="items-center px-4 py-3">
+                <Button
+                  variant="outline"
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md width-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="ml-4 px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md width-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  Save
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.active}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? (userStats.active / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-green-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Pending Approval</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.pending}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? (userStats.pending / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-yellow-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Admins/Staff</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{userStats.admins + userStats.staff}</div>
-            <div className="mt-2">
-              <Progress 
-                value={userStats.total ? ((userStats.admins + userStats.staff) / userStats.total) * 100 : 0} 
-                className="h-2" 
-                indicatorClassName="bg-blue-500"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              className="pl-8"
-              value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
-              onChange={(e) => table.getColumn("full_name")?.setFilterValue(e.target.value)}
-            />
           </div>
         </div>
-        <div className="flex gap-2">
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="staff">Staff</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="pending_review">Pending</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading}>
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="flex justify-end space-x-2">
-        <Button 
-          variant="destructive" 
-          size="sm" 
-          onClick={handleDeleteKhamis}
-          disabled={bulkDeletingUsers}
-        >
-          {bulkDeletingUsers ? "Deleting..." : "Delete Duplicate Khamis Accounts"}
-        </Button>
-      </div>
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {loading ? "Loading..." : "No users found."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-between py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-
-      {/* Permission Dialog */}
-      {selectedUser && (
-        <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Manage User Permissions</DialogTitle>
-              <DialogDescription>
-                Configure permissions for {selectedUser.full_name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="mb-4">
-                <Label htmlFor="role-select" className="mb-2 block">User Role</Label>
-                <Select 
-                  onValueChange={handleRoleChange} 
-                  defaultValue={selectedUser.role}
-                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                >
-                  <SelectTrigger id="role-select">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-5 font-medium">
-                  <div>Feature</div>
-                  <div className="text-center">View</div>
-                  <div className="text-center">Create</div>
-                  <div className="text-center">Edit</div>
-                  <div className="text-center">Delete</div>
-                </div>
-                {userPermissions && Object.entries(userPermissions).map(([key, permissions]) => {
-                  const section = key as keyof UserPermissions;
-                  const featureName = key.replace(/([A-Z])/g, ' $1').trim();
-                  return (
-                    <div key={key} className="grid grid-cols-5 items-center border-t pt-4">
-                      <div className="font-medium">{featureName}</div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.view} 
-                          onCheckedChange={(checked) => updatePermission(section, 'view', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.create} 
-                          onCheckedChange={(checked) => updatePermission(section, 'create', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.edit} 
-                          onCheckedChange={(checked) => updatePermission(section, 'edit', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <Switch 
-                          checked={permissions.delete} 
-                          onCheckedChange={(checked) => updatePermission(section, 'delete', checked)}
-                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {(profile?.role !== "admin" || isCurrentUser(selectedUser.id)) && (
-                <p className="mt-4 text-sm text-amber-600">
-                  {isCurrentUser(selectedUser.id) 
-                    ? "You cannot modify your own permissions." 
-                    : "Only admins can modify permissions."}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowPermissionDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="button" 
-                variant="default" 
-                onClick={savePermissions}
-                disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       )}
 
-      {/* Delete Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {userToDelete?.full_name}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingUser}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (userToDelete) deleteUser(userToDelete.id);
-              }}
-              disabled={deletingUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deletingUser ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Delete Dialog */}
-      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Duplicate Users</AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="flex items-center mb-2 text-amber-600">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                <span>This will delete all duplicate users with the same email.</span>
+      {/* Delete Modal */}
+      {showDeleteModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Delete User</h3>
+              <div className="px-7 py-3">
+                <p>Are you sure you want to delete {selectedUser.email}?</p>
               </div>
-              <p>Are you sure you want to proceed? This action cannot be undone.</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDeletingUsers}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                if (profile) bulkDeleteUsersByEmail("khamis-1992@hotmail.com", profile.id);
-              }}
-              disabled={bulkDeletingUsers}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {bulkDeletingUsers ? "Deleting..." : "Delete All Duplicates"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="items-center px-4 py-3">
+                <Button
+                  variant="outline"
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md width-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="ml-4 px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md width-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  onClick={confirmDelete}
+                >
+                  Confirm Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default UserList;
+}

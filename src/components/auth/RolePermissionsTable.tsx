@@ -1,135 +1,142 @@
-import React, { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { UserRole } from '@/types/user-types';
-import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from '@/types/permissions';
 
-const RolePermissionsTable = () => {
-  const [role, setRole] = useState<UserRole>('admin');
-  const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_ROLE_PERMISSIONS['admin']);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+interface Permission {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+}
+
+interface Permissions {
+  [resource: string]: Permission;
+}
+
+export function RolePermissionsTable() {
+  const [permissions, setPermissions] = useState<Permissions>({});
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    fetchPermissions(role);
-  }, [role]);
+    fetchPermissions();
+  }, []);
 
-  const fetchPermissions = async (selectedRole: UserRole) => {
+  const fetchPermissions = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('permissions')
-        .select('resource, action')
-        .eq('role', selectedRole);
+        .from('role_permissions')
+        .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching permissions:', error);
+        return;
+      }
 
-      const base = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS[selectedRole]));
-
-      data?.forEach(({ resource, action }) => {
-        if (base[resource as keyof RolePermissions]) {
-          (base[resource as keyof RolePermissions] as any)[action] = true;
-        }
+      const initialPermissions: Permissions = {};
+      data.forEach((item) => {
+        initialPermissions[item.resource] = {
+          view: item.view,
+          create: item.create,
+          edit: item.edit,
+          delete: item.delete,
+        };
       });
 
-      setPermissions(base);
-    } catch (err: any) {
-      console.error('Error loading permissions:', err.message);
-      toast.error('Failed to load permissions');
+      setPermissions(initialPermissions);
     } finally {
       setLoading(false);
     }
   };
 
-  const updatePermission = (section: keyof RolePermissions, action: keyof PermissionSettings, value: boolean) => {
-    setPermissions(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [action]: value,
+  const updatePermission = async (resource: string, action: keyof Permission, checked: boolean) => {
+    setPermissions((prevPermissions) => ({
+      ...prevPermissions,
+      [resource]: {
+        ...prevPermissions[resource],
+        [action]: checked,
       },
     }));
-  };
 
-  const savePermissions = async () => {
-    setSaving(true);
     try {
-      const rows: { role: string; resource: string; action: string }[] = [];
-      Object.entries(permissions).forEach(([resource, actions]) => {
-        Object.entries(actions as PermissionSettings).forEach(([action, allowed]) => {
-          if (allowed) rows.push({ role, resource, action });
-        });
-      });
+      const { error } = await supabase
+        .from('role_permissions')
+        .upsert([
+          {
+            resource: resource,
+            view: permissions[resource]?.view || false,
+            create: permissions[resource]?.create || false,
+            edit: permissions[resource]?.edit || false,
+            delete: permissions[resource]?.delete || false,
+            [action]: checked,
+          },
+        ]);
 
-      const { error: delErr } = await supabase.from('permissions').delete().eq('role', role);
-      if (delErr) throw delErr;
-
-      if (rows.length) {
-        const { error: insErr } = await supabase.from('permissions').insert(rows);
-        if (insErr) throw insErr;
+      if (error) {
+        console.error('Error updating permission:', error);
       }
-
-      toast.success('Permissions updated');
-    } catch (err: any) {
-      console.error('Error saving permissions:', err.message);
-      toast.error('Failed to save permissions');
-    } finally {
-      setSaving(false);
-      fetchPermissions(role);
+    } catch (error) {
+      console.error('Error updating permission:', error);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Label htmlFor="role-select" className="mb-2 block">Role</Label>
-        <Select value={role} onValueChange={value => setRole(value as UserRole)}>
-          <SelectTrigger id="role-select" className="w-[150px]">
-            <SelectValue placeholder="Select role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="staff">Staff</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="rounded-md border">
-        <div className="grid grid-cols-5 p-4 font-medium border-b">
-          <div>Feature</div>
-          <div className="text-center">View</div>
-          <div className="text-center">Create</div>
-          <div className="text-center">Edit</div>
-          <div className="text-center">Delete</div>
-        </div>
-        {Object.entries(permissions).map(([key, perm], index) => (
-          <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
-            <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
-            <div className="text-center">
-              <Switch checked={perm.view} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} />
-            </div>
-            <div className="text-center">
-              <Switch checked={perm.create} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} />
-            </div>
-            <div className="text-center">
-              <Switch checked={perm.edit} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} />
-            </div>
-            <div className="text-center">
-              <Switch checked={perm.delete} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-end">
-        <Button onClick={savePermissions} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-      </div>
+    <div className="space-y-4">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Resource
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              View
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Create
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Edit
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Delete
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {Object.entries(permissions).map(([resource, permission]) => (
+            <tr key={resource} className="border-b">
+              <td className="py-2 px-4 font-medium">{resource}</td>
+              <td className="py-2 px-4">
+                <input
+                  type="checkbox"
+                  checked={permission.view || false}
+                  onChange={(e) => updatePermission(resource, 'view', e.target.checked)}
+                />
+              </td>
+              <td className="py-2 px-4">
+                <input
+                  type="checkbox"
+                  checked={permission.create || false}
+                  onChange={(e) => updatePermission(resource, 'create', e.target.checked)}
+                />
+              </td>
+              <td className="py-2 px-4">
+                <input
+                  type="checkbox"
+                  checked={permission.edit || false}
+                  onChange={(e) => updatePermission(resource, 'edit', e.target.checked)}
+                />
+              </td>
+              <td className="py-2 px-4">
+                <input
+                  type="checkbox"
+                  checked={permission.delete || false}
+                  onChange={(e) => updatePermission(resource, 'delete', e.target.checked)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-};
-
-export default RolePermissionsTable;
+}
