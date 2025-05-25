@@ -34,6 +34,12 @@ interface PaymentScheduleEditorProps {
   onPaymentDayChange: (value: number) => void;
 }
 
+interface PaymentItem {
+  dueDate: Date;
+  amount: number;
+  status: string;
+}
+
 const PaymentScheduleEditor = ({
   agreementId,
   startDate,
@@ -44,7 +50,7 @@ const PaymentScheduleEditor = ({
   onFrequencyChange,
   onPaymentDayChange,
 }: PaymentScheduleEditorProps) => {
-  const [paymentSchedule, setPaymentSchedule] = useState<any[]>([]);
+  const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Generate payment schedule based on inputs
@@ -54,7 +60,7 @@ const PaymentScheduleEditor = ({
     setIsGenerating(true);
     
     try {
-      const payments = [];
+      const payments: PaymentItem[] = [];
       const start = new Date(startDate);
       const end = new Date(endDate);
       
