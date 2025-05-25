@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -46,7 +45,7 @@ const agreementSchema = z.object({
   total_amount: z.number().min(0, "Amount must be a positive number"),
   rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
   payment_frequency: z.string().optional(),
-  payment_day: z.number().min(1).max(31).optional(),
+  rent_due_day: z.number().min(1).max(31).optional(),
   notes: z.string().optional(),
   daily_late_fee: z.number().min(0).optional(),
   deposit_amount: z.number().min(0).optional(),
@@ -79,7 +78,7 @@ const AgreementEditor = () => {
       total_amount: 0,
       rent_amount: 0,
       payment_frequency: 'monthly',
-      payment_day: 1,
+      rent_due_day: 1,
       notes: '',
       daily_late_fee: 0,
       deposit_amount: 0,
@@ -117,7 +116,7 @@ const AgreementEditor = () => {
             total_amount: agreement.total_amount || 0,
             rent_amount: agreement.rent_amount || 0,
             payment_frequency: agreement.payment_frequency || 'monthly',
-            payment_day: agreement.payment_day || 1,
+            rent_due_day: agreement.rent_due_day || 1,
             notes: agreement.notes || '',
             daily_late_fee: agreement.daily_late_fee || 0,
             deposit_amount: agreement.deposit_amount || 0,
@@ -525,9 +524,9 @@ const AgreementEditor = () => {
                     endDate={form.getValues('end_date')}
                     rentAmount={form.getValues('rent_amount')}
                     paymentFrequency={form.getValues('payment_frequency')}
-                    paymentDay={form.getValues('payment_day')}
+                    paymentDay={form.getValues('rent_due_day')}
                     onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
-                    onPaymentDayChange={(value) => form.setValue('payment_day', value)}
+                    onPaymentDayChange={(value) => form.setValue('rent_due_day', value)}
                   />
                 </TabsContent>
                 
