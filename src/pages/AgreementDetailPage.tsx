@@ -140,9 +140,9 @@ const AgreementDetailPage = () => {
   // Use our new abstract method instead of direct function call
   const handleGeneratePayment = async () => {
     if (!id || !agreement) return;
-    
+
     try {
-      await generatePayment();
+      await generatePayment(id);
       refreshAgreementData();
     } catch (error) {
       console.error("Error generating payment:", error);
