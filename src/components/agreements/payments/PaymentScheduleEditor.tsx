@@ -63,7 +63,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   // Debug logging for agreement ID
   useEffect(() => {
     console.log('PaymentScheduleEditor - Agreement ID:', agreementId);
-    console.log('PaymentScheduleEditor - Is valid UUID:', isValidUUID(agreementId));
+    console.log('PaymentScheduleEditor - Is valid UUID:', isValidUUID(agreementId || ''));
     console.log('PaymentScheduleEditor - Can generate payments:', canGeneratePayments);
   }, [agreementId, canGeneratePayments]);
 
@@ -161,7 +161,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
       if (result?.success) {
         toast.success("Payment records generated successfully");
       } else {
-        toast.info("Payment generation completed");
+        toast.success("Payment generation completed");
       }
     } catch (error) {
       console.error("Error generating actual payments:", error);

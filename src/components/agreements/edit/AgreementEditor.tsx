@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -24,7 +25,7 @@ import {
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { usePaymentSchedule } from '@/hooks/payment/use-payment-schedule';
 import { LeaseStatus } from '@/types/lease-types';
@@ -55,10 +56,11 @@ const agreementSchema = z.object({
   additional_drivers: z.array(z.string()).optional(),
 });
 
+type AgreementFormData = z.infer<typeof agreementSchema>;
+
 const AgreementEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -72,7 +74,7 @@ const AgreementEditor: React.FC = () => {
   const isValidAgreementId = id && isValidUUID(id);
   
   // Initialize form with default values
-  const form = useForm<z.infer<typeof agreementSchema>>({
+  const form = useForm<AgreementFormData>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
@@ -150,21 +152,13 @@ const AgreementEditor: React.FC = () => {
           }
         } else {
           console.log('No agreement found with ID:', id);
-          toast({
-            title: "Not Found",
-            description: "Agreement not found",
-            variant: "destructive",
-          });
+          toast.error("Agreement not found");
           navigate('/agreements');
         }
       } catch (error: any) {
         console.error("Error loading agreement:", error);
         const errorMessage = error?.message || 'Failed to load agreement details';
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
         // If it's a UUID error, redirect to agreements list
         if (errorMessage.includes('uuid') || errorMessage.includes('UUID')) {
           navigate('/agreements');
@@ -175,7 +169,7 @@ const AgreementEditor: React.FC = () => {
     };
     
     loadAgreement();
-  }, [id, agreementService, form, toast, navigate, isValidAgreementId]);
+  }, [id, agreementService, form, navigate, isValidAgreementId]);
   
   // Generate payment schedule for the agreement
   const generatePaymentSchedule = async (agreementId: string) => {
@@ -186,58 +180,36 @@ const AgreementEditor: React.FC = () => {
       const result = await generatePayment(agreementId);
       
       if (result?.success) {
-        toast({
-          title: "Success",
-          description: "Payment schedule generated successfully",
-        });
+        toast.success("Payment schedule generated successfully");
       } else {
         console.warn('Payment generation completed but may not have created new payments');
-        toast({
-          title: "Info",
-          description: "Payment schedule generation completed",
-        });
+        toast.success("Payment schedule generation completed");
       }
     } catch (error) {
       console.error('Error generating payment schedule:', error);
-      toast({
-        title: "Warning",
-        description: "Agreement saved but payment schedule generation failed. You can generate it manually later.",
-        variant: "destructive",
-      });
+      toast.error("Agreement saved but payment schedule generation failed. You can generate it manually later.");
     } finally {
       setIsGeneratingPayments(false);
     }
   };
   
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
+  const handleSubmitForm = async (formData: AgreementFormData) => {
     setIsLoading(true);
     try {
       // Validate required fields for payment generation
       if (!formData.rent_amount || formData.rent_amount <= 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please enter a valid rent amount before saving",
-          variant: "destructive",
-        });
+        toast.error("Please enter a valid rent amount before saving");
         return;
       }
 
       if (!formData.start_date || !formData.end_date) {
-        toast({
-          title: "Validation Error", 
-          description: "Please select valid start and end dates",
-          variant: "destructive",
-        });
+        toast.error("Please select valid start and end dates");
         return;
       }
 
       if (formData.end_date <= formData.start_date) {
-        toast({
-          title: "Validation Error",
-          description: "End date must be after start date",
-          variant: "destructive",
-        });
+        toast.error("End date must be after start date");
         return;
       }
       
@@ -256,10 +228,7 @@ const AgreementEditor: React.FC = () => {
         result = await agreementService.createAgreement(data);
         
         if (result) {
-          toast({
-            title: "Success",
-            description: "Agreement created successfully",
-          });
+          toast.success("Agreement created successfully");
           
           // Generate payment schedule for new agreement
           await generatePaymentSchedule(result.id);
@@ -276,10 +245,7 @@ const AgreementEditor: React.FC = () => {
         });
         
         if (result) {
-          toast({
-            title: "Success",
-            description: "Agreement updated successfully",
-          });
+          toast.success("Agreement updated successfully");
           
           // For existing agreements, ask user if they want to regenerate payments
           const shouldRegeneratePayments = formData.rent_amount !== form.formState.defaultValues?.rent_amount ||
@@ -299,11 +265,7 @@ const AgreementEditor: React.FC = () => {
       }
     } catch (error) {
       console.error("Error saving agreement:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save agreement",
-        variant: "destructive",
-      });
+      toast.error("Failed to save agreement");
     } finally {
       setIsLoading(false);
     }
