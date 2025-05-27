@@ -7,28 +7,35 @@ export interface PermissionSettings {
 }
 
 export interface RolePermissions {
-  vehicles: PermissionSettings;
-  customers: PermissionSettings;
   agreements: PermissionSettings;
-  financials: PermissionSettings;
+  customers: PermissionSettings;
+  vehicles: PermissionSettings;
+  payments: PermissionSettings;
+  reports: PermissionSettings;
+  settings: PermissionSettings;
   userManagement: PermissionSettings;
+  legal: PermissionSettings;
 }
 
-import { UserRole } from './user-types';
-
-export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
   admin: {
-    vehicles: { view: true, create: true, edit: true, delete: true },
-    customers: { view: true, create: true, edit: true, delete: true },
     agreements: { view: true, create: true, edit: true, delete: true },
-    financials: { view: true, create: true, edit: true, delete: true },
-    userManagement: { view: true, create: true, edit: true, delete: true }
+    customers: { view: true, create: true, edit: true, delete: true },
+    vehicles: { view: true, create: true, edit: true, delete: true },
+    payments: { view: true, create: true, edit: true, delete: true },
+    reports: { view: true, create: true, edit: true, delete: true },
+    settings: { view: true, create: true, edit: true, delete: true },
+    userManagement: { view: true, create: true, edit: true, delete: true },
+    legal: { view: true, create: true, edit: true, delete: true }
   },
   staff: {
-    vehicles: { view: true, create: true, edit: true, delete: false },
-    customers: { view: true, create: true, edit: true, delete: false },
     agreements: { view: true, create: true, edit: true, delete: false },
-    financials: { view: true, create: false, edit: false, delete: false },
-    userManagement: { view: false, create: false, edit: false, delete: false }
+    customers: { view: true, create: true, edit: true, delete: false },
+    vehicles: { view: true, create: false, edit: false, delete: false },
+    payments: { view: true, create: true, edit: true, delete: false },
+    reports: { view: true, create: false, edit: false, delete: false },
+    settings: { view: false, create: false, edit: false, delete: false },
+    userManagement: { view: false, create: false, edit: false, delete: false },
+    legal: { view: true, create: true, edit: true, delete: false }
   }
 };

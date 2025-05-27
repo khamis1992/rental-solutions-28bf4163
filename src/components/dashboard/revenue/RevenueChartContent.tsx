@@ -24,7 +24,7 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data }) => {
         <YAxis 
           tick={{ fontSize: 12 }}
           axisLine={{ stroke: '#e0e0e0' }}
-          tickFormatter={(value) => `$${value.toLocaleString()}`}
+          tickFormatter={(value: number) => `$${value.toLocaleString()}`}
         />
         <Tooltip 
           formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}

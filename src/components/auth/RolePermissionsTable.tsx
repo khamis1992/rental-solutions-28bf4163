@@ -29,11 +29,14 @@ const RolePermissionsTable: React.FC = () => {
 
       if (error) throw error;
 
-      const base = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS[selectedRole]));
+      const base: RolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS[selectedRole]));
 
       data?.forEach(({ resource, action }) => {
         if (base[resource as keyof RolePermissions]) {
-          (base[resource as keyof RolePermissions] as any)[action] = true;
+          const permissionSection = base[resource as keyof RolePermissions] as PermissionSettings;
+          if (permissionSection && action in permissionSection) {
+            (permissionSection as any)[action] = true;
+          }
         }
       });
 
@@ -61,7 +64,8 @@ const RolePermissionsTable: React.FC = () => {
     try {
       const rows: { role: string; resource: string; action: string }[] = [];
       Object.entries(permissions).forEach(([resource, actions]) => {
-        Object.entries(actions as PermissionSettings).forEach(([action, allowed]) => {
+        const permissionActions = actions as PermissionSettings;
+        Object.entries(permissionActions).forEach(([action, allowed]) => {
           if (allowed) rows.push({ role, resource, action });
         });
       });
@@ -107,35 +111,38 @@ const RolePermissionsTable: React.FC = () => {
           <div className="text-center">Edit</div>
           <div className="text-center">Delete</div>
         </div>
-        {Object.entries(permissions).map(([key, perm], index) => (
-          <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
-            <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
-            <div className="text-center">
-              <Switch 
-                checked={perm.view} 
-                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} 
-              />
+        {Object.entries(permissions).map(([key, perm], index) => {
+          const permissionSettings = perm as PermissionSettings;
+          return (
+            <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
+              <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
+              <div className="text-center">
+                <Switch 
+                  checked={permissionSettings.view} 
+                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} 
+                />
+              </div>
+              <div className="text-center">
+                <Switch 
+                  checked={permissionSettings.create} 
+                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} 
+                />
+              </div>
+              <div className="text-center">
+                <Switch 
+                  checked={permissionSettings.edit} 
+                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} 
+                />
+              </div>
+              <div className="text-center">
+                <Switch 
+                  checked={permissionSettings.delete} 
+                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} 
+                />
+              </div>
             </div>
-            <div className="text-center">
-              <Switch 
-                checked={perm.create} 
-                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} 
-              />
-            </div>
-            <div className="text-center">
-              <Switch 
-                checked={perm.edit} 
-                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} 
-              />
-            </div>
-            <div className="text-center">
-              <Switch 
-                checked={perm.delete} 
-                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} 
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-end">
