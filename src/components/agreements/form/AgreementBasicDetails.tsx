@@ -7,8 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers } from '@/hooks/use-customers';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { UseFormReturn } from 'react-hook-form';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { AGREEMENT_STATUS_VALUES } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
 
 interface AgreementBasicDetailsProps {
@@ -29,12 +29,12 @@ export const AgreementBasicDetails = ({
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
 
   const statusOptions = [
-    { label: "Draft", value: AGREEMENT_STATUS_VALUES.DRAFT },
-    { label: "Pending", value: AGREEMENT_STATUS_VALUES.PENDING },
-    { label: "Active", value: AGREEMENT_STATUS_VALUES.ACTIVE },
-    { label: "Expired", value: AGREEMENT_STATUS_VALUES.EXPIRED },
-    { label: "Cancelled", value: AGREEMENT_STATUS_VALUES.CANCELLED },
-    { label: "Closed", value: AGREEMENT_STATUS_VALUES.CLOSED }
+    { label: "Draft", value: AgreementStatus.DRAFT },
+    { label: "Pending", value: AgreementStatus.PENDING },
+    { label: "Active", value: AgreementStatus.ACTIVE },
+    { label: "Expired", value: AgreementStatus.EXPIRED },
+    { label: "Cancelled", value: AgreementStatus.CANCELLED },
+    { label: "Closed", value: AgreementStatus.CLOSED }
   ];
 
   // When vehicle is selected, update selected vehicle state

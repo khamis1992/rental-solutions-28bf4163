@@ -19,6 +19,7 @@ const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ childre
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       status: 'draft',
+      terms_accepted: false,
     },
     mode: "onChange"
   });
@@ -27,6 +28,7 @@ const AgreementSubmitHandler: React.FC<AgreementSubmitHandlerProps> = ({ childre
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       status: 'draft',
+      terms_accepted: false,
     },
     mode: "onChange"
   });
