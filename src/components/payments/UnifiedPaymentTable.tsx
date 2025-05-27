@@ -3,66 +3,64 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Calendar, Eye } from 'lucide-react';
-import { ScheduledPayment } from '@/utils/payment-schedule-generator';
-import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
+import { formatCurrency } from '@/lib/utils';
+import { Calendar, DollarSign } from 'lucide-react';
+
+interface PaymentItem {
+  id: string;
+  dueDate: Date;
+  amount: number;
+  description: string;
+  status: 'pending' | 'completed' | 'overdue';
+  type: string;
+  isProjected: boolean;
+}
 
 interface UnifiedPaymentTableProps {
-  payments: ScheduledPayment[];
-  onRecordPayment?: (payment: ScheduledPayment) => void;
-  onViewPayment?: (payment: ScheduledPayment) => void;
-  isLoading?: boolean;
-  showProjectedPayments?: boolean;
+  payments: PaymentItem[];
+  onRecordPayment: (payment: PaymentItem) => void;
+  isLoading: boolean;
+  showProjectedPayments: boolean;
 }
 
 export function UnifiedPaymentTable({
   payments,
   onRecordPayment,
-  onViewPayment,
-  isLoading = false,
-  showProjectedPayments = true
+  isLoading,
+  showProjectedPayments
 }: UnifiedPaymentTableProps) {
-  
-  const getStatusBadge = (payment: ScheduledPayment) => {
-    const { status, isProjected } = payment;
-    
-    if (isProjected && showProjectedPayments) {
-      return <Badge variant="outline" className="text-blue-600">Projected</Badge>;
-    }
-    
-    switch (status) {
-      case 'completed':
-        return <Badge variant="default" className="bg-green-500">Paid</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
-      case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
-
-  const filteredPayments = showProjectedPayments 
-    ? payments 
-    : payments.filter(p => !p.isProjected);
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin w-6 h-6 border-t-2 border-blue-500 rounded-full"></div>
       </div>
     );
   }
 
-  if (filteredPayments.length === 0) {
+  if (!payments || payments.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No payment schedule available</p>
+        <p>No payment records found</p>
+        {showProjectedPayments && (
+          <p className="text-sm mt-2">Payment schedule could not be generated</p>
+        )}
       </div>
     );
   }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-500 text-white">Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-500 text-white">Overdue</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="rounded-md border">
@@ -73,60 +71,42 @@ export function UnifiedPaymentTable({
             <TableHead>Description</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredPayments.map((payment) => (
-            <TableRow key={payment.id} className={payment.isProjected ? 'bg-blue-50/50' : ''}>
+          {payments.map((payment) => (
+            <TableRow key={payment.id} className={payment.isProjected ? 'bg-blue-50' : ''}>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                   {formatDate(payment.dueDate)}
                 </div>
               </TableCell>
+              <TableCell>{payment.description}</TableCell>
               <TableCell>
-                <div>
-                  <p className="font-medium">{payment.description}</p>
-                  {payment.monthNumber && (
-                    <p className="text-sm text-muted-foreground">
-                      Month {payment.monthNumber}
-                    </p>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <DollarSign className="h-4 w-4 text-green-600" />
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
                   {formatCurrency(payment.amount)}
                 </div>
               </TableCell>
+              <TableCell>{getStatusBadge(payment.status)}</TableCell>
               <TableCell>
-                {getStatusBadge(payment)}
+                <Badge variant="outline" className="capitalize">
+                  {payment.type}
+                </Badge>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  {payment.isProjected && onRecordPayment && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onRecordPayment(payment)}
-                    >
-                      <DollarSign className="h-4 w-4 mr-1" />
-                      Record
-                    </Button>
-                  )}
-                  {!payment.isProjected && onViewPayment && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onViewPayment(payment)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                  )}
-                </div>
+                {payment.isProjected && payment.status !== 'completed' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRecordPayment(payment)}
+                  >
+                    Record Payment
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}

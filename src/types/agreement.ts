@@ -1,71 +1,17 @@
 
-import { LeaseStatus } from '@/types/lease-types';
+import { Database } from './database.types';
 
-export interface Agreement {
-  id: string;
-  status: LeaseStatus;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: Date;
-  end_date: Date;
-  total_amount: number;
-  rent_amount?: number;
-  payment_frequency?: string;
-  payment_day?: number;
-  created_at?: Date;
-  updated_at?: Date;
-  agreement_number?: string;
-  agreement_type?: string;
-  next_payment_date?: string;
-  last_payment_date?: string;
-  notes?: string;
-  customers?: {
-    id?: string;
-    full_name?: string;
-    email?: string;
-    phone_number?: string;
-    driver_license?: string;
-    nationality?: string;
-    address?: string;
-  };
-  vehicles?: {
-    id?: string;
-    make?: string;
-    model?: string;
-    year?: number;
-    license_plate?: string;
-    color?: string;
-    vehicle_type?: string;
-    vin?: string;
-  };
+export type Agreement = Database['public']['Tables']['leases']['Row'] & {
+  customers?: Database['public']['Tables']['profiles']['Row'];
+  profiles?: Database['public']['Tables']['profiles']['Row'];
+  vehicles?: Database['public']['Tables']['vehicles']['Row'];
   customer_name?: string;
-  payments?: any[];
-  daily_late_fee?: number;
-  deposit_amount?: number;
-  remaining_amount?: number;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-}
+  vehicle_info?: string;
+  payment_day?: number; // Add payment_day property
+};
 
-// Add any other agreement-related types here
-export interface AgreementDetail extends Agreement {
-  payments: {
-    id: string;
-    amount: number;
-    payment_date: string;
-    status: string;
-  }[];
-}
+export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];
+export type AgreementUpdate = Database['public']['Tables']['leases']['Update'];
 
-// Table filters
-export interface TableFilters {
-  status?: string[];
-  date?: [Date | null, Date | null];
-  search?: string;
-  vehicleId?: string;
-  customerId?: string;
-  [key: string]: any;
-}
+// Re-export other types
+export type { Database };

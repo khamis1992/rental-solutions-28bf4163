@@ -11,15 +11,9 @@ import { UnifiedPaymentTable } from './UnifiedPaymentTable';
 import { useUnifiedPayments } from '@/hooks/payment/use-unified-payments';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Filter, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ToggleLeft, ToggleRight } from 'lucide-react';
 import { generatePaymentHistoryPdf } from '@/utils/report-utils';
 import { formatDate } from '@/lib/date-utils';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { Agreement } from '@/types/agreement';
 
@@ -52,7 +46,7 @@ export function PaymentHistorySection({
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [showProjectedPayments, setShowProjectedPayments] = useState(true);
 
-  // Use unified payments hook
+  // Use unified payments hook with better error handling
   const {
     unifiedPayments,
     hasSchedule,
@@ -214,21 +208,23 @@ export function PaymentHistorySection({
               onExportHistoryClick={handleExportHistoryClick}
             />
             
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowProjectedPayments(!showProjectedPayments)}
-                className="flex items-center gap-2"
-              >
-                {showProjectedPayments ? (
-                  <ToggleRight className="h-4 w-4" />
-                ) : (
-                  <ToggleLeft className="h-4 w-4" />
-                )}
-                Show Schedule
-              </Button>
-            </div>
+            {hasSchedule && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowProjectedPayments(!showProjectedPayments)}
+                  className="flex items-center gap-2"
+                >
+                  {showProjectedPayments ? (
+                    <ToggleRight className="h-4 w-4" />
+                  ) : (
+                    <ToggleLeft className="h-4 w-4" />
+                  )}
+                  Show Schedule
+                </Button>
+              </div>
+            )}
           </div>
           
           <UnifiedPaymentTable 
@@ -241,17 +237,31 @@ export function PaymentHistorySection({
       );
     }
 
-    // Empty state
+    // Enhanced empty state with debugging info
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <p>No payment history available</p>
-        <Button 
-          variant="outline" 
-          className="mt-4" 
-          onClick={handleRecordPaymentClick}
-        >
-          Record First Payment
-        </Button>
+        <div className="space-y-4">
+          <p>No payment history available</p>
+          {agreement && (
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>Debug Info:</p>
+              <p>Agreement ID: {agreement.id}</p>
+              <p>Start Date: {agreement.start_date}</p>
+              <p>End Date: {agreement.end_date}</p>
+              <p>Rent Amount: {agreement.rent_amount}</p>
+              <p>Payment Day: {agreement.payment_day || 'Not set'}</p>
+              <p>Has Schedule: {hasSchedule ? 'Yes' : 'No'}</p>
+              <p>Actual Payments: {payments.length}</p>
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            className="mt-4" 
+            onClick={handleRecordPaymentClick}
+          >
+            Record First Payment
+          </Button>
+        </div>
       </div>
     );
   };

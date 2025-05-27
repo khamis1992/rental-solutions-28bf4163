@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { generatePaymentSchedule, mergeActualWithScheduled, PaymentScheduleParams, ScheduledPayment } from '@/utils/payment-schedule-generator';
 import { usePayments } from '@/hooks/use-payments';
 import { Agreement } from '@/types/agreement';
+import { PaymentScheduleService, PaymentScheduleItem } from '@/services/PaymentScheduleService';
 
 interface UseUnifiedPaymentsProps {
   agreement: Agreement | null;
@@ -13,7 +13,7 @@ export function useUnifiedPayments({
   agreement, 
   showProjectedPayments = true 
 }: UseUnifiedPaymentsProps) {
-  const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
+  const [scheduledPayments, setScheduledPayments] = useState<PaymentScheduleItem[]>([]);
   
   // Get actual payments from database
   const { 
@@ -24,25 +24,16 @@ export function useUnifiedPayments({
     deletePayment
   } = usePayments(agreement?.id);
 
-  // Generate payment schedule based on agreement
+  // Generate payment schedule when agreement changes
   useEffect(() => {
     if (!agreement) {
       setScheduledPayments([]);
       return;
     }
 
-    const scheduleParams: PaymentScheduleParams = {
-      startDate: new Date(agreement.start_date),
-      endDate: new Date(agreement.end_date),
-      rentAmount: agreement.rent_amount || 0,
-      paymentFrequency: 'monthly', // Default to monthly
-      paymentDay: 1, // Default to 1st of month
-      includeDeposit: false, // Deposit is usually handled separately
-      depositAmount: 0
-    };
-
-    const generated = generatePaymentSchedule(scheduleParams);
-    setScheduledPayments(generated);
+    console.log('Generating payment schedule for agreement:', agreement.id);
+    const schedule = PaymentScheduleService.generateSchedule(agreement);
+    setScheduledPayments(schedule);
   }, [agreement]);
 
   // Merge actual payments with scheduled payments
@@ -50,8 +41,8 @@ export function useUnifiedPayments({
     if (!showProjectedPayments) {
       return actualPayments.map(payment => ({
         id: payment.id,
-        dueDate: new Date(payment.payment_date || payment.due_date),
-        amount: payment.amount,
+        dueDate: new Date(payment.payment_date || payment.due_date || new Date()),
+        amount: payment.amount || 0,
         description: payment.description || 'Payment',
         status: payment.status === 'completed' ? 'completed' as const : 
                 payment.status === 'pending' ? 'pending' as const : 'overdue' as const,
@@ -60,12 +51,12 @@ export function useUnifiedPayments({
       }));
     }
 
-    return mergeActualWithScheduled(scheduledPayments, actualPayments);
+    return PaymentScheduleService.mergeWithActualPayments(scheduledPayments, actualPayments);
   }, [scheduledPayments, actualPayments, showProjectedPayments]);
 
   // Record payment for a projected payment
   const recordProjectedPayment = async (
-    scheduledPayment: ScheduledPayment,
+    scheduledPayment: PaymentScheduleItem,
     actualAmount?: number,
     paymentDate?: Date
   ) => {
@@ -79,7 +70,7 @@ export function useUnifiedPayments({
       description: scheduledPayment.description,
       status: 'completed' as const,
       type: scheduledPayment.type,
-      payment_method: 'cash' // Default payment method
+      payment_method: 'cash'
     };
 
     return await addPayment(paymentData);
