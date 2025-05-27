@@ -3,7 +3,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface RevenueData {
-  month: string;
+  period: string;
   revenue: number;
 }
 
@@ -17,7 +17,7 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data }) => {
       <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis 
-          dataKey="month" 
+          dataKey="period" 
           tick={{ fontSize: 12 }}
           axisLine={{ stroke: '#e0e0e0' }}
         />
