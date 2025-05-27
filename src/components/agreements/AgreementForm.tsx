@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { Agreement } from '@/types/agreement';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { agreementSchema } from '@/lib/validation-schemas/agreement';
+import { agreementSchema, Agreement } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
 import { AgreementBasicDetails } from './form/AgreementBasicDetails';
 import { AgreementContractTerms } from './form/AgreementContractTerms';

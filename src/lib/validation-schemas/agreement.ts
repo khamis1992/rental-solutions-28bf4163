@@ -1,10 +1,14 @@
 
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { isValidUUID, validateUUID } from '@/lib/uuid-validation';
 
-// Define the Agreement type
+// Define agreement status enum
+export type AgreementStatus = 'draft' | 'active' | 'pending' | 'closed' | 'cancelled' | 'expired';
+
+// Define the Agreement type with terms_accepted
 export interface Agreement {
-  id: string;
+  id?: string;
   agreement_number: string;
   customer_id: string;
   vehicle_id: string;
@@ -13,7 +17,7 @@ export interface Agreement {
   rent_amount: number;
   total_amount: number;
   status: AgreementStatus;
-  created_at: string | Date;
+  created_at?: string | Date;
   updated_at?: string | Date;
   daily_late_fee?: number;
   rent_due_day?: number;
@@ -24,51 +28,67 @@ export interface Agreement {
   notes?: string;
   template_id?: string;
   processed_content?: string;
+  terms_accepted?: boolean;
+  deposit_amount?: number;
+  additional_drivers?: string[];
   // Related data that might be included in joins
   customers?: any;
   profiles?: any;
   vehicles?: any;
 }
 
-// Define agreement status enum
-export type AgreementStatus = 'draft' | 'active' | 'pending' | 'closed' | 'cancelled' | 'expired';
+// Create a proper Zod schema for validation
+export const agreementSchema = z.object({
+  id: z.string().optional(),
+  agreement_number: z.string().min(1, "Agreement number is required"),
+  customer_id: z.string().refine((val) => isValidUUID(val), {
+    message: "Invalid customer ID format"
+  }),
+  vehicle_id: z.string().refine((val) => isValidUUID(val), {
+    message: "Invalid vehicle ID format"
+  }),
+  start_date: z.union([z.string(), z.date()]),
+  end_date: z.union([z.string(), z.date()]),
+  rent_amount: z.number().min(0, "Rent amount must be positive"),
+  total_amount: z.number().min(0, "Total amount must be positive"),
+  status: z.enum(['draft', 'active', 'pending', 'closed', 'cancelled', 'expired']),
+  daily_late_fee: z.number().optional(),
+  rent_due_day: z.number().optional(),
+  agreement_duration: z.string().optional(),
+  lease_duration: z.string().optional(),
+  initial_mileage: z.number().optional(),
+  agreement_type: z.string().optional(),
+  notes: z.string().optional(),
+  template_id: z.string().optional(),
+  processed_content: z.string().optional(),
+  terms_accepted: z.boolean().optional(),
+  deposit_amount: z.number().optional(),
+  additional_drivers: z.array(z.string()).optional(),
+  created_at: z.union([z.string(), z.date()]).optional(),
+  updated_at: z.union([z.string(), z.date()]).optional(),
+  customers: z.any().optional(),
+  profiles: z.any().optional(),
+  vehicles: z.any().optional(),
+});
 
-// Agreement validation schema
-export const agreementSchema = {
-  agreement_number: {
-    required: true,
-    type: 'string',
-    minLength: 1
-  },
-  customer_id: {
-    required: true,
-    type: 'string',
-    validate: (value: string) => isValidUUID(value)
-  },
-  vehicle_id: {
-    required: true,
-    type: 'string',
-    validate: (value: string) => isValidUUID(value)
-  },
-  start_date: {
-    required: true,
-    type: 'date'
-  },
-  end_date: {
-    required: true,
-    type: 'date'
-  },
-  rent_amount: {
-    required: true,
-    type: 'number',
-    min: 0
-  },
-  status: {
-    required: true,
-    type: 'string',
-    enum: ['draft', 'active', 'pending', 'closed', 'cancelled', 'expired']
-  }
+// Agreement status values as constants for use in components
+export const AGREEMENT_STATUS_VALUES = {
+  DRAFT: 'draft' as const,
+  ACTIVE: 'active' as const,
+  PENDING: 'pending' as const,
+  CLOSED: 'closed' as const,
+  CANCELLED: 'cancelled' as const,
+  EXPIRED: 'expired' as const,
 };
+
+export const AGREEMENT_STATUS_OPTIONS = [
+  { value: AGREEMENT_STATUS_VALUES.DRAFT, label: 'Draft' },
+  { value: AGREEMENT_STATUS_VALUES.ACTIVE, label: 'Active' },
+  { value: AGREEMENT_STATUS_VALUES.PENDING, label: 'Pending' },
+  { value: AGREEMENT_STATUS_VALUES.CLOSED, label: 'Closed' },
+  { value: AGREEMENT_STATUS_VALUES.CANCELLED, label: 'Cancelled' },
+  { value: AGREEMENT_STATUS_VALUES.EXPIRED, label: 'Expired' },
+];
 
 export async function forceGeneratePaymentForAgreement(
   supabaseClient: any,
