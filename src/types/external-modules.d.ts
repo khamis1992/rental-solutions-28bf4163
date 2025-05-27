@@ -2,8 +2,6 @@ declare module 'sonner';
 declare module 'jspdf';
 declare module 'date-fns';
 declare module 'raf';
-declare module 'react';
-declare module 'react-dom';
 declare module 'trusted-types';
 declare module 'uuid';
 declare module 'ws';
