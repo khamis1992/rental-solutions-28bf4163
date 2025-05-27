@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import DashboardStats from './DashboardStats';
-import { RevenueChart } from './RevenueChart';
-import { VehicleStatusChart } from './VehicleStatusChart';
-import { RecentActivity } from './RecentActivity';
+import RevenueChart from './RevenueChart';
+import VehicleStatusChart from './VehicleStatusChart';
+import RecentActivity from './RecentActivity';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 
 interface DashboardContentProps {
@@ -75,7 +75,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           </div>
         </div>
         {!collapsedSections['fleet'] && (
-          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart />
+          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
         )}
       </div>
       
@@ -97,7 +97,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           </div>
         </div>
         {!collapsedSections['revenue'] && (
-          isLoading ? <Skeleton className="h-[350px] w-full rounded-lg" /> : <RevenueChart />
+          isLoading ? <Skeleton className="h-[350px] w-full rounded-lg" /> : <RevenueChart data={revenue} fullWidth={true} />
         )}
       </div>
       
@@ -120,7 +120,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 <Skeleton key={i} className="h-16 w-full rounded-md" />
               ))}
             </div>
-          ) : <RecentActivity />
+          ) : <RecentActivity activities={activity} />
         )}
       </div>
     </div>

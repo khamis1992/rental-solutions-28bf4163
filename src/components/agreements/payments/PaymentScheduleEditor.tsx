@@ -54,18 +54,11 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   onPaymentDayChange,
 }) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { generatePayment } = usePaymentSchedule();
 
   // Check if agreementId is valid for payment generation
-  const canGeneratePayments = Boolean(agreementId && isValidUUID(agreementId));
-
-  // Debug logging for agreement ID
-  useEffect(() => {
-    console.log('PaymentScheduleEditor - Agreement ID:', agreementId);
-    console.log('PaymentScheduleEditor - Is valid UUID:', isValidUUID(agreementId));
-    console.log('PaymentScheduleEditor - Can generate payments:', canGeneratePayments);
-  }, [agreementId, canGeneratePayments]);
+  const canGeneratePayments = agreementId && isValidUUID(agreementId);
 
   // Generate payment schedule based on inputs
   const generatePaymentSchedule = (): PaymentItem[] => {
@@ -131,24 +124,8 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
 
   // Handle manual payment generation for existing agreements
   const handleGenerateActualPayments = async () => {
-    console.log('handleGenerateActualPayments called with agreementId:', agreementId);
-    
-    // Comprehensive validation
-    if (!agreementId || typeof agreementId !== 'string') {
-      console.error('No valid agreement ID provided:', agreementId);
-      toast.error("No valid agreement ID available");
-      return;
-    }
-
-    if (agreementId === 'undefined' || agreementId === 'null' || agreementId.trim() === '') {
-      console.error('Agreement ID is undefined, null, or empty:', agreementId);
-      toast.error("Invalid agreement ID. Please save the agreement first.");
-      return;
-    }
-
     if (!canGeneratePayments) {
-      console.error('Invalid agreement ID (UUID validation failed):', agreementId);
-      toast.error("Invalid agreement ID format. Please check the agreement details.");
+      toast.error("Please save the agreement first to generate payment records");
       return;
     }
 
@@ -156,7 +133,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
       setIsGenerating(true);
       console.log('Generating actual payments for agreement:', agreementId);
       
-      const result = await generatePayment(agreementId);
+      const result = await generatePayment(agreementId!);
       
       if (result?.success) {
         toast.success("Payment records generated successfully");
@@ -238,20 +215,8 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
               ) : (
                 <CalendarIcon className="mr-2 h-4 w-4" />
               )}
-              Generate Payment Schedule
+              Generate Payments
             </Button>
-          )}
-          
-          {!canGeneratePayments && agreementId && (
-            <div className="text-xs text-red-500">
-              Invalid agreement ID: {agreementId}
-            </div>
-          )}
-          
-          {!agreementId && (
-            <div className="text-xs text-muted-foreground">
-              Save agreement first to generate payments
-            </div>
           )}
         </div>
       </div>
