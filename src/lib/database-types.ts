@@ -4,7 +4,6 @@ import {
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { isValidUUID, validateUUID } from './uuid-validation';
 export { isSuccessResponse } from './database/validation/typeGuards';
 
 // Helper type for easy table access
@@ -29,11 +28,10 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
   return (response.data as unknown as T) || null;
 }
 
-// Type safe ID converter with validation
-export function asTableId<T extends keyof Tables>(table: T, id: string | undefined | null): Tables[T]['Row']['id'] {
-  if (!isValidUUID(id)) {
-    throw new Error(`Invalid UUID for table ${table}: ${id}`);
-  }
+// Type guard for responses
+
+// Type safe ID converter
+export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
   return id as Tables[T]['Row']['id'];
 }
 
@@ -72,3 +70,4 @@ export type ProfileStatus = ProfileRow['status'];
 export function asStatus<T extends { status: string }>(status: string): T['status'] {
   return status as T['status'];
 }
+

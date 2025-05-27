@@ -1,125 +1,132 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { Download, Eye, Trash } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CalendarDays, Download, RefreshCw, FileDown, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { formatDistanceToNow } from 'date-fns';
 
-interface ImportHistory {
+interface ImportRecord {
   id: string;
-  fileName: string;
+  file_name: string;
+  original_file_name: string;
   status: string;
-  createdAt: string;
-  recordsProcessed: number;
-  recordsSucceeded: number;
-  recordsFailed: number;
-  errors: string[];
+  row_count: number;
+  processed_count: number;
+  error_count: number;
+  created_at: string;
 }
 
-export function CustomerImportHistory() {
-  const [importHistory, setImportHistory] = useState<ImportHistory[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [selectedImport, setSelectedImport] = useState<ImportHistory | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-
+export const CustomerImportHistory: React.FC = () => {
+  const [imports, setImports] = useState<ImportRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch import history on component mount
   useEffect(() => {
-    // Fetch import history
-    const fetchImportHistory = async () => {
-      setLoading(true);
-      try {
-        // Replace with actual API call
-        const response = await fetch('/api/customer-imports');
-        const data = await response.json();
-        setImportHistory(data);
-      } catch (error) {
-        console.error('Error fetching import history:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchImportHistory();
   }, []);
-
-  const handleViewDetails = (importItem: ImportHistory) => {
-    setSelectedImport(importItem);
-    setShowDetailsModal(true);
-  };
-
-  const handleDeleteImport = (importItem: ImportHistory) => {
-    setSelectedImport(importItem);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!selectedImport) return;
-    
+  
+  // Function to fetch import history from Supabase
+  const fetchImportHistory = async () => {
+    setIsLoading(true);
     try {
-      // Replace with actual API call
-      await fetch(`/api/customer-imports/${selectedImport.id}`, {
-        method: 'DELETE',
-      });
+      const { data, error } = await supabase
+        .from('customer_import_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+        
+      if (error) {
+        console.error('Error fetching import history:', error);
+        return;
+      }
       
-      // Remove from state
-      setImportHistory(importHistory.filter(item => item.id !== selectedImport.id));
-      setShowDeleteModal(false);
-      setSelectedImport(null);
+      setImports(data || []);
     } catch (error) {
-      console.error('Error deleting import:', error);
+      console.error('Unexpected error fetching import history:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const downloadErrorReport = async (importId: string) => {
-    try {
-      // Replace with actual API call
-      const response = await fetch(`/api/customer-imports/${importId}/errors`);
-      const blob = await response.blob();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `import-errors-${importId}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-    } catch (error) {
-      console.error('Error downloading error report:', error);
-    }
-  };
-
+  
+  // Function to get status badge based on status
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch(status) {
       case 'completed':
-        return <Badge variant="success">Completed</Badge>;
+        return <Badge variant="default">Completed</Badge>;
       case 'processing':
-        return <Badge variant="warning">Processing</Badge>;
+        return <Badge variant="secondary">Processing</Badge>;
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
-      case 'partial':
-        return <Badge variant="outline">Partial Success</Badge>;
+      case 'pending':
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge variant="outline">Pending</Badge>;
     }
   };
-
-  if (loading) {
+  
+  // Loading skeleton
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Import History</CardTitle>
+          <CardDescription>Recent customer data imports</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>File Name</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Records</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-[180px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-[80px]" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Empty state
+  if (!imports || imports.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Import History</CardTitle>
+          <CardDescription>Recent customer data imports</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <FileDown className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="font-medium text-lg">No import history</h3>
+            <p className="text-muted-foreground mb-4">
+              You haven't imported any customer data yet.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -128,158 +135,76 @@ export function CustomerImportHistory() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Import History</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Import History</CardTitle>
+          <CardDescription>Recent customer data imports</CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1" 
+          onClick={fetchImportHistory}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
       </CardHeader>
       <CardContent>
-        {importHistory.length === 0 ? (
-          <Alert>
-            <AlertDescription>No import history found.</AlertDescription>
-          </Alert>
-        ) : (
+        <div className="rounded-md border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>File Name</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Records</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {importHistory.map((importItem) => (
-                <TableRow key={importItem.id}>
-                  <TableCell>{importItem.fileName}</TableCell>
-                  <TableCell>{format(new Date(importItem.createdAt), 'MMM d, yyyy')}</TableCell>
-                  <TableCell>{getStatusBadge(importItem.status)}</TableCell>
-                  <TableCell>
-                    {importItem.recordsProcessed} processed
-                    <br />
-                    <span className="text-green-600">{importItem.recordsSucceeded} succeeded</span>
-                    {importItem.recordsFailed > 0 && (
-                      <span className="text-red-600"> • {importItem.recordsFailed} failed</span>
-                    )}
+              {imports.map((importRecord) => (
+                <TableRow key={importRecord.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{importRecord.original_file_name || importRecord.file_name}</span>
+                      {importRecord.error_count > 0 && (
+                        <div className="flex items-center text-xs text-red-600 mt-1">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {importRecord.error_count} errors
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetails(importItem)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Details
-                      </Button>
-                      {importItem.recordsFailed > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadErrorReport(importItem.id)}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Errors
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteImport(importItem)}
-                      >
-                        <Trash className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3 text-muted-foreground" />
+                      <span>{formatDistanceToNow(new Date(importRecord.created_at), { addSuffix: true })}</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span>{importRecord.processed_count}/{importRecord.row_count}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round((importRecord.processed_count / Math.max(1, importRecord.row_count)) * 100)}% complete
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(importRecord.status)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon">
+                      <Download className="h-4 w-4" />
+                      <span className="sr-only">Download</span>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        )}
-
-        {/* Details Modal */}
-        <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Import Details</DialogTitle>
-            </DialogHeader>
-            {selectedImport && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium">File Name</p>
-                    <p>{selectedImport.fileName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Date</p>
-                    <p>{format(new Date(selectedImport.createdAt), 'MMM d, yyyy HH:mm')}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Status</p>
-                    <p>{getStatusBadge(selectedImport.status)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Records Processed</p>
-                    <p>{selectedImport.recordsProcessed}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Records Succeeded</p>
-                    <p className="text-green-600">{selectedImport.recordsSucceeded}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Records Failed</p>
-                    <p className="text-red-600">{selectedImport.recordsFailed}</p>
-                  </div>
-                </div>
-
-                {selectedImport.errors && selectedImport.errors.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2">Errors</p>
-                    <div className="max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
-                      <ul className="list-disc list-inside">
-                        {selectedImport.errors.map((error, index) => (
-                          <li key={index} className="text-sm text-red-600">{error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDetailsModal(false)}>
-                Close
-              </Button>
-              {selectedImport && selectedImport.recordsFailed > 0 && (
-                <Button onClick={() => downloadErrorReport(selectedImport.id)}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Error Report
-                </Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Modal */}
-        <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Deletion</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this import record? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={confirmDelete}>
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </div>
       </CardContent>
     </Card>
   );
-}
+};

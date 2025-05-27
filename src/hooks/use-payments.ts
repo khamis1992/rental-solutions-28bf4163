@@ -1,36 +1,26 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { paymentRepository } from '@/lib/database';
-import { isValidUUID } from '@/lib/uuid-validation';
+import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
 import type { Payment } from '@/types/payment.types';
 
-export const usePayments = (agreementId?: string | null | undefined) => {
-  // Validate the agreementId before making any queries
-  const isValidAgreementId = agreementId && isValidUUID(agreementId);
-  
-  console.log('usePayments called with:', { agreementId, isValidAgreementId });
-  
+export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     ['payments', agreementId],
     async () => {
-      // Return empty array if agreementId is invalid
-      if (!isValidAgreementId) {
-        console.warn('usePayments: Invalid agreement ID provided:', agreementId);
-        return [] as Payment[];
-      }
+      if (!agreementId) return [] as Payment[];
       
-      console.log('usePayments: Making database query for agreementId:', agreementId);
       const response = await paymentRepository.findByLeaseId(agreementId);
       
       if (response.error) {
-        console.error("usePayments: Error fetching payments:", response.error);
+        console.error("Error fetching payments:", response.error);
         return [] as Payment[];
       }
       
       return response.data as Payment[] || [];
     },
     {
-      enabled: isValidAgreementId,
+      enabled: !!agreementId,
     }
   );
 
@@ -46,37 +36,39 @@ export const usePayments = (agreementId?: string | null | undefined) => {
     const response = await paymentRepository.recordPayment(paymentToAdd);
 
     if (response.error) {
-      console.error("usePayments: Error adding payment:", response.error);
+      console.error("Error adding payment:", response.error);
       return null;
     }
     return response.data;
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
+    // Destructuring should happen outside the function for clarity
     const { id, data: paymentData } = paymentUpdate;
     
-    if (!isValidUUID(id)) {
-      throw new Error(`Invalid payment ID: ${id}`);
+    // Make sure we have a valid payment ID
+    if (!id) {
+      throw new Error("Invalid payment ID");
     }
 
     const response = await paymentRepository.update(id, paymentData);
 
     if (response.error) {
-      console.error("usePayments: Error updating payment:", response.error);
+      console.error("Error updating payment:", response.error);
       throw response.error;
     }
     return response.data;
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    if (!isValidUUID(paymentId)) {
-      throw new Error(`Invalid payment ID: ${paymentId}`);
+    if (!paymentId) {
+      throw new Error("Invalid payment ID");
     }
 
     const response = await paymentRepository.delete(paymentId);
 
     if (response.error) {
-      console.error("usePayments: Error deleting payment:", response.error);
+      console.error("Error deleting payment:", response.error);
       throw response.error;
     }
     return { success: true };
@@ -94,6 +86,5 @@ export const usePayments = (agreementId?: string | null | undefined) => {
     updatePayment: updatePayment.mutateAsync,
     deletePayment: deletePayment.mutateAsync,
     fetchPayments,
-    isValidAgreementId, // Expose this for debugging
   };
 };

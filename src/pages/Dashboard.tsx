@@ -1,120 +1,117 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { VehicleStatusChart } from '@/components/dashboard/VehicleStatusChart';
-import { BarChart3, Car, Users, FileText, DollarSign } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import PageContainer from '@/components/layout/PageContainer';
+import { useDashboardData } from '@/hooks/use-dashboard';
+import { toast } from '@/hooks/use-toast';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { CacheManager } from '@/lib/cache-utils';
+
+// Suppress Supabase schema cache errors more comprehensively
+if (typeof window !== 'undefined') {
+  // Override console.error to filter out specific error messages
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    // Filter out all errors about relationships in schema cache
+    if (args[0] && typeof args[0] === 'string' && 
+        args[0].includes('schema cache')) {
+      return; // Suppress all schema cache related errors
+    }
+    // Pass all other errors to the original console.error
+    originalConsoleError.apply(console, args);
+  };
+}
 
 const Dashboard = () => {
-  console.log('Dashboard page rendering');
+  const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({});
+  
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    
+    // Clear cache when refreshing
+    CacheManager.clear();
+    
+    // Use a timeout to prevent rapid refreshes
+    setTimeout(() => {
+      window.location.reload();
+      toast({
+        title: "Dashboard refreshed",
+        description: "All data has been updated with the latest information."
+      });
+    }, 600);
+  }, []);
+  
+  const toggleSection = useCallback((section: string) => {
+    setCollapsedSections(prev => ({ 
+      ...prev, 
+      [section]: !prev[section] 
+    }));
+  }, []);
+  
+  // Get current date in a formatted string
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Add CSS to handle animations
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideIn {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      .animate-slide-in {
+        animation: slideIn 0.5s ease-out;
+      }
+      .section-transition {
+        transition: all 0.3s ease-in-out;
+      }
+      .card-transition {
+        transition: all 0.2s ease;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Fleet Management Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Overview of your fleet operations and key metrics
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
-              <Car className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Fleet size</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Current customers</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Agreements</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Current agreements</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$0</div>
-              <p className="text-xs text-muted-foreground">This month</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <VehicleStatusChart />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
-              <CardDescription>Monthly revenue trends</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-64">
-              <div className="text-center text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4" />
-                <p>Revenue chart will be available soon</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <Car className="h-8 w-8 text-blue-600 mb-2" />
-                <h3 className="font-medium">Add Vehicle</h3>
-                <p className="text-sm text-gray-600">Register a new vehicle</p>
-              </button>
-              
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <Users className="h-8 w-8 text-green-600 mb-2" />
-                <h3 className="font-medium">Add Customer</h3>
-                <p className="text-sm text-gray-600">Register a new customer</p>
-              </button>
-              
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <FileText className="h-8 w-8 text-purple-600 mb-2" />
-                <h3 className="font-medium">New Agreement</h3>
-                <p className="text-sm text-gray-600">Create rental agreement</p>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <PageContainer>
+      <DashboardHeader 
+        currentDate={currentDate}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+      />
+      
+      <QuickActions />
+      
+      <DashboardContent 
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        stats={stats}
+        revenue={revenue}
+        activity={activity}
+        collapsedSections={collapsedSections}
+        onToggleSection={toggleSection}
+      />
+    </PageContainer>
   );
 };
 

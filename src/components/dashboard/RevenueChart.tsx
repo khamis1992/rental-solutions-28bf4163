@@ -1,55 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
 
-interface RevenueData {
-  month: string;
-  amount: number;
-}
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
+import ChartTypeSelector from './revenue/ChartTypeSelector';
+import RevenueChartContent from './revenue/RevenueChartContent';
+import { RevenueChartProps, ChartType } from './revenue/types';
 
-export function RevenueChart() {
-  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
-
-  useEffect(() => {
-    // Mock data for demonstration
-    const mockData: RevenueData[] = [
-      { month: 'Jan', amount: 4000 },
-      { month: 'Feb', amount: 3000 },
-      { month: 'Mar', amount: 2000 },
-      { month: 'Apr', amount: 2780 },
-      { month: 'May', amount: 1890 },
-      { month: 'Jun', amount: 2390 },
-      { month: 'Jul', amount: 3490 },
-    ];
-    setRevenueData(mockData);
-  }, []);
+const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
+  const [chartType, setChartType] = useState<ChartType>('area');
+  
+  // Get current month name for dynamic title
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  
+  // Calculate the total revenue for the current month
+  const currentMonthData = data[data.length - 1];
+  const currentMonthRevenue = currentMonthData ? currentMonthData.revenue : 0;
+  
+  // Calculate change from previous month
+  const previousMonthData = data[data.length - 2];
+  const previousMonthRevenue = previousMonthData ? previousMonthData.revenue : 0;
+  const revenueChange = previousMonthRevenue !== 0 
+    ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
+    : 0;
+  
+  // Format the change indicator
+  const formattedChange = revenueChange !== 0 
+    ? `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%` 
+    : 'No change';
+  
+  // Determine color based on change direction
+  const changeColor = revenueChange > 0 
+    ? 'text-green-600' 
+    : revenueChange < 0 
+      ? 'text-red-600' 
+      : 'text-gray-600';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Revenue Chart</CardTitle>
+    <Card className={`card-transition dashboard-card ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
+      <CardHeader className="pb-0 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+        <div className="mb-3 sm:mb-0">
+          <CardTitle>{`${currentMonth} Revenue Overview`}</CardTitle>
+          <div className="flex items-center mt-1">
+            <span className="text-lg font-semibold">{formatCurrency(currentMonthRevenue)}</span>
+            <span className={`text-sm ml-2 ${changeColor}`}>{formattedChange}</span>
+          </div>
+        </div>
+        <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
       </CardHeader>
-      <CardContent className="pl-2">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="amount" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
+      <CardContent>
+        <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
+          <RevenueChartContent data={data} chartType={chartType} />
+        </div>
       </CardContent>
     </Card>
   );
-}
+};
+
+export default RevenueChart;

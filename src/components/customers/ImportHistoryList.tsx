@@ -1,101 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table"
-import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
 
-interface ImportRecord {
-  id: string;
-  fileName: string;
-  status: string;
-  createdAt: string;
-}
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export function ImportHistoryList() {
-  const [importHistory, setImportHistory] = useState<ImportRecord[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [importLogs, setImportLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockData: ImportRecord[] = [
-      {
-        id: '1',
-        fileName: 'customers_01_01_2024.csv',
-        status: 'completed',
-        createdAt: '2024-01-01T12:00:00Z',
-      },
-      {
-        id: '2',
-        fileName: 'customers_01_02_2024.csv',
-        status: 'failed',
-        createdAt: '2024-01-02T14:30:00Z',
-      },
-      {
-        id: '3',
-        fileName: 'customers_01_03_2024.csv',
-        status: 'completed',
-        createdAt: '2024-01-03T16:45:00Z',
-      },
-    ];
+    async function fetchImportLogs() {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('customer_import_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-    setLoading(true);
-    // Simulate fetching data from an API
-    setTimeout(() => {
-      setImportHistory(mockData);
-      setLoading(false);
-    }, 1000);
+        if (error) throw error;
+        setImportLogs(data || []);
+      } catch (err) {
+        console.error('Error fetching import logs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch import history');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchImportLogs();
+    
+    // Set up real-time subscription for import logs
+    const subscription = supabase
+      .channel('customer_import_logs_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'customer_import_logs' 
+      }, (payload) => {
+        fetchImportLogs();
+      })
+      .subscribe();
+      
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Helper function to format status badges
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>;
+      case 'processing':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Processing</Badge>;
+      case 'failed':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Failed</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case 'completed_with_errors':
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Completed with errors</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-4">Import History</h2>
-      {loading ? (
-        <p>Loading import history...</p>
-      ) : (
-        <div className="overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">File Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Imported At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {importHistory.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.fileName}</TableCell>
-                  <TableCell>{record.status}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formatDate(record.createdAt)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {importHistory.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">No import history found.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Recent Import History</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-2 border-b last:border-0">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[250px]" />
+                  <Skeleton className="h-3 w-[200px]" />
+                </div>
+                <Skeleton className="h-6 w-[80px]" />
+              </div>
+            ))}
+          </div>
+        ) : importLogs.length === 0 ? (
+          <div className="text-center py-4 text-muted-foreground">
+            No import history available yet
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {importLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between p-2 border-b last:border-0">
+                <div>
+                  <div className="font-medium">{log.original_file_name || log.file_name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDate(log.created_at)} • 
+                    {log.processed_count > 0 && ` ${log.processed_count} processed`}
+                    {log.error_count > 0 && ` • ${log.error_count} errors`}
+                  </div>
+                </div>
+                {getStatusBadge(log.status)}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

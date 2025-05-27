@@ -1,176 +1,129 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from '@/lib/supabase';
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { statusConfig } from './vehicle-status/status-config';
+import { VehicleStatusData } from './vehicle-status/types';
+import { StatusListItem } from './vehicle-status/StatusListItem';
+import { StatusChart } from './vehicle-status/StatusChart';
+import { ChartControls } from './vehicle-status/ChartControls';
 
-interface VehicleStatus {
-  status: string;
-  count: number;
+interface VehicleStatusChartProps {
+  data?: VehicleStatusData;
 }
 
-interface ChartData {
-  name: string;
-  value: number;
-  color: string;
-}
+const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
+  const navigate = useNavigate();
+  const [chartType, setChartType] = useState<'pie' | 'donut'>('donut');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  
+  if (!data) return null;
+  
+  const normalizedData = { ...data };
+  
+  statusConfig.forEach(status => {
+    if (normalizedData[status.key as keyof typeof normalizedData] === undefined) {
+      normalizedData[status.key as keyof typeof normalizedData] = 0;
+    }
+  });
+  
+  const chartData = statusConfig
+    .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
+    .filter(status => selectedFilter === 'all' || 
+           (selectedFilter === 'issues' && 
+            ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
+           (selectedFilter === 'available' && 
+            ['available', 'reserved'].includes(status.key)) ||
+           (selectedFilter === 'rented' && 
+            status.key === 'rented'))
+    .map(status => ({
+      name: status.name,
+      value: normalizedData[status.key as keyof typeof normalizedData],
+      color: status.color,
+      key: status.key,
+      filterValue: status.filterValue
+    }));
+  
+  const criticalVehicles = (normalizedData.stolen || 0) + 
+                          (normalizedData.accident || 0) + 
+                          (normalizedData.critical || 0);
+  
+  const hasCriticalVehicles = criticalVehicles > 0;
+  
+  const handleStatusClick = (data: any) => {
+    navigate(`/vehicles?status=${data.filterValue}`);
+  };
 
-const STATUS_COLORS = {
-  available: "#10B981",
-  rented: "#3B82F6", 
-  maintenance: "#F59E0B",
-  police_station: "#EF4444",
-  accident: "#DC2626",
-  stolen: "#991B1B",
-  reserved: "#8B5CF6",
-  attention: "#F97316",
-  critical: "#BE185D"
-};
-
-export function VehicleStatusChart() {
-  const [vehicleStatuses, setVehicleStatuses] = useState<VehicleStatus[]>([]);
-  const [totalVehicles, setTotalVehicles] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchVehicleStatuses = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('status');
-
-        if (error) {
-          console.error("Error fetching vehicle statuses:", error);
-          return;
-        }
-
-        if (!data) {
-          console.log("No vehicle data found");
-          return;
-        }
-
-        const statusCounts = data.reduce((acc: { [key: string]: number }, vehicle) => {
-          const status = vehicle.status || 'unknown';
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {});
-
-        const statuses: VehicleStatus[] = Object.entries(statusCounts).map(([status, count]) => ({
-          status,
-          count: count as number,
-        }));
-
-        setVehicleStatuses(statuses);
-        setTotalVehicles(data.length);
-      } catch (error) {
-        console.error("Error fetching vehicle statuses:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchVehicleStatuses();
+  const handleFilterChange = useCallback((value: string) => {
+    setSelectedFilter(value);
   }, []);
 
-  const chartData = useMemo<ChartData[]>(() => {
-    return vehicleStatuses.map(status => ({
-      name: status.status,
-      value: status.count,
-      color: STATUS_COLORS[status.status as keyof typeof STATUS_COLORS] || "#6B7280"
-    }));
-  }, [vehicleStatuses]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Vehicle Status</CardTitle>
-          <CardDescription>Loading vehicle status data...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Vehicle Status</CardTitle>
-        <CardDescription>Overview of vehicle availability</CardDescription>
+    <Card className="col-span-full lg:col-span-4 card-transition dashboard-card">
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <CardTitle>Fleet Status Overview</CardTitle>
+          <ChartControls 
+            selectedFilter={selectedFilter}
+            chartType={chartType}
+            onFilterChange={handleFilterChange}
+            onChartTypeChange={setChartType}
+          />
+        </div>
       </CardHeader>
-      <CardContent className="pl-2">
-        <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-6">
-          <div className="relative w-full lg:w-1/2 h-64">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [`${value} vehicles`, '']}
-                    contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '0.5rem',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No vehicle data available
-              </div>
-            )}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <div className="text-2xl font-bold">{totalVehicles}</div>
-              <div className="text-sm text-muted-foreground">Total Vehicles</div>
-            </div>
+      <CardContent>
+        <div className="flex flex-col lg:flex-row items-start justify-between h-auto lg:h-96">
+          <div className="w-full lg:w-2/3 h-72 lg:h-full">
+            <StatusChart 
+              data={chartData}
+              chartType={chartType}
+              onSegmentClick={handleStatusClick}
+            />
           </div>
           
-          <div className="w-full lg:w-1/2">
-            <div className="space-y-3">
-              {vehicleStatuses.map((status) => (
-                <div key={status.status} className="flex items-center justify-between p-2 rounded-lg border">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ 
-                        backgroundColor: STATUS_COLORS[status.status as keyof typeof STATUS_COLORS] || "#6B7280" 
-                      }}
-                    />
-                    <Badge variant="secondary" className="capitalize">
-                      {status.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">{status.count}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({totalVehicles > 0 ? Math.round((status.count / totalVehicles) * 100) : 0}%)
-                    </span>
-                  </div>
-                </div>
-              ))}
+          <div className="w-full lg:w-1/3 mt-4 lg:mt-0 pl-0 lg:pl-4 flex flex-col h-full">
+            <div className="text-sm text-center lg:text-left text-muted-foreground mb-4">
+              <div className="text-lg font-semibold text-foreground">
+                Total Fleet: {data.total} vehicles
+              </div>
+              {hasCriticalVehicles && (
+                <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
+                  {criticalVehicles} vehicle{criticalVehicles !== 1 ? 's' : ''} requiring immediate attention
+                </Badge>
+              )}
+            </div>
+            
+            <div className="space-y-3 flex-grow overflow-y-auto pr-2">
+              {statusConfig.map((status) => {
+                const count = normalizedData[status.key as keyof typeof normalizedData] || 0;
+                if (count === 0) return null;
+                
+                const isVisible = selectedFilter === 'all' || 
+                  (selectedFilter === 'issues' && 
+                   ['maintenance', 'attention', 'accident', 'stolen', 'critical'].includes(status.key)) ||
+                  (selectedFilter === 'available' && 
+                   ['available', 'reserved'].includes(status.key)) ||
+                  (selectedFilter === 'rented' && 
+                   status.key === 'rented');
+                
+                if (!isVisible) return null;
+                
+                return (
+                  <StatusListItem 
+                    key={status.key}
+                    status={status}
+                    count={count}
+                    onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
+};
+
+export default VehicleStatusChart;

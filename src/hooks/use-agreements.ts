@@ -1,4 +1,5 @@
 
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -39,25 +40,12 @@ export interface SimpleAgreement {
   };
 }
 
-interface Pagination {
-  page: number;
-  pageSize: number;
-}
-
-interface PaginationState {
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  handlePageChange: (newPage: number, newPageSize?: number) => void;
-}
-
 export function useAgreements(initialFilters: Record<string, any> = {}) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   
-  const [pagination, setPagination] = useState<Pagination>({
+  const [pagination, setPagination] = useState({
     page: Number(searchParams.get('page')) || 1,
     pageSize: 25 // Reduced from 1000 to a more reasonable 25 items per page
   });
@@ -65,7 +53,7 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
   const [totalCount, setTotalCount] = useState<number>(0);
 
   // Function to get initial filters from URL parameters
-  const getInitialFilters = (): Record<string, string> => {
+  const getInitialFilters = () => {
     const params: { [key: string]: string } = {};
     searchParams.forEach((value, key) => {
       params[key] = value;
@@ -74,7 +62,7 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
   };
 
   // Initialize filters with URL params first, then override with initialFilters
-  const [filters, setFilters] = useState<Record<string, any>>({
+  const [filters, setFilters] = useState({
     ...getInitialFilters(),
     ...initialFilters // This ensures initialFilters take precedence over URL params
   });
@@ -265,7 +253,7 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
       totalCount: totalCount,
       totalPages: Math.ceil(totalCount / pagination.pageSize),
       handlePageChange: handlePaginationChange,
-    } as PaginationState,
+    },
     useRealtimeUpdates: () => {
       useEffect(() => {
         const subscription = supabase
@@ -321,3 +309,4 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
     queryClient // Add queryClient to dependencies
   ]);
 }
+

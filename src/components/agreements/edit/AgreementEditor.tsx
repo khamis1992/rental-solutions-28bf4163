@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,14 +27,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { usePaymentSchedule } from '@/hooks/payment/use-payment-schedule';
 import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { CustomerInfo } from '@/types/customer';
-import { isValidUUID } from '@/lib/uuid-validation';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -47,7 +46,7 @@ const agreementSchema = z.object({
   total_amount: z.number().min(0, "Amount must be a positive number"),
   rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
   payment_frequency: z.string().optional(),
-  rent_due_day: z.number().min(1).max(31).optional(),
+  payment_day: z.number().min(1).max(31).optional(),
   notes: z.string().optional(),
   daily_late_fee: z.number().min(0).optional(),
   deposit_amount: z.number().min(0).optional(),
@@ -55,21 +54,16 @@ const agreementSchema = z.object({
   additional_drivers: z.array(z.string()).optional(),
 });
 
-const AgreementEditor: React.FC = () => {
+const AgreementEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
-  const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
   
   const agreementService = useAgreementService();
-  const { generatePayment } = usePaymentSchedule();
-  
-  // Check if we have a valid agreement ID
-  const isValidAgreementId = id && isValidUUID(id);
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
@@ -85,7 +79,7 @@ const AgreementEditor: React.FC = () => {
       total_amount: 0,
       rent_amount: 0,
       payment_frequency: 'monthly',
-      rent_due_day: 1,
+      payment_day: 1,
       notes: '',
       daily_late_fee: 0,
       deposit_amount: 0,
@@ -96,10 +90,10 @@ const AgreementEditor: React.FC = () => {
   
   // Load agreement data if editing
   useEffect(() => {
-    const loadAgreement = async () => {
-      // Only load if we have a valid UUID
-      if (!isValidAgreementId) {
-        console.log('No valid agreement ID provided for loading');
+    const loadAgreement = async (): Promise<void> => {
+      // Validate ID before making API call
+      if (!id || id === 'undefined' || id === 'null') {
+        console.log('No valid ID provided for agreement loading');
         return;
       }
       
@@ -123,7 +117,7 @@ const AgreementEditor: React.FC = () => {
             total_amount: agreement.total_amount || 0,
             rent_amount: agreement.rent_amount || 0,
             payment_frequency: agreement.payment_frequency || 'monthly',
-            rent_due_day: agreement.rent_due_day || 1,
+            payment_day: agreement.payment_day || 1,
             notes: agreement.notes || '',
             daily_late_fee: agreement.daily_late_fee || 0,
             deposit_amount: agreement.deposit_amount || 0,
@@ -175,72 +169,12 @@ const AgreementEditor: React.FC = () => {
     };
     
     loadAgreement();
-  }, [id, agreementService, form, toast, navigate, isValidAgreementId]);
-  
-  // Generate payment schedule for the agreement
-  const generatePaymentSchedule = async (agreementId: string) => {
-    try {
-      setIsGeneratingPayments(true);
-      console.log('Generating payment schedule for agreement:', agreementId);
-      
-      const result = await generatePayment(agreementId);
-      
-      if (result?.success) {
-        toast({
-          title: "Success",
-          description: "Payment schedule generated successfully",
-        });
-      } else {
-        console.warn('Payment generation completed but may not have created new payments');
-        toast({
-          title: "Info",
-          description: "Payment schedule generation completed",
-        });
-      }
-    } catch (error) {
-      console.error('Error generating payment schedule:', error);
-      toast({
-        title: "Warning",
-        description: "Agreement saved but payment schedule generation failed. You can generate it manually later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPayments(false);
-    }
-  };
+  }, [id, agreementService, form, toast, navigate]);
   
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>) => {
+  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
-      // Validate required fields for payment generation
-      if (!formData.rent_amount || formData.rent_amount <= 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please enter a valid rent amount before saving",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.start_date || !formData.end_date) {
-        toast({
-          title: "Validation Error", 
-          description: "Please select valid start and end dates",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (formData.end_date <= formData.start_date) {
-        toast({
-          title: "Validation Error",
-          description: "End date must be after start date",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       const data = {
         ...formData,
         total_amount: formData.total_amount || 0,
@@ -248,53 +182,24 @@ const AgreementEditor: React.FC = () => {
       };
       
       let result;
-      const isNewAgreement = !isValidAgreementId;
-      
-      if (isNewAgreement) {
-        // Create new agreement
-        console.log('Creating new agreement with data:', data);
-        result = await agreementService.createAgreement(data);
-        
-        if (result) {
-          toast({
-            title: "Success",
-            description: "Agreement created successfully",
-          });
-          
-          // Generate payment schedule for new agreement
-          await generatePaymentSchedule(result.id);
-          
-          // Navigate to the new agreement
-          navigate(`/agreements/${result.id}`);
-        }
-      } else {
+      if (id && id !== 'undefined' && id !== 'null') {
         // Update existing agreement
-        console.log('Updating existing agreement:', id);
         result = await agreementService.updateAgreement({
-          id: id!,
+          id,
           data
         });
-        
-        if (result) {
-          toast({
-            title: "Success",
-            description: "Agreement updated successfully",
-          });
-          
-          // For existing agreements, ask user if they want to regenerate payments
-          const shouldRegeneratePayments = formData.rent_amount !== form.formState.defaultValues?.rent_amount ||
-                                         formData.payment_frequency !== form.formState.defaultValues?.payment_frequency ||
-                                         formData.rent_due_day !== form.formState.defaultValues?.rent_due_day;
-          
-          if (shouldRegeneratePayments) {
-            await generatePaymentSchedule(id!);
-          }
-          
-          navigate(`/agreements/${result.id || id}`);
-        }
+      } else {
+        // Create new agreement
+        result = await agreementService.createAgreement(data);
       }
       
-      if (!result) {
+      if (result) {
+        toast({
+          title: "Success",
+          description: id ? "Agreement updated successfully" : "Agreement created successfully",
+        });
+        navigate(`/agreements/${result.id || id}`);
+      } else {
         throw new Error("Failed to save agreement");
       }
     } catch (error) {
@@ -310,7 +215,7 @@ const AgreementEditor: React.FC = () => {
   };
   
   // Calculate total amount based on rent and duration
-  const calculateTotalAmount = () => {
+  const calculateTotalAmount = (): void => {
     const startDate = form.getValues('start_date');
     const endDate = form.getValues('end_date');
     const rentAmount = form.getValues('rent_amount') || 0;
@@ -335,14 +240,14 @@ const AgreementEditor: React.FC = () => {
   }, [form]);
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: CustomerInfo) => {
+  const handleCustomerSelect = (customer: CustomerInfo): void => {
     console.log('Customer selected in AgreementEditor:', customer);
     setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };
 
   // Handle vehicle selection
-  const handleVehicleSelect = (vehicle: any) => {
+  const handleVehicleSelect = (vehicle: any): void => {
     setSelectedVehicle(vehicle);
     form.setValue('vehicle_id', vehicle.id);
   };
@@ -359,7 +264,7 @@ const AgreementEditor: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{isValidAgreementId ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
+          <CardTitle>{id && id !== 'undefined' ? "Edit Agreement" : "Create New Agreement"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -520,7 +425,7 @@ const AgreementEditor: React.FC = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(e) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -541,7 +446,7 @@ const AgreementEditor: React.FC = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(e) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -562,7 +467,7 @@ const AgreementEditor: React.FC = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(e) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -583,7 +488,7 @@ const AgreementEditor: React.FC = () => {
                               type="number" 
                               placeholder="0.00" 
                               {...field}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onChange={(e) => {
                                 field.onChange(parseFloat(e.target.value) || 0);
                               }}
                             />
@@ -619,10 +524,10 @@ const AgreementEditor: React.FC = () => {
                     startDate={form.getValues('start_date')}
                     endDate={form.getValues('end_date')}
                     rentAmount={form.getValues('rent_amount')}
-                    paymentFrequency={form.getValues('payment_frequency') || 'monthly'}
-                    paymentDay={form.getValues('rent_due_day') || 1}
-                    onFrequencyChange={(value: string) => form.setValue('payment_frequency', value)}
-                    onPaymentDayChange={(value: number) => form.setValue('rent_due_day', value)}
+                    paymentFrequency={form.getValues('payment_frequency')}
+                    paymentDay={form.getValues('payment_day')}
+                    onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
+                    onPaymentDayChange={(value) => form.setValue('payment_day', value)}
                   />
                 </TabsContent>
                 
@@ -631,19 +536,13 @@ const AgreementEditor: React.FC = () => {
                     type="button" 
                     variant="outline" 
                     onClick={() => navigate('/agreements')}
-                    disabled={isLoading || isGeneratingPayments}
+                    disabled={isLoading}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading || isGeneratingPayments}>
-                    {(isLoading || isGeneratingPayments) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isGeneratingPayments 
-                      ? "Generating Payments..." 
-                      : isLoading 
-                        ? "Saving..." 
-                        : isValidAgreementId 
-                          ? "Update Agreement" 
-                          : "Create Agreement"}
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement"}
                   </Button>
                 </div>
               </form>

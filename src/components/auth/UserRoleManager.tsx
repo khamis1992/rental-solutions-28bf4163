@@ -1,53 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import React, { useState, useEffect } from "react";
+import { Shield, UserCog } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { userService } from "@/services";
+import { toast } from "sonner";
+import { UserRole } from "@/types/user-types";
 
-interface UserRole {
-  id: string;
+interface UserRoleManagerProps {
   userId: string;
-  role: string;
-  assignedAt: string;
+  currentRole: string;
+  fullName: string;
+  disabled?: boolean;
 }
 
-export function UserRoleManager() {
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+export const UserRoleManager = ({ 
+  userId, 
+  currentRole, 
+  fullName, 
+  disabled = false 
+}: UserRoleManagerProps) => {
+  const [role, setRole] = useState<string>(currentRole);
+  const [isChanging, setIsChanging] = useState(false);
+
+  // Sync role with prop updates
+  useEffect(() => {
+    setRole(currentRole);
+  }, [currentRole]);
+
+  const handleRoleChange = async (newRole: string) => {
+    if (newRole === role || disabled || isChanging) return;
+
+    try {
+      setIsChanging(true);
+      const result = await userService.updateRole(userId, newRole as UserRole);
+
+      if (!result.success) {
+        throw result.error || new Error('Role update failed');
+      }
+
+      setRole(newRole);
+      toast.success(`${fullName}'s role updated to ${newRole}`);
+    } catch (error: any) {
+      console.error('Error updating user role:', error?.message || error);
+      toast.error(`Failed to update ${fullName}'s role`);
+      setRole(currentRole);
+    } finally {
+      setIsChanging(false);
+    }
+  };
 
   return (
-    <div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User ID</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Assigned At</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {userRoles.map((userRole) => (
-            <TableRow key={userRole.id}>
-              <TableCell>{userRole.userId}</TableCell>
-              <TableCell>{userRole.role}</TableCell>
-              <TableCell>{userRole.assignedAt}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="flex items-center space-x-2">
+      {role === "admin" ? (
+        <Shield className="h-4 w-4 text-primary" />
+      ) : (
+        <UserCog className="h-4 w-4 text-blue-500" />
+      )}
+      
+      <Select
+        value={role}
+        onValueChange={handleRoleChange}
+        disabled={disabled || isChanging}
+      >
+        <SelectTrigger className="w-[130px] h-8">
+          <SelectValue placeholder="Select role" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="admin" className="flex items-center">
+            <Shield className="h-4 w-4 mr-2 text-primary" />
+            Admin
+          </SelectItem>
+          <SelectItem value="staff" className="flex items-center">
+            <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+            Staff
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
-}
+};

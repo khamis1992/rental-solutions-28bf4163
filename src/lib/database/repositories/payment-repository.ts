@@ -3,7 +3,6 @@ import { Repository } from '../repository';
 import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
 import { asPaymentId, asLeaseId, asPaymentStatus } from '../database-types';
 import { supabase } from '@/lib/supabase';
-import { isValidUUID } from '@/lib/uuid-validation';
 
 type PaymentRow = TableRow<'unified_payments'>;
 
@@ -16,52 +15,16 @@ export class PaymentRepository extends Repository<'unified_payments'> {
   }
 
   /**
-   * Find payments by lease ID with validation
+   * Find payments by lease ID
    */
-  async findByLeaseId(leaseId: string | undefined | null): Promise<DbListResponse<PaymentRow>> {
-    console.log('PaymentRepository.findByLeaseId called with:', leaseId);
+  async findByLeaseId(leaseId: string): Promise<DbListResponse<PaymentRow>> {
+    const response = await this.client
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', asLeaseId(leaseId))
+      .order('payment_date', { ascending: false });
     
-    // Validate UUID before making the query
-    if (!leaseId || !isValidUUID(leaseId)) {
-      console.error('PaymentRepository.findByLeaseId: Invalid lease ID:', leaseId);
-      return { 
-        data: [], 
-        error: {
-          name: 'ValidationError',
-          message: `Invalid lease ID format: ${leaseId}`,
-          details: 'Lease ID must be a valid UUID',
-          code: 'INVALID_UUID',
-          hint: 'Check that the lease ID is properly formatted'
-        }
-      };
-    }
-
-    try {
-      const validLeaseId = asLeaseId(leaseId);
-      console.log('PaymentRepository.findByLeaseId: Making query with validated ID:', validLeaseId);
-      
-      const response = await this.client
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', validLeaseId)
-        .order('payment_date', { ascending: false });
-      
-      console.log('PaymentRepository.findByLeaseId: Query response:', { data: response.data?.length, error: response.error });
-      
-      return { data: response.data || [], error: response.error };
-    } catch (error) {
-      console.error('PaymentRepository.findByLeaseId: Error:', error);
-      return { 
-        data: [], 
-        error: {
-          name: 'DatabaseError',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          details: '',
-          code: '',
-          hint: ''
-        }
-      };
-    }
+    return { data: response.data, error: response.error };
   }
 
   /**
@@ -105,44 +68,32 @@ export class PaymentRepository extends Repository<'unified_payments'> {
   }
 
   /**
-   * Update payment with validation
+   * Update payment
+   * This overrides the base update method to ensure proper handling of payment updates
    */
-  async update(paymentId: string | undefined | null, paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
-    if (!isValidUUID(paymentId)) {
+  async update(paymentId: string, paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
+    const safePaymentId = asPaymentId(paymentId);
+    if (!safePaymentId) {
       return {
         data: null,
         error: {
           name: 'InvalidPaymentId',
-          message: `Invalid payment ID: ${paymentId}`,
-          details: 'Payment ID must be a valid UUID',
-          code: 'INVALID_UUID',
-          hint: 'Check that the payment ID is properly formatted'
-        }
-      };
-    }
-
-    try {
-      const safePaymentId = asPaymentId(paymentId);
-      const response = await this.client
-        .from('unified_payments')
-        .update(paymentData)
-        .eq('id', safePaymentId)
-        .select()
-        .single();
-      
-      return { data: response.data, error: response.error };
-    } catch (error) {
-      return {
-        data: null,
-        error: {
-          name: 'DatabaseError',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Invalid payment ID',
           details: '',
           code: '',
           hint: ''
         }
       };
     }
+    
+    const response = await this.client
+      .from('unified_payments')
+      .update(paymentData)
+      .eq('id', safePaymentId)
+      .select()
+      .single();
+    
+    return { data: response.data, error: response.error };
   }
 }
 
