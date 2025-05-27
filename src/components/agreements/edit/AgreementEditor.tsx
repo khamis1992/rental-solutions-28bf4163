@@ -54,7 +54,9 @@ const agreementSchema = z.object({
   additional_drivers: z.array(z.string()).optional(),
 });
 
-const AgreementEditor = () => {
+type AgreementFormData = z.infer<typeof agreementSchema>;
+
+const AgreementEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -66,7 +68,7 @@ const AgreementEditor = () => {
   const agreementService = useAgreementService();
   
   // Initialize form with default values
-  const form = useForm<z.infer<typeof agreementSchema>>({
+  const form = useForm<AgreementFormData>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
@@ -172,7 +174,7 @@ const AgreementEditor = () => {
   }, [id, agreementService, form, toast, navigate]);
   
   // Handle form submission
-  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
+  const handleSubmitForm = async (formData: AgreementFormData): Promise<void> => {
     setIsLoading(true);
     try {
       const data = {

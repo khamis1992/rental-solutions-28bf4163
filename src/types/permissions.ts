@@ -16,7 +16,7 @@ export interface RolePermissions {
 
 import { UserRole } from './user-types';
 
-export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole | string, RolePermissions> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   admin: {
     vehicles: { view: true, create: true, edit: true, delete: true },
     customers: { view: true, create: true, edit: true, delete: true },

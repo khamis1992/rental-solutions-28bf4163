@@ -1,20 +1,22 @@
 
-import { Database } from "@/types/database.types";
+export type UserRole = 'admin' | 'staff';
 
-export type DbProfileRow = Database['public']['Tables']['profiles']['Row'];
-
-// Ensure this interface is properly exported
-export interface UserData {
+export interface UserProfile {
   id: string;
   full_name: string;
   email: string;
-  role: string;
-  status: string;
+  role: UserRole;
   created_at: string;
+  updated_at: string;
 }
 
-export type UserRole = 'admin' | 'staff' | 'customer';
-export type UserStatus = 'active' | 'pending_review' | 'inactive' | 'suspended' | 'blacklisted';
-
-// Also export as a default to ensure compatibility
-export default UserData;
+export interface UserInfo {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number?: string;
+  role: UserRole;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
