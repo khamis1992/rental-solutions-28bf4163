@@ -25,7 +25,7 @@ export class SimpleErrorBoundary extends Component<SimpleErrorBoundaryProps, Sim
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Error boundary details:', { error, errorInfo });
   }
 

@@ -1,10 +1,8 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Doughnut, DoughnutChartOptions, ChartData, ChartOptions } from 'chart.js';
-import { useTheme } from 'next-themes';
-import { useChart } from "@/hooks/use-chart";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/lib/supabase';
 
@@ -16,21 +14,41 @@ interface VehicleStatus {
 interface ChartData {
   name: string;
   value: number;
+  color: string;
 }
+
+const STATUS_COLORS = {
+  available: "#10B981",
+  rented: "#3B82F6", 
+  maintenance: "#F59E0B",
+  police_station: "#EF4444",
+  accident: "#DC2626",
+  stolen: "#991B1B",
+  reserved: "#8B5CF6",
+  attention: "#F97316",
+  critical: "#BE185D"
+};
 
 export function VehicleStatusChart() {
   const [vehicleStatuses, setVehicleStatuses] = useState<VehicleStatus[]>([]);
   const [totalVehicles, setTotalVehicles] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchVehicleStatuses = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('vehicles')
           .select('status');
 
         if (error) {
           console.error("Error fetching vehicle statuses:", error);
+          return;
+        }
+
+        if (!data) {
+          console.log("No vehicle data found");
           return;
         }
 
@@ -42,13 +60,15 @@ export function VehicleStatusChart() {
 
         const statuses: VehicleStatus[] = Object.entries(statusCounts).map(([status, count]) => ({
           status,
-          count,
+          count: count as number,
         }));
 
         setVehicleStatuses(statuses);
         setTotalVehicles(data.length);
       } catch (error) {
         console.error("Error fetching vehicle statuses:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -59,42 +79,23 @@ export function VehicleStatusChart() {
     return vehicleStatuses.map(status => ({
       name: status.status,
       value: status.count,
+      color: STATUS_COLORS[status.status as keyof typeof STATUS_COLORS] || "#6B7280"
     }));
   }, [vehicleStatuses]);
 
-  const { theme } = useTheme();
-  const { data: chartInput } = useChart({
-    type: "doughnut",
-    data: {
-      labels: chartData.map((item) => item.name),
-      datasets: [
-        {
-          data: chartData.map((item) => item.value),
-          backgroundColor: [
-            "#065F46",
-            "#10B981",
-            "#34D399",
-            "#A7F3D0",
-            "#D1FAE5",
-          ],
-          borderWidth: 0,
-        },
-      ],
-    },
-    options: {
-      cutout: "60%",
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false,
-        },
-      },
-      scales: {
-        x: { display: false },
-        y: { display: false },
-      },
-    },
-  });
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Vehicle Status</CardTitle>
+          <CardDescription>Loading vehicle status data...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -102,29 +103,73 @@ export function VehicleStatusChart() {
         <CardTitle>Vehicle Status</CardTitle>
         <CardDescription>Overview of vehicle availability</CardDescription>
       </CardHeader>
-      <CardContent className="pl-2 flex flex-col items-center justify-center">
-        <div className="relative w-full h-[240px] flex items-center justify-center">
-          {chartInput ? (
-            <Doughnut data={chartInput.data} options={chartInput.options as ChartOptions<"doughnut">} />
-          ) : (
-            <p>Loading chart...</p>
-          )}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-            <div className="text-2xl font-bold">{totalVehicles}</div>
-            <div className="text-sm text-muted-foreground">Total Vehicles</div>
+      <CardContent className="pl-2">
+        <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-6">
+          <div className="relative w-full lg:w-1/2 h-64">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => [`${value} vehicles`, '']}
+                    contentStyle={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No vehicle data available
+              </div>
+            )}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+              <div className="text-2xl font-bold">{totalVehicles}</div>
+              <div className="text-sm text-muted-foreground">Total Vehicles</div>
+            </div>
+          </div>
+          
+          <div className="w-full lg:w-1/2">
+            <div className="space-y-3">
+              {vehicleStatuses.map((status) => (
+                <div key={status.status} className="flex items-center justify-between p-2 rounded-lg border">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-4 h-4 rounded-full" 
+                      style={{ 
+                        backgroundColor: STATUS_COLORS[status.status as keyof typeof STATUS_COLORS] || "#6B7280" 
+                      }}
+                    />
+                    <Badge variant="secondary" className="capitalize">
+                      {status.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">{status.count}</span>
+                    <span className="text-sm text-muted-foreground">
+                      ({totalVehicles > 0 ? Math.round((status.count / totalVehicles) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <ul className="w-full space-y-2">
-          {vehicleStatuses.map((status) => (
-            <li key={status.status} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary">{status.status}</Badge>
-                <span>{status.status}</span>
-              </div>
-              <span>{status.count}</span>
-            </li>
-          ))}
-        </ul>
       </CardContent>
     </Card>
   );

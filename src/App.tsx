@@ -70,11 +70,9 @@ const AppContent: React.FC = () => {
       <BrowserRouter>
         <MinimalAuthProvider>
           <TooltipProvider>
-            <SimpleErrorBoundary>
-              <AppRouter />
-              <Toaster />
-              <Sonner />
-            </SimpleErrorBoundary>
+            <AppRouter />
+            <Toaster />
+            <Sonner />
           </TooltipProvider>
         </MinimalAuthProvider>
       </BrowserRouter>
