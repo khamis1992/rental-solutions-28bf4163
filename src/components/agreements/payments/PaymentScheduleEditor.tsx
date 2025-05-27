@@ -40,7 +40,7 @@ interface PaymentItem {
   status: string;
 }
 
-const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
+const PaymentScheduleEditor = ({
   agreementId,
   startDate,
   endDate,
@@ -49,7 +49,7 @@ const PaymentScheduleEditor: React.FC<PaymentScheduleEditorProps> = ({
   paymentDay,
   onFrequencyChange,
   onPaymentDayChange,
-}) => {
+}: PaymentScheduleEditorProps) => {
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 

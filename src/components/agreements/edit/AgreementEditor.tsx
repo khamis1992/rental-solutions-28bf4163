@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -53,9 +54,7 @@ const agreementSchema = z.object({
   additional_drivers: z.array(z.string()).optional(),
 });
 
-type AgreementFormData = z.infer<typeof agreementSchema>;
-
-const AgreementEditor: React.FC = () => {
+const AgreementEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -66,8 +65,8 @@ const AgreementEditor: React.FC = () => {
   
   const agreementService = useAgreementService();
   
-  // Initialize form with default values and proper typing
-  const form = useForm<AgreementFormData>({
+  // Initialize form with default values
+  const form = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       agreement_number: '',
@@ -173,7 +172,7 @@ const AgreementEditor: React.FC = () => {
   }, [id, agreementService, form, toast, navigate]);
   
   // Handle form submission
-  const handleSubmitForm = async (formData: AgreementFormData): Promise<void> => {
+  const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
       const data = {

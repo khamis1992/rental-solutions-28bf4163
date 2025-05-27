@@ -9,14 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  flexRender, 
-  useReactTable, 
-  getCoreRowModel, 
-  getSortedRowModel, 
-  SortingState, 
-  ColumnDef 
-} from '@tanstack/react-table';
+import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 import { getAgreementColumns } from './columns';
 
@@ -40,12 +33,12 @@ export function TableContent({
 }: TableContentProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
-  const columns = React.useMemo<ColumnDef<Agreement>[]>(
+  const columns = React.useMemo(
     () => getAgreementColumns(compact),
     [compact]
   );
 
-  const table = useReactTable<Agreement>({
+  const table = useReactTable({
     data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,17 +8,17 @@ import { toast } from 'sonner';
 import { UserRole } from '@/types/user-types';
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from '@/types/permissions';
 
-const RolePermissionsTable: React.FC = () => {
+const RolePermissionsTable = () => {
   const [role, setRole] = useState<UserRole>('admin');
   const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_ROLE_PERMISSIONS['admin']);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchPermissions(role);
   }, [role]);
 
-  const fetchPermissions = async (selectedRole: UserRole): Promise<void> => {
+  const fetchPermissions = async (selectedRole: UserRole) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -29,14 +28,11 @@ const RolePermissionsTable: React.FC = () => {
 
       if (error) throw error;
 
-      const base: RolePermissions = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS[selectedRole]));
+      const base = JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS[selectedRole]));
 
       data?.forEach(({ resource, action }) => {
         if (base[resource as keyof RolePermissions]) {
-          const permissionSection = base[resource as keyof RolePermissions] as PermissionSettings;
-          if (permissionSection && action in permissionSection) {
-            (permissionSection as any)[action] = true;
-          }
+          (base[resource as keyof RolePermissions] as any)[action] = true;
         }
       });
 
@@ -49,7 +45,7 @@ const RolePermissionsTable: React.FC = () => {
     }
   };
 
-  const updatePermission = (section: keyof RolePermissions, action: keyof PermissionSettings, value: boolean): void => {
+  const updatePermission = (section: keyof RolePermissions, action: keyof PermissionSettings, value: boolean) => {
     setPermissions(prev => ({
       ...prev,
       [section]: {
@@ -59,13 +55,12 @@ const RolePermissionsTable: React.FC = () => {
     }));
   };
 
-  const savePermissions = async (): Promise<void> => {
+  const savePermissions = async () => {
     setSaving(true);
     try {
       const rows: { role: string; resource: string; action: string }[] = [];
       Object.entries(permissions).forEach(([resource, actions]) => {
-        const permissionActions = actions as PermissionSettings;
-        Object.entries(permissionActions).forEach(([action, allowed]) => {
+        Object.entries(actions as PermissionSettings).forEach(([action, allowed]) => {
           if (allowed) rows.push({ role, resource, action });
         });
       });
@@ -111,44 +106,27 @@ const RolePermissionsTable: React.FC = () => {
           <div className="text-center">Edit</div>
           <div className="text-center">Delete</div>
         </div>
-        {Object.entries(permissions).map(([key, perm], index) => {
-          const permissionSettings = perm as PermissionSettings;
-          return (
-            <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
-              <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
-              <div className="text-center">
-                <Switch 
-                  checked={permissionSettings.view} 
-                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} 
-                />
-              </div>
-              <div className="text-center">
-                <Switch 
-                  checked={permissionSettings.create} 
-                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} 
-                />
-              </div>
-              <div className="text-center">
-                <Switch 
-                  checked={permissionSettings.edit} 
-                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} 
-                />
-              </div>
-              <div className="text-center">
-                <Switch 
-                  checked={permissionSettings.delete} 
-                  onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} 
-                />
-              </div>
+        {Object.entries(permissions).map(([key, perm], index) => (
+          <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
+            <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
+            <div className="text-center">
+              <Switch checked={perm.view} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} />
             </div>
-          );
-        })}
+            <div className="text-center">
+              <Switch checked={perm.create} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} />
+            </div>
+            <div className="text-center">
+              <Switch checked={perm.edit} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} />
+            </div>
+            <div className="text-center">
+              <Switch checked={perm.delete} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={savePermissions} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <Button onClick={savePermissions} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
       </div>
     </div>
   );

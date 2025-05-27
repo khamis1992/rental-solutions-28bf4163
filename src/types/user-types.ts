@@ -1,49 +1,20 @@
 
-export type UserRole = 'admin' | 'staff';
-export type UserStatus = 'active' | 'pending_review' | 'inactive' | 'suspended' | 'blacklisted';
+import { Database } from "@/types/database.types";
 
-export interface UserProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  role: UserRole;
-  created_at: string;
-  updated_at: string;
-}
+export type DbProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-export interface UserInfo {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number?: string;
-  role: UserRole;
-  status?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
+// Ensure this interface is properly exported
 export interface UserData {
   id: string;
   full_name: string;
   email: string;
-  role: UserRole;
-  status: UserStatus;
+  role: string;
+  status: string;
   created_at: string;
-  updated_at?: string;
-  phone_number?: string;
 }
 
-// Database profile row type for Supabase integration
-export interface DbProfileRow {
-  id: string;
-  full_name: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  created_at: string;
-  updated_at?: string;
-  phone_number?: string;
-}
+export type UserRole = 'admin' | 'staff' | 'customer';
+export type UserStatus = 'active' | 'pending_review' | 'inactive' | 'suspended' | 'blacklisted';
 
-// Export UserData as default for backward compatibility
+// Also export as a default to ensure compatibility
 export default UserData;

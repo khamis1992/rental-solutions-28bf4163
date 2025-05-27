@@ -70,16 +70,17 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { UserRoleManager } from "./UserRoleManager";
-import { UserData, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
+// Import with both named and default import to ensure compatibility
+import UserData, { UserData as UserDataType, UserRole, UserStatus, DbProfileRow } from "@/types/user-types";
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from "@/types/permissions";
 
 type UserPermissions = RolePermissions;
 
 const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = DEFAULT_ROLE_PERMISSIONS;
 
-const UserList: React.FC = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const UserList = () => {
+  const [users, setUsers] = useState<UserDataType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -92,17 +93,17 @@ const UserList: React.FC = () => {
     admins: 0,
     staff: 0
   });
-  const [showPermissionDialog, setShowPermissionDialog] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserDataType | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
-  const [saving, setSaving] = useState<boolean>(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
-  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
-  const [deletingUser, setDeletingUser] = useState<boolean>(false);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState<boolean>(false);
-  const [bulkDeletingUsers, setBulkDeletingUsers] = useState<boolean>(false);
+  const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserDataType | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
   const { profile } = useProfile();
-  const form = useForm<{ role: string }>({
+  const form = useForm({
     defaultValues: {
       role: "",
     }
@@ -145,7 +146,7 @@ const UserList: React.FC = () => {
     }
   }, [selectedUser, form]);
 
-  const fetchUsers = async (): Promise<void> => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -155,7 +156,7 @@ const UserList: React.FC = () => {
 
       if (error) throw error;
 
-      setUsers(data as unknown as UserData[]);
+      setUsers(data as unknown as UserDataType[]);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
       toast.error("Failed to load users: " + error.message);
@@ -164,7 +165,7 @@ const UserList: React.FC = () => {
     }
   };
 
-  const deleteUser = async (userId: string): Promise<void> => {
+  const deleteUser = async (userId: string) => {
     try {
       setDeletingUser(true);
       const { error: profileError } = await supabase
@@ -186,7 +187,7 @@ const UserList: React.FC = () => {
     }
   };
 
-  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string): Promise<void> => {
+  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
     try {
       setBulkDeletingUsers(true);
       const usersToDelete = users.filter(user => 
@@ -214,7 +215,7 @@ const UserList: React.FC = () => {
     }
   };
 
-  const handleDeleteKhamis = async (): Promise<void> => {
+  const handleDeleteKhamis = async () => {
     if (!profile) {
       toast.error("Cannot delete users: Your profile is not loaded");
       return;
@@ -249,12 +250,12 @@ const UserList: React.FC = () => {
     }
   };
 
-  const openDeleteDialog = (user: UserData): void => {
+  const openDeleteDialog = (user: UserDataType) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
   };
 
-  const updateAdminAccounts = async (): Promise<void> => {
+  const updateAdminAccounts = async () => {
     try {
       const { error: tarekError } = await supabase
         .from("profiles")
@@ -276,7 +277,7 @@ const UserList: React.FC = () => {
     }
   };
 
-  const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus): Promise<void> => {
+  const handleUpdateUserStatus = async (userId: string, newStatus: UserStatus) => {
     try {
       const { error } = await supabase
         .from("profiles")
@@ -296,12 +297,12 @@ const UserList: React.FC = () => {
     }
   };
 
-  const openPermissionDialog = (user: UserData): void => {
+  const openPermissionDialog = (user: UserDataType) => {
     setSelectedUser(user);
     setShowPermissionDialog(true);
   };
 
-  const savePermissions = async (): Promise<void> => {
+  const savePermissions = async () => {
     if (!selectedUser || !userPermissions) return;
     setSaving(true);
 
@@ -325,12 +326,12 @@ const UserList: React.FC = () => {
     }
   };
 
-  const handleRoleChange = (value: string): void => {
+  const handleRoleChange = (value: string) => {
     form.setValue("role", value);
     setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
   };
 
-  const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean): void => {
+  const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
     setUserPermissions(prev => {
       if (!prev) return prev;
       return {
@@ -343,7 +344,7 @@ const UserList: React.FC = () => {
     });
   };
 
-  const isCurrentUser = (userId: string): boolean => profile?.id === userId;
+  const isCurrentUser = (userId: string) => profile?.id === userId;
 
   const filteredUsers = users.filter(user => {
     if (roleFilter !== "all" && user.role !== roleFilter) return false;
@@ -351,7 +352,7 @@ const UserList: React.FC = () => {
     return true;
   });
 
-  const columns: ColumnDef<UserData>[] = [
+  const columns: ColumnDef<UserDataType>[] = [
     {
       accessorKey: "full_name",
       header: "Name",
@@ -476,7 +477,7 @@ const UserList: React.FC = () => {
     },
   ];
 
-  const table = useReactTable<UserData>({
+  const table = useReactTable({
     data: filteredUsers,
     columns,
     getCoreRowModel: getCoreRowModel(),
