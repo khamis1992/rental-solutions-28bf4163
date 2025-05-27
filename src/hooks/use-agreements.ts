@@ -1,5 +1,3 @@
-
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -24,7 +22,7 @@ export interface SimpleAgreement {
   customer_name?: string;
   payment_frequency?: string;
   rent_due_day?: number;
-  payment_day?: number;
+  rent_amount?: number;
   customers?: {
     id?: string;
     full_name?: string;
@@ -310,4 +308,3 @@ export function useAgreements(initialFilters: Record<string, any> = {}) {
     queryClient // Add queryClient to dependencies
   ]);
 }
-

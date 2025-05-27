@@ -27,7 +27,9 @@ export class PaymentScheduleService {
       const startDate = new Date(agreement.start_date);
       const endDate = new Date(agreement.end_date);
       const rentAmount = agreement.rent_amount || 0;
-      const paymentDay = agreement.payment_day || 1;
+      
+      // Use rent_due_day from database, fallback to payment_day, then default to 1
+      const paymentDay = agreement.rent_due_day || agreement.payment_day || 1;
 
       // Validate dates
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -43,35 +45,51 @@ export class PaymentScheduleService {
         return [];
       }
 
+      // Validate payment day
+      if (paymentDay < 1 || paymentDay > 31) {
+        console.error('Invalid payment day:', paymentDay);
+        return [];
+      }
+
       console.log('Generating schedule for agreement:', {
         id: agreement.id,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         rentAmount,
-        paymentDay
+        paymentDay,
+        source: agreement.rent_due_day ? 'rent_due_day' : agreement.payment_day ? 'payment_day' : 'default'
       });
 
       const schedule: PaymentScheduleItem[] = [];
       const totalMonths = differenceInMonths(endDate, startDate) + 1;
 
       for (let monthOffset = 0; monthOffset < totalMonths; monthOffset++) {
-        const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, paymentDay);
+        // Create due date for this month
+        let dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, paymentDay);
+        
+        // If the payment day doesn't exist in this month (e.g., Feb 31), use the last day of the month
+        const maxDayInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset + 1, 0).getDate();
+        if (paymentDay > maxDayInMonth) {
+          dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, maxDayInMonth);
+        }
         
         // Skip if due date is before start date or after end date
         if (dueDate < startDate || dueDate > endDate) continue;
+
+        const status = dueDate < new Date() ? 'overdue' : 'pending';
 
         schedule.push({
           id: `scheduled-${agreement.id}-${monthOffset}`,
           dueDate,
           amount: rentAmount,
           description: `Monthly Rent - ${format(dueDate, 'MMM yyyy')}`,
-          status: dueDate < new Date() ? 'overdue' : 'pending',
+          status,
           type: 'rent',
           isProjected: true
         });
       }
 
-      console.log(`Generated ${schedule.length} scheduled payments`);
+      console.log(`Generated ${schedule.length} scheduled payments for agreement ${agreement.id}`);
       return schedule;
     } catch (error) {
       console.error('Error generating payment schedule:', error);

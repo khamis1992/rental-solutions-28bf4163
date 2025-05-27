@@ -243,15 +243,22 @@ export function PaymentHistorySection({
         <div className="space-y-4">
           <p>No payment history available</p>
           {agreement && (
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>Debug Info:</p>
+            <div className="text-xs text-gray-500 space-y-1 bg-gray-50 p-4 rounded">
+              <p className="font-semibold">Debug Information:</p>
               <p>Agreement ID: {agreement.id}</p>
               <p>Start Date: {agreement.start_date}</p>
               <p>End Date: {agreement.end_date}</p>
-              <p>Rent Amount: {agreement.rent_amount}</p>
-              <p>Payment Day: {agreement.payment_day || 'Not set'}</p>
+              <p>Rent Amount: {agreement.rent_amount || 'Not set'}</p>
+              <p>Rent Due Day: {agreement.rent_due_day || 'Not set'}</p>
+              <p>Payment Day (computed): {agreement.rent_due_day || agreement.payment_day || 'Not available'}</p>
               <p>Has Schedule: {hasSchedule ? 'Yes' : 'No'}</p>
               <p>Actual Payments: {payments.length}</p>
+              <p>Unified Payments: {unifiedPayments.length}</p>
+              {!hasSchedule && (
+                <p className="text-red-600 font-medium">
+                  Schedule generation failed - check rent amount and payment day
+                </p>
+              )}
             </div>
           )}
           <Button 
