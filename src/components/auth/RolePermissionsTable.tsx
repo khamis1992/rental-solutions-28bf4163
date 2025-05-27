@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,17 +9,17 @@ import { toast } from 'sonner';
 import { UserRole } from '@/types/user-types';
 import { PermissionSettings, RolePermissions, DEFAULT_ROLE_PERMISSIONS } from '@/types/permissions';
 
-const RolePermissionsTable = () => {
+const RolePermissionsTable: React.FC = () => {
   const [role, setRole] = useState<UserRole>('admin');
   const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_ROLE_PERMISSIONS['admin']);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect(() => {
     fetchPermissions(role);
   }, [role]);
 
-  const fetchPermissions = async (selectedRole: UserRole) => {
+  const fetchPermissions = async (selectedRole: UserRole): Promise<void> => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -45,7 +46,7 @@ const RolePermissionsTable = () => {
     }
   };
 
-  const updatePermission = (section: keyof RolePermissions, action: keyof PermissionSettings, value: boolean) => {
+  const updatePermission = (section: keyof RolePermissions, action: keyof PermissionSettings, value: boolean): void => {
     setPermissions(prev => ({
       ...prev,
       [section]: {
@@ -55,7 +56,7 @@ const RolePermissionsTable = () => {
     }));
   };
 
-  const savePermissions = async () => {
+  const savePermissions = async (): Promise<void> => {
     setSaving(true);
     try {
       const rows: { role: string; resource: string; action: string }[] = [];
@@ -110,23 +111,37 @@ const RolePermissionsTable = () => {
           <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
             <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
             <div className="text-center">
-              <Switch checked={perm.view} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} />
+              <Switch 
+                checked={perm.view} 
+                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} 
+              />
             </div>
             <div className="text-center">
-              <Switch checked={perm.create} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} />
+              <Switch 
+                checked={perm.create} 
+                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'create', val)} 
+              />
             </div>
             <div className="text-center">
-              <Switch checked={perm.edit} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} />
+              <Switch 
+                checked={perm.edit} 
+                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'edit', val)} 
+              />
             </div>
             <div className="text-center">
-              <Switch checked={perm.delete} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} />
+              <Switch 
+                checked={perm.delete} 
+                onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'delete', val)} 
+              />
             </div>
           </div>
         ))}
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={savePermissions} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+        <Button onClick={savePermissions} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
     </div>
   );

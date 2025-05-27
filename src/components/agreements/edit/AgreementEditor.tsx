@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -67,7 +66,7 @@ const AgreementEditor: React.FC = () => {
   
   const agreementService = useAgreementService();
   
-  // Initialize form with default values
+  // Initialize form with default values and proper typing
   const form = useForm<AgreementFormData>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
