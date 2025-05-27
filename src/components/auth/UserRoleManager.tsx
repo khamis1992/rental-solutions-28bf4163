@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Shield, UserCog } from "lucide-react";
 import { 
@@ -18,21 +19,21 @@ interface UserRoleManagerProps {
   disabled?: boolean;
 }
 
-export const UserRoleManager = ({ 
+export const UserRoleManager: React.FC<UserRoleManagerProps> = ({ 
   userId, 
   currentRole, 
   fullName, 
   disabled = false 
-}: UserRoleManagerProps) => {
+}) => {
   const [role, setRole] = useState<string>(currentRole);
-  const [isChanging, setIsChanging] = useState(false);
+  const [isChanging, setIsChanging] = useState<boolean>(false);
 
   // Sync role with prop updates
   useEffect(() => {
     setRole(currentRole);
   }, [currentRole]);
 
-  const handleRoleChange = async (newRole: string) => {
+  const handleRoleChange = async (newRole: string): Promise<void> => {
     if (newRole === role || disabled || isChanging) return;
 
     try {
