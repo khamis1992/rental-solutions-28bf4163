@@ -8,7 +8,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 
 import { SimpleErrorBoundary } from '@/components/ui/simple-error-boundary';
 import { LoadingFallback } from '@/components/ui/loading-fallback';
-import { MinimalAuthProvider } from '@/contexts/MinimalAuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { AppRouter } from '@/components/routing/AppRouter';
 import { useAppLoading } from '@/hooks/use-app-loading';
 
@@ -68,13 +68,13 @@ const AppContent: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <MinimalAuthProvider>
+        <AuthProvider>
           <TooltipProvider>
             <AppRouter />
             <Toaster />
             <Sonner />
           </TooltipProvider>
-        </MinimalAuthProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
