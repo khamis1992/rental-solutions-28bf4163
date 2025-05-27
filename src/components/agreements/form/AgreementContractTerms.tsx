@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Switch } from "@/components/ui/switch";
 import { UseFormReturn } from 'react-hook-form';
-import { Agreement } from '@/types/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 
 interface AgreementContractTermsProps {
   form: UseFormReturn<Agreement>;
