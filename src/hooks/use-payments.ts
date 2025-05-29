@@ -1,108 +1,135 @@
 
-import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
-import { paymentRepository } from '@/lib/database';
-import { asLeaseId, asPaymentId } from '@/utils/type-adapters';
-import type { Payment } from '@/types/payment.types';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Payment } from '@/types/payment.types';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/types/service.types';
 
-export const usePayments = (agreementId?: string) => {
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
-    ['payments', agreementId],
-    async () => {
-      if (!agreementId) return [] as Payment[];
+export const usePayments = (leaseId: string) => {
+  const queryClient = useQueryClient();
+  const [payments, setPayments] = useState<Payment[]>([]);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['payments', leaseId],
+    queryFn: async () => {
+      if (!leaseId) return [];
       
-      const response = await paymentRepository.findByLeaseId(agreementId);
-      
-      if (response.error) {
-        console.error("Error fetching payments:", response.error);
-        return [] as Payment[];
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching payments:', error);
+        throw new Error(`Failed to fetch payments: ${error.message}`);
       }
-      
-      return response.data as Payment[] || [];
+
+      return data || [];
     },
-    {
-      enabled: !!agreementId,
-    }
-  );
-
-  const payments: Payment[] = Array.isArray(data) ? data : [];
-
-  const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    // Ensure status is set to completed for new payments if not specified
-    // Convert dates to strings for database compatibility
-    const paymentToAdd = {
-      ...newPayment,
-      status: newPayment.status || 'completed',
-      due_date: newPayment.due_date instanceof Date 
-        ? newPayment.due_date.toISOString() 
-        : newPayment.due_date,
-      payment_date: newPayment.payment_date instanceof Date 
-        ? newPayment.payment_date.toISOString() 
-        : newPayment.payment_date,
-    };
-    
-    const response = await paymentRepository.recordPayment(paymentToAdd);
-
-    if (response.error) {
-      console.error("Error adding payment:", response.error);
-      return null;
-    }
-    return response.data;
+    enabled: !!leaseId
   });
 
-  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    // Destructuring should happen outside the function for clarity
-    const { id, data: paymentData } = paymentUpdate;
-    
-    // Make sure we have a valid payment ID
-    if (!id) {
-      throw new Error("Invalid payment ID");
+  useEffect(() => {
+    if (data) {
+      setPayments(data);
     }
+  }, [data]);
 
-    // Convert dates to strings for database compatibility
-    const dataToUpdate = {
-      ...paymentData,
-      due_date: paymentData.due_date instanceof Date 
-        ? paymentData.due_date.toISOString() 
-        : paymentData.due_date,
-      payment_date: paymentData.payment_date instanceof Date 
-        ? paymentData.payment_date.toISOString() 
-        : paymentData.payment_date,
-    };
+  const addPaymentMutation = useMutation({
+    mutationFn: async (newPayment: Partial<Payment>) => {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .insert([newPayment])
+        .select()
+        .single();
 
-    const response = await paymentRepository.update(id, dataToUpdate);
+      if (error) {
+        console.error('Error adding payment:', error);
+        const errorMessage = error instanceof Error ? error.message : 
+                            typeof error === 'object' && error !== null && 'message' in error ? 
+                            String(error.message) : 'Failed to add payment';
+        throw new Error(errorMessage);
+      }
 
-    if (response.error) {
-      console.error("Error updating payment:", response.error);
-      throw response.error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      toast.success('Payment added successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 
+                          typeof error === 'object' && error !== null && 'message' in error ? 
+                          String((error as any).message) : 'Failed to add payment';
+      toast.error(`Failed to add payment: ${errorMessage}`);
     }
-    return response.data;
   });
 
-  const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    if (!paymentId) {
-      throw new Error("Invalid payment ID");
-    }
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, data: updateData }: { id: string; data: Partial<Payment> }) => {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
 
-    const response = await paymentRepository.delete(paymentId);
+      if (error) {
+        console.error('Error updating payment:', error);
+        const errorMessage = error instanceof Error ? error.message : 
+                            typeof error === 'object' && error !== null && 'message' in error ? 
+                            String(error.message) : 'Failed to update payment';
+        throw new Error(errorMessage);
+      }
 
-    if (response.error) {
-      console.error("Error deleting payment:", response.error);
-      throw response.error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      toast.success('Payment updated successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to update payment: ${errorMessage}`);
     }
-    return { success: true };
   });
 
-  const fetchPayments = () => {
-    return refetch();
-  };
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', paymentId);
+
+      if (error) {
+        console.error('Error deleting payment:', error);
+        throw new Error(`Failed to delete payment: ${error.message}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      toast.success('Payment deleted successfully');
+    },
+    onError: (error: unknown) => {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to delete payment: ${errorMessage}`);
+    }
+  });
 
   return {
     payments,
     isLoading,
     error,
-    addPayment: addPayment.mutateAsync,
-    updatePayment: updatePayment.mutateAsync,
-    deletePayment: deletePayment.mutateAsync,
-    fetchPayments,
+    fetchPayments: refetch,
+    addPayment: addPaymentMutation.mutateAsync,
+    updatePayment: updatePaymentMutation.mutateAsync,
+    deletePayment: deletePaymentMutation.mutateAsync,
+    isPending: {
+      add: addPaymentMutation.isPending,
+      update: updatePaymentMutation.isPending,
+      delete: deletePaymentMutation.isPending
+    }
   };
 };

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { vehicleService, VehicleFilterParams } from '@/services/VehicleService';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { getErrorMessage } from '@/types/service.types';
 
 interface UseVehicleServiceOptions {
   statuses?: string[];
@@ -20,9 +21,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.getVehiclesByStatus();
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to fetch vehicles by status';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     }
@@ -33,9 +32,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.findVehicles(filters);
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to fetch vehicles';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     }
@@ -46,9 +43,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.findAvailableVehicles();
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to fetch available vehicles';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     }
@@ -59,9 +54,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.getVehicleTypes();
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to fetch vehicle types';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     }
@@ -71,9 +64,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     mutationFn: async ({ vehicleId, status, notes }: { vehicleId: string; status: string; notes?: string }) => {
       const result = await vehicleService.updateVehicleStatus(vehicleId, status, notes);
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to update vehicle status';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -82,7 +73,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       toast.error(`Failed to update vehicle status: ${errorMessage}`);
     }
   });
@@ -90,9 +81,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const getVehicleDetails = async (id: string) => {
     const result = await vehicleService.getVehicleDetails(id);
     if (!result.success) {
-      const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.message || 'Failed to fetch vehicle details';
-      throw new Error(errorMessage);
+      throw new Error(getErrorMessage(result.error));
     }
     return result.data;
   };
@@ -105,9 +94,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const updateStatus = async (id: string, status: string) => {
     const result = await vehicleService.updateStatus(id, status);
     if (!result.success) {
-      const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.message || 'Failed to update vehicle status';
-      throw new Error(errorMessage);
+      throw new Error(getErrorMessage(result.error));
     }
     return result.data;
   };
@@ -120,9 +107,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const calculateUtilization = async (vehicleId: string, startDate: Date, endDate: Date) => {
     const result = await vehicleService.calculateUtilizationMetrics(vehicleId, startDate, endDate);
     if (!result.success) {
-      const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.message || 'Failed to calculate utilization';
-      throw new Error(errorMessage);
+      throw new Error(getErrorMessage(result.error));
     }
     return result.data;
   };

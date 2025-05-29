@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService, CustomerFilters } from '@/services/CustomerService';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { getErrorMessage } from '@/types/service.types';
 
 export const useCustomerService = (filters: CustomerFilters = {}) => {
   const queryClient = useQueryClient();
@@ -13,9 +14,7 @@ export const useCustomerService = (filters: CustomerFilters = {}) => {
     queryFn: async () => {
       const result = await customerService.findCustomers(currentFilters);
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to fetch customers';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     }
@@ -25,9 +24,7 @@ export const useCustomerService = (filters: CustomerFilters = {}) => {
     mutationFn: async (id: string) => {
       const result = await customerService.delete(id);
       if (!result.success) {
-        const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.message || 'Failed to delete customer';
-        throw new Error(errorMessage);
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -36,7 +33,7 @@ export const useCustomerService = (filters: CustomerFilters = {}) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = getErrorMessage(error);
       toast.error(`Failed to delete customer: ${errorMessage}`);
     }
   });
