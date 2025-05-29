@@ -1,6 +1,7 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Session as SupabaseSession, User as SupabaseUser } from '@supabase/supabase-js';
+import type { Session as SupabaseSession, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define our own User type that extends or adapts the Supabase User type
 export interface User extends Omit<SupabaseUser, 'app_metadata'> {

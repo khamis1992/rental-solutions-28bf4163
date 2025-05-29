@@ -14,8 +14,8 @@ import { formatCurrency } from '@/lib/utils';
 import InteractiveChart from './charts/InteractiveChart';
 
 const CrossReportAnalytics = () => {
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { data: agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
   const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
   
@@ -71,11 +71,12 @@ const CrossReportAnalytics = () => {
     );
   }
 
-  // Ensure vehicles is an array
+  // Ensure vehicles and agreements are arrays
   const vehiclesList = Array.isArray(vehicles) ? vehicles : [];
+  const agreementsList = Array.isArray(agreements) ? agreements : [];
   
   const vehicleUtilizationData = vehiclesList.map(vehicle => {
-    const vehicleAgreements = agreements.filter(a => a.vehicle_id === vehicle.id);
+    const vehicleAgreements = agreementsList.filter(a => a.vehicle_id === vehicle.id);
     const totalRentDays = vehicleAgreements.reduce((sum, agreement) => {
       const startDate = new Date(agreement.start_date);
       const endDate = agreement.end_date ? new Date(agreement.end_date) : new Date();
@@ -119,7 +120,7 @@ const CrossReportAnalytics = () => {
     };
   }).reverse();
   
-  agreements.forEach(agreement => {
+  agreementsList.forEach(agreement => {
     const startDate = new Date(agreement.start_date);
     const monthKey = `${startDate.getFullYear()}-${startDate.getMonth() + 1}`;
     const monthData = last12Months.find(m => m.monthKey === monthKey);

@@ -19,5 +19,15 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];
 export type AgreementUpdate = Database['public']['Tables']['leases']['Update'];
 
+export interface TableFilters {
+  status?: string;
+  customer?: string;
+  vehicle?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+}
+
 // Re-export other types
 export type { Database };

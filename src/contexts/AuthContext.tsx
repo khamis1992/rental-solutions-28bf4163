@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User as SupabaseUser, Session as SupabaseSession } from '@supabase/supabase-js';

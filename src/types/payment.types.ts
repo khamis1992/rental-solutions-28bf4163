@@ -1,6 +1,6 @@
 
 // Define proper PaymentStatus type that matches database values
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'refunded' | 'partially_paid';
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'refunded' | 'partially_paid' | 'overdue';
 
 export interface Payment {
   id: string;
@@ -25,6 +25,10 @@ export interface Payment {
   original_due_date?: string | null;
   include_late_fee?: boolean;
   is_partial?: boolean;
+  // Add missing properties from payment management
+  agreement_id?: string;
+  receipt_number?: string;
+  external_reference?: string;
 }
 
 export interface SpecialPaymentOptions {
