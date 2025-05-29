@@ -1,115 +1,46 @@
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService, CustomerFilters } from '@/services/CustomerService';
 import { toast } from 'sonner';
-import { Customer } from '@/lib/validation-schemas/customer';
 
-/**
- * Hook for working with the Customer Service
- */
-export const useCustomerService = (initialFilters: CustomerFilters = {}) => {
-  const [filters, setFilters] = useState<CustomerFilters>(initialFilters);
+export const useCustomerService = (filters: CustomerFilters = {}) => {
   const queryClient = useQueryClient();
 
-  console.log('useCustomerService - filters:', filters);
-
-  // Query for fetching customers with filters
-  const {
-    data: customers = [],
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
+  const { data: customers, isLoading, error } = useQuery({
     queryKey: ['customers', filters],
     queryFn: async () => {
-      console.log('Fetching customers with filters:', filters);
       const result = await customerService.findCustomers(filters);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch customers');
-      }
-      
-      // Map the response to match the expected Customer type structure
-      const mappedCustomers = result.data.map((customer: any): Customer => ({
-        id: customer.id,
-        full_name: customer.full_name || '',
-        email: customer.email || '',
-        phone: customer.phone_number?.replace(/^\+974/, '') || '',
-        driver_license: customer.driver_license || '',
-        nationality: customer.nationality || '',
-        address: customer.address || '',
-        notes: customer.notes || '',
-        status: customer.status || 'active',
-        created_at: customer.created_at,
-        updated_at: customer.updated_at,
-      }));
-      
-      console.log('Mapped customers:', mappedCustomers);
-      return mappedCustomers;
-    }
-  });
-
-  // Mutation for getting customer details
-  const getCustomerDetails = useMutation({
-    mutationFn: async (id: string) => {
-      const result = await customerService.getCustomerDetails(id);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch customer details');
+        const errorMessage = typeof result.error === 'string' ? result.error : result.error?.toString() || 'Failed to fetch customers';
+        throw new Error(errorMessage);
       }
       return result.data;
     }
   });
 
-  // Mutation for updating a customer
-  const updateCustomer = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const result = await customerService.update(id, data);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to update customer');
-      }
-      return result.data;
-    },
-    onSuccess: () => {
-      toast.success('Customer updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    },
-    onError: (error) => {
-      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  });
-
-  // Mutation for deleting a customer
-  const deleteCustomer = useMutation({
+  const deleteCustomerMutation = useMutation({
     mutationFn: async (id: string) => {
       const result = await customerService.delete(id);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to delete customer');
+        const errorMessage = typeof result.error === 'string' ? result.error : result.error?.toString() || 'Failed to delete customer';
+        throw new Error(errorMessage);
       }
-      return id;
+      return result.data;
     },
     onSuccess: () => {
       toast.success('Customer deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
     onError: (error) => {
-      toast.error(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to delete customer: ${errorMessage}`);
     }
   });
 
   return {
-    customers,
+    customers: customers || [],
     isLoading,
     error,
-    filters,
-    setFilters,
-    refetch,
-    getCustomerDetails: getCustomerDetails.mutate,
-    updateCustomer: updateCustomer.mutate,
-    deleteCustomer: deleteCustomer.mutate,
-    isPending: {
-      getCustomerDetails: getCustomerDetails.isPending,
-      updateCustomer: updateCustomer.isPending,
-      deleteCustomer: deleteCustomer.isPending
-    }
+    deleteCustomer: deleteCustomerMutation.mutateAsync
   };
 };

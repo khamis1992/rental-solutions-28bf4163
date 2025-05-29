@@ -1,3 +1,4 @@
+
 import { vehicleRepository } from '@/lib/database';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 import { TableRow } from '@/lib/database/types';
@@ -36,6 +37,53 @@ export interface PaginatedResult<T> {
 export class VehicleService extends BaseService<'vehicles'> {
   constructor() {
     super(vehicleRepository);
+  }
+
+  /**
+   * Gets vehicles filtered by status - required by useVehicleService hook
+   */
+  async getVehiclesByStatus(): Promise<ServiceResult<Vehicle[]>> {
+    return handleServiceOperation(async () => {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*, vehicle_types(*)')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw new Error(`Failed to fetch vehicles: ${error.message}`);
+      }
+      
+      return data || [];
+    });
+  }
+
+  /**
+   * Updates vehicle status with optional notes
+   */
+  async updateVehicleStatus(vehicleId: string, status: string, notes?: string): Promise<ServiceResult<Vehicle>> {
+    return handleServiceOperation(async () => {
+      const updateData: any = {
+        status: asVehicleStatus(status),
+        updated_at: new Date().toISOString()
+      };
+      
+      if (notes) {
+        updateData.notes = notes;
+      }
+      
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(updateData)
+        .eq('id', vehicleId)
+        .select('*, vehicle_types(*)')
+        .single();
+      
+      if (error) {
+        throw new Error(`Failed to update vehicle status: ${error.message}`);
+      }
+      
+      return data;
+    });
   }
 
   /**

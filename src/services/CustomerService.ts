@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 export interface CustomerFilters {
   search?: string;
+  searchTerm?: string; // Add this missing property
   status?: string;
   limit?: number;
   offset?: number;

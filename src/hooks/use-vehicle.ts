@@ -14,21 +14,7 @@ import { useState } from 'react';
  * @returns Object containing vehicle data and operations
  */
 export function useVehicle(vehicleId?: string) {
-  const {
-    vehicles,
-    isLoading,
-    error,
-    filters,
-    setFilters,
-    vehicleTypes,
-    availableVehicles,
-    getVehicleDetails,
-    updateVehicle,
-    updateStatus,
-    deleteVehicle,
-    calculateUtilization,
-  } = useVehicleService();
-
+  const vehicleServiceHook = useVehicleService();
   const [searchParams, setSearchParams] = useState<VehicleFilterParams>({});
 
   /**
@@ -36,7 +22,7 @@ export function useVehicle(vehicleId?: string) {
    */
   const { data: vehicleDetails } = useQuery({
     queryKey: ['vehicle', vehicleId],
-    queryFn: () => getVehicleDetails(vehicleId!),
+    queryFn: () => vehicleServiceHook.getVehicleDetails(vehicleId!),
     enabled: !!vehicleId,
   });
 
@@ -46,21 +32,21 @@ export function useVehicle(vehicleId?: string) {
    */
   const handleFilterChange = (newFilters: VehicleFilterParams) => {
     setSearchParams(prev => ({ ...prev, ...newFilters }));
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    vehicleServiceHook.setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
   return {
-    vehicles,
-    isLoading,
-    error,
+    vehicles: vehicleServiceHook.vehicles,
+    isLoading: vehicleServiceHook.isLoading,
+    error: vehicleServiceHook.error,
     filters: searchParams,
     handleFilterChange,
-    vehicleTypes,
-    availableVehicles,
+    vehicleTypes: vehicleServiceHook.vehicleTypes,
+    availableVehicles: vehicleServiceHook.availableVehicles,
     vehicleDetails,
-    updateVehicle,
-    updateStatus,
-    deleteVehicle,
-    calculateUtilization,
+    updateVehicle: vehicleServiceHook.updateVehicle,
+    updateStatus: vehicleServiceHook.updateStatus,
+    deleteVehicle: vehicleServiceHook.deleteVehicle,
+    calculateUtilization: vehicleServiceHook.calculateUtilization,
   };
 }

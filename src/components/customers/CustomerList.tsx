@@ -36,7 +36,7 @@ export function CustomerList({ searchParams }: CustomerListProps) {
     deleteCustomer
   } = useCustomerService({
     status: searchParams.status !== 'all' ? searchParams.status : undefined,
-    searchTerm: searchParams.query || undefined
+    search: searchParams.query || undefined // Use 'search' instead of 'searchTerm'
   });
 
   const getStatusBadge = (status: string) => {
