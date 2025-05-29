@@ -4,7 +4,6 @@ export * from './layout';
 export * from './auth';
 export * from './dashboard';
 export * from './vehicles';
-export * from './customers';
 export * from './agreements';
 export * from './maintenance';
 export * from './legal';

@@ -1,10 +1,10 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Session as SupabaseSession, User as SupabaseUser } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 // Define our own User type that extends or adapts the Supabase User type
-export interface User extends Omit<SupabaseUser, 'app_metadata'> {
+export interface AuthUser extends Omit<User, 'app_metadata'> {
   app_metadata: {
     role?: string;
     [key: string]: any;
@@ -12,8 +12,8 @@ export interface User extends Omit<SupabaseUser, 'app_metadata'> {
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: SupabaseSession | null;
+  user: AuthUser | null;
+  session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{
     success: boolean;
@@ -30,8 +30,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<SupabaseSession | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) throw error;
         
         setSession(session);
-        setUser(session?.user ? session.user as unknown as User : null);
+        setUser(session?.user ? session.user as unknown as AuthUser : null);
       } catch (error) {
         console.error('Error getting auth session:', error);
       } finally {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ? session.user as unknown as User : null);
+      setUser(session?.user ? session.user as unknown as AuthUser : null);
       setIsLoading(false);
     });
 
