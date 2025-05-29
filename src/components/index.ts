@@ -14,7 +14,6 @@ export * from './traffic-fines';
 export * from './documents';
 export * from './reports';
 export * from './invoices';
-export * from './fines';
 export * from './forms';
 export * from './mobile';
 export * from './settings';

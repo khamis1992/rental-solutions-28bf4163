@@ -60,9 +60,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  // Fix the image upload handling
   return (
-    <FormProvider onSubmit={handleSubmit} className="space-y-6">
+    <FormProvider form={form} onSubmit={handleSubmit} className="space-y-6">
       {/* Form fields */}
       
       <div className="mb-4">

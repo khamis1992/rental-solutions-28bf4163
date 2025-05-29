@@ -1,4 +1,6 @@
+
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 
 interface FormContextType {
@@ -13,6 +15,9 @@ interface FormContextType {
 
 interface FormProviderProps {
   children: React.ReactNode;
+  form?: UseFormReturn<any>;
+  onSubmit?: (data: any) => Promise<void> | void;
+  className?: string;
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -25,7 +30,12 @@ export const useForm = () => {
   return context;
 };
 
-export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
+export const FormProvider: React.FC<FormProviderProps> = ({ 
+  children, 
+  form, 
+  onSubmit,
+  className 
+}) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,10 +60,14 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
     setErrors({});
   }, []);
 
-  const submitForm = useCallback(async (onSubmit: (data: Record<string, any>) => Promise<void>) => {
+  const submitForm = useCallback(async (onSubmitCallback: (data: Record<string, any>) => Promise<void>) => {
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      if (form && onSubmit) {
+        await form.handleSubmit(onSubmit)();
+      } else {
+        await onSubmitCallback(formData);
+      }
       toast.success('Form submitted successfully', {
         action: {
           label: 'Dismiss',
@@ -66,7 +80,7 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData]);
+  }, [formData, form, onSubmit]);
 
   const value: FormContextType = {
     formData,
@@ -78,9 +92,19 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
     submitForm
   };
 
-  return (
+  const formElement = (
     <FormContext.Provider value={value}>
       {children}
     </FormContext.Provider>
   );
+
+  if (form && onSubmit) {
+    return (
+      <form onSubmit={form.handleSubmit(onSubmit)} className={className}>
+        {formElement}
+      </form>
+    );
+  }
+
+  return <div className={className}>{formElement}</div>;
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,7 +14,7 @@ import { formatCurrency } from '@/lib/utils';
 import InteractiveChart from './charts/InteractiveChart';
 
 const CrossReportAnalytics = () => {
-  const { allVehicles: vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
   const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
