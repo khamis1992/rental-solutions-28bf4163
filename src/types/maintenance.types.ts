@@ -1,6 +1,6 @@
 
 export interface MaintenanceRecord {
-  id?: string; // Make id optional for both create and update operations
+  id: string; // Make id required to match hook expectations
   vehicle_id: string;
   service_type: string;
   maintenance_type: string;
@@ -28,4 +28,9 @@ export interface MaintenanceFormData {
   notes?: string;
   performed_by?: string;
   agreement_id?: string;
+}
+
+// Create maintenance record without ID for creation
+export interface CreateMaintenanceRecord extends Omit<MaintenanceRecord, 'id'> {
+  id?: string; // Optional for creation
 }

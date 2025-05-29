@@ -2,7 +2,7 @@
 import { Database } from '@/types/database.types';
 import { DbId, PaymentStatus } from '@/types/database-common';
 
-export interface Payment {
+export interface PaymentRecord {
   id: DbId;
   amount: number;
   payment_date?: string | null; // Updated to be string | null, not Date
@@ -27,7 +27,7 @@ export interface Payment {
 export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
 
 export interface PaymentHistoryProps {
-  payments?: Payment[];
+  payments?: PaymentRecord[];
   isLoading?: boolean;
   rentAmount?: number | null;
   contractAmount?: number | null;
@@ -35,7 +35,7 @@ export interface PaymentHistoryProps {
   onPaymentCreated?: () => void;
   leaseStartDate?: string | Date | null;
   leaseEndDate?: string | Date | null;
-  onRecordPayment?: (payment: Partial<Payment>) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean | void>;
+  onRecordPayment?: (payment: Partial<PaymentRecord>) => void;
+  onPaymentUpdated?: (payment: Partial<PaymentRecord>) => Promise<boolean | void>;
   leaseId?: DbId;
 }

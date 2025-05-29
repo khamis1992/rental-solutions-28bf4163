@@ -5,6 +5,7 @@ export interface ServiceResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string;
 }
 
 export type ServiceResult<T> = ServiceResponse<T>;
@@ -27,14 +28,15 @@ export async function handleServiceOperation<T>(
   }
 }
 
-export abstract class BaseService {
+export abstract class BaseService<T = any> {
   protected supabase: SupabaseClient;
+  protected repository: any;
 
-  constructor(supabase: SupabaseClient) {
-    this.supabase = supabase;
+  constructor(repository: any) {
+    this.repository = repository;
   }
 
-  protected success<T>(data: T): ServiceResponse<T> {
+  protected success<U>(data: U): ServiceResponse<U> {
     return {
       success: true,
       data
