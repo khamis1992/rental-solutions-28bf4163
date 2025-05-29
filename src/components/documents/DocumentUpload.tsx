@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UploadCloud, File, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useDocuments } from '@/hooks/use-documents';
+import { useDocumentsEnhanced } from '@/hooks/use-documents-enhanced';
 import { 
   DocumentCategory, 
   DocumentType,
@@ -41,7 +42,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const [type, setType] = useState<DocumentType>(DocumentType.OTHER);
   const [file, setFile] = useState<File | null>(null);
   
-  const { createDocument } = useDocuments();
+  const { createDocument } = useDocumentsEnhanced();
   
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -93,6 +94,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         onComplete();
       }
     } catch (error) {
+      // Error handling is done in the mutation
     }
   };
   

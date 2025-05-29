@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Document as DocumentType } from '@/types/document.types';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, ExternalLink } from 'lucide-react';
-import { useDocuments } from '@/hooks/use-documents';
+import { useDocumentsEnhanced } from '@/hooks/use-documents-enhanced';
 
 export interface DocumentViewerProps {
   document: DocumentType;
@@ -11,7 +12,7 @@ export interface DocumentViewerProps {
 
 const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const { downloadDocumentFile } = useDocuments();
+  const { downloadDocumentFile } = useDocumentsEnhanced();
   
   const isImage = document.file_type.startsWith('image/');
   const isPdf = document.file_type === 'application/pdf';

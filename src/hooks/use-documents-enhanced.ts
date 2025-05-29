@@ -1,22 +1,23 @@
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import DocumentService from '@/services/DocumentService';
 import { 
   Document, 
   CreateDocumentRequest, 
   DocumentEntityType 
 } from '@/types/document.types';
-import DocumentService from '@/services/DocumentService';
 import { downloadDocument } from '@/lib/documents/document-storage';
+import { useState } from 'react';
 
-export const useDocuments = (filters?: {
+export const useDocumentsEnhanced = (filters?: {
   entityType?: DocumentEntityType;
   entityId?: string;
   documentType?: string;
 }) => {
   const queryClient = useQueryClient();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: documents = [], isLoading, error } = useQuery({
     queryKey: ['documents', filters],
@@ -71,25 +72,21 @@ export const useDocuments = (filters?: {
     }
   });
 
-  const [isDownloading, setIsDownloading] = useState(false);
-
   const downloadDocumentFile = async (document: Document) => {
     setIsDownloading(true);
     try {
       if (document.public_url) {
-        // For public URLs, just open them
         window.open(document.public_url, '_blank');
       } else {
-        // For private files, download through storage
         const blob = await downloadDocument(document.storage_path);
         if (blob) {
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = window.document.createElement('a');
           a.href = url;
           a.download = document.file_name;
-          document.body.appendChild(a);
+          window.document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
+          window.document.body.removeChild(a);
           URL.revokeObjectURL(url);
         }
       }
@@ -101,34 +98,13 @@ export const useDocuments = (filters?: {
     }
   };
 
-  const generatePDF = async (htmlContent: string, filename: string = 'document.pdf') => {
-    try {
-      const { default: jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
-      
-      const tempDiv = window.document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      
-      const textContent = tempDiv.textContent || tempDiv.innerText || '';
-      doc.text(textContent, 10, 10);
-      
-      doc.save(filename);
-      
-      toast.success('PDF generated successfully');
-    } catch (err: any) {
-      toast.error('Failed to generate PDF');
-    }
-  };
-
   return {
     documents,
     isLoading,
-    loading: isLoading,
     error: error?.message || null,
     createDocument,
     deleteDocument,
     downloadDocumentFile,
-    isDownloading,
-    generatePDF
+    isDownloading
   };
 };

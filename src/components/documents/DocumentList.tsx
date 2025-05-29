@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -27,7 +28,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import { useDocuments } from '@/hooks/use-documents';
+import { useDocumentsEnhanced } from '@/hooks/use-documents-enhanced';
 import { Document, DocumentEntityType } from '@/types/document.types';
 import { 
   Dialog, 
@@ -62,18 +63,15 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   
   const { 
-    documents: allDocuments, 
-    isLoading, 
+    documents,
+    isLoading,
     downloadDocumentFile,
     isDownloading,
     deleteDocument
-  } = useDocuments();
-  
-  const documents = entityType && entityId
-    ? allDocuments?.filter(doc => 
-        doc.entity_type === entityType && doc.entity_id === entityId
-      )
-    : allDocuments;
+  } = useDocumentsEnhanced({
+    entityType,
+    entityId
+  });
   
   const filteredDocuments = documents?.filter(doc => 
     searchQuery === '' || 
