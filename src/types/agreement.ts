@@ -7,8 +7,8 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   vehicles?: Database['public']['Tables']['vehicles']['Row'];
   customer_name?: string;
   vehicle_info?: string;
-  payment_day?: number; // Maps to rent_due_day in database
-  rent_due_day?: number; // Direct database column
+  payment_day?: number; // Now properly mapped to database column
+  payment_frequency?: string; // Payment frequency field
   terms_accepted?: boolean; // Add missing property for form handling
   // Add missing vehicle properties for backward compatibility
   license_plate?: string;

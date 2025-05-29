@@ -147,21 +147,7 @@ export class AgreementSyncService extends BaseService {
    */
   async syncAgreementPayments(agreementId: string): Promise<ServiceResponse<any>> {
     try {
-      // First, fix payment defaults for this agreement
-      const { error: updateError } = await supabase
-        .from('leases')
-        .update({
-          payment_frequency: 'monthly',
-          payment_day: 1
-        })
-        .eq('id', agreementId)
-        .or('payment_frequency.is.null,payment_day.is.null');
-
-      if (updateError) {
-        console.warn('Failed to update payment defaults:', updateError);
-      }
-
-      // Get the agreement details
+      // First, fix payment defaults for this agreement if needed
       const { data: agreement, error: agreementError } = await supabase
         .from('leases')
         .select('*')
@@ -170,6 +156,21 @@ export class AgreementSyncService extends BaseService {
 
       if (agreementError || !agreement) {
         return this.handleError(agreementError, 'Failed to fetch agreement');
+      }
+
+      // Update payment defaults if missing
+      if (!agreement.payment_frequency || !agreement.payment_day) {
+        const { error: updateError } = await supabase
+          .from('leases')
+          .update({
+            payment_frequency: agreement.payment_frequency || 'monthly',
+            payment_day: agreement.payment_day || 1
+          })
+          .eq('id', agreementId);
+
+        if (updateError) {
+          console.warn('Failed to update payment defaults:', updateError);
+        }
       }
 
       // Generate payment schedule if missing and agreement is active

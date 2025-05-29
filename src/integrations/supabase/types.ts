@@ -4023,6 +4023,7 @@ export type Database = {
           next_payment_date: string | null
           notes: string | null
           ownership_transferred: boolean | null
+          payment_day: number | null
           payment_frequency: string | null
           payment_status: string | null
           processed_content: string | null
@@ -4063,6 +4064,7 @@ export type Database = {
           next_payment_date?: string | null
           notes?: string | null
           ownership_transferred?: boolean | null
+          payment_day?: number | null
           payment_frequency?: string | null
           payment_status?: string | null
           processed_content?: string | null
@@ -4103,6 +4105,7 @@ export type Database = {
           next_payment_date?: string | null
           notes?: string | null
           ownership_transferred?: boolean | null
+          payment_day?: number | null
           payment_frequency?: string | null
           payment_status?: string | null
           processed_content?: string | null
