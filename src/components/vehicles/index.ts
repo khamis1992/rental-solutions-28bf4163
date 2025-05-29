@@ -1,20 +1,2 @@
-
-export * from './StatusUpdateDialog';
-export * from './VehicleDetail';
-export * from './VehicleFilters';
-export * from './VehicleForm';
-export * from './VehicleGrid';
-export * from './VehicleImageUpload';
-export * from './VehicleMonitoring';
-export * from './VehicleOnboardingWizard';
-export * from './VehicleStatusUpdate';
-export * from './VehicleStatusBadge';
-export * from './VehicleStatusUpdateDialog';
-export * from './detail/VehicleImageSection';
-export * from './detail/VehicleDetailsSection';
-export * from './detail/VehicleMainInfo';
-export * from './detail/VehicleQuickActions';
-export * from './detail/VehicleStatusCard';
-export * from './detail/VehicleTabContent';
-export * from './detail/AgreementHistoryTab';
-export * from './detail/MaintenanceHistoryTab';
+// Placeholder for vehicles components
+export const VehiclesComponent = () => null;

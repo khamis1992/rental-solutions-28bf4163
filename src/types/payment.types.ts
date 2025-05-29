@@ -16,6 +16,15 @@ export interface Payment {
   late_fine_amount?: number;
   created_at?: string;
   updated_at?: string;
+  // Add missing properties
+  notes?: string;
+  transaction_id?: string;
+  amount_paid?: number;
+  balance?: number;
+  days_overdue?: number;
+  original_due_date?: string | null;
+  include_late_fee?: boolean;
+  is_partial?: boolean;
 }
 
 export interface SpecialPaymentOptions {
@@ -25,4 +34,5 @@ export interface SpecialPaymentOptions {
   includeLatePaymentFee?: boolean;
   isPartialPayment?: boolean;
   paymentType?: string;
+  targetPaymentId?: string;
 }

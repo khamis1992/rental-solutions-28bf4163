@@ -1,79 +1,86 @@
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
-import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { z } from 'zod';
-import { useToast } from '@/components/ui/use-toast';
-import { Form } from '@/components/ui/form';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-
-interface FormProviderProps<T extends z.ZodType<any, any>> {
-  form: UseFormReturn<z.infer<T>>;
-  onSubmit: (values: z.infer<T>) => Promise<void> | void;
-  children: React.ReactNode;
-  className?: string;
-  showFormLevelErrors?: boolean;
+interface FormContextType {
+  formData: Record<string, any>;
+  errors: Record<string, string>;
+  isSubmitting: boolean;
+  updateField: (field: string, value: any) => void;
+  setFieldError: (field: string, error: string) => void;
+  clearErrors: () => void;
+  submitForm: (onSubmit: (data: Record<string, any>) => Promise<void>) => Promise<void>;
 }
 
-export function FormProvider<T extends z.ZodType<any, any>>({
-  form,
-  onSubmit,
-  children,
-  className = '',
-  showFormLevelErrors = true
-}: FormProviderProps<T>) {
-  const { toast } = useToast();
-  const formErrors = form.formState.errors;
-  const formErrorMessages = Object.values(formErrors)
-    .map(error => error?.message ? String(error.message) : null)
-    .filter(Boolean);
+interface FormProviderProps {
+  children: React.ReactNode;
+}
 
-  const handleSubmit = async (values: z.infer<T>) => {
-    try {
-      await onSubmit(values);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      
-      let errorMessage = 'An error occurred while submitting the form.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String((error as any).message);
-      }
-      
-      toast({
-        title: 'Form Submission Error',
-        description: errorMessage,
-        variant: 'destructive',
-        action: {
-          label: 'Try again',
-          onClick: () => form.handleSubmit(handleSubmit)(),
-        },
+const FormContext = createContext<FormContextType | undefined>(undefined);
+
+export const useForm = () => {
+  const context = useContext(FormContext);
+  if (!context) {
+    throw new Error('useForm must be used within a FormProvider');
+  }
+  return context;
+};
+
+export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const updateField = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when field is updated
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
       });
     }
+  }, [errors]);
+
+  const setFieldError = useCallback((field: string, error: string) => {
+    setErrors(prev => ({ ...prev, [field]: error }));
+  }, []);
+
+  const clearErrors = useCallback(() => {
+    setErrors({});
+  }, []);
+
+  const submitForm = useCallback(async (onSubmit: (data: Record<string, any>) => Promise<void>) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(formData);
+      toast.success('Form submitted successfully', {
+        action: {
+          label: 'Dismiss',
+          onClick: () => {}
+        }
+      });
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast.error('Failed to submit form');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData]);
+
+  const value: FormContextType = {
+    formData,
+    errors,
+    isSubmitting,
+    updateField,
+    setFieldError,
+    clearErrors,
+    submitForm
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className={className}>
-        {showFormLevelErrors && formErrorMessages.length > 0 && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please fix the following errors:
-              <ul className="mt-2 ml-2 list-disc list-inside">
-                {formErrorMessages.map((message, index) => (
-                  <li key={index}>{message}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-        {children}
-      </form>
-    </Form>
+    <FormContext.Provider value={value}>
+      {children}
+    </FormContext.Provider>
   );
-}
-
+};

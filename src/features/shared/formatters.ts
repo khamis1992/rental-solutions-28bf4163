@@ -1,97 +1,74 @@
 
-import { DATE_FORMATS } from './constants';
+import { format, parseISO, isValid } from 'date-fns';
 
-export const formatCurrency = (amount: number, currency = 'USD'): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(amount);
-};
+// Define allowed format types
+type DateFormat = 'MMM dd, yyyy' | 'yyyy-MM-dd' | 'MMMM dd, yyyy HH:mm:ss';
 
-export const formatNumber = (value: number): string => {
-  return value.toLocaleString();
-};
-
-export const formatPercentage = (value: number, decimals = 1): string => {
-  return `${value.toFixed(decimals)}%`;
-};
-
-export const formatDate = (date: Date | string, format = DATE_FORMATS.display): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+/**
+ * Format a date string or Date object
+ */
+export const formatDate = (
+  date: string | Date | null | undefined,
+  formatString: DateFormat = 'MMM dd, yyyy'
+): string => {
+  if (!date) return '';
   
-  if (isNaN(dateObj.getTime())) {
-    return 'Invalid Date';
-  }
-
-  switch (format) {
-    case DATE_FORMATS.display:
-      return dateObj.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    case DATE_FORMATS.input:
-      return dateObj.toISOString().split('T')[0];
-    case DATE_FORMATS.full:
-      return dateObj.toLocaleString('en-US');
-    default:
-      return dateObj.toLocaleDateString();
+  try {
+    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    
+    if (!isValid(dateObj)) {
+      return '';
+    }
+    
+    return format(dateObj, formatString);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
   }
 };
 
-export const formatTime = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-export const formatDateTime = (date: Date | string): string => {
-  return `${formatDate(date)} ${formatTime(date)}`;
-};
-
-export const formatFileSize = (bytes: number): string => {
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  if (bytes === 0) return '0 Bytes';
+/**
+ * Format currency value
+ */
+export const formatCurrency = (
+  amount: number | string | null | undefined,
+  currency = 'QAR'
+): string => {
+  if (amount === null || amount === undefined) return `${currency} 0.00`;
   
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${Math.round(bytes / Math.pow(1024, i) * 100) / 100} ${sizes[i]}`;
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numAmount)) return `${currency} 0.00`;
+  
+  return `${currency} ${numAmount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
 
-export const formatDuration = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  
-  if (hours === 0) {
-    return `${remainingMinutes}m`;
-  }
-  
-  return remainingMinutes === 0 
-    ? `${hours}h` 
-    : `${hours}h ${remainingMinutes}m`;
+/**
+ * Format percentage
+ */
+export const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '0%';
+  return `${(value * 100).toFixed(1)}%`;
 };
 
-export const formatPhoneNumber = (phone: string): string => {
+/**
+ * Format phone number
+ */
+export const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return '';
+  
+  // Remove all non-numeric characters
   const cleaned = phone.replace(/\D/g, '');
-  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   
-  if (match) {
-    return `(${match[1]}) ${match[2]}-${match[3]}`;
+  // Format based on length
+  if (cleaned.length === 8) {
+    return cleaned.replace(/(\d{4})(\d{4})/, '$1 $2');
+  } else if (cleaned.length === 11 && cleaned.startsWith('974')) {
+    return cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '+$1 $2 $3');
   }
   
   return phone;
-};
-
-export const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) return text;
-  return `${text.substring(0, maxLength)}...`;
-};
-
-export const capitalizeFirst = (text: string): string => {
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-};
-
-export const capitalizeWords = (text: string): string => {
-  return text.replace(/\w\S*/g, (word) => capitalizeFirst(word));
 };
