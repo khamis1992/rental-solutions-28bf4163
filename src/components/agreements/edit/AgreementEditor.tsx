@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -87,6 +86,10 @@ const AgreementEditor = () => {
       additional_drivers: [],
     },
   });
+
+  // Watch form values for reactive updates
+  const watchedValues = form.watch(['start_date', 'end_date', 'rent_amount', 'payment_frequency', 'payment_day']);
+  const [startDate, endDate, rentAmount, paymentFrequency, paymentDay] = watchedValues;
   
   // Load agreement data if editing
   useEffect(() => {
@@ -521,11 +524,11 @@ const AgreementEditor = () => {
                 <TabsContent value="payments">
                   <PaymentScheduleEditor 
                     agreementId={id}
-                    startDate={form.getValues('start_date')}
-                    endDate={form.getValues('end_date')}
-                    rentAmount={form.getValues('rent_amount')}
-                    paymentFrequency={form.getValues('payment_frequency')}
-                    paymentDay={form.getValues('payment_day')}
+                    startDate={startDate}
+                    endDate={endDate}
+                    rentAmount={rentAmount || 0}
+                    paymentFrequency={paymentFrequency || 'monthly'}
+                    paymentDay={paymentDay || 1}
                     onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
                     onPaymentDayChange={(value) => form.setValue('payment_day', value)}
                   />
