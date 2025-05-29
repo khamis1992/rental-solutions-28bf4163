@@ -10,6 +10,7 @@ import { PaymentAnalytics } from './analytics/PaymentAnalytics';
 import { UnifiedPaymentDisplay } from './UnifiedPaymentDisplay';
 import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
+import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
 import { Agreement } from '@/types/agreement';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,12 @@ export function PaymentHistorySection({
     paymentSchedule,
     isLoading: isLoadingSchedule
   } = usePaymentScheduleManagement(agreement?.id);
+
+  // Auto-sync payment schedules
+  const { needsScheduleGeneration } = useAgreementPaymentSync({
+    agreement,
+    autoGenerate: true
+  });
   
   // Use the payment calculation hook
   const {
@@ -172,6 +179,11 @@ export function PaymentHistorySection({
           <CardTitle>Payment History</CardTitle>
           <CardDescription>
             Track all financial transactions and scheduled payments for this agreement
+            {needsScheduleGeneration && (
+              <div className="mt-2 text-sm text-amber-600">
+                ⚠️ Payment schedule will be generated automatically when this agreement becomes active
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

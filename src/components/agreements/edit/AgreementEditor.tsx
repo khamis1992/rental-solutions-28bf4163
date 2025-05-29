@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -31,6 +32,7 @@ import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
+import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
 import { CustomerInfo } from '@/types/customer';
 import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
 
@@ -45,8 +47,8 @@ const agreementSchema = z.object({
   end_date: z.date(),
   total_amount: z.number().min(0, "Amount must be a positive number"),
   rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
-  payment_frequency: z.string().optional(),
-  payment_day: z.number().min(1).max(31).optional(),
+  payment_frequency: z.string().default('monthly'),
+  payment_day: z.number().min(1).max(31).default(1),
   notes: z.string().optional(),
   daily_late_fee: z.number().min(0).optional(),
   deposit_amount: z.number().min(0).optional(),
@@ -71,7 +73,7 @@ const AgreementEditor = () => {
     isGenerating
   } = usePaymentScheduleManagement(id);
   
-  // Initialize form with default values
+  // Initialize form with default values including payment schedule fields
   const form = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
@@ -315,6 +317,7 @@ const AgreementEditor = () => {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6">
                 <TabsContent value="details" className="space-y-6">
+                  {/* Basic Details Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -537,6 +540,9 @@ const AgreementEditor = () => {
                       )}
                     />
                   </div>
+
+                  {/* Payment Schedule Section */}
+                  <PaymentScheduleSection control={form.control} />
                   
                   <FormField
                     control={form.control}

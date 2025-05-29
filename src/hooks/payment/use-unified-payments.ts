@@ -4,6 +4,7 @@ import { usePayments } from '@/hooks/use-payments';
 import { Agreement } from '@/types/agreement';
 import { PaymentScheduleItem } from '@/services/PaymentScheduleService';
 import { usePaymentScheduleManagement } from './use-payment-schedule-management';
+import { useAgreementPaymentSync } from './use-agreement-payment-sync';
 
 interface UseUnifiedPaymentsProps {
   agreement: Agreement | null;
@@ -32,13 +33,19 @@ export function useUnifiedPayments({
     addPayment,
     updatePayment,
     deletePayment
-  } = usePayments(agreement?.id);
+  } = usePayments(agreement?.id || '');
 
-  // Get scheduled payments
+  // Get scheduled payments and sync
   const {
     paymentSchedule: scheduledPayments,
     isLoading: isLoadingSchedule
   } = usePaymentScheduleManagement(agreement?.id);
+
+  // Auto-sync payment schedules
+  const { needsScheduleGeneration } = useAgreementPaymentSync({
+    agreement,
+    autoGenerate: true
+  });
 
   // Merge actual payments with scheduled payments
   const unifiedPayments = useMemo(() => {
@@ -139,6 +146,7 @@ export function useUnifiedPayments({
     updatePayment,
     deletePayment,
     hasSchedule: scheduledPayments.length > 0,
-    hasActualPayments: actualPayments.length > 0
+    hasActualPayments: actualPayments.length > 0,
+    needsScheduleGeneration
   };
 }
