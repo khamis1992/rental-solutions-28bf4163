@@ -1,14 +1,8 @@
 
 import { Database } from "@/types/database.types";
 import { DbId, LeaseStatus, PaymentStatus } from '@/types/database-common';
-import { GenericSchema } from "@supabase/supabase-js";
 
 export type AgreementStatus = LeaseStatus;
-
-export type DatabaseStatusColumn<T extends keyof Database['public']['Tables']> = 
-  keyof Database['public']['Tables'][T]['Row'] extends 'status' 
-    ? Database['public']['Tables'][T]['Row']['status'] 
-    : never;
 
 export type Payment = {
   id: DbId;
@@ -55,9 +49,5 @@ export type AgreementImport = {
 };
 
 // Helper functions for type casting with standardized naming
-export const asStatusColumn = <T extends keyof Database['public']['Tables']>(
-  status: string
-): DatabaseStatusColumn<T> => status as DatabaseStatusColumn<T>;
-
 export const asAgreementIdColumn = (id: string) => id as DbId;
 export const asImportIdColumn = (id: string) => id as DbId;

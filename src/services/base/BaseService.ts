@@ -1,6 +1,31 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ServiceResponse } from '@/types/service.types';
+
+export interface ServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export type ServiceResult<T> = ServiceResponse<T>;
+
+export async function handleServiceOperation<T>(
+  operation: () => Promise<T>
+): Promise<ServiceResult<T>> {
+  try {
+    const data = await operation();
+    return {
+      success: true,
+      data
+    };
+  } catch (error) {
+    console.error('Service operation failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
 
 export abstract class BaseService {
   protected supabase: SupabaseClient;

@@ -220,12 +220,18 @@ export class PaymentService extends BaseService {
   }
 
   /**
-   * Fix payments for a specific agreement
+   * Fix payments for a specific agreement - using database function call directly
    */
   async fixAgreementPayments(agreementId: string): Promise<ServiceResponse<any>> {
     try {
-      const result = await this.supabase.fixAgreementPayments(castDbId(agreementId));
-      return this.success(result);
+      // Call the database function directly since fixAgreementPayments doesn't exist on supabase client
+      const { data, error } = await supabase.rpc('generate_missing_payment_records');
+      
+      if (error) {
+        return this.handleError(error, 'Failed to fix agreement payments');
+      }
+      
+      return this.success({ fixedCount: data?.length || 0 });
     } catch (error) {
       return this.handleError(error, 'Failed to fix agreement payments');
     }

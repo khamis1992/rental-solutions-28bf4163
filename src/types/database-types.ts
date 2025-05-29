@@ -19,14 +19,10 @@ export type VehicleId = Tables['vehicles']['Row']['id'];
 export type ProfileId = Tables['profiles']['Row']['id'];
 export type PaymentId = Tables['unified_payments']['Row']['id'];
 export type TrafficFineId = Tables['traffic_fines']['Row']['id'];
-export type LegalCaseId = Tables['legal_cases']['Row']['id'];
 export type AgreementId = LeaseId; // Alias for backward compatibility
 
 // Helper type for payment status that matches the database enum
 export type PaymentStatus = Tables['unified_payments']['Row']['status'];
-
-// Helper type for legal case status that matches the database enum
-export type LegalCaseStatus = Tables['legal_cases']['Row']['status'];
 
 // Helper type for vehicle status that matches the database enum
 export type VehicleStatus = Tables['vehicles']['Row']['status'];
@@ -36,9 +32,6 @@ export type AgreementStatus = Tables['leases']['Row']['status'];
 
 // Helper function to cast payment status to the correct type
 export const castPaymentStatus = (status: string): PaymentStatus => status as PaymentStatus;
-
-// Helper function to cast legal case status to the correct type
-export const castLegalCaseStatus = (status: string): LegalCaseStatus => status as LegalCaseStatus;
 
 // Helper function to cast vehicle status to the correct type
 export const castVehicleStatus = (status: string): VehicleStatus => status as VehicleStatus;
@@ -115,7 +108,6 @@ export const Tables = {
   leases: createTableHelper('leases'),
   profiles: createTableHelper('profiles'),
   vehicles: createTableHelper('vehicles'),
-  legal_cases: createTableHelper('legal_cases'),
   unified_payments: createTableHelper('unified_payments'),
   traffic_fines: createTableHelper('traffic_fines'),
 };

@@ -1,9 +1,10 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Session, User } from '@supabase/supabase-js';
+import type { Session as SupabaseSession, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define our own User type that extends or adapts the Supabase User type
-export interface AuthUser extends Omit<User, 'app_metadata'> {
+export interface AuthUser extends Omit<SupabaseUser, 'app_metadata'> {
   app_metadata: {
     role?: string;
     [key: string]: any;
@@ -12,7 +13,7 @@ export interface AuthUser extends Omit<User, 'app_metadata'> {
 
 interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
+  session: SupabaseSession | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{
     success: boolean;
@@ -30,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<SupabaseSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

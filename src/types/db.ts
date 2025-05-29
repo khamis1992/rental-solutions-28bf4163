@@ -28,16 +28,12 @@ export type PaymentStatus = PaymentRow['status']
 export type TrafficFineRow = Tables['traffic_fines']['Row']
 export type TrafficFineId = TrafficFineRow['id']
 
-export type LegalCaseRow = Tables['legal_cases']['Row']
-export type LegalCaseId = LegalCaseRow['id']
-
 // Type-safe ID conversion functions
 export const asLeaseId = (id: string): LeaseId => id as LeaseId
 export const asVehicleId = (id: string): VehicleId => id as VehicleId
 export const asProfileId = (id: string): ProfileId => id as ProfileId
 export const asPaymentId = (id: string): PaymentId => id as PaymentId
 export const asTrafficFineId = (id: string): TrafficFineId => id as TrafficFineId
-export const asLegalCaseId = (id: string): LegalCaseId => id as LegalCaseId
 
 // Type-safe status conversion functions
 export const asLeaseStatus = (status: string): LeaseStatus => status as LeaseStatus
