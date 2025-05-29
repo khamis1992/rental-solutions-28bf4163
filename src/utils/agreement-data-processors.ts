@@ -44,7 +44,6 @@ export const processAgreementData = (data: any): Agreement | null => {
       payment_day: data.payment_day,
       daily_late_fee: data.daily_late_fee,
       deposit_amount: data.deposit_amount,
-      next_payment_date: data.next_payment_date,
       last_payment_date: data.last_payment_date,
       vehicle_make: data.vehicles?.make,
       vehicle_model: data.vehicles?.model,

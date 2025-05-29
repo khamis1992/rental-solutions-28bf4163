@@ -24,5 +24,15 @@ export function getErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message;
   }
+  if (error && typeof error === 'object' && 'error' in error) {
+    return getErrorMessage((error as any).error);
+  }
   return 'An unknown error occurred';
+}
+
+// Helper to extract message from ServiceResult
+export function getServiceMessage<T>(result: ServiceResult<T>): string {
+  if (result.message) return result.message;
+  if (result.error) return getErrorMessage(result.error);
+  return 'Operation completed';
 }

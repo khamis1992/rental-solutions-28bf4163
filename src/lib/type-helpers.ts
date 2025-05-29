@@ -1,3 +1,4 @@
+
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
@@ -67,6 +68,17 @@ export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
   }
   
   return [value];
+}
+
+/**
+ * Safe array conversion that preserves original type when it's already an array
+ */
+export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  
+  return Array.isArray(value) ? value : [value];
 }
 
 /**

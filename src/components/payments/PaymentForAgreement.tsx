@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +24,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
   const { data, isLoading, error } = usePaymentDetails(carNumber);
-  const { addPayment } = usePayments();
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not set';
-    return format(new Date(dateString), 'dd MMM yyyy');
-  };
+  const { addPayment } = usePayments(data?.leaseId || '');
 
   // Group payments by their status
   const getGroupedPayments = () => {
@@ -72,6 +66,11 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
       default:
         return <Badge>{status}</Badge>;
     }
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    return format(new Date(dateString), 'dd MMM yyyy');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -355,23 +354,22 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                 </TabsContent>
                 
                 <TabsContent value="new" className="pt-2">
-                  <div className="flex items-center space-x-2 border rounded-md p-3">
-                    {/* Fix: Wrap RadioGroupItem inside a RadioGroup */}
-                    <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')}>
+                  <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')}>
+                    <div className="flex items-center space-x-2 border rounded-md p-3">
                       <RadioGroupItem value="new" id="new-payment" />
-                    </RadioGroup>
-                    <div className="grid flex-1">
-                      <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
-                      <span className="text-sm text-muted-foreground">
-                        Amount: QAR {data.totalDue.toFixed(2)} (Rent + Late Fee)
-                      </span>
-                      {data.lateFeeAmount > 0 && (
-                        <span className="text-sm text-red-500">
-                          Includes Late Fee: QAR {data.lateFeeAmount.toFixed(2)}
+                      <div className="grid flex-1">
+                        <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
+                        <span className="text-sm text-muted-foreground">
+                          Amount: QAR {data.totalDue.toFixed(2)} (Rent + Late Fee)
                         </span>
-                      )}
+                        {data.lateFeeAmount > 0 && (
+                          <span className="text-sm text-red-500">
+                            Includes Late Fee: QAR {data.lateFeeAmount.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </RadioGroup>
                 </TabsContent>
               </Tabs>
             </div>
@@ -382,10 +380,6 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                 You can create a new payment below.
               </p>
               <div className="mt-4">
-                {/* Fix: Wrap RadioGroupItem inside a RadioGroup */}
-                <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')} className="hidden">
-                  <RadioGroupItem value="new" id="new-payment" />
-                </RadioGroup>
                 <Button 
                   type="button" 
                   variant="outline" 
