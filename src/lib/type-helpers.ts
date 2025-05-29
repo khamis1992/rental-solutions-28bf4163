@@ -1,4 +1,3 @@
-
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
@@ -58,14 +57,11 @@ export function extractResponseData<T>(
  * Type guard to ensure array type
  * Useful when dealing with potentially unknown response structures
  */
-export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
-  if (data === null || data === undefined) {
-    return [];
+export function ensureArray<T>(value: T | T[]): T[] {
+  if (Array.isArray(value)) {
+    return value;
   }
-  if (Array.isArray(data)) {
-    return data;
-  }
-  return [data];
+  return [value];
 }
 
 /**

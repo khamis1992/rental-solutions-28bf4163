@@ -23,7 +23,7 @@ const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null =
 
 // Helper function to safely convert status strings to VehicleStatus
 const safeMapToVehicleStatus = (status: string): VehicleStatus => {
-  const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'reserved', 'inactive'];
+  const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'reserved'];
   return validStatuses.includes(status as VehicleStatus) ? status as VehicleStatus : 'available';
 };
 

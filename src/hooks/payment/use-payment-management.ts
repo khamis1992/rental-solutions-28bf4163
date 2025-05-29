@@ -46,9 +46,14 @@ export const usePaymentManagement = (leaseId?: string) => {
     }
   });
 
+  // Add payment function (alias for createPayment)
+  const addPayment = async (paymentData: Partial<Payment>) => {
+    return createPayment.mutateAsync(paymentData);
+  };
+
   // Update payment mutation
   const updatePayment = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Payment>) => {
+    mutationFn: async ({ id, data: updates }: { id: string; data: Partial<Payment> }) => {
       const { data, error } = await supabase
         .from('unified_payments')
         .update(updates)
@@ -87,6 +92,51 @@ export const usePaymentManagement = (leaseId?: string) => {
     }
   });
 
+  // Update historical payment statuses
+  const updateHistoricalStatuses = async () => {
+    if (!leaseId) return { updatedCount: 0 };
+    
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+      
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('id')
+        .eq('lease_id', leaseId)
+        .eq('status', 'pending')
+        .lt('original_due_date', cutoffDate.toISOString());
+      
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return { updatedCount: 0 };
+      }
+      
+      const paymentIds = data.map(payment => payment.id);
+      const { error: updateError } = await supabase
+        .from('unified_payments')
+        .update({ status: 'completed' })
+        .in('id', paymentIds);
+      
+      if (updateError) throw updateError;
+      
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      return { updatedCount: paymentIds.length };
+    } catch (error) {
+      console.error('Error updating historical payment statuses:', error);
+      throw error;
+    }
+  };
+
+  // Loading states
+  const loadingStates = {
+    createPayment: createPayment.isPending,
+    updatePayment: updatePayment.isPending,
+    deletePayment: deletePayment.isPending,
+    updateHistoricalStatuses: false
+  };
+
   // Special payment function that returns success/error information
   const recordSpecialPayment = async (paymentData: Partial<Payment>) => {
     try {
@@ -103,8 +153,11 @@ export const usePaymentManagement = (leaseId?: string) => {
     isLoading,
     error,
     createPayment,
+    addPayment,
     updatePayment,
     deletePayment,
+    updateHistoricalStatuses,
+    loadingStates,
     recordSpecialPayment
   };
 };

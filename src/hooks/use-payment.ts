@@ -65,6 +65,7 @@ export function usePayment(agreementId?: string) {
     generatePayment: paymentSchedule.generatePayment,
     runPaymentMaintenance: paymentSchedule.runMaintenanceJob,
     fixPaymentAnomalies: paymentSchedule.fixPaymentAnomalies,
+    updateHistoricalStatuses: paymentManagement.updateHistoricalStatuses,
     isPending: {
       ...paymentManagement.loadingStates,
       generatePayment: paymentSchedule.isPending.generatePayment,

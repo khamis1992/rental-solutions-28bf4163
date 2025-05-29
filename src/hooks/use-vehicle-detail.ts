@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useVehicleService } from './services/useVehicleService';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleStatus } from '@/types/vehicle';
 import { useQuery } from '@tanstack/react-query';
 
 export const useVehicleDetail = (vehicleId: string | undefined) => {
@@ -38,16 +38,16 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           year: vehicleData.year,
           color: vehicleData.color || '',
           vin: vehicleData.vin || vehicleData.engine_number || 'N/A', // Use engine_number as fallback for vin
-          mileage: vehicleData.mileage || 0,
-          status: vehicleData.status,
-          rent_amount: vehicleData.rent_amount,
-          insurance_company: vehicleData.insurance_company,
-          insurance_expiry: vehicleData.insurance_expiry,
-          location: vehicleData.location,
-          image_url: vehicleData.image_url,
+          mileage: vehicleData.mileage || vehicleData.odometer_reading || 0,
+          status: (vehicleData.status || 'available') as VehicleStatus,
+          rent_amount: vehicleData.rent_amount || vehicleData.daily_rate || 0,
+          insurance_company: vehicleData.insurance_company || '',
+          insurance_expiry: vehicleData.insurance_expiry || null,
+          location: vehicleData.location || '',
+          image_url: vehicleData.image_url || null,
           created_at: vehicleData.created_at,
           updated_at: vehicleData.updated_at,
-          description: vehicleData.notes || vehicleData.description,
+          description: vehicleData.description || vehicleData.notes || vehicleData.attention_needed_notes || '',
           // Add any additional mapped properties from vehicleData
           ...vehicleData
         };
