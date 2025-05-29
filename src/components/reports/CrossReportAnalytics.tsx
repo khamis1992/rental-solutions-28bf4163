@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,10 +15,10 @@ import { formatCurrency } from '@/lib/utils';
 import InteractiveChart from './charts/InteractiveChart';
 
 const CrossReportAnalytics = () => {
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { allVehicles: vehicles, isLoading: isLoadingVehicles } = useVehicles();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
-  const { transactions, isLoading: isLoadingFinancials } = useFinancials();
+  const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
   
   const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,8 +71,11 @@ const CrossReportAnalytics = () => {
       </Alert>
     );
   }
+
+  // Ensure vehicles is an array
+  const vehiclesList = Array.isArray(vehicles) ? vehicles : [];
   
-  const vehicleUtilizationData = vehicles.map(vehicle => {
+  const vehicleUtilizationData = vehiclesList.map(vehicle => {
     const vehicleAgreements = agreements.filter(a => a.vehicle_id === vehicle.id);
     const totalRentDays = vehicleAgreements.reduce((sum, agreement) => {
       const startDate = new Date(agreement.start_date);
@@ -164,7 +168,7 @@ const CrossReportAnalytics = () => {
     }, {} as Record<string, any>)
   ).map(([_, data]) => ({
     ...data,
-    averageUtilization: data.averageUtilization / data.count
+    averageUtilization: (data as any).averageUtilization / (data as any).count
   }));
   
   return (
@@ -218,7 +222,7 @@ const CrossReportAnalytics = () => {
                   name: 'Vehicle Type',
                   options: [
                     ...new Set(vehicleUtilizationData.map(v => v.vehicleType))
-                  ].filter(Boolean).map(type => ({ label: type, value: type }))
+                  ].filter(Boolean).map(type => ({ label: String(type), value: String(type) }))
                 }
               ]}
             />

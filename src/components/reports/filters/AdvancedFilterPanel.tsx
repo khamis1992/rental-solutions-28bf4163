@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Filter, X, CalendarIcon, Check, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
 export type FilterOption = {
   field: string;
@@ -43,13 +45,10 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
   onRemoveFilter,
   onClearFilters
 }) => {
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [selectedOperator, setSelectedOperator] = useState('equals');
-  const [filterValue, setFilterValue] = useState(null);
-  const [dateRange, setDateRange] = useState({
-    from: undefined,
-    to: undefined,
-  });
+  const [selectedGroup, setSelectedGroup] = useState<FilterGroup | null>(null);
+  const [selectedOperator, setSelectedOperator] = useState<FilterOption['operator']>('equals');
+  const [filterValue, setFilterValue] = useState<any>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const handleGroupSelect = (group: FilterGroup) => {
     setSelectedGroup(group);
@@ -86,7 +85,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
       displayValue = option?.label || filterValue;
     } else if (selectedGroup.type === 'date') {
       displayValue = format(new Date(filterValue), 'PP');
-    } else if (selectedGroup.type === 'dateRange' && dateRange.from && dateRange.to) {
+    } else if (selectedGroup.type === 'dateRange' && dateRange?.from && dateRange?.to) {
       displayValue = `${format(dateRange.from, 'PP')} - ${format(dateRange.to, 'PP')}`;
       onApplyFilter({
         field: selectedGroup.id,
@@ -132,7 +131,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
               <Calendar
                 mode="single"
                 selected={filterValue ? new Date(filterValue) : undefined}
-                onSelect={date => setFilterValue(date)}
+                onSelect={(date) => setFilterValue(date)}
                 className="rounded-md border"
               />
             </div>
@@ -257,7 +256,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
                       size="sm" 
                       className="w-full mt-2"
                       onClick={handleApplyFilter}
-                      disabled={filterValue === null && !(selectedGroup.type === 'dateRange' && dateRange.from && dateRange.to)}
+                      disabled={filterValue === null && !(selectedGroup.type === 'dateRange' && dateRange?.from && dateRange?.to)}
                     >
                       Apply Filter
                     </Button>

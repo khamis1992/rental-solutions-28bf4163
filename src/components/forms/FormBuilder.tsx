@@ -28,7 +28,7 @@ export function FormBuilder<T extends z.ZodType<any, any>>({
   });
 
   return (
-    <FormProvider<T> 
+    <FormProvider 
       form={form} 
       onSubmit={onSubmit} 
       className={className}
@@ -37,4 +37,3 @@ export function FormBuilder<T extends z.ZodType<any, any>>({
     </FormProvider>
   );
 }
-
