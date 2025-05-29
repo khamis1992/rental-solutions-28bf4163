@@ -16,3 +16,6 @@ export * from './invoices';
 export * from './forms';
 export * from './mobile';
 export * from './settings';
+
+// Re-export specific items to resolve ambiguity
+export { type RevenueData } from './financials/revenue/types';

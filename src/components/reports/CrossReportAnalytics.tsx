@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFleetReport } from '@/hooks/use-fleet-report';
+import { useVehicles } from '@/hooks/use-vehicles';
 import { useFinancials } from '@/hooks/use-financials';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -20,7 +20,7 @@ import {
 } from '@/utils/cross-report-data-processors';
 
 const CrossReportAnalytics = () => {
-  const { vehicles, isLoading: isLoadingVehicles } = useFleetReport();
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
   const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();

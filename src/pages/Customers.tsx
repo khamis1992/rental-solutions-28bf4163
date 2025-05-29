@@ -8,7 +8,7 @@ import { CustomerStatsCards } from '@/components/customers/CustomerStatsCards';
 import { CustomerImportHistory } from '@/components/customers/CustomerImportHistory';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { CustomerDetailsSidebar } from '@/components/customers/CustomerDetailsSidebar';
-import type { Customer } from '@/lib/validation-schemas/customer';
+import type { CustomerInfo } from '@/types/customer';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Upload, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +21,7 @@ const Customers = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -35,6 +35,22 @@ const Customers = () => {
     refetch,
     isPending
   } = useCustomerService();
+
+  // Transform customers data to match CustomerInfo type
+  const transformedCustomers: CustomerInfo[] = (customers || []).map(customer => ({
+    id: customer.id || '',
+    email: customer.email || '',
+    full_name: customer.full_name || '',
+    phone_number: customer.phone || '',
+    address: customer.address || '',
+    city: '',
+    state: '',
+    zip_code: '',
+    role: 'customer',
+    created_at: customer.created_at || '',
+    updated_at: customer.updated_at || '',
+    status: customer.status as 'active' | 'inactive' | 'blacklisted' | 'pending_review' | 'pending_payment' || 'active'
+  }));
 
   // Check if edge function for importing is available
   useEffect(() => {
@@ -72,7 +88,7 @@ const Customers = () => {
   };
 
   // Handle customer selection for sidebar view
-  const handleCustomerSelect = (customer: Customer) => {
+  const handleCustomerSelect = (customer: CustomerInfo) => {
     setSelectedCustomer(customer);
     setIsSidebarOpen(true);
   };
@@ -96,7 +112,7 @@ const Customers = () => {
       {/* Main content layout */}
       <div className="flex flex-col space-y-6">
         {/* Customer Stats Cards */}
-        <CustomerStatsCards customers={customers} isLoading={isLoading} />
+        <CustomerStatsCards customers={transformedCustomers} isLoading={isLoading} />
         
         {/* Toolbar with actions */}
         <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -153,7 +169,7 @@ const Customers = () => {
           <TabsContent value={selectedTab} className="mt-6">
             {/* Customer Data Grid */}
             <CustomerDataGrid 
-              customers={customers} 
+              customers={transformedCustomers} 
               isLoading={isLoading}
               onCustomerSelect={handleCustomerSelect}
             />
