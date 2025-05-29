@@ -9,6 +9,7 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   vehicle_info?: string;
   payment_day?: number; // Maps to rent_due_day in database
   rent_due_day?: number; // Direct database column
+  terms_accepted?: boolean; // Add missing property for form handling
 };
 
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];

@@ -68,7 +68,7 @@ export function PaymentHistorySection({
   // Calculate payment status counts from actual payments only
   const paidOnTime = payments.filter(p => p.status === 'completed').length;
   const paidLate = 0; // TODO: Implement late payment detection
-  const unpaid = payments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
+  const unpaid = payments.filter(p => p.status === 'pending' || p.status === 'failed').length;
 
   const handlePaymentCreated = (payment: Partial<Payment>) => {
     if (onRecordPayment) {
@@ -135,13 +135,13 @@ export function PaymentHistorySection({
           description: notes,
           payment_method: method,
           reference_number: reference,
-          status: amount === 0 ? 'voided' : 'completed',
+          status: amount === 0 ? 'cancelled' : 'completed',
           type: paymentType || selectedPayment.type || 'rent',
         };
         
         const success = await onPaymentUpdated(paymentData);
         if (success) {
-          toast.success(amount === 0 ? "Payment voided successfully" : "Payment updated successfully");
+          toast.success(amount === 0 ? "Payment cancelled successfully" : "Payment updated successfully");
           setIsPaymentDialogOpen(false);
           return true;
         } else {
@@ -299,7 +299,7 @@ export function PaymentHistorySection({
           onSubmit={handlePaymentSubmit}
           defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
           title={selectedPayment ? "Edit Payment" : "Record Payment"}
-          description={selectedPayment ? "Update payment details or set amount to 0 to void transaction" : "Add a new payment to this agreement"}
+          description={selectedPayment ? "Update payment details or set amount to 0 to cancel transaction" : "Add a new payment to this agreement"}
           leaseId={leaseId}
           rentAmount={rentAmount}
           selectedPayment={selectedPayment}

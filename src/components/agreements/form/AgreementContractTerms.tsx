@@ -30,10 +30,10 @@ export const AgreementContractTerms = ({
             <FormItem className="flex flex-col">
               <FormLabel>Start Date</FormLabel>
               <DatePicker
-                date={field.value instanceof Date ? field.value : new Date(field.value)}
+                date={field.value ? new Date(field.value) : new Date()}
                 setDate={(date) => {
                   if (date) {
-                    field.onChange(date);
+                    field.onChange(date.toISOString());
                   }
                 }}
               />
@@ -49,10 +49,10 @@ export const AgreementContractTerms = ({
             <FormItem className="flex flex-col">
               <FormLabel>End Date</FormLabel>
               <DatePicker
-                date={field.value instanceof Date ? field.value : new Date(field.value)}
+                date={field.value ? new Date(field.value) : new Date()}
                 setDate={(date) => {
                   if (date) {
-                    field.onChange(date);
+                    field.onChange(date.toISOString());
                   }
                 }}
               />

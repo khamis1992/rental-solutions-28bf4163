@@ -9,6 +9,12 @@ export interface CustomerInfo {
   address?: string;
   status?: string;
   created_at?: string;
+  // Additional properties that might come from database joins
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  role?: string;
+  updated_at?: string;
 }
 
 export interface CustomerListItem {

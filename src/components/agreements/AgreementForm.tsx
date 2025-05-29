@@ -30,15 +30,15 @@ const AgreementForm = ({
   const [selectedVehicle, setSelectedVehicle] = useState(null as any);
   const [selectedCustomer, setSelectedCustomer] = useState(null as CustomerInfo | null);
 
-  // Initialize form with default values
+  // Initialize form with default values, ensuring proper date handling
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       ...initialData || {
         customer_id: '',
         vehicle_id: '',
-        start_date: new Date(),
-        end_date: new Date(),
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
         status: 'draft',
         agreement_number: '',
         total_amount: 0,
@@ -85,15 +85,21 @@ const AgreementForm = ({
         const customerData = initialData.customers;
         console.log("Setting selected customer from initialData:", customerData);
         
-        // Convert to CustomerInfo format
+        // Convert to CustomerInfo format with proper type handling
         const customer: CustomerInfo = {
           id: customerData.id || initialData.customer_id,
           full_name: customerData.full_name || '',
           email: customerData.email || '',
           phone_number: customerData.phone_number || '',
-          driver_license: customerData.driver_license || '', // Set defaults for optional fields
-          nationality: customerData.nationality || '',
-          address: customerData.address || ''
+          driver_license: (customerData as any).driver_license || '',
+          nationality: (customerData as any).nationality || '',
+          address: customerData.address || '',
+          city: (customerData as any).city || '',
+          state: (customerData as any).state || '',
+          zip_code: (customerData as any).zip_code || '',
+          role: (customerData as any).role || '',
+          created_at: (customerData as any).created_at || '',
+          updated_at: (customerData as any).updated_at || ''
         };
         
         setSelectedCustomer(customer);

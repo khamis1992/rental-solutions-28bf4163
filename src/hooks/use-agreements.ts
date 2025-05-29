@@ -22,6 +22,7 @@ export interface SimpleAgreement {
   customer_name?: string;
   payment_frequency?: string;
   rent_due_day?: number;
+  payment_day?: number; // Add missing property
   rent_amount?: number;
   customers?: {
     id?: string;
