@@ -15,6 +15,7 @@ export interface MaintenanceRecord {
 }
 
 export interface MaintenanceFormData {
+  id?: string; // Make id optional for form data
   vehicle_id: string;
   service_type: string;
   maintenance_type: string;
