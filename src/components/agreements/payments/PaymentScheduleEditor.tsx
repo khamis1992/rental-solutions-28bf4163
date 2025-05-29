@@ -20,9 +20,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarIcon, Loader2, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { CalendarIcon, Loader2, RefreshCw, AlertTriangle, CheckCircle, Save } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
+import { toast } from 'sonner';
 
 interface PaymentScheduleEditorProps {
   agreementId?: string;
@@ -51,10 +53,19 @@ const PaymentScheduleEditor = ({
   onFrequencyChange,
   onPaymentDayChange,
 }: PaymentScheduleEditorProps) => {
-  const [paymentSchedule, setPaymentSchedule] = useState<PaymentItem[]>([]);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [localPaymentSchedule, setLocalPaymentSchedule] = useState<PaymentItem[]>([]);
   const [error, setError] = useState<string>('');
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Use the payment schedule management hook
+  const {
+    paymentSchedule: persistedSchedule,
+    isLoading: isLoadingPersisted,
+    isGenerating,
+    generatePaymentSchedule,
+    isPending
+  } = usePaymentScheduleManagement(agreementId);
 
   // Validate input parameters
   const validateInputs = (): { isValid: boolean; warnings: string[] } => {
@@ -86,18 +97,10 @@ const PaymentScheduleEditor = ({
     };
   };
 
-  // Generate payment schedule based on inputs
-  const generatePaymentSchedule = (): PaymentItem[] => {
-    console.log('🔄 Generating payment schedule with params:', {
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
-      rentAmount,
-      paymentFrequency,
-      paymentDay,
-      agreementId
-    });
+  // Generate local payment schedule preview
+  const generateLocalPaymentSchedule = (): PaymentItem[] => {
+    console.log('🔄 Generating local payment schedule preview');
 
-    // Validate inputs
     const validation = validateInputs();
     setValidationWarnings(validation.warnings);
     
@@ -107,7 +110,6 @@ const PaymentScheduleEditor = ({
       return [];
     }
 
-    setIsGenerating(true);
     setError('');
     
     try {
@@ -117,10 +119,8 @@ const PaymentScheduleEditor = ({
       
       let currentDate = new Date(start);
       
-      // Set day of month if specified (this is the payment day)
       if (paymentDay && paymentDay >= 1 && paymentDay <= 31) {
         currentDate.setDate(paymentDay);
-        // If the payment day is before the start date, move to next month
         if (currentDate < start) {
           currentDate.setMonth(currentDate.getMonth() + 1);
         }
@@ -136,11 +136,8 @@ const PaymentScheduleEditor = ({
         amount = rentAmount * 3;
       }
       
-      console.log(`💰 Calculated payment amount: ${amount} (frequency: ${paymentFrequency})`);
-      
-      // Generate schedule
       let paymentCount = 0;
-      while (currentDate <= end && paymentCount < 100) { // Safety limit
+      while (currentDate <= end && paymentCount < 100) {
         payments.push({
           dueDate: new Date(currentDate),
           amount: Math.round(amount * 100) / 100,
@@ -149,7 +146,7 @@ const PaymentScheduleEditor = ({
         
         paymentCount++;
         
-        // Advance to next payment date based on frequency
+        // Advance to next payment date
         if (paymentFrequency === 'weekly') {
           currentDate.setDate(currentDate.getDate() + 7);
         } else if (paymentFrequency === 'biweekly') {
@@ -161,38 +158,62 @@ const PaymentScheduleEditor = ({
         }
       }
       
-      console.log(`✅ Generated ${payments.length} payments for agreement`);
-      setPaymentSchedule(payments);
+      console.log(`✅ Generated ${payments.length} local payments`);
       return payments;
     } catch (error) {
-      console.error("❌ Error generating payment schedule:", error);
+      console.error("❌ Error generating local payment schedule:", error);
       setError(`Failed to generate schedule: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return [];
-    } finally {
-      setIsGenerating(false);
     }
   };
 
-  // Regenerate schedule when inputs change with debouncing
+  // Update local schedule when inputs change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (startDate && endDate && rentAmount) {
-        console.log('🔄 Input changed, regenerating schedule...');
-        generatePaymentSchedule();
+        const newSchedule = generateLocalPaymentSchedule();
+        setLocalPaymentSchedule(newSchedule);
+        
+        // Check if schedule differs from persisted version
+        const differs = !persistedSchedule || 
+          persistedSchedule.length !== newSchedule.length ||
+          newSchedule.some((item, index) => {
+            const persistedItem = persistedSchedule[index];
+            return !persistedItem || 
+              new Date(persistedItem.due_date).getTime() !== item.dueDate.getTime() ||
+              Math.abs(persistedItem.amount - item.amount) > 0.01;
+          });
+        
+        setHasUnsavedChanges(differs);
       }
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [startDate, endDate, rentAmount, paymentFrequency, paymentDay]);
+  }, [startDate, endDate, rentAmount, paymentFrequency, paymentDay, persistedSchedule]);
 
-  // Manual regenerate handler
-  const handleManualRegenerate = () => {
-    console.log('🔄 Manual regenerate triggered');
-    generatePaymentSchedule();
+  // Save schedule to database
+  const handleSaveSchedule = async () => {
+    if (!agreementId) {
+      toast.error('Agreement ID is required to save schedule');
+      return;
+    }
+
+    await generatePaymentSchedule(
+      startDate,
+      endDate,
+      rentAmount,
+      paymentFrequency,
+      paymentDay
+    );
+    
+    setHasUnsavedChanges(false);
   };
 
   const canGenerateSchedule = startDate && endDate && rentAmount > 0;
-  const totalScheduledAmount = paymentSchedule.reduce((sum, payment) => sum + payment.amount, 0);
+  const displaySchedule = persistedSchedule.length > 0 ? persistedSchedule : localPaymentSchedule;
+  const totalScheduledAmount = displaySchedule.reduce((sum, payment) => {
+    return sum + (typeof payment.amount === 'number' ? payment.amount : 0);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -215,6 +236,16 @@ const PaymentScheduleEditor = ({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Unsaved Changes Warning */}
+      {hasUnsavedChanges && agreementId && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            You have unsaved changes to the payment schedule. Save to persist changes to the database.
+          </AlertDescription>
         </Alert>
       )}
 
@@ -255,28 +286,47 @@ const PaymentScheduleEditor = ({
           </p>
         </div>
         
-        <div className="flex items-end">
+        <div className="flex items-end gap-2">
+          {agreementId && hasUnsavedChanges && (
+            <Button 
+              onClick={handleSaveSchedule}
+              disabled={isGenerating || !canGenerateSchedule}
+              className="flex-1"
+            >
+              {isGenerating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Save Schedule
+            </Button>
+          )}
+          
           <Button 
             variant="outline" 
-            onClick={handleManualRegenerate}
+            onClick={() => {
+              const newSchedule = generateLocalPaymentSchedule();
+              setLocalPaymentSchedule(newSchedule);
+            }}
             disabled={isGenerating || !canGenerateSchedule}
           >
-            {isGenerating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Regenerate Schedule
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Schedule Summary */}
-      {paymentSchedule.length > 0 && (
+      {/* Schedule Status */}
+      {displaySchedule.length > 0 && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            Generated {paymentSchedule.length} payments totaling {formatCurrency(totalScheduledAmount)}
+            {persistedSchedule.length > 0 ? 'Saved' : 'Preview'}: {displaySchedule.length} payments totaling {formatCurrency(totalScheduledAmount)}
+            {persistedSchedule.length > 0 && (
+              <span className="block text-green-600 text-sm mt-1">
+                This schedule is saved to the database and will appear in Payment History
+              </span>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -285,9 +335,9 @@ const PaymentScheduleEditor = ({
       <Card>
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
-            <span>Payment Schedule</span>
+            <span>Payment Schedule {persistedSchedule.length > 0 ? '(Saved)' : '(Preview)'}</span>
             <span className="text-sm text-muted-foreground">
-              {paymentSchedule.length} payments
+              {displaySchedule.length} payments
             </span>
           </CardTitle>
         </CardHeader>
@@ -297,7 +347,7 @@ const PaymentScheduleEditor = ({
               <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
               <p>Please fill in start date, end date, and rent amount to generate payment schedule</p>
             </div>
-          ) : paymentSchedule.length > 0 ? (
+          ) : displaySchedule.length > 0 ? (
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
@@ -309,13 +359,17 @@ const PaymentScheduleEditor = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paymentSchedule.map((payment, index) => (
+                  {displaySchedule.map((payment, index) => (
                     <TableRow key={index}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {formatDate(payment.dueDate)}
+                          {formatDate(
+                            'due_date' in payment 
+                              ? new Date(payment.due_date) 
+                              : payment.dueDate
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{formatCurrency(payment.amount)}</TableCell>
@@ -331,10 +385,10 @@ const PaymentScheduleEditor = ({
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
-              {isGenerating ? (
+              {isGenerating || isLoadingPersisted ? (
                 <div className="flex flex-col items-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                  <p>Generating payment schedule...</p>
+                  <p>Loading payment schedule...</p>
                 </div>
               ) : (
                 <p>No payment schedule generated yet</p>

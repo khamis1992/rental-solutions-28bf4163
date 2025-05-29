@@ -32,6 +32,7 @@ import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { CustomerInfo } from '@/types/customer';
+import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -63,6 +64,12 @@ const AgreementEditor = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   
   const agreementService = useAgreementService();
+  
+  // Add payment schedule management
+  const {
+    generatePaymentSchedule,
+    isGenerating
+  } = usePaymentScheduleManagement(id);
   
   // Initialize form with default values
   const form = useForm<z.infer<typeof agreementSchema>>({
@@ -174,7 +181,7 @@ const AgreementEditor = () => {
     loadAgreement();
   }, [id, agreementService, form, toast, navigate]);
   
-  // Handle form submission
+  // Handle form submission with automatic schedule generation
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
@@ -185,6 +192,8 @@ const AgreementEditor = () => {
       };
       
       let result;
+      let agreementId = id;
+      
       if (id && id !== 'undefined' && id !== 'null') {
         // Update existing agreement
         result = await agreementService.updateAgreement({
@@ -194,14 +203,41 @@ const AgreementEditor = () => {
       } else {
         // Create new agreement
         result = await agreementService.createAgreement(data);
+        agreementId = result?.id;
       }
       
-      if (result) {
-        toast({
-          title: "Success",
-          description: id ? "Agreement updated successfully" : "Agreement created successfully",
-        });
-        navigate(`/agreements/${result.id || id}`);
+      if (result && agreementId) {
+        // Auto-generate payment schedule for active agreements
+        if (data.status === 'active' && data.start_date && data.end_date && data.rent_amount) {
+          try {
+            await generatePaymentSchedule(
+              data.start_date,
+              data.end_date,
+              data.rent_amount,
+              data.payment_frequency || 'monthly',
+              data.payment_day || 1
+            );
+            
+            toast({
+              title: "Success",
+              description: `Agreement ${id ? 'updated' : 'created'} successfully with payment schedule generated`,
+            });
+          } catch (scheduleError) {
+            console.warn('Failed to generate payment schedule:', scheduleError);
+            toast({
+              title: "Success",
+              description: `Agreement ${id ? 'updated' : 'created'} successfully, but payment schedule generation failed`,
+              variant: "default",
+            });
+          }
+        } else {
+          toast({
+            title: "Success",
+            description: id ? "Agreement updated successfully" : "Agreement created successfully",
+          });
+        }
+        
+        navigate(`/agreements/${agreementId}`);
       } else {
         throw new Error("Failed to save agreement");
       }
@@ -539,13 +575,14 @@ const AgreementEditor = () => {
                     type="button" 
                     variant="outline" 
                     onClick={() => navigate('/agreements')}
-                    disabled={isLoading}
+                    disabled={isLoading || isGenerating}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={isLoading || isGenerating}>
+                    {(isLoading || isGenerating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement"}
+                    {isGenerating && " & Generate Schedule"}
                   </Button>
                 </div>
               </form>

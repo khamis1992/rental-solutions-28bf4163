@@ -7,15 +7,14 @@ import { PaymentStatsCards } from './stats/PaymentStatsCards';
 import { PaymentStatusBar } from './status/PaymentStatusBar';
 import { PaymentActions } from './actions/PaymentActions';
 import { PaymentAnalytics } from './analytics/PaymentAnalytics';
-import { UnifiedPaymentTable } from './UnifiedPaymentTable';
-import { useUnifiedPayments } from '@/hooks/payment/use-unified-payments';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { ToggleLeft, ToggleRight } from 'lucide-react';
-import { generatePaymentHistoryPdf } from '@/utils/report-utils';
-import { formatDate } from '@/lib/date-utils';
+import { UnifiedPaymentDisplay } from './UnifiedPaymentDisplay';
+import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { Agreement } from '@/types/agreement';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { generatePaymentHistoryPdf } from '@/utils/report-utils';
+import { formatDate } from '@/lib/date-utils';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -44,18 +43,12 @@ export function PaymentHistorySection({
 }: PaymentHistoryProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [showProjectedPayments, setShowProjectedPayments] = useState(true);
 
-  // Use unified payments hook with better error handling
+  // Use payment schedule management
   const {
-    unifiedPayments,
-    hasSchedule,
-    recordProjectedPayment,
-    isLoading: isLoadingUnified
-  } = useUnifiedPayments({
-    agreement,
-    showProjectedPayments
-  });
+    paymentSchedule,
+    isLoading: isLoadingSchedule
+  } = usePaymentScheduleManagement(agreement?.id);
   
   // Use the payment calculation hook
   const {
@@ -77,21 +70,19 @@ export function PaymentHistorySection({
     }
   };
 
-  const handleRecordProjectedPayment = (scheduledPayment: any) => {
-    if (agreement) {
-      recordProjectedPayment(scheduledPayment)
-        .then(() => {
-          toast.success("Payment recorded successfully");
-        })
-        .catch((error) => {
-          console.error("Error recording payment:", error);
-          toast.error("Failed to record payment");
-        });
-    }
-  };
-
   const handleRecordPaymentClick = () => {
     setSelectedPayment(null);
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleRecordScheduledPayment = (scheduleItem: any) => {
+    // Pre-fill payment dialog with schedule item data
+    setSelectedPayment({
+      amount: scheduleItem.amount,
+      due_date: scheduleItem.due_date,
+      description: scheduleItem.description || `Payment for ${formatDate(new Date(scheduleItem.due_date), 'MMM yyyy')}`,
+      lease_id: leaseId
+    } as Payment);
     setIsPaymentDialogOpen(true);
   };
 
@@ -172,106 +163,7 @@ export function PaymentHistorySection({
     return false;
   };
 
-  const renderPaymentHistory = () => {
-    const currentIsLoading = isLoading || isLoadingUnified;
-    
-    if (currentIsLoading) {
-      return (
-        <div className="flex items-center justify-center h-48">
-          <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
-        </div>
-      );
-    }
-
-    // Show unified payments if we have a schedule or actual payments
-    if (hasSchedule || payments.length > 0) {
-      return (
-        <>
-          <PaymentStatsCards 
-            totalAmount={totalAmount} 
-            amountPaid={amountPaid} 
-            balance={balance} 
-            lateFees={lateFees} 
-          />
-          
-          <PaymentStatusBar 
-            paidOnTime={paidOnTime} 
-            paidLate={paidLate} 
-            unpaid={unpaid} 
-            totalPayments={payments.length} 
-          />
-
-          <div className="flex justify-between items-center mb-4">
-            <PaymentActions 
-              rentAmount={rentAmount} 
-              onRecordPaymentClick={handleRecordPaymentClick}
-              onExportHistoryClick={handleExportHistoryClick}
-            />
-            
-            {hasSchedule && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowProjectedPayments(!showProjectedPayments)}
-                  className="flex items-center gap-2"
-                >
-                  {showProjectedPayments ? (
-                    <ToggleRight className="h-4 w-4" />
-                  ) : (
-                    <ToggleLeft className="h-4 w-4" />
-                  )}
-                  Show Schedule
-                </Button>
-              </div>
-            )}
-          </div>
-          
-          <UnifiedPaymentTable 
-            payments={unifiedPayments} 
-            onRecordPayment={handleRecordProjectedPayment}
-            isLoading={currentIsLoading}
-            showProjectedPayments={showProjectedPayments}
-          />
-        </>
-      );
-    }
-
-    // Enhanced empty state with debugging info
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <div className="space-y-4">
-          <p>No payment history available</p>
-          {agreement && (
-            <div className="text-xs text-gray-500 space-y-1 bg-gray-50 p-4 rounded">
-              <p className="font-semibold">Debug Information:</p>
-              <p>Agreement ID: {agreement.id}</p>
-              <p>Start Date: {agreement.start_date}</p>
-              <p>End Date: {agreement.end_date}</p>
-              <p>Rent Amount: {agreement.rent_amount || 'Not set'}</p>
-              <p>Rent Due Day: {agreement.rent_due_day || 'Not set'}</p>
-              <p>Payment Day (computed): {agreement.rent_due_day || agreement.payment_day || 'Not available'}</p>
-              <p>Has Schedule: {hasSchedule ? 'Yes' : 'No'}</p>
-              <p>Actual Payments: {payments.length}</p>
-              <p>Unified Payments: {unifiedPayments.length}</p>
-              {!hasSchedule && (
-                <p className="text-red-600 font-medium">
-                  Schedule generation failed - check rent amount and payment day
-                </p>
-              )}
-            </div>
-          )}
-          <Button 
-            variant="outline" 
-            className="mt-4" 
-            onClick={handleRecordPaymentClick}
-          >
-            Record First Payment
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  const currentIsLoading = isLoading || isLoadingSchedule;
 
   return (
     <div className="space-y-4">
@@ -279,16 +171,46 @@ export function PaymentHistorySection({
         <CardHeader>
           <CardTitle>Payment History</CardTitle>
           <CardDescription>
-            Track all financial transactions for this agreement
-            {hasSchedule && showProjectedPayments && (
-              <span className="block text-blue-600 text-sm mt-1">
-                Showing payment schedule with projected payments
-              </span>
-            )}
+            Track all financial transactions and scheduled payments for this agreement
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {renderPaymentHistory()}
+          {currentIsLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
+            </div>
+          ) : (
+            <>
+              <PaymentStatsCards 
+                totalAmount={totalAmount} 
+                amountPaid={amountPaid} 
+                balance={balance} 
+                lateFees={lateFees} 
+              />
+              
+              <PaymentStatusBar 
+                paidOnTime={paidOnTime} 
+                paidLate={paidLate} 
+                unpaid={unpaid} 
+                totalPayments={payments.length} 
+              />
+
+              <div className="flex justify-between items-center mb-4">
+                <PaymentActions 
+                  rentAmount={rentAmount} 
+                  onRecordPaymentClick={handleRecordPaymentClick}
+                  onExportHistoryClick={handleExportHistoryClick}
+                />
+              </div>
+              
+              <UnifiedPaymentDisplay
+                payments={payments}
+                scheduleItems={paymentSchedule}
+                onRecordPayment={handleRecordScheduledPayment}
+                isLoading={currentIsLoading}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
       
@@ -298,8 +220,8 @@ export function PaymentHistorySection({
           onOpenChange={setIsPaymentDialogOpen}
           onSubmit={handlePaymentSubmit}
           defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
-          title={selectedPayment ? "Edit Payment" : "Record Payment"}
-          description={selectedPayment ? "Update payment details or set amount to 0 to cancel transaction" : "Add a new payment to this agreement"}
+          title={selectedPayment ? "Record Payment" : "Record Payment"}
+          description={selectedPayment ? "Record payment for scheduled item" : "Add a new payment to this agreement"}
           leaseId={leaseId}
           rentAmount={rentAmount}
           selectedPayment={selectedPayment}

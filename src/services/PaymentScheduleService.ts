@@ -1,146 +1,223 @@
 
 import { supabase } from '@/lib/supabase';
-import { Agreement } from '@/types/agreement';
-import { addMonths, differenceInMonths, format } from 'date-fns';
+import { BaseService } from './base/BaseService';
+import { ServiceResponse } from '@/types/service.types';
 
 export interface PaymentScheduleItem {
-  id: string;
-  dueDate: Date;
+  id?: string;
+  lease_id: string;
   amount: number;
-  description: string;
-  status: 'pending' | 'completed' | 'overdue';
-  type: 'rent' | 'deposit' | 'special';
-  isProjected: boolean;
+  due_date: string;
+  status: 'pending' | 'completed' | 'overdue' | 'cancelled';
+  description?: string;
+  actual_payment_date?: string;
+  transaction_id?: string;
+  late_fee_applied?: number;
+  balance?: number;
 }
 
-export class PaymentScheduleService {
+export class PaymentScheduleService extends BaseService {
   /**
-   * Generate payment schedule for an agreement
+   * Generate and persist payment schedule for an agreement
    */
-  static generateSchedule(agreement: Agreement | null): PaymentScheduleItem[] {
-    if (!agreement) {
-      console.log('No agreement provided for schedule generation');
-      return [];
-    }
-
+  async generateAndPersistSchedule(
+    agreementId: string,
+    startDate: Date,
+    endDate: Date,
+    rentAmount: number,
+    paymentFrequency: string,
+    paymentDay: number
+  ): Promise<ServiceResponse<PaymentScheduleItem[]>> {
     try {
-      const startDate = new Date(agreement.start_date);
-      const endDate = new Date(agreement.end_date);
-      const rentAmount = agreement.rent_amount || 0;
-      
-      // Use rent_due_day from database, fallback to payment_day, then default to 1
-      const paymentDay = agreement.rent_due_day || agreement.payment_day || 1;
+      // First, clear existing schedule for this agreement
+      await this.clearExistingSchedule(agreementId);
 
-      // Validate dates
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        console.error('Invalid dates in agreement:', {
-          start_date: agreement.start_date,
-          end_date: agreement.end_date
-        });
-        return [];
-      }
-
-      if (rentAmount <= 0) {
-        console.error('Invalid rent amount:', rentAmount);
-        return [];
-      }
-
-      // Validate payment day
-      if (paymentDay < 1 || paymentDay > 31) {
-        console.error('Invalid payment day:', paymentDay);
-        return [];
-      }
-
-      console.log('Generating schedule for agreement:', {
-        id: agreement.id,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+      // Generate schedule items
+      const scheduleItems = this.generateScheduleItems(
+        agreementId,
+        startDate,
+        endDate,
         rentAmount,
-        paymentDay,
-        source: agreement.rent_due_day ? 'rent_due_day' : agreement.payment_day ? 'payment_day' : 'default'
-      });
+        paymentFrequency,
+        paymentDay
+      );
 
-      const schedule: PaymentScheduleItem[] = [];
-      const totalMonths = differenceInMonths(endDate, startDate) + 1;
-
-      for (let monthOffset = 0; monthOffset < totalMonths; monthOffset++) {
-        // Create due date for this month
-        let dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, paymentDay);
-        
-        // If the payment day doesn't exist in this month (e.g., Feb 31), use the last day of the month
-        const maxDayInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset + 1, 0).getDate();
-        if (paymentDay > maxDayInMonth) {
-          dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, maxDayInMonth);
-        }
-        
-        // Skip if due date is before start date or after end date
-        if (dueDate < startDate || dueDate > endDate) continue;
-
-        const status = dueDate < new Date() ? 'overdue' : 'pending';
-
-        schedule.push({
-          id: `scheduled-${agreement.id}-${monthOffset}`,
-          dueDate,
-          amount: rentAmount,
-          description: `Monthly Rent - ${format(dueDate, 'MMM yyyy')}`,
-          status,
-          type: 'rent',
-          isProjected: true
-        });
+      if (scheduleItems.length === 0) {
+        return this.success([]);
       }
 
-      console.log(`Generated ${schedule.length} scheduled payments for agreement ${agreement.id}`);
-      return schedule;
+      // Insert schedule items into payment_schedules table
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .insert(scheduleItems.map(item => ({
+          lease_id: item.lease_id,
+          amount: item.amount,
+          due_date: item.due_date,
+          status: item.status,
+          description: item.description
+        })))
+        .select();
+
+      if (error) {
+        return this.handleError(error, 'Failed to persist payment schedule');
+      }
+
+      return this.success(data || []);
     } catch (error) {
-      console.error('Error generating payment schedule:', error);
-      return [];
+      return this.handleError(error, 'Failed to generate payment schedule');
     }
   }
 
   /**
-   * Merge actual payments with scheduled payments
+   * Clear existing schedule for an agreement
    */
-  static mergeWithActualPayments(schedule: PaymentScheduleItem[], actualPayments: any[]): PaymentScheduleItem[] {
-    const merged = [...schedule];
+  private async clearExistingSchedule(agreementId: string): Promise<void> {
+    const { error } = await supabase
+      .from('payment_schedules')
+      .delete()
+      .eq('lease_id', agreementId);
+
+    if (error) {
+      console.warn('Failed to clear existing schedule:', error);
+    }
+  }
+
+  /**
+   * Generate schedule items based on agreement parameters
+   */
+  private generateScheduleItems(
+    agreementId: string,
+    startDate: Date,
+    endDate: Date,
+    rentAmount: number,
+    paymentFrequency: string,
+    paymentDay: number
+  ): PaymentScheduleItem[] {
+    const items: PaymentScheduleItem[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     
-    actualPayments.forEach(payment => {
-      if (!payment.payment_date && !payment.due_date) return;
-      
-      const paymentDate = new Date(payment.payment_date || payment.due_date);
-      if (isNaN(paymentDate.getTime())) return;
-
-      const matchingIndex = merged.findIndex(scheduled => {
-        return paymentDate.getMonth() === scheduled.dueDate.getMonth() &&
-               paymentDate.getFullYear() === scheduled.dueDate.getFullYear();
-      });
-
-      if (matchingIndex >= 0) {
-        // Replace scheduled payment with actual payment
-        merged[matchingIndex] = {
-          id: payment.id,
-          dueDate: paymentDate,
-          amount: payment.amount || merged[matchingIndex].amount,
-          description: payment.description || merged[matchingIndex].description,
-          status: payment.status === 'completed' ? 'completed' : 
-                  payment.status === 'pending' ? 'pending' : 'overdue',
-          type: payment.type || 'rent',
-          isProjected: false
-        };
-      } else {
-        // Add actual payment that doesn't match any scheduled payment
-        merged.push({
-          id: payment.id,
-          dueDate: paymentDate,
-          amount: payment.amount || 0,
-          description: payment.description || 'Payment',
-          status: payment.status === 'completed' ? 'completed' : 
-                  payment.status === 'pending' ? 'pending' : 'overdue',
-          type: payment.type || 'rent',
-          isProjected: false
-        });
+    let currentDate = new Date(start);
+    
+    // Set payment day
+    if (paymentDay >= 1 && paymentDay <= 31) {
+      currentDate.setDate(paymentDay);
+      if (currentDate < start) {
+        currentDate.setMonth(currentDate.getMonth() + 1);
       }
-    });
+    }
+    
+    // Calculate payment amount based on frequency
+    let amount = rentAmount;
+    if (paymentFrequency === 'weekly') {
+      amount = (rentAmount * 12) / 52;
+    } else if (paymentFrequency === 'biweekly') {
+      amount = (rentAmount * 12) / 26;
+    } else if (paymentFrequency === 'quarterly') {
+      amount = rentAmount * 3;
+    }
+    
+    let paymentCount = 0;
+    while (currentDate <= end && paymentCount < 100) {
+      items.push({
+        lease_id: agreementId,
+        amount: Math.round(amount * 100) / 100,
+        due_date: currentDate.toISOString(),
+        status: 'pending',
+        description: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment`
+      });
+      
+      paymentCount++;
+      
+      // Advance to next payment date
+      if (paymentFrequency === 'weekly') {
+        currentDate.setDate(currentDate.getDate() + 7);
+      } else if (paymentFrequency === 'biweekly') {
+        currentDate.setDate(currentDate.getDate() + 14);
+      } else if (paymentFrequency === 'monthly') {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      } else if (paymentFrequency === 'quarterly') {
+        currentDate.setMonth(currentDate.getMonth() + 3);
+      }
+    }
+    
+    return items;
+  }
 
-    return merged.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  /**
+   * Get payment schedule for an agreement
+   */
+  async getPaymentSchedule(agreementId: string): Promise<ServiceResponse<PaymentScheduleItem[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .select('*')
+        .eq('lease_id', agreementId)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        return this.handleError(error, 'Failed to fetch payment schedule');
+      }
+
+      return this.success(data || []);
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch payment schedule');
+    }
+  }
+
+  /**
+   * Update schedule item status when payment is made
+   */
+  async updateScheduleItemStatus(
+    scheduleId: string,
+    status: 'completed' | 'overdue' | 'cancelled',
+    actualPaymentDate?: string,
+    transactionId?: string
+  ): Promise<ServiceResponse<PaymentScheduleItem>> {
+    try {
+      const updateData: any = { status };
+      
+      if (actualPaymentDate) {
+        updateData.actual_payment_date = actualPaymentDate;
+      }
+      
+      if (transactionId) {
+        updateData.transaction_id = transactionId;
+      }
+
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .update(updateData)
+        .eq('id', scheduleId)
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'Failed to update schedule item');
+      }
+
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'Failed to update schedule item');
+    }
+  }
+
+  /**
+   * Auto-generate missing payment records for agreements
+   */
+  async generateMissingPaymentRecords(): Promise<ServiceResponse<any>> {
+    try {
+      const { data, error } = await supabase.rpc('generate_missing_payment_records');
+      
+      if (error) {
+        return this.handleError(error, 'Failed to generate missing payment records');
+      }
+      
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'Failed to generate missing payment records');
+    }
   }
 }
+
+export const paymentScheduleService = new PaymentScheduleService(supabase);
