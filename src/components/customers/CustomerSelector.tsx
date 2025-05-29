@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CustomerInfo } from '@/types/customer';
-import { supabase } from '@/lib/supabase';
+import { useCustomerSelectorService } from '@/hooks/services/useCustomerSelectorService';
+import { toast } from 'sonner';
 
 interface CustomerSelectorProps {
   onCustomerSelect: (customer: CustomerInfo) => void;
@@ -24,72 +25,25 @@ const CustomerSelector = ({
   disabled = false
 }: CustomerSelectorProps) => {
   const [open, setOpen] = useState<boolean>(false);
-  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [internalSearchQuery, setInternalSearchQuery] = useState<string>('');
+  
+  const {
+    customers,
+    isLoading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    refreshCustomers
+  } = useCustomerSelectorService();
 
-  // Debounced search function
-  const debouncedFetch = useCallback((query: string) => {
+  // Debounce search input
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchCustomers(query);
+      setSearchQuery(internalSearchQuery);
     }, 300);
     
     return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Effect to trigger search when query changes
-  useEffect(() => {
-    const cleanup = debouncedFetch(searchQuery);
-    return cleanup;
-  }, [searchQuery, debouncedFetch]);
-
-  // Fetch customers function
-  const fetchCustomers = async (query: string = ''): Promise<void> => {
-    console.log('Fetching customers with query:', query);
-    setLoading(true);
-    setError(null);
-    try {
-      let supabaseQuery = supabase
-        .from('profiles')
-        .select('id, full_name, email, phone_number')
-        .eq('role', 'customer')
-        .order('full_name');
-          
-      if (query.trim()) {
-        supabaseQuery = supabaseQuery.ilike('full_name', `%${query.trim()}%`);
-      }
-      
-      const { data, error } = await supabaseQuery.limit(20);
-      
-      if (error) {
-        console.error('Error fetching customers:', error);
-        setError('Failed to load customers');
-        setCustomers([]);
-        return;
-      }
-      
-      // Transform data to CustomerInfo format
-      const transformedCustomers: CustomerInfo[] = (data || []).map(item => ({
-        id: item.id,
-        full_name: item.full_name || '',
-        email: item.email || '',
-        phone_number: item.phone_number || '',
-        driver_license: '',
-        nationality: '',
-        address: ''
-      }));
-      
-      console.log('Fetched customers:', transformedCustomers);
-      setCustomers(transformedCustomers);
-    } catch (error: any) {
-      console.error('Error in fetchCustomers:', error);
-      setError('An unexpected error occurred');
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [internalSearchQuery, setSearchQuery]);
 
   // Handle customer selection
   const handleSelect = (customerId: string): void => {
@@ -99,13 +53,19 @@ const CustomerSelector = ({
       onCustomerSelect(customer);
     }
     setOpen(false);
-    setSearchQuery(''); // Clear search after selection
+    setInternalSearchQuery(''); // Clear search after selection
   };
 
-  // Initial load when component mounts
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    try {
+      await refreshCustomers();
+      toast.success('Customer list refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh customer list');
+      console.error('Refresh error:', error);
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -123,32 +83,44 @@ const CustomerSelector = ({
       </PopoverTrigger>
       <PopoverContent className="p-0 w-full min-w-[300px]" align="start" sideOffset={4}>
         <Command>
-          <CommandInput
-            placeholder="Search for customers..."
-            onValueChange={(value) => {
-              console.log('Search input changed:', value);
-              setSearchQuery(value);
-            }}
-            value={searchQuery}
-          />
+          <div className="flex items-center border-b px-3">
+            <CommandInput
+              placeholder="Search for customers..."
+              onValueChange={(value) => {
+                console.log('Search input changed:', value);
+                setInternalSearchQuery(value);
+              }}
+              value={internalSearchQuery}
+              className="flex-1"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              className="ml-2 h-8 w-8 p-0"
+              disabled={isLoading}
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            </Button>
+          </div>
           <CommandList>
-            {loading && (
+            {isLoading && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             )}
             {error && (
               <div className="flex items-center justify-center py-4 text-destructive text-sm">
-                {error}
+                Error loading customers
               </div>
             )}
-            {!loading && !error && customers.length === 0 && (
+            {!isLoading && !error && customers.length === 0 && (
               <CommandEmpty>
-                {searchQuery ? 'No customers found.' : 'No customers available.'}
+                {internalSearchQuery ? 'No customers found.' : 'No customers available.'}
               </CommandEmpty>
             )}
             <CommandGroup>
-              {!loading && !error && customers.map((customer) => (
+              {!isLoading && !error && customers.map((customer) => (
                 <CommandItem
                   key={customer.id}
                   value={customer.id}

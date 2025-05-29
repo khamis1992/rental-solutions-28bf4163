@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CustomerInfo } from "@/types/customer";
 import VehicleSelector from "@/components/vehicles/VehicleSelector";
 import CustomerSelector from "@/components/customers/CustomerSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useQueryClient } from '@tanstack/react-query';
+import { CacheSynchronization } from '@/utils/cache-synchronization';
 
 interface CustomerVehicleSectionProps {
   selectedCustomer: CustomerInfo | null;
@@ -23,6 +25,13 @@ export const CustomerVehicleSection = ({
   customerError,
   vehicleError
 }: CustomerVehicleSectionProps) => {
+  const queryClient = useQueryClient();
+
+  // Initialize cache synchronization
+  useEffect(() => {
+    CacheSynchronization.setQueryClient(queryClient);
+  }, [queryClient]);
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Customer & Vehicle</h3>

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageContainer from '@/components/layout/PageContainer';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
+import { CacheSynchronization } from '@/utils/cache-synchronization';
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ const Customers = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      await CacheSynchronization.invalidateCustomerCaches();
       await refetch();
       toast.success('Customer data refreshed');
     } catch (error) {
@@ -99,7 +101,8 @@ const Customers = () => {
   };
 
   // Handle import complete
-  const handleImportComplete = () => {
+  const handleImportComplete = async () => {
+    await CacheSynchronization.invalidateCustomerCaches();
     refetch();
     setIsImportModalOpen(false);
   };

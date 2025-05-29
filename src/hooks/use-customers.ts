@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { CacheSynchronization } from '@/utils/cache-synchronization';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -28,6 +29,9 @@ export const useCustomers = () => {
     query: '',
     status: 'all',
   });
+
+  // Set the query client for cache synchronization
+  CacheSynchronization.setQueryClient(queryClient);
 
   const { 
     data: customers, 
@@ -138,8 +142,9 @@ export const useCustomers = () => {
         phone: data.phone_number ? stripCountryCode(data.phone_number) : ''
       } as Customer;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    onSuccess: async () => {
+      // Use centralized cache synchronization
+      await CacheSynchronization.invalidateCustomerCaches();
       toast.success('Customer created successfully');
     },
     onError: (error: Error) => {
@@ -179,8 +184,8 @@ export const useCustomers = () => {
         phone: data[0].phone_number ? stripCountryCode(data[0].phone_number) : ''
       } as Customer;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    onSuccess: async () => {
+      await CacheSynchronization.invalidateCustomerCaches();
       toast.success('Customer updated successfully');
     },
     onError: (error: Error) => {
@@ -198,8 +203,8 @@ export const useCustomers = () => {
       if (error) throw new Error(error.message);
       return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    onSuccess: async () => {
+      await CacheSynchronization.invalidateCustomerCaches();
       toast.success('Customer deleted successfully');
     },
     onError: (error: Error) => {
