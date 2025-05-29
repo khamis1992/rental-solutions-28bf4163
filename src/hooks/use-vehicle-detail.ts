@@ -31,7 +31,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
         
         // Helper function to safely cast status
         const safeMapStatus = (status: any): VehicleStatus => {
-          const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'reserved'];
+          const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'retired', 'police_station', 'accident', 'stolen', 'reserved'];
           if (typeof status === 'string' && validStatuses.includes(status as VehicleStatus)) {
             return status as VehicleStatus;
           }

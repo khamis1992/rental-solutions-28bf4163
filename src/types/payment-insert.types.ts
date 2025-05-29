@@ -1,6 +1,4 @@
 
-import { Payment } from './payment.types';
+import { Database } from '@/types/database.types';
 
-export type PaymentInsert = Omit<Payment, 'id' | 'created_at' | 'updated_at'> & {
-  status?: Payment['status']; // Make status optional for inserts
-};
+export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];

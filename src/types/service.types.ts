@@ -2,10 +2,12 @@
 export interface ServiceResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: string | Error;
 }
 
-export interface ServiceError {
-  message: string;
-  code?: string;
+export interface ServiceResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string | Error;
+  message?: string;
 }
