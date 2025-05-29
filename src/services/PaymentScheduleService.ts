@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { ServiceResponse } from '@/types/service.types';
@@ -29,6 +28,14 @@ export class PaymentScheduleService extends BaseService {
     paymentDay: number
   ): Promise<ServiceResponse<PaymentScheduleItem[]>> {
     try {
+      console.log(`Generating payment schedule for agreement ${agreementId}`, {
+        startDate,
+        endDate,
+        rentAmount,
+        paymentFrequency,
+        paymentDay
+      });
+
       // First, clear existing schedule for this agreement
       await this.clearExistingSchedule(agreementId);
 
@@ -43,8 +50,11 @@ export class PaymentScheduleService extends BaseService {
       );
 
       if (scheduleItems.length === 0) {
+        console.log('No schedule items generated');
         return this.success([]);
       }
+
+      console.log(`Generated ${scheduleItems.length} schedule items`);
 
       // Insert schedule items into payment_schedules table
       const { data, error } = await supabase
@@ -59,11 +69,14 @@ export class PaymentScheduleService extends BaseService {
         .select();
 
       if (error) {
+        console.error('Failed to insert payment schedule:', error);
         return this.handleError(error, 'Failed to persist payment schedule');
       }
 
+      console.log(`Successfully persisted ${data?.length || 0} payment schedule items`);
       return this.success(data || []);
     } catch (error) {
+      console.error('Error in generateAndPersistSchedule:', error);
       return this.handleError(error, 'Failed to generate payment schedule');
     }
   }
@@ -79,6 +92,8 @@ export class PaymentScheduleService extends BaseService {
 
     if (error) {
       console.warn('Failed to clear existing schedule:', error);
+    } else {
+      console.log(`Cleared existing schedule for agreement ${agreementId}`);
     }
   }
 
@@ -97,13 +112,24 @@ export class PaymentScheduleService extends BaseService {
     const start = new Date(startDate);
     const end = new Date(endDate);
     
+    console.log('Generating schedule items with parameters:', {
+      agreementId,
+      start: start.toISOString(),
+      end: end.toISOString(),
+      rentAmount,
+      paymentFrequency,
+      paymentDay
+    });
+    
     let currentDate = new Date(start);
     
-    // Set payment day
+    // Set payment day - ensure it's valid for the first month
     if (paymentDay >= 1 && paymentDay <= 31) {
       currentDate.setDate(paymentDay);
+      // If the payment day has already passed in the start month, move to next month
       if (currentDate < start) {
         currentDate.setMonth(currentDate.getMonth() + 1);
+        currentDate.setDate(paymentDay);
       }
     }
     
@@ -118,29 +144,42 @@ export class PaymentScheduleService extends BaseService {
     }
     
     let paymentCount = 0;
-    while (currentDate <= end && paymentCount < 100) {
+    const maxPayments = 100; // Safety limit
+    
+    while (currentDate <= end && paymentCount < maxPayments) {
       items.push({
         lease_id: agreementId,
         amount: Math.round(amount * 100) / 100,
         due_date: currentDate.toISOString(),
         status: 'pending',
-        description: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment`
+        description: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment - ${currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
       });
       
       paymentCount++;
       
       // Advance to next payment date
+      const nextDate = new Date(currentDate);
       if (paymentFrequency === 'weekly') {
-        currentDate.setDate(currentDate.getDate() + 7);
+        nextDate.setDate(nextDate.getDate() + 7);
       } else if (paymentFrequency === 'biweekly') {
-        currentDate.setDate(currentDate.getDate() + 14);
+        nextDate.setDate(nextDate.getDate() + 14);
       } else if (paymentFrequency === 'monthly') {
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        // Handle month-end edge cases
+        if (nextDate.getDate() !== paymentDay) {
+          nextDate.setDate(paymentDay);
+        }
       } else if (paymentFrequency === 'quarterly') {
-        currentDate.setMonth(currentDate.getMonth() + 3);
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        if (nextDate.getDate() !== paymentDay) {
+          nextDate.setDate(paymentDay);
+        }
       }
+      
+      currentDate = nextDate;
     }
     
+    console.log(`Generated ${items.length} payment schedule items`);
     return items;
   }
 

@@ -2,6 +2,7 @@
 import { useEffect, useCallback } from 'react';
 import { usePaymentScheduleManagement } from './use-payment-schedule-management';
 import { Agreement } from '@/types/agreement';
+import { agreementSyncService } from '@/services/AgreementSyncService';
 import { toast } from 'sonner';
 
 interface UseAgreementPaymentSyncProps {
@@ -41,6 +42,25 @@ export function useAgreementPaymentSync({
     return hasRequiredFields && hasNoSchedule && !isLoading;
   }, [agreement, paymentSchedule, isLoading]);
 
+  // Auto-sync agreement payment data
+  const syncAgreementPayments = useCallback(async () => {
+    if (!agreement?.id) return;
+    
+    try {
+      console.log(`Syncing payment data for agreement ${agreement.id}`);
+      
+      const result = await agreementSyncService.syncAgreementPayments(agreement.id);
+      
+      if (result.success) {
+        console.log('Agreement payment sync completed successfully');
+      } else {
+        console.error('Agreement payment sync failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to sync agreement payments:', error);
+    }
+  }, [agreement?.id]);
+
   // Auto-generate payment schedule when needed
   useEffect(() => {
     if (!autoGenerate || !needsScheduleGeneration()) return;
@@ -49,6 +69,9 @@ export function useAgreementPaymentSync({
       if (!agreement) return;
       
       try {
+        // First sync the agreement to ensure payment_day is set
+        await syncAgreementPayments();
+        
         // Use default values if not set
         const paymentFrequency = agreement.payment_frequency || 'monthly';
         const paymentDay = agreement.payment_day || 1;
@@ -74,13 +97,21 @@ export function useAgreementPaymentSync({
     const timeoutId = setTimeout(generateScheduleAsync, 1000);
     
     return () => clearTimeout(timeoutId);
-  }, [agreement, needsScheduleGeneration, generatePaymentSchedule, autoGenerate]);
+  }, [agreement, needsScheduleGeneration, generatePaymentSchedule, autoGenerate, syncAgreementPayments]);
+
+  // Initial sync when agreement changes
+  useEffect(() => {
+    if (agreement?.id && autoGenerate) {
+      syncAgreementPayments();
+    }
+  }, [agreement?.id, autoGenerate, syncAgreementPayments]);
 
   return {
     paymentSchedule,
     isLoading,
     needsScheduleGeneration: needsScheduleGeneration(),
     isPending: isPending.generate,
-    generatePaymentSchedule
+    generatePaymentSchedule,
+    syncAgreementPayments
   };
 }

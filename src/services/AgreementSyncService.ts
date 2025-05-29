@@ -16,7 +16,7 @@ export class AgreementSyncService extends BaseService {
           payment_frequency: 'monthly',
           payment_day: 1
         })
-        .is('payment_frequency', null)
+        .or('payment_frequency.is.null,payment_day.is.null')
         .select();
 
       if (error) {
@@ -139,6 +139,61 @@ export class AgreementSyncService extends BaseService {
       return this.success({ updated: updates });
     } catch (error) {
       return this.handleError(error, 'Failed to sync schedule with payments');
+    }
+  }
+
+  /**
+   * Comprehensive sync for a specific agreement
+   */
+  async syncAgreementPayments(agreementId: string): Promise<ServiceResponse<any>> {
+    try {
+      // First, fix payment defaults for this agreement
+      const { error: updateError } = await supabase
+        .from('leases')
+        .update({
+          payment_frequency: 'monthly',
+          payment_day: 1
+        })
+        .eq('id', agreementId)
+        .or('payment_frequency.is.null,payment_day.is.null');
+
+      if (updateError) {
+        console.warn('Failed to update payment defaults:', updateError);
+      }
+
+      // Get the agreement details
+      const { data: agreement, error: agreementError } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('id', agreementId)
+        .single();
+
+      if (agreementError || !agreement) {
+        return this.handleError(agreementError, 'Failed to fetch agreement');
+      }
+
+      // Generate payment schedule if missing and agreement is active
+      if (agreement.status === 'active' && agreement.start_date && agreement.end_date && agreement.rent_amount) {
+        const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
+        
+        if (scheduleResult.success && scheduleResult.data.length === 0) {
+          await paymentScheduleService.generateAndPersistSchedule(
+            agreementId,
+            new Date(agreement.start_date),
+            new Date(agreement.end_date),
+            agreement.rent_amount,
+            agreement.payment_frequency || 'monthly',
+            agreement.payment_day || 1
+          );
+        }
+      }
+
+      // Sync with existing payments
+      await this.syncScheduleWithPayments(agreementId);
+
+      return this.success({ agreementId, synced: true });
+    } catch (error) {
+      return this.handleError(error, 'Failed to sync agreement payments');
     }
   }
 }

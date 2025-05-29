@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Payment } from '@/types/payment.types';
@@ -51,8 +50,11 @@ export function PaymentHistorySection({
     isLoading: isLoadingSchedule
   } = usePaymentScheduleManagement(agreement?.id);
 
-  // Auto-sync payment schedules
-  const { needsScheduleGeneration } = useAgreementPaymentSync({
+  // Auto-sync payment schedules with enhanced logging
+  const { 
+    needsScheduleGeneration, 
+    syncAgreementPayments 
+  } = useAgreementPaymentSync({
     agreement,
     autoGenerate: true
   });
@@ -111,6 +113,18 @@ export function PaymentHistorySection({
     } catch (error) {
       console.error("Error exporting payment history:", error);
       toast.error("Failed to export payment history");
+    }
+  };
+
+  const handleSyncPayments = async () => {
+    if (!agreement?.id) return;
+    
+    try {
+      await syncAgreementPayments();
+      toast.success("Payment data synchronized successfully");
+    } catch (error) {
+      console.error("Failed to sync payments:", error);
+      toast.error("Failed to sync payment data");
     }
   };
 
@@ -180,8 +194,21 @@ export function PaymentHistorySection({
           <CardDescription>
             Track all financial transactions and scheduled payments for this agreement
             {needsScheduleGeneration && (
-              <div className="mt-2 text-sm text-amber-600">
-                ⚠️ Payment schedule will be generated automatically when this agreement becomes active
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <div className="flex items-start justify-between">
+                  <div className="text-sm text-amber-800">
+                    <p className="font-medium">⚠️ Payment Schedule Missing</p>
+                    <p>This active agreement needs a payment schedule to track payments properly.</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSyncPayments}
+                    className="ml-4 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  >
+                    Sync Now
+                  </Button>
+                </div>
               </div>
             )}
           </CardDescription>
