@@ -35,7 +35,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           if (typeof status === 'string' && validStatuses.includes(status as VehicleStatus)) {
             return status as VehicleStatus;
           }
-          return 'available' as VehicleStatus; // Explicit cast to ensure proper typing
+          return 'available';
         };
         
         // Map the vehicle data to ensure it has all required Vehicle properties
@@ -46,10 +46,10 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           model: vehicleData.model,
           year: vehicleData.year,
           color: vehicleData.color || '',
-          vin: vehicleData.engine_number || (vehicleData as any).vin || vehicleData.id || 'N/A', // Use engine_number for vin if available, fallback to id
-          mileage: (vehicleData as any).mileage || 0, // Default to 0 if not available
+          vin: vehicleData.engine_number || (vehicleData as any).vin || vehicleData.id || 'N/A',
+          mileage: (vehicleData as any).mileage || 0,
           status: safeMapStatus((vehicleData as any).status || 'available'),
-          rent_amount: (vehicleData as any).rent_amount || 0, // Default to 0 if not available
+          rent_amount: (vehicleData as any).rent_amount || 0,
           insurance_company: (vehicleData as any).insurance_company || '',
           insurance_expiry: (vehicleData as any).insurance_expiry || null,
           location: (vehicleData as any).location || '',
@@ -67,10 +67,10 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
         throw err;
       }
     },
-    staleTime: 60000, // Data remains fresh for 1 minute
-    gcTime: 300000, // Keep in cache for 5 minutes
-    retry: 1, // Only retry once on failure
-    enabled: !!vehicleId // Only run query if vehicleId is provided
+    staleTime: 60000,
+    gcTime: 300000,
+    retry: 1,
+    enabled: !!vehicleId
   });
 
   // Handle and expose any errors from the query

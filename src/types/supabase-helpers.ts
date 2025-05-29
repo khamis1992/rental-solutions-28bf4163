@@ -6,7 +6,6 @@ import {
 } from '@supabase/supabase-js';
 import { castDbId } from '@/utils/supabase-type-helpers';
 import { exists } from '@/utils/response-mapper';
-// Removed the castToUUID import to avoid duplication
 
 export type GenericSchema = Database[keyof Database];
 export type TablesInsertResponse<T extends keyof Database['public']['Tables']> = PostgrestResponse<Database['public']['Tables'][T]>;
@@ -14,7 +13,7 @@ export type TablesUpdateResponse<T extends keyof Database['public']['Tables']> =
 
 export type DatabaseRecord<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 
-export const isError = <T>(response: PostgrestSingleResponse<T>): response is { error: Error } => {
+export const isError = <T>(response: PostgrestSingleResponse<T>): response is PostgrestSingleResponse<T> & { error: NonNullable<PostgrestSingleResponse<T>['error']> } => {
   return 'error' in response && response.error !== null;
 };
 

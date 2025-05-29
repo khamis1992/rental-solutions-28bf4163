@@ -71,7 +71,7 @@ export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
 }
 
 /**
- * Safe array conversion with proper type handling
+ * Safe array conversion with proper type handling - fixed version
  */
 export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
   if (value === undefined || value === null) {

@@ -14,7 +14,7 @@ import { Database } from './database.types';
  * - reserved: Reserved for future rental
  * - inactive: Temporarily out of service
  */
-export type VehicleStatus = Database['public']['Enums']['vehicle_status'];
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
 
 /**
  * Core vehicle data structure representing a vehicle in the fleet
