@@ -21,7 +21,7 @@ import {
 } from '@/utils/cross-report-data-processors';
 
 const CrossReportAnalytics = () => {
-  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const vehiclesQuery = useVehicles();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
   const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
@@ -45,12 +45,12 @@ const CrossReportAnalytics = () => {
   
   useEffect(() => {
     setIsLoading(
-      isLoadingVehicles || 
+      vehiclesQuery.isLoading || 
       isLoadingAgreements || 
       isLoadingMaintenance || 
       isLoadingFinancials
     );
-  }, [isLoadingVehicles, isLoadingAgreements, isLoadingMaintenance, isLoadingFinancials]);
+  }, [vehiclesQuery.isLoading, isLoadingAgreements, isLoadingMaintenance, isLoadingFinancials]);
   
   if (isLoading) {
     return (
@@ -79,7 +79,7 @@ const CrossReportAnalytics = () => {
   }
 
   // Process data using utility functions - ensure we have valid arrays
-  const vehiclesList = Array.isArray(vehicles) ? vehicles : [];
+  const vehiclesList = Array.isArray(vehiclesQuery.data) ? vehiclesQuery.data : [];
   const agreementsList = Array.isArray(agreements) ? agreements : [];
   const maintenanceList = Array.isArray(maintenanceData) ? maintenanceData : [];
 

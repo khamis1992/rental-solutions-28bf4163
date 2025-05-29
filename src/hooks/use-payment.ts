@@ -28,7 +28,7 @@ export function usePayment(agreementId?: string) {
     includeLatePaymentFee?: boolean,
     isPartialPayment?: boolean,
     paymentType?: string
-  ) => {
+  ): Promise<boolean> => {
     if (!agreementId) return false;
 
     // Create options object for additional parameters
