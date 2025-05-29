@@ -212,9 +212,11 @@ const AgreementDetailPage = () => {
     notes?: string, 
     paymentMethod?: string, 
     referenceNumber?: string,
-    includeLatePaymentFee?: boolean
-  ) => {
-    if (!id) return;
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string
+  ): Promise<boolean> => {
+    if (!id) return false;
     
     try {
       const newPayment = {
@@ -232,9 +234,11 @@ const AgreementDetailPage = () => {
       toast.success('Payment recorded successfully');
       fetchPayments();
       setIsPaymentDialogOpen(false);
+      return true;
     } catch (error) {
       console.error('Error recording payment:', error);
       toast.error('Failed to record payment');
+      return false;
     }
   };
 

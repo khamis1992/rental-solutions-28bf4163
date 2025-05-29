@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -188,7 +187,7 @@ export function AgreementDetail({
     if (!agreement?.id || !updatedPayment.id) return false;
     
     try {
-      await updatePayment({
+      await updatePayment.mutateAsync({
         id: updatedPayment.id,
         data: updatedPayment
       });
@@ -207,7 +206,7 @@ export function AgreementDetail({
     if (!agreement?.id) return;
     
     try {
-      await deletePayment(paymentId);
+      await deletePayment.mutateAsync(paymentId);
       onDataRefresh();
       if (onPaymentDeleted) {
         onPaymentDeleted();
@@ -329,7 +328,7 @@ export function AgreementDetail({
               lease_id: agreement.id,
               status: 'completed'
             } as Partial<Payment>;
-            addPayment(fullPayment);
+            addPayment.mutateAsync(fullPayment);
           }
         }}
         leaseStartDate={leaseStartDate} 

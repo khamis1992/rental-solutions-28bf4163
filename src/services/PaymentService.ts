@@ -7,7 +7,7 @@ import { Payment, SpecialPaymentOptions } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
 import { ServiceResponse } from '@/types/service.types';
 
-export class PaymentService extends BaseService {
+export class PaymentService extends BaseService<Payment> {
   /**
    * Record a payment for an agreement
    */

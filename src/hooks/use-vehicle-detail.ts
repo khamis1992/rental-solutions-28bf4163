@@ -29,6 +29,15 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           throw new Error(`No data returned for vehicle ID ${vehicleId}`);
         }
         
+        // Helper function to safely cast status
+        const safeMapStatus = (status: any): VehicleStatus => {
+          const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'reserved'];
+          if (typeof status === 'string' && validStatuses.includes(status as VehicleStatus)) {
+            return status as VehicleStatus;
+          }
+          return 'available'; // default fallback
+        };
+        
         // Map the vehicle data to ensure it has all required Vehicle properties
         const mappedVehicle: Vehicle = {
           id: vehicleData.id,
@@ -37,9 +46,9 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           model: vehicleData.model,
           year: vehicleData.year,
           color: vehicleData.color || '',
-          vin: vehicleData.vin || vehicleData.engine_number || 'N/A', // Use engine_number as fallback for vin
+          vin: vehicleData.engine_number || vehicleData.vin || 'N/A', // Use engine_number as fallback for vin
           mileage: vehicleData.mileage || vehicleData.odometer_reading || 0,
-          status: (vehicleData.status || 'available') as VehicleStatus,
+          status: safeMapStatus(vehicleData.status || 'available'),
           rent_amount: vehicleData.rent_amount || vehicleData.daily_rate || 0,
           insurance_company: vehicleData.insurance_company || '',
           insurance_expiry: vehicleData.insurance_expiry || null,
