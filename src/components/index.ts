@@ -16,6 +16,3 @@ export * from './invoices';
 export * from './forms';
 export * from './mobile';
 export * from './settings';
-
-// Re-export specific types to avoid conflicts - remove the duplicate
-export type { RevenueChartProps } from './dashboard/revenue/types';

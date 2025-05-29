@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { useVehicles } from '@/hooks/use-vehicles';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,7 +20,7 @@ import {
 } from '@/utils/cross-report-data-processors';
 
 const CrossReportAnalytics = () => {
-  const vehiclesQuery = useVehicles();
+  const { vehicles, isLoading: isLoadingVehicles } = useFleetReport();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
   const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
   const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
@@ -45,12 +44,12 @@ const CrossReportAnalytics = () => {
   
   useEffect(() => {
     setIsLoading(
-      vehiclesQuery.isLoading || 
+      isLoadingVehicles || 
       isLoadingAgreements || 
       isLoadingMaintenance || 
       isLoadingFinancials
     );
-  }, [vehiclesQuery.isLoading, isLoadingAgreements, isLoadingMaintenance, isLoadingFinancials]);
+  }, [isLoadingVehicles, isLoadingAgreements, isLoadingMaintenance, isLoadingFinancials]);
   
   if (isLoading) {
     return (
@@ -79,7 +78,7 @@ const CrossReportAnalytics = () => {
   }
 
   // Process data using utility functions - ensure we have valid arrays
-  const vehiclesList = Array.isArray(vehiclesQuery.data) ? vehiclesQuery.data : [];
+  const vehiclesList = Array.isArray(vehicles) ? vehicles : [];
   const agreementsList = Array.isArray(agreements) ? agreements : [];
   const maintenanceList = Array.isArray(maintenanceData) ? maintenanceData : [];
 

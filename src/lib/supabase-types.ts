@@ -1,110 +1,78 @@
 
 import { Database } from '@/types/database.types';
-import { asUUID, UUID } from '@/lib/uuid-helpers';
-import { getResponseData } from '@/utils/supabase-type-helpers';
 
-type Tables = Database['public']['Tables'];
+// Helper type for easy table access
+export type Tables = Database['public']['Tables'];
 
-// Helper type for database IDs that enforces UUID format
-export type DbId = UUID;
+// Export commonly used table types
+export type LeaseRow = Tables['leases']['Row'];
+export type PaymentRow = Tables['unified_payments']['Row'];
+export type VehicleRow = Tables['vehicles']['Row'];
+export type ProfileRow = Tables['profiles']['Row'];
+export type TrafficFineRow = Tables['traffic_fines']['Row'];
 
-// Helper type for payment status that matches the database enum
-export type PaymentStatus = Tables['unified_payments']['Row']['status'];
-
-// Helper type for legal case status that matches the database enum
-export type LegalCaseStatus = Tables['legal_cases']['Row']['status'];
-
-// Helper type for vehicle status that matches the database enum
-export type VehicleStatus = Tables['vehicles']['Row']['status'];
-
-// Helper type for agreement status that matches the database enum
-export type AgreementStatus = Tables['leases']['Row']['status'];
-
-// Helper function to cast IDs to the correct type
-export const castDbId = (id: string): DbId => asUUID(id);
-
-// Helper function to cast payment status to the correct type
-export const castPaymentStatus = (status: string): PaymentStatus => status as PaymentStatus;
-
-// Helper function to cast legal case status to the correct type
-export const castLegalCaseStatus = (status: string): LegalCaseStatus => status as LegalCaseStatus;
-
-// Helper function to cast vehicle status to the correct type
-export const castVehicleStatus = (status: string): VehicleStatus => status as VehicleStatus;
-
-// Helper function to cast agreement status to the correct type 
-export const castAgreementStatus = (status: string): AgreementStatus => status as AgreementStatus;
-
-// Helper function to handle Supabase response errors
-export const handleSupabaseResponse = <T>(response: any): T | null => {
-  if (response?.error) {
-    console.error("Supabase response error:", response.error);
-    return null;
-  }
-  return response?.data ?? null;
-};
+// Common status types
+export type VehicleStatus = VehicleRow['status']; 
+export type LeaseStatus = LeaseRow['status'];
+export type PaymentStatus = PaymentRow['status']; 
 
 /**
- * Type-guard to check if an object is a specific database table row
+ * Type-safe status conversion functions
  */
-export function isTableRow<T extends keyof Tables>(
-  tableName: T, 
-  obj: any
-): obj is Tables[T]['Row'] {
-  return obj && typeof obj === 'object' && 'id' in obj;
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
+
+export function asVehicleStatus(status: string): VehicleStatus {
+  return status as VehicleStatus;
+}
+
+export function asPaymentStatus(status: string): PaymentStatus {
+  return status as PaymentStatus;
 }
 
 /**
- * Get type-safe column name for a table for use in filters
+ * Type-safe ID conversion functions
  */
-export function getColumnName<
-  T extends keyof Tables, 
-  C extends keyof Tables[T]['Row']
->(table: T, column: C): C {
-  return column;
+export function asLeaseId(id: string): string {
+  return id;
+}
+
+export function asVehicleId(id: string): string {
+  return id;
+}
+
+export function asProfileId(id: string): string {
+  return id;
+}
+
+export function asPaymentId(id: string): string {
+  return id;
+}
+
+export function asTrafficFineId(id: string): string {
+  return id;
+}
+
+export function asMaintenanceId(id: string): string {
+  return id;
 }
 
 /**
- * Safely cast a string value to a database column value
+ * Type guard for table rows
  */
-export function asColumnValue<
-  T extends keyof Tables, 
-  C extends keyof Tables[T]['Row']
->(table: T, column: C, value: any): Tables[T]['Row'][C] {
-  return value as Tables[T]['Row'][C];
+export function isLeaseRow(obj: any): obj is LeaseRow {
+  return obj && typeof obj.id === 'string';
 }
 
-/**
- * Creates a strongly typed reference to a table column for use in queries
- */
-export function column<T extends keyof Tables, C extends keyof Tables[T]['Row']>(
-  table: T, 
-  columnName: C
-): string {
-  return columnName as string;
+export function isVehicleRow(obj: any): obj is VehicleRow {
+  return obj && typeof obj.id === 'string' && typeof obj.license_plate === 'string';
 }
 
-/**
- * Create a type-safe table schema helper
- */
-export function createTableHelper<T extends keyof Tables>(table: T) {
-  return {
-    tableName: table,
-    column: <C extends keyof Tables[T]['Row']>(columnName: C) => columnName,
-    castId: (id: string) => id as any as Tables[T]['Row']['id'],
-    castColumnValue: <C extends keyof Tables[T]['Row']>(
-      column: C, 
-      value: any
-    ): Tables[T]['Row'][C] => value as Tables[T]['Row'][C]
-  };
+export function isPaymentRow(obj: any): obj is PaymentRow {
+  return obj && typeof obj.id === 'string' && typeof obj.amount === 'number';
 }
 
-// Create helpers for common tables
-export const Tables = {
-  leases: createTableHelper('leases'),
-  profiles: createTableHelper('profiles'),
-  vehicles: createTableHelper('vehicles'),
-  legal_cases: createTableHelper('legal_cases'),
-  unified_payments: createTableHelper('unified_payments'),
-  traffic_fines: createTableHelper('traffic_fines'),
-};
+export function isProfileRow(obj: any): obj is ProfileRow {
+  return obj && typeof obj.id === 'string' && typeof obj.email === 'string';
+}

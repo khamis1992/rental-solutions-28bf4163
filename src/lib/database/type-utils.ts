@@ -20,7 +20,7 @@ export function asColumnValue<
 // Commonly used column types
 export type LeaseStatus = DbColumnValue<'leases', 'status'>;
 export type PaymentStatus = DbColumnValue<'unified_payments', 'status'>;
-export type TrafficFineStatus = DbColumnValue<'traffic_fines', 'payment_status'>;
+export type TrafficFineStatus = DbColumnValue<'traffic_fines', 'status'>;
 export type VehicleId = DbColumnValue<'vehicles', 'id'>;
 export type LeaseId = DbColumnValue<'leases', 'id'>;
 export type CustomerId = DbColumnValue<'profiles', 'id'>;
@@ -35,7 +35,7 @@ export const asPaymentStatus = (value: string): PaymentStatus =>
   asColumnValue('unified_payments', 'status', value);
 
 export const asTrafficFineStatus = (value: string): TrafficFineStatus => 
-  asColumnValue('traffic_fines', 'payment_status', value);
+  asColumnValue('traffic_fines', 'status', value);
 
 export const asVehicleId = (value: string): VehicleId => 
   asColumnValue('vehicles', 'id', value);

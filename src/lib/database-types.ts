@@ -28,8 +28,6 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
   return (response.data as unknown as T) || null;
 }
 
-// Type guard for responses
-
 // Type safe ID converter
 export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
   return id as Tables[T]['Row']['id'];
@@ -59,15 +57,12 @@ export type PaymentRow = Tables['unified_payments']['Row'];
 export type VehicleRow = Tables['vehicles']['Row'];
 export type ProfileRow = Tables['profiles']['Row'];
 export type TrafficFineRow = Tables['traffic_fines']['Row'];
-export type LegalCaseRow = Tables['legal_cases']['Row'];
 
 // Common status types
 export type VehicleStatus = VehicleRow['status']; 
 export type LeaseStatus = LeaseRow['status'];
 export type PaymentStatus = PaymentRow['status']; 
-export type ProfileStatus = ProfileRow['status'];
 
 export function asStatus<T extends { status: string }>(status: string): T['status'] {
   return status as T['status'];
 }
-

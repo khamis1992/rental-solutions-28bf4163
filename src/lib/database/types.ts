@@ -50,10 +50,8 @@ export type PaymentRow = TableRow<'unified_payments'>;
 export type VehicleRow = TableRow<'vehicles'>;
 export type ProfileRow = TableRow<'profiles'>;
 export type TrafficFineRow = TableRow<'traffic_fines'>;
-export type LegalCaseRow = TableRow<'legal_cases'>;
 
 // Common status types
 export type VehicleStatus = VehicleRow['status']; 
 export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status']; 
-export type ProfileStatus = ProfileRow['status'];
+export type PaymentStatus = PaymentRow['status'];

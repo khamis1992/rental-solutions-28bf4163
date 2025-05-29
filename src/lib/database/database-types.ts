@@ -10,7 +10,6 @@ export type VehicleId = UUID;
 export type ProfileId = UUID;
 export type PaymentId = UUID;
 export type TrafficFineId = UUID;
-export type LegalCaseId = UUID;
 export type MaintenanceId = UUID;
 
 /**
@@ -19,7 +18,7 @@ export type MaintenanceId = UUID;
 export type LeaseStatus = Tables['leases']['Row']['status'];
 export type VehicleStatus = Tables['vehicles']['Row']['status'];
 export type PaymentStatus = Tables['unified_payments']['Row']['status'];
-export type TrafficFineStatus = Tables['traffic_fines']['Row']['payment_status'];
+export type TrafficFineStatus = Tables['traffic_fines']['Row']['status'];
 
 /**
  * DB Row types
@@ -29,7 +28,6 @@ export type VehicleRow = Tables['vehicles']['Row'];
 export type ProfileRow = Tables['profiles']['Row'];
 export type PaymentRow = Tables['unified_payments']['Row'];
 export type TrafficFineRow = Tables['traffic_fines']['Row'];
-export type LegalCaseRow = Tables['legal_cases']['Row'];
 
 /**
  * Type-safe ID conversion functions
@@ -52,10 +50,6 @@ export function asPaymentId(id: string): PaymentId {
 
 export function asTrafficFineId(id: string): TrafficFineId {
   return id as TrafficFineId;
-}
-
-export function asLegalCaseId(id: string): LegalCaseId {
-  return id as LegalCaseId;
 }
 
 export function asMaintenanceId(id: string): MaintenanceId {
