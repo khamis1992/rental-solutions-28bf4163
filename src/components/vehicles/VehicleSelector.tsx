@@ -56,8 +56,11 @@ const VehicleSelector = ({
     setOpen(false);
   };
 
-  // Always ensure we have an array to work with
-  const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
+  // Always ensure we have an array to work with and add vin fallback
+  const safeVehicles = Array.isArray(vehicles) ? vehicles.map(vehicle => ({
+    ...vehicle,
+    vin: vehicle.vin || vehicle.id || 'N/A'
+  })) : [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

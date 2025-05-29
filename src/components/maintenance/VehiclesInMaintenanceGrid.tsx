@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
@@ -20,14 +21,20 @@ const VehiclesInMaintenanceGrid = () => {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
         <p className="font-medium">Error loading vehicles in maintenance</p>
-        <p>{error || 'An unknown error occurred'}</p>
+        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
       </div>
     );
   }
 
+  // Ensure vehicles have required properties with defaults
+  const safeVehicles = (vehicles || []).map(vehicle => ({
+    ...vehicle,
+    vin: vehicle.vin || vehicle.id || 'N/A'
+  }));
+
   return (
     <VehicleGrid
-      vehicles={vehicles}
+      vehicles={safeVehicles}
       isLoading={isLoading}
       onVehicleClick={handleVehicleClick}
     />

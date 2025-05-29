@@ -16,6 +16,7 @@ export interface Customer {
   full_name: string;
   email: string;
   phone_number?: string;
+  phone?: string; // Add this for compatibility
   address?: string;
   city?: string;
   state?: string;
