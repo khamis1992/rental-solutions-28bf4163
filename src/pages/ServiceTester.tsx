@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTrafficFineQuery } from '@/hooks/use-traffic-fine-query';
-import { useLegalCaseQuery } from '@/hooks/use-legal-case-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { toast } from 'sonner';
  * It provides a UI to test various operations with traffic fines and legal cases
  */
 export default function ServiceTester() {
+  const queryClient = useQueryClient();
+  
   // State for form inputs
   const [licensePlate, setLicensePlate] = useState('');
   const [fineAmount, setFineAmount] = useState('100');
@@ -24,44 +26,133 @@ export default function ServiceTester() {
   const [fineIdToUpdate, setFineIdToUpdate] = useState('');
   const [legalCaseIdToUpdate, setLegalCaseIdToUpdate] = useState('');
   
-  // Traffic fine hooks
-  const {
-    getTrafficFines,
-    createTrafficFine,
-    updateTrafficFineStatus,
-    deleteTrafficFine
-  } = useTrafficFineQuery();
-  
-  // Legal case hooks
-  const {
-    getLegalCases,
-    createLegalCase,
-    updateLegalCaseStatus,
-    deleteLegalCase
-  } = useLegalCaseQuery();
-  
-  // Query results
+  // Traffic fines queries
   const { 
-    data: trafficFines,
+    data: trafficFines = [],
     isLoading: finesLoading,
     isError: finesError,
     error: finesErrorData
-  } = getTrafficFines({});
+  } = useQuery({
+    queryKey: ['traffic-fines'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
   
+  // Legal cases queries
   const { 
-    data: legalCases,
+    data: legalCases = [],
     isLoading: casesLoading,
     isError: casesError,
     error: casesErrorData
-  } = getLegalCases({});
+  } = useQuery({
+    queryKey: ['legal-cases'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
   
-  // Mutations
-  const createFineMutation = createTrafficFine();
-  const updateFineMutation = updateTrafficFineStatus();
-  const deleteFineMutation = deleteTrafficFine();
-  const createCaseMutation = createLegalCase();
-  const updateCaseMutation = updateLegalCaseStatus();
-  const deleteCaseMutation = deleteLegalCase();
+  // Traffic fine mutations
+  const createFineMutation = useMutation({
+    mutationFn: async (newFine: any) => {
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .insert(newFine)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['traffic-fines'] });
+    }
+  });
+
+  const updateFineMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .update({ payment_status: status })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['traffic-fines'] });
+    }
+  });
+
+  const deleteFineMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['traffic-fines'] });
+    }
+  });
+
+  // Legal case mutations
+  const createCaseMutation = useMutation({
+    mutationFn: async (newCase: any) => {
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .insert(newCase)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal-cases'] });
+    }
+  });
+
+  const updateCaseMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal-cases'] });
+    }
+  });
+
+  const deleteCaseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('legal_cases')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['legal-cases'] });
+    }
+  });
   
   // Handlers
   const handleCreateFine = async () => {

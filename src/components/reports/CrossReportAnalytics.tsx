@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { useFinancials } from '@/hooks/use-financials';
-import { useMaintenance } from '@/hooks/use-maintenance';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,36 +19,47 @@ import {
 } from '@/utils/cross-report-data-processors';
 
 const CrossReportAnalytics = () => {
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  // Fetch vehicles directly using React Query
+  const { data: vehicles = [], isLoading: isLoadingVehicles } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const { agreements, isLoading: isLoadingAgreements } = useAgreements();
-  const { getAllRecords: getAllMaintenance, loading: isLoadingMaintenance } = useMaintenance();
-  const { transactions, isLoadingTransactions: isLoadingFinancials } = useFinancials();
   
-  const [maintenanceData, setMaintenanceData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Fetch maintenance data
+  const { data: maintenanceData = [], isLoading: isLoadingMaintenance } = useQuery({
+    queryKey: ['maintenance'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+  
+  // Fetch financial transactions
+  const { data: transactions = [], isLoading: isLoadingFinancials } = useQuery({
+    queryKey: ['financial-transactions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+  
   const [error, setError] = useState<Error | null>(null);
   
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getAllMaintenance();
-        setMaintenanceData(data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Unknown error'));
-      }
-    };
-    
-    fetchData();
-  }, [getAllMaintenance]);
-  
-  useEffect(() => {
-    setIsLoading(
-      isLoadingVehicles || 
-      isLoadingAgreements || 
-      isLoadingMaintenance || 
-      isLoadingFinancials
-    );
-  }, [isLoadingVehicles, isLoadingAgreements, isLoadingMaintenance, isLoadingFinancials]);
+  const isLoading = isLoadingVehicles || isLoadingAgreements || isLoadingMaintenance || isLoadingFinancials;
   
   if (isLoading) {
     return (
