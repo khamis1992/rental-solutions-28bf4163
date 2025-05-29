@@ -16,3 +16,6 @@ export * from './invoices';
 export * from './forms';
 export * from './mobile';
 export * from './settings';
+
+// Re-export specific types to avoid conflicts
+export type { RevenueChartProps } from './dashboard/revenue/types';

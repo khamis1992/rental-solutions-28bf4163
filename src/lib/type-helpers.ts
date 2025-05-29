@@ -62,7 +62,10 @@ export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
   if (data === null || data === undefined) {
     return [];
   }
-  return Array.isArray(data) ? data : [data];
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return [data];
 }
 
 /**

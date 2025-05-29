@@ -28,9 +28,16 @@ export const usePayments = (agreementId?: string) => {
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
     // Ensure status is set to completed for new payments if not specified
+    // Convert dates to strings for database compatibility
     const paymentToAdd = {
       ...newPayment,
-      status: newPayment.status || 'completed'
+      status: newPayment.status || 'completed',
+      due_date: newPayment.due_date instanceof Date 
+        ? newPayment.due_date.toISOString() 
+        : newPayment.due_date,
+      payment_date: newPayment.payment_date instanceof Date 
+        ? newPayment.payment_date.toISOString() 
+        : newPayment.payment_date,
     };
     
     const response = await paymentRepository.recordPayment(paymentToAdd);
@@ -51,7 +58,18 @@ export const usePayments = (agreementId?: string) => {
       throw new Error("Invalid payment ID");
     }
 
-    const response = await paymentRepository.update(id, paymentData);
+    // Convert dates to strings for database compatibility
+    const dataToUpdate = {
+      ...paymentData,
+      due_date: paymentData.due_date instanceof Date 
+        ? paymentData.due_date.toISOString() 
+        : paymentData.due_date,
+      payment_date: paymentData.payment_date instanceof Date 
+        ? paymentData.payment_date.toISOString() 
+        : paymentData.payment_date,
+    };
+
+    const response = await paymentRepository.update(id, dataToUpdate);
 
     if (response.error) {
       console.error("Error updating payment:", response.error);

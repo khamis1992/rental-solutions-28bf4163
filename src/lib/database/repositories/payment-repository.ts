@@ -1,102 +1,99 @@
 
-import { Repository } from '../repository';
-import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asPaymentId, asLeaseId, asPaymentStatus } from '../database-types';
-import { supabase } from '@/lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database.types';
 
-type PaymentRow = TableRow<'unified_payments'>;
+export function createPaymentRepository(supabase: SupabaseClient<Database>) {
+  return {
+    async findByLeaseId(leaseId: string) {
+      try {
+        const { data, error } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', leaseId)
+          .order('payment_date', { ascending: false });
 
-/**
- * Repository for payment-related database operations
- */
-export class PaymentRepository extends Repository<'unified_payments'> {
-  constructor(client: any) {
-    super(client, 'unified_payments');
-  }
+        return { data, error };
+      } catch (error) {
+        console.error('Error in findByLeaseId:', error);
+        return { 
+          data: null, 
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: null,
+            hint: null,
+            code: 'UNKNOWN_ERROR'
+          }
+        };
+      }
+    },
 
-  /**
-   * Find payments by lease ID
-   */
-  async findByLeaseId(leaseId: string): Promise<DbListResponse<PaymentRow>> {
-    const response = await this.client
-      .from('unified_payments')
-      .select('*')
-      .eq('lease_id', asLeaseId(leaseId))
-      .order('payment_date', { ascending: false });
-    
-    return { data: response.data, error: response.error };
-  }
+    async recordPayment(payment: any) {
+      try {
+        const { data, error } = await supabase
+          .from('unified_payments')
+          .insert([payment])
+          .select()
+          .single();
 
-  /**
-   * Find payments by status
-   */
-  async findByStatus(status: string): Promise<DbListResponse<PaymentRow>> {
-    const response = await this.client
-      .from('unified_payments')
-      .select('*')
-      .eq('status', asPaymentStatus(status))
-      .order('payment_date', { ascending: false });
-    
-    return { data: response.data, error: response.error };
-  }
+        return { data, error };
+      } catch (error) {
+        console.error('Error in recordPayment:', error);
+        return { 
+          data: null, 
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: null,
+            hint: null,
+            code: 'UNKNOWN_ERROR'
+          }
+        };
+      }
+    },
 
-  /**
-   * Record a payment
-   */
-  async recordPayment(paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
-    const response = await this.client
-      .from('unified_payments')
-      .insert([paymentData])
-      .select()
-      .single();
-    
-    return { data: response.data, error: response.error };
-  }
+    async update(id: string, updates: any) {
+      try {
+        const { data, error } = await supabase
+          .from('unified_payments')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
 
-  /**
-   * Update payment status
-   */
-  async updateStatus(paymentId: string, status: string): Promise<DbSingleResponse<PaymentRow>> {
-    const response = await this.client
-      .from('unified_payments')
-      .update({ status: asPaymentStatus(status) })
-      .eq('id', asPaymentId(paymentId))
-      .select()
-      .single();
-    
-    return { data: response.data, error: response.error };
-  }
+        return { data, error };
+      } catch (error) {
+        console.error('Error in update:', error);
+        return { 
+          data: null, 
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: null,
+            hint: null,
+            code: 'UNKNOWN_ERROR'
+          }
+        };
+      }
+    },
 
-  /**
-   * Update payment
-   * This overrides the base update method to ensure proper handling of payment updates
-   */
-  async update(paymentId: string, paymentData: Partial<PaymentRow>): Promise<DbSingleResponse<PaymentRow>> {
-    const safePaymentId = asPaymentId(paymentId);
-    if (!safePaymentId) {
-      return {
-        data: null,
-        error: {
-          name: 'InvalidPaymentId',
-          message: 'Invalid payment ID',
-          details: '',
-          code: '',
-          hint: ''
-        }
-      };
+    async delete(id: string) {
+      try {
+        const { error } = await supabase
+          .from('unified_payments')
+          .delete()
+          .eq('id', id);
+
+        return { data: { success: true }, error };
+      } catch (error) {
+        console.error('Error in delete:', error);
+        return { 
+          data: null, 
+          error: {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: null,
+            hint: null,
+            code: 'UNKNOWN_ERROR'
+          }
+        };
+      }
     }
-    
-    const response = await this.client
-      .from('unified_payments')
-      .update(paymentData)
-      .eq('id', safePaymentId)
-      .select()
-      .single();
-    
-    return { data: response.data, error: response.error };
-  }
+  };
 }
-
-// Export the repository instance and the factory function
-export const paymentRepository = new PaymentRepository(supabase);
-export const createPaymentRepository = (client: any) => new PaymentRepository(client);
