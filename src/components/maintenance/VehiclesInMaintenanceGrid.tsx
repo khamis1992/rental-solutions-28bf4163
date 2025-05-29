@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleStatus } from '@/types/vehicle';
 
 const VehiclesInMaintenanceGrid = () => {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ const VehiclesInMaintenanceGrid = () => {
     year: vehicle.year || new Date().getFullYear(),
     license_plate: vehicle.license_plate || '',
     vin: vehicle.vin || vehicle.engine_number || vehicle.id || 'N/A',
-    status: vehicle.status as Vehicle['status'] || 'available',
+    status: (vehicle.status as VehicleStatus) || 'available',
     color: vehicle.color,
     image_url: vehicle.image_url,
     mileage: vehicle.mileage || 0,

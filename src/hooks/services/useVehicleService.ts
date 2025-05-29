@@ -21,7 +21,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       const result = await vehicleService.getVehiclesByStatus();
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to fetch vehicles by status';
+                           result.error?.message || 'Failed to fetch vehicles by status';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -34,7 +34,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       const result = await vehicleService.findVehicles(filters);
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to fetch vehicles';
+                           result.error?.message || 'Failed to fetch vehicles';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -47,7 +47,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       const result = await vehicleService.findAvailableVehicles();
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to fetch available vehicles';
+                           result.error?.message || 'Failed to fetch available vehicles';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -60,7 +60,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       const result = await vehicleService.getVehicleTypes();
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to fetch vehicle types';
+                           result.error?.message || 'Failed to fetch vehicle types';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -72,7 +72,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
       const result = await vehicleService.updateVehicleStatus(vehicleId, status, notes);
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to update vehicle status';
+                           result.error?.message || 'Failed to update vehicle status';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -91,7 +91,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     const result = await vehicleService.getVehicleDetails(id);
     if (!result.success) {
       const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.toString() || 'Failed to fetch vehicle details';
+                         result.error?.message || 'Failed to fetch vehicle details';
       throw new Error(errorMessage);
     }
     return result.data;
@@ -106,7 +106,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     const result = await vehicleService.updateStatus(id, status);
     if (!result.success) {
       const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.toString() || 'Failed to update vehicle status';
+                         result.error?.message || 'Failed to update vehicle status';
       throw new Error(errorMessage);
     }
     return result.data;
@@ -121,7 +121,7 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     const result = await vehicleService.calculateUtilizationMetrics(vehicleId, startDate, endDate);
     if (!result.success) {
       const errorMessage = typeof result.error === 'string' ? result.error : 
-                         result.error?.toString() || 'Failed to calculate utilization';
+                         result.error?.message || 'Failed to calculate utilization';
       throw new Error(errorMessage);
     }
     return result.data;

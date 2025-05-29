@@ -14,7 +14,7 @@ export const useCustomerService = (filters: CustomerFilters = {}) => {
       const result = await customerService.findCustomers(currentFilters);
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to fetch customers';
+                           result.error?.message || 'Failed to fetch customers';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -26,7 +26,7 @@ export const useCustomerService = (filters: CustomerFilters = {}) => {
       const result = await customerService.delete(id);
       if (!result.success) {
         const errorMessage = typeof result.error === 'string' ? result.error : 
-                           result.error?.toString() || 'Failed to delete customer';
+                           result.error?.message || 'Failed to delete customer';
         throw new Error(errorMessage);
       }
       return result.data;

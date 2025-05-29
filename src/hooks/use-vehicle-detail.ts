@@ -46,14 +46,14 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           model: vehicleData.model,
           year: vehicleData.year,
           color: vehicleData.color || '',
-          vin: vehicleData.engine_number || 'N/A', // Use engine_number for vin
-          mileage: 0, // Default to 0 if not available
+          vin: vehicleData.engine_number || vehicleData.vin || 'N/A', // Use engine_number for vin if available
+          mileage: vehicleData.mileage || 0, // Default to 0 if not available
           status: safeMapStatus(vehicleData.status),
-          rent_amount: 0, // Default to 0 if not available
-          insurance_company: '',
-          insurance_expiry: null,
-          location: '',
-          image_url: null,
+          rent_amount: vehicleData.rent_amount || 0, // Default to 0 if not available
+          insurance_company: vehicleData.insurance_company || '',
+          insurance_expiry: vehicleData.insurance_expiry || null,
+          location: vehicleData.location || '',
+          image_url: vehicleData.image_url || null,
           created_at: vehicleData.created_at,
           updated_at: vehicleData.updated_at,
           description: vehicleData.notes || vehicleData.attention_needed_notes || '',
