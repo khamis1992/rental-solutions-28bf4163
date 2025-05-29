@@ -45,8 +45,24 @@ const CustomerSelector = ({
     return () => clearTimeout(timeoutId);
   }, [internalSearchQuery, setSearchQuery]);
 
+  // Filter customers based on search query locally for better UX
+  const filteredCustomers = customers.filter(customer => {
+    if (!internalSearchQuery.trim()) return true;
+    
+    const searchTerm = internalSearchQuery.toLowerCase();
+    return (
+      customer.full_name.toLowerCase().includes(searchTerm) ||
+      customer.email.toLowerCase().includes(searchTerm) ||
+      customer.phone_number.toLowerCase().includes(searchTerm)
+    );
+  });
+
   // Handle customer selection
-  const handleSelect = (customerId: string): void => {
+  const handleSelect = (customerSearchText: string): void => {
+    // Extract customer ID from the search text format: "name|email|phone|id"
+    const parts = customerSearchText.split('|');
+    const customerId = parts[parts.length - 1]; // ID is always last
+    
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
       console.log('Customer selected:', customer);
@@ -82,7 +98,7 @@ const CustomerSelector = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-full min-w-[300px]" align="start" sideOffset={4}>
-        <Command>
+        <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
             <CommandInput
               placeholder="Search for customers..."
@@ -107,6 +123,7 @@ const CustomerSelector = ({
             {isLoading && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading customers...</span>
               </div>
             )}
             {error && (
@@ -114,32 +131,40 @@ const CustomerSelector = ({
                 Error loading customers
               </div>
             )}
-            {!isLoading && !error && customers.length === 0 && (
+            {!isLoading && !error && filteredCustomers.length === 0 && (
               <CommandEmpty>
-                {internalSearchQuery ? 'No customers found.' : 'No customers available.'}
+                {internalSearchQuery.trim() 
+                  ? `No customers found matching "${internalSearchQuery}"`
+                  : 'No customers available.'
+                }
               </CommandEmpty>
             )}
             <CommandGroup>
-              {!isLoading && !error && customers.map((customer) => (
-                <CommandItem
-                  key={customer.id}
-                  value={customer.id}
-                  onSelect={() => handleSelect(customer.id)}
-                  className="flex items-center"
-                >
-                  <span className="flex-1 truncate">
-                    {customer.full_name}
-                    {customer.phone_number && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({customer.phone_number})
-                      </span>
+              {!isLoading && !error && filteredCustomers.map((customer) => {
+                // Create a searchable value that includes name, email, phone, and ID
+                const searchableValue = `${customer.full_name}|${customer.email}|${customer.phone_number}|${customer.id}`;
+                
+                return (
+                  <CommandItem
+                    key={customer.id}
+                    value={searchableValue}
+                    onSelect={() => handleSelect(searchableValue)}
+                    className="flex items-center"
+                  >
+                    <span className="flex-1 truncate">
+                      {customer.full_name}
+                      {customer.phone_number && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          ({customer.phone_number})
+                        </span>
+                      )}
+                    </span>
+                    {selectedCustomer?.id === customer.id && (
+                      <Check className="h-4 w-4 text-green-500" />
                     )}
-                  </span>
-                  {selectedCustomer?.id === customer.id && (
-                    <Check className="h-4 w-4 text-green-500" />
-                  )}
-                </CommandItem>
-              ))}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
