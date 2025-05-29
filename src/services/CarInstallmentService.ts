@@ -1,9 +1,24 @@
 
 import { supabase } from '@/lib/supabase';
 import { CarInstallmentContract, CarInstallmentPayment } from '@/types/car-installment';
-import { BaseService, ServiceResult } from '@/services/base/BaseService';
 
-export class CarInstallmentService extends BaseService {
+export interface ServiceResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export class CarInstallmentService {
+  
+  private success<T>(data: T): ServiceResult<T> {
+    return { success: true, data };
+  }
+
+  private error(message: string, error?: any): ServiceResult<any> {
+    console.error(message, error);
+    return { success: false, error: message };
+  }
+
   /**
    * Recalculate contract summary values
    */

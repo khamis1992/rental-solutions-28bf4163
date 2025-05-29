@@ -21,6 +21,12 @@ const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null =
   return dbStatus as VehicleStatus;
 };
 
+// Helper function to safely convert status strings to VehicleStatus
+const safeMapToVehicleStatus = (status: string): VehicleStatus => {
+  const validStatuses: VehicleStatus[] = ['available', 'rented', 'maintenance', 'reserved', 'inactive'];
+  return validStatuses.includes(status as VehicleStatus) ? status as VehicleStatus : 'available';
+};
+
 // Fetch vehicles with optional filtering
 export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehicle[]> {
   let query = supabase.from('vehicles')
@@ -30,14 +36,14 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     // Support for multiple statuses
     if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
       // Map all statuses to DB format
-      const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
+      const dbStatuses = filters.statuses.map(status => mapToDBStatus(safeMapToVehicleStatus(status)));
       query = query.in('status', dbStatuses as any);
       console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
     }
     // Single status filter (backward compatibility)
     else if (filters.status) {
       // Convert application status to database status
-      const dbStatus = mapToDBStatus(filters.status);
+      const dbStatus = mapToDBStatus(safeMapToVehicleStatus(filters.status));
       query = query.eq('status', dbStatus);
       console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
@@ -164,7 +170,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
   
   // Map the status properly for database storage
   if (dbData.status) {
-    dbData.status = mapToDBStatus(dbData.status);
+    dbData.status = mapToDBStatus(safeMapToVehicleStatus(dbData.status));
     console.log(`API insertVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   
@@ -188,7 +194,7 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   
   // Ensure proper status mapping for database storage
   if (dbData.status !== undefined) {
-    dbData.status = mapToDBStatus(dbData.status);
+    dbData.status = mapToDBStatus(safeMapToVehicleStatus(dbData.status));
     console.log(`API updateVehicle: Mapped status to DB format: ${dbData.status}`);
   }
   

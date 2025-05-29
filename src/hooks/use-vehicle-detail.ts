@@ -29,7 +29,30 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           throw new Error(`No data returned for vehicle ID ${vehicleId}`);
         }
         
-        return vehicleData as Vehicle;
+        // Map the vehicle data to ensure it has all required Vehicle properties
+        const mappedVehicle: Vehicle = {
+          id: vehicleData.id,
+          license_plate: vehicleData.license_plate,
+          make: vehicleData.make,
+          model: vehicleData.model,
+          year: vehicleData.year,
+          color: vehicleData.color || '',
+          vin: vehicleData.vin || vehicleData.engine_number || 'N/A', // Use engine_number as fallback for vin
+          mileage: vehicleData.mileage || 0,
+          status: vehicleData.status,
+          rent_amount: vehicleData.rent_amount,
+          insurance_company: vehicleData.insurance_company,
+          insurance_expiry: vehicleData.insurance_expiry,
+          location: vehicleData.location,
+          image_url: vehicleData.image_url,
+          created_at: vehicleData.created_at,
+          updated_at: vehicleData.updated_at,
+          description: vehicleData.notes || vehicleData.description,
+          // Add any additional mapped properties from vehicleData
+          ...vehicleData
+        };
+        
+        return mappedVehicle;
       } catch (err) {
         console.error('useVehicleDetail: Error fetching vehicle:', err);
         throw err;

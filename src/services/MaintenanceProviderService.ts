@@ -1,22 +1,47 @@
-import { maintenanceProviderRepository } from '@/lib/database';
-import { TableRow } from '@/lib/database/types';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
 
-export type MaintenanceProvider = TableRow<'maintenance_service_providers'>;
+import { supabase } from '@/lib/supabase';
 
-export class MaintenanceProviderService extends BaseService<'maintenance_service_providers'> {
-  constructor() {
-    super(maintenanceProviderRepository);
+export interface ServiceResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export type MaintenanceProvider = {
+  id: string;
+  name: string;
+  contact_info: string;
+  specialties: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export class MaintenanceProviderService {
+  private success<T>(data: T): ServiceResult<T> {
+    return { success: true, data };
+  }
+
+  private error(message: string, error?: any): ServiceResult<any> {
+    console.error(message, error);
+    return { success: false, error: message };
   }
 
   async findActive(): Promise<ServiceResult<MaintenanceProvider[]>> {
-    return handleServiceOperation(async () => {
-      const result = await this.repository.findByField('is_active', true);
-      if (result.error) {
-        throw new Error(`Failed to fetch active providers: ${result.error.message}`);
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_providers')
+        .select('*')
+        .eq('is_active', true);
+        
+      if (error) {
+        throw new Error(`Failed to fetch active providers: ${error.message}`);
       }
-      return result.data || [];
-    });
+      
+      return this.success(data || []);
+    } catch (error) {
+      return this.error('Failed to fetch maintenance providers', error);
+    }
   }
 }
 
