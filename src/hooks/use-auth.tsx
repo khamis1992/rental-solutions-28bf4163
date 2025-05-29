@@ -1,7 +1,10 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Session, User } from '@supabase/supabase-js';
+
+// Use types from Supabase client
+type User = NonNullable<Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user']>;
+type Session = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>;
 
 // Define our own User type that extends or adapts the Supabase User type
 export interface AuthUser extends Omit<User, 'app_metadata'> {

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useVehicleService } from "@/hooks/services/useVehicleService";
+import { Vehicle } from '@/types/vehicle';
 
 interface VehicleSelectorProps {
   selectedVehicle: any;
@@ -56,10 +57,10 @@ const VehicleSelector = ({
     setOpen(false);
   };
 
-  // Always ensure we have an array to work with and add vin fallback
-  const safeVehicles = Array.isArray(vehicles) ? vehicles.map(vehicle => ({
+  // Transform raw vehicle data to ensure it matches expected structure
+  const safeVehicles = Array.isArray(vehicles) ? vehicles.map((vehicle: any) => ({
     ...vehicle,
-    vin: vehicle.vin || vehicle.id || 'N/A'
+    vin: vehicle.vin || vehicle.engine_number || vehicle.id || 'N/A'
   })) : [];
 
   return (

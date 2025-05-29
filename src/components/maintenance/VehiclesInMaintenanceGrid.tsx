@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
+import { Vehicle } from '@/types/vehicle';
 
 const VehiclesInMaintenanceGrid = () => {
   const navigate = useNavigate();
@@ -26,10 +27,27 @@ const VehiclesInMaintenanceGrid = () => {
     );
   }
 
-  // Ensure vehicles have required properties with defaults
-  const safeVehicles = (vehicles || []).map(vehicle => ({
-    ...vehicle,
-    vin: vehicle.vin || vehicle.id || 'N/A'
+  // Transform raw vehicle data to ensure it matches the Vehicle type
+  const safeVehicles: Vehicle[] = (vehicles || []).map((vehicle: any) => ({
+    id: vehicle.id,
+    make: vehicle.make || '',
+    model: vehicle.model || '',
+    year: vehicle.year || new Date().getFullYear(),
+    license_plate: vehicle.license_plate || '',
+    vin: vehicle.vin || vehicle.engine_number || vehicle.id || 'N/A',
+    status: vehicle.status as Vehicle['status'] || 'available',
+    color: vehicle.color,
+    image_url: vehicle.image_url,
+    mileage: vehicle.mileage,
+    created_at: vehicle.created_at || new Date().toISOString(),
+    updated_at: vehicle.updated_at || new Date().toISOString(),
+    description: vehicle.description,
+    location: vehicle.location,
+    insurance_company: vehicle.insurance_company,
+    insurance_expiry: vehicle.insurance_expiry,
+    rent_amount: vehicle.rent_amount,
+    vehicle_type_id: vehicle.vehicle_type_id,
+    notes: vehicle.notes
   }));
 
   return (

@@ -3,7 +3,10 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import type { User, Session } from '@supabase/supabase-js';
+
+// Use types from Supabase client
+type User = NonNullable<Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user']>;
+type Session = NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>;
 
 interface AuthContextType {
   user: User | null;
