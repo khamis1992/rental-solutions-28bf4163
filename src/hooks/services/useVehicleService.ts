@@ -20,8 +20,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.getVehiclesByStatus();
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                           typeof result.error === 'string' ? result.error : 'Failed to fetch vehicles by status';
+        const errorMessage = typeof result.error === 'string' ? result.error : 
+                           (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                           result.error.message : 'Failed to fetch vehicles by status';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -33,8 +34,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.findVehicles(filters);
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                           typeof result.error === 'string' ? result.error : 'Failed to fetch vehicles';
+        const errorMessage = typeof result.error === 'string' ? result.error : 
+                           (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                           result.error.message : 'Failed to fetch vehicles';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -46,8 +48,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.findAvailableVehicles();
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                           typeof result.error === 'string' ? result.error : 'Failed to fetch available vehicles';
+        const errorMessage = typeof result.error === 'string' ? result.error : 
+                           (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                           result.error.message : 'Failed to fetch available vehicles';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -59,8 +62,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     queryFn: async () => {
       const result = await vehicleService.getVehicleTypes();
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                           typeof result.error === 'string' ? result.error : 'Failed to fetch vehicle types';
+        const errorMessage = typeof result.error === 'string' ? result.error : 
+                           (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                           result.error.message : 'Failed to fetch vehicle types';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -71,8 +75,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
     mutationFn: async ({ vehicleId, status, notes }: { vehicleId: string; status: string; notes?: string }) => {
       const result = await vehicleService.updateVehicleStatus(vehicleId, status, notes);
       if (!result.success) {
-        const errorMessage = result.error instanceof Error ? result.error.message : 
-                           typeof result.error === 'string' ? result.error : 'Failed to update vehicle status';
+        const errorMessage = typeof result.error === 'string' ? result.error : 
+                           (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                           result.error.message : 'Failed to update vehicle status';
         throw new Error(errorMessage);
       }
       return result.data;
@@ -90,8 +95,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const getVehicleDetails = async (id: string) => {
     const result = await vehicleService.getVehicleDetails(id);
     if (!result.success) {
-      const errorMessage = result.error instanceof Error ? result.error.message : 
-                         typeof result.error === 'string' ? result.error : 'Failed to fetch vehicle details';
+      const errorMessage = typeof result.error === 'string' ? result.error : 
+                         (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                         result.error.message : 'Failed to fetch vehicle details';
       throw new Error(errorMessage);
     }
     return result.data;
@@ -105,8 +111,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const updateStatus = async (id: string, status: string) => {
     const result = await vehicleService.updateStatus(id, status);
     if (!result.success) {
-      const errorMessage = result.error instanceof Error ? result.error.message : 
-                         typeof result.error === 'string' ? result.error : 'Failed to update vehicle status';
+      const errorMessage = typeof result.error === 'string' ? result.error : 
+                         (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                         result.error.message : 'Failed to update vehicle status';
       throw new Error(errorMessage);
     }
     return result.data;
@@ -120,8 +127,9 @@ export const useVehicleService = (options: UseVehicleServiceOptions = {}) => {
   const calculateUtilization = async (vehicleId: string, startDate: Date, endDate: Date) => {
     const result = await vehicleService.calculateUtilizationMetrics(vehicleId, startDate, endDate);
     if (!result.success) {
-      const errorMessage = result.error instanceof Error ? result.error.message : 
-                         typeof result.error === 'string' ? result.error : 'Failed to calculate utilization';
+      const errorMessage = typeof result.error === 'string' ? result.error : 
+                         (result.error && typeof result.error === 'object' && 'message' in result.error) ? 
+                         result.error.message : 'Failed to calculate utilization';
       throw new Error(errorMessage);
     }
     return result.data;

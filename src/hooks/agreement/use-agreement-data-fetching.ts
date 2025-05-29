@@ -99,9 +99,24 @@ export function useAgreementDataFetching() {
     }
     
     if (fetchedCustomerData) {
+      // Create a safe customer object with default values for required fields
+      const safeCustomer = {
+        address: fetchedCustomerData.address || '',
+        city: fetchedCustomerData.city || '',
+        created_at: fetchedCustomerData.created_at || new Date().toISOString(),
+        email: fetchedCustomerData.email,
+        full_name: fetchedCustomerData.full_name,
+        id: fetchedCustomerData.id,
+        phone_number: fetchedCustomerData.phone_number,
+        role: fetchedCustomerData.role || 'customer',
+        state: fetchedCustomerData.state || '',
+        updated_at: fetchedCustomerData.updated_at || new Date().toISOString(),
+        zip_code: fetchedCustomerData.zip_code || ''
+      };
+      
       updatedAgreement = {
         ...updatedAgreement,
-        customers: fetchedCustomerData || {}
+        customers: safeCustomer
       };
     }
     

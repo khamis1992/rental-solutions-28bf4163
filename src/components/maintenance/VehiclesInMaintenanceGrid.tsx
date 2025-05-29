@@ -38,14 +38,14 @@ const VehiclesInMaintenanceGrid = () => {
     status: vehicle.status as Vehicle['status'] || 'available',
     color: vehicle.color,
     image_url: vehicle.image_url,
-    mileage: vehicle.mileage,
+    mileage: vehicle.mileage || 0,
+    rent_amount: vehicle.rent_amount || 0,
     created_at: vehicle.created_at || new Date().toISOString(),
     updated_at: vehicle.updated_at || new Date().toISOString(),
     description: vehicle.description,
     location: vehicle.location,
     insurance_company: vehicle.insurance_company,
     insurance_expiry: vehicle.insurance_expiry,
-    rent_amount: vehicle.rent_amount,
     vehicle_type_id: vehicle.vehicle_type_id,
     notes: vehicle.notes
   }));

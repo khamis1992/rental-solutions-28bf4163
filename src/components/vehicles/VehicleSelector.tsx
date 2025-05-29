@@ -60,7 +60,9 @@ const VehicleSelector = ({
   // Transform raw vehicle data to ensure it matches expected structure
   const safeVehicles = Array.isArray(vehicles) ? vehicles.map((vehicle: any) => ({
     ...vehicle,
-    vin: vehicle.vin || vehicle.engine_number || vehicle.id || 'N/A'
+    vin: vehicle.vin || vehicle.engine_number || vehicle.id || 'N/A',
+    mileage: vehicle.mileage || 0,
+    rent_amount: vehicle.rent_amount || 0
   })) : [];
 
   return (
