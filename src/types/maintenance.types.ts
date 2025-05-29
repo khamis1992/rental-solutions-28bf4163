@@ -1,6 +1,6 @@
 
 export interface MaintenanceRecord {
-  id?: string; // Make id optional
+  id?: string; // Make id optional for both create and update operations
   vehicle_id: string;
   service_type: string;
   maintenance_type: string;
@@ -12,6 +12,8 @@ export interface MaintenanceRecord {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  performed_by?: string;
+  agreement_id?: string; // Add this field for compatibility
 }
 
 export interface MaintenanceFormData {
@@ -24,4 +26,6 @@ export interface MaintenanceFormData {
   scheduled_date: string;
   cost?: number;
   notes?: string;
+  performed_by?: string;
+  agreement_id?: string;
 }

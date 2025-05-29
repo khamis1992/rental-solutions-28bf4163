@@ -72,13 +72,18 @@ export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
 
 /**
  * Safe array conversion that preserves original type when it's already an array
+ * Fixed to properly handle the type constraint
  */
 export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
   if (value === undefined || value === null) {
     return [];
   }
   
-  return Array.isArray(value) ? value : [value];
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+  
+  return [value as T];
 }
 
 /**
