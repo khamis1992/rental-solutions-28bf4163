@@ -9,7 +9,7 @@ export interface ServiceResult<T> {
   success: boolean;
   data?: T;
   error?: string | Error;
-  message?: string;
+  message?: string; // Add the missing message property
 }
 
 // Type guard for service results
