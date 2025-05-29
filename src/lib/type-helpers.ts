@@ -55,7 +55,7 @@ export function extractResponseData<T>(
 }
 
 /**
- * Type guard to ensure array type
+ * Type helper to ensure array type
  * Useful when dealing with potentially unknown response structures
  */
 export function ensureArray<T>(value: T | T[]): T[] {

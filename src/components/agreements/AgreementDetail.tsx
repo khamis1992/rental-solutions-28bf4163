@@ -321,14 +321,14 @@ export function AgreementDetail({
         contractAmount={contractAmount}
         onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handlePaymentUpdate}
-        onRecordPayment={(payment) => {
+        onRecordPayment={async (payment) => {
           if (payment && agreement.id) {
             const fullPayment = {
               ...payment,
               lease_id: agreement.id,
-              status: 'completed'
+              status: 'completed' as const
             } as Partial<Payment>;
-            addPayment.mutateAsync(fullPayment);
+            await addPayment(fullPayment);
           }
         }}
         leaseStartDate={leaseStartDate} 

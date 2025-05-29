@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { eventBus } from '@/lib/event-bus';
 import { Events, PaymentRecordedPayload } from '@/events';
@@ -7,7 +8,7 @@ import { Payment, SpecialPaymentOptions } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
 import { ServiceResponse } from '@/types/service.types';
 
-export class PaymentService extends BaseService<Payment> {
+export class PaymentService extends BaseService {
   /**
    * Record a payment for an agreement
    */

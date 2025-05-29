@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/services/PaymentService';
 import { Payment } from '@/types/payment.types';
+import { PaymentInsert } from '@/types/payment-insert.types';
 import { toast } from 'sonner';
 
 /**
@@ -33,7 +34,7 @@ export const usePaymentService = (agreementId?: string) => {
 
   // Mutation for recording a payment
   const recordPayment = useMutation({
-    mutationFn: async (newPayment: Partial<Payment>) => {
+    mutationFn: async (newPayment: PaymentInsert) => {
       const result = await paymentService.recordPayment(newPayment);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to record payment');
