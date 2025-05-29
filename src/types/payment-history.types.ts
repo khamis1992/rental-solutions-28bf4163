@@ -1,6 +1,7 @@
-import { Payment } from './payment.types';
 
-export type PaymentHistoryItem = Payment;
+import { PaymentRecord } from '@/components/agreements/PaymentHistory.types';
+
+export type PaymentHistoryItem = PaymentRecord;
 
 export interface PaymentHistoryResponse {
   data: PaymentHistoryItem[];

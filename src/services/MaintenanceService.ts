@@ -1,3 +1,4 @@
+
 import { maintenanceRepository } from '@/lib/database';
 import { TableRow } from '@/lib/database/types';
 import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
@@ -38,7 +39,7 @@ export class MaintenanceService extends BaseService<'maintenance'> {
 
   private async recordExpense(record: Maintenance) {
     await paymentService.recordPayment({
-      lease_id: record.agreement_id ?? null,
+      lease_id: null, // Remove agreement_id reference since it doesn't exist in the maintenance table
       amount: record.cost ?? 0,
       payment_date: new Date().toISOString(),
       description: `Maintenance expense for vehicle ${record.vehicle_id}`,

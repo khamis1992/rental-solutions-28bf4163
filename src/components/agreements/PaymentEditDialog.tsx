@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { Payment } from './PaymentHistory.types';
+import { PaymentRecord } from './PaymentHistory.types';
 import { z } from 'zod';
 
 interface PaymentEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  payment: Payment;
-  onPaymentUpdated: (payment: Payment) => Promise<void>;
+  payment: PaymentRecord;
+  onPaymentUpdated: (payment: PaymentRecord) => Promise<void>;
 }
 
 // Payment schema for validation

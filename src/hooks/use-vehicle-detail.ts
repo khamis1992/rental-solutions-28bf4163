@@ -35,7 +35,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           if (typeof status === 'string' && validStatuses.includes(status as VehicleStatus)) {
             return status as VehicleStatus;
           }
-          return 'available'; // Return default VehicleStatus value
+          return 'available' as VehicleStatus; // Explicit cast to ensure proper typing
         };
         
         // Map the vehicle data to ensure it has all required Vehicle properties
