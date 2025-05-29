@@ -50,12 +50,3 @@ export function isTypedArray(arr: unknown[], type: string): boolean {
   if (!Array.isArray(arr)) return false;
   return arr.every(item => typeof item === type);
 }
-
-/**
- * Simple postal code validation
- */
-export function isValidPostalCode(code: string): boolean {
-  // Basic postal code pattern - adjust regex as needed for your region
-  const postalCodePattern = /^[A-Za-z0-9\s-]{3,10}$/;
-  return postalCodePattern.test(code.trim());
-}

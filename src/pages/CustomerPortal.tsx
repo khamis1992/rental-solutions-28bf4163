@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { MaintenanceFormData } from '@/types/maintenance.types';
+import { MaintenanceRecord } from '@/types/maintenance.types';
 
 const CustomerPortal: React.FC = () => {
   const { user } = useAuth();
@@ -47,7 +46,7 @@ const CustomerPortal: React.FC = () => {
     if (!selectedAgreement) return;
     setRequestSubmitting(true);
     try {
-      const maintenanceData: MaintenanceFormData = {
+      const maintenanceData: MaintenanceRecord = {
         vehicle_id: selectedAgreement.vehicle_id,
         service_type: 'Service Request',
         maintenance_type: 'SERVICE_REQUEST',

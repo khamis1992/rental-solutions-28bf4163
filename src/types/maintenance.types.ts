@@ -1,6 +1,6 @@
 
 export interface MaintenanceRecord {
-  id: string;
+  id?: string; // Make id optional
   vehicle_id: string;
   service_type: string;
   maintenance_type: string;
