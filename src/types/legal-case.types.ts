@@ -1,124 +1,128 @@
 
-/**
- * Core types for Legal Case Management
- * @module LegalTypes
- */
+import { Database } from '@/types/database.types';
+import type { Payment as PaymentType } from '@/types/payment.types';
 
-import { DbId } from './database-common';
-
-/**
- * Legal case types handled by the system
- */
-export enum LegalCaseType {
-  PAYMENT_DEFAULT = 'payment_default',
-  CONTRACT_BREACH = 'contract_breach',
-  VEHICLE_DAMAGE = 'vehicle_damage',
-  TRAFFIC_VIOLATION = 'traffic_violation',
-  DOCUMENT_FRAUD = 'document_fraud',
-  INSURANCE_CLAIM = 'insurance_claim',
-  OTHER = 'other'
-}
-
-/**
- * Current status of a legal case
- */
-export enum LegalCaseStatus {
-  ACTIVE = 'active',
-  PENDING = 'pending',
-  RESOLVED = 'resolved',
-  ESCALATED = 'escalated'
-}
-
-/**
- * Case priority levels
- */
-export enum CasePriority {
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
-}
-
-/**
- * Core legal case data structure
- */
-export interface LegalCase {
-  /** Unique case identifier */
-  id: DbId;
-  /** Associated customer */
-  customer_id: DbId;
-  /** Type of legal case */
-  case_type: LegalCaseType;
-  /** Current case status */
-  status: LegalCaseStatus | null;
-  /** Outstanding amount if applicable */
-  amount_owed: number;
-  /** Case priority level */
-  priority: CasePriority | null;
-  /** Staff member assigned to case */
-  assigned_to: DbId | null;
-  /** Case description/details */
-  description: string | null;
-  /** Date case was resolved */
-  resolution_date: string | null;
-  /** Notes about case resolution */
-  resolution_notes: string | null;
-  /** Timestamps */
+export type LegalCase = {
+  id: string;
+  case_number: string;
+  case_type: string;
+  status: string;
+  title: string;
+  description?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  agreement_id?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assigned_to?: string;
+  created_by?: string;
   created_at: string;
   updated_at: string;
-  /** Associated customer details */
-  profiles?: {
-    full_name: string;
-    email: string | null;
-    phone_number: string | null;
-  };
-}
+  due_date?: string;
+  resolved_at?: string;
+  resolution_notes?: string;
+  estimated_cost?: number;
+  actual_cost?: number;
+  documents?: LegalDocument[];
+  communications?: LegalCommunication[];
+  settlements?: LegalSettlement[];
+  deadlines?: LegalDeadline[];
+};
 
-/**
- * Legal case audit trail entry
- */
-export interface CaseHistoryEntry {
-  id: DbId;
-  case_id: DbId;
-  action: string;
-  description?: string;
-  performed_by?: DbId;
-  timestamp: string;
-}
-
-/**
- * Legal document associated with a case
- */
-export interface LegalDocument {
-  id: DbId;
-  case_id: DbId;
+export type LegalDocument = {
+  id: string;
+  case_id: string;
   document_type: string;
+  file_name: string;
+  file_url: string;
+  uploaded_at: string;
+  uploaded_by?: string;
+};
+
+export type LegalCommunication = {
+  id: string;
+  case_id: string;
+  communication_type: 'email' | 'phone' | 'meeting' | 'letter' | 'other';
+  subject?: string;
   content: string;
-  status: string;
-  generated_by?: DbId;
+  direction: 'inbound' | 'outbound';
+  contact_person?: string;
   created_at: string;
-}
+  created_by?: string;
+};
 
-/**
- * Settlement agreement details
- */
-export interface Settlement {
-  id: DbId;
-  case_id: DbId;
-  terms: string;
-  total_amount: number;
-  payment_plan?: PaymentPlan;
-  status: string;
-  signed_date?: string;
+export type LegalSettlement = {
+  id: string;
+  case_id: string;
+  settlement_type: string;
+  amount: number;
+  status: 'proposed' | 'negotiating' | 'agreed' | 'rejected' | 'paid';
+  agreed_date?: string;
+  payment_date?: string;
+  notes?: string;
   created_at: string;
-}
+  updated_at: string;
+};
 
-/**
- * Payment plan for settlements
- */
-interface PaymentPlan {
-  total_amount: number;
-  installments: number;
-  frequency: string;
-  start_date: string;
-  payments: Payment[];
-}
+export type LegalDeadline = {
+  id: string;
+  case_id: string;
+  deadline_type: string;
+  description: string;
+  due_date: string;
+  status: 'pending' | 'completed' | 'overdue';
+  completed_at?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LegalCaseFormData = {
+  case_number: string;
+  case_type: string;
+  title: string;
+  description?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  agreement_id?: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assigned_to?: string;
+  due_date?: string;
+  estimated_cost?: number;
+};
+
+export type LegalCaseFilters = {
+  status?: string;
+  case_type?: string;
+  priority?: string;
+  assigned_to?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+};
+
+export type LegalCaseStats = {
+  total_cases: number;
+  open_cases: number;
+  resolved_cases: number;
+  overdue_cases: number;
+  cases_by_type: Record<string, number>;
+  cases_by_priority: Record<string, number>;
+  average_resolution_time: number;
+  total_costs: number;
+};
+
+// Settlement-related types
+export type SettlementPayment = PaymentType;
+
+export type SettlementTracker = {
+  id: string;
+  settlement_id: string;
+  payment_id?: string;
+  amount_due: number;
+  amount_paid: number;
+  payment_status: 'pending' | 'partial' | 'completed' | 'overdue';
+  due_date: string;
+  payment_date?: string;
+  created_at: string;
+  updated_at: string;
+};

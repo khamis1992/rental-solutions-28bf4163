@@ -1,222 +1,164 @@
-import { profileRepository } from '@/lib/database';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
-import { TableRow } from '@/lib/database/types';
-import { asProfileStatus } from '@/lib/database/utils';
-import { supabase } from '@/lib/supabase';
 
-export type Customer = TableRow<'profiles'>;
+import { supabase } from '@/lib/supabase';
+import { BaseService, ServiceResponse } from './base/BaseService';
+import { toast } from 'sonner';
 
 export interface CustomerFilters {
+  search?: string;
   status?: string;
-  searchTerm?: string;
-  [key: string]: any;
+  limit?: number;
+  offset?: number;
 }
 
-/**
- * Service layer responsible for managing customer-related operations.
- * Handles all customer data interactions, validation, and business rules.
- */
-export class CustomerService extends BaseService<'profiles'> {
-  constructor() {
-    super(profileRepository);
-  }
+export interface Customer {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  driver_license?: string;
+  nationality?: string;
+  notes?: string;
+  status?: string;
+  role?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
-  /**
-   * Retrieves customers based on specified filters
-   * @param filters - Optional filtering criteria for customer search
-   * @returns Promise with filtered customer records
-   */
-  async findCustomers(filters?: CustomerFilters): Promise<ServiceResult<Customer[]>> {
-    return handleServiceOperation(async () => {
+export class CustomerService extends BaseService {
+  
+  async findCustomers(filters: CustomerFilters = {}): Promise<ServiceResponse<Customer[]>> {
+    try {
       let query = supabase
         .from('profiles')
         .select('*')
         .eq('role', 'customer');
-      
-      if (filters) {
-        if (filters.status && filters.status !== 'all') {
-          query = query.eq('status', asProfileStatus(filters.status));
-        }
-        
-        if (filters.searchTerm) {
-          const searchTerm = filters.searchTerm.trim();
-          query = query.or(
-            `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,driver_license.ilike.%${searchTerm}%`
-          );
-        }
+
+      if (filters.search) {
+        query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone_number.ilike.%${filters.search}%`);
       }
-      
-      const { data, error } = await query;
-      
+
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      if (filters.offset) {
+        query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
       if (error) {
-        throw new Error(`Failed to fetch customers: ${error.message}`);
+        console.error('Error fetching customers:', error);
+        return this.handleError(error, 'Failed to fetch customers');
       }
-      
-      return data || [];
-    });
+
+      return this.success(data || []);
+    } catch (error) {
+      return this.handleError(error, 'An unexpected error occurred while fetching customers');
+    }
   }
 
-  /**
-   * Fetches detailed customer information including rental history
-   * @param id - Customer ID to retrieve details for
-   * @returns Promise with customer details and associated agreements
-   */
-  async getCustomerDetails(id: string): Promise<ServiceResult<Customer & { agreements: any[] }>> {
-    return handleServiceOperation(async () => {
+  async getCustomerDetails(id: string): Promise<ServiceResponse<Customer>> {
+    try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          agreements:leases(
-            id, 
-            agreement_number, 
-            start_date, 
-            end_date, 
-            status, 
-            total_amount,
-            vehicles(make, model, license_plate, year)
-          )
-        `)
+        .select('*')
         .eq('id', id)
+        .eq('role', 'customer')
         .single();
-      
+
       if (error) {
-        throw new Error(`Failed to fetch customer details: ${error.message}`);
+        return this.handleError(error, 'Failed to fetch customer details');
       }
-      
-      return data;
-    });
+
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'An unexpected error occurred while fetching customer details');
+    }
   }
 
-  /**
-   * Updates customer status while maintaining audit trail
-   * @param id - Customer ID to update
-   * @param status - New status to apply
-   * @returns Promise with updated customer record
-   */
-  async updateStatus(id: string, status: string): Promise<ServiceResult<Customer>> {
-    return handleServiceOperation(async () => {
-      const dbStatus = asProfileStatus(status);
-      const response = await this.repository.update(id, { 
-        status: dbStatus,
-        status_updated_at: new Date().toISOString()
-      });
-      
-      if (response.error) {
-        throw new Error(`Failed to update customer status: ${response.error.message}`);
+  async create(customerData: Partial<Customer>): Promise<ServiceResponse<Customer>> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert([{ ...customerData, role: 'customer' }])
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'Failed to create customer');
       }
-      
-      return response.data;
-    });
+
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'An unexpected error occurred while creating customer');
+    }
   }
 
-  /**
-   * Validates customer document expiration status
-   * Implements business rules for document validation and notification
-   * @param customerId - Customer ID to check documents for
-   * @returns Promise with document validation results and warnings
-   */
-  async checkDocumentExpiration(customerId: string): Promise<ServiceResult<any>> {
-    return handleServiceOperation(async () => {
-      const response = await this.repository.findById(customerId);
-      if (response.error) {
-        throw new Error(`Failed to fetch customer: ${response.error.message}`);
+  async update(id: string, customerData: Partial<Customer>): Promise<ServiceResponse<Customer>> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(customerData)
+        .eq('id', id)
+        .eq('role', 'customer')
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'Failed to update customer');
       }
-      
-      const customer = response.data;
-      const today = new Date();
-      const expiryWarningDays = 30; // Warn when document expires within 30 days
-      
-      const warnings = [];
-      
-      // Check ID document expiration
-      if (customer.id_document_expiry) {
-        const idExpiryDate = new Date(customer.id_document_expiry);
-        const idDaysToExpiry = Math.ceil((idExpiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (idDaysToExpiry <= 0) {
-          warnings.push({
-            document: 'ID Document',
-            status: 'expired',
-            expiryDate: customer.id_document_expiry
-          });
-        } else if (idDaysToExpiry <= expiryWarningDays) {
-          warnings.push({
-            document: 'ID Document',
-            status: 'expiring_soon',
-            daysToExpiry: idDaysToExpiry,
-            expiryDate: customer.id_document_expiry
-          });
-        }
-      }
-      
-      // Check license document expiration
-      if (customer.license_document_expiry) {
-        const licenseExpiryDate = new Date(customer.license_document_expiry);
-        const licenseDaysToExpiry = Math.ceil((licenseExpiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (licenseDaysToExpiry <= 0) {
-          warnings.push({
-            document: 'Driver License',
-            status: 'expired',
-            expiryDate: customer.license_document_expiry
-          });
-        } else if (licenseDaysToExpiry <= expiryWarningDays) {
-          warnings.push({
-            document: 'Driver License',
-            status: 'expiring_soon',
-            daysToExpiry: licenseDaysToExpiry,
-            expiryDate: customer.license_document_expiry
-          });
-        }
-      }
-      
-      return {
-        customer,
-        documentStatus: {
-          hasWarnings: warnings.length > 0,
-          warnings
-        }
-      };
-    });
+
+      return this.success(data);
+    } catch (error) {
+      return this.handleError(error, 'An unexpected error occurred while updating customer');
+    }
   }
 
-  /**
-   * Retrieves customer payment history across all agreements
-   * @param customerId - Customer ID to fetch payment history for
-   * @returns Promise with detailed payment history
-   */
-  async getPaymentHistory(customerId: string): Promise<ServiceResult<any[]>> {
-    return handleServiceOperation(async () => {
-      // First get all customer's agreements
-      const { data: agreements, error: agreementsError } = await supabase
+  async delete(id: string): Promise<ServiceResponse<void>> {
+    try {
+      // Check if customer has active agreements first
+      const { data: activeAgreements, error: agreementError } = await supabase
         .from('leases')
-        .select('id, agreement_number')
-        .eq('customer_id', customerId);
-      
-      if (agreementsError) {
-        throw new Error(`Failed to fetch customer agreements: ${agreementsError.message}`);
+        .select('id')
+        .eq('customer_id', id)
+        .eq('status', 'active');
+
+      if (agreementError) {
+        return this.handleError(agreementError, 'Failed to check customer agreements');
       }
-      
-      if (!agreements || agreements.length === 0) {
-        return [];
+
+      if (activeAgreements && activeAgreements.length > 0) {
+        return this.handleError(
+          new Error('Cannot delete customer with active agreements'),
+          'Cannot delete customer with active agreements'
+        );
       }
-      
-      // Get all payments for these agreements
-      const agreementIds = agreements.map(a => a.id);
-      const { data: payments, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('*, lease:leases(agreement_number)')
-        .in('lease_id', agreementIds)
-        .order('payment_date', { ascending: false });
-      
-      if (paymentsError) {
-        throw new Error(`Failed to fetch customer payment history: ${paymentsError.message}`);
+
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id)
+        .eq('role', 'customer');
+
+      if (error) {
+        return this.handleError(error, 'Failed to delete customer');
       }
-      
-      return payments || [];
-    });
+
+      return this.success(undefined);
+    } catch (error) {
+      return this.handleError(error, 'An unexpected error occurred while deleting customer');
+    }
   }
 }
 
-export const customerService = new CustomerService();
+// Create a singleton instance
+export const customerService = new CustomerService(supabase);

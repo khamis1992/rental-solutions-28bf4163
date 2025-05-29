@@ -11,7 +11,7 @@ export type Payment = {
   notes?: string;
   payment_method?: string;
   reference_number?: string;
-  transaction_id?: string; // Added for compatibility
+  transaction_id?: string;
   include_late_fee?: boolean;
   is_partial?: boolean;
   status: PaymentStatus;
@@ -20,11 +20,11 @@ export type Payment = {
 export type PaymentEntryDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title?: string; // Added to fix compatibility errors
-  description?: string; // Added to fix compatibility errors
-  defaultAmount?: number; // Added to fix compatibility errors
-  rentAmount?: number; // Added to fix compatibility errors
-  lateFeeDetails?: { amount: number; daysLate: number } | null; // Added to fix compatibility errors
+  title?: string;
+  description?: string;
+  defaultAmount?: number;
+  rentAmount?: number;
+  lateFeeDetails?: { amount: number; daysLate: number } | null;
   selectedPayment?: Payment | null;
   onSubmit: (
     amount: number,
@@ -51,3 +51,4 @@ export type AgreementImport = {
 // Helper functions for type casting with standardized naming
 export const asAgreementIdColumn = (id: string) => id as DbId;
 export const asImportIdColumn = (id: string) => id as DbId;
+export const asStatusColumn = (status: string) => status as AgreementStatus;

@@ -48,7 +48,7 @@ export const useVehicleDetail = (vehicleId: string | undefined) => {
           color: vehicleData.color || '',
           vin: vehicleData.engine_number || 'N/A', // Use engine_number for vin
           mileage: 0, // Default to 0 if not available
-          status: safeMapStatus(vehicleData.status || 'available'),
+          status: safeMapStatus(vehicleData.status),
           rent_amount: 0, // Default to 0 if not available
           insurance_company: '',
           insurance_expiry: null,
