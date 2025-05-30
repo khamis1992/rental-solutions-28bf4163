@@ -7,9 +7,9 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   vehicles?: Database['public']['Tables']['vehicles']['Row'];
   customer_name?: string;
   vehicle_info?: string;
-  payment_day?: number; // Now properly mapped to database column
-  payment_frequency?: string; // Payment frequency field
-  terms_accepted?: boolean; // Add missing property for form handling
+  payment_day?: number;
+  payment_frequency?: string;
+  terms_accepted?: boolean;
   // Add missing vehicle properties for backward compatibility
   license_plate?: string;
   vehicle_make?: string;
@@ -23,6 +23,9 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   // Add properties used in reports
   rent_due_day?: number;
   next_payment_date?: string;
+  // Add missing required properties
+  agreement_type?: string;
+  total_amount?: number;
 };
 
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];

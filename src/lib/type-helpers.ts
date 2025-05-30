@@ -1,4 +1,3 @@
-
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
@@ -81,7 +80,8 @@ export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
     return value;
   }
   
-  return [value];
+  // Fixed: properly handle single value case
+  return [value] as T[];
 }
 
 /**

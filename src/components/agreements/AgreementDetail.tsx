@@ -141,27 +141,40 @@ export function AgreementDetail({
   }, [agreement, setLoading, setIdle]);
 
   // Record payment
-  const handleRecordPayment = useCallback((payment: Partial<Payment>) => {
-    addPaymentMutation.mutateAsync(payment);
-    onDataRefresh();
+  const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {
+    try {
+      await addPaymentMutation(payment);
+      onDataRefresh();
+    } catch (error) {
+      console.error('Failed to record payment:', error);
+    }
   }, [addPaymentMutation, onDataRefresh]);
 
   // Update payment
   const handleUpdatePayment = useCallback(async (payment: Partial<Payment>) => {
     if (payment.id) {
-      const success = await updatePaymentMutation.mutateAsync({ id: payment.id, data: payment });
-      if (success) {
-        onDataRefresh();
+      try {
+        const success = await updatePaymentMutation({ id: payment.id, data: payment });
+        if (success) {
+          onDataRefresh();
+        }
+        return success;
+      } catch (error) {
+        console.error('Failed to update payment:', error);
+        return false;
       }
-      return success;
     }
     return false;
   }, [updatePaymentMutation, onDataRefresh]);
 
   // Delete payment
-  const handleDeletePayment = useCallback((paymentId: string) => {
-    deletePaymentMutation.mutateAsync(paymentId);
-    onPaymentDeleted();
+  const handleDeletePayment = useCallback(async (paymentId: string) => {
+    try {
+      await deletePaymentMutation(paymentId);
+      onPaymentDeleted();
+    } catch (error) {
+      console.error('Failed to delete payment:', error);
+    }
   }, [deletePaymentMutation, onPaymentDeleted]);
 
   if (!agreement) {
@@ -249,6 +262,8 @@ export function AgreementDetail({
       {/* Traffic Fines Section */}
       <AgreementTrafficFines 
         agreementId={agreement.id}
+        startDate={agreement.start_date}
+        endDate={agreement.end_date}
       />
 
       {/* Legal Cases Section */}
@@ -291,7 +306,7 @@ export function AgreementDetail({
               lease_id: agreement.id,
               status: 'completed'
             };
-            handleRecordPayment(payment);
+            await handleRecordPayment(payment);
             closeDialog('payment');
             return true;
           }}
