@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
+import { agreementDeletionService } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';
 
 /**
@@ -76,24 +76,41 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     }
   });
 
-  // Mutation for deleting an agreement
+  // Enhanced mutation for deleting an agreement with proper cascade handling
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
+      // First validate deletion
+      const validationResult = await agreementDeletionService.validateDeletion(id);
+      if (!validationResult.success) {
+        throw new Error('Failed to validate deletion requirements');
+      }
+
+      // Proceed with deletion
       const result = await agreementService.deleteAgreement(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to delete agreement');
       }
-      return id;
+      return { id, deletionResult: result.data };
     },
-    onSuccess: () => {
-      toast.success('Agreement deleted successfully');
+    onSuccess: (data) => {
+      toast.success(`Agreement deleted successfully. ${data.deletionResult?.message || ''}`);
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
-      toast.error(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Deletion failed: ${errorMessage}`);
     }
   });
-  
+
+  // Function to validate deletion before attempting
+  const validateDeletion = async (id: string) => {
+    const result = await agreementDeletionService.validateDeletion(id);
+    if (!result.success) {
+      throw new Error(result.error?.toString() || 'Failed to validate deletion');
+    }
+    return result.data;
+  };
+
   // Calculate remaining amount
   const calculateRemainingAmount = useMutation({
     mutationFn: async (id: string) => {

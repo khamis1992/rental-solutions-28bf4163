@@ -3,6 +3,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
 import { ensureValidLeaseStatus } from '@/types/lease-types';
 import { BaseService, handleServiceOperation, ServiceResult } from '@/services/base/BaseService';
+import { agreementDeletionService } from './AgreementDeletionService';
 
 // Define AgreementFilters interface
 export interface AgreementFilters {
@@ -117,18 +118,21 @@ export const agreementService = {
   },
   
   /**
-   * Delete agreement
+   * Delete agreement with proper cascade handling
    */
-  async delete(id: string): Promise<SaveResponse> {
+  async deleteAgreement(id: string): Promise<SaveResponse> {
     try {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', asLeaseId(id));
-        
-      if (error) throw error;
+      // Use the new deletion service for proper cascade handling
+      const result = await agreementDeletionService.deleteAgreement(id);
       
-      return { success: true };
+      if (!result.success) {
+        throw new Error(result.error?.toString() || 'Failed to delete agreement');
+      }
+      
+      return { 
+        success: true, 
+        data: result.data 
+      };
     } catch (error) {
       console.error('Error deleting agreement:', error);
       return { 
@@ -136,6 +140,13 @@ export const agreementService = {
         error: error instanceof Error ? error : new Error('Failed to delete agreement')
       };
     }
+  },
+
+  /**
+   * Legacy delete method (deprecated)
+   */
+  async delete(id: string): Promise<SaveResponse> {
+    return this.deleteAgreement(id);
   },
 
   /**
@@ -333,28 +344,6 @@ export const agreementService = {
       return { 
         success: false, 
         error: error instanceof Error ? error : new Error('Failed to change agreement status')
-      };
-    }
-  },
-
-  /**
-   * Delete agreement
-   */
-  async deleteAgreement(id: string): Promise<SaveResponse> {
-    try {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting agreement:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error : new Error('Failed to delete agreement')
       };
     }
   },
