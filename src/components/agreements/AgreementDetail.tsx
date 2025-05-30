@@ -1,4 +1,5 @@
-import React, { useCallback, useState, useEffect, ReactNode } from 'react';
+
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -23,6 +24,8 @@ import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
+import { PaymentSyncButton } from './PaymentSyncButton';
+import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -61,6 +64,7 @@ export function AgreementDetail({
     daysLate: number;
   } | null);
   const [selectedPayment, setSelectedPayment] = useState(null as Payment | null);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Use payment management hook
   const {
@@ -121,265 +125,177 @@ export function AgreementDetail({
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         const success = await generatePdfDocument(agreement);
+        
         if (success) {
-          toast.success("Agreement PDF downloaded successfully");
+          toast.success("Agreement PDF generated successfully");
         } else {
-          toast.error("Failed to generate PDF");
+          toast.error("Failed to generate PDF document");
         }
       } catch (error) {
         console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
+        toast.error("Failed to generate PDF document");
       } finally {
         setIdle('generatingPdf');
       }
     }
   }, [agreement, setLoading, setIdle]);
 
-  // Generate document
-  const handleGenerateDocument = useCallback(() => {
-    if (agreement && onGenerateDocument) {
-      onGenerateDocument();
-    } else {
-      toast.info("Document generation functionality is being configured");
-    }
-  }, [agreement, onGenerateDocument]);
+  // Record payment
+  const handleRecordPayment = useCallback((payment: Partial<Payment>) => {
+    addPayment(payment);
+    onDataRefresh();
+  }, [addPayment, onDataRefresh]);
 
-  // Handle payment submission
-  const handlePaymentSubmit = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean,
-    paymentType?: string
-  ) => {
-    if (agreement && agreement.id) {
-      try {
-        const success = await processPayment(amount, paymentDate, {
-          notes,
-          paymentMethod,
-          referenceNumber,
-          includeLatePaymentFee,
-          isPartialPayment,
-          paymentType
-        });
-        
-        if (success) {
-          closeDialog('payment');
-          onDataRefresh();
-          toast.success("Payment recorded successfully");
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error("Error recording payment:", error);
-        toast.error("Failed to record payment");
-        return false;
+  // Update payment
+  const handleUpdatePayment = useCallback(async (payment: Partial<Payment>) => {
+    if (payment.id) {
+      const success = await updatePayment({ id: payment.id, data: payment });
+      if (success) {
+        onDataRefresh();
       }
+      return success;
     }
     return false;
-  }, [agreement, processPayment, onDataRefresh, closeDialog]);
+  }, [updatePayment, onDataRefresh]);
 
-  // Handle payment update
-  const handlePaymentUpdate = useCallback(async (updatedPayment: Partial<Payment>): Promise<boolean> => {
-    if (!agreement?.id || !updatedPayment.id) return false;
-    
-    try {
-      await updatePayment.mutateAsync({
-        id: updatedPayment.id,
-        data: updatedPayment
-      });
-      onDataRefresh();
-      toast.success("Payment updated successfully");
-      return true;
-    } catch (error) {
-      console.error("Error updating payment:", error);
-      toast.error("Failed to update payment");
-      return false;
-    }
-  }, [agreement?.id, updatePayment, onDataRefresh]);
-
-  // Handle payment deletion
-  const handleDeletePayment = useCallback(async (paymentId: string) => {
-    if (!agreement?.id) return;
-    
-    try {
-      await deletePayment.mutateAsync(paymentId);
-      onDataRefresh();
-      if (onPaymentDeleted) {
-        onPaymentDeleted();
-      }
-      toast.success("Payment deleted successfully");
-    } catch (error) {
-      console.error("Error deleting payment:", error);
-      toast.error("Failed to delete payment");
-    }
-  }, [agreement?.id, deletePayment, onDataRefresh, onPaymentDeleted]);
-
-  // Update historical payment statuses
-  const handleUpdateHistoricalPaymentStatuses = async () => {
-    if (!agreement) return;
-    
-    try {
-      await updateHistoricalStatuses();
-      onDataRefresh();
-    } catch (error) {
-      console.error("Error updating payment statuses:", error);
-      toast.error("Failed to update payment statuses");
-    }
-  };
-
-  // Get agreement dates
-  const leaseStartDate = agreement?.start_date instanceof Date 
-    ? agreement.start_date 
-    : new Date(agreement?.start_date || new Date());
-    
-  const leaseEndDate = agreement?.end_date instanceof Date 
-    ? agreement.end_date 
-    : new Date(agreement?.end_date || new Date());
+  // Delete payment
+  const handleDeletePayment = useCallback((paymentId: string) => {
+    deletePayment(paymentId);
+    onPaymentDeleted();
+  }, [deletePayment, onPaymentDeleted]);
 
   if (!agreement) {
-    return <Alert>
-        <AlertDescription>Agreement details not available.</AlertDescription>
-      </Alert>;
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          No agreement selected
+        </div>
+      </Card>
+    );
   }
 
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-  const duration = differenceInMonths(endDate, startDate) || 1;
-
-  const formattedStatus = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
-      case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
-      case 'expired':
-        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
-      case 'draft':
-        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
-      default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
-    }
-  };
-
-  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
-
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
-          Agreement {agreement.agreement_number}
-          {formattedStatus(agreement.status)}
-        </h2>
-        <p className="text-muted-foreground">
-          Created on {format(createdDate, 'MMMM d, yyyy')}
-        </p>
+    <div className="space-y-6">
+      {/* Debug Panel Toggle */}
+      <div className="flex justify-between items-center">
+        <div></div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-xs"
+          >
+            {showDebugPanel ? 'Hide' : 'Show'} Debug
+          </Button>
+          <PaymentSyncButton 
+            agreementId={agreement.id} 
+            variant="fix"
+            className="text-xs"
+          />
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Debug Panel */}
+      {showDebugPanel && (
+        <PaymentDebugPanel 
+          agreement={agreement} 
+          isOpen={showDebugPanel}
+        />
+      )}
+
+      {/* Agreement Information Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CustomerInformationCard agreement={agreement} />
         <VehicleInformationCard agreement={agreement} />
       </div>
 
-      <AgreementDetailsCard 
-        agreement={agreement}
-        duration={duration}
-        rentAmount={rentAmount}
-        contractAmount={contractAmount}
+      <AgreementDetailsCard agreement={agreement} />
+      
+      {/* Action Buttons */}
+      <AgreementActionButtons
+        onEdit={handleEdit}
+        onDelete={() => openDialog('delete')}
+        onPrint={handlePrint}
+        onDownloadPdf={handleDownloadPdf}
+        onGenerateDocument={onGenerateDocument}
+        isGeneratingPdf={loadingStates.generatingPdf}
       />
 
-      <div className="flex items-center justify-between">
-        <AgreementActionButtons 
-          onEdit={handleEdit}
-          onDownloadPdf={handleDownloadPdf}
-          onGenerateDocument={handleGenerateDocument}
-          onDelete={() => openDialog('delete')}
-          isGeneratingPdf={loadingStates.generatingPdf}
-        />
-
-        <LoadingButton
-          variant="outline"
-          onClick={handleUpdateHistoricalPaymentStatuses}
-          isLoading={paymentLoadingStates.updateHistoricalStatuses}
-          loadingText="Updating..."
-        >
-          Complete Historical Payments
-        </LoadingButton>
-      </div>
-
-      {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments : []} 
-        isLoading={isLoadingPayments} 
+      {/* Payment History Section */}
+      <PaymentHistory
+        payments={payments}
+        isLoading={isLoadingPayments}
         rentAmount={rentAmount}
         contractAmount={contractAmount}
         onPaymentDeleted={handleDeletePayment}
-        onPaymentUpdated={handlePaymentUpdate}
-        onRecordPayment={async (payment) => {
-          if (payment && agreement.id) {
-            const fullPayment = {
-              ...payment,
-              lease_id: agreement.id,
-              status: 'completed' as const
-            } as Partial<Payment>;
-            await addPayment(fullPayment);
-          }
-        }}
-        leaseStartDate={leaseStartDate} 
-        leaseEndDate={leaseEndDate}
+        onPaymentUpdated={handleUpdatePayment}
+        onRecordPayment={handleRecordPayment}
+        leaseStartDate={agreement.start_date}
+        leaseEndDate={agreement.end_date}
         leaseId={agreement.id}
-      />}
+        agreement={agreement}
+      />
 
-      {agreement.start_date && agreement.end_date && (
-        <LegalCaseCard agreementId={agreement.id} />
-      )}
+      {/* Traffic Fines Section */}
+      <AgreementTrafficFines 
+        agreementId={agreement.id}
+        vehicleId={agreement.vehicle_id || undefined}
+      />
 
-      {agreement.id && <Card>
-          <CardContent className="pt-6">
-            <AgreementTrafficFines
-              agreementId={agreement.id}
-              startDate={leaseStartDate}
-              endDate={leaseEndDate}
-            />
-          </CardContent>
-        </Card>}
+      {/* Legal Cases Section */}
+      <LegalCaseCard 
+        agreementId={agreement.id}
+        customerId={agreement.customer_id}
+      />
 
-      {/* Dialog for delete confirmation - now using the centralized dialog state */}
-      <Dialog open={isDialogVisible('delete')} onOpenChange={open => !open && closeDialog('delete')}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDialogVisible('delete')} onOpenChange={() => closeDialog('delete')}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>Delete Agreement</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
+              Are you sure you want to delete this agreement? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog('delete')}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+            <Button variant="outline" onClick={() => closeDialog('delete')}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Payment dialog - now using the centralized dialog state */}
-      <PaymentEntryDialog 
-        open={isDialogVisible('payment')} 
-        onOpenChange={open => {
-          if (!open) closeDialog('payment');
-          else openDialog('payment');
-        }}
-        onSubmit={handlePaymentSubmit} 
-        defaultAmount={rentAmount || 0} 
-        title="Record Rent Payment" 
-        description="Record a new rental payment for this agreement." 
-        lateFeeDetails={lateFeeDetails} 
-        selectedPayment={selectedPayment}
-      />
+      {/* Payment Entry Dialog */}
+      {isDialogVisible('payment') && (
+        <PaymentEntryDialog
+          open={isDialogVisible('payment')}
+          onOpenChange={() => closeDialog('payment')}
+          onSubmit={async (amount, date, notes, method, reference) => {
+            const payment: Partial<Payment> = {
+              amount,
+              payment_date: date.toISOString(),
+              description: notes,
+              payment_method: method,
+              reference_number: reference,
+              lease_id: agreement.id,
+              status: 'completed'
+            };
+            handleRecordPayment(payment);
+            closeDialog('payment');
+            return true;
+          }}
+          defaultAmount={rentAmount || 0}
+          title="Record Payment"
+          description="Add a new payment to this agreement"
+          leaseId={agreement.id}
+          rentAmount={rentAmount}
+          selectedPayment={selectedPayment}
+        />
+      )}
     </div>
   );
 }
