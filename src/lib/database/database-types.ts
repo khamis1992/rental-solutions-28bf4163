@@ -39,3 +39,53 @@ export type MaintenanceRow = {
 export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
 export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
 export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';
+
+// ID types for better type safety
+export type LeaseId = string;
+export type ProfileId = string;
+export type VehicleId = string;
+export type PaymentId = string;
+export type TrafficFineId = string;
+export type MaintenanceId = string;
+
+// Helper functions to cast strings to proper ID types
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
+}
+
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
+}
+
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
+}
+
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
+}
+
+export function asTrafficFineId(id: string): TrafficFineId {
+  return id as TrafficFineId;
+}
+
+export function asMaintenanceId(id: string): MaintenanceId {
+  return id as MaintenanceId;
+}
+
+// Helper functions to cast strings to proper status types
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
+
+export function asVehicleStatus(status: string): VehicleStatus {
+  return status as VehicleStatus;
+}
+
+export function asPaymentStatus(status: string): PaymentStatus {
+  return status as PaymentStatus;
+}
+
+export function asTrafficFineStatus(status: string): string {
+  return status;
+}

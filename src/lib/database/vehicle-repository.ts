@@ -1,107 +1,111 @@
 
 import { supabase } from '@/lib/supabase';
-import { VehicleRow } from './types';
-import { createRepository } from './repository';
-import { asVehicleStatus } from './utils';
-import { isSuccessResponse } from './validation/typeGuards';
+import { DbTables } from './types';
 
-// Get base repository functionality
-const baseRepository = createRepository('vehicles');
+export interface VehicleFilters {
+  status?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+}
 
-// Vehicle status type for type-safety
-type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'reserved' | 'retired';
+export class VehicleRepository {
+  constructor(private client: any) {}
 
-// Extended repository with vehicle-specific operations
-export const vehicleRepository = {
-  ...baseRepository,
-  
-  // Find vehicles with type-safe filters
-  async findVehicles(filters: {
-    status?: string;
-    make?: string;
-    model?: string;
-    year?: number;
-    available?: boolean;
-  } = {}): Promise<VehicleRow[] | null> {
-    let query = supabase.from('vehicles').select('*');
-    
-    if (filters.status) {
-      query = query.eq('status', asVehicleStatus(filters.status));
-    }
-    
-    if (filters.make) {
-      query = query.eq('make', filters.make);
-    }
-    
-    if (filters.model) {
-      query = query.eq('model', filters.model);
-    }
-    
-    if (filters.year) {
-      query = query.eq('year', filters.year);
-    }
-    
-    if (filters.available) {
-      query = query.eq('status', 'available');
-    }
-    
-    const response = await query;
-    
-    if (!isSuccessResponse(response)) {
-      console.error('Failed to fetch vehicles with filters:', response.error);
-      return null;
-    }
-    
-    return response.data as VehicleRow[];
-  },
-  
-  // Update vehicle status with validation
-  async updateStatus(id: string, status: string): Promise<{ data: VehicleRow | null, error: any }> {
-    const validatedStatus = asVehicleStatus(status) as VehicleStatus;
-    
+  async findAll(filters?: VehicleFilters): Promise<{ data: DbTables['vehicles']['Row'][] | null; error: any }> {
     try {
-      const result = await baseRepository.update(id, {
-        status: validatedStatus,
-        updated_at: new Date().toISOString(),
-      });
-      return { data: result.data as VehicleRow | null, error: result.error };
+      let query = this.client.from('vehicles').select('*');
+      
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters?.make) {
+        query = query.ilike('make', `%${filters.make}%`);
+      }
+      if (filters?.model) {
+        query = query.ilike('model', `%${filters.model}%`);
+      }
+      if (filters?.year) {
+        query = query.eq('year', filters.year);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      return { data, error };
     } catch (error) {
+      console.error('Error fetching vehicles:', error);
       return { data: null, error };
     }
-  },
-  
-  // Find available vehicles
-  async findAvailableVehicles(): Promise<VehicleRow[] | null> {
-    return this.findVehicles({ status: 'available' });
-  },
-  
-  // Find by ID with better error handling
-  async findById(id: string): Promise<{ data: VehicleRow | null, error: any }> {
-    if (!id) {
-      return { data: null, error: 'Invalid vehicle ID' };
-    }
-    
+  }
+
+  async findById(id: string): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
     try {
-      const response = await supabase
+      const { data, error } = await this.client
         .from('vehicles')
         .select('*')
         .eq('id', id)
         .single();
-        
-      if (response.error) {
-        console.error('Error fetching vehicle by ID:', response.error);
-        return { data: null, error: response.error };
-      }
       
-      return { data: response.data as VehicleRow, error: null };
+      return { data, error };
     } catch (error) {
-      console.error('Exception in findById:', error);
+      console.error('Error fetching vehicle by ID:', error);
       return { data: null, error };
     }
-  },
-  
-  // Find vehicles in maintenance
-  async findMaintenanceVehicles(): Promise<VehicleRow[] | null> {
-    return this.findVehicles({ status: 'maintenance' });
   }
-};
+
+  async create(vehicleData: DbTables['vehicles']['Insert']): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('vehicles')
+        .insert([vehicleData])
+        .select()
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error creating vehicle:', error);
+      return { data: null, error };
+    }
+  }
+
+  async update(id: string, updates: DbTables['vehicles']['Update']): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('vehicles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      return { data: null, error };
+    }
+  }
+
+  async delete(id: string): Promise<{ error: any }> {
+    try {
+      const { error } = await this.client
+        .from('vehicles')
+        .delete()
+        .eq('id', id);
+      
+      return { error };
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      return { error };
+    }
+  }
+
+  async findAvailable(): Promise<{ data: DbTables['vehicles']['Row'][] | null; error: any }> {
+    return this.findAll({ status: 'available' });
+  }
+
+  async updateStatus(id: string, status: string): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+    return this.update(id, { status });
+  }
+}
+
+export const vehicleRepository = new VehicleRepository(supabase);
+export const createVehicleRepository = (client: any) => new VehicleRepository(client);

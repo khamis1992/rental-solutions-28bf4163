@@ -1,135 +1,122 @@
 
-import { SupabaseClient, type PostgrestError } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
-import { Tables, DbListResponse, DbSingleResponse } from './types'
-import { Database } from '@/types/database.types'
+import { supabase } from '@/lib/supabase';
+import { DbTables, DbTableName } from './types';
 
-/**
- * Base Repository class for database operations
- */
-export class Repository<T extends keyof Tables> {
-  protected client: SupabaseClient<Database>
-  protected tableName: T
+export class GenericRepository<T extends DbTableName> {
+  constructor(
+    private tableName: T,
+    private client: any = supabase
+  ) {}
 
-  constructor(client: SupabaseClient<Database>, tableName: T) {
-    this.client = client
-    this.tableName = tableName
-  }
-
-  /**
-   * Find all records in the table
-  */
-  async findAll(): Promise<DbListResponse<Tables[T]['Row']>> {
+  async findAll(): Promise<{ data: DbTables[T]['Row'][] | null; error: any }> {
     try {
       const { data, error } = await this.client
-        .from(this.tableName)
-        .select('*')
-      return { data, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
+        .from(String(this.tableName))
+        .select('*');
+      
+      return { data, error };
+    } catch (error) {
+      console.error(`Error fetching all ${String(this.tableName)}:`, error);
+      return { data: null, error };
     }
   }
 
-  /**
-   * Find a record by ID
-  */
-  async findById(id: string): Promise<DbSingleResponse<Tables[T]['Row']>> {
+  async findById(id: string): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
     try {
       const { data, error } = await this.client
-        .from(this.tableName)
+        .from(String(this.tableName))
         .select('*')
         .eq('id', id)
-        .single()
-      return { data, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error(`Error fetching ${String(this.tableName)} by ID:`, error);
+      return { data: null, error };
     }
   }
 
-  /**
-   * Create a new record
-  */
-  async create(data: Tables[T]['Insert']): Promise<DbSingleResponse<Tables[T]['Row']>> {
+  async create(data: DbTables[T]['Insert']): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
     try {
       const { data: result, error } = await this.client
-        .from(this.tableName)
+        .from(String(this.tableName))
         .insert([data])
         .select()
-        .single()
-      return { data: result, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
+        .single();
+      
+      return { data: result, error };
+    } catch (error) {
+      console.error(`Error creating ${String(this.tableName)}:`, error);
+      return { data: null, error };
     }
   }
 
-  /**
-   * Update a record
-  */
-  async update(id: string, data: Tables[T]['Update']): Promise<DbSingleResponse<Tables[T]['Row']>> {
-    try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single()
-      return { data: result, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
-    }
-  }
-
-  /**
-   * Delete a record
-  */
-  async delete(id: string): Promise<DbSingleResponse<Tables[T]['Row']>> {
+  async update(id: string, updates: DbTables[T]['Update']): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
     try {
       const { data, error } = await this.client
-        .from(this.tableName)
+        .from(String(this.tableName))
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error(`Error updating ${String(this.tableName)}:`, error);
+      return { data: null, error };
+    }
+  }
+
+  async delete(id: string): Promise<{ error: any }> {
+    try {
+      const { error } = await this.client
+        .from(String(this.tableName))
         .delete()
-        .eq('id', id)
-        .select()
-        .single()
-      return { data, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
+        .eq('id', id);
+      
+      return { error };
+    } catch (error) {
+      console.error(`Error deleting ${String(this.tableName)}:`, error);
+      return { error };
     }
   }
 
-  /**
-   * Find records by a field value
-  */
-  async findByField(field: keyof Tables[T]['Row'], value: any): Promise<DbListResponse<Tables[T]['Row']>> {
+  async findByField(field: string, value: any): Promise<{ data: DbTables[T]['Row'][] | null; error: any }> {
     try {
       const { data, error } = await this.client
-        .from(this.tableName)
+        .from(String(this.tableName))
         .select('*')
-        .eq(field as string, value)
-      return { data, error }
-    } catch (err) {
-      return { data: null, error: err as PostgrestError }
+        .eq(field, value);
+      
+      return { data, error };
+    } catch (error) {
+      console.error(`Error finding ${String(this.tableName)} by ${field}:`, error);
+      return { data: null, error };
     }
   }
 
-  /**
-   * Count records in the table
-  */
-  async count(): Promise<number> {
+  async count(): Promise<{ data: number | null; error: any }> {
     try {
-      const { count } = await this.client
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true })
-      return count || 0
-    } catch {
-      return 0
+      const { count, error } = await this.client
+        .from(String(this.tableName))
+        .select('*', { count: 'exact', head: true });
+      
+      return { data: count, error };
+    } catch (error) {
+      console.error(`Error counting ${String(this.tableName)}:`, error);
+      return { data: null, error };
     }
   }
 }
 
-export function createRepository<T extends keyof Tables>(
-  tableName: T,
-  client: SupabaseClient<Database> = supabase
-): Repository<T> {
-  return new Repository<T>(client, tableName)
+// Factory function to create typed repositories
+export function createRepository<T extends DbTableName>(tableName: T, client = supabase) {
+  return new GenericRepository(tableName, client);
 }
 
+// Pre-created repositories for common tables
+export const leases = createRepository('leases');
+export const profiles = createRepository('profiles');
+export const vehicles = createRepository('vehicles');
+export const unifiedPayments = createRepository('unified_payments');
+export const paymentSchedules = createRepository('payment_schedules');

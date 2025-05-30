@@ -5,6 +5,7 @@ import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@sup
 // Main database types
 export type DbDatabase = Database;
 export type DbTables = Database['public']['Tables'];
+export type Tables = DbTables; // Export Tables for backward compatibility
 
 // Only include tables that actually exist in the schema
 export type DbTableName = keyof DbTables;
@@ -13,6 +14,13 @@ export type DbTableName = keyof DbTables;
 export type TableRow<T extends DbTableName> = DbTables[T]['Row'];
 export type TableInsert<T extends DbTableName> = DbTables[T]['Insert'];
 export type TableUpdate<T extends DbTableName> = DbTables[T]['Update'];
+
+// Specific table row types
+export type LeaseRow = DbTables['leases']['Row'];
+export type ProfileRow = DbTables['profiles']['Row'];
+export type VehicleRow = DbTables['vehicles']['Row'];
+export type UnifiedPaymentRow = DbTables['unified_payments']['Row'];
+export type PaymentScheduleRow = DbTables['payment_schedules']['Row'];
 
 // Response types
 export type DbResponse<T> = PostgrestResponse<T>;

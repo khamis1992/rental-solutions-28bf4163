@@ -1,95 +1,103 @@
 
-import { Tables, TableRow, TableInsert, TableUpdate, UUID } from './database-types';
-import {
-  type PostgrestSingleResponse,
-  type PostgrestResponse,
-} from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { supabase } from '@/lib/supabase';
+import { DbTables, TableRow, TableInsert, TableUpdate, LeaseId, ProfileId, VehicleId, PaymentId } from './database-types';
 
-export * from './database-types';
+// Helper type for UUID strings
+export type UUID = string;
 
-// Type-safe query builder
-export const createQuery = <T extends keyof Tables>(tableName: T) => {
-  return {
-    findById: async (id: UUID): Promise<TableRow<T> | null> => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
+// Table names type
+export type TableName = keyof DbTables;
 
-      if (error) {
-        console.error(`Error fetching ${tableName}:`, error);
-        return null;
-      }
+// Generic CRUD operations helper
+export class SupabaseTableHelper<T extends TableName> {
+  constructor(
+    private tableName: T,
+    private supabaseClient: any
+  ) {}
 
-      return data as TableRow<T>;
-    },
+  async findAll(): Promise<TableRow<T>[]> {
+    const { data, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .select('*');
+    
+    if (error) throw error;
+    return data || [];
+  }
 
-    create: async (values: TableInsert<T>): Promise<TableRow<T> | null> => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert(values)
-        .select()
-        .single();
+  async findById(id: string): Promise<TableRow<T> | null> {
+    const { data, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
 
-      if (error) {
-        console.error(`Error creating ${tableName}:`, error);
-        return null;
-      }
+  async create(data: TableInsert<T>): Promise<TableRow<T>> {
+    const { data: result, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .insert(data)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return result;
+  }
 
-      return data as TableRow<T>;
-    },
+  async update(id: string, data: TableUpdate<T>): Promise<TableRow<T>> {
+    const { data: result, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return result;
+  }
 
-    update: async (id: UUID, values: TableUpdate<T>): Promise<TableRow<T> | null> => {
-      const { data, error } = await supabase
-        .from(tableName)
-        .update(values)
-        .eq('id', id)
-        .select()
-        .single();
+  async delete(id: string): Promise<void> {
+    const { error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
 
-      if (error) {
-        console.error(`Error updating ${tableName}:`, error);
-        return null;
-      }
+  async findByField(field: string, value: any): Promise<TableRow<T>[]> {
+    const { data, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .select('*')
+      .eq(field, value);
+    
+    if (error) throw error;
+    return data || [];
+  }
 
-      return data as TableRow<T>;
-    },
+  async updateByField(field: string, value: any, updateData: TableUpdate<T>): Promise<TableRow<T>[]> {
+    const { data, error } = await this.supabaseClient
+      .from(String(this.tableName))
+      .update(updateData)
+      .eq(field, value)
+      .select();
+    
+    if (error) throw error;
+    return data || [];
+  }
+}
 
-    delete: async (id: UUID): Promise<boolean> => {
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id);
+// Create typed helpers for specific tables
+export const createLeaseHelper = (supabaseClient: any) => 
+  new SupabaseTableHelper('leases', supabaseClient);
 
-      if (error) {
-        console.error(`Error deleting ${tableName}:`, error);
-        return false;
-      }
+export const createProfileHelper = (supabaseClient: any) => 
+  new SupabaseTableHelper('profiles', supabaseClient);
 
-      return true;
-    },
+export const createVehicleHelper = (supabaseClient: any) => 
+  new SupabaseTableHelper('vehicles', supabaseClient);
 
-    find: async (query: Partial<TableRow<T>>): Promise<TableRow<T>[] | null> => {
-      let builder = supabase.from(tableName).select('*');
-      
-      for (const [key, value] of Object.entries(query)) {
-        builder = builder.eq(key, value);
-      }
-
-      const { data, error } = await builder;
-
-      if (error) {
-        console.error(`Error querying ${tableName}:`, error);
-        return null;
-      }
-
-      return data as TableRow<T>[];
-    }
-  };
-};
-
-export type QueryBuilder<T extends keyof Tables> = ReturnType<typeof createQuery<T>>;
-
+export const createPaymentHelper = (supabaseClient: any) => 
+  new SupabaseTableHelper('unified_payments', supabaseClient);

@@ -27,6 +27,18 @@ export function asPaymentId(id: string): PaymentId {
   return id as PaymentId;
 }
 
+export function asLeaseStatus(status: string): 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired' {
+  return status as 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
+}
+
+export function asPaymentStatus(status: string): 'pending' | 'completed' | 'overdue' | 'cancelled' {
+  return status as 'pending' | 'completed' | 'overdue' | 'cancelled';
+}
+
+export function asTrafficFineStatus(status: string): string {
+  return status;
+}
+
 // Generic helper for table access
 export function getTableRow<T extends AvailableTableName>(
   tableName: T

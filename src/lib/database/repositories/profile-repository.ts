@@ -1,59 +1,119 @@
 
-import { Repository } from '../repository';
-import { Tables, TableRow, DbListResponse, DbSingleResponse } from '../types';
-import { asProfileId } from '../database-types';
 import { supabase } from '@/lib/supabase';
+import { DbTables } from '../types';
+import { asProfileId } from '../database-types';
 
-type ProfileRow = TableRow<'profiles'>;
+export interface ProfileFilters {
+  role?: string;
+  email?: string;
+  full_name?: string;
+}
 
-/**
- * Repository for customer profile related database operations
- */
-export class ProfileRepository extends Repository<'profiles'> {
-  constructor(client: any) {
-    super(client, 'profiles');
+export class ProfileRepository {
+  constructor(private client: any) {}
+
+  async findAll(filters?: ProfileFilters): Promise<{ data: DbTables['profiles']['Row'][] | null; error: any }> {
+    try {
+      let query = this.client.from('profiles').select('*');
+      
+      if (filters?.role) {
+        query = query.eq('role', filters.role);
+      }
+      if (filters?.email) {
+        query = query.ilike('email', `%${filters.email}%`);
+      }
+      if (filters?.full_name) {
+        query = query.ilike('full_name', `%${filters.full_name}%`);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+      return { data: null, error };
+    }
   }
 
-  /**
-   * Find active customer profiles
-   */
-  async findActive(): Promise<DbListResponse<ProfileRow>> {
-    const response = await this.client
-      .from('profiles')
-      .select('*')
-      .eq('status', 'active')
-      .order('full_name', { ascending: true });
-    
-    return { data: response.data, error: response.error };
+  async findById(id: string): Promise<{ data: DbTables['profiles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error fetching profile by ID:', error);
+      return { data: null, error };
+    }
   }
 
-  /**
-   * Search profiles by name or other fields
-   */
-  async search(query: string): Promise<DbListResponse<ProfileRow>> {
-    const response = await this.client
-      .from('profiles')
-      .select('*')
-      .or(`full_name.ilike.%${query}%,email.ilike.%${query}%,phone_number.ilike.%${query}%`)
-      .order('full_name', { ascending: true });
-    
-    return { data: response.data, error: response.error };
+  async create(profileData: DbTables['profiles']['Insert']): Promise<{ data: DbTables['profiles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .insert([profileData])
+        .select()
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error creating profile:', error);
+      return { data: null, error };
+    }
   }
-  
-  /**
-   * Get profile with related leases
-   */
-  async getWithLeases(profileId: string): Promise<DbSingleResponse<ProfileRow & { leases: any[] }>> {
-    const response = await this.client
-      .from('profiles')
-      .select('*, leases(*)')
-      .eq('id', asProfileId(profileId))
-      .single();
-    
-    return { data: response.data, error: response.error };
+
+  async update(id: string, updates: DbTables['profiles']['Update']): Promise<{ data: DbTables['profiles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { data: null, error };
+    }
+  }
+
+  async delete(id: string): Promise<{ error: any }> {
+    try {
+      const { error } = await this.client
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+      
+      return { error };
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      return { error };
+    }
+  }
+
+  async findByEmail(email: string): Promise<{ data: DbTables['profiles']['Row'] | null; error: any }> {
+    try {
+      const { data, error } = await this.client
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error fetching profile by email:', error);
+      return { data: null, error };
+    }
+  }
+
+  async findCustomers(): Promise<{ data: DbTables['profiles']['Row'][] | null; error: any }> {
+    return this.findAll({ role: 'customer' });
   }
 }
 
-// Export the repository instance and the factory function
 export const profileRepository = new ProfileRepository(supabase);
 export const createProfileRepository = (client: any) => new ProfileRepository(client);
