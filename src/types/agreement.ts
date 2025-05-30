@@ -7,48 +7,34 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   profiles?: Database['public']['Tables']['profiles']['Row'];
   vehicles?: Database['public']['Tables']['vehicles']['Row'];
   
-  // Computed/derived fields for backward compatibility
+  // Computed/derived fields
   customer_name?: string;
   vehicle_info?: string;
   terms_accepted?: boolean;
-  
-  // Additional vehicle properties for backward compatibility
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
-  
-  // Additional properties used in reports and other components
   next_payment_date?: string;
-  
-  // Ensure all database fields are properly typed
-  agreement_type?: Database['public']['Tables']['leases']['Row']['agreement_type'];
-  total_amount?: number;
 };
 
+// Database operation types
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];
 export type AgreementUpdate = Database['public']['Tables']['leases']['Update'];
 
-export interface TableFilters {
-  status?: string | string[];
-  statuses?: string[];
-  customer?: string;
-  vehicle?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: 'asc' | 'desc';
-  search?: string;
-}
-
-// Re-export database types for convenience
-export type { Database };
-
-// Helper type for agreement status values
+// Status type from database enum
 export type AgreementStatus = Database['public']['Tables']['leases']['Row']['status'];
+
+// Filter parameters for agreement queries
+export interface AgreementFilterParams {
+  customerId?: string;
+  vehicleId?: string;
+  status?: AgreementStatus;
+  startDate?: string;
+  endDate?: string;
+  agreementNumber?: string;
+  agreementType?: Database['public']['Tables']['leases']['Row']['agreement_type'];
+  searchTerm?: string;
+}
 
 // Helper function to ensure type safety when creating agreements
 export function createAgreementData(data: Partial<Agreement>): AgreementInsert {
