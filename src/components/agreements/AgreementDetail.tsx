@@ -118,28 +118,28 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - convert dates to Date objects for the utils function
+  // Download PDF - ensure dates are Date objects
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         
-        // Convert string dates to Date objects for the PDF generation utility
+        // Ensure dates are Date objects for the PDF generation utility
         const agreementForPdf = {
           ...agreement,
-          start_date: typeof agreement.start_date === 'string' 
-            ? new Date(agreement.start_date) 
-            : agreement.start_date,
-          end_date: typeof agreement.end_date === 'string' 
-            ? new Date(agreement.end_date) 
-            : agreement.end_date,
-          created_at: typeof agreement.created_at === 'string' 
-            ? new Date(agreement.created_at) 
-            : agreement.created_at,
-          updated_at: typeof agreement.updated_at === 'string' 
-            ? new Date(agreement.updated_at) 
-            : agreement.updated_at,
+          start_date: agreement.start_date instanceof Date 
+            ? agreement.start_date 
+            : new Date(agreement.start_date),
+          end_date: agreement.end_date instanceof Date 
+            ? agreement.end_date 
+            : new Date(agreement.end_date),
+          created_at: agreement.created_at instanceof Date 
+            ? agreement.created_at 
+            : new Date(agreement.created_at),
+          updated_at: agreement.updated_at instanceof Date 
+            ? agreement.updated_at 
+            : new Date(agreement.updated_at),
         };
         
         const success = await generatePdfDocument(agreementForPdf as any);
@@ -205,10 +205,22 @@ export function AgreementDetail({
     );
   }
 
-  // Calculate duration for details card - handle string dates
-  const startDate = typeof agreement.start_date === 'string' ? new Date(agreement.start_date) : agreement.start_date;
-  const endDate = typeof agreement.end_date === 'string' ? new Date(agreement.end_date) : agreement.end_date;
+  // Calculate duration for details card - handle both string and Date types
+  const startDate = agreement.start_date instanceof Date 
+    ? agreement.start_date 
+    : new Date(agreement.start_date);
+  const endDate = agreement.end_date instanceof Date 
+    ? agreement.end_date 
+    : new Date(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
+
+  // Helper function to get date string safely
+  const getDateString = (date: string | Date): string => {
+    if (date instanceof Date) {
+      return date.toISOString();
+    }
+    return date;
+  };
 
   return (
     <div className="space-y-6">
@@ -271,8 +283,8 @@ export function AgreementDetail({
         onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handleUpdatePayment}
         onRecordPayment={handleRecordPayment}
-        leaseStartDate={typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date?.toISOString()}
-        leaseEndDate={typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date?.toISOString()}
+        leaseStartDate={getDateString(agreement.start_date)}
+        leaseEndDate={getDateString(agreement.end_date)}
         leaseId={agreement.id}
         agreement={agreement}
       />
@@ -280,8 +292,8 @@ export function AgreementDetail({
       {/* Traffic Fines Section */}
       <AgreementTrafficFines 
         agreementId={agreement.id}
-        startDate={typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date?.toISOString()}
-        endDate={typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date?.toISOString()}
+        startDate={getDateString(agreement.start_date)}
+        endDate={getDateString(agreement.end_date)}
       />
 
       {/* Legal Cases Section */}

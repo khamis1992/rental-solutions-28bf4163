@@ -1,280 +1,172 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Payment } from '@/types/payment.types';
-import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
-import { PaymentStatsCards } from './stats/PaymentStatsCards';
-import { PaymentStatusBar } from './status/PaymentStatusBar';
-import { PaymentActions } from './actions/PaymentActions';
-import { PaymentAnalytics } from './analytics/PaymentAnalytics';
-import { UnifiedPaymentDisplay } from './UnifiedPaymentDisplay';
-import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
-import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
-import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
-import { Agreement } from '@/types/agreement';
-import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { generatePaymentHistoryPdf } from '@/utils/report-utils';
-import { formatDate } from '@/lib/date-utils';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Plus, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
+import { Payment } from '@/types/payment.types';
+import { Agreement } from '@/types/agreement';
+import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
+import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 
-interface PaymentHistoryProps {
+interface PaymentHistorySectionProps {
   payments: Payment[];
   isLoading: boolean;
-  rentAmount: number | null;
-  leaseId?: string;
-  contractAmount?: number | null;
-  onPaymentDeleted?: (paymentId: string) => void;
-  onPaymentUpdated?: (payment: Partial<Payment>) => Promise<boolean>;
-  onRecordPayment?: (payment: Partial<Payment>) => void;
-  showAnalytics?: boolean;
-  agreement?: Agreement | null;
+  agreement: Agreement;
+  onRecordPayment: (payment: Partial<Payment>) => Promise<void>;
+  onUpdatePayment: (payment: Partial<Payment>) => Promise<boolean>;
+  onDeletePayment: (paymentId: string) => Promise<void>;
 }
 
 export function PaymentHistorySection({
-  payments = [],
+  payments,
   isLoading,
-  rentAmount,
-  leaseId,
-  contractAmount = null,
-  onPaymentDeleted,
-  onPaymentUpdated,
+  agreement,
   onRecordPayment,
-  showAnalytics = true,
-  agreement = null
-}: PaymentHistoryProps) {
+  onUpdatePayment,
+  onDeletePayment
+}: PaymentHistorySectionProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
-  // Use payment schedule management
   const {
-    paymentSchedule,
-    isLoading: isLoadingSchedule
-  } = usePaymentScheduleManagement(agreement?.id);
+    syncAll,
+    isPending
+  } = useAgreementPaymentSync(agreement.id);
 
-  // Auto-sync payment schedules with enhanced logging
-  const { 
-    needsScheduleGeneration, 
-    syncAgreementPayments 
-  } = useAgreementPaymentSync({
-    agreement,
-    autoGenerate: true
-  });
-  
-  // Use the payment calculation hook
-  const {
-    totalAmount,
-    amountPaid,
-    balance,
-    lateFees
-  } = usePaymentCalculation(payments, contractAmount);
-  
-  // Calculate payment status counts from actual payments only
-  const paidOnTime = payments.filter(p => p.status === 'completed').length;
-  const paidLate = 0; // TODO: Implement late payment detection
-  const unpaid = payments.filter(p => p.status === 'pending' || p.status === 'failed').length;
+  const handleRecordPayment = async (
+    amount: number,
+    date: Date,
+    notes?: string,
+    method?: string,
+    reference?: string
+  ) => {
+    const newPayment: Partial<Payment> = {
+      amount,
+      payment_date: date.toISOString(),
+      description: notes || '',
+      payment_method: method || 'cash',
+      reference_number: reference || '',
+      lease_id: agreement.id,
+      status: 'completed'
+    };
 
-  const handlePaymentCreated = (payment: Partial<Payment>) => {
-    if (onRecordPayment) {
-      onRecordPayment(payment);
-      setIsPaymentDialogOpen(false);
+    await onRecordPayment(newPayment);
+    return true;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'overdue':
+        return 'destructive';
+      default:
+        return 'default';
     }
   };
 
-  const handleRecordPaymentClick = () => {
-    setSelectedPayment(null);
-    setIsPaymentDialogOpen(true);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-QA', {
+      style: 'currency',
+      currency: 'QAR'
+    }).format(amount);
   };
 
-  const handleRecordScheduledPayment = (scheduleItem: any) => {
-    // Pre-fill payment dialog with schedule item data
-    setSelectedPayment({
-      amount: scheduleItem.amount,
-      due_date: scheduleItem.due_date,
-      description: scheduleItem.description || `Payment for ${formatDate(new Date(scheduleItem.due_date), 'MMM yyyy')}`,
-      lease_id: leaseId
-    } as Payment);
-    setIsPaymentDialogOpen(true);
-  };
-
-  const handleExportHistoryClick = () => {
-    try {
-      const paymentHistoryData = payments.map(payment => ({
-        description: payment.description || 'Payment',
-        amount: payment.amount || 0,
-        dueDate: payment.due_date ? formatDate(payment.due_date, 'MMM d, yyyy') : '',
-        paymentDate: payment.payment_date ? formatDate(payment.payment_date, 'MMM d, yyyy') : '',
-        status: payment.status || '',
-        lateFee: payment.late_fine_amount || 0,
-        total: (payment.amount || 0) + (payment.late_fine_amount || 0)
-      }));
-
-      const doc = generatePaymentHistoryPdf(paymentHistoryData, "Payment History");
-      doc.save("payment-history.pdf");
-      toast.success("Payment history exported successfully");
-    } catch (error) {
-      console.error("Error exporting payment history:", error);
-      toast.error("Failed to export payment history");
-    }
-  };
-
-  const handleSyncPayments = async () => {
-    if (!agreement?.id) return;
-    
-    try {
-      await syncAgreementPayments();
-      toast.success("Payment data synchronized successfully");
-    } catch (error) {
-      console.error("Failed to sync payments:", error);
-      toast.error("Failed to sync payment data");
-    }
-  };
-
-  const handlePaymentSubmit = async (
-    amount: number, 
-    date: Date, 
-    notes?: string, 
-    method?: string, 
-    reference?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartial?: boolean,
-    paymentType?: string
-  ): Promise<boolean> => {
-    if (selectedPayment && selectedPayment.id && onPaymentUpdated) {
-      try {
-        const paymentData: Partial<Payment> = {
-          id: selectedPayment.id,
-          amount,
-          payment_date: date.toISOString(),
-          description: notes,
-          payment_method: method,
-          reference_number: reference,
-          status: amount === 0 ? 'cancelled' : 'completed',
-          type: paymentType || selectedPayment.type || 'rent',
-        };
-        
-        const success = await onPaymentUpdated(paymentData);
-        if (success) {
-          toast.success(amount === 0 ? "Payment cancelled successfully" : "Payment updated successfully");
-          setIsPaymentDialogOpen(false);
-          return true;
-        } else {
-          toast.error("Failed to update payment");
-          return false;
-        }
-      } catch (error) {
-        console.error("Error updating payment:", error);
-        toast.error("Failed to update payment");
-        return false;
-      }
-    } else if (onRecordPayment && leaseId) {
-      const paymentData: Partial<Payment> = {
-        amount,
-        payment_date: date.toISOString(),
-        description: notes,
-        payment_method: method,
-        reference_number: reference,
-        lease_id: leaseId,
-        status: 'completed',
-        type: paymentType || 'rent'
-      };
-      
-      handlePaymentCreated(paymentData);
-      return true;
-    }
-    
-    return false;
-  };
-
-  const currentIsLoading = isLoading || isLoadingSchedule;
-
-  return (
-    <div className="space-y-4">
+  if (isLoading) {
+    return (
       <Card>
         <CardHeader>
           <CardTitle>Payment History</CardTitle>
-          <CardDescription>
-            Track all financial transactions and scheduled payments for this agreement
-            {needsScheduleGeneration && (
-              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                <div className="flex items-start justify-between">
-                  <div className="text-sm text-amber-800">
-                    <p className="font-medium">⚠️ Payment Schedule Missing</p>
-                    <p>This active agreement needs a payment schedule to track payments properly.</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleSyncPayments}
-                    className="ml-4 text-amber-700 border-amber-300 hover:bg-amber-100"
-                  >
-                    Sync Now
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          {currentIsLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin w-8 h-8 border-t-2 border-blue-500 rounded-full"></div>
-            </div>
-          ) : (
-            <>
-              <PaymentStatsCards 
-                totalAmount={totalAmount} 
-                amountPaid={amountPaid} 
-                balance={balance} 
-                lateFees={lateFees} 
-              />
-              
-              <PaymentStatusBar 
-                paidOnTime={paidOnTime} 
-                paidLate={paidLate} 
-                unpaid={unpaid} 
-                totalPayments={payments.length} 
-              />
-
-              <div className="flex justify-between items-center mb-4">
-                <PaymentActions 
-                  rentAmount={rentAmount} 
-                  onRecordPaymentClick={handleRecordPaymentClick}
-                  onExportHistoryClick={handleExportHistoryClick}
-                />
-              </div>
-              
-              <UnifiedPaymentDisplay
-                payments={payments}
-                scheduleItems={paymentSchedule}
-                onRecordPayment={handleRecordScheduledPayment}
-                isLoading={currentIsLoading}
-              />
-            </>
-          )}
+          <div className="text-center py-8">Loading payment history...</div>
         </CardContent>
       </Card>
-      
-      {isPaymentDialogOpen && (
-        <PaymentEntryDialog
-          open={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={handlePaymentSubmit}
-          defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
-          title={selectedPayment ? "Record Payment" : "Record Payment"}
-          description={selectedPayment ? "Record payment for scheduled item" : "Add a new payment to this agreement"}
-          leaseId={leaseId}
-          rentAmount={rentAmount}
-          selectedPayment={selectedPayment}
-        />
-      )}
-      
-      {showAnalytics && (
-        <PaymentAnalytics
-          amountPaid={amountPaid}
-          balance={balance}
-          lateFees={lateFees}
-        />
-      )}
-    </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Payment History</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncAll}
+              disabled={isPending.all}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isPending.all ? 'animate-spin' : ''}`} />
+              Sync Payments
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setIsPaymentDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Record Payment
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {payments.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No payments recorded yet
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {payments.map((payment) => (
+              <div
+                key={payment.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">
+                      {formatCurrency(payment.amount)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(payment.payment_date), 'PPP')}
+                    </div>
+                    {payment.description && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {payment.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant={getStatusColor(payment.status)}>
+                    {payment.status}
+                  </Badge>
+                  {payment.payment_method && (
+                    <Badge variant="outline">
+                      {payment.payment_method}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <PaymentEntryDialog
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        onSubmit={handleRecordPayment}
+        defaultAmount={agreement.rent_amount}
+        title="Record Payment"
+        description="Add a new payment to this agreement"
+        leaseId={agreement.id}
+        rentAmount={agreement.rent_amount}
+      />
+    </Card>
   );
 }

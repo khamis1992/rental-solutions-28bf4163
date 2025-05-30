@@ -1,10 +1,16 @@
 
 import { PostgrestError } from '@supabase/supabase-js';
 
+export interface ServiceResult<T> {
+  success: boolean;
+  data: T | null;
+  error: string | null;
+}
+
 export class BaseService {
   constructor(private supabaseClient: any) {}
 
-  protected success<T>(data: T) {
+  protected success<T>(data: T): ServiceResult<T> {
     return {
       success: true,
       data,
@@ -12,7 +18,7 @@ export class BaseService {
     };
   }
 
-  protected error(error: any, message?: string) {
+  protected error<T>(error: any, message?: string): ServiceResult<T> {
     console.error('Service error:', message || 'Unknown error', error);
     return {
       success: false,
@@ -57,7 +63,7 @@ export class BaseService {
   protected async safeExecute<T>(
     operation: () => Promise<T>,
     errorMessage: string = 'Operation failed'
-  ) {
+  ): Promise<ServiceResult<T>> {
     try {
       const result = await operation();
       return this.success(result);

@@ -1,267 +1,197 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { FormField, FormGroup, FormRow, FormSection } from '@/components/ui/form-components';
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { Payment } from '@/types/payment.types';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 
-export interface PaymentEntryDialogProps {
+interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedPayment?: Payment | null;
   onSubmit: (
     amount: number,
-    paymentDate: Date,
+    date: Date,
     notes?: string,
-    paymentMethod?: string,
-    referenceNumber?: string,
+    method?: string,
+    reference?: string,
     includeLatePaymentFee?: boolean,
     isPartialPayment?: boolean,
     paymentType?: string
   ) => Promise<boolean>;
-  defaultAmount?: number | null;
-  leaseId?: string;
-  rentAmount?: number | null;
+  defaultAmount?: number;
   title?: string;
   description?: string;
-  lateFeeDetails?: {
-    amount: number;
-    daysLate: number;
-  } | null;
+  leaseId: string;
+  rentAmount?: number | null;
+  selectedPayment?: Payment | null;
 }
-
-// Define common payment types - moved outside component to prevent recreations on renders
-const PAYMENT_TYPES = [
-  { value: 'rent', label: 'Rent' },
-  { value: 'deposit', label: 'Security Deposit' },
-  { value: 'late_fee', label: 'Late Fee' },
-  { value: 'damage', label: 'Damage Fee' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'refund', label: 'Refund' },
-  { value: 'other', label: 'Other' }
-];
 
 export function PaymentEntryDialog({
   open,
   onOpenChange,
-  selectedPayment,
   onSubmit,
-  defaultAmount,
-  title = "Enter Payment Details",
-  description = "Provide the necessary information to record the payment.",
-  lateFeeDetails = null
+  defaultAmount = 0,
+  title = "Record Payment",
+  description = "Enter payment details",
+  leaseId,
+  rentAmount,
+  selectedPayment
 }: PaymentEntryDialogProps) {
-  const [amount, setAmount] = useState(0 as number);
-  const [paymentDate, setPaymentDate] = useState(new Date() as Date);
-  const [notes, setNotes] = useState('' as string);
-  const [paymentMethod, setPaymentMethod] = useState('cash' as string);
-  const [referenceNumber, setReferenceNumber] = useState('' as string);
-  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState(false as boolean);
-  const [isPartialPayment, setIsPartialPayment] = useState(false as boolean);
-  const [paymentType, setPaymentType] = useState('rent' as string);
-  const [showVoidWarning, setShowVoidWarning] = useState(false as boolean);
+  const [amount, setAmount] = useState<string>(defaultAmount.toString());
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [description_text, setDescription] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Update form values when selected payment changes or default amount changes
+  // Reset form when dialog opens or selectedPayment changes
   useEffect(() => {
     if (selectedPayment) {
-      setAmount(selectedPayment.amount || 0);
-      setPaymentDate(selectedPayment.payment_date ? new Date(selectedPayment.payment_date) : new Date());
-      setNotes(selectedPayment.notes || selectedPayment.description || '');
+      setAmount((selectedPayment.amount || 0).toString());
+      setPaymentDate(new Date(selectedPayment.payment_date));
+      setDescription(selectedPayment.description || '');
       setPaymentMethod(selectedPayment.payment_method || 'cash');
-      setReferenceNumber(selectedPayment.reference_number || selectedPayment.transaction_id || '');
-      setPaymentType(selectedPayment.type || 'rent');
+      setReferenceNumber(selectedPayment.reference_number || '');
     } else {
-      // Reset form when no payment is selected
-      setAmount(defaultAmount || 0);
+      setAmount(defaultAmount.toString());
       setPaymentDate(new Date());
-      setNotes('');
+      setDescription('');
       setPaymentMethod('cash');
       setReferenceNumber('');
-      setIncludeLatePaymentFee(false);
-      setIsPartialPayment(false);
-      setPaymentType('rent');
     }
-  }, [selectedPayment, defaultAmount]); // Only depend on selectedPayment and defaultAmount
+  }, [selectedPayment, defaultAmount, open]);
 
-  // Check if the amount is zero and show a warning - optimized dependency
-  useEffect(() => {
-    const isZeroAmount = amount === 0;
-    const shouldShowWarning = Boolean(selectedPayment) && isZeroAmount;
-    setShowVoidWarning(shouldShowWarning);
-  }, [amount, selectedPayment]); // Only depend on amount and whether selectedPayment exists
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  // Memoize the handleSubmit function to avoid recreating it on each render
-  const handleSubmit = useCallback(async () => {
-    const success = await onSubmit(
-      amount,
-      paymentDate,
-      notes,
-      paymentMethod,
-      referenceNumber,
-      includeLatePaymentFee,
-      isPartialPayment,
-      paymentType
-    );
-    
-    if (success) {
-      onOpenChange(false);
+    try {
+      const success = await onSubmit(
+        parseFloat(amount),
+        paymentDate,
+        description_text,
+        paymentMethod,
+        referenceNumber
+      );
+
+      if (success) {
+        onOpenChange(false);
+        // Reset form
+        setAmount(defaultAmount.toString());
+        setPaymentDate(new Date());
+        setDescription('');
+        setPaymentMethod('cash');
+        setReferenceNumber('');
+      }
+    } catch (error) {
+      console.error('Error submitting payment:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [
-    amount, 
-    paymentDate, 
-    notes, 
-    paymentMethod, 
-    referenceNumber, 
-    includeLatePaymentFee, 
-    isPartialPayment, 
-    paymentType, 
-    onSubmit, 
-    onOpenChange
-  ]);
-
-  // Calculate button text based on payment state - memoized to avoid recalculation
-  const buttonText = useMemo(() => {
-    if (selectedPayment && amount === 0) return 'Void Payment';
-    return selectedPayment ? 'Update Payment' : 'Submit Payment';
-  }, [selectedPayment, amount]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <FormSection title={title} description={description}>
-          {showVoidWarning && (
-            <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-300">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <AlertDescription>
-                Setting amount to 0 will mark this transaction as void.
-              </AlertDescription>
-            </Alert>
-          )}
-          <FormGroup>
-            <FormRow>
-              <FormField label="Amount" htmlFor="amount">
-                <Input
-                  type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                />
-              </FormField>
-            </FormRow>
-            <FormRow>
-              <FormField label="Payment Date" htmlFor="paymentDate">
-                <Input
-                  type="date"
-                  id="paymentDate"
-                  value={paymentDate.toISOString().split('T')[0]}
-                  onChange={(e) => setPaymentDate(new Date(e.target.value))}
-                />
-              </FormField>
-            </FormRow>
-          </FormGroup>
-          <FormGroup>
-            <FormRow>
-              <FormField label="Payment Type" htmlFor="paymentType">
-                <Select
-                  value={paymentType}
-                  onValueChange={(value) => setPaymentType(value)}
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="amount">Amount (QAR)</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter payment amount"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Payment Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !paymentDate && "text-muted-foreground"
+                  )}
                 >
-                  <SelectTrigger id="paymentType">
-                    <SelectValue placeholder="Select payment type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </FormRow>
-            <FormRow>
-              <FormField label="Payment Method" htmlFor="paymentMethod">
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(value) => setPaymentMethod(value)}
-                >
-                  <SelectTrigger id="paymentMethod">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="credit_card">Credit Card</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </FormRow>
-            <FormRow>
-              <FormField label="Reference Number" htmlFor="referenceNumber">
-                <Input
-                  type="text"
-                  id="referenceNumber"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={paymentDate}
+                  onSelect={(date) => date && setPaymentDate(date)}
+                  initialFocus
                 />
-              </FormField>
-            </FormRow>
-          </FormGroup>
-          <FormGroup>
-            <FormRow>
-              <FormField label="Notes" htmlFor="notes">
-                <textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                />
-              </FormField>
-            </FormRow>
-          </FormGroup>
-          <FormGroup>
-            {lateFeeDetails && lateFeeDetails.amount > 0 && (
-              <FormRow>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={includeLatePaymentFee}
-                    onChange={(e) => setIncludeLatePaymentFee(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <span>Include Late Payment Fee (QAR {lateFeeDetails.amount} for {lateFeeDetails.daysLate} days)</span>
-                </label>
-              </FormRow>
-            )}
-            <FormRow>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={isPartialPayment}
-                  onChange={(e) => setIsPartialPayment(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <span>Is Partial Payment</span>
-              </label>
-            </FormRow>
-          </FormGroup>
-          <button
-            onClick={handleSubmit}
-            className="w-full bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
-          >
-            {buttonText}
-          </button>
-        </FormSection>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="method">Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="check">Check</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reference">Reference Number</Label>
+            <Input
+              id="reference"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              placeholder="Transaction reference (optional)"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description_text}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Payment description or notes (optional)"
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Recording...' : 'Record Payment'}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

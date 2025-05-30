@@ -42,17 +42,14 @@ export function useUnifiedPayments({
   } = usePaymentScheduleManagement(agreement?.id);
 
   // Auto-sync payment schedules
-  const { needsScheduleGeneration } = useAgreementPaymentSync({
-    agreement,
-    autoGenerate: true
-  });
+  const { syncAll } = useAgreementPaymentSync(agreement?.id);
 
   // Merge actual payments with scheduled payments
   const unifiedPayments = useMemo(() => {
     if (!showProjectedPayments) {
       return actualPayments.map(payment => ({
         id: payment.id || '',
-        dueDate: new Date(payment.payment_date || payment.due_date || new Date()),
+        dueDate: new Date(payment.payment_date || new Date()),
         amount: payment.amount || 0,
         description: payment.description || 'Payment',
         status: payment.status === 'completed' ? 'completed' as const : 
@@ -127,7 +124,7 @@ export function useUnifiedPayments({
       lease_id: agreement.id,
       amount: actualAmount || scheduledPayment.amount,
       payment_date: (paymentDate || new Date()).toISOString(),
-      due_date: scheduledPayment.due_date,
+      original_due_date: scheduledPayment.due_date,
       description: scheduledPayment.description,
       status: 'completed' as const,
       type: 'rent',
@@ -147,6 +144,6 @@ export function useUnifiedPayments({
     deletePayment,
     hasSchedule: scheduledPayments.length > 0,
     hasActualPayments: actualPayments.length > 0,
-    needsScheduleGeneration
+    syncAll
   };
 }

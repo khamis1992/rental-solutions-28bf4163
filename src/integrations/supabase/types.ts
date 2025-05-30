@@ -6166,6 +6166,7 @@ export type Database = {
           amount: number
           balance: number | null
           created_at: string | null
+          description: string | null
           due_date: string
           id: string
           is_recurring: boolean | null
@@ -6185,6 +6186,7 @@ export type Database = {
           amount: number
           balance?: number | null
           created_at?: string | null
+          description?: string | null
           due_date: string
           id?: string
           is_recurring?: boolean | null
@@ -6204,6 +6206,7 @@ export type Database = {
           amount?: number
           balance?: number | null
           created_at?: string | null
+          description?: string | null
           due_date?: string
           id?: string
           is_recurring?: boolean | null
