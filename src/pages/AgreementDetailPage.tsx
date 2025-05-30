@@ -40,6 +40,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { usePayment } from '@/hooks/use-payment';
 import DocumentList from '@/components/documents/DocumentList';
 import { DocumentEntityType } from '@/types/document.types';
+import { useAgreementService } from '@/hooks/services/useAgreementService';
 
 const AgreementDetailPage = () => {
   const {
@@ -54,6 +55,10 @@ const AgreementDetailPage = () => {
     error,
     deleteAgreement
   } = useAgreement(id);
+  
+  // Use the new agreement service for enhanced deletion
+  const { deleteAgreement: enhancedDeleteAgreement } = useAgreementService();
+  
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
@@ -172,6 +177,17 @@ const AgreementDetailPage = () => {
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error('Failed to generate agreement report');
+    }
+  };
+
+  // Enhanced delete handler with better error handling
+  const handleDeleteAgreement = async (agreementId: string) => {
+    try {
+      await enhancedDeleteAgreement(agreementId);
+      navigate('/agreements');
+    } catch (error) {
+      console.error('Error deleting agreement:', error);
+      // Error toast is already shown by the service
     }
   };
 
@@ -392,7 +408,7 @@ const AgreementDetailPage = () => {
         <Button variant="outline" size="sm" onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
           Edit
         </Button>
-        <Button variant="destructive" size="sm" onClick={() => deleteAgreement(agreement.id)}>
+        <Button variant="destructive" size="sm" onClick={() => handleDeleteAgreement(agreement.id)}>
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </Button>
@@ -405,7 +421,7 @@ const AgreementDetailPage = () => {
           <div className="hidden">
             <AgreementDetail 
               agreement={agreement} 
-              onDelete={deleteAgreement} 
+              onDelete={handleDeleteAgreement} 
               rentAmount={rentAmount} 
               contractAmount={contractAmount} 
               onPaymentDeleted={refreshAgreementData} 
@@ -536,14 +552,14 @@ const AgreementDetailPage = () => {
                 onPaymentDeleted={handleDeletePayment}
                 leaseStartDate={agreement.start_date}
                 leaseEndDate={agreement.end_date}
-                onRecordPayment={(payment) => {
+                onRecordPayment={async (payment) => {
                   if (payment && id) {
                     const fullPayment = {
                       ...payment,
                       lease_id: id,
                       status: 'completed' as PaymentStatus
                     };
-                    addPayment(fullPayment);
+                    await addPayment(fullPayment);
                     fetchPayments();
                   }
                 }}
@@ -640,6 +656,7 @@ const AgreementDetailPage = () => {
       defaultAmount={rentAmount || 0}
       title="Record Payment"
       description="Enter payment details to record a new payment"
+      leaseId={id || ''}
     />
   </PageContainer>;
 };

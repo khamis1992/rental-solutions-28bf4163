@@ -183,7 +183,7 @@ export function AgreementDeletionDialog({
           <LoadingButton
             variant="destructive"
             onClick={handleConfirmDelete}
-            loading={isDeleting}
+            isLoading={isDeleting}
             disabled={isLoading || !validation}
             className="gap-2"
           >

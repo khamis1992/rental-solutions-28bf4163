@@ -1,6 +1,5 @@
 
 // Central database exports
-export * from './database-types';
 export * from './types';
 export * from './type-utils';
 
@@ -14,4 +13,4 @@ export type {
   LeaseId,
   VehicleId,
   PaymentId
-} from './database-types';
+} from './types';
