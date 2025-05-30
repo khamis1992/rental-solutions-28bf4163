@@ -1,50 +1,49 @@
 
 import { Database } from '@/types/database.types';
 
-/**
- * Type-safe utility functions for working with database columns
- */
+// Only include table names that exist in the actual database schema
+export type AvailableTableName = keyof Database['public']['Tables'];
 
-// Generic type for any database column
-export type DbColumnValue<T extends keyof Database['public']['Tables'], K extends keyof Database['public']['Tables'][T]['Row']> = 
-  Database['public']['Tables'][T]['Row'][K];
+// ID types for type safety
+export type LeaseId = string;
+export type ProfileId = string; 
+export type VehicleId = string;
+export type PaymentId = string;
 
-// Function to safely cast status values to their proper types
-export function asColumnValue<
-  T extends keyof Database['public']['Tables'], 
-  K extends keyof Database['public']['Tables'][T]['Row']
->(tableName: T, columnName: K, value: unknown): DbColumnValue<T, K> {
-  return value as DbColumnValue<T, K>;
+// Type-safe ID casting functions for existing tables only
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
 }
 
-// Commonly used column types
-export type LeaseStatus = DbColumnValue<'leases', 'status'>;
-export type PaymentStatus = DbColumnValue<'unified_payments', 'status'>;
-export type TrafficFineStatus = DbColumnValue<'traffic_fines', 'status'>;
-export type VehicleId = DbColumnValue<'vehicles', 'id'>;
-export type LeaseId = DbColumnValue<'leases', 'id'>;
-export type CustomerId = DbColumnValue<'profiles', 'id'>;
-export type PaymentId = DbColumnValue<'unified_payments', 'id'>;
-export type TrafficFineId = DbColumnValue<'traffic_fines', 'id'>;
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
+}
 
-// Helper functions for common columns
-export const asLeaseStatus = (value: string): LeaseStatus => 
-  asColumnValue('leases', 'status', value);
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
+}
 
-export const asPaymentStatus = (value: string): PaymentStatus => 
-  asColumnValue('unified_payments', 'status', value);
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
+}
 
-export const asTrafficFineStatus = (value: string): TrafficFineStatus => 
-  asColumnValue('traffic_fines', 'status', value);
+// Generic helper for table access
+export function getTableRow<T extends AvailableTableName>(
+  tableName: T
+): Database['public']['Tables'][T]['Row'] {
+  // This is a type helper function, implementation would depend on actual usage
+  throw new Error(`Table ${tableName} access not implemented`);
+}
 
-export const asVehicleId = (value: string): VehicleId => 
-  asColumnValue('vehicles', 'id', value);
+// Status validation helpers
+export function isValidLeaseStatus(status: string): status is 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired' {
+  return ['active', 'closed', 'cancelled', 'draft', 'pending', 'expired'].includes(status);
+}
 
-export const asLeaseId = (value: string): LeaseId => 
-  asColumnValue('leases', 'id', value);
+export function isValidVehicleStatus(status: string): status is 'available' | 'rented' | 'maintenance' | 'sold' | 'retired' {
+  return ['available', 'rented', 'maintenance', 'sold', 'retired'].includes(status);
+}
 
-export const asCustomerId = (value: string): CustomerId => 
-  asColumnValue('profiles', 'id', value);
-
-export const asPaymentId = (value: string): PaymentId =>
-  asColumnValue('unified_payments', 'id', value);
+export function isValidPaymentStatus(status: string): status is 'pending' | 'completed' | 'overdue' | 'cancelled' {
+  return ['pending', 'completed', 'overdue', 'cancelled'].includes(status);
+}

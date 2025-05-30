@@ -1,57 +1,47 @@
 
-import { type PostgrestError } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
-// Helper type for easy table access
-export type Tables = Database['public']['Tables'];
-export type Schema = keyof Database;
+// Main database types
+export type DbDatabase = Database;
+export type DbTables = Database['public']['Tables'];
 
-// Table row types
-export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
-export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
-export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
+// Only include tables that actually exist in the schema
+export type DbTableName = keyof DbTables;
 
-// Common ID type
-export type DatabaseId = string;
-export type UUID = string;
+// Table row types for existing tables
+export type TableRow<T extends DbTableName> = DbTables[T]['Row'];
+export type TableInsert<T extends DbTableName> = DbTables[T]['Insert'];
+export type TableUpdate<T extends DbTableName> = DbTables[T]['Update'];
 
-// Database response types
+// Response types
+export type DbResponse<T> = PostgrestResponse<T>;
+export type DbSingleResponse<T> = PostgrestSingleResponse<T>;
+export type DbError = PostgrestError;
+
+// List and single response helpers
 export type DbListResponse<T> = {
   data: T[] | null;
-  error: PostgrestError | null;
+  error: DbError | null;
 };
 
-export type DbSingleResponse<T> = {
+export type DbItemResponse<T> = {
   data: T | null;
-  error: PostgrestError | null;
+  error: DbError | null;
 };
 
-/**
- * Type guard for checking if response has data
- */
-export function hasData<T>(
-  response: DbListResponse<T> | DbSingleResponse<T>
-): response is
-  | (DbListResponse<T> & { data: T[] })
-  | (DbSingleResponse<T> & { data: T }) {
-  return !response.error && response.data !== null;
-}
+// Generic filter type
+export type DbFilter<T extends DbTableName> = Partial<TableRow<T>>;
 
-/**
- * Type-safe status check
- */
-export function isValidStatus<T extends { status: string }>(record: T, status: T['status']): boolean {
-  return record.status === status;
-}
-
-// Export commonly used table types
-export type LeaseRow = TableRow<'leases'>;
-export type PaymentRow = TableRow<'unified_payments'>;
-export type VehicleRow = TableRow<'vehicles'>;
-export type ProfileRow = TableRow<'profiles'>;
-export type TrafficFineRow = TableRow<'traffic_fines'>;
+// Query options
+export type DbQueryOptions = {
+  limit?: number;
+  offset?: number;
+  orderBy?: string;
+  ascending?: boolean;
+};
 
 // Common status types
-export type VehicleStatus = VehicleRow['status']; 
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status'];
+export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
+export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';

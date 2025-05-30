@@ -1,78 +1,56 @@
 
 import { Database } from '@/types/database.types';
 
-// Helper type for easy table access
+// Re-export main database type
+export type { Database };
+
+// Table types for type safety
 export type Tables = Database['public']['Tables'];
+export type TableName = keyof Tables;
 
-// Export commonly used table types
+// Row types for each table
 export type LeaseRow = Tables['leases']['Row'];
-export type PaymentRow = Tables['unified_payments']['Row'];
-export type VehicleRow = Tables['vehicles']['Row'];
 export type ProfileRow = Tables['profiles']['Row'];
-export type TrafficFineRow = Tables['traffic_fines']['Row'];
+export type VehicleRow = Tables['vehicles']['Row'];
+export type UnifiedPaymentRow = Tables['unified_payments']['Row'];
+export type PaymentScheduleRow = Tables['payment_schedules']['Row'];
 
-// Common status types
-export type VehicleStatus = VehicleRow['status']; 
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status']; 
+// Insert types
+export type LeaseInsert = Tables['leases']['Insert'];
+export type ProfileInsert = Tables['profiles']['Insert'];
+export type VehicleInsert = Tables['vehicles']['Insert'];
+export type UnifiedPaymentInsert = Tables['unified_payments']['Insert'];
+export type PaymentScheduleInsert = Tables['payment_schedules']['Insert'];
 
-/**
- * Type-safe status conversion functions
- */
-export function asLeaseStatus(status: string): LeaseStatus {
-  return status as LeaseStatus;
+// Update types
+export type LeaseUpdate = Tables['leases']['Update'];
+export type ProfileUpdate = Tables['profiles']['Update'];
+export type VehicleUpdate = Tables['vehicles']['Update'];
+export type UnifiedPaymentUpdate = Tables['unified_payments']['Update'];
+export type PaymentScheduleUpdate = Tables['payment_schedules']['Update'];
+
+// Custom types for tables not in main schema (like traffic_fines)
+export type TrafficFineRow = {
+  id: string;
+  lease_id: string;
+  fine_amount: number;
+  fine_date: string;
+  status: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TrafficFineInsert = Omit<TrafficFineRow, 'id' | 'created_at' | 'updated_at'>;
+export type TrafficFineUpdate = Partial<TrafficFineInsert>;
+
+// Helper function to get table type
+export function getTableType<T extends TableName>(tableName: T): Tables[T] {
+  // This is a type helper function
+  return {} as Tables[T];
 }
 
-export function asVehicleStatus(status: string): VehicleStatus {
-  return status as VehicleStatus;
-}
-
-export function asPaymentStatus(status: string): PaymentStatus {
-  return status as PaymentStatus;
-}
-
-/**
- * Type-safe ID conversion functions
- */
-export function asLeaseId(id: string): string {
-  return id;
-}
-
-export function asVehicleId(id: string): string {
-  return id;
-}
-
-export function asProfileId(id: string): string {
-  return id;
-}
-
-export function asPaymentId(id: string): string {
-  return id;
-}
-
-export function asTrafficFineId(id: string): string {
-  return id;
-}
-
-export function asMaintenanceId(id: string): string {
-  return id;
-}
-
-/**
- * Type guard for table rows
- */
-export function isLeaseRow(obj: any): obj is LeaseRow {
-  return obj && typeof obj.id === 'string';
-}
-
-export function isVehicleRow(obj: any): obj is VehicleRow {
-  return obj && typeof obj.id === 'string' && typeof obj.license_plate === 'string';
-}
-
-export function isPaymentRow(obj: any): obj is PaymentRow {
-  return obj && typeof obj.id === 'string' && typeof obj.amount === 'number';
-}
-
-export function isProfileRow(obj: any): obj is ProfileRow {
-  return obj && typeof obj.id === 'string' && typeof obj.email === 'string';
-}
+// Status enums
+export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
+export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';

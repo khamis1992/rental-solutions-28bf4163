@@ -1,68 +1,99 @@
 
-import {
-  type PostgrestSingleResponse,
-  type PostgrestResponse,
-} from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-export { isSuccessResponse } from './database/validation/typeGuards';
 
-// Helper type for easy table access
-export type Tables = Database['public']['Tables'];
-export type Schema = keyof Database;
+// Re-export the main database type
+export type { Database };
 
-// Table row types
-export type TableRow<T extends keyof Tables> = Tables[T]['Row'];
-export type TableInsert<T extends keyof Tables> = Tables[T]['Insert'];
-export type TableUpdate<T extends keyof Tables> = Tables[T]['Update'];
+// Specific table types for better type safety
+export type LeaseRow = Database['public']['Tables']['leases']['Row'];
+export type LeaseInsert = Database['public']['Tables']['leases']['Insert'];
+export type LeaseUpdate = Database['public']['Tables']['leases']['Update'];
 
-// Common ID type
-export type DatabaseId = string;
-export type UUID = string;
+export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+export type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+export type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
-// Generic response handler with strong typing
-export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
-  if (response.error) {
-    console.error('Database error:', response.error);
-    return null;
-  }
-  return (response.data as unknown as T) || null;
+export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
+export type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];
+export type VehicleUpdate = Database['public']['Tables']['vehicles']['Update'];
+
+export type UnifiedPaymentRow = Database['public']['Tables']['unified_payments']['Row'];
+export type UnifiedPaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
+export type UnifiedPaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
+
+export type PaymentScheduleRow = Database['public']['Tables']['payment_schedules']['Row'];
+export type PaymentScheduleInsert = Database['public']['Tables']['payment_schedules']['Insert'];
+export type PaymentScheduleUpdate = Database['public']['Tables']['payment_schedules']['Update'];
+
+// Add traffic fines and other missing table types - using generic approach since they're not in schema
+export type TrafficFineRow = {
+  id: string;
+  lease_id: string;
+  fine_amount: number;
+  fine_date: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MaintenanceRow = {
+  id: string;
+  vehicle_id: string;
+  maintenance_type: string;
+  cost: number;
+  maintenance_date: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// ID type helpers for better type safety
+export type LeaseId = string;
+export type ProfileId = string;
+export type VehicleId = string;
+export type PaymentId = string;
+export type TrafficFineId = string;
+export type MaintenanceId = string;
+
+// Status enums from database
+export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
+export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';
+
+// Helper function to cast strings to proper ID types
+export function asLeaseId(id: string): LeaseId {
+  return id as LeaseId;
 }
 
-// Type safe ID converter
-export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+export function asProfileId(id: string): ProfileId {
+  return id as ProfileId;
 }
 
-// Type guard for checking if response has data
-export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function asVehicleId(id: string): VehicleId {
+  return id as VehicleId;
 }
 
-// Type-safe column selector
-export function selectColumn<T extends keyof Tables, K extends keyof Tables[T]['Row']>(
-  table: T,
-  column: K
-): K {
-  return column;
+export function asPaymentId(id: string): PaymentId {
+  return id as PaymentId;
 }
 
-// Type-safe status check
-export function isValidStatus<T extends { status: string }>(record: T, status: T['status']): boolean {
-  return record.status === status;
+export function asTrafficFineId(id: string): TrafficFineId {
+  return id as TrafficFineId;
 }
 
-// Export commonly used table types
-export type LeaseRow = Tables['leases']['Row'];
-export type PaymentRow = Tables['unified_payments']['Row'];
-export type VehicleRow = Tables['vehicles']['Row'];
-export type ProfileRow = Tables['profiles']['Row'];
-export type TrafficFineRow = Tables['traffic_fines']['Row'];
+export function asMaintenanceId(id: string): MaintenanceId {
+  return id as MaintenanceId;
+}
 
-// Common status types
-export type VehicleStatus = VehicleRow['status']; 
-export type LeaseStatus = LeaseRow['status'];
-export type PaymentStatus = PaymentRow['status']; 
+// Helper functions to cast strings to proper status types
+export function asLeaseStatus(status: string): LeaseStatus {
+  return status as LeaseStatus;
+}
 
-export function asStatus<T extends { status: string }>(status: string): T['status'] {
-  return status as T['status'];
+export function asVehicleStatus(status: string): VehicleStatus {
+  return status as VehicleStatus;
+}
+
+export function asPaymentStatus(status: string): PaymentStatus {
+  return status as PaymentStatus;
 }

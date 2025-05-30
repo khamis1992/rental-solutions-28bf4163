@@ -133,7 +133,7 @@ export function AgreementDetail({
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         
-        // Ensure dates are Date objects for the PDF generation utility
+        // Create PDF-compatible agreement object with proper date conversion
         const agreementForPdf = {
           ...agreement,
           start_date: ensureDate(agreement.start_date),
@@ -142,6 +142,7 @@ export function AgreementDetail({
           updated_at: ensureDate(agreement.updated_at),
         };
         
+        // Use type assertion to handle the interface differences
         const success = await generatePdfDocument(agreementForPdf as any);
         
         if (success) {
