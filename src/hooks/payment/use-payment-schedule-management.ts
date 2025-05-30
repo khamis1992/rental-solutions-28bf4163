@@ -54,8 +54,9 @@ export function usePaymentScheduleManagement(agreementId?: string) {
       
       return result.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success(`Payment schedule generated with ${data.length} payments`);
+      await paymentScheduleService.generateMissingPaymentRecords();
       queryClient.invalidateQueries({ queryKey: ['payment-schedule', agreementId] });
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
