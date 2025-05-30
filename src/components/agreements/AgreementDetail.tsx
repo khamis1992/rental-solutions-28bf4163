@@ -3,7 +3,6 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,7 @@ import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
+import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
@@ -298,25 +298,14 @@ export function AgreementDetail({
         agreementId={agreement.id}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDialogVisible('delete')} onOpenChange={() => closeDialog('delete')}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Agreement</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this agreement? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog('delete')}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Delete Confirmation Dialog */}
+      <AgreementDeletionDialog
+        open={isDialogVisible('delete')}
+        onOpenChange={() => closeDialog('delete')}
+        agreementId={agreement.id}
+        agreementNumber={agreement.agreement_number || 'Unknown'}
+        onConfirmDelete={confirmDelete}
+      />
 
       {/* Payment Entry Dialog */}
       {isDialogVisible('payment') && (

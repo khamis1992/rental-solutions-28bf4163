@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
@@ -102,14 +103,8 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Enhanced mutation for deleting an agreement with proper cascade handling
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
-      // First validate deletion
-      const validationResult = await agreementDeletionService.validateDeletion(id);
-      if (!validationResult.success) {
-        throw new Error('Failed to validate deletion requirements');
-      }
-
-      // Proceed with deletion
-      const result = await agreementService.deleteAgreement(id);
+      // Use the enhanced deletion service for proper cascade handling
+      const result = await agreementDeletionService.deleteAgreement(id);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to delete agreement');
       }
@@ -223,6 +218,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
+    validateDeletion,
     useRealtimeUpdates,
     // Expose isPending states for UI loading indicators
     isPending: {
