@@ -14,6 +14,12 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
+  // Ensure all required leases table properties are included
+  confirmation_email_sent?: boolean;
+  daily_late_fee?: number;
+  deposit_amount?: number;
+  down_payment?: number;
+  notes?: string;
 };
 
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];

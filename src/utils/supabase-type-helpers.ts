@@ -1,79 +1,113 @@
 
-import {
-  type PostgrestSingleResponse,
-  type PostgrestResponse,
-} from '@supabase/supabase-js';
+import type { Database } from '@/types/database.types';
 
 /**
- * Type guard to check if a Supabase response has data
- */
-export function hasData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): response is (PostgrestResponse<T> & { data: T }) | (PostgrestSingleResponse<T> & { data: T }) {
-  if (!response) return false;
-  if (response.error) return false;
-  return response.data !== null && response.data !== undefined;
-}
-
-/**
- * Extract data safely from a Supabase response
- */
-export function getResponseData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
-): T | null {
-  if (!hasData(response)) {
-    return null;
-  }
-  return response.data;
-}
-
-/**
- * Type guard to check if an object is not null or undefined
- */
-export function exists<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}
-
-/**
- * Safe accessor for properties
- */
-export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
-  if (!obj) return undefined;
-  return obj[key];
-}
-
-/**
- * Cast a string to a database ID type
+ * Safe UUID type casting for database operations
+ * @param id Any string ID to cast to UUID
+ * @returns UUID string for Supabase operations
  */
 export function castDbId(id: string): string {
   return id;
 }
 
 /**
- * Cast a string to UUID for database operations
+ * Type-safe transformation of potentially nested response data
+ * @param data Response data that might be single object or array
+ * @param transformer Function to transform each item
+ * @returns Transformed data maintaining the same structure
  */
-export function castToUUID(id: string): string {
-  return id;
+export function transformResponseData<T, R>(
+  data: T | T[] | null | undefined,
+  transformer: (item: T) => R
+): R | R[] | null {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(transformer);
+  }
+  
+  return transformer(data);
 }
 
 /**
- * Check if a response data property exists
+ * Safely convert any value to array format
+ * @param value Single item or array of items
+ * @returns Array of items
  */
-export function hasDataProperty<T, K extends keyof T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
-  property: K
-): boolean {
-  if (!hasData(response)) return false;
-  return property in response.data;
+export function ensureArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  
+  if (Array.isArray(value)) {
+    return value;
+  }
+  
+  return [value];
 }
 
 /**
- * Safely access a property from a Supabase response
+ * Type guard to check if an object has a specific property
+ * @param obj Object to check
+ * @param key Property key to check for
+ * @returns Type predicate indicating if property exists
  */
-export function getResponseProperty<T, K extends keyof T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
-  property: K
-): T[K] | null {
-  if (!hasData(response)) return null;
-  return response.data[property];
+export function hasProperty<T extends Record<string, any>, K extends string>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return typeof obj === 'object' && obj !== null && key in obj;
+}
+
+/**
+ * Safe property access with fallback
+ * @param obj Object to access property from
+ * @param key Property key
+ * @param fallback Default value if property doesn't exist
+ * @returns Property value or fallback
+ */
+export function getProperty<T extends Record<string, any>, K extends keyof T>(
+  obj: T | null | undefined,
+  key: K,
+  fallback?: T[K]
+): T[K] | undefined {
+  if (!obj || !(key in obj)) {
+    return fallback;
+  }
+  return obj[key];
+}
+
+/**
+ * Database table type definitions
+ */
+export type Tables = Database['public']['Tables'];
+export type TableName = keyof Tables;
+
+/**
+ * Get row type for a specific table
+ */
+export type TableRow<T extends TableName> = Tables[T]['Row'];
+
+/**
+ * Get insert type for a specific table
+ */
+export type TableInsert<T extends TableName> = Tables[T]['Insert'];
+
+/**
+ * Get update type for a specific table
+ */
+export type TableUpdate<T extends TableName> = Tables[T]['Update'];
+
+/**
+ * Extract ID type from a table row
+ */
+export type TableId<T extends TableName> = TableRow<T>['id'];
+
+/**
+ * Type-safe ID casting for specific tables
+ */
+export function castTableId<T extends TableName>(id: string, _table: T): TableId<T> {
+  return id as TableId<T>;
 }

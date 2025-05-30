@@ -14,6 +14,12 @@ export function processAgreementData(agreements: SimpleAgreement[]): Agreement[]
       full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
       id: agreement.customers?.id || agreement.customer_id
     },
+    // Add missing required properties with defaults
+    confirmation_email_sent: agreement.confirmation_email_sent ?? false,
+    daily_late_fee: agreement.daily_late_fee || 0,
+    deposit_amount: agreement.deposit_amount || 0,
+    down_payment: agreement.down_payment || 0,
+    notes: agreement.notes || '',
     // Ensure proper date handling with safe conversion
     start_date: agreement.start_date 
       ? (typeof agreement.start_date === 'string' ? agreement.start_date : new Date(agreement.start_date).toISOString()) 

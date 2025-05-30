@@ -36,7 +36,7 @@ export const safelyGetRecordsFromResponse = <T>(
 };
 
 // Type guard to check if a value exists in object
-export const hasProperty = <T extends object, K extends string>(
+export const hasProperty = <T extends Record<string, any>, K extends string>(
   obj: T,
   key: K
 ): obj is T & Record<K, unknown> => {
@@ -44,7 +44,7 @@ export const hasProperty = <T extends object, K extends string>(
 };
 
 // Safe property accessor
-export const getPropertySafely = <T extends object, K extends keyof T>(
+export const getPropertySafely = <T extends Record<string, any>, K extends keyof T>(
   obj: T | null | undefined,
   key: K
 ): T[K] | undefined => {
@@ -81,7 +81,7 @@ export function isValidDbResponse<T>(response: PostgrestSingleResponse<T> | Post
  */
 export function isValidRecord<T>(data: unknown, requiredProps: string[]): data is T {
   if (!data || typeof data !== 'object') return false;
-  return requiredProps.every(prop => hasProperty(data as object, prop));
+  return requiredProps.every(prop => hasProperty(data as Record<string, any>, prop));
 }
 
 /**

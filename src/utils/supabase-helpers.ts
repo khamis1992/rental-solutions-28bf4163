@@ -20,7 +20,7 @@ export function isValidResponse<T>(
  * @param obj - The object to check
  * @param prop - The property to check for
  */
-export function hasProperty<T extends object, K extends string>(
+export function hasProperty<T extends Record<string, any>, K extends string>(
   obj: T, 
   prop: K
 ): obj is T & Record<K, unknown> {
@@ -48,7 +48,7 @@ export function safeResponseData<T>(
  * @param prop - The property to access
  * @param fallback - Fallback value if property doesn't exist
  */
-export function safeProperty<T, K extends keyof T>(obj: T | null | undefined, prop: K, fallback: T[K]): T[K] {
+export function safeProperty<T extends Record<string, any>, K extends keyof T>(obj: T | null | undefined, prop: K, fallback: T[K]): T[K] {
   if (obj !== null && obj !== undefined && prop in obj) {
     return obj[prop];
   }
