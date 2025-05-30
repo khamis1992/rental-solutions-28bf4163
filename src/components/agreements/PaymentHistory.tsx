@@ -11,7 +11,7 @@ interface PaymentHistoryProps {
   contractAmount: number | null;
   onPaymentDeleted: (paymentId: string) => void;
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
-  onRecordPayment: (payment: Partial<Payment>) => void;
+  onRecordPayment: (payment: Partial<Payment>) => Promise<void>;
   leaseStartDate: string | Date | null;
   leaseEndDate: string | Date | null;
   leaseId?: string;

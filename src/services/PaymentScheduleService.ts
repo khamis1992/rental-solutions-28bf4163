@@ -33,6 +33,19 @@ export class PaymentScheduleService extends BaseService {
     super(supabase);
   }
 
+  async getPaymentSchedule(leaseId: string) {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    }, 'Failed to fetch payment schedule');
+  }
+
   async getScheduleByLeaseId(leaseId: string) {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
@@ -44,6 +57,65 @@ export class PaymentScheduleService extends BaseService {
       if (error) throw error;
       return data || [];
     }, 'Failed to fetch payment schedule');
+  }
+
+  async generateAndPersistSchedule(
+    leaseId: string,
+    startDate: Date,
+    endDate: Date,
+    rentAmount: number,
+    paymentFrequency: string,
+    paymentDay: number
+  ) {
+    return this.safeExecute(async () => {
+      const scheduleItems: PaymentScheduleCreateData[] = [];
+      const current = new Date(startDate);
+      const end = new Date(endDate);
+
+      while (current <= end) {
+        const dueDate = new Date(current.getFullYear(), current.getMonth(), paymentDay);
+        
+        scheduleItems.push({
+          lease_id: leaseId,
+          amount: rentAmount,
+          due_date: dueDate.toISOString(),
+          status: 'pending',
+          description: `Payment for ${dueDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+        });
+
+        current.setMonth(current.getMonth() + 1);
+      }
+
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .insert(scheduleItems)
+        .select();
+
+      if (error) throw error;
+      return data || [];
+    }, 'Failed to generate payment schedule');
+  }
+
+  async updateScheduleItemStatus(
+    scheduleId: string,
+    status: 'completed' | 'overdue' | 'cancelled',
+    actualPaymentDate?: string,
+    transactionId?: string
+  ) {
+    return this.safeExecute(async () => {
+      const updates: any = { status };
+      if (actualPaymentDate) updates.actual_payment_date = actualPaymentDate;
+
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .update(updates)
+        .eq('id', scheduleId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }, 'Failed to update schedule item status');
   }
 
   async createScheduleItem(scheduleData: PaymentScheduleCreateData) {

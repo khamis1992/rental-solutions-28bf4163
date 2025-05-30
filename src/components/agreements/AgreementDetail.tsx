@@ -118,6 +118,14 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
+  // Helper function to safely convert date string to Date object
+  const ensureDate = (dateValue: string | Date): Date => {
+    if (typeof dateValue === 'string') {
+      return new Date(dateValue);
+    }
+    return dateValue;
+  };
+
   // Download PDF - ensure dates are Date objects
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
@@ -128,18 +136,10 @@ export function AgreementDetail({
         // Ensure dates are Date objects for the PDF generation utility
         const agreementForPdf = {
           ...agreement,
-          start_date: agreement.start_date instanceof Date 
-            ? agreement.start_date 
-            : new Date(agreement.start_date),
-          end_date: agreement.end_date instanceof Date 
-            ? agreement.end_date 
-            : new Date(agreement.end_date),
-          created_at: agreement.created_at instanceof Date 
-            ? agreement.created_at 
-            : new Date(agreement.created_at),
-          updated_at: agreement.updated_at instanceof Date 
-            ? agreement.updated_at 
-            : new Date(agreement.updated_at),
+          start_date: ensureDate(agreement.start_date),
+          end_date: ensureDate(agreement.end_date),
+          created_at: ensureDate(agreement.created_at),
+          updated_at: ensureDate(agreement.updated_at),
         };
         
         const success = await generatePdfDocument(agreementForPdf as any);
@@ -206,20 +206,16 @@ export function AgreementDetail({
   }
 
   // Calculate duration for details card - handle both string and Date types
-  const startDate = agreement.start_date instanceof Date 
-    ? agreement.start_date 
-    : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date 
-    ? agreement.end_date 
-    : new Date(agreement.end_date);
+  const startDate = ensureDate(agreement.start_date);
+  const endDate = ensureDate(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
 
   // Helper function to get date string safely
   const getDateString = (date: string | Date): string => {
-    if (date instanceof Date) {
-      return date.toISOString();
+    if (typeof date === 'string') {
+      return date;
     }
-    return date;
+    return date.toISOString();
   };
 
   return (
