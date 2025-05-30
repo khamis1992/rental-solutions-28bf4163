@@ -80,8 +80,8 @@ export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
     return value;
   }
   
-  // Fixed: properly handle single value case
-  return [value] as T[];
+  // Fixed: properly handle single value case with proper type assertion
+  return [value];
 }
 
 /**

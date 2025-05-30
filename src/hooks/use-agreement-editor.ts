@@ -1,19 +1,30 @@
 
-import { useParams } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useEditAgreement } from '@/hooks/use-edit-agreement';
-import { CustomerInfo } from '@/types/customer';
+import { useState } from 'react';
+import { useEditAgreement } from './use-edit-agreement';
 
-export function useAgreementEditor() {
-  const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const { agreement, isLoading, vehicleData, customerData } = useEditAgreement(id);
-
-  return {
-    id,
-    userId: user?.id,
+export function useAgreementEditor(agreementId: string) {
+  const {
     agreement,
     isLoading,
+    error,
+    isSubmitting,
+    updateAgreement,
+    customerName,
+    customerEmail
+  } = useEditAgreement(agreementId);
+
+  // Add missing vehicleData and customerData properties
+  const vehicleData = agreement?.vehicles || null;
+  const customerData = agreement?.customers || null;
+
+  return {
+    agreement,
+    isLoading,
+    error,
+    isSubmitting,
+    updateAgreement,
+    customerName,
+    customerEmail,
     vehicleData,
     customerData
   };

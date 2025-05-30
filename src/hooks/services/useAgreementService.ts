@@ -93,6 +93,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       toast.error(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
+  
   // Calculate remaining amount
   const calculateRemainingAmount = useMutation({
     mutationFn: async (id: string) => {
@@ -122,6 +123,20 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     }
   });
 
+  // Add useRealtimeUpdates function
+  const useRealtimeUpdates = () => {
+    // Simple implementation that refetches data periodically
+    const enableRealtime = () => {
+      const interval = setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      }, 30000); // Refetch every 30 seconds
+      
+      return () => clearInterval(interval);
+    };
+    
+    return { enableRealtime };
+  };
+
   return {
     agreements,
     isLoading,
@@ -148,6 +163,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
+    useRealtimeUpdates,
     // Expose isPending states for UI loading indicators
     isPending: {
       getAgreement: false,

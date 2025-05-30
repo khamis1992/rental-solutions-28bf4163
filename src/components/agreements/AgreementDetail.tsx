@@ -118,13 +118,31 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
+  // Download PDF - convert dates to Date objects for the utils function
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
+        
+        // Convert string dates to Date objects for the PDF generation utility
+        const agreementForPdf = {
+          ...agreement,
+          start_date: typeof agreement.start_date === 'string' 
+            ? new Date(agreement.start_date) 
+            : agreement.start_date,
+          end_date: typeof agreement.end_date === 'string' 
+            ? new Date(agreement.end_date) 
+            : agreement.end_date,
+          created_at: typeof agreement.created_at === 'string' 
+            ? new Date(agreement.created_at) 
+            : agreement.created_at,
+          updated_at: typeof agreement.updated_at === 'string' 
+            ? new Date(agreement.updated_at) 
+            : agreement.updated_at,
+        };
+        
+        const success = await generatePdfDocument(agreementForPdf as any);
         
         if (success) {
           toast.success("Agreement PDF generated successfully");
@@ -150,11 +168,11 @@ export function AgreementDetail({
     }
   }, [addPaymentMutation, onDataRefresh]);
 
-  // Update payment
+  // Update payment - fix the mutation call
   const handleUpdatePayment = useCallback(async (payment: Partial<Payment>) => {
     if (payment.id) {
       try {
-        const success = await updatePaymentMutation({ id: payment.id, data: payment });
+        const success = await updatePaymentMutation.mutateAsync({ id: payment.id, data: payment });
         if (success) {
           onDataRefresh();
         }
@@ -167,10 +185,10 @@ export function AgreementDetail({
     return false;
   }, [updatePaymentMutation, onDataRefresh]);
 
-  // Delete payment
+  // Delete payment - fix the mutation call
   const handleDeletePayment = useCallback(async (paymentId: string) => {
     try {
-      await deletePaymentMutation(paymentId);
+      await deletePaymentMutation.mutateAsync(paymentId);
       onPaymentDeleted();
     } catch (error) {
       console.error('Failed to delete payment:', error);
@@ -187,10 +205,10 @@ export function AgreementDetail({
     );
   }
 
-  // Calculate duration for details card
-  const duration = agreement.start_date && agreement.end_date 
-    ? differenceInMonths(new Date(agreement.end_date), new Date(agreement.start_date))
-    : 0;
+  // Calculate duration for details card - handle string dates
+  const startDate = typeof agreement.start_date === 'string' ? new Date(agreement.start_date) : agreement.start_date;
+  const endDate = typeof agreement.end_date === 'string' ? new Date(agreement.end_date) : agreement.end_date;
+  const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
 
   return (
     <div className="space-y-6">
@@ -253,8 +271,8 @@ export function AgreementDetail({
         onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handleUpdatePayment}
         onRecordPayment={handleRecordPayment}
-        leaseStartDate={agreement.start_date}
-        leaseEndDate={agreement.end_date}
+        leaseStartDate={typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date?.toISOString()}
+        leaseEndDate={typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date?.toISOString()}
         leaseId={agreement.id}
         agreement={agreement}
       />
@@ -262,8 +280,8 @@ export function AgreementDetail({
       {/* Traffic Fines Section */}
       <AgreementTrafficFines 
         agreementId={agreement.id}
-        startDate={agreement.start_date}
-        endDate={agreement.end_date}
+        startDate={typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date?.toISOString()}
+        endDate={typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date?.toISOString()}
       />
 
       {/* Legal Cases Section */}
