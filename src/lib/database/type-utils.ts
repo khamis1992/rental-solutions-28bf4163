@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 
 // Only include table names that exist in the actual database schema

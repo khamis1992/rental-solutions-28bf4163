@@ -73,8 +73,7 @@ export interface VehicleFormData {
  * Vehicle filter parameters type
  */
 export interface VehicleFilterParams {
-  status?: string;
-  statuses?: string[];
+  statuses?: VehicleStatus[];  // Array of statuses for filtering
   make?: string;
   model?: string;
   year?: number | null;

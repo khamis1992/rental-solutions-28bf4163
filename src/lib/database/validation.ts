@@ -1,3 +1,6 @@
+import { ValidationError } from '@/lib/errors/types';
+import { createValidationError } from '@/lib/errors/error-handler';
+import { isNotNull } from '@/lib/utils/null-safety';
 
 /**
  * Database validation utilities for ensuring data integrity
@@ -8,13 +11,61 @@
  * @param value - The value to check
  * @param name - Name of the parameter for error message
  * @returns The original value if valid
- * @throws Error if the value is null or undefined
+ * @throws ValidationError if the value is null or undefined
  */
 export function required<T>(value: T | null | undefined, name: string): T {
-  if (value === null || value === undefined) {
-    throw new Error(`Required parameter ${name} is missing`);
+  if (!isNotNull(value)) {
+    throw createValidationError(name, `Required parameter ${name} is missing`);
   }
   return value;
+}
+
+/**
+ * Validates that a string is not empty
+ * @param value - The string to check
+ * @param name - Name of the parameter for error message
+ * @returns The original string if valid
+ * @throws ValidationError if the string is empty
+ */
+export function nonEmptyString(value: string | null | undefined, name: string): string {
+  const validated = required(value, name);
+  if (validated.trim().length === 0) {
+    throw createValidationError(name, `${name} cannot be empty`);
+  }
+  return validated;
+}
+
+/**
+ * Validates that a number is within a range
+ * @param value - The number to check
+ * @param name - Name of the parameter for error message
+ * @param min - Minimum allowed value
+ * @param max - Maximum allowed value
+ * @returns The original number if valid
+ * @throws ValidationError if the number is outside the range
+ */
+export function inRange(value: number | null | undefined, name: string, min: number, max: number): number {
+  const validated = required(value, name);
+  if (validated < min || validated > max) {
+    throw createValidationError(name, `${name} must be between ${min} and ${max}`);
+  }
+  return validated;
+}
+
+/**
+ * Validates that a value is one of the allowed values
+ * @param value - The value to check
+ * @param name - Name of the parameter for error message
+ * @param allowedValues - Array of allowed values
+ * @returns The original value if valid
+ * @throws ValidationError if the value is not in the allowed values
+ */
+export function oneOf<T>(value: T | null | undefined, name: string, allowedValues: T[]): T {
+  const validated = required(value, name);
+  if (!allowedValues.includes(validated)) {
+    throw createValidationError(name, `${name} must be one of: ${allowedValues.join(', ')}`);
+  }
+  return validated;
 }
 
 /**

@@ -1,11 +1,4 @@
-
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import { Json } from './json.types';
 
 export interface Database {
   public: {
@@ -277,13 +270,123 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_lease_payment: {
+        Args: {
+          lease_id: string;
+          payment_date: string;
+        };
+        Returns: {
+          amount: number;
+          currency: string;
+          due_date: string;
+          status: string;
+        };
+      };
+      get_vehicle_status: {
+        Args: {
+          vehicle_id: string;
+        };
+        Returns: {
+          status: string;
+          last_updated: string;
+          location: Json;
+        };
+      };
+      validate_agreement: {
+        Args: {
+          agreement_id: string;
+        };
+        Returns: {
+          is_valid: boolean;
+          validation_errors: Json;
+        };
+      };
     }
     Enums: {
-      [_ in never]: never
-    }
+      alert_priority: 'low' | 'medium' | 'high' | 'critical';
+      alert_type: 'system' | 'business' | 'security' | 'maintenance';
+      agreement_status: 'draft' | 'pending' | 'active' | 'completed' | 'cancelled' | 'expired';
+      document_language: 'en' | 'ar' | 'fr' | 'es';
+      notification_status: 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
+      payment_status: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
+      user_location_status: 'active' | 'inactive' | 'offline';
+      vehicle_status: 'available' | 'rented' | 'maintenance' | 'reserved' | 'out_of_service';
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
+      Json: Json;
+      address: {
+        street: string;
+        city: string;
+        state: string;
+        country: string;
+        postal_code: string;
+        coordinates?: Json;
+      };
+      contact_info: {
+        email: string;
+        phone: string;
+        alternative_phone?: string;
+        preferred_contact_method: 'email' | 'phone' | 'sms';
+      };
+      payment_details: {
+        amount: number;
+        currency: string;
+        payment_method: string;
+        transaction_id: string;
+        status: string;
+        metadata?: Json;
+      };
+      vehicle_details: {
+        make: string;
+        model: string;
+        year: number;
+        vin: string;
+        license_plate: string;
+        specifications: Json;
+      };
+    };
   }
 }
+
+// Helper types for database operations
+export type DbTableName = keyof Database['public']['Tables'];
+export type DbViewName = keyof Database['public']['Views'];
+export type DbFunctionName = keyof Database['public']['Functions'];
+export type DbEnumName = keyof Database['public']['Enums'];
+export type DbCompositeTypeName = keyof Database['public']['CompositeTypes'];
+
+// Type for table rows
+export type TableRow<T extends DbTableName> = Database['public']['Tables'][T]['Row'];
+export type TableInsert<T extends DbTableName> = Database['public']['Tables'][T]['Insert'];
+export type TableUpdate<T extends DbTableName> = Database['public']['Tables'][T]['Update'];
+
+// Type for view rows
+export type ViewRow<T extends DbViewName> = Database['public']['Views'][T]['Row'];
+
+// Type for function arguments and returns
+export type FunctionArgs<T extends DbFunctionName> = Database['public']['Functions'][T]['Args'];
+export type FunctionReturns<T extends DbFunctionName> = Database['public']['Functions'][T]['Returns'];
+
+// Type for enum values
+export type EnumValues<T extends DbEnumName> = Database['public']['Enums'][T];
+
+// Type for composite types
+export type CompositeType<T extends DbCompositeTypeName> = Database['public']['CompositeTypes'][T];
+
+// Helper type for database ID
+export type DbId = string;
+
+// Helper type for database timestamps
+export type DbTimestamp = string;
+
+// Helper type for database JSON
+export type DbJson = Json;
+
+// Helper type for database relationships
+export type DbRelationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};

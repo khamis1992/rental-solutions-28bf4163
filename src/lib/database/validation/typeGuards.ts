@@ -1,3 +1,8 @@
+import { 
+  isSuccessResponse as isStandardSuccessResponse,
+  isErrorResponse as isStandardErrorResponse,
+  isAppError as isStandardAppError
+} from '@/types/error.types';
 
 /**
  * Type guards for validating data structures
@@ -74,9 +79,7 @@ export function isEntity<T extends Record<string, any>>(
   return requiredProps.every(prop => prop in value);
 }
 
-/**
- * Type guard for success responses
- */
-export function isSuccessResponse<T>(response: any): response is { data: T; error: null } {
-  return !response?.error && response?.data !== null;
-}
+// Re-export standardized type guards
+export const isSuccessResponse = isStandardSuccessResponse;
+export const isErrorResponse = isStandardErrorResponse;
+export const isAppError = isStandardAppError;

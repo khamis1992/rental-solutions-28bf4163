@@ -1,36 +1,31 @@
-
 import { format, parseISO, isValid } from 'date-fns';
+import { safeExecute, safeToDate } from '@/lib/utils/null-safety';
 
 /**
  * Safely converts a date string or Date object to a Date object
  * @param dateInput Date input that might be string, Date, or invalid
  * @returns Valid Date object or null if invalid
  */
-const safelyParseDate = (dateInput: Date | string | null | undefined): Date | null => {
-  if (!dateInput) return null;
-  
-  try {
+export const safelyParseDate = (dateInput: Date | string | null | undefined): Date | null => {
+  return safeExecute(dateInput, (input) => {
     // If it's already a Date object
-    if (dateInput instanceof Date) {
-      return isValid(dateInput) ? dateInput : null;
+    if (input instanceof Date) {
+      return isValid(input) ? input : null;
     }
     
     // If it's a string, try to parse it
-    if (typeof dateInput === 'string') {
+    if (typeof input === 'string') {
       // Try to handle ISO strings
-      const parsed = parseISO(dateInput);
+      const parsed = parseISO(input);
       if (isValid(parsed)) return parsed;
       
       // If ISO parsing failed, try creating date directly
-      const fallbackDate = new Date(dateInput);
+      const fallbackDate = new Date(input);
       return isValid(fallbackDate) ? fallbackDate : null;
     }
     
     return null;
-  } catch (error) {
-    console.error('Error parsing date:', error, 'Input was:', dateInput);
-    return null;
-  }
+  }, null);
 };
 
 /**
@@ -40,11 +35,11 @@ const safelyParseDate = (dateInput: Date | string | null | undefined): Date | nu
  * @returns Formatted date string
  */
 export const formatDate = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy'): string => {
-  const parsedDate = safelyParseDate(date);
-  if (!parsedDate) return 'N/A';
+  const dateObject = safeToDate(date);
+  if (!dateObject) return 'N/A';
   
   try {
-    return format(parsedDate, formatString);
+    return format(dateObject, formatString);
   } catch (error) {
     console.error('Error formatting date:', error, 'Input was:', date);
     return 'Invalid date';

@@ -1,5 +1,5 @@
-
-import { Database } from './database.types';
+import { Database } from '@/types/database.types';
+import { isErrorResponse as isStandardErrorResponse } from '../types/error.types';
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];
@@ -43,9 +43,5 @@ export function isPaymentRecord(obj: any): obj is PaymentRecord {
          'amount' in obj;
 }
 
-// Type guard to check if there was an error in the response
-export function isErrorResponse(obj: any): boolean {
-  return obj && 
-         typeof obj === 'object' && 
-         ('error' in obj || 'message' in obj || 'code' in obj);
-}
+// Re-export the standardized error response type guard
+export const isErrorResponse = isStandardErrorResponse;

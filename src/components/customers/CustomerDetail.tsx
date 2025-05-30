@@ -14,9 +14,10 @@ import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'luc
 import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
+import { Customer } from '@/types/customer.types';
 
 interface CustomerDetailProps {
-  customerId?: string;
+  customerId: string;
 }
 
 // Function to handle customer data updates
@@ -32,7 +33,7 @@ const updateCustomer = (id: string, data: any) => {
 };
 
 export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
-  const [customer, setCustomer] = useState<any>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();

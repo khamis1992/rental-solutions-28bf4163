@@ -1,10 +1,11 @@
-
-import { Database } from './database.types';
+import { Database } from '@/types/database.types';
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { castDbId } from '@/utils/supabase-type-helpers';
+import { Result, createSuccessResult, createErrorResult } from '@/lib/errors/types';
+import { toAppError } from '@/lib/errors/error-handler';
 
 export type GenericSchema = Database[keyof Database];
 export type TablesInsertResponse<T extends keyof Database['public']['Tables']> = PostgrestResponse<Database['public']['Tables'][T]>;
@@ -87,29 +88,32 @@ export function isValidRecord<T>(data: unknown, requiredProps: string[]): data i
  * Safe Supabase query execution wrapper
  * @param queryFn A function that performs a Supabase query
  * @param errorMessage Optional custom error message
- * @returns The query result or null if error
+ * @returns The query result wrapped in our Result type
  */
 export async function safeQueryExecution<T>(
   queryFn: () => Promise<PostgrestSingleResponse<T> | PostgrestResponse<T>>,
   errorMessage?: string
-): Promise<T | T[] | null> {
+): Promise<Result<T | T[]>> {
   try {
     const response = await queryFn();
     
     if (response.error) {
-      console.error(errorMessage || 'Database query error:', response.error);
-      return null;
+      const error = toAppError(response.error);
+      console.error(errorMessage || 'Database query error:', error);
+      return createErrorResult<T | T[]>(error);
     }
     
     if (!response.data) {
-      console.warn(errorMessage || 'No data returned from database query');
-      return null;
+      const error = toAppError(new Error(errorMessage || 'No data returned from database query'));
+      console.warn(error.message);
+      return createErrorResult<T | T[]>(error);
     }
     
-    return response.data;
+    return createSuccessResult(response.data);
   } catch (error) {
-    console.error(errorMessage || 'Unexpected error during database query:', error);
-    return null;
+    const appError = toAppError(error);
+    console.error(errorMessage || 'Unexpected error during database query:', appError);
+    return createErrorResult<T | T[]>(appError);
   }
 }
 

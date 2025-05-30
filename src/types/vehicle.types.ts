@@ -1,10 +1,9 @@
-
 /**
  * Core types for the Vehicle Management System
  * @module VehicleTypes
  */
 
-import { Database } from './database.types';
+import { Database } from '@/types/database.types';
 
 /**
  * Vehicle status options in the system.

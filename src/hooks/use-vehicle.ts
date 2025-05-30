@@ -1,4 +1,3 @@
-
 /**
  * Custom hook for managing vehicle operations and state
  * Provides vehicle data access, filtering, and mutation capabilities
@@ -22,7 +21,7 @@ export function useVehicle(vehicleId?: string) {
    */
   const { data: vehicleDetails } = useQuery({
     queryKey: ['vehicle', vehicleId],
-    queryFn: () => vehicleServiceHook.getVehicleDetails(vehicleId!),
+    queryFn: () => vehicleServiceHook.getVehicle(vehicleId!),
     enabled: !!vehicleId,
   });
 
@@ -32,21 +31,17 @@ export function useVehicle(vehicleId?: string) {
    */
   const handleFilterChange = (newFilters: VehicleFilterParams) => {
     setSearchParams(prev => ({ ...prev, ...newFilters }));
-    vehicleServiceHook.setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
   return {
     vehicles: vehicleServiceHook.vehicles,
-    isLoading: vehicleServiceHook.isLoading,
-    error: vehicleServiceHook.error,
+    isLoading: vehicleServiceHook.isLoadingVehicles,
     filters: searchParams,
     handleFilterChange,
-    vehicleTypes: vehicleServiceHook.vehicleTypes,
-    availableVehicles: vehicleServiceHook.availableVehicles,
     vehicleDetails,
     updateVehicle: vehicleServiceHook.updateVehicle,
-    updateStatus: vehicleServiceHook.updateStatus,
     deleteVehicle: vehicleServiceHook.deleteVehicle,
-    calculateUtilization: vehicleServiceHook.calculateUtilization,
+    createVehicle: vehicleServiceHook.createVehicle,
+    getVehicle: vehicleServiceHook.getVehicle,
   };
 }

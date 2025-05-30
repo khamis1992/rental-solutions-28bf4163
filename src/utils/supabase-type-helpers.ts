@@ -1,5 +1,10 @@
-
 import type { Database } from '@/types/database.types';
+import { Result, createSuccessResult, createErrorResult } from '@/lib/errors/types';
+import { toAppError } from '@/lib/errors/error-handler';
+import {
+  type PostgrestSingleResponse,
+  type PostgrestResponse,
+} from '@supabase/supabase-js';
 
 /**
  * Safe UUID type casting for database operations
@@ -8,6 +13,39 @@ import type { Database } from '@/types/database.types';
  */
 export function castDbId(id: string): string {
   return id;
+}
+
+/**
+ * Type guard to check if a value is a valid database ID
+ * @param value The value to check
+ * @returns Boolean indicating if the value is a valid database ID
+ */
+export function isValidDbId(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+/**
+ * Type guard to check if a value is a valid database timestamp
+ * @param value The value to check
+ * @returns Boolean indicating if the value is a valid database timestamp
+ */
+export function isValidDbTimestamp(value: unknown): value is string {
+  return typeof value === 'string' && !isNaN(Date.parse(value));
+}
+
+/**
+ * Type guard to check if a value is a valid database JSON
+ * @param value The value to check
+ * @returns Boolean indicating if the value is a valid database JSON
+ */
+export function isValidDbJson(value: unknown): value is Database['public']['CompositeTypes']['Json'] {
+  if (value === null) return true;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.every(isValidDbJson);
+  if (typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).every(isValidDbJson);
+  }
+  return false;
 }
 
 /**
@@ -89,15 +127,24 @@ export function hasData<T>(data: T | null | undefined): data is T {
 }
 
 /**
- * Get response data safely from Supabase response
- * @param response Supabase response object
- * @returns Response data or null
+ * Get data from a Supabase response with proper error handling
+ * @param response The Supabase response object
+ * @returns The response data or null if there was an error
  */
-export function getResponseData<T>(response: any): T | null {
-  if (!response || response.error) {
-    return null;
+export function getResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): Result<T> {
+  if (response.error) {
+    const error = toAppError(response.error);
+    console.error('Database response error:', error);
+    return createErrorResult<T>(error);
   }
-  return response.data || null;
+
+  if (!response.data) {
+    const error = toAppError(new Error('No data returned from database query'));
+    console.warn(error.message);
+    return createErrorResult<T>(error);
+  }
+
+  return createSuccessResult(response.data as T);
 }
 
 /**
@@ -141,3 +188,23 @@ export type TableId<T extends TableName> = TableRow<T>['id'];
 export function castTableId<T extends TableName>(id: string, _table: T): TableId<T> {
   return id as TableId<T>;
 }
+
+/**
+ * Database view type definitions
+ */
+export type Views = Database['public']['Views'];
+
+/**
+ * Database function type definitions
+ */
+export type Functions = Database['public']['Functions'];
+
+/**
+ * Database enum type definitions
+ */
+export type Enums = Database['public']['Enums'];
+
+/**
+ * Database composite type definitions
+ */
+export type CompositeTypes = Database['public']['CompositeTypes'];

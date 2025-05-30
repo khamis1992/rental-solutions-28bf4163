@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -89,7 +89,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
   const isRecurring = form.watch('isRecurring');
 
   // Function to calculate next payment date based on interval
-  const calculateNextPaymentDate = (interval: string, currentDate: Date) => {
+  const calculateNextPaymentDate = useCallback((interval: string, currentDate: Date) => {
     switch (interval) {
       case 'monthly':
         return addMonths(currentDate, 1);
@@ -104,7 +104,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       default:
         return addMonths(currentDate, 1);
     }
-  };
+  }, []); // Empty dependency array since date-fns functions are stable
 
   // Update next payment date when interval changes
   React.useEffect(() => {
@@ -116,13 +116,13 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       const nextDate = calculateNextPaymentDate(interval, currentDate);
       form.setValue('nextPaymentDate', nextDate);
     }
-  }, [form.watch('recurringInterval'), form.watch('isRecurring')]);
+  }, [form, calculateNextPaymentDate]);
 
   const handleSubmit = (data: ExpenseForm) => {
     // If not recurring, ensure we don't send related fields
     if (!data.isRecurring) {
-      data.recurringInterval = null;
-      data.nextPaymentDate = null;
+      data.recurringInterval = undefined;
+      data.nextPaymentDate = undefined;
     }
 
     // Convert form data to the expected format, ensuring all required properties are present
@@ -130,12 +130,12 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       amount: data.amount,
       description: data.description,
       date: data.date,
-      status: data.status, // This is now required
+      status: data.status,
       reference: data.reference || '',
       paymentMethod: data.paymentMethod || 'Cash',
       isRecurring: data.isRecurring,
-      recurringInterval: data.recurringInterval,
-      nextPaymentDate: data.nextPaymentDate,
+      recurringInterval: data.recurringInterval || undefined,
+      nextPaymentDate: data.nextPaymentDate || undefined,
     };
 
     onSubmit(expenseData);

@@ -1,31 +1,24 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
+import { Vehicle } from '@/types/vehicle';
+import { VehicleStatus } from '@/lib/database/database-types';
 
 const VehiclesInMaintenanceGrid = () => {
   const navigate = useNavigate();
   
-  // Use the vehicle service with a filter for maintenance and accident status
-  const { vehicles, isLoading, error } = useVehicleService({
-    statuses: ['maintenance', 'accident']
+  // Use the vehicle service with a filter for maintenance status
+  const { vehicles, isLoadingVehicles } = useVehicleService({ 
+    filters: { 
+      statuses: ['maintenance'] as VehicleStatus[]
+    } 
   });
 
   // Navigate to the vehicle detail page when clicked
   const handleVehicleClick = (id: string) => {
     navigate(`/vehicles/${id}`);
   };
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-        <p className="font-medium">Error loading vehicles in maintenance</p>
-        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
-      </div>
-    );
-  }
 
   // Transform raw vehicle data to ensure it matches the Vehicle type
   const safeVehicles: Vehicle[] = (vehicles || []).map((vehicle: any) => ({
@@ -53,7 +46,7 @@ const VehiclesInMaintenanceGrid = () => {
   return (
     <VehicleGrid
       vehicles={safeVehicles}
-      isLoading={isLoading}
+      isLoading={isLoadingVehicles}
       onVehicleClick={handleVehicleClick}
     />
   );

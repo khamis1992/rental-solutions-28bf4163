@@ -1,7 +1,9 @@
-
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Database } from '@/types/database.types';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAgreementService } from './services/useAgreementService';
+import type { AgreementFilters } from '@/services/AgreementService';
+import type { LeaseStatus } from '@/types/lease-types';
+import { SortingState } from '@tanstack/react-table';
 
 // Updated SimpleAgreement interface to match database schema more closely
 export interface SimpleAgreement {
@@ -111,53 +113,60 @@ function transformLeaseData(lease: LeaseWithRelations): SimpleAgreement {
   };
 }
 
-export const useAgreements = () => {
-  const query = useQuery({
-    queryKey: ['agreements'],
-    queryFn: async (): Promise<SimpleAgreement[]> => {
-      const { data, error } = await supabase
-        .from('leases')
-        .select(`
-          *,
-          customers:customer_id (
-            id,
-            full_name,
-            email,
-            phone_number,
-            address,
-            city,
-            state,
-            zip_code,
-            role,
-            created_at,
-            updated_at
-          ),
-          vehicles:vehicle_id (
-            id,
-            make,
-            model,
-            license_plate,
-            year,
-            vin,
-            color,
-            status
-          )
-        `)
-        .order('created_at', { ascending: false });
+export function useAgreements() {
+  const queryClient = useQueryClient();
+  const {
+    agreements,
+    isLoading,
+    error,
+    searchParams,
+    setSearchParams,
+  } = useAgreementService();
 
-      if (error) {
-        console.error('Error fetching agreements:', error);
-        throw error;
-      }
-
-      // Transform the data to match our SimpleAgreement interface
-      return (data || []).map(transformLeaseData);
-    },
+  // Table states
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
   });
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+
+  // Update search params when filters change
+  const handleFilterChange = (newFilters: AgreementFilters) => {
+    const formattedFilters = { ...newFilters };
+    
+    // Convert status to statuses array if provided
+    if ('status' in formattedFilters) {
+      const statuses = Array.isArray(formattedFilters.status) 
+        ? formattedFilters.status 
+        : [formattedFilters.status];
+      
+      formattedFilters.statuses = statuses.map(s => s as LeaseStatus);
+      delete formattedFilters.status;
+    }
+    
+    setSearchParams({
+      ...formattedFilters,
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+      sort: sorting.length > 0 ? sorting[0].id : undefined,
+      order: sorting.length > 0 ? sorting[0].desc ? 'desc' : 'asc' : undefined,
+      searchTerm: globalFilter || undefined,
+    });
+  };
 
   return {
-    ...query,
-    agreements: query.data || [],
-    data: query.data || []
+    agreements,
+    totalCount: agreements?.length || 0,
+    isLoading,
+    error,
+    filters: searchParams,
+    setFilters: handleFilterChange,
+    pagination,
+    setPagination,
+    sorting,
+    setSorting,
+    globalFilter,
+    setGlobalFilter,
   };
-};
+}

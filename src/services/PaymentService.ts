@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { eventBus } from '@/lib/event-bus';
 import { Events, PaymentRecordedPayload } from '@/events';
@@ -6,14 +5,34 @@ import { castDbId } from '@/utils/supabase-type-helpers';
 import { BaseService } from './base/BaseService';
 import { Payment, SpecialPaymentOptions } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
-import { ServiceResponse } from '@/types/service.types';
+import { Result } from '@/lib/errors/types';
+import { createPaymentError } from '@/lib/errors/types';
+
+interface PaymentUpdateResult {
+  updatedCount: number;
+}
+
+interface MissingPaymentsResult {
+  fixedCount: number;
+  details?: Array<{
+    agreementId: string;
+    status: string;
+    message: string;
+  }>;
+}
+
+interface MissingPaymentRecord {
+  id: string | null;
+  status: string | null;
+  status_description: string | null;
+}
 
 export class PaymentService extends BaseService {
   /**
    * Record a payment for an agreement
    */
-  async recordPayment(paymentData: PaymentInsert): Promise<ServiceResponse<Payment>> {
-    try {
+  async recordPayment(paymentData: PaymentInsert): Promise<Result<Payment>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .insert(paymentData)
@@ -21,29 +40,36 @@ export class PaymentService extends BaseService {
         .single();
       
       if (error) {
-        return this.handleError(error, 'Failed to record payment');
+        throw createPaymentError('Failed to record payment', {
+          paymentId: paymentData.id,
+          amount: paymentData.amount,
+          reason: error.message
+        });
       }
 
-      if (data) {
-        const payload: PaymentRecordedPayload = {
-          paymentId: data.id,
-          agreementId: data.lease_id,
-          amount: data.amount_paid ?? data.amount
-        };
-        eventBus.publish(Events.PaymentRecorded, payload);
+      if (!data) {
+        throw createPaymentError('Payment record not found after insertion', {
+          paymentId: paymentData.id,
+          amount: paymentData.amount
+        });
       }
 
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred recording payment');
-    }
+      const payload: PaymentRecordedPayload = {
+        paymentId: data.id,
+        agreementId: data.lease_id,
+        amount: data.amount_paid ?? data.amount
+      };
+      eventBus.publish(Events.PaymentRecorded, payload);
+
+      return data;
+    }, 'Failed to record payment');
   }
 
   /**
    * Get payments for an agreement
    */
-  async getPayments(agreementId: string): Promise<ServiceResponse<Payment[]>> {
-    try {
+  async getPayments(agreementId: string): Promise<Result<Payment[]>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
@@ -51,20 +77,20 @@ export class PaymentService extends BaseService {
         .order('payment_date', { ascending: false });
       
       if (error) {
-        return this.handleError(error, 'Failed to fetch payments');
+        throw createPaymentError('Failed to fetch payments', {
+          reason: error.message
+        });
       }
       
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred fetching payments');
-    }
+      return data || [];
+    }, 'Failed to fetch payments');
   }
 
   /**
    * Update a payment
    */
-  async updatePayment(paymentId: string, paymentData: Partial<Payment>): Promise<ServiceResponse<Payment>> {
-    try {
+  async updatePayment(paymentId: string, paymentData: Partial<Payment>): Promise<Result<Payment>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .update(paymentData)
@@ -73,33 +99,39 @@ export class PaymentService extends BaseService {
         .single();
       
       if (error) {
-        return this.handleError(error, 'Failed to update payment');
+        throw createPaymentError('Failed to update payment', {
+          paymentId,
+          reason: error.message
+        });
+      }
+
+      if (!data) {
+        throw createPaymentError('Payment record not found after update', {
+          paymentId
+        });
       }
       
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred updating payment');
-    }
+      return data;
+    }, 'Failed to update payment');
   }
 
   /**
    * Delete a payment
    */
-  async deletePayment(paymentId: string): Promise<ServiceResponse<void>> {
-    try {
+  async deletePayment(paymentId: string): Promise<Result<void>> {
+    return this.safeExecute(async () => {
       const { error } = await supabase
         .from('unified_payments')
         .delete()
         .eq('id', paymentId);
       
       if (error) {
-        return this.handleError(error, 'Failed to delete payment');
+        throw createPaymentError('Failed to delete payment', {
+          paymentId,
+          reason: error.message
+        });
       }
-      
-      return this.success(undefined);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred deleting payment');
-    }
+    }, 'Failed to delete payment');
   }
 
   /**
@@ -110,8 +142,8 @@ export class PaymentService extends BaseService {
     amount: number, 
     paymentDate: Date, 
     options?: SpecialPaymentOptions
-  ): Promise<ServiceResponse<Payment>> {
-    try {
+  ): Promise<Result<Payment>> {
+    return this.safeExecute(async () => {
       // Default options
       const {
         notes,
@@ -126,115 +158,126 @@ export class PaymentService extends BaseService {
       // Get agreement data for rent amount
       const { data: leaseData, error: leaseError } = await supabase
         .from('leases')
-        .select('daily_late_fee, rent_amount')
+        .select('rent_amount, daily_late_fee')
         .eq('id', agreementId)
         .single();
-        
+
       if (leaseError) {
-        return this.handleError(leaseError, 'Error fetching lease data');
+        throw createPaymentError('Failed to fetch lease data', {
+          reason: leaseError.message
+        });
       }
-      
-      const rentAmount = leaseData?.rent_amount || 0;
-      
-      // Calculate days late and late fee
-      let daysLate = 0;
-      let lateFineAmount = 0;
-      
-      if (paymentDate.getDate() > 1) {
-        daysLate = paymentDate.getDate() - 1;
-        lateFineAmount = Math.min(daysLate * (leaseData?.daily_late_fee || 120), 3000);
+
+      if (!leaseData) {
+        throw createPaymentError('Lease not found', {
+          reason: 'Lease data not found'
+        });
       }
-      
+
+      // Calculate late fee if applicable
+      let lateFeeAmount = 0;
+      if (includeLatePaymentFee && leaseData.daily_late_fee) {
+        const daysOverdue = Math.max(0, Math.floor((new Date().getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24)));
+        lateFeeAmount = daysOverdue * leaseData.daily_late_fee;
+      }
+
       // Create payment record
-      const paymentData = {
+      const paymentData: PaymentInsert = {
         lease_id: agreementId,
-        amount: rentAmount || amount,
-        amount_paid: amount,
-        balance: isPartialPayment ? Math.max(0, rentAmount - amount) : 0,
+        amount: amount + lateFeeAmount,
+        amount_paid: isPartialPayment ? amount : amount + lateFeeAmount,
+        balance: isPartialPayment ? lateFeeAmount : 0,
         payment_date: paymentDate.toISOString(),
         payment_method: paymentMethod,
-        reference_number: referenceNumber || null,
-        description: notes || `Monthly rent payment`,
-        status: isPartialPayment ? 'partially_paid' : 'completed',
+        reference_number: referenceNumber,
+        description: notes,
+        status: isPartialPayment ? 'partially_paid' : 'paid',
         type: paymentType,
-        days_overdue: daysLate,
-        late_fine_amount: lateFineAmount,
-        original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
+        days_overdue: includeLatePaymentFee ? Math.max(0, Math.floor((new Date().getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24))) : null,
+        late_fine_amount: lateFeeAmount,
+        original_due_date: paymentDate.toISOString(),
+        payment_reference: targetPaymentId
       };
-      
-      // Record the payment
+
       const { data, error } = await supabase
         .from('unified_payments')
-        .insert([paymentData])
+        .insert(paymentData)
         .select()
         .single();
-      
+
       if (error) {
-        return this.handleError(error, 'Failed to record payment');
+        throw createPaymentError('Failed to create payment', {
+          paymentId: paymentData.id,
+          amount: paymentData.amount,
+          reason: error.message
+        });
       }
-      
-      // Record late fee if applicable
-      if (lateFineAmount > 0 && includeLatePaymentFee) {
-        const lateFeePayment = {
-          lease_id: agreementId,
-          amount: lateFineAmount,
-          amount_paid: lateFineAmount,
-          balance: 0,
-          payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod,
-          reference_number: referenceNumber || null,
-          description: `Late payment fee (${daysLate} days late)`,
-          status: 'completed',
-          type: 'LATE_PAYMENT_FEE',
-          days_overdue: daysLate,
-          late_fine_amount: lateFineAmount,
-          original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-        };
-        
-        await supabase
-          .from('unified_payments')
-          .insert([lateFeePayment]);
+
+      if (!data) {
+        throw createPaymentError('Payment record not found after creation', {
+          paymentId: paymentData.id,
+          amount: paymentData.amount
+        });
       }
-      
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred processing special payment');
-    }
+
+      // Publish payment recorded event
+      const payload: PaymentRecordedPayload = {
+        paymentId: data.id,
+        agreementId: data.lease_id,
+        amount: data.amount_paid ?? data.amount
+      };
+      eventBus.publish(Events.PaymentRecorded, payload);
+
+      return data;
+    }, 'Failed to process special payment');
   }
 
   /**
    * Check and create missing payment schedules
    */
-  async checkAndCreateMissingPayments(): Promise<ServiceResponse<any>> {
-    try {
+  async checkAndCreateMissingPayments(): Promise<Result<MissingPaymentsResult>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase.rpc('generate_missing_payment_records');
       
       if (error) {
-        return this.handleError(error, 'Failed to check payment schedules');
+        throw createPaymentError('Failed to check payment schedules', {
+          reason: error.message
+        });
       }
       
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred checking payment schedules');
-    }
+      return {
+        fixedCount: data?.length || 0,
+        details: data?.map((item: MissingPaymentRecord) => ({
+          agreementId: item.id || '',
+          status: item.status || '',
+          message: item.status_description || ''
+        }))
+      };
+    }, 'Failed to check payment schedules');
   }
 
   /**
-   * Fix payments for a specific agreement - using database function call directly
+   * Fix payments for a specific agreement
    */
-  async fixAgreementPayments(agreementId: string): Promise<ServiceResponse<any>> {
-    try {
-      // Call the database function directly since fixAgreementPayments doesn't exist on supabase client
+  async fixAgreementPayments(agreementId: string): Promise<Result<MissingPaymentsResult>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase.rpc('generate_missing_payment_records');
       
       if (error) {
-        return this.handleError(error, 'Failed to fix agreement payments');
+        throw createPaymentError('Failed to fix agreement payments', {
+          reason: error.message
+        });
       }
       
-      return this.success({ fixedCount: data?.length || 0 });
-    } catch (error) {
-      return this.handleError(error, 'Failed to fix agreement payments');
-    }
+      return {
+        fixedCount: data?.length || 0,
+        details: data?.map((item: MissingPaymentRecord) => ({
+          agreementId: item.id || '',
+          status: item.status || '',
+          message: item.status_description || ''
+        }))
+      };
+    }, 'Failed to fix agreement payments');
   }
 
   /**
@@ -243,39 +286,41 @@ export class PaymentService extends BaseService {
   async updateHistoricalPaymentStatuses(
     agreementId: string, 
     cutoffDate: Date
-  ): Promise<ServiceResponse<{updatedCount: number}>> {
-    try {
-      // Get all pending payments before cutoff date
-      const { data, error } = await supabase
+  ): Promise<Result<PaymentUpdateResult>> {
+    return this.safeExecute(async () => {
+      // Get all payments before cutoff date
+      const { data: payments, error: fetchError } = await supabase
         .from('unified_payments')
-        .select('id')
+        .select('*')
         .eq('lease_id', agreementId)
-        .eq('status', 'pending')
-        .lt('original_due_date', cutoffDate.toISOString());
-      
-      if (error) {
-        return this.handleError(error, 'Failed to fetch historical payments');
+        .lt('payment_date', cutoffDate.toISOString())
+        .neq('status', 'completed');
+
+      if (fetchError) {
+        throw createPaymentError('Failed to fetch payments', {
+          reason: fetchError.message
+        });
       }
-      
-      if (!data || data.length === 0) {
-        return this.success({ updatedCount: 0 });
+
+      if (!payments || payments.length === 0) {
+        return { updatedCount: 0 };
       }
-      
-      // Update all found payments to completed
-      const paymentIds = data.map(payment => payment.id);
-      const { error: updateError } = await supabase
-        .from('unified_payments')
-        .update({ status: 'completed' })
-        .in('id', paymentIds);
-      
-      if (updateError) {
-        return this.handleError(updateError, 'Failed to update payment statuses');
+
+      // Update each payment to completed status
+      let updatedCount = 0;
+      for (const payment of payments) {
+        const { error: updateError } = await supabase
+          .from('unified_payments')
+          .update({ status: 'completed' })
+          .eq('id', payment.id);
+
+        if (!updateError) {
+          updatedCount++;
+        }
       }
-      
-      return this.success({ updatedCount: paymentIds.length });
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred updating payment statuses');
-    }
+
+      return { updatedCount };
+    }, 'Failed to update historical payment statuses');
   }
 }
 

@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { DbTables, TableRow, TableInsert, TableUpdate, LeaseId, ProfileId, VehicleId, PaymentId } from './database-types';
 

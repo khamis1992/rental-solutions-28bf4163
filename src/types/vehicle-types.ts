@@ -1,5 +1,4 @@
-
-import { Database } from './database.types';
+import { Database } from '@/types/database.types';
 
 export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
 export type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];

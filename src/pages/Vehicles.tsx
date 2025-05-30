@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -39,14 +38,7 @@ const Vehicles = () => {
   const [activeTab, setActiveTab] = useState<string>('all');
   
   // Use the vehicle service hook with pagination
-  const { 
-    vehicles, 
-    isLoading,
-    error,
-    setFilters: updateFilters,
-    pagination,
-    totalItems
-  } = useVehicleService(filters);
+  const { vehicles, isLoadingVehicles } = useVehicleService({ filters });
 
   // Get status from URL search params
   useEffect(() => {
@@ -84,9 +76,9 @@ const Vehicles = () => {
     setActiveTab(value);
     
     if (value === 'all') {
-      setFilters(prev => ({ ...prev, status: undefined }));
+      setFilters(prev => ({ ...prev, statuses: undefined }));
     } else if (VALID_STATUSES.includes(value as VehicleStatus)) {
-      setFilters(prev => ({ ...prev, status: value as VehicleStatus }));
+      setFilters(prev => ({ ...prev, statuses: [value as VehicleStatus] }));
     }
     
     // Reset to first page when changing tabs
@@ -111,7 +103,7 @@ const Vehicles = () => {
     const convertedFilters: VehicleFilterParams = {};
     
     if (newFilters.status && newFilters.status !== 'all') 
-      convertedFilters.status = newFilters.status as VehicleStatus;
+      convertedFilters.statuses = [newFilters.status as VehicleStatus];
     
     if (newFilters.make && newFilters.make !== 'all') 
       convertedFilters.make = newFilters.make;
@@ -305,14 +297,14 @@ const Vehicles = () => {
           <CardContent className="p-4">
             {viewMode === 'grid' ? (
               <VehicleGrid 
-                vehicles={vehicles}
-                isLoading={isLoading}
+                vehicles={vehicles || []}
+                isLoading={isLoadingVehicles}
                 onVehicleClick={handleSelectVehicle}
               />
             ) : (
               <VehicleTable 
-                vehicles={vehicles}
-                isLoading={isLoading}
+                vehicles={vehicles || []}
+                isLoading={isLoadingVehicles}
                 onRowClick={handleSelectVehicle}
               />
             )}

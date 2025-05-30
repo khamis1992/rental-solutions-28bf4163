@@ -1,3 +1,28 @@
+export type MaintenanceStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type MaintenanceType = 'routine' | 'repair' | 'inspection' | 'emergency';
+
+export interface Maintenance {
+  id: string;
+  vehicle_id: string;
+  type: MaintenanceType;
+  status: MaintenanceStatus;
+  description: string;
+  date: string;
+  cost?: number;
+  technician?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
+}
+
+export interface MaintenanceFilterParams {
+  vehicleId?: string;
+  status?: MaintenanceStatus;
+  type?: MaintenanceType;
+  startDate?: string;
+  endDate?: string;
+}
 
 export interface MaintenanceRecord {
   id: string; // Make id required to match hook expectations

@@ -1,5 +1,4 @@
-
-import { Database } from "@/types/database.types";
+import { Database } from '@/types/database.types';
 
 export type DbProfileRow = Database['public']['Tables']['profiles']['Row'];
 

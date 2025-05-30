@@ -1,4 +1,3 @@
-
 import { useCallback, useRef, useEffect } from 'react';
 
 /**
@@ -7,12 +6,12 @@ import { useCallback, useRef, useEffect } from 'react';
  * @param delay The delay in milliseconds
  * @returns A debounced version of the callback
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
+export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const callbackRef = useRef<T>(callback);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const callbackRef = useRef(callback);
   
   // Update the callback ref when the callback changes
   useEffect(() => {

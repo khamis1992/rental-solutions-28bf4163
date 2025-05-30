@@ -1,5 +1,4 @@
-
-import { Database } from './database.types';
+import { Database } from '@/types/database.types';
 
 // Base Agreement type that matches the database schema exactly
 export type Agreement = Database['public']['Tables']['leases']['Row'] & {
@@ -30,13 +29,19 @@ export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];
 export type AgreementUpdate = Database['public']['Tables']['leases']['Update'];
 
 export interface TableFilters {
-  status?: string;
+  status?: string | string[];
+  statuses?: string[];
   customer?: string;
   vehicle?: string;
   dateRange?: {
     from: Date;
     to: Date;
   };
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+  search?: string;
 }
 
 // Re-export database types for convenience

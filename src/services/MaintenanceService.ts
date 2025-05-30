@@ -1,40 +1,161 @@
-
-import { maintenanceRepository } from '@/lib/database';
-import { TableRow } from '@/lib/database/types';
-import { BaseService, handleServiceOperation, ServiceResult } from './base/BaseService';
+import { supabase } from '@/lib/supabase';
+import { BaseService } from './base/BaseService';
+import { Maintenance, MaintenanceFilterParams } from '@/types/maintenance.types';
+import { Result } from '@/lib/errors/types';
+import { createServiceError } from '@/lib/errors/types';
 import { paymentService } from './PaymentService';
 
-export type Maintenance = TableRow<'maintenance'>;
-
-export class MaintenanceService extends BaseService<'maintenance'> {
+export class MaintenanceService extends BaseService {
   constructor() {
-    super(maintenanceRepository);
+    super(supabase);
   }
 
-  async createMaintenance(data: Maintenance): Promise<ServiceResult<Maintenance>> {
-    return handleServiceOperation(async () => {
-      const result = await this.repository.create(data);
-      if (result.error || !result.data) {
-        throw new Error(result.error?.message || 'Failed to create maintenance');
+  async fetchMaintenanceRecords(filters?: MaintenanceFilterParams): Promise<Result<Maintenance[]>> {
+    return this.safeExecute(async () => {
+      let query = supabase.from('maintenance').select('*');
+
+      if (filters) {
+        if (filters.vehicleId) {
+          query = query.eq('vehicle_id', filters.vehicleId);
+        }
+        
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+        
+        if (filters.type) {
+          query = query.eq('type', filters.type);
+        }
+        
+        if (filters.startDate && filters.endDate) {
+          query = query.gte('date', filters.startDate).lte('date', filters.endDate);
+        }
       }
-      if (result.data.cost && result.data.status === 'completed') {
-        await this.recordExpense(result.data);
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch maintenance records',
+          'MaintenanceService',
+          'fetchMaintenanceRecords'
+        );
       }
-      return result.data;
-    });
+
+      return data as Maintenance[];
+    }, 'Failed to fetch maintenance records');
   }
 
-  async updateMaintenance(id: string, data: Partial<Maintenance>): Promise<ServiceResult<Maintenance>> {
-    return handleServiceOperation(async () => {
-      const result = await this.repository.update(id, data);
-      if (result.error || !result.data) {
-        throw new Error(result.error?.message || 'Failed to update maintenance');
+  async getMaintenanceById(id: string): Promise<Result<Maintenance>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch maintenance record',
+          'MaintenanceService',
+          'getMaintenanceById'
+        );
       }
-      if (result.data.cost && result.data.status === 'completed') {
-        await this.recordExpense(result.data);
+
+      if (!data) {
+        throw createServiceError(
+          'Maintenance record not found',
+          'MaintenanceService',
+          'getMaintenanceById'
+        );
       }
-      return result.data;
-    });
+
+      return data;
+    }, 'Failed to fetch maintenance record');
+  }
+
+  async createMaintenanceRecord(maintenanceData: Partial<Maintenance>): Promise<Result<Maintenance>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .insert([maintenanceData])
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to create maintenance record',
+          'MaintenanceService',
+          'createMaintenanceRecord'
+        );
+      }
+
+      return data;
+    }, 'Failed to create maintenance record');
+  }
+
+  async updateMaintenanceRecord(id: string, maintenanceData: Partial<Maintenance>): Promise<Result<Maintenance>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .update(maintenanceData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to update maintenance record',
+          'MaintenanceService',
+          'updateMaintenanceRecord'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Maintenance record not found',
+          'MaintenanceService',
+          'updateMaintenanceRecord'
+        );
+      }
+
+      return data;
+    }, 'Failed to update maintenance record');
+  }
+
+  async deleteMaintenanceRecord(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('maintenance')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw createServiceError(
+          'Failed to delete maintenance record',
+          'MaintenanceService',
+          'deleteMaintenanceRecord'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete maintenance record');
+  }
+
+  async getMaintenanceByVehicle(vehicleId: string): Promise<Result<Maintenance[]>> {
+    return this.fetchMaintenanceRecords({ vehicleId });
+  }
+
+  async getMaintenanceByStatus(status: string): Promise<Result<Maintenance[]>> {
+    return this.fetchMaintenanceRecords({ status });
+  }
+
+  async getMaintenanceByType(type: string): Promise<Result<Maintenance[]>> {
+    return this.fetchMaintenanceRecords({ type });
+  }
+
+  async getMaintenanceByDateRange(startDate: string, endDate: string): Promise<Result<Maintenance[]>> {
+    return this.fetchMaintenanceRecords({ startDate, endDate });
   }
 
   private async recordExpense(record: Maintenance) {

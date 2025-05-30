@@ -1,166 +1,143 @@
-
 import { supabase } from '@/lib/supabase';
-import { BaseService, ServiceResponse } from './base/BaseService';
-import { toast } from 'sonner';
-
-export interface CustomerFilters {
-  search?: string;
-  searchTerm?: string; // Add this missing property
-  status?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface Customer {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number?: string;
-  phone?: string; // Add this for compatibility
-  address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  driver_license?: string;
-  nationality?: string;
-  notes?: string;
-  status?: string;
-  role?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { BaseService } from './base/BaseService';
+import { Customer, CustomerFilterParams } from '@/types/customer.types';
+import { Result } from '@/lib/errors/types';
+import { createServiceError } from '@/lib/errors/types';
 
 export class CustomerService extends BaseService {
-  
-  async findCustomers(filters: CustomerFilters = {}): Promise<ServiceResponse<Customer[]>> {
-    try {
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'customer');
-
-      if (filters.search) {
-        query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone_number.ilike.%${filters.search}%`);
-      }
-
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-
-      if (filters.offset) {
-        query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching customers:', error);
-        return this.handleError(error, 'Failed to fetch customers');
-      }
-
-      return this.success(data || []);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred while fetching customers');
-    }
+  constructor() {
+    super(supabase);
   }
 
-  async getCustomerDetails(id: string): Promise<ServiceResponse<Customer>> {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .eq('role', 'customer')
-        .single();
+  async fetchCustomers(filters?: CustomerFilterParams): Promise<Result<Customer[]>> {
+    return this.safeExecute(async () => {
+      let query = supabase.from('customers').select('*');
+
+      if (filters) {
+        if (filters.search) {
+          query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`);
+        }
+        
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) {
-        return this.handleError(error, 'Failed to fetch customer details');
-      }
-
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred while fetching customer details');
-    }
-  }
-
-  async create(customerData: Partial<Customer>): Promise<ServiceResponse<Customer>> {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert([{ ...customerData, role: 'customer' }])
-        .select()
-        .single();
-
-      if (error) {
-        return this.handleError(error, 'Failed to create customer');
-      }
-
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred while creating customer');
-    }
-  }
-
-  async update(id: string, customerData: Partial<Customer>): Promise<ServiceResponse<Customer>> {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(customerData)
-        .eq('id', id)
-        .eq('role', 'customer')
-        .select()
-        .single();
-
-      if (error) {
-        return this.handleError(error, 'Failed to update customer');
-      }
-
-      return this.success(data);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred while updating customer');
-    }
-  }
-
-  async delete(id: string): Promise<ServiceResponse<void>> {
-    try {
-      // Check if customer has active agreements first
-      const { data: activeAgreements, error: agreementError } = await supabase
-        .from('leases')
-        .select('id')
-        .eq('customer_id', id)
-        .eq('status', 'active');
-
-      if (agreementError) {
-        return this.handleError(agreementError, 'Failed to check customer agreements');
-      }
-
-      if (activeAgreements && activeAgreements.length > 0) {
-        return this.handleError(
-          new Error('Cannot delete customer with active agreements'),
-          'Cannot delete customer with active agreements'
+        throw createServiceError(
+          'Failed to fetch customers',
+          'CustomerService',
+          'fetchCustomers'
         );
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
+      return data as Customer[];
+    }, 'Failed to fetch customers');
+  }
+
+  async getCustomerById(id: string): Promise<Result<Customer>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
         .eq('id', id)
-        .eq('role', 'customer');
+        .single();
 
       if (error) {
-        return this.handleError(error, 'Failed to delete customer');
+        throw createServiceError(
+          'Failed to fetch customer',
+          'CustomerService',
+          'getCustomerById'
+        );
       }
 
-      return this.success(undefined);
-    } catch (error) {
-      return this.handleError(error, 'An unexpected error occurred while deleting customer');
-    }
+      if (!data) {
+        throw createServiceError(
+          'Customer not found',
+          'CustomerService',
+          'getCustomerById'
+        );
+      }
+
+      return data;
+    }, 'Failed to fetch customer');
+  }
+
+  async createCustomer(customerData: Partial<Customer>): Promise<Result<Customer>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .insert([customerData])
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to create customer',
+          'CustomerService',
+          'createCustomer'
+        );
+      }
+
+      return data;
+    }, 'Failed to create customer');
+  }
+
+  async updateCustomer(id: string, customerData: Partial<Customer>): Promise<Result<Customer>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .update(customerData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to update customer',
+          'CustomerService',
+          'updateCustomer'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Customer not found',
+          'CustomerService',
+          'updateCustomer'
+        );
+      }
+
+      return data;
+    }, 'Failed to update customer');
+  }
+
+  async deleteCustomer(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw createServiceError(
+          'Failed to delete customer',
+          'CustomerService',
+          'deleteCustomer'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete customer');
+  }
+
+  async searchCustomers(searchTerm: string): Promise<Result<Customer[]>> {
+    return this.fetchCustomers({ search: searchTerm });
+  }
+
+  async getCustomersByStatus(status: string): Promise<Result<Customer[]>> {
+    return this.fetchCustomers({ status });
   }
 }
-
-// Create a singleton instance
-export const customerService = new CustomerService(supabase);

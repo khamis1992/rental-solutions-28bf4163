@@ -1,10 +1,27 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../../lib/cors.ts";
 import { getSupabaseClient } from "../../lib/supabaseClient.ts";
+import { ErrorLogger } from "../../lib/errorLogger.ts";
 
+function createErrorResponse(message: string, code = 'UNKNOWN_ERROR', details?: any) {
+  return {
+    success: false,
+    error: { code, message, details }
+  };
+}
+
+function createSuccessResponse(data: any, message?: string) {
+  return {
+    success: true,
+    data,
+    message
+  };
+}
 
 serve(async (req) => {
+  const errorLogger = ErrorLogger.getInstance();
+  const requestId = crypto.randomUUID();
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +33,7 @@ serve(async (req) => {
     if (body.test === true) {
       console.log("Test request received, returning success");
       return new Response(
-        JSON.stringify({ success: true, message: "Customer import function is available" }),
+        JSON.stringify(createSuccessResponse({ status: 'available' }, "Customer import function is available")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
@@ -24,8 +41,17 @@ serve(async (req) => {
     const { importId } = body;
     
     if (!importId) {
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: 'Import ID is required',
+        severity: 'medium',
+        context: { requestBody: body },
+        request_id: requestId
+      });
+
       return new Response(
-        JSON.stringify({ error: "Import ID is required" }),
+        JSON.stringify(createErrorResponse("Import ID is required", "VALIDATION_ERROR")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -43,9 +69,17 @@ serve(async (req) => {
       .single();
 
     if (importError || !importRecord) {
-      console.error("Error fetching import record:", importError);
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: importError || new Error("Import record not found"),
+        severity: 'high',
+        context: { importId },
+        request_id: requestId
+      });
+
       return new Response(
-        JSON.stringify({ error: importError?.message || "Import record not found" }),
+        JSON.stringify(createErrorResponse(importError?.message || "Import record not found", "NOT_FOUND")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
@@ -67,8 +101,15 @@ serve(async (req) => {
       .download(importRecord.file_name);
 
     if (fileError || !fileData) {
-      console.error("Error downloading file:", fileError);
-      
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: fileError || new Error("Failed to download file"),
+        severity: 'high',
+        context: { importId, fileName: importRecord.file_name },
+        request_id: requestId
+      });
+
       // Update import record with error
       await supabase
         .from("customer_import_logs")
@@ -81,7 +122,7 @@ serve(async (req) => {
         .eq("id", importId);
         
       return new Response(
-        JSON.stringify({ error: fileError?.message || "Failed to download file" }),
+        JSON.stringify(createErrorResponse(fileError?.message || "Failed to download file", "FILE_ERROR")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -91,8 +132,15 @@ serve(async (req) => {
     const rows = csvText.split("\n").map(line => line.trim()).filter(line => line.length > 0);
     
     if (rows.length <= 1) {
-      console.error("CSV file has no data rows");
-      
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: 'CSV file has no data rows',
+        severity: 'medium',
+        context: { importId, fileName: importRecord.file_name },
+        request_id: requestId
+      });
+
       // Update import record with error
       await supabase
         .from("customer_import_logs")
@@ -105,7 +153,7 @@ serve(async (req) => {
         .eq("id", importId);
         
       return new Response(
-        JSON.stringify({ error: "CSV file has no data rows" }),
+        JSON.stringify(createErrorResponse("CSV file has no data rows", "VALIDATION_ERROR")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -148,11 +196,22 @@ serve(async (req) => {
         const values = parseCSVLine(row);
         
         if (values.length !== headers.length) {
-          errors.push({
+          const error = {
             row: i,
             message: `Row ${i} has ${values.length} values but should have ${headers.length}`
-          });
+          };
+          errors.push(error);
           errorCount++;
+
+          await errorLogger.logError({
+            service: 'customer-imports',
+            function_name: 'process-customer-imports',
+            error: error.message,
+            severity: 'low',
+            context: { importId, rowNumber: i, values, headers },
+            request_id: requestId
+          });
+
           continue;
         }
         
@@ -188,24 +247,42 @@ serve(async (req) => {
           .select();
         
         if (insertError) {
-          console.error(`Error inserting row ${i}:`, insertError);
-          errors.push({
+          const error = {
             row: i,
             data: customer,
             message: insertError.message
-          });
+          };
+          errors.push(error);
           errorCount++;
+
+          await errorLogger.logError({
+            service: 'customer-imports',
+            function_name: 'process-customer-imports',
+            error: insertError,
+            severity: 'medium',
+            context: { importId, rowNumber: i, customer },
+            request_id: requestId
+          });
         } else {
           processedCustomers.push(insertedCustomer[0]);
           processedCount++;
         }
       } catch (err) {
-        console.error(`Error processing row ${i}:`, err);
-        errors.push({
+        const error = {
           row: i,
           message: err.message
-        });
+        };
+        errors.push(error);
         errorCount++;
+
+        await errorLogger.logError({
+          service: 'customer-imports',
+          function_name: 'process-customer-imports',
+          error: err,
+          severity: 'medium',
+          context: { importId, rowNumber: i },
+          request_id: requestId
+        });
       }
     }
     
@@ -223,22 +300,40 @@ serve(async (req) => {
       .eq("id", importId);
     
     if (updateError) {
-      console.error("Error updating import record:", updateError);
+      await errorLogger.logError({
+        service: 'customer-imports',
+        function_name: 'process-customer-imports',
+        error: updateError,
+        severity: 'high',
+        context: { importId, processedCount, errorCount },
+        request_id: requestId
+      });
     }
     
     return new Response(
-      JSON.stringify({
-        success: true,
+      JSON.stringify(createSuccessResponse({
         processed: processedCount,
         errors: errorCount,
-        importId
-      }),
+        importId,
+        details: {
+          processedCustomers,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      }, `Successfully processed ${processedCount} customers with ${errorCount} errors`)),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Unexpected error:", err);
+    await errorLogger.logError({
+      service: 'customer-imports',
+      function_name: 'process-customer-imports',
+      error: err,
+      severity: 'critical',
+      context: { requestBody: await req.json() },
+      request_id: requestId
+    });
+
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify(createErrorResponse(err.message, "INTERNAL_ERROR", err)),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAgreementService } from './services/useAgreementService';
@@ -51,11 +50,11 @@ export function useAgreement(agreementId?: string) {
     agreement,
     isLoading,
     error,
-    filters,
-    handleFilterChange,
     updateAgreement,
     deleteAgreement,
     calculateRemainingAmount,
+    filters,
+    setFilters: handleFilterChange,
     pagination,
     setPagination,
     sorting,

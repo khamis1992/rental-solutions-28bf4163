@@ -1,10 +1,23 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { corsHeaders } from "../../lib/cors.ts";
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
 
+function createErrorResponse(message: string, code = 'UNKNOWN_ERROR', details?: any) {
+  return {
+    success: false,
+    error: { code, message, details }
+  };
+}
+
+function createSuccessResponse(data: any, message?: string) {
+  return {
+    success: true,
+    data,
+    message
+  };
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -55,12 +68,12 @@ The template should be:
 
     const generatedTemplate = data.choices[0].message.content;
 
-    return new Response(JSON.stringify({ template: generatedTemplate }), {
+    return new Response(JSON.stringify(createSuccessResponse(generatedTemplate)), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error generating template:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify(createErrorResponse(error.message)), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

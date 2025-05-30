@@ -1,14 +1,101 @@
-
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+import { Result, createSuccessResult, createErrorResult, createDatabaseError } from '@/types/error.types';
+import { toAppError } from '@/lib/errors/error-handler';
+import {
+  isSuccessResponse as isStandardSuccessResponse,
+  isErrorResponse as isStandardErrorResponse,
+  isAppError as isStandardAppError
+} from '@/types/error.types';
+import {
+  hasValidData,
+  isError,
+  isSingleResponse,
+  isArrayResponse
+} from '@/types/supabase-response.types';
 
 /**
  * Type for database ID that ensures consistent typing across the application
  */
 export type DatabaseId = string;
+
+/**
+ * Type for database timestamp that ensures consistent typing
+ */
+export type DatabaseTimestamp = string;
+
+/**
+ * Type for database JSON data
+ */
+export type DatabaseJson = Database['public']['CompositeTypes']['Json'];
+
+/**
+ * Type for database table names
+ */
+export type DatabaseTableName = keyof Database['public']['Tables'];
+
+/**
+ * Type for database view names
+ */
+export type DatabaseViewName = keyof Database['public']['Views'];
+
+/**
+ * Type for database function names
+ */
+export type DatabaseFunctionName = keyof Database['public']['Functions'];
+
+/**
+ * Type for database enum names
+ */
+export type DatabaseEnumName = keyof Database['public']['Enums'];
+
+/**
+ * Type for database composite type names
+ */
+export type DatabaseCompositeTypeName = keyof Database['public']['CompositeTypes'];
+
+/**
+ * Type for table rows
+ */
+export type TableRow<T extends DatabaseTableName> = Database['public']['Tables'][T]['Row'];
+
+/**
+ * Type for table inserts
+ */
+export type TableInsert<T extends DatabaseTableName> = Database['public']['Tables'][T]['Insert'];
+
+/**
+ * Type for table updates
+ */
+export type TableUpdate<T extends DatabaseTableName> = Database['public']['Tables'][T]['Update'];
+
+/**
+ * Type for view rows
+ */
+export type ViewRow<T extends DatabaseViewName> = Database['public']['Views'][T]['Row'];
+
+/**
+ * Type for function arguments
+ */
+export type FunctionArgs<T extends DatabaseFunctionName> = Database['public']['Functions'][T]['Args'];
+
+/**
+ * Type for function returns
+ */
+export type FunctionReturns<T extends DatabaseFunctionName> = Database['public']['Functions'][T]['Returns'];
+
+/**
+ * Type for enum values
+ */
+export type EnumValues<T extends DatabaseEnumName> = Database['public']['Enums'][T];
+
+/**
+ * Type for composite types
+ */
+export type CompositeType<T extends DatabaseCompositeTypeName> = Database['public']['CompositeTypes'][T];
 
 /**
  * Type guard to check if a value is a valid DatabaseId
@@ -26,15 +113,18 @@ export function castToDatabaseId(id: string): DatabaseId {
   return id as DatabaseId;
 }
 
+// Re-export standardized type guards
+export const isSuccessResponse = isStandardSuccessResponse;
+export const isErrorResponse = isStandardErrorResponse;
+export const isAppError = isStandardAppError;
+
 /**
  * Type guard to check if a Supabase response has data and is not an error
  */
 export function hasResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): response is (PostgrestResponse<T> & { data: T }) {
-  if (!response) return false;
-  if (response.error) return false;
-  return response.data !== null && response.data !== undefined;
+  return hasValidData(response);
 }
 
 /**
@@ -50,7 +140,7 @@ export function extractResponseData<T>(
     }
     return null;
   }
-  return response.data ?? null;
+  return response.data as T;
 }
 
 /**
@@ -130,13 +220,25 @@ export function toVehicleStatus(status: string): VehicleStatusType {
 /**
  * Handle Supabase response with proper error logging and type safety
  */
-export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+export function handleDatabaseResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): Result<T> {
   if (response?.error) {
-    console.error('Database error:', response.error);
-    return null;
+    const error = toAppError(response.error);
+    console.error('Database error:', error);
+    return createErrorResult<T>(error);
   }
   
-  return (response?.data as unknown as T) || null;
+  if (!response?.data) {
+    const error = createDatabaseError('No data returned from database query', {
+      query: 'unknown',
+      params: null
+    });
+    console.warn(error.message);
+    return createErrorResult<T>(error);
+  }
+  
+  return createSuccessResult(response.data as T);
 }
 
 /**

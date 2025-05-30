@@ -1,6 +1,8 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
+import { PaymentSchedule, PaymentScheduleFilterParams, PaymentStatus } from '@/types/payment-schedule.types';
+import { Result } from '@/lib/errors/types';
+import { createServiceError } from '@/lib/errors/types';
 
 export interface PaymentScheduleItem {
   id: string;
@@ -33,29 +35,187 @@ export class PaymentScheduleService extends BaseService {
     super(supabase);
   }
 
-  async getPaymentSchedule(leaseId: string) {
+  async fetchPaymentSchedules(filters?: PaymentScheduleFilterParams): Promise<Result<PaymentSchedule[]>> {
+    return this.safeExecute(async () => {
+      let query = supabase.from('payment_schedules').select('*');
+
+      if (filters) {
+        if (filters.agreementId) {
+          query = query.eq('agreement_id', filters.agreementId);
+        }
+        
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+        
+        if (filters.startDate && filters.endDate) {
+          query = query.gte('due_date', filters.startDate).lte('due_date', filters.endDate);
+        }
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch payment schedules',
+          'PaymentScheduleService',
+          'fetchPaymentSchedules'
+        );
+      }
+
+      return data as PaymentSchedule[];
+    }, 'Failed to fetch payment schedules');
+  }
+
+  async getPaymentScheduleById(id: string): Promise<Result<PaymentSchedule>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('payment_schedules')
         .select('*')
-        .eq('lease_id', leaseId)
-        .order('due_date', { ascending: true });
+        .eq('id', id)
+        .single();
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch payment schedule',
+          'PaymentScheduleService',
+          'getPaymentScheduleById'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Payment schedule not found',
+          'PaymentScheduleService',
+          'getPaymentScheduleById'
+        );
+      }
+
+      return data;
     }, 'Failed to fetch payment schedule');
   }
 
-  async getScheduleByLeaseId(leaseId: string) {
+  async createPaymentSchedule(scheduleData: Partial<PaymentSchedule>): Promise<Result<PaymentSchedule>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .insert([scheduleData])
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to create payment schedule',
+          'PaymentScheduleService',
+          'createPaymentSchedule'
+        );
+      }
+
+      return data;
+    }, 'Failed to create payment schedule');
+  }
+
+  async updatePaymentSchedule(id: string, scheduleData: Partial<PaymentSchedule>): Promise<Result<PaymentSchedule>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .update(scheduleData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to update payment schedule',
+          'PaymentScheduleService',
+          'updatePaymentSchedule'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Payment schedule not found',
+          'PaymentScheduleService',
+          'updatePaymentSchedule'
+        );
+      }
+
+      return data;
+    }, 'Failed to update payment schedule');
+  }
+
+  async deletePaymentSchedule(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('payment_schedules')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw createServiceError(
+          'Failed to delete payment schedule',
+          'PaymentScheduleService',
+          'deletePaymentSchedule'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete payment schedule');
+  }
+
+  async getPaymentSchedulesByAgreement(agreementId: string): Promise<Result<PaymentSchedule[]>> {
+    return this.fetchPaymentSchedules({ agreementId });
+  }
+
+  async getPaymentSchedulesByStatus(status: PaymentStatus): Promise<Result<PaymentSchedule[]>> {
+    return this.fetchPaymentSchedules({ status });
+  }
+
+  async getPaymentSchedulesByDateRange(startDate: string, endDate: string): Promise<Result<PaymentSchedule[]>> {
+    return this.fetchPaymentSchedules({ startDate, endDate });
+  }
+
+  async getPaymentSchedule(leaseId: string): Promise<Result<PaymentSchedule[]>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('payment_schedules')
         .select('*')
-        .eq('lease_id', leaseId)
+        .eq('agreement_id', leaseId)
         .order('due_date', { ascending: true });
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch payment schedule',
+          'PaymentScheduleService',
+          'getPaymentSchedule'
+        );
+      }
+
+      return data as PaymentSchedule[];
+    }, 'Failed to fetch payment schedule');
+  }
+
+  async calculateTotalAmount(payments: PaymentSchedule[]): Promise<number> {
+    return payments.reduce((sum: number, p: PaymentSchedule) => sum + p.amount, 0);
+  }
+
+  async getScheduleByLeaseId(leaseId: string): Promise<Result<PaymentSchedule[]>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .select('*')
+        .eq('agreement_id', leaseId)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch payment schedule',
+          'PaymentScheduleService',
+          'getScheduleByLeaseId'
+        );
+      }
+
+      return data as PaymentSchedule[];
     }, 'Failed to fetch payment schedule');
   }
 

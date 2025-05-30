@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -42,6 +41,38 @@ export interface FinancialSummary {
   overdueExpenses: number;
 }
 
+interface PaymentData {
+  id: string;
+  payment_date: string;
+  created_at: string;
+  amount: number;
+  description: string;
+  type: string;
+  status: string;
+  reference: string;
+  payment_method: string;
+  vehicle_id: string;
+  customer_id: string;
+  is_recurring: boolean;
+  recurring_interval: string;
+  next_payment_date: string;
+}
+
+interface InstallmentData {
+  id: string;
+  payment_date: string;
+  payment_amount: number;
+  vehicle_description: string;
+  payment_status: string;
+  reference: string;
+  payment_method: string;
+  vehicle_id: string;
+}
+
+interface ContractData {
+  amount_pending: number;
+}
+
 export function useFinancials() {
   const { toast } = useToast();
   const [filters, setFilters] = useState({
@@ -60,22 +91,22 @@ export function useFinancials() {
     recurringOnly: false,
   });
 
+  const handleMonthlyPayments = useCallback(async () => {
+    const result = await checkAndGenerateMonthlyPayments();
+    console.log("Monthly payment check completed:", result);
+  }, []);
+
   useEffect(() => {
-    checkAndGenerateMonthlyPayments().then((result) => {
-      console.log("Monthly payment check completed:", result);
-    });
+    handleMonthlyPayments();
 
     const today = getSystemDate().toDateString();
     const lastCheck = localStorage.getItem('lastPaymentCheck');
     
     if (!lastCheck || lastCheck !== today) {
       localStorage.setItem('lastPaymentCheck', today);
-      
-      checkAndGenerateMonthlyPayments().then((result) => {
-        console.log("Daily payment check completed:", result);
-      });
+      handleMonthlyPayments();
     }
-  }, []);
+  }, [handleMonthlyPayments]);
 
   const { 
     data: transactions = [], 
@@ -104,7 +135,7 @@ export function useFinancials() {
         }
 
         const formattedTransactions: FinancialTransaction[] = [
-          ...(paymentData || []).map(payment => ({
+          ...(paymentData || []).map((payment: PaymentData) => ({
             id: payment.id,
             date: new Date(payment.payment_date),
             amount: payment.amount || 0,
@@ -118,7 +149,7 @@ export function useFinancials() {
             customerId: payment.customer_id || ''
           })),
           
-          ...(installmentData || []).map(installment => ({
+          ...(installmentData || []).map((installment: InstallmentData) => ({
             id: `inst-${installment.id}`,
             date: new Date(installment.payment_date || getSystemDate()),
             amount: installment.payment_amount || 0,
@@ -239,7 +270,7 @@ export function useFinancials() {
         }
         
         const todayInstallmentsDue = (todayInstallments || [])
-          .reduce((sum, payment) => {
+          .reduce((sum: number, payment: { amount: number; paid_amount: number }) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
@@ -259,7 +290,7 @@ export function useFinancials() {
         }
         
         const overdueExpensesTotal = (overdueInstallments || [])
-          .reduce((sum, payment) => {
+          .reduce((sum: number, payment: { amount: number; paid_amount: number }) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
@@ -281,7 +312,7 @@ export function useFinancials() {
         }
           
         const currentMonthDue = (currentMonthInstallments || [])
-          .reduce((sum, payment) => {
+          .reduce((sum: number, payment: { amount: number; paid_amount: number }) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
@@ -300,17 +331,17 @@ export function useFinancials() {
         }
           
         const installmentsPending = (contractsData || [])
-          .reduce((sum, contract) => sum + (Number(contract.amount_pending) || 0), 0);
+          .reduce((sum: number, contract: ContractData) => sum + (Number(contract.amount_pending) || 0), 0);
 
         console.log("Total pending installments:", installmentsPending);
 
         const totalIncome = (incomeData || [])
-          .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .filter((item: { status: string }) => item.status !== 'failed')
+          .reduce((sum: number, item: { amount: number }) => sum + (Number(item.amount) || 0), 0);
           
         const expensesFromPayments = (expenseData || [])
-          .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .filter((item: { status: string }) => item.status !== 'failed')
+          .reduce((sum: number, item: { amount: number }) => sum + (Number(item.amount) || 0), 0);
           
         console.log("Total income for current month calculated:", totalIncome);
         console.log("Expenses from payments:", expensesFromPayments);
@@ -325,8 +356,8 @@ export function useFinancials() {
         console.log("Total expenses calculated with overdue amounts:", totalExpenses);
         
         const pendingPayments = (incomeData || [])
-          .filter(item => item.status === 'pending')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .filter((item: { status: string }) => item.status === 'pending')
+          .reduce((sum: number, item: { amount: number }) => sum + (Number(item.amount) || 0), 0);
 
         const netRevenue = Number(totalIncome) - Number(totalExpenses);
         
@@ -379,7 +410,7 @@ export function useFinancials() {
           throw expenseError;
         }
 
-        const formattedExpenses: FinancialTransaction[] = (expenseData || []).map(expense => ({
+        const formattedExpenses: FinancialTransaction[] = (expenseData || []).map((expense: PaymentData) => ({
           id: expense.id,
           date: new Date(expense.payment_date || expense.created_at),
           amount: expense.amount || 0,
@@ -783,7 +814,6 @@ export function useFinancials() {
     addExpense: addExpenseMutation.mutate,
     updateExpense: updateExpenseMutation.mutate,
     deleteExpense: deleteExpenseMutation.mutate,
-    // Fix the null reference error by providing a default empty array if expenses is null
     recurringExpenses: expenses ? expenses.filter(e => e.isRecurring === true) : [],
     systemDate: getSystemDate()
   };

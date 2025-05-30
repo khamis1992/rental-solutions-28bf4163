@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import type { Payment as PaymentType } from '@/types/payment.types';
 

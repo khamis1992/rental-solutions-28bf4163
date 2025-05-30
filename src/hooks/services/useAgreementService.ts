@@ -3,12 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
 import { agreementDeletionService } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';
+import { AgreementStatus } from '@/types/agreement-types';
+import { Agreement } from '@/types/agreement';
 
 /**
  * Hook for working with the Agreement Service
  */
 export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
-  const [searchParams, setSearchParams] = useState(initialFilters);
+  const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const queryClient = useQueryClient();
 
   // Query for fetching agreements with filters
@@ -42,8 +44,29 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   // Mutation for updating an agreement
   const updateAgreement = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const result = await agreementService.update(id, data);
+    mutationFn: async ({ id, data }: { 
+      id: string; 
+      data: Partial<{
+        customer_id: string;
+        vehicle_id: string;
+        start_date: Date;
+        end_date: Date;
+        status: AgreementStatus;
+        rent_amount: number;
+        deposit_amount: number;
+        total_amount: number;
+        daily_late_fee: number;
+        agreement_type?: string;
+        agreement_number?: string;
+        notes?: string;
+        terms_accepted?: boolean;
+        additional_drivers?: string[];
+      }>
+    }) => {
+      const result = await agreementService.update(id, {
+        ...data,
+        updated_at: new Date()
+      });
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement');
       }
@@ -60,7 +83,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   // Mutation for changing agreement status
   const changeStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: AgreementStatus }) => {
       const result = await agreementService.changeStatus(id, status);
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to update agreement status');
@@ -124,8 +147,28 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
 
   // Create new agreement
   const createAgreement = useMutation({
-    mutationFn: async (data: any) => {
-      const result = await agreementService.save(data);
+    mutationFn: async (data: {
+      customer_id: string;
+      vehicle_id: string;
+      start_date: Date;
+      end_date: Date;
+      status: AgreementStatus;
+      rent_amount: number;
+      deposit_amount: number;
+      total_amount: number;
+      daily_late_fee: number;
+      agreement_type?: string;
+      agreement_number?: string;
+      notes?: string;
+      terms_accepted?: boolean;
+      additional_drivers?: string[];
+    }) => {
+      const result = await agreementService.save({
+        ...data,
+        id: '', // Empty string for new agreement
+        created_at: new Date(),
+        updated_at: new Date()
+      });
       if (!result.success) {
         throw new Error(result.error?.toString() || 'Failed to create agreement');
       }

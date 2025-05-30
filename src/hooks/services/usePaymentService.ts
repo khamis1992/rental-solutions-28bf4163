@@ -1,9 +1,27 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/services/PaymentService';
-import { Payment } from '@/types/payment.types';
+import { Payment, PaymentRecord, isPaymentRecord } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
 import { toast } from 'sonner';
+import { ServiceResponse, ApiError } from '@/types/api.types';
+
+interface SpecialPaymentOptions {
+  skipLateFee?: boolean;
+  applyDiscount?: boolean;
+  discountAmount?: number;
+  notes?: string;
+  paymentMethod?: string;
+  referenceNumber?: string;
+}
+
+/**
+ * Helper to get error message from service response
+ */
+function getErrorMessage(error: string | Error | null): string {
+  if (!error) return 'Unknown error';
+  if (error instanceof Error) return error.message;
+  return error;
+}
 
 /**
  * Hook for working with the Payment Service
@@ -24,7 +42,7 @@ export const usePaymentService = (agreementId?: string) => {
       
       const result = await paymentService.getPayments(agreementId);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fetch payments');
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -37,7 +55,7 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async (newPayment: PaymentInsert) => {
       const result = await paymentService.recordPayment(newPayment);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to record payment');
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -55,7 +73,7 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
       const result = await paymentService.updatePayment(paymentUpdate.id, paymentUpdate.data);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to update payment');
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -73,7 +91,7 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async (paymentId: string) => {
       const result = await paymentService.deletePayment(paymentId);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to delete payment');
+        throw new Error(getErrorMessage(result.error));
       }
       return { success: true };
     },
@@ -88,30 +106,51 @@ export const usePaymentService = (agreementId?: string) => {
 
   // Mutation for handling special payments with late fee calculation
   const handleSpecialPayment = useMutation({
-    mutationFn: async (params: { 
-      agreementId: string; 
-      amount: number; 
-      paymentDate: Date; 
-      options?: any 
+    mutationFn: async ({
+      agreementId,
+      amount,
+      paymentDate,
+      options,
+    }: {
+      agreementId: string;
+      amount: number;
+      paymentDate: Date;
+      options?: {
+        notes?: string;
+        paymentMethod?: string;
+        referenceNumber?: string;
+        includeLatePaymentFee?: boolean;
+        isPartialPayment?: boolean;
+        paymentType?: string;
+        targetPaymentId?: string;
+      };
     }) => {
       const result = await paymentService.handleSpecialPayment(
-        params.agreementId, 
-        params.amount, 
-        params.paymentDate, 
-        params.options
+        agreementId,
+        amount,
+        paymentDate,
+        options
       );
+
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to process special payment');
+        throw new Error(getErrorMessage(result.error));
       }
+
+      if (!result.data || !isPaymentRecord(result.data)) {
+        throw new Error('Invalid payment record received');
+      }
+
       return result.data;
     },
-    onSuccess: () => {
-      toast.success('Payment processed successfully');
-      queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
+    onSuccess: (data) => {
+      toast.success('Special payment processed successfully');
+      queryClient.invalidateQueries({
+        queryKey: ['payments', data.lease_id],
+      });
     },
     onError: (error) => {
-      toast.error(`Payment processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      toast.error(error instanceof Error ? error.message : 'Failed to process special payment');
+    },
   });
 
   // Mutation for checking and creating missing payments
@@ -119,7 +158,7 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async () => {
       const result = await paymentService.checkAndCreateMissingPayments();
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to check payment schedules');
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -139,7 +178,7 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async (id: string) => {
       const result = await paymentService.fixAgreementPayments(id);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to fix agreement payments');
+        throw new Error(getErrorMessage(result.error));
       }
       return result.data;
     },
@@ -157,7 +196,10 @@ export const usePaymentService = (agreementId?: string) => {
     mutationFn: async (params: { agreementId: string; cutoffDate: Date }) => {
       const result = await paymentService.updateHistoricalPaymentStatuses(params.agreementId, params.cutoffDate);
       if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to update historical payment statuses');
+        throw new Error(getErrorMessage(result.error));
+      }
+      if (!result.data) {
+        throw new Error('No data returned from update operation');
       }
       return result.data;
     },

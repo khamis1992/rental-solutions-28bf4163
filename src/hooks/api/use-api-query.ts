@@ -1,12 +1,6 @@
-
 import { useQuery } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/api/enhanced-error-handlers';
-
-// Define generic types for the hook
-interface ApiResponse<T> {
-  data: T | null;
-  error: any | null;
-}
+import { handleApiError } from '@/lib/errors/error-handler';
+import { type ApiResponse } from '@/types/error.types';
 
 export function useApiQuery<TData = any, TError = Error>(
   queryKey: string[],
@@ -44,7 +38,7 @@ export function useApiQuery<TData = any, TError = Error>(
       } catch (error) {
         console.error(`API query error for ${queryKey.join('/')}:`, error);
         
-        // Use our enhanced error handler
+        // Use our centralized error handler
         handleApiError(error, options?.errorContext || `Query ${queryKey.join('/')}`);
         
         // Convert error to expected format before rejecting

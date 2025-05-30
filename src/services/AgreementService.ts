@@ -4,10 +4,12 @@ import { asLeaseId } from '@/utils/database-type-helpers';
 import { ensureValidLeaseStatus } from '@/types/lease-types';
 import { BaseService, handleServiceOperation, ServiceResult } from '@/services/base/BaseService';
 import { agreementDeletionService } from './AgreementDeletionService';
+import { Result } from '@/lib/errors/types';
+import { createServiceError } from '@/lib/errors/types';
 
 // Define AgreementFilters interface
 export interface AgreementFilters {
-  status?: string;
+  statuses?: string[];  // Array of statuses for filtering
   customerId?: string;
   vehicleId?: string;
   startDate?: Date;
@@ -162,8 +164,8 @@ export const agreementService = {
       let query = supabase.from('leases').select(selectClause);
       
       // Apply filters
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
+      if (filters.statuses && filters.statuses.length > 0) {
+        query = query.in('status', filters.statuses);
       }
       
       if (filters.customerId) {
@@ -212,7 +214,9 @@ export const agreementService = {
       
       if (filters.end_date_before) {
         query = query.lte('end_date', filters.end_date_before);
-      }      // Search by customer name or vehicle license plate
+      }
+
+      // Search by customer name or vehicle license plate
       if (filters.searchTerm && filters.searchTerm.trim() !== '') {
         const searchTerm = filters.searchTerm.trim();
         
@@ -376,4 +380,158 @@ function generateAgreementNumber(): string {
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   return `${prefix}-${timestamp}-${random}`;
+}
+
+export class AgreementService extends BaseService {
+  constructor() {
+    super(supabase);
+  }
+
+  async fetchAgreements(filters?: AgreementFilters): Promise<Result<Agreement[]>> {
+    return this.safeExecute(async () => {
+      let query = supabase.from('leases').select('*');
+
+      if (filters) {
+        if (filters.customerId) {
+          query = query.eq('customer_id', filters.customerId);
+        }
+        
+        if (filters.vehicleId) {
+          query = query.eq('vehicle_id', filters.vehicleId);
+        }
+        
+        if (filters.statuses && filters.statuses.length > 0) {
+          query = query.in('status', filters.statuses);
+        }
+        
+        if (filters.startDate && filters.endDate) {
+          query = query.gte('start_date', filters.startDate.toISOString()).lte('end_date', filters.endDate.toISOString());
+        }
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch agreements',
+          'AgreementService',
+          'fetchAgreements'
+        );
+      }
+
+      return data as Agreement[];
+    }, 'Failed to fetch agreements');
+  }
+
+  async getAgreementById(id: string): Promise<Result<Agreement>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to fetch agreement',
+          'AgreementService',
+          'getAgreementById'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Agreement not found',
+          'AgreementService',
+          'getAgreementById'
+        );
+      }
+
+      return data;
+    }, 'Failed to fetch agreement');
+  }
+
+  async createAgreement(agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('leases')
+        .insert([agreementData])
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to create agreement',
+          'AgreementService',
+          'createAgreement'
+        );
+      }
+
+      return data;
+    }, 'Failed to create agreement');
+  }
+
+  async updateAgreement(id: string, agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('leases')
+        .update(agreementData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw createServiceError(
+          'Failed to update agreement',
+          'AgreementService',
+          'updateAgreement'
+        );
+      }
+
+      if (!data) {
+        throw createServiceError(
+          'Agreement not found',
+          'AgreementService',
+          'updateAgreement'
+        );
+      }
+
+      return data;
+    }, 'Failed to update agreement');
+  }
+
+  async deleteAgreement(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('leases')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw createServiceError(
+          'Failed to delete agreement',
+          'AgreementService',
+          'deleteAgreement'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete agreement');
+  }
+
+  async getAgreementsByCustomer(customerId: string): Promise<Result<Agreement[]>> {
+    return this.fetchAgreements({ customerId });
+  }
+
+  async getAgreementsByVehicle(vehicleId: string): Promise<Result<Agreement[]>> {
+    return this.fetchAgreements({ vehicleId });
+  }
+
+  async getAgreementsByStatus(status: string): Promise<Result<Agreement[]>> {
+    return this.fetchAgreements({ statuses: [status] });
+  }
+
+  async getAgreementsByDateRange(startDate: string, endDate: string): Promise<Result<Agreement[]>> {
+    return this.fetchAgreements({ startDate, endDate });
+  }
 }

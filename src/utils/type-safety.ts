@@ -1,3 +1,11 @@
+import { 
+  isErrorResponse as isStandardErrorResponse,
+  isAppError as isStandardAppError
+} from '@/types/error.types';
+
+// Re-export standardized type guards
+export const isErrorResponse = isStandardErrorResponse;
+export const isAppError = isStandardAppError;
 
 /**
  * Type guard to check if a value is not an error
@@ -6,7 +14,8 @@ export function isNotError(value: any): boolean {
   return value !== null && 
          value !== undefined && 
          typeof value !== 'string' && 
-         !('error' in value);
+         !isErrorResponse(value) &&
+         !isAppError(value);
 }
 
 /**

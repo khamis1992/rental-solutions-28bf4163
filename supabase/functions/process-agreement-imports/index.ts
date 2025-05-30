@@ -2,6 +2,15 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
 import { corsHeaders } from '../../lib/cors.ts';
 import { getSupabaseClient } from '../../lib/supabaseClient.ts';
+import { 
+  createErrorResponse, 
+  createSuccessResponse,
+  createValidationError,
+  createNotFoundError,
+  createDatabaseError,
+  createApiError,
+  type ApiResponse
+} from '../../lib/error.types.ts';
 
 
 const agreementImportSchema = z.object({
@@ -80,6 +89,21 @@ function parseCorrectDateFormat(dateStr: string): Date {
   throw new Error(`Invalid date format: ${dateStr}. Please use DD/MM/YYYY or YYYY-MM-DD format.`);
 }
 
+function createErrorResponse(message: string, code = 'UNKNOWN_ERROR', details?: any) {
+  return {
+    success: false,
+    error: { code, message, details }
+  };
+}
+
+function createSuccessResponse(data: any, message?: string) {
+  return {
+    success: true,
+    data,
+    message
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -95,7 +119,7 @@ serve(async (req) => {
     } catch (parseError) {
       console.error("Error parsing request JSON:", parseError);
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid JSON in request body" }),
+        JSON.stringify(createErrorResponse(createValidationError("Invalid JSON in request body"))),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -103,7 +127,7 @@ serve(async (req) => {
     if (reqBody.test === true) {
       console.log("Test request received, returning success");
       return new Response(
-        JSON.stringify({ success: true, message: "Function is available" }),
+        JSON.stringify(createSuccessResponse({ status: 'available' }, "Function is available")),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -112,7 +136,7 @@ serve(async (req) => {
     
     if (!importId) {
       return new Response(
-        JSON.stringify({ success: false, error: "Import ID is required" }),
+        JSON.stringify(createErrorResponse(createValidationError("Import ID is required"))),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
@@ -130,8 +154,18 @@ serve(async (req) => {
     if (importError) {
       console.error("Failed to get import record:", importError);
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to get import record: ${importError.message}` }),
+        JSON.stringify(createErrorResponse(createDatabaseError(
+          "Failed to get import record",
+          { error: importError }
+        ))),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
+    if (!importData) {
+      return new Response(
+        JSON.stringify(createErrorResponse(createNotFoundError("Import record", importId))),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
       );
     }
     
@@ -155,7 +189,10 @@ serve(async (req) => {
       });
       
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to download file: ${fileError.message}` }),
+        JSON.stringify(createErrorResponse(createApiError(
+          "Failed to download file",
+          { error: fileError }
+        ))),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -169,7 +206,7 @@ serve(async (req) => {
       });
       
       return new Response(
-        JSON.stringify({ success: false, error: "File data is empty or invalid" }),
+        JSON.stringify(createErrorResponse(createValidationError("File data is empty or invalid"))),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
@@ -184,21 +221,32 @@ serve(async (req) => {
         error_count: result.errors,
         row_count: result.processed + result.errors
       });
+
+      return new Response(
+        JSON.stringify(createSuccessResponse(result, "Import completed successfully")),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else {
       await updateImportStatus(supabase, importId, "failed", {
         error_count: result.errors,
         errors: { details: result.details }
       });
+
+      return new Response(
+        JSON.stringify(createErrorResponse(createApiError(
+          "Import failed",
+          { details: result.details }
+        ))),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
     }
-    
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (err) {
     console.error("Error processing agreement imports:", err);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify(createErrorResponse(createApiError(
+        "Unexpected error during import processing",
+        { error: err }
+      ))),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

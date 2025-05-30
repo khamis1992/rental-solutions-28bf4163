@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 import { asUUID, UUID } from '@/lib/uuid-helpers';
 import { getResponseData } from '@/utils/supabase-type-helpers';

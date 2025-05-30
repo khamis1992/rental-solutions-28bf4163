@@ -1,4 +1,3 @@
-
 import { type PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { Database } from '@/types/database.types';
 

@@ -1,6 +1,81 @@
-
-import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { Result, createSuccessResult, createErrorResult, isSuccessResult } from '@/lib/errors/types';
+import { toAppError } from '@/lib/errors/error-handler';
 import { toast } from 'sonner';
+
+export interface DatabaseHealthStatus {
+  isHealthy: boolean;
+  latency?: number;
+  error?: string;
+  apiEndpoint: string;
+  clientVersion: string;
+}
+
+/**
+ * Check Supabase database health
+ * @returns Promise with health status information
+ */
+export async function checkSupabaseHealth(): Promise<Result<DatabaseHealthStatus>> {
+  try {
+    const startTime = performance.now();
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    const endTime = performance.now();
+    const latency = Math.round(endTime - startTime);
+
+    if (error) {
+      const appError = toAppError(error);
+      console.error('Database health check failed:', appError);
+      return createErrorResult<DatabaseHealthStatus>(appError);
+    }
+
+    return createSuccessResult({
+      isHealthy: true,
+      latency,
+      apiEndpoint: supabase.supabaseUrl,
+      clientVersion: '2.38.4' // Version of @supabase/supabase-js
+    });
+  } catch (error) {
+    const appError = toAppError(error);
+    console.error('Unexpected error during database health check:', appError);
+    return createErrorResult<DatabaseHealthStatus>(appError);
+  }
+}
+
+/**
+ * Run diagnostic check of database connection for troubleshooting
+ * @returns Promise with detailed diagnostic information
+ */
+export async function runDatabaseDiagnostics(): Promise<Result<DatabaseHealthStatus>> {
+  try {
+    const startTime = performance.now();
+    const healthResult = await checkSupabaseHealth();
+    const endTime = performance.now();
+    
+    if (!isSuccessResult(healthResult)) {
+      return createErrorResult<DatabaseHealthStatus>({
+        code: 'DATABASE_ERROR',
+        message: healthResult.error.message,
+        details: healthResult.error.details
+      });
+    }
+
+    const health = healthResult.data;
+    const latency = health.latency || Math.round(endTime - startTime);
+    const error = health.error || undefined;
+
+    return createSuccessResult({
+      isHealthy: health.isHealthy,
+      latency,
+      error,
+      apiEndpoint: health.apiEndpoint,
+      clientVersion: health.clientVersion
+    });
+  } catch (error) {
+    const appError = toAppError(error);
+    console.error('Unexpected error during database diagnostics:', appError);
+    return createErrorResult<DatabaseHealthStatus>(appError);
+  }
+}
 
 /**
  * Check the health of the Supabase connection using the client's built-in health check
@@ -11,15 +86,18 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
     console.log('Checking database connection health');
     const result = await checkSupabaseHealth();
     
-    if (!result.isHealthy) {
+    if (!isSuccessResult(result)) {
       console.error('Database health check failed:', result.error);
-    } else {
-      console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
+      return { 
+        isHealthy: false,
+        error: result.error.message
+      };
     }
     
+    console.log(`Database connection is healthy (latency: ${result.data.latency}ms)`);
     return { 
-      isHealthy: result.isHealthy,
-      error: result.error 
+      isHealthy: result.data.isHealthy,
+      error: result.data.error
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
@@ -49,37 +127,4 @@ export const getConnectionErrorMessage = (isConnected: boolean): string | null =
     return 'Database connection error. Please check your internet connection and try again.';
   }
   return null;
-};
-
-/**
- * Run diagnostic check of database connection for troubleshooting
- * @returns Promise with detailed diagnostic information
- */
-export const runDatabaseDiagnostics = async (): Promise<{
-  isConnected: boolean;
-  latency?: number;
-  error?: string;
-  apiEndpoint: string;
-  clientVersion: string;
-}> => {
-  try {
-    const startTime = performance.now();
-    const health = await checkSupabaseHealth();
-    const endTime = performance.now();
-    
-    return {
-      isConnected: health.isHealthy,
-      latency: health.latency || Math.round(endTime - startTime),
-      error: health.error,
-      apiEndpoint: supabase.supabaseUrl,
-      clientVersion: '2.38.4' // Version of @supabase/supabase-js
-    };
-  } catch (err) {
-    return {
-      isConnected: false,
-      error: err instanceof Error ? err.message : 'Unknown error during diagnostics',
-      apiEndpoint: supabase.supabaseUrl,
-      clientVersion: '2.38.4'
-    };
-  }
 };

@@ -1,6 +1,5 @@
-
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
-import { handleApiError, handleApiSuccess } from '@/lib/api/enhanced-error-handlers';
+import { handleApiError, handleApiSuccess } from '@/lib/errors/error-handler';
 
 export function useApiMutation<TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,

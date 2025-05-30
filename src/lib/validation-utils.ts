@@ -1,36 +1,26 @@
-
 import { z } from 'zod';
+import { handleApiError } from '@/lib/errors/error-handler';
+import { createValidationError } from '@/types/error.types';
 
 /**
- * Enhanced validateData function that properly types and formats errors
+ * Validates data against a Zod schema
  */
-export function validateData<T>(schema: z.ZodType<T>, data: unknown): { 
-  success: true; 
-  data: T; 
-} | { 
-  success: false; 
-  errors: Record<string, string>; 
-} {
+export function validateData<T>(schema: z.ZodType<T>, data: unknown): 
+  | { success: true; data: T }
+  | { success: false; errors: Record<string, string> } {
   try {
-    const validData = schema.parse(data);
-    return { success: true, data: validData };
+    const validatedData = schema.parse(data);
+    return { success: true, data: validatedData };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Format errors into a user-friendly object
-      const formattedErrors: Record<string, string> = {};
-      error.errors.forEach(err => {
+      const errors: Record<string, string> = {};
+      error.errors.forEach((err) => {
         const path = err.path.join('.');
-        formattedErrors[path] = err.message;
+        errors[path] = err.message;
       });
-      
-      return { success: false, errors: formattedErrors };
+      return { success: false, errors };
     }
-    
-    // Handle unexpected errors
-    return { 
-      success: false, 
-      errors: { _general: 'An unexpected validation error occurred' } 
-    };
+    throw error;
   }
 }
 
@@ -53,6 +43,7 @@ export function withValidation<T, R>(
       return { success: true, data: result };
     } catch (error) {
       console.error('Error in validated handler:', error);
+      handleApiError(createValidationError('Validation failed', { errors: error instanceof Error ? error.message : 'An unknown error occurred' }));
       return { 
         success: false, 
         errors: { _general: error instanceof Error ? error.message : 'An unknown error occurred' } 

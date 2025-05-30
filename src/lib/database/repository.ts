@@ -1,87 +1,145 @@
-
 import { supabase } from '@/lib/supabase';
-import { DbTables, DbTableName } from './types';
+import { Database } from '@/types/database.types';
+import { Result, createSuccessResult, createErrorResult } from '@/lib/errors/types';
+import { toAppError } from '@/lib/errors/error-handler';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-export class GenericRepository<T extends DbTableName> {
+type Tables = Database['public']['Tables'];
+type TableName = keyof Tables;
+
+export class GenericRepository<T extends TableName> {
   constructor(
     private tableName: T,
-    private client: any = supabase
+    private client: SupabaseClient = supabase
   ) {}
 
-  async findAll(): Promise<{ data: DbTables[T]['Row'][] | null; error: any }> {
+  async findById(id: string): Promise<Result<Tables[T]['Row']>> {
     try {
-      const { data, error } = await this.client
-        .from(String(this.tableName))
-        .select('*');
-      
-      return { data, error };
-    } catch (error) {
-      console.error(`Error fetching all ${String(this.tableName)}:`, error);
-      return { data: null, error };
-    }
-  }
-
-  async findById(id: string): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
-    try {
-      const { data, error } = await this.client
-        .from(String(this.tableName))
+      const response = await this.client
+        .from(this.tableName)
         .select('*')
         .eq('id', id)
         .single();
-      
-      return { data, error };
+
+      if (response.error) {
+        const error = toAppError(response.error);
+        console.error(`Error finding ${this.tableName} by id:`, error);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      if (!response.data) {
+        const error = toAppError(new Error(`${this.tableName} not found`));
+        console.warn(error.message);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      return createSuccessResult(response.data);
     } catch (error) {
-      console.error(`Error fetching ${String(this.tableName)} by ID:`, error);
-      return { data: null, error };
+      const appError = toAppError(error);
+      console.error(`Unexpected error finding ${this.tableName}:`, appError);
+      return createErrorResult<Tables[T]['Row']>(appError);
     }
   }
 
-  async create(data: DbTables[T]['Insert']): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
+  async findAll(): Promise<Result<Tables[T]['Row'][]>> {
     try {
-      const { data: result, error } = await this.client
-        .from(String(this.tableName))
-        .insert([data])
+      const response = await this.client
+        .from(this.tableName)
+        .select('*');
+
+      if (response.error) {
+        const error = toAppError(response.error);
+        console.error(`Error finding all ${this.tableName}:`, error);
+        return createErrorResult<Tables[T]['Row'][]>(error);
+      }
+
+      return createSuccessResult(response.data || []);
+    } catch (error) {
+      const appError = toAppError(error);
+      console.error(`Unexpected error finding all ${this.tableName}:`, appError);
+      return createErrorResult<Tables[T]['Row'][]>(appError);
+    }
+  }
+
+  async create(data: Tables[T]['Insert']): Promise<Result<Tables[T]['Row']>> {
+    try {
+      const response = await this.client
+        .from(this.tableName)
+        .insert(data)
         .select()
         .single();
-      
-      return { data: result, error };
+
+      if (response.error) {
+        const error = toAppError(response.error);
+        console.error(`Error creating ${this.tableName}:`, error);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      if (!response.data) {
+        const error = toAppError(new Error(`Failed to create ${this.tableName}`));
+        console.warn(error.message);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      return createSuccessResult(response.data);
     } catch (error) {
-      console.error(`Error creating ${String(this.tableName)}:`, error);
-      return { data: null, error };
+      const appError = toAppError(error);
+      console.error(`Unexpected error creating ${this.tableName}:`, appError);
+      return createErrorResult<Tables[T]['Row']>(appError);
     }
   }
 
-  async update(id: string, updates: DbTables[T]['Update']): Promise<{ data: DbTables[T]['Row'] | null; error: any }> {
+  async update(id: string, data: Tables[T]['Update']): Promise<Result<Tables[T]['Row']>> {
     try {
-      const { data, error } = await this.client
-        .from(String(this.tableName))
-        .update(updates)
+      const response = await this.client
+        .from(this.tableName)
+        .update(data)
         .eq('id', id)
         .select()
         .single();
-      
-      return { data, error };
+
+      if (response.error) {
+        const error = toAppError(response.error);
+        console.error(`Error updating ${this.tableName}:`, error);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      if (!response.data) {
+        const error = toAppError(new Error(`${this.tableName} not found`));
+        console.warn(error.message);
+        return createErrorResult<Tables[T]['Row']>(error);
+      }
+
+      return createSuccessResult(response.data);
     } catch (error) {
-      console.error(`Error updating ${String(this.tableName)}:`, error);
-      return { data: null, error };
+      const appError = toAppError(error);
+      console.error(`Unexpected error updating ${this.tableName}:`, appError);
+      return createErrorResult<Tables[T]['Row']>(appError);
     }
   }
 
-  async delete(id: string): Promise<{ error: any }> {
+  async delete(id: string): Promise<Result<void>> {
     try {
-      const { error } = await this.client
-        .from(String(this.tableName))
+      const response = await this.client
+        .from(this.tableName)
         .delete()
         .eq('id', id);
-      
-      return { error };
+
+      if (response.error) {
+        const error = toAppError(response.error);
+        console.error(`Error deleting ${this.tableName}:`, error);
+        return createErrorResult<void>(error);
+      }
+
+      return createSuccessResult(undefined);
     } catch (error) {
-      console.error(`Error deleting ${String(this.tableName)}:`, error);
-      return { error };
+      const appError = toAppError(error);
+      console.error(`Unexpected error deleting ${this.tableName}:`, appError);
+      return createErrorResult<void>(appError);
     }
   }
 
-  async findByField(field: string, value: any): Promise<{ data: DbTables[T]['Row'][] | null; error: any }> {
+  async findByField(field: string, value: any): Promise<{ data: Tables[T]['Row'][] | null; error: any }> {
     try {
       const { data, error } = await this.client
         .from(String(this.tableName))
@@ -110,7 +168,7 @@ export class GenericRepository<T extends DbTableName> {
 }
 
 // Factory function to create typed repositories
-export function createRepository<T extends DbTableName>(tableName: T, client = supabase) {
+export function createRepository<T extends TableName>(tableName: T, client = supabase) {
   return new GenericRepository(tableName, client);
 }
 

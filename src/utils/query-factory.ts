@@ -1,13 +1,19 @@
-
-import { useQuery, UseQueryResult, UseQueryOptions, QueryKey } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/api/enhanced-error-handlers';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { handleApiError } from '@/lib/errors/error-handler';
 
 /**
  * Options for creating a query
  */
-interface QueryFactoryOptions<TData, TError> extends Omit<UseQueryOptions<TData, TError, TData, QueryKey>, 'queryKey' | 'queryFn'> {
-  /** Context for error messages */
+interface QueryFactoryOptions<TData, TError> {
+  enabled?: boolean;
+  staleTime?: number;
+  cacheTime?: number;
+  retry?: boolean | number;
+  retryDelay?: number;
+  onSuccess?: (data: TData) => void;
+  onError?: (error: TError) => void;
   errorContext?: string;
+  [key: string]: any;
 }
 
 /**
@@ -27,7 +33,7 @@ export function createQuery<TData, TError = Error>(
       try {
         return await queryFn();
       } catch (error) {
-        // Handle the error with our enhanced error handler
+        // Handle the error with our centralized error handler
         handleApiError(error, options?.errorContext);
         throw error;
       }
@@ -58,7 +64,7 @@ export function createResilientQuery<TData, TError = Error>(
       try {
         return await queryFn();
       } catch (error) {
-        // Handle the error with our enhanced error handler, but only if not silent
+        // Handle the error with our centralized error handler, but only if not silent
         if (!options?.silentRetry) {
           handleApiError(error, options?.errorContext);
         } else {

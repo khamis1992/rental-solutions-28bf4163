@@ -1,59 +1,121 @@
-
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { customerService, CustomerFilters } from '@/services/CustomerService';
+import { CustomerService, CustomerFilters, Customer, customerService } from '@/services/CustomerService';
 import { toast } from 'sonner';
-import { useState } from 'react';
 import { getErrorMessage } from '@/types/service.types';
 
-export const useCustomerService = (filters: CustomerFilters = {}) => {
-  const queryClient = useQueryClient();
-  const [currentFilters, setCurrentFilters] = useState<CustomerFilters>(filters);
+interface UseCustomerServiceOptions {
+  filters?: CustomerFilters;
+}
 
-  const { data: customers, isLoading, error, refetch } = useQuery({
-    queryKey: ['customers', currentFilters],
-    queryFn: async () => {
-      const result = await customerService.findCustomers(currentFilters);
+export function useCustomerService(options: UseCustomerServiceOptions = {}) {
+  const queryClient = useQueryClient();
+
+  const listCustomers = useCallback(async () => {
+    try {
+      const result = await customerService.findCustomers(options.filters);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
       return result.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to fetch customers: ${errorMessage}`);
+      throw error;
     }
-  });
+  }, [options.filters]);
 
-  const deleteCustomerMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const getCustomer = useCallback(async (id: string) => {
+    try {
+      const result = await customerService.getCustomerDetails(id);
+      if (!result.success) {
+        throw new Error(getErrorMessage(result.error));
+      }
+      return result.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to fetch customer: ${errorMessage}`);
+      throw error;
+    }
+  }, []);
+
+  const createCustomer = useCallback(async (data: Partial<Customer>) => {
+    try {
+      const result = await customerService.create(data);
+      if (!result.success) {
+        throw new Error(getErrorMessage(result.error));
+      }
+      return result.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to create customer: ${errorMessage}`);
+      throw error;
+    }
+  }, []);
+
+  const updateCustomer = useCallback(async (id: string, data: Partial<Customer>) => {
+    try {
+      const result = await customerService.update(id, data);
+      if (!result.success) {
+        throw new Error(getErrorMessage(result.error));
+      }
+      return result.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(`Failed to update customer: ${errorMessage}`);
+      throw error;
+    }
+  }, []);
+
+  const deleteCustomer = useCallback(async (id: string) => {
+    try {
       const result = await customerService.delete(id);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
-      return result.data;
-    },
-    onSuccess: () => {
-      toast.success('Customer deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    },
-    onError: (error) => {
+    } catch (error) {
       const errorMessage = getErrorMessage(error);
       toast.error(`Failed to delete customer: ${errorMessage}`);
+      throw error;
     }
+  }, []);
+
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ['customers', options.filters],
+    queryFn: listCustomers,
   });
 
-  const setFilters = (newFilters: CustomerFilters | ((prev: CustomerFilters) => CustomerFilters)) => {
-    if (typeof newFilters === 'function') {
-      setCurrentFilters(newFilters);
-    } else {
-      setCurrentFilters(newFilters);
-    }
-  };
+  const createCustomerMutation = useMutation({
+    mutationFn: createCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast.success('Customer created successfully');
+    },
+  });
+
+  const updateCustomerMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Customer> }) =>
+      updateCustomer(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast.success('Customer updated successfully');
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: deleteCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast.success('Customer deleted successfully');
+    },
+  });
 
   return {
-    customers: customers || [],
-    isLoading,
-    error,
-    filters: currentFilters,
-    setFilters,
-    refetch,
-    isPending: deleteCustomerMutation.isPending,
-    deleteCustomer: deleteCustomerMutation.mutateAsync
+    customers,
+    isLoadingCustomers,
+    createCustomer: createCustomerMutation.mutate,
+    updateCustomer: updateCustomerMutation.mutate,
+    deleteCustomer: deleteCustomerMutation.mutate,
+    getCustomer,
   };
-};
+}

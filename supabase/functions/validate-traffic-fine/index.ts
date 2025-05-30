@@ -1,8 +1,13 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 // We'll use an alternative approach without deno_dom to avoid the installation issues
 import { corsHeaders } from '../../lib/cors.ts';
-
+import { 
+  createErrorResponse, 
+  createSuccessResponse,
+  createValidationError,
+  createApiError,
+  type ApiResponse
+} from '../../lib/error.types.ts';
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -287,10 +292,10 @@ serve(async (req) => {
   
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 405 
-      });
+      return new Response(
+        JSON.stringify(createErrorResponse('Method not allowed', 'METHOD_NOT_ALLOWED')),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 405 }
+      );
     }
 
     // Parse request body
@@ -299,13 +304,10 @@ serve(async (req) => {
     // Check if this is a test request
     if (requestData.test === true) {
       console.log("Received test request, responding with success");
-      return new Response(JSON.stringify({ 
-        status: "available", 
-        message: "Edge function is running properly" 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
+      return new Response(
+        JSON.stringify(createSuccessResponse({ status: 'available' }, 'Edge function is running properly')),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
     
     // Check if this is a single validation or batch request
@@ -314,10 +316,10 @@ serve(async (req) => {
       const licensePlates = requestData.licensePlates.slice(0, 10);
       
       if (licensePlates.length === 0) {
-        return new Response(JSON.stringify({ error: 'No valid license plates provided' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        });
+        return new Response(
+          JSON.stringify(createErrorResponse('No valid license plates provided', 'VALIDATION_ERROR')),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       }
       
       // Process each license plate
@@ -338,45 +340,40 @@ serve(async (req) => {
         }
       }
       
-      return new Response(JSON.stringify({
-        results,
-        errors,
-        summary: {
+      return new Response(
+        JSON.stringify(createSuccessResponse({ results, errors, summary: {
           total: licensePlates.length,
           succeeded: results.length,
           failed: errors.length
-        }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
+        }})),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
       
     } else {
       // Single validation
       const { licensePlate } = requestData;
       
       if (!licensePlate) {
-        return new Response(JSON.stringify({ error: 'License plate is required' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        });
+        return new Response(
+          JSON.stringify(createErrorResponse('License plate is required', 'VALIDATION_ERROR')),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       }
 
       const validationResult = await scrapeTrafficFine(licensePlate);
       
       console.log(`Validation completed for ${licensePlate}. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
       
-      return new Response(JSON.stringify(validationResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
+      return new Response(
+        JSON.stringify(createSuccessResponse(validationResult)),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
   } catch (error) {
     console.error('Error validating traffic fine:', error);
-    
-    return new Response(JSON.stringify({ error: error.message || 'An unexpected error occurred' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    return new Response(
+      JSON.stringify(createErrorResponse(error.message || 'An unexpected error occurred', 'INTERNAL_ERROR', error)),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });

@@ -1,4 +1,3 @@
-
 import { Database } from '@/types/database.types';
 
 // Re-export main database type
