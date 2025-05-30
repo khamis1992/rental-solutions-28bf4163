@@ -13,26 +13,34 @@ import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 interface PaymentHistorySectionProps {
   payments: Payment[];
   isLoading: boolean;
-  agreement: Agreement;
+  rentAmount?: number | null;
+  contractAmount?: number | null;
+  leaseId?: string;
+  onPaymentDeleted: (paymentId: string) => void;
   onRecordPayment: (payment: Partial<Payment>) => Promise<void>;
-  onUpdatePayment: (payment: Partial<Payment>) => Promise<boolean>;
-  onDeletePayment: (paymentId: string) => Promise<void>;
+  onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
+  showAnalytics?: boolean;
+  agreement?: Agreement | null;
 }
 
 export function PaymentHistorySection({
   payments,
   isLoading,
-  agreement,
+  rentAmount,
+  contractAmount,
+  leaseId,
   onRecordPayment,
-  onUpdatePayment,
-  onDeletePayment
+  onPaymentUpdated,
+  onPaymentDeleted,
+  showAnalytics = true,
+  agreement
 }: PaymentHistorySectionProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const {
     syncAll,
     isPending
-  } = useAgreementPaymentSync(agreement.id);
+  } = useAgreementPaymentSync(leaseId);
 
   const handleRecordPayment = async (
     amount: number,
@@ -47,7 +55,7 @@ export function PaymentHistorySection({
       description: notes || '',
       payment_method: method || 'cash',
       reference_number: reference || '',
-      lease_id: agreement.id,
+      lease_id: leaseId,
       status: 'completed'
     };
 
@@ -94,15 +102,17 @@ export function PaymentHistorySection({
         <div className="flex justify-between items-center">
           <CardTitle>Payment History</CardTitle>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={syncAll}
-              disabled={isPending.all}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isPending.all ? 'animate-spin' : ''}`} />
-              Sync Payments
-            </Button>
+            {leaseId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={syncAll}
+                disabled={isPending?.all}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isPending?.all ? 'animate-spin' : ''}`} />
+                Sync Payments
+              </Button>
+            )}
             <Button
               size="sm"
               onClick={() => setIsPaymentDialogOpen(true)}
@@ -161,11 +171,11 @@ export function PaymentHistorySection({
         open={isPaymentDialogOpen}
         onOpenChange={setIsPaymentDialogOpen}
         onSubmit={handleRecordPayment}
-        defaultAmount={agreement.rent_amount}
+        defaultAmount={rentAmount || 0}
         title="Record Payment"
         description="Add a new payment to this agreement"
-        leaseId={agreement.id}
-        rentAmount={agreement.rent_amount}
+        leaseId={leaseId}
+        rentAmount={rentAmount}
       />
     </Card>
   );

@@ -5,6 +5,7 @@ export interface ServiceResult<T> {
   success: boolean;
   data: T | null;
   error: string | null;
+  message?: string; // Add optional message property for compatibility
 }
 
 export class BaseService {
@@ -23,7 +24,8 @@ export class BaseService {
     return {
       success: false,
       data: null,
-      error: message || error?.message || 'Unknown error'
+      error: message || error?.message || 'Unknown error',
+      message: message || error?.message || 'Unknown error'
     };
   }
 

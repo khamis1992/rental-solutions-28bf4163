@@ -71,6 +71,7 @@ export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
 
 /**
  * Safe array conversion with proper type handling
+ * Fixed to properly handle the generic constraint
  */
 export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
   if (value === undefined || value === null) {
@@ -81,6 +82,7 @@ export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
     return value;
   }
   
+  // Return array containing the single value
   return [value];
 }
 
