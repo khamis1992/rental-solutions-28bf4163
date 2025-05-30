@@ -1,117 +1,42 @@
 
-import { useEffect, useCallback } from 'react';
-import { usePaymentScheduleManagement } from './use-payment-schedule-management';
-import { Agreement } from '@/types/agreement';
-import { agreementSyncService } from '@/services/AgreementSyncService';
+import { useCallback } from 'react';
+import { usePaymentSync } from './use-payment-sync';
 import { toast } from 'sonner';
 
-interface UseAgreementPaymentSyncProps {
-  agreement: Agreement | null;
-  autoGenerate?: boolean;
-}
+export function useAgreementPaymentSync(agreementId?: string) {
+  const { syncPaymentSchedule, fixDuplicatePayments, generateMissingPayments, isPending } = usePaymentSync();
 
-/**
- * Hook to ensure payment schedules are synchronized with agreements
- */
-export function useAgreementPaymentSync({ 
-  agreement, 
-  autoGenerate = true 
-}: UseAgreementPaymentSyncProps) {
-  const {
-    paymentSchedule,
-    isLoading,
-    generatePaymentSchedule,
-    isPending
-  } = usePaymentScheduleManagement(agreement?.id);
+  const syncAll = useCallback(async () => {
+    if (!agreementId) {
+      toast.error('No agreement ID provided');
+      return;
+    }
 
-  // Check if agreement needs payment schedule generation
-  const needsScheduleGeneration = useCallback(() => {
-    if (!agreement) return false;
-    
-    // Only generate for active agreements
-    if (agreement.status !== 'active') return false;
-    
-    // Check if required fields are present
-    const hasRequiredFields = agreement.start_date && 
-                             agreement.end_date && 
-                             agreement.rent_amount;
-    
-    // Check if schedule doesn't exist or is empty
-    const hasNoSchedule = paymentSchedule.length === 0;
-    
-    return hasRequiredFields && hasNoSchedule && !isLoading;
-  }, [agreement, paymentSchedule, isLoading]);
-
-  // Auto-sync agreement payment data
-  const syncAgreementPayments = useCallback(async () => {
-    if (!agreement?.id) return;
-    
     try {
-      console.log(`Syncing payment data for agreement ${agreement.id}`);
+      // Step 1: Fix any duplicate payments
+      await fixDuplicatePayments.mutateAsync(agreementId);
       
-      const result = await agreementSyncService.syncAgreementPayments(agreement.id);
+      // Step 2: Generate any missing payment records
+      await generateMissingPayments.mutateAsync(agreementId);
       
-      if (result.success) {
-        console.log('Agreement payment sync completed successfully');
-      } else {
-        console.error('Agreement payment sync failed:', result.error);
-      }
+      // Step 3: Sync payment schedule with actual payments
+      await syncPaymentSchedule.mutateAsync(agreementId);
+      
+      toast.success('Payment data synchronized successfully');
     } catch (error) {
-      console.error('Failed to sync agreement payments:', error);
+      toast.error('Failed to complete payment synchronization');
+      console.error('Payment sync error:', error);
     }
-  }, [agreement?.id]);
-
-  // Auto-generate payment schedule when needed
-  useEffect(() => {
-    if (!autoGenerate || !needsScheduleGeneration()) return;
-    
-    const generateScheduleAsync = async () => {
-      if (!agreement) return;
-      
-      try {
-        // First sync the agreement to ensure payment_day is set
-        await syncAgreementPayments();
-        
-        // Use default values if not set
-        const paymentFrequency = agreement.payment_frequency || 'monthly';
-        const paymentDay = agreement.payment_day || 1;
-        
-        console.log(`Auto-generating payment schedule for agreement ${agreement.id}`);
-        
-        await generatePaymentSchedule(
-          new Date(agreement.start_date!),
-          new Date(agreement.end_date!),
-          agreement.rent_amount!,
-          paymentFrequency,
-          paymentDay
-        );
-        
-        toast.success('Payment schedule generated automatically');
-      } catch (error) {
-        console.error('Failed to auto-generate payment schedule:', error);
-        toast.error('Failed to generate payment schedule');
-      }
-    };
-    
-    // Add a small delay to ensure all data is loaded
-    const timeoutId = setTimeout(generateScheduleAsync, 1000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [agreement, needsScheduleGeneration, generatePaymentSchedule, autoGenerate, syncAgreementPayments]);
-
-  // Initial sync when agreement changes
-  useEffect(() => {
-    if (agreement?.id && autoGenerate) {
-      syncAgreementPayments();
-    }
-  }, [agreement?.id, autoGenerate, syncAgreementPayments]);
+  }, [agreementId, fixDuplicatePayments, generateMissingPayments, syncPaymentSchedule]);
 
   return {
-    paymentSchedule,
-    isLoading,
-    needsScheduleGeneration: needsScheduleGeneration(),
-    isPending: isPending.generate,
-    generatePaymentSchedule,
-    syncAgreementPayments
+    syncAll,
+    syncPaymentSchedule: () => agreementId && syncPaymentSchedule.mutate(agreementId),
+    fixDuplicatePayments: () => agreementId && fixDuplicatePayments.mutate(agreementId),
+    generateMissingPayments: () => agreementId && generateMissingPayments.mutate(agreementId),
+    isPending: {
+      ...isPending,
+      all: isPending.sync || isPending.fix || isPending.generate
+    }
   };
 }

@@ -143,8 +143,7 @@ export const useAgreements = () => {
             status
           )
         `)
-        .order('created_at', { ascending: false })
-        .returns<LeaseWithRelations[]>();
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching agreements:', error);

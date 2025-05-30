@@ -41,9 +41,19 @@ export function processAgreementData(agreements: SimpleAgreement[]): Agreement[]
       zip_code: agreement.customers.zip_code || '',
       role: agreement.customers.role || 'customer',
       created_at: agreement.customers.created_at || '',
-      updated_at: agreement.customers.updated_at || ''
+      updated_at: agreement.customers.updated_at || '',
+      driver_license: null
     } : undefined,
-    vehicles: agreement.vehicles,
+    vehicles: agreement.vehicles ? {
+      ...agreement.vehicles,
+      attention_needed_notes: '',
+      engine_number: '',
+      model_number: '',
+      notes: '',
+      created_at: '',
+      updated_at: '',
+      vin: agreement.vehicles.vin || ''
+    } : undefined,
     
     // Computed fields for backward compatibility
     customer_name: agreement.customer_name,

@@ -1,100 +1,79 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Settings, Zap } from 'lucide-react';
+import { RefreshCcw, Wrench, AlertTriangle } from 'lucide-react';
 import { usePaymentSync } from '@/hooks/payment/use-payment-sync';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { toast } from 'sonner';
 
 interface PaymentSyncButtonProps {
-  agreementId: string;
-  variant?: 'sync' | 'fix' | 'compact';
-  showText?: boolean;
+  agreementId?: string;
+  variant?: 'sync' | 'fix';
   className?: string;
 }
 
 export function PaymentSyncButton({ 
-  agreementId, 
+  agreementId,
   variant = 'sync',
-  showText = true,
   className = ''
 }: PaymentSyncButtonProps) {
   const { 
-    syncAgreement, 
-    fixAgreementSync, 
-    isPending,
-    syncResults 
+    syncPaymentSchedule, 
+    fixDuplicatePayments,
+    generateMissingPayments,
+    isPending 
   } = usePaymentSync();
 
   const handleSync = async () => {
-    try {
-      if (variant === 'fix') {
-        await fixAgreementSync(agreementId);
-      } else {
-        await syncAgreement(agreementId);
-      }
-    } catch (error) {
-      console.error('Sync operation failed:', error);
-    }
+    if (!agreementId) return;
+    await syncPaymentSchedule.mutateAsync(agreementId);
   };
 
-  const getButtonProps = () => {
-    switch (variant) {
-      case 'fix':
-        return {
-          icon: <Zap className="h-4 w-4" />,
-          text: 'Fix Payment Sync',
-          tooltip: 'Fix payment synchronization issues',
-          variant: 'destructive' as const,
-          isPending: isPending.fix
-        };
-      case 'compact':
-        return {
-          icon: <RefreshCw className="h-3 w-3" />,
-          text: 'Sync',
-          tooltip: 'Sync payment data',
-          variant: 'outline' as const,
-          isPending: isPending.sync
-        };
-      default:
-        return {
-          icon: <RefreshCw className="h-4 w-4" />,
-          text: 'Sync Payments',
-          tooltip: 'Synchronize payment schedule and data',
-          variant: 'outline' as const,
-          isPending: isPending.sync
-        };
-    }
+  const handleFix = async () => {
+    if (!agreementId) return;
+    await fixDuplicatePayments.mutateAsync(agreementId);
   };
 
-  const buttonProps = getButtonProps();
+  const handleGenerate = async () => {
+    if (!agreementId) return;
+    await generateMissingPayments.mutateAsync(agreementId);
+  };
 
-  if (variant === 'compact') {
+  if (variant === 'fix') {
     return (
-      <LoadingButton
-        size="sm"
-        variant={buttonProps.variant}
-        onClick={handleSync}
-        isLoading={buttonProps.isPending}
-        className={`${className}`}
-        title={buttonProps.tooltip}
-      >
-        {buttonProps.icon}
-        {showText && <span className="ml-1">{buttonProps.text}</span>}
-      </LoadingButton>
+      <div className="flex gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFix}
+          disabled={isPending.fix || !agreementId}
+          className={`h-8 px-2 text-xs ${className}`}
+        >
+          <Wrench className="h-3 w-3 mr-1" />
+          Fix Duplicates
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGenerate}
+          disabled={isPending.generate || !agreementId}
+          className={`h-8 px-2 text-xs ${className}`}
+        >
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Generate Missing
+        </Button>
+      </div>
     );
   }
 
   return (
-    <LoadingButton
-      variant={buttonProps.variant}
+    <Button
+      variant="outline"
+      size="sm"
       onClick={handleSync}
-      isLoading={buttonProps.isPending}
-      className={className}
-      title={buttonProps.tooltip}
+      disabled={isPending.sync || !agreementId}
+      className={`h-8 px-2 text-xs ${className}`}
     >
-      {buttonProps.icon}
-      {showText && <span className="ml-2">{buttonProps.text}</span>}
-    </LoadingButton>
+      <RefreshCcw className={`h-3 w-3 mr-1 ${isPending.sync ? 'animate-spin' : ''}`} />
+      Sync Schedule
+    </Button>
   );
 }

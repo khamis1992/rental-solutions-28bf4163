@@ -93,9 +93,19 @@ export function AgreementList({
       zip_code: agreement.customers.zip_code || '',
       role: agreement.customers.role || 'customer',
       created_at: agreement.customers.created_at || '',
-      updated_at: agreement.customers.updated_at || ''
+      updated_at: agreement.customers.updated_at || '',
+      driver_license: null
     } : undefined,
-    vehicles: agreement.vehicles,
+    vehicles: agreement.vehicles ? {
+      ...agreement.vehicles,
+      attention_needed_notes: '',
+      engine_number: '',
+      model_number: '',
+      notes: '',
+      created_at: '',
+      updated_at: '',
+      vin: agreement.vehicles.vin || ''
+    } : undefined,
     
     // Computed fields for backward compatibility
     customer_name: agreement.customer_name,
@@ -118,7 +128,7 @@ export function AgreementList({
             onPageChange={pagination.handlePageChange}
           />
           <div className="text-sm text-muted-foreground text-center mt-2">
-            Showing {agreements.length} of {pagination.totalCount} agreements
+            Showing {agreements.length} of {pagination.totalCount}
           </div>
         </div>
       )}
