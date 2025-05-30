@@ -50,7 +50,7 @@ export interface SimpleAgreement {
 }
 
 export const useAgreements = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['agreements'],
     queryFn: async (): Promise<SimpleAgreement[]> => {
       const { data, error } = await supabase
@@ -91,4 +91,10 @@ export const useAgreements = () => {
       return data || [];
     },
   });
+
+  return {
+    ...query,
+    agreements: query.data || [],
+    data: query.data || []
+  };
 };

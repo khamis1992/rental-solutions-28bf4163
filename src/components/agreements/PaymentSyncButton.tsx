@@ -75,7 +75,7 @@ export function PaymentSyncButton({
         size="sm"
         variant={buttonProps.variant}
         onClick={handleSync}
-        loading={buttonProps.isPending}
+        isLoading={buttonProps.isPending}
         className={`${className}`}
         title={buttonProps.tooltip}
       >
@@ -89,7 +89,7 @@ export function PaymentSyncButton({
     <LoadingButton
       variant={buttonProps.variant}
       onClick={handleSync}
-      loading={buttonProps.isPending}
+      isLoading={buttonProps.isPending}
       className={className}
       title={buttonProps.tooltip}
     >

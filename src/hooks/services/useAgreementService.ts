@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
 import { toast } from 'sonner';
-import { useAgreements } from '@/hooks/use-agreements';
 
 /**
  * Hook for working with the Agreement Service
@@ -123,8 +122,6 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     }
   });
 
-  const { useRealtimeUpdates } = useAgreements();
-
   return {
     agreements,
     isLoading,
@@ -151,8 +148,6 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     changeStatus: changeStatus.mutateAsync,
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
-    // Expose useRealtimeUpdates function
-    useRealtimeUpdates,
     // Expose isPending states for UI loading indicators
     isPending: {
       getAgreement: false,

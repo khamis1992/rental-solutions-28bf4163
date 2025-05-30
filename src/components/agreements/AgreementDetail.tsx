@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { Payment } from '@/types/payment.types';
@@ -70,9 +70,9 @@ export function AgreementDetail({
   const {
     payments,
     isLoading: isLoadingPayments,
-    updatePayment,
-    addPayment,
-    deletePayment,
+    updatePayment: updatePaymentMutation,
+    addPayment: addPaymentMutation,
+    deletePayment: deletePaymentMutation,
     updateHistoricalStatuses,
     loadingStates: paymentLoadingStates
   } = usePaymentManagement(agreement?.id);
@@ -142,27 +142,27 @@ export function AgreementDetail({
 
   // Record payment
   const handleRecordPayment = useCallback((payment: Partial<Payment>) => {
-    addPayment(payment);
+    addPaymentMutation.mutateAsync(payment);
     onDataRefresh();
-  }, [addPayment, onDataRefresh]);
+  }, [addPaymentMutation, onDataRefresh]);
 
   // Update payment
   const handleUpdatePayment = useCallback(async (payment: Partial<Payment>) => {
     if (payment.id) {
-      const success = await updatePayment({ id: payment.id, data: payment });
+      const success = await updatePaymentMutation.mutateAsync({ id: payment.id, data: payment });
       if (success) {
         onDataRefresh();
       }
       return success;
     }
     return false;
-  }, [updatePayment, onDataRefresh]);
+  }, [updatePaymentMutation, onDataRefresh]);
 
   // Delete payment
   const handleDeletePayment = useCallback((paymentId: string) => {
-    deletePayment(paymentId);
+    deletePaymentMutation.mutateAsync(paymentId);
     onPaymentDeleted();
-  }, [deletePayment, onPaymentDeleted]);
+  }, [deletePaymentMutation, onPaymentDeleted]);
 
   if (!agreement) {
     return (
@@ -173,6 +173,11 @@ export function AgreementDetail({
       </Card>
     );
   }
+
+  // Calculate duration for details card
+  const duration = agreement.start_date && agreement.end_date 
+    ? differenceInMonths(new Date(agreement.end_date), new Date(agreement.start_date))
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -210,13 +215,17 @@ export function AgreementDetail({
         <VehicleInformationCard agreement={agreement} />
       </div>
 
-      <AgreementDetailsCard agreement={agreement} />
+      <AgreementDetailsCard 
+        agreement={agreement}
+        duration={duration}
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+      />
       
       {/* Action Buttons */}
       <AgreementActionButtons
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
-        onPrint={handlePrint}
         onDownloadPdf={handleDownloadPdf}
         onGenerateDocument={onGenerateDocument}
         isGeneratingPdf={loadingStates.generatingPdf}
@@ -240,13 +249,11 @@ export function AgreementDetail({
       {/* Traffic Fines Section */}
       <AgreementTrafficFines 
         agreementId={agreement.id}
-        vehicleId={agreement.vehicle_id || undefined}
       />
 
       {/* Legal Cases Section */}
       <LegalCaseCard 
         agreementId={agreement.id}
-        customerId={agreement.customer_id}
       />
 
       {/* Delete Confirmation Dialog */}

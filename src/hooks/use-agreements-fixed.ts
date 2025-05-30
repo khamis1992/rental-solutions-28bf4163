@@ -50,15 +50,9 @@ export interface SimpleAgreement {
 }
 
 export const useAgreementsFixed = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['agreements-fixed'],
-    queryFn: async (): Promise<{
-      data: SimpleAgreement[];
-      agreements: SimpleAgreement[];
-      isLoading: boolean;
-      error: any;
-      refetch: () => void;
-    }> => {
+    queryFn: async (): Promise<SimpleAgreement[]> => {
       const { data, error } = await supabase
         .from('leases')
         .select(`
@@ -94,15 +88,13 @@ export const useAgreementsFixed = () => {
         throw error;
       }
 
-      const agreements = data || [];
-      
-      return {
-        data: agreements,
-        agreements,
-        isLoading: false,
-        error: null,
-        refetch: () => {}
-      };
+      return data || [];
     },
   });
+
+  return {
+    ...query,
+    agreements: query.data || [],
+    data: query.data || []
+  };
 };
