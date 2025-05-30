@@ -20,6 +20,9 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   deposit_amount?: number;
   down_payment?: number;
   notes?: string;
+  // Add properties used in reports
+  rent_due_day?: number;
+  next_payment_date?: string;
 };
 
 export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];

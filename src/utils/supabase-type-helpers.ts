@@ -80,6 +80,36 @@ export function getProperty<T extends Record<string, any>, K extends keyof T>(
 }
 
 /**
+ * Type guard to check if data exists and is not null/undefined
+ * @param data Data to check
+ * @returns Boolean indicating if data exists
+ */
+export function hasData<T>(data: T | null | undefined): data is T {
+  return data !== null && data !== undefined;
+}
+
+/**
+ * Get response data safely from Supabase response
+ * @param response Supabase response object
+ * @returns Response data or null
+ */
+export function getResponseData<T>(response: any): T | null {
+  if (!response || response.error) {
+    return null;
+  }
+  return response.data || null;
+}
+
+/**
+ * Cast string to UUID for database operations
+ * @param id String ID to cast
+ * @returns UUID string
+ */
+export function castToUUID(id: string): string {
+  return id;
+}
+
+/**
  * Database table type definitions
  */
 export type Tables = Database['public']['Tables'];

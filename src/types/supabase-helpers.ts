@@ -5,7 +5,6 @@ import {
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { castDbId } from '@/utils/supabase-type-helpers';
-import { exists } from '@/utils/response-mapper';
 
 export type GenericSchema = Database[keyof Database];
 export type TablesInsertResponse<T extends keyof Database['public']['Tables']> = PostgrestResponse<Database['public']['Tables'][T]>;

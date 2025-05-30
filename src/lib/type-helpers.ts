@@ -4,7 +4,6 @@ import {
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { exists } from '@/utils/response-mapper';
 
 /**
  * Type for database ID that ensures consistent typing across the application

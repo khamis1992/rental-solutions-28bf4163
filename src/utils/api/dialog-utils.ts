@@ -1,4 +1,6 @@
 
+import { useState, useCallback } from 'react';
+
 /**
  * Utility functions for dialog management and form state handling
  * Provides type-safe dialog state management for forms and modals
@@ -69,6 +71,37 @@ export function createDialogHandlers<T = any>(
       await onSubmit(data);
       setState({ isOpen: false, data: undefined, mode: undefined });
     }
+  };
+}
+
+/**
+ * Hook for managing multiple dialog states
+ */
+export function useDialogVisibility<T extends Record<string, boolean>>(initialStates: T) {
+  const [dialogs, setDialogs] = useState<T>(initialStates);
+
+  const openDialog = useCallback((dialogName: keyof T) => {
+    setDialogs(prev => ({ ...prev, [dialogName]: true }));
+  }, []);
+
+  const closeDialog = useCallback((dialogName: keyof T) => {
+    setDialogs(prev => ({ ...prev, [dialogName]: false }));
+  }, []);
+
+  const toggleDialog = useCallback((dialogName: keyof T) => {
+    setDialogs(prev => ({ ...prev, [dialogName]: !prev[dialogName] }));
+  }, []);
+
+  const isDialogVisible = useCallback((dialogName: keyof T) => {
+    return dialogs[dialogName];
+  }, [dialogs]);
+
+  return {
+    dialogs,
+    openDialog,
+    closeDialog,
+    toggleDialog,
+    isDialogVisible
   };
 }
 

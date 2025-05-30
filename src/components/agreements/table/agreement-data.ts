@@ -8,12 +8,22 @@ export function processAgreementData(agreements: SimpleAgreement[]): Agreement[]
     ...agreement,
     payment_frequency: agreement.payment_frequency || 'monthly',
     // Map rent_due_day to payment_day for backwards compatibility
-    payment_day: agreement.rent_due_day || 1,
+    payment_day: agreement.rent_due_day || agreement.payment_day || 1,
     rent_due_day: agreement.rent_due_day || 1,
-    customers: {
-      full_name: agreement.customers?.full_name || agreement.customer_name || 'N/A',
-      id: agreement.customers?.id || agreement.customer_id
-    },
+    customers: agreement.customers ? {
+      id: agreement.customers.id,
+      full_name: agreement.customers.full_name,
+      email: agreement.customers.email || '',
+      phone_number: agreement.customers.phone_number || '',
+      address: agreement.customers.address || '',
+      city: agreement.customers.city || '',
+      state: agreement.customers.state || '',
+      zip_code: agreement.customers.zip_code || '',
+      role: agreement.customers.role || 'customer',
+      created_at: agreement.customers.created_at || '',
+      updated_at: agreement.customers.updated_at || ''
+    } : undefined,
+    vehicles: agreement.vehicles,
     // Add missing required properties with defaults
     confirmation_email_sent: agreement.confirmation_email_sent ?? false,
     daily_late_fee: agreement.daily_late_fee || 0,
