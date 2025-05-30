@@ -3,13 +3,33 @@ import { SimpleAgreement } from '@/hooks/use-agreements';
 import { Agreement } from '@/types/agreement';
 
 export function processAgreementData(agreements: SimpleAgreement[]): Agreement[] {
-  // Convert SimpleAgreement to Agreement with proper type conversions
-  return agreements?.map((agreement: SimpleAgreement) => ({
-    ...agreement,
-    payment_frequency: agreement.payment_frequency || 'monthly',
-    // Map rent_due_day to payment_day for backwards compatibility
-    payment_day: agreement.rent_due_day || agreement.payment_day || 1,
-    rent_due_day: agreement.rent_due_day || 1,
+  // Convert SimpleAgreement to Agreement with proper type safety
+  return agreements?.map((agreement: SimpleAgreement): Agreement => ({
+    // Core database fields - directly mapped from SimpleAgreement
+    id: agreement.id,
+    agreement_number: agreement.agreement_number,
+    status: agreement.status,
+    start_date: agreement.start_date,
+    end_date: agreement.end_date,
+    rent_amount: agreement.rent_amount,
+    customer_id: agreement.customer_id,
+    vehicle_id: agreement.vehicle_id,
+    payment_frequency: agreement.payment_frequency,
+    payment_day: agreement.payment_day,
+    rent_due_day: agreement.rent_due_day,
+    confirmation_email_sent: agreement.confirmation_email_sent,
+    daily_late_fee: agreement.daily_late_fee,
+    deposit_amount: agreement.deposit_amount,
+    down_payment: agreement.down_payment,
+    notes: agreement.notes,
+    created_at: agreement.created_at,
+    updated_at: agreement.updated_at,
+    
+    // Required database fields with sensible defaults
+    agreement_type: 'short_term',
+    total_amount: agreement.rent_amount || 0,
+    
+    // Relationship data - properly mapped from SimpleAgreement
     customers: agreement.customers ? {
       id: agreement.customers.id,
       full_name: agreement.customers.full_name,
@@ -24,24 +44,9 @@ export function processAgreementData(agreements: SimpleAgreement[]): Agreement[]
       updated_at: agreement.customers.updated_at || ''
     } : undefined,
     vehicles: agreement.vehicles,
-    // Add missing required properties with defaults
-    confirmation_email_sent: agreement.confirmation_email_sent ?? false,
-    daily_late_fee: agreement.daily_late_fee || 0,
-    deposit_amount: agreement.deposit_amount || 0,
-    down_payment: agreement.down_payment || 0,
-    notes: agreement.notes || '',
-    // Ensure proper date handling with safe conversion
-    start_date: agreement.start_date 
-      ? (typeof agreement.start_date === 'string' ? agreement.start_date : new Date(agreement.start_date).toISOString()) 
-      : new Date().toISOString(),
-    end_date: agreement.end_date 
-      ? (typeof agreement.end_date === 'string' ? agreement.end_date : new Date(agreement.end_date).toISOString()) 
-      : new Date().toISOString(),
-    created_at: agreement.created_at 
-      ? (typeof agreement.created_at === 'string' ? agreement.created_at : new Date(agreement.created_at).toISOString()) 
-      : undefined,
-    updated_at: agreement.updated_at 
-      ? (typeof agreement.updated_at === 'string' ? agreement.updated_at : new Date(agreement.updated_at).toISOString()) 
-      : undefined
+    
+    // Computed fields for backward compatibility
+    customer_name: agreement.customer_name,
+    vehicle_info: agreement.vehicle_info
   })) as Agreement[];
 }

@@ -1,3 +1,4 @@
+
 import {
   type PostgrestSingleResponse,
   type PostgrestResponse,
@@ -69,7 +70,7 @@ export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
 }
 
 /**
- * Safe array conversion with proper type handling - fixed version
+ * Safe array conversion with proper type handling
  */
 export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
   if (value === undefined || value === null) {
@@ -80,7 +81,6 @@ export function safeArrayConversion<T>(value: T | T[] | undefined | null): T[] {
     return value;
   }
   
-  // Fixed: properly handle single value case with proper type assertion
   return [value];
 }
 
@@ -95,10 +95,34 @@ export type Tables = Database['public']['Tables'];
 export type PaymentStatusType = Tables['unified_payments']['Row']['status'];
 
 /**
+ * Type for lease status from database schema
+ */
+export type LeaseStatusType = Tables['leases']['Row']['status'];
+
+/**
+ * Type for vehicle status from database schema
+ */
+export type VehicleStatusType = Tables['vehicles']['Row']['status'];
+
+/**
  * Convert string to strongly typed payment status
  */
 export function toPaymentStatus(status: string): PaymentStatusType {
   return status as PaymentStatusType;
+}
+
+/**
+ * Convert string to strongly typed lease status
+ */
+export function toLeaseStatus(status: string): LeaseStatusType {
+  return status as LeaseStatusType;
+}
+
+/**
+ * Convert string to strongly typed vehicle status
+ */
+export function toVehicleStatus(status: string): VehicleStatusType {
+  return status as VehicleStatusType;
 }
 
 /**
@@ -152,4 +176,28 @@ export function createTableColumnFilter<
   return function(value: Database['public']['Tables'][T]['Row'][C]) {
     return { column: column as string, value };
   };
+}
+
+/**
+ * Type-safe transformation of database response to application types
+ */
+export function transformDatabaseResponse<T, R>(
+  response: PostgrestSingleResponse<T[]> | PostgrestResponse<T[]>,
+  transformer: (data: T) => R
+): R[] {
+  const data = extractResponseData(response);
+  if (!data || !Array.isArray(data)) {
+    return [];
+  }
+  return data.map(transformer);
+}
+
+/**
+ * Validate that a value matches expected database enum values
+ */
+export function validateDatabaseEnum<T extends string>(
+  value: string,
+  validValues: readonly T[]
+): T | null {
+  return validValues.includes(value as T) ? (value as T) : null;
 }
