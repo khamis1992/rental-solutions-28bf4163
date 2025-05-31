@@ -1,4 +1,4 @@
-import { PostgrestError } from '@supabase/supabase-js';
+import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import { 
   Result, 
   ServiceError, 
@@ -7,13 +7,21 @@ import {
   createErrorResult,
   createDatabaseError,
   createNotFoundError,
-  AppError
+  AppError,
+  ErrorContext,
+  ErrorSeverity
 } from '@/types/error.types';
 import { errorLogger } from '@/lib/errors/error-logger';
-import { toAppError } from '@/lib/errors/error-handler';
+import { toAppError } from '@/types/service.types';
+import {
+  toDatabaseError,
+  isSchemaError,
+  isPostgrestError,
+  getErrorContext
+} from '@/lib/errors/database-error-handler';
 
 export class BaseService {
-  constructor(private supabaseClient: any) {}
+  constructor(private supabaseClient: SupabaseClient) {}
 
   protected success<T>(data: T): Result<T> {
     return createSuccessResult(data);
@@ -25,7 +33,7 @@ export class BaseService {
       appError.message = `${message}: ${appError.message}`;
     }
     
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: this.constructor.name,
       details: { message: appError.message }
     });
@@ -34,64 +42,48 @@ export class BaseService {
   }
 
   protected handleError(error: unknown, defaultMessage: string = 'An error occurred'): Result<never> {
-    // Log the error with context
-    errorLogger.logError(error, 'error', {
+    // Create error context
+    const context: ErrorContext = {
       source: this.constructor.name,
       operation: 'handleError',
+      timestamp: new Date().toISOString()
+    };
+
+    // Log the error with context
+    errorLogger.logError(error, 'medium', {
+      ...context,
       details: { defaultMessage }
     });
 
     // Handle different error types for better error messages
     if (isPostgrestError(error)) {
-      // Handle specific postgres/supabase error codes
-      if (error.code === '42P01') {
-        return createErrorResult(createDatabaseError('Database table not found', {
-          query: 'unknown',
-          params: null
-        }));
-      } else if (error.code === '42703') {
-        // Column does not exist error
-        return createErrorResult(createDatabaseError(`Database column not found: ${error.details || error.message}`, {
-          query: 'unknown',
-          params: null
-        }));
-      } else if (error.code === '23505') {
-        return createErrorResult(createDatabaseError('Duplicate record found', {
-          query: 'unknown',
-          params: null
-        }));
-      } else {
-        return createErrorResult(createDatabaseError(`Database error: ${error.message}`, {
-          query: 'unknown',
-          params: null
+      // Get database-specific context
+      const dbContext = getErrorContext(error, context);
+      
+      // Handle schema errors
+      if (isSchemaError(error)) {
+        return createErrorResult(toDatabaseError(error, {
+          ...dbContext,
+          query: 'schema_operation'
         }));
       }
+      
+      // Handle all other database errors
+      return createErrorResult(toDatabaseError(error, dbContext));
     } 
     
     // Handle generic error 
-    else if (error instanceof Error) {
-      return createErrorResult({
-        code: 'UNKNOWN_ERROR',
-        message: error.message,
-        details: { stack: error.stack },
-        originalError: error
-      });
+    if (error instanceof Error) {
+      return createErrorResult(toAppError(error, context));
     } 
     
     // Handle string errors
-    else if (typeof error === 'string') {
-      return createErrorResult({
-        code: 'UNKNOWN_ERROR',
-        message: error
-      });
+    if (typeof error === 'string') {
+      return createErrorResult(toAppError(error, context));
     }
     
     // Handle unknown errors
-    return createErrorResult({
-      code: 'UNKNOWN_ERROR',
-      message: defaultMessage,
-      originalError: error
-    });
+    return createErrorResult(toAppError(defaultMessage, context));
   }
   
   protected async safeExecute<T>(
@@ -102,7 +94,7 @@ export class BaseService {
       const result = await operation();
       return this.success(result);
     } catch (error) {
-      errorLogger.logError(error, 'error', {
+      errorLogger.logError(error, 'high', {
         source: this.constructor.name,
         operation: 'safeExecute',
         details: { errorMessage }
@@ -115,24 +107,9 @@ export class BaseService {
     message: string,
     operation: string
   ): ServiceError {
-    return createServiceError(
-      message,
-      this.constructor.name,
+    return createServiceError(message, {
+      service: this.constructor.name,
       operation
-    );
+    });
   }
-}
-
-/**
- * Type guard for PostgrestError
- */
-function isPostgrestError(error: unknown): error is PostgrestError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    'details' in error &&
-    'hint' in error &&
-    'code' in error
-  );
 }

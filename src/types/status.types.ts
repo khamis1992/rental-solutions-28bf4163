@@ -1,4 +1,5 @@
 import { Database } from './database.types';
+import { isValidVehicleStatus } from '@/lib/validation/vehicle-status';
 
 // Payment status types
 export type PaymentStatus = Database['public']['Enums']['payment_status'];
@@ -19,11 +20,6 @@ export function isValidPaymentStatus(status: string): status is PaymentStatus {
 // Type guard for agreement status
 export function isValidAgreementStatus(status: string): status is AgreementStatus {
   return ['draft', 'pending', 'active', 'completed', 'cancelled', 'expired'].includes(status);
-}
-
-// Type guard for vehicle status
-export function isValidVehicleStatus(status: string): status is VehicleStatus {
-  return ['available', 'rented', 'maintenance', 'reserved', 'out_of_service'].includes(status);
 }
 
 // Type guard for payment schedule status

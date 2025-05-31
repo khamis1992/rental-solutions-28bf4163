@@ -3,27 +3,35 @@ import { eventBus } from '@/lib/event-bus';
 import { Events, PaymentRecordedPayload } from '@/events';
 import { castDbId } from '@/utils/supabase-type-helpers';
 import { BaseService } from './base/BaseService';
-import { Payment, SpecialPaymentOptions } from '@/types/payment.types';
+import { Payment, SpecialPaymentOptions, PaymentStatus, PaymentType } from '@/types/payment.types';
 import { PaymentInsert } from '@/types/payment-insert.types';
 import { Result } from '@/lib/errors/types';
 import { createPaymentError } from '@/lib/errors/types';
+import { UnifiedPaymentStatus } from '@/types/status.types';
 
 interface PaymentUpdateResult {
   updatedCount: number;
+  updatedPayments?: Array<{
+    id: string;
+    oldStatus: UnifiedPaymentStatus;
+    newStatus: UnifiedPaymentStatus;
+  }>;
+}
+
+interface MissingPaymentDetail {
+  agreementId: string;
+  status: UnifiedPaymentStatus;
+  message: string;
 }
 
 interface MissingPaymentsResult {
   fixedCount: number;
-  details?: Array<{
-    agreementId: string;
-    status: string;
-    message: string;
-  }>;
+  details?: MissingPaymentDetail[];
 }
 
 interface MissingPaymentRecord {
   id: string | null;
-  status: string | null;
+  status: UnifiedPaymentStatus | null;
   status_description: string | null;
 }
 
@@ -151,7 +159,7 @@ export class PaymentService extends BaseService {
         referenceNumber,
         includeLatePaymentFee = false,
         isPartialPayment = false,
-        paymentType = 'rent',
+        paymentType = 'regular' as PaymentType,
         targetPaymentId
       } = options || {};
 
@@ -199,36 +207,14 @@ export class PaymentService extends BaseService {
         payment_reference: targetPaymentId
       };
 
-      const { data, error } = await supabase
-        .from('unified_payments')
-        .insert(paymentData)
-        .select()
-        .single();
-
-      if (error) {
-        throw createPaymentError('Failed to create payment', {
-          paymentId: paymentData.id,
-          amount: paymentData.amount,
-          reason: error.message
+      const result = await this.recordPayment(paymentData);
+      if (!result.success) {
+        throw createPaymentError('Failed to record payment', {
+          reason: result.error?.toString() || 'Unknown error'
         });
       }
 
-      if (!data) {
-        throw createPaymentError('Payment record not found after creation', {
-          paymentId: paymentData.id,
-          amount: paymentData.amount
-        });
-      }
-
-      // Publish payment recorded event
-      const payload: PaymentRecordedPayload = {
-        paymentId: data.id,
-        agreementId: data.lease_id,
-        amount: data.amount_paid ?? data.amount
-      };
-      eventBus.publish(Events.PaymentRecorded, payload);
-
-      return data;
+      return result.data;
     }, 'Failed to process special payment');
   }
 
@@ -308,6 +294,7 @@ export class PaymentService extends BaseService {
 
       // Update each payment to completed status
       let updatedCount = 0;
+      let updatedPayments: Array<{ id: string; oldStatus: UnifiedPaymentStatus; newStatus: UnifiedPaymentStatus }> = [];
       for (const payment of payments) {
         const { error: updateError } = await supabase
           .from('unified_payments')
@@ -316,10 +303,15 @@ export class PaymentService extends BaseService {
 
         if (!updateError) {
           updatedCount++;
+          updatedPayments.push({
+            id: payment.id,
+            oldStatus: payment.status,
+            newStatus: 'completed'
+          });
         }
       }
 
-      return { updatedCount };
+      return { updatedCount, updatedPayments };
     }, 'Failed to update historical payment statuses');
   }
 }

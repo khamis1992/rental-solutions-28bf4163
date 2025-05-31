@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -80,6 +79,8 @@ export interface Agreement {
   additional_drivers?: string[];
   rent_amount?: number;
   daily_late_fee?: number;
+  rent_due_day?: number;
+  payment_day?: number;
 }
 
 // Function to force generate payment for a specific agreement

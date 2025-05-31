@@ -7,27 +7,22 @@ import {
   ApiResponse,
   createErrorResponse,
   createSuccessResponse,
-  createValidationError,
-  createNotFoundError,
-  createDatabaseError,
-  createApiError,
   createServiceError,
-  createPaymentError,
-  isAppError as isStandardAppError
+  createDatabaseError,
+  createSuccessError,
+  isAppError as isStandardAppError,
+  ErrorContext,
+  ErrorSeverity
 } from '@/types/error.types';
 import { errorLogger } from './error-logger';
-
-/**
- * Type guard for PostgrestError
- */
-export function isPostgrestError(error: unknown): error is PostgrestError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    'code' in error
-  );
-}
+import {
+  isPostgrestError,
+  toDatabaseError,
+  isDataIntegrityError,
+  isRetryableDatabaseError,
+  isAuthenticationError,
+  isSchemaError
+} from './database-error-handler';
 
 /**
  * Re-export the standardized AppError type guard
@@ -35,9 +30,81 @@ export function isPostgrestError(error: unknown): error is PostgrestError {
 export const isAppError = isStandardAppError;
 
 /**
- * Converts various error types to AppError with enhanced context
+ * Error handling options
  */
-export function toAppError(error: unknown, context?: { source?: string; operation?: string }): AppError {
+export interface ErrorHandlingOptions {
+  context?: ErrorContext;
+  retryCount?: number;
+  maxRetries?: number;
+  retryDelay?: number;
+  showToast?: boolean;
+  logError?: boolean;
+}
+
+/**
+ * Default error handling options
+ */
+const DEFAULT_OPTIONS: Required<ErrorHandlingOptions> = {
+  retryCount: 0,
+  maxRetries: 3,
+  retryDelay: 1000,
+  showToast: true,
+  logError: true,
+  context: {}
+};
+
+/**
+ * Determine error severity based on error type
+ */
+function determineErrorSeverity(error: unknown): ErrorSeverity {
+  if (isPostgrestError(error)) {
+    // Data integrity errors are high severity
+    if (isDataIntegrityError(error)) {
+      return 'high';
+    }
+    // Authentication errors are high severity
+    if (isAuthenticationError(error)) {
+      return 'high';
+    }
+    // Schema errors are high severity
+    if (isSchemaError(error)) {
+      return 'high';
+    }
+    // Retryable errors are medium severity
+    if (isRetryableDatabaseError(error)) {
+      return 'medium';
+    }
+    // Other database errors are medium severity
+    return 'medium';
+  }
+
+  if (error instanceof Error) {
+    // Network errors are medium severity as they might be temporary
+    if (error.name === 'NetworkError') {
+      return 'medium';
+    }
+    // Authentication errors are high severity
+    if (error.name === 'AuthenticationError') {
+      return 'high';
+    }
+    // Authorization errors are high severity
+    if (error.name === 'AuthorizationError') {
+      return 'high';
+    }
+    // Validation errors are low severity
+    if (error.name === 'ValidationError') {
+      return 'low';
+    }
+  }
+
+  // Default to medium severity for unknown errors
+  return 'medium';
+}
+
+/**
+ * Convert any error to AppError with enhanced context
+ */
+export function toAppError(error: unknown, context?: ErrorContext): AppError {
   // If it's already an AppError, return it
   if (isAppError(error)) {
     return error;
@@ -45,54 +112,28 @@ export function toAppError(error: unknown, context?: { source?: string; operatio
 
   // Handle PostgrestError
   if (isPostgrestError(error)) {
-    return createDatabaseError(error.message, {
-      query: 'unknown',
-      params: null,
-      constraint: error.details
-    });
+    return toDatabaseError(error, context);
   }
 
   // Handle standard Error objects
   if (error instanceof Error) {
-    return {
-      code: 'UNKNOWN_ERROR',
-      message: error.message,
-      details: { 
-        stack: error.stack,
-        name: error.name,
-        ...(error as any).cause && { cause: (error as any).cause },
-        source: context?.source,
-        operation: context?.operation
-      },
-      originalError: error
-    };
+    return createServiceError(error.message, {
+      stack: error.stack,
+      name: error.name,
+      ...(error as any).cause && { cause: (error as any).cause }
+    }, context);
   }
 
   // Handle string errors
   if (typeof error === 'string') {
-    return {
-      code: 'UNKNOWN_ERROR',
-      message: error,
-      details: { 
-        type: 'string',
-        source: context?.source,
-        operation: context?.operation
-      }
-    };
+    return createServiceError(error, { type: 'string' }, context);
   }
 
   // Fallback for unknown error types
-  return {
-    code: 'UNKNOWN_ERROR',
-    message: 'An unknown error occurred',
-    details: {
-      type: typeof error,
-      value: String(error),
-      source: context?.source,
-      operation: context?.operation
-    },
-    originalError: error
-  };
+  return createServiceError('An unknown error occurred', {
+    type: typeof error,
+    value: String(error)
+  }, context);
 }
 
 /**
@@ -127,87 +168,122 @@ function getPostgrestErrorMessage(error: PostgrestError, context?: string): stri
 }
 
 /**
- * Handles API errors with appropriate UI feedback and detailed logging
+ * Sleep utility for retry delays
  */
-export function handleApiError(
-  error: unknown, 
-  context?: string,
-  operation?: string,
-  additionalContext?: Record<string, unknown>
-): ApiResponse {
-  const appError = toAppError(error, { source: 'API', operation });
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Handle errors with retry logic and consistent error handling
+ */
+export async function handleError<T>(
+  error: unknown,
+  options: ErrorHandlingOptions = {}
+): Promise<ApiResponse<T>> {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const appError = toAppError(error, opts.context);
+  const severity = determineErrorSeverity(error);
   let errorMessage = appError.message;
-  
+
   // Enhance error message for database errors
   if (isPostgrestError(error)) {
-    errorMessage = getPostgrestErrorMessage(error, context);
+    errorMessage = getPostgrestErrorMessage(error, opts.context?.source);
   }
-  
-  if (context) {
-    errorMessage = `${context}: ${errorMessage}`;
+
+  // Log error if enabled
+  if (opts.logError) {
+    errorLogger.logError(error, severity, {
+      ...opts.context,
+      details: {
+        code: appError.code,
+        message: errorMessage,
+        retryCount: opts.retryCount,
+        maxRetries: opts.maxRetries
+      }
+    });
   }
-  
-  // Log error with enhanced context
-  errorLogger.logError(error, 'error', {
-    source: 'API',
-    operation,
-    context,
-    details: {
-      code: appError.code,
-      message: errorMessage,
-      ...additionalContext
-    },
-    stackTrace: true
-  });
-  
-  // Show error toast
-  toast({
-    title: 'Error',
-    description: errorMessage,
-    variant: 'destructive',
-  });
-  
+
+  // Show toast if enabled
+  if (opts.showToast) {
+    toast({
+      title: severity === 'critical' ? 'Critical Error' : 'Error',
+      description: errorMessage,
+      variant: severity === 'critical' ? 'destructive' : 'default',
+    });
+  }
+
+  // Handle retry logic for retryable errors
+  if (appError.retryable && opts.retryCount < opts.maxRetries) {
+    await sleep(opts.retryDelay * (opts.retryCount + 1));
+    return handleError(error, {
+      ...opts,
+      retryCount: opts.retryCount + 1
+    });
+  }
+
   return createErrorResponse(appError);
 }
 
 /**
- * Handles successful API operations with appropriate UI feedback
+ * Handle API success with consistent response format
  */
-export function handleApiSuccess(
-  message: string, 
-  details?: string,
-  context?: Record<string, unknown>
-): void {
-  errorLogger.logError({ code: 'SUCCESS', message }, 'info', {
-    source: 'API',
-    details: { 
-      message, 
-      details,
-      ...context
-    }
+export function handleSuccess<T>(
+  data: T,
+  message?: string,
+  context?: ErrorContext
+): ApiResponse<T> {
+  // Log success with context
+  const successError = createSuccessError(
+    message || 'Operation completed successfully',
+    { data },
+    context
+  );
+
+  errorLogger.logError(successError, 'low', {
+    ...context,
+    details: { message, data }
   });
-  
+
+  // Show success toast
   toast({
     title: 'Success',
-    description: message,
+    description: message || 'Operation completed successfully',
+    variant: 'default',
   });
+
+  return createSuccessResponse(data);
+}
+
+/**
+ * Execute an operation with error handling and retry logic
+ */
+export async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  options: ErrorHandlingOptions = {}
+): Promise<ApiResponse<T>> {
+  try {
+    const result = await operation();
+    return handleSuccess(result, undefined, options.context);
+  } catch (error) {
+    return handleError(error, options);
+  }
 }
 
 /**
  * Creates a detailed error with enhanced context
  */
 export function createDetailedError(
+  code: ErrorCode,
   message: string,
-  context: string,
-  details?: Record<string, unknown>
+  details?: ErrorDetails,
+  context?: { source?: string; operation?: string }
 ): AppError {
   return {
-    code: 'API_ERROR',
-    message: `${context}: ${message}`,
-    details: {
-      ...details,
-      source: context
-    }
+    code,
+    message,
+    details,
+    context,
+    severity: 'medium',
+    retryable: false
   };
 }
 
@@ -222,8 +298,8 @@ export function isRetryableError(error: unknown): boolean {
     return true;
   }
   
-  // API errors with specific status codes are retryable
-  if (appError.code === 'API_ERROR') {
+  // Service errors with specific status codes are retryable
+  if (appError.code === 'SERVICE_ERROR') {
     const status = (appError.details as { status?: number })?.status;
     return (
       !status ||

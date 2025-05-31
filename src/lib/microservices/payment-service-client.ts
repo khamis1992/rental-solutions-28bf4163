@@ -1,7 +1,12 @@
-
 import { supabase } from '@/lib/supabase';
 import { PaymentRow, PaymentInsert, PaymentUpdate, asPaymentStatus } from '@/types/db';
 import { toast } from 'sonner';
+import { PostgrestError } from '@supabase/supabase-js';
+
+export interface PaymentServiceResponse<T> {
+  data: T | null;
+  error: PostgrestError | Error | null;
+}
 
 /**
  * Payment Microservice Client
@@ -24,7 +29,7 @@ export class PaymentServiceClient {
   /**
    * Create a new payment
    */
-  async createPayment(payment: PaymentInsert): Promise<{ data: PaymentRow | null, error: any }> {
+  async createPayment(payment: PaymentInsert): Promise<PaymentServiceResponse<PaymentRow>> {
     try {
       if (this.useMicroservice && this.baseUrl) {
         // Microservice API call
@@ -36,7 +41,7 @@ export class PaymentServiceClient {
         
         if (!response.ok) {
           const errorData = await response.json();
-          return { data: null, error: errorData };
+          return { data: null, error: new Error(errorData.message || 'Failed to create payment') };
         }
         
         const data = await response.json();
@@ -55,14 +60,14 @@ export class PaymentServiceClient {
     } catch (error) {
       console.error('Error creating payment:', error);
       toast.error('Failed to create payment');
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error occurred') };
     }
   }
   
   /**
    * Get payments for an agreement
    */
-  async getPaymentsByAgreement(agreementId: string): Promise<{ data: PaymentRow[] | null, error: any }> {
+  async getPaymentsByAgreement(agreementId: string): Promise<PaymentServiceResponse<PaymentRow[]>> {
     try {
       if (this.useMicroservice && this.baseUrl) {
         // Microservice API call
@@ -70,7 +75,7 @@ export class PaymentServiceClient {
         
         if (!response.ok) {
           const errorData = await response.json();
-          return { data: null, error: errorData };
+          return { data: null, error: new Error(errorData.message || 'Failed to fetch payments') };
         }
         
         const data = await response.json();
@@ -87,14 +92,14 @@ export class PaymentServiceClient {
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error occurred') };
     }
   }
   
   /**
    * Update a payment
    */
-  async updatePayment(id: string, payment: PaymentUpdate): Promise<{ data: PaymentRow | null, error: any }> {
+  async updatePayment(id: string, payment: PaymentUpdate): Promise<PaymentServiceResponse<PaymentRow>> {
     try {
       if (this.useMicroservice && this.baseUrl) {
         // Microservice API call
@@ -106,7 +111,7 @@ export class PaymentServiceClient {
         
         if (!response.ok) {
           const errorData = await response.json();
-          return { data: null, error: errorData };
+          return { data: null, error: new Error(errorData.message || 'Failed to update payment') };
         }
         
         const data = await response.json();
@@ -125,14 +130,14 @@ export class PaymentServiceClient {
     } catch (error) {
       console.error('Error updating payment:', error);
       toast.error('Failed to update payment');
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error occurred') };
     }
   }
   
   /**
    * Delete a payment
    */
-  async deletePayment(id: string): Promise<{ error: any }> {
+  async deletePayment(id: string): Promise<PaymentServiceResponse<void>> {
     try {
       if (this.useMicroservice && this.baseUrl) {
         // Microservice API call
@@ -142,10 +147,10 @@ export class PaymentServiceClient {
         
         if (!response.ok) {
           const errorData = await response.json();
-          return { error: errorData };
+          return { data: null, error: new Error(errorData.message || 'Failed to delete payment') };
         }
         
-        return { error: null };
+        return { data: undefined, error: null };
       } else {
         // Direct database access during development
         const { error } = await supabase
@@ -153,19 +158,19 @@ export class PaymentServiceClient {
           .delete()
           .eq('id', id);
         
-        return { error };
+        return { data: undefined, error };
       }
     } catch (error) {
       console.error('Error deleting payment:', error);
       toast.error('Failed to delete payment');
-      return { error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error occurred') };
     }
   }
   
   /**
    * Update payment status
    */
-  async updatePaymentStatus(id: string, status: string): Promise<{ data: PaymentRow | null, error: any }> {
+  async updatePaymentStatus(id: string, status: string): Promise<PaymentServiceResponse<PaymentRow>> {
     try {
       const validStatus = asPaymentStatus(status);
       
@@ -179,7 +184,7 @@ export class PaymentServiceClient {
         
         if (!response.ok) {
           const errorData = await response.json();
-          return { data: null, error: errorData };
+          return { data: null, error: new Error(errorData.message || 'Failed to update payment status') };
         }
         
         const data = await response.json();
@@ -198,7 +203,7 @@ export class PaymentServiceClient {
     } catch (error) {
       console.error('Error updating payment status:', error);
       toast.error('Failed to update payment status');
-      return { data: null, error };
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error occurred') };
     }
   }
 }

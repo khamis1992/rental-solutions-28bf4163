@@ -1,8 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Agreement, AgreementFilterParams, AgreementStatus } from '@/types/agreement.types';
-import { Result } from '@/lib/errors/types';
-import { createServiceError } from '@/lib/errors/types';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 
 export class LeaseService extends BaseService {
   constructor() {
@@ -34,9 +39,8 @@ export class LeaseService extends BaseService {
       const { data, error } = await query;
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch leases',
-          'LeaseService',
           'fetchLeases'
         );
       }
@@ -54,19 +58,14 @@ export class LeaseService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch lease',
-          'LeaseService',
           'getLeaseById'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Lease not found',
-          'LeaseService',
-          'getLeaseById'
-        );
+        throw createNotFoundError('Lease', id);
       }
 
       return data;
@@ -82,9 +81,8 @@ export class LeaseService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to create lease',
-          'LeaseService',
           'createLease'
         );
       }
@@ -103,19 +101,14 @@ export class LeaseService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to update lease',
-          'LeaseService',
           'updateLease'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Lease not found',
-          'LeaseService',
-          'updateLease'
-        );
+        throw createNotFoundError('Lease', id);
       }
 
       return data;
@@ -130,9 +123,8 @@ export class LeaseService extends BaseService {
         .eq('id', id);
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to delete lease',
-          'LeaseService',
           'deleteLease'
         );
       }
@@ -156,4 +148,6 @@ export class LeaseService extends BaseService {
   async getLeasesByDateRange(startDate: string, endDate: string): Promise<Result<Agreement[]>> {
     return this.fetchLeases({ startDate, endDate });
   }
-} 
+}
+
+export const leaseService = new LeaseService(); 

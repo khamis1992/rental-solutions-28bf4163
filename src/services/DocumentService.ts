@@ -10,11 +10,15 @@ import {
   generateDocumentPath,
   deleteDocumentFromStorage
 } from '@/lib/documents/document-storage';
+import { BaseService } from './base/BaseService';
+import { Result } from '@/types/error.types';
 
-export class DocumentService {
+export class DocumentService extends BaseService {
   private static instance: DocumentService;
   
-  private constructor() {}
+  private constructor() {
+    super(supabase);
+  }
   
   public static getInstance(): DocumentService {
     if (!DocumentService.instance) {
@@ -197,7 +201,7 @@ export class DocumentService {
   /**
    * Get documents by type
    */
-  async getDocumentsByType(type: string): Promise<Document[]> {
+  async getDocumentsByType(type: string): Promise<Result<Document[]>> {
     try {
       const { data, error } = await supabase
         .from('documents')
@@ -206,13 +210,36 @@ export class DocumentService {
         .order('created_at', { ascending: false });
       
       if (error) {
-        throw error;
+        return this.error(error, 'Failed to fetch documents by type');
       }
       
-      return data as Document[];
+      if (!data) {
+        return this.success([]);
+      }
+
+      // Validate each document has required fields
+      const validDocuments = data.filter((doc: unknown): doc is Document => {
+        if (!doc || typeof doc !== 'object') return false;
+        const d = doc as Record<string, unknown>;
+        return (
+          typeof d.id === 'string' &&
+          typeof d.title === 'string' &&
+          typeof d.file_name === 'string' &&
+          typeof d.file_type === 'string' &&
+          typeof d.file_size === 'number' &&
+          typeof d.storage_path === 'string' &&
+          typeof d.category === 'string' &&
+          typeof d.type === 'string' &&
+          typeof d.status === 'string' &&
+          typeof d.created_by === 'string' &&
+          typeof d.created_at === 'string' &&
+          typeof d.updated_at === 'string'
+        );
+      });
+
+      return this.success(validDocuments);
     } catch (error) {
-      console.error('Error getting documents by type:', error);
-      return [];
+      return this.error(error, 'Error getting documents by type');
     }
   }
   

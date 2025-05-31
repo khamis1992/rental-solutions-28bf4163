@@ -1,9 +1,38 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
-import { ServiceResponse } from '@/types/service.types';
+import { Result } from '@/types/error.types';
 import { paymentScheduleService } from './PaymentScheduleService';
 import { agreementSyncService } from './AgreementSyncService';
+import { Agreement } from '@/types/agreement.types';
+import { PaymentScheduleItem } from '@/services/PaymentScheduleService';
+
+interface AgreementPaymentDefaults {
+  payment_frequency?: 'monthly' | 'weekly' | 'biweekly';
+  payment_day?: number;
+  rent_due_day?: number;
+}
+
+interface SyncResult {
+  agreementId: string;
+  synced: boolean;
+}
+
+interface ScheduleSyncResult {
+  updated: string[];
+}
+
+interface FixResult {
+  agreementId: string;
+  syncCompleted: boolean;
+  scheduleExists: boolean;
+  scheduleItems: number;
+}
+
+interface Payment {
+  id: string;
+  payment_date?: string;
+  created_at: string;
+}
 
 /**
  * Enhanced Payment Synchronization Service
@@ -14,7 +43,7 @@ export class PaymentSyncService extends BaseService {
   /**
    * Comprehensive sync for a specific agreement with enhanced error handling
    */
-  async syncAgreementPayments(agreementId: string): Promise<ServiceResponse<any>> {
+  async syncAgreementPayments(agreementId: string): Promise<Result<SyncResult>> {
     try {
       console.log(`[PaymentSync] Starting comprehensive sync for agreement ${agreementId}`);
       
@@ -27,14 +56,14 @@ export class PaymentSyncService extends BaseService {
 
       if (agreementError || !agreement) {
         console.error(`[PaymentSync] Failed to fetch agreement ${agreementId}:`, agreementError);
-        return this.handleError(agreementError, 'Failed to fetch agreement');
+        return this.error(agreementError, 'Failed to fetch agreement');
       }
 
       console.log(`[PaymentSync] Agreement found: ${agreement.agreement_number}, Status: ${agreement.status}`);
 
       // Step 2: Fix payment defaults if missing
       let needsUpdate = false;
-      const updates: any = {};
+      const updates: AgreementPaymentDefaults = {};
 
       if (!agreement.payment_frequency) {
         updates.payment_frequency = 'monthly';
@@ -71,25 +100,32 @@ export class PaymentSyncService extends BaseService {
 
       // Step 3: Generate payment schedule if missing and agreement is active
       if (agreement.status === 'active' && agreement.start_date && agreement.end_date && agreement.rent_amount) {
-        const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
+        const scheduleResult = await paymentScheduleService.getPaymentSchedulesByLease(agreementId);
         
         if (scheduleResult.success && scheduleResult.data.length === 0) {
           console.log(`[PaymentSync] Generating missing payment schedule for agreement ${agreementId}`);
           
-          const generateResult = await paymentScheduleService.generateAndPersistSchedule(
-            agreementId,
-            new Date(agreement.start_date),
-            new Date(agreement.end_date),
-            agreement.rent_amount,
-            agreement.payment_frequency || 'monthly',
-            agreement.payment_day || agreement.rent_due_day || 1
-          );
+          // Create payment schedule items for each month
+          const startDate = new Date(agreement.start_date);
+          const endDate = new Date(agreement.end_date);
+          const monthlyAmount = agreement.rent_amount;
+          const paymentDay = agreement.payment_day || agreement.rent_due_day || 1;
           
-          if (generateResult.success) {
-            console.log(`[PaymentSync] Payment schedule generated with ${generateResult.data.length} items`);
-          } else {
-            console.error(`[PaymentSync] Failed to generate payment schedule:`, generateResult.error);
+          let currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            const dueDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), paymentDay);
+            if (dueDate >= startDate && dueDate <= endDate) {
+              await paymentScheduleService.createPaymentSchedule({
+                lease_id: agreementId,
+                amount: monthlyAmount,
+                due_date: dueDate.toISOString(),
+                status: 'pending'
+              });
+            }
+            currentDate.setMonth(currentDate.getMonth() + 1);
           }
+          
+          console.log(`[PaymentSync] Payment schedule generated`);
         } else if (scheduleResult.success) {
           console.log(`[PaymentSync] Payment schedule already exists with ${scheduleResult.data.length} items`);
         }
@@ -104,21 +140,21 @@ export class PaymentSyncService extends BaseService {
       return this.success({ agreementId, synced: true });
     } catch (error) {
       console.error(`[PaymentSync] Failed to sync agreement payments:`, error);
-      return this.handleError(error, 'Failed to sync agreement payments');
+      return this.error(error, 'Failed to sync agreement payments');
     }
   }
 
   /**
    * Sync payment schedules with actual payments
    */
-  private async syncScheduleWithPayments(agreementId: string): Promise<ServiceResponse<any>> {
+  private async syncScheduleWithPayments(agreementId: string): Promise<Result<ScheduleSyncResult>> {
     try {
       console.log(`[PaymentSync] Syncing schedule with payments for agreement ${agreementId}`);
       
       // Get payment schedule
-      const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
+      const scheduleResult = await paymentScheduleService.getPaymentSchedulesByLease(agreementId);
       if (!scheduleResult.success) {
-        return this.handleError(scheduleResult.error, 'Failed to get payment schedule');
+        return this.error(scheduleResult.error, 'Failed to get payment schedule');
       }
 
       // Get actual payments
@@ -129,16 +165,16 @@ export class PaymentSyncService extends BaseService {
         .eq('status', 'completed');
 
       if (paymentsError) {
-        return this.handleError(paymentsError, 'Failed to get payments');
+        return this.error(paymentsError, 'Failed to get payments');
       }
 
       console.log(`[PaymentSync] Found ${scheduleResult.data.length} schedule items and ${payments?.length || 0} completed payments`);
 
       // Update schedule items that have corresponding payments
-      const updates = [];
+      const updates: string[] = [];
       
       for (const scheduleItem of scheduleResult.data) {
-        const matchingPayment = payments?.find(payment => {
+        const matchingPayment = payments?.find((payment: Payment) => {
           const paymentMonth = new Date(payment.payment_date || payment.created_at).getMonth();
           const scheduleMonth = new Date(scheduleItem.due_date).getMonth();
           const paymentYear = new Date(payment.payment_date || payment.created_at).getFullYear();
@@ -149,10 +185,8 @@ export class PaymentSyncService extends BaseService {
 
         if (matchingPayment && scheduleItem.status !== 'completed') {
           const updateResult = await paymentScheduleService.updateScheduleItemStatus(
-            scheduleItem.id!,
-            'completed',
-            matchingPayment.payment_date || matchingPayment.created_at,
-            matchingPayment.id
+            scheduleItem.id,
+            'completed'
           );
           
           if (updateResult.success) {
@@ -166,14 +200,14 @@ export class PaymentSyncService extends BaseService {
       return this.success({ updated: updates });
     } catch (error) {
       console.error(`[PaymentSync] Failed to sync schedule with payments:`, error);
-      return this.handleError(error, 'Failed to sync schedule with payments');
+      return this.error(error, 'Failed to sync schedule with payments');
     }
   }
 
   /**
    * Fix specific agreement payment synchronization issue
    */
-  async fixAgreementPaymentSync(agreementId: string): Promise<ServiceResponse<any>> {
+  async fixAgreementPaymentSync(agreementId: string): Promise<Result<FixResult>> {
     try {
       console.log(`[PaymentSync] Starting fix for agreement ${agreementId}`);
       
@@ -185,9 +219,9 @@ export class PaymentSyncService extends BaseService {
       }
 
       // Validate the fix by checking if schedule exists and is populated
-      const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
+      const scheduleResult = await paymentScheduleService.getPaymentSchedulesByLease(agreementId);
       
-      const result = {
+      const result: FixResult = {
         agreementId,
         syncCompleted: syncResult.success,
         scheduleExists: scheduleResult.success && scheduleResult.data.length > 0,
@@ -198,14 +232,14 @@ export class PaymentSyncService extends BaseService {
       return this.success(result);
     } catch (error) {
       console.error(`[PaymentSync] Failed to fix agreement payment sync:`, error);
-      return this.handleError(error, 'Failed to fix agreement payment sync');
+      return this.error(error, 'Failed to fix agreement payment sync');
     }
   }
 
   /**
    * Bulk fix for all agreements with payment sync issues
    */
-  async fixAllAgreementPaymentSync(): Promise<ServiceResponse<any>> {
+  async fixAllAgreementPaymentSync(): Promise<Result<any>> {
     try {
       console.log(`[PaymentSync] Starting bulk fix for all agreements`);
       
@@ -216,7 +250,7 @@ export class PaymentSyncService extends BaseService {
         .eq('status', 'active');
 
       if (agreementsError) {
-        return this.handleError(agreementsError, 'Failed to fetch agreements');
+        return this.error(agreementsError, 'Failed to fetch agreements');
       }
 
       const results = [];
@@ -242,7 +276,7 @@ export class PaymentSyncService extends BaseService {
       });
     } catch (error) {
       console.error(`[PaymentSync] Failed bulk fix:`, error);
-      return this.handleError(error, 'Failed to fix all agreement payment sync');
+      return this.error(error, 'Failed to fix all agreement payment sync');
     }
   }
 }

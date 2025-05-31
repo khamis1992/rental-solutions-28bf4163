@@ -1,19 +1,13 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { AuthResult } from '@/types/response.types';
 
 export interface LoginCredentials {
   email: string;
   password: string;
 }
 
-export interface LoginResult {
-  success: boolean;
-  error?: string;
-  user?: any;
-}
-
-export const loginUser = async (credentials: LoginCredentials): Promise<LoginResult> => {
+export const loginUser = async (credentials: LoginCredentials): Promise<AuthResult> => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: credentials.email,
@@ -28,7 +22,15 @@ export const loginUser = async (credentials: LoginCredentials): Promise<LoginRes
 
     if (data?.user) {
       toast.success('Login successful');
-      return { success: true, user: data.user };
+      return { 
+        success: true, 
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: data.user.user_metadata
+        },
+        message: 'Login successful'
+      };
     }
 
     return { success: false, error: 'Unknown error occurred' };

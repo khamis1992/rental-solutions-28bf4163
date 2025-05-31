@@ -1,17 +1,13 @@
+import { VehicleStatus } from '@/types/database.types';
 
 // Valid vehicle statuses
-const VEHICLE_STATUSES = [
+const VEHICLE_STATUSES: VehicleStatus[] = [
   'available',
   'rented',
   'maintenance',
-  'police_station',
-  'accident',
-  'stolen',
   'reserved',
-  'retired'
-] as const;
-
-type VehicleStatus = typeof VEHICLE_STATUSES[number];
+  'out_of_service'
+];
 
 /**
  * Validates and returns a vehicle status

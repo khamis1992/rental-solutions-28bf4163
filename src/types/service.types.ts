@@ -1,19 +1,10 @@
 import { PostgrestError } from '@supabase/supabase-js';
-import { AppError, isAppError } from '@/types/error.types';
+import { AppError, Result, isAppError, ErrorContext } from '@/types/error.types';
 
-export interface ServiceResponse<T> {
-  success: boolean;
-  data: T | null;
-  error: string | Error | null;
-  message?: string;
-}
-
-export type ServiceResult<T> = ServiceResponse<T>;
-
-// Type guard for service results
-export function isServiceError<T>(result: ServiceResult<T>): result is ServiceResult<T> & { success: false; error: string | Error } {
-  return !result.success && !!result.error;
-}
+/**
+ * @deprecated Use Result<T> instead
+ */
+export type ServiceResponse<T> = Result<T>;
 
 /**
  * Helper to extract error message from various error types
@@ -40,9 +31,49 @@ export function getErrorMessage(error: unknown): string {
   return 'An unknown error occurred';
 }
 
-// Helper to extract message from ServiceResult
-export function getServiceMessage<T>(result: ServiceResult<T>): string {
-  if (result.message) return result.message;
-  if (result.error) return getErrorMessage(result.error);
-  return 'Operation completed';
+/**
+ * Helper to convert various error types to AppError
+ */
+export function toAppError(error: unknown, context?: ErrorContext): AppError {
+  if (isAppError(error)) {
+    return {
+      ...error,
+      context: context ? { ...error.context, ...context } : error.context
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      code: 'UNKNOWN_ERROR',
+      message: error.message,
+      severity: 'medium',
+      retryable: false,
+      context
+    };
+  }
+  if (typeof error === 'string') {
+    return {
+      code: 'UNKNOWN_ERROR',
+      message: error,
+      severity: 'medium',
+      retryable: false,
+      context
+    };
+  }
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: 'An unknown error occurred',
+    severity: 'medium',
+    retryable: false,
+    context
+  };
+}
+
+/**
+ * Helper to extract message from Result
+ */
+export function getResultMessage<T>(result: Result<T>): string {
+  if (!result.success) {
+    return result.error.message;
+  }
+  return 'Operation completed successfully';
 }

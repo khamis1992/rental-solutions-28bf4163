@@ -1,11 +1,12 @@
-
 import { supabase } from '@/lib/supabase';
-
-export interface ServiceResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+import { BaseService } from './base/BaseService';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 
 export type MaintenanceProvider = {
   id: string;
@@ -17,31 +18,27 @@ export type MaintenanceProvider = {
   updated_at: string;
 };
 
-export class MaintenanceProviderService {
-  private success<T>(data: T): ServiceResult<T> {
-    return { success: true, data };
+export class MaintenanceProviderService extends BaseService {
+  constructor() {
+    super(supabase);
   }
 
-  private error(message: string, error?: any): ServiceResult<any> {
-    console.error(message, error);
-    return { success: false, error: message };
-  }
-
-  async findActive(): Promise<ServiceResult<MaintenanceProvider[]>> {
-    try {
+  async findActive(): Promise<Result<MaintenanceProvider[]>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('maintenance_providers')
         .select('*')
         .eq('is_active', true);
         
       if (error) {
-        throw new Error(`Failed to fetch active providers: ${error.message}`);
+        throw this.createServiceError(
+          'Failed to fetch active providers',
+          'findActive'
+        );
       }
       
-      return this.success(data || []);
-    } catch (error) {
-      return this.error('Failed to fetch maintenance providers', error);
-    }
+      return data || [];
+    }, 'Failed to fetch maintenance providers');
   }
 }
 

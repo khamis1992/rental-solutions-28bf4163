@@ -1,6 +1,7 @@
 import { Database } from '@/types/database.types';
 import { asUUID, UUID } from '@/lib/uuid-helpers';
 import { getResponseData } from '@/utils/supabase-type-helpers';
+import { PostgrestError } from '@supabase/supabase-js';
 
 type Tables = Database['public']['Tables'];
 
@@ -17,7 +18,6 @@ export type LeaseId = Tables['leases']['Row']['id'];
 export type VehicleId = Tables['vehicles']['Row']['id'];
 export type ProfileId = Tables['profiles']['Row']['id'];
 export type PaymentId = Tables['unified_payments']['Row']['id'];
-export type TrafficFineId = Tables['traffic_fines']['Row']['id'];
 export type AgreementId = LeaseId; // Alias for backward compatibility
 
 // Helper type for payment status that matches the database enum
@@ -39,7 +39,7 @@ export const castVehicleStatus = (status: string): VehicleStatus => status as Ve
 export const castAgreementStatus = (status: string): AgreementStatus => status as AgreementStatus;
 
 // Helper function to handle Supabase response errors
-export const handleSupabaseResponse = <T>(response: any): T | null => {
+export const handleSupabaseResponse = <T>(response: { data: T | null; error: PostgrestError | null }): T | null => {
   if (response?.error) {
     console.error("Supabase response error:", response.error);
     return null;
@@ -50,11 +50,13 @@ export const handleSupabaseResponse = <T>(response: any): T | null => {
 /**
  * Type-guard to check if an object is a specific database table row
  */
-export function isTableRow<T extends keyof Tables>(
+export function isTableRow<T extends keyof Database['public']['Tables']>(
   tableName: T, 
-  obj: any
-): obj is Tables[T]['Row'] {
-  return obj && typeof obj === 'object' && 'id' in obj;
+  obj: unknown
+): obj is Database['public']['Tables'][T]['Row'] {
+  if (!obj || typeof obj !== 'object') return false;
+  const row = obj as Record<string, unknown>;
+  return 'id' in row && typeof row.id === 'string';
 }
 
 /**
@@ -68,13 +70,26 @@ export function getColumnName<
 }
 
 /**
- * Safely cast a string value to a database column value
+ * Safely cast a value to a database column value
  */
 export function asColumnValue<
-  T extends keyof Tables, 
-  C extends keyof Tables[T]['Row']
->(table: T, column: C, value: any): Tables[T]['Row'][C] {
-  return value as Tables[T]['Row'][C];
+  T extends keyof Database['public']['Tables'], 
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(
+  table: T, 
+  column: C, 
+  value: unknown
+): Database['public']['Tables'][T]['Row'][C] {
+  if (value === null || value === undefined) {
+    return value as Database['public']['Tables'][T]['Row'][C];
+  }
+  
+  const columnType = typeof ({} as Database['public']['Tables'][T]['Row'])[column];
+  if (typeof value === columnType) {
+    return value as Database['public']['Tables'][T]['Row'][C];
+  }
+  
+  throw new Error(`Invalid type for column ${String(column)} in table ${String(table)}`);
 }
 
 /**
@@ -94,10 +109,10 @@ export function createTableHelper<T extends keyof Tables>(table: T) {
   return {
     tableName: table,
     column: <C extends keyof Tables[T]['Row']>(columnName: C) => columnName,
-    castId: (id: string) => id as any as Tables[T]['Row']['id'],
+    castId: (id: string) => id as Tables[T]['Row']['id'],
     castColumnValue: <C extends keyof Tables[T]['Row']>(
       column: C, 
-      value: any
+      value: unknown
     ): Tables[T]['Row'][C] => value as Tables[T]['Row'][C]
   };
 }
@@ -108,5 +123,4 @@ export const Tables = {
   profiles: createTableHelper('profiles'),
   vehicles: createTableHelper('vehicles'),
   unified_payments: createTableHelper('unified_payments'),
-  traffic_fines: createTableHelper('traffic_fines'),
 };

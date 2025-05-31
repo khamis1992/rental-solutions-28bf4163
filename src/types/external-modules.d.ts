@@ -6,6 +6,8 @@ declare module 'trusted-types';
 declare module 'uuid';
 declare module 'ws';
 
+import { Database } from './database.types';
+
 declare module '@supabase/supabase-js' {
   export interface PostgrestError {
     message: string;
@@ -26,11 +28,10 @@ declare module '@supabase/supabase-js' {
     count?: number | null;
   }
 
-  export interface SupabaseClient<T = any> {
-    from(table: string): any;
-  }
+  export type SupabaseClient = SupabaseClient<Database>;
+  export type PostgrestFilterBuilder = PostgrestFilterBuilder<Database['public']['Tables']>;
 }
 
 declare module '@supabase/postgrest-js' {
-  export type PostgrestFilterBuilder<Schema = any, Row = any, Relation = any> = any;
+  export type PostgrestFilterBuilder = PostgrestFilterBuilder<Database['public']['Tables']>;
 }

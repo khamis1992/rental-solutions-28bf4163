@@ -1,14 +1,27 @@
-import { AppError, isAppError } from '@/types/error.types';
-
-/**
- * Log levels for error logging
- */
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+import { 
+  AppError, 
+  isAppError, 
+  createApiError,
+  createServiceError,
+  createValidationError,
+  createNotFoundError,
+  createDatabaseError,
+  createPaymentError,
+  ErrorContext,
+  ErrorSeverity,
+  ErrorDetails,
+  ServiceError,
+  DatabaseError,
+  ValidationError,
+  NotFoundError,
+  ApiError,
+  PaymentError
+} from '@/types/error.types';
 
 /**
  * Error logging context with enhanced details
  */
-export interface ErrorLogContext {
+export interface ErrorLogContext extends ErrorContext {
   source?: string;
   operation?: string;
   context?: string;
@@ -66,7 +79,7 @@ export class ErrorLogger {
    */
   public logError(
     error: unknown,
-    level: LogLevel = 'error',
+    severity: ErrorSeverity = 'medium',
     context?: ErrorLogContext
   ): void {
     const appError = this.toAppError(error);
@@ -74,21 +87,25 @@ export class ErrorLogger {
     const logMessage = this.formatLogMessage(appError, mergedContext);
     const logDetails = this.getLogDetails(appError, mergedContext);
 
-    switch (level) {
-      case 'error':
-        console.error(logMessage, logDetails);
+    // Log to console with appropriate level based on severity
+    switch (severity) {
+      case 'critical':
+        console.error('🔴 CRITICAL ERROR:', logMessage, logDetails);
         break;
-      case 'warn':
-        console.warn(logMessage, logDetails);
+      case 'high':
+        console.error('🔴 HIGH SEVERITY ERROR:', logMessage, logDetails);
         break;
-      case 'info':
-        console.info(logMessage, logDetails);
+      case 'medium':
+        console.warn('🟡 MEDIUM SEVERITY ERROR:', logMessage, logDetails);
         break;
-      case 'debug':
-        if (this.isDevelopment) {
-          console.debug(logMessage, logDetails);
-        }
+      case 'low':
+        console.info('🔵 LOW SEVERITY ERROR:', logMessage, logDetails);
         break;
+    }
+
+    // For critical errors, implement additional notification logic here
+    if (severity === 'critical') {
+      this.handleCriticalError(appError, mergedContext);
     }
   }
 
@@ -101,47 +118,81 @@ export class ErrorLogger {
     }
 
     if (error instanceof Error) {
-      return {
-        code: 'UNKNOWN_ERROR',
-        message: error.message,
-        details: {
-          stack: error.stack,
-          name: error.name,
-          ...(error as any).cause && { cause: (error as any).cause }
-        },
-        originalError: error
+      const errorDetails: ErrorDetails = {
+        stack: error.stack,
+        name: error.name,
+        ...(error as any).cause && { cause: (error as any).cause }
       };
+
+      // Handle specific error types based on error name
+      switch (error.name) {
+        case 'ServiceError':
+          return createServiceError(error.message, {
+            service: 'error-logger',
+            operation: 'logError',
+            ...errorDetails
+          });
+        
+        case 'DatabaseError':
+          return createDatabaseError(error.message, {
+            query: 'unknown',
+            params: null,
+            constraint: error.message
+          });
+        
+        case 'ValidationError':
+          return createValidationError(error.message, [{
+            field: 'unknown',
+            message: error.message
+          }]);
+        
+        case 'NotFoundError':
+          return createNotFoundError('resource', 'unknown');
+        
+        case 'ApiError':
+          return createApiError(error.message, {
+            endpoint: 'unknown',
+            method: 'unknown',
+            status: 500
+          });
+        
+        case 'PaymentError':
+          return createPaymentError(error.message, {
+            paymentId: 'unknown',
+            amount: 0,
+            reason: error.message
+          });
+        
+        default:
+          return createApiError(error.message, {
+            endpoint: 'unknown',
+            method: 'unknown',
+            status: 500
+          });
+      }
     }
 
     if (typeof error === 'string') {
-      return {
-        code: 'UNKNOWN_ERROR',
-        message: error,
-        details: { type: 'string' }
-      };
+      return createApiError(error, {
+        endpoint: 'unknown',
+        method: 'unknown',
+        status: 500
+      });
     }
 
     if (typeof error === 'object' && error !== null) {
-      return {
-        code: 'UNKNOWN_ERROR',
-        message: 'An unknown error occurred',
-        details: {
-          type: 'object',
-          value: JSON.stringify(error)
-        },
-        originalError: error
-      };
+      return createApiError('An unknown error occurred', {
+        endpoint: 'unknown',
+        method: 'unknown',
+        status: 500
+      });
     }
 
-    return {
-      code: 'UNKNOWN_ERROR',
-      message: 'An unknown error occurred',
-      details: {
-        type: typeof error,
-        value: String(error)
-      },
-      originalError: error
-    };
+    return createApiError('An unknown error occurred', {
+      endpoint: 'unknown',
+      method: 'unknown',
+      status: 500
+    });
   }
 
   /**
@@ -182,8 +233,9 @@ export class ErrorLogger {
       parts.push(`User: ${context.userId}`);
     }
 
-    // Add error message
+    // Add error message and severity
     parts.push(`Error: ${error.message}`);
+    parts.push(`Severity: ${error.severity}`);
 
     return parts.join(' | ');
   }
@@ -197,12 +249,14 @@ export class ErrorLogger {
       details: error.details,
       context: context.details,
       timestamp: context.timestamp || new Date().toISOString(),
-      environment: context.environment,
+      environment: context.environment || this.defaultContext.environment,
       component: context.component,
       operation: context.operation,
       method: context.method,
       params: context.params,
-      response: context.response
+      response: context.response,
+      severity: error.severity,
+      retryable: error.retryable
     };
 
     // Add stack trace in development or if explicitly requested
@@ -225,13 +279,33 @@ export class ErrorLogger {
    * Merge provided context with default context
    */
   private mergeContext(context?: ErrorLogContext): ErrorLogContext {
-    return {
+    const mergedContext: ErrorLogContext = {
       ...this.defaultContext,
-      ...context,
-      timestamp: context?.timestamp || this.defaultContext.timestamp,
-      environment: context?.environment || this.defaultContext.environment,
-      stackTrace: context?.stackTrace ?? this.defaultContext.stackTrace
+      ...context
     };
+
+    // Ensure required fields have default values
+    mergedContext.timestamp = mergedContext.timestamp || new Date().toISOString();
+    mergedContext.environment = mergedContext.environment || this.defaultContext.environment;
+    mergedContext.stackTrace = mergedContext.stackTrace ?? this.defaultContext.stackTrace;
+
+    return mergedContext;
+  }
+
+  /**
+   * Handle critical errors with additional notifications
+   */
+  private handleCriticalError(error: AppError, context: ErrorLogContext): void {
+    // TODO: Implement critical error handling
+    // This could include:
+    // - Sending notifications to administrators
+    // - Creating incident reports
+    // - Triggering alerts
+    // - Notifying monitoring services
+    console.error('CRITICAL ERROR HANDLING NEEDED:', {
+      error,
+      context
+    });
   }
 }
 

@@ -1,6 +1,6 @@
 import { Database } from '@/types/database.types';
 import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
-import { DatabaseError } from '@/types/error.types';
+import { VehicleStatus } from '@/types/database.types';
 
 // Main database types
 export type DbDatabase = Database;
@@ -25,7 +25,7 @@ export type PaymentScheduleRow = DbTables['payment_schedules']['Row'];
 // Response types
 export type DbResponse<T> = PostgrestResponse<T>;
 export type DbSingleResponse<T> = PostgrestSingleResponse<T>;
-export type DbError = DatabaseError;
+export type DbError = PostgrestError;
 
 // List and single response helpers
 export type DbListResponse<T> = {
@@ -51,5 +51,7 @@ export type DbQueryOptions = {
 
 // Common status types
 export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
 export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';
+
+// Re-export VehicleStatus from database types
+export type { VehicleStatus };

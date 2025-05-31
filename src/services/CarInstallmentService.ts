@@ -1,91 +1,229 @@
-
 import { supabase } from '@/lib/supabase';
-import { CarInstallmentContract, CarInstallmentPayment } from '@/types/car-installment';
+import { CarInstallmentContract, CarInstallmentPayment, PaymentStatusType } from '@/types/car-installment';
+import { BaseService } from './base/BaseService';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 
-export interface ServiceResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
+export interface CarInstallmentFilters {
+  customerId?: string;
+  status?: PaymentStatusType;
+  searchTerm?: string;
+  startDate?: Date;
+  endDate?: Date;
+  contractNumber?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  paymentStatus?: PaymentStatusType;
+  isActive?: boolean;
 }
 
-export class CarInstallmentService {
-  
-  private success<T>(data: T): ServiceResult<T> {
-    return { success: true, data };
+export class CarInstallmentService extends BaseService {
+  constructor() {
+    super(supabase);
   }
 
-  private error(message: string, error?: any): ServiceResult<any> {
-    console.error(message, error);
-    return { success: false, error: message };
-  }
+  async fetchContracts(filters?: CarInstallmentFilters): Promise<Result<CarInstallmentContract[]>> {
+    return this.safeExecute(async () => {
+      let query = supabase.from('car_installment_contracts').select('*');
 
-  /**
-   * Recalculate contract summary values
-   */
-  async recalculateContractSummary(contractId: string): Promise<ServiceResult<any>> {
-    try {
-      const { data, error } = await supabase
-        .rpc('recalculate_car_installment_contract_summary', {
-          contract_id: contractId
-        });
-
-      if (error) throw error;
-      
-      return this.success(data);
-    } catch (error) {
-      return this.error('Failed to recalculate contract summary', error);
-    }
-  }
-
-  /**
-   * Get contracts with optional filters
-   */
-  async getContracts(filters = {}): Promise<ServiceResult<CarInstallmentContract[]>> {
-    try {
-      let query = supabase
-        .from('car_installment_contracts')
-        .select('*');
-
-      // Apply filters if provided
-      if (filters && typeof filters === 'object') {
-        Object.entries(filters).forEach(([key, value]) => {
-          if (value) {
-            if (key === 'search') {
-              query = query.ilike('car_type', `%${value}%`);
-            } else if (key === 'status') {
-              query = query.eq('status', value);
-            }
-          }
-        });
+      if (filters) {
+        if (filters.customerId) {
+          query = query.eq('customer_id', filters.customerId);
+        }
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+        if (filters.searchTerm) {
+          query = query.ilike('contract_number', `%${filters.searchTerm}%`);
+        }
+        if (filters.startDate) {
+          query = query.gte('start_date', filters.startDate.toISOString());
+        }
+        if (filters.endDate) {
+          query = query.lte('end_date', filters.endDate.toISOString());
+        }
       }
-      
+
       const { data, error } = await query;
 
-      if (error) throw error;
-      
-      return this.success(data);
-    } catch (error) {
-      return this.error('Failed to fetch contracts', error);
-    }
+      if (error) {
+        throw this.createServiceError(
+          'Failed to fetch contracts',
+          'fetchContracts'
+        );
+      }
+
+      return data as CarInstallmentContract[];
+    }, 'Failed to fetch contracts');
   }
-  
-  /**
-   * Get payments for a specific contract
-   */
-  async getPayments(contractId: string): Promise<ServiceResult<CarInstallmentPayment[]>> {
-    try {
+
+  async getContractById(id: string): Promise<Result<CarInstallmentContract>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('car_installment_contracts')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to fetch contract',
+          'getContractById'
+        );
+      }
+
+      if (!data) {
+        throw createNotFoundError('Contract', id);
+      }
+
+      return data;
+    }, 'Failed to fetch contract');
+  }
+
+  async createContract(contractData: Partial<CarInstallmentContract>): Promise<Result<CarInstallmentContract>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('car_installment_contracts')
+        .insert([contractData])
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to create contract',
+          'createContract'
+        );
+      }
+
+      return data;
+    }, 'Failed to create contract');
+  }
+
+  async updateContract(id: string, contractData: Partial<CarInstallmentContract>): Promise<Result<CarInstallmentContract>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('car_installment_contracts')
+        .update(contractData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to update contract',
+          'updateContract'
+        );
+      }
+
+      if (!data) {
+        throw createNotFoundError('Contract', id);
+      }
+
+      return data;
+    }, 'Failed to update contract');
+  }
+
+  async deleteContract(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('car_installment_contracts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to delete contract',
+          'deleteContract'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete contract');
+  }
+
+  async getPaymentsByContract(contractId: string): Promise<Result<CarInstallmentPayment[]>> {
+    return this.safeExecute(async () => {
       const { data, error } = await supabase
         .from('car_installment_payments')
         .select('*')
         .eq('contract_id', contractId)
-        .order('payment_date', { ascending: false });
+        .order('due_date', { ascending: true });
 
-      if (error) throw error;
-      
-      return this.success(data);
-    } catch (error) {
-      return this.error('Failed to fetch payments', error);
-    }
+      if (error) {
+        throw this.createServiceError(
+          'Failed to fetch payments',
+          'getPaymentsByContract'
+        );
+      }
+
+      return data as CarInstallmentPayment[];
+    }, 'Failed to fetch payments');
+  }
+
+  async createPayment(paymentData: Partial<CarInstallmentPayment>): Promise<Result<CarInstallmentPayment>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('car_installment_payments')
+        .insert([paymentData])
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to create payment',
+          'createPayment'
+        );
+      }
+
+      return data;
+    }, 'Failed to create payment');
+  }
+
+  async updatePayment(id: string, paymentData: Partial<CarInstallmentPayment>): Promise<Result<CarInstallmentPayment>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('car_installment_payments')
+        .update(paymentData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to update payment',
+          'updatePayment'
+        );
+      }
+
+      if (!data) {
+        throw createNotFoundError('Payment', id);
+      }
+
+      return data;
+    }, 'Failed to update payment');
+  }
+
+  async deletePayment(id: string): Promise<Result<boolean>> {
+    return this.safeExecute(async () => {
+      const { error } = await supabase
+        .from('car_installment_payments')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to delete payment',
+          'deletePayment'
+        );
+      }
+
+      return true;
+    }, 'Failed to delete payment');
   }
 }
 

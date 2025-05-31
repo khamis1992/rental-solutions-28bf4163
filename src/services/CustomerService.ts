@@ -1,8 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
-import { Customer, CustomerFilterParams } from '@/types/customer.types';
-import { Result } from '@/lib/errors/types';
-import { createServiceError } from '@/lib/errors/types';
+import { Customer, CustomerFilterParams, CustomerStatus } from '@/types/customer.types';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 
 export class CustomerService extends BaseService {
   constructor() {
@@ -26,9 +31,8 @@ export class CustomerService extends BaseService {
       const { data, error } = await query;
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch customers',
-          'CustomerService',
           'fetchCustomers'
         );
       }
@@ -46,19 +50,14 @@ export class CustomerService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch customer',
-          'CustomerService',
           'getCustomerById'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Customer not found',
-          'CustomerService',
-          'getCustomerById'
-        );
+        throw createNotFoundError('Customer', id);
       }
 
       return data;
@@ -74,9 +73,8 @@ export class CustomerService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to create customer',
-          'CustomerService',
           'createCustomer'
         );
       }
@@ -95,19 +93,14 @@ export class CustomerService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to update customer',
-          'CustomerService',
           'updateCustomer'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Customer not found',
-          'CustomerService',
-          'updateCustomer'
-        );
+        throw createNotFoundError('Customer', id);
       }
 
       return data;
@@ -122,9 +115,8 @@ export class CustomerService extends BaseService {
         .eq('id', id);
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to delete customer',
-          'CustomerService',
           'deleteCustomer'
         );
       }
@@ -137,7 +129,9 @@ export class CustomerService extends BaseService {
     return this.fetchCustomers({ search: searchTerm });
   }
 
-  async getCustomersByStatus(status: string): Promise<Result<Customer[]>> {
+  async getCustomersByStatus(status: CustomerStatus): Promise<Result<Customer[]>> {
     return this.fetchCustomers({ status });
   }
 }
+
+export const customerService = new CustomerService();

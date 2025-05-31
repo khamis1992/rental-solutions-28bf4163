@@ -8,7 +8,8 @@ import {
   createSuccessResponse,
   createDatabaseError,
   type ApiResponse,
-  isErrorResponse as isStandardErrorResponse
+  isErrorResponse as isStandardErrorResponse,
+  ErrorSeverity
 } from '@/types/error.types';
 import { toAppError } from '@/lib/errors/error-handler';
 import { errorLogger } from '@/lib/errors/error-logger';
@@ -108,7 +109,7 @@ export async function safeSingleQueryExecution<T>(
     
     if (isError(response)) {
       const error = toAppError(response.error);
-      errorLogger.logError(error, 'error', {
+      errorLogger.logError(error, 'high', {
         source: 'Database',
         operation: 'safeSingleQueryExecution',
         details: { response }
@@ -118,7 +119,7 @@ export async function safeSingleQueryExecution<T>(
 
     if (!response.data) {
       const error = toAppError(new Error('No data returned from database query'));
-      errorLogger.logError(error, 'warn', {
+      errorLogger.logError(error, 'medium', {
         source: 'Database',
         operation: 'safeSingleQueryExecution'
       });
@@ -128,7 +129,7 @@ export async function safeSingleQueryExecution<T>(
     return createSuccessResult(response.data);
   } catch (error) {
     const appError = toAppError(error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'safeSingleQueryExecution',
       details: { error: appError }
@@ -148,7 +149,7 @@ export async function safeArrayQueryExecution<T>(
     
     if (isError(response)) {
       const error = toAppError(response.error);
-      errorLogger.logError(error, 'error', {
+      errorLogger.logError(error, 'high', {
         source: 'Database',
         operation: 'safeArrayQueryExecution',
         details: { response }
@@ -158,7 +159,7 @@ export async function safeArrayQueryExecution<T>(
 
     if (!response.data) {
       const error = toAppError(new Error('No data returned from database query'));
-      errorLogger.logError(error, 'warn', {
+      errorLogger.logError(error, 'medium', {
         source: 'Database',
         operation: 'safeArrayQueryExecution'
       });
@@ -168,7 +169,7 @@ export async function safeArrayQueryExecution<T>(
     return createSuccessResult(response.data);
   } catch (error) {
     const appError = toAppError(error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'safeArrayQueryExecution',
       details: { error: appError }
@@ -189,7 +190,7 @@ export async function safeQueryExecution<T>(
     
     if (response.error) {
       const error = toAppError(response.error);
-      errorLogger.logError(error, 'error', {
+      errorLogger.logError(error, 'high', {
         source: 'Database',
         operation: 'safeQueryExecution',
         context,
@@ -203,7 +204,7 @@ export async function safeQueryExecution<T>(
         query: 'unknown',
         params: null
       });
-      errorLogger.logError(error, 'warn', {
+      errorLogger.logError(error, 'medium', {
         source: 'Database',
         operation: 'safeQueryExecution',
         context
@@ -214,7 +215,7 @@ export async function safeQueryExecution<T>(
     return createSuccessResult(response.data);
   } catch (error) {
     const appError = toAppError(error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'safeQueryExecution',
       context,
@@ -233,7 +234,7 @@ export function safelyGetRecordFromResponse<T>(
 ): Result<T> {
   if (response.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'safelyGetRecordFromResponse',
       context,
@@ -247,7 +248,7 @@ export function safelyGetRecordFromResponse<T>(
       query: 'unknown',
       params: null
     });
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'safelyGetRecordFromResponse',
       context
@@ -267,7 +268,7 @@ export function safelyGetRecordsFromResponse<T>(
 ): Result<T[]> {
   if (response.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'safelyGetRecordsFromResponse',
       context,
@@ -281,7 +282,7 @@ export function safelyGetRecordsFromResponse<T>(
       query: 'unknown',
       params: null
     });
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'safelyGetRecordsFromResponse',
       context
@@ -297,10 +298,11 @@ export function safelyGetRecordsFromResponse<T>(
  */
 export function handleDatabaseError<T>(error: PostgrestError | unknown): ApiResponse<T> {
   const appError = toAppError(error);
-  errorLogger.logError(error, 'error', {
+  errorLogger.logError(error, 'high', {
     source: 'Database',
     operation: 'handleDatabaseError',
-    details: { error: appError }
+    details: { error: appError },
+    timestamp: new Date().toISOString()
   });
   return createErrorResponse(appError);
 }
@@ -311,7 +313,7 @@ export function handleSingleDatabaseResponse<T>(
 ): ApiResponse<T> {
   if (response?.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'handleSingleDatabaseResponse',
       details: { response }
@@ -321,7 +323,7 @@ export function handleSingleDatabaseResponse<T>(
   
   if (!response?.data) {
     const error = toAppError(new Error('No data returned from database query'));
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'handleSingleDatabaseResponse'
     });
@@ -337,7 +339,7 @@ export function handleArrayDatabaseResponse<T>(
 ): ApiResponse<T[]> {
   if (response?.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'handleArrayDatabaseResponse',
       details: { response }
@@ -347,7 +349,7 @@ export function handleArrayDatabaseResponse<T>(
   
   if (!response?.data) {
     const error = toAppError(new Error('No data returned from database query'));
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'handleArrayDatabaseResponse'
     });
@@ -363,7 +365,7 @@ export function validateSingleDatabaseResponse<T>(
 ): ToResultSingle<T> {
   if (response.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'validateSingleDatabaseResponse',
       details: { response }
@@ -373,7 +375,7 @@ export function validateSingleDatabaseResponse<T>(
 
   if (!response.data) {
     const error = toAppError(new Error('No data in database response'));
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'validateSingleDatabaseResponse'
     });
@@ -389,7 +391,7 @@ export function validateArrayDatabaseResponse<T>(
 ): ToResultArray<T> {
   if (response.error) {
     const error = toAppError(response.error);
-    errorLogger.logError(error, 'error', {
+    errorLogger.logError(error, 'high', {
       source: 'Database',
       operation: 'validateArrayDatabaseResponse',
       details: { response }
@@ -399,7 +401,7 @@ export function validateArrayDatabaseResponse<T>(
 
   if (!response.data) {
     const error = toAppError(new Error('No data in database response'));
-    errorLogger.logError(error, 'warn', {
+    errorLogger.logError(error, 'medium', {
       source: 'Database',
       operation: 'validateArrayDatabaseResponse'
     });
@@ -431,10 +433,11 @@ export function extractSingleItem<T>(data: T | T[] | null): T | null {
  */
 export function handleQueryError<T>(error: string | PostgrestError | unknown): T[] {
   const appError = toAppError(error);
-  errorLogger.logError(error, 'error', {
+  errorLogger.logError(error, 'medium', {
     source: 'Database',
     operation: 'handleQueryError',
-    details: { error: appError }
+    details: { error: appError },
+    timestamp: new Date().toISOString()
   });
   return [];
 }

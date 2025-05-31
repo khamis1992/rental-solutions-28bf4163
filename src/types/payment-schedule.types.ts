@@ -1,4 +1,7 @@
-export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
+import { PaymentStatus } from './payment.types';
+
+export type { PaymentStatus };
+
 export type PaymentType = 'regular' | 'late_fee' | 'deposit' | 'refund';
 
 export interface PaymentSchedule {

@@ -1,24 +1,67 @@
+import { Result, SuccessResult, ErrorResult } from './response.types';
+
 /**
- * Standard error codes used across the application
+ * Error severity levels
+ */
+export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+/**
+ * Error codes for different types of errors
  */
 export type ErrorCode = 
   | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'AUTH_ERROR'
-  | 'FORBIDDEN'
+  | 'AUTHENTICATION_ERROR'
+  | 'AUTHORIZATION_ERROR'
+  | 'NOT_FOUND_ERROR'
   | 'DATABASE_ERROR'
   | 'NETWORK_ERROR'
-  | 'TIMEOUT'
+  | 'TIMEOUT_ERROR'
+  | 'RATE_LIMIT_ERROR'
   | 'API_ERROR'
   | 'SERVICE_ERROR'
   | 'PAYMENT_ERROR'
   | 'UNKNOWN_ERROR';
 
 /**
+ * Error context for additional error information
+ */
+export interface ErrorContext {
+  source?: string;
+  operation?: string;
+  userId?: string;
+  requestId?: string;
+  timestamp?: string;
+  environment?: string;
+  component?: string;
+  method?: string;
+  params?: Record<string, unknown>;
+  response?: unknown;
+}
+
+/**
  * Standard error details interface
  */
 export interface ErrorDetails {
-  [key: string]: any;
+  field?: string;
+  message?: string;
+  query?: string;
+  params?: Record<string, unknown>;
+  constraint?: string;
+  endpoint?: string;
+  method?: string;
+  status?: number;
+  service?: string;
+  operation?: string;
+  paymentId?: string;
+  amount?: number;
+  reason?: string;
+  resource?: string;
+  id?: string | number;
+  validationErrors?: Array<{
+    field: string;
+    message: string;
+  }>;
+  [key: string]: unknown;
 }
 
 /**
@@ -30,153 +73,13 @@ export interface AppError {
   details?: ErrorDetails;
   originalError?: unknown;
   status?: number;
+  retryable?: boolean;
+  severity?: ErrorSeverity;
+  context?: ErrorContext;
 }
 
 /**
- * Validation error type
- */
-export interface ValidationError extends AppError {
-  code: 'VALIDATION_ERROR';
-  details: {
-    field: string;
-    message: string;
-  }[];
-}
-
-/**
- * Database error type
- */
-export interface DatabaseError extends AppError {
-  code: 'DATABASE_ERROR';
-  details: {
-    query?: string;
-    params?: unknown;
-    constraint?: string;
-  };
-}
-
-/**
- * Not found error type
- */
-export interface NotFoundError extends AppError {
-  code: 'NOT_FOUND';
-  details: {
-    resource: string;
-    id?: string | number;
-  };
-}
-
-/**
- * API error type
- */
-export interface ApiError extends AppError {
-  code: 'API_ERROR';
-  details: {
-    endpoint?: string;
-    method?: string;
-    status?: number;
-  };
-}
-
-/**
- * Service error type
- */
-export interface ServiceError extends AppError {
-  code: 'SERVICE_ERROR';
-  details: {
-    service: string;
-    operation: string;
-  };
-}
-
-/**
- * Payment error type
- */
-export interface PaymentError extends AppError {
-  code: 'PAYMENT_ERROR';
-  details: {
-    paymentId?: string;
-    amount?: number;
-    reason?: string;
-  };
-}
-
-/**
- * Standard API response interface
- */
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data: T | null;
-  error?: AppError;
-  message?: string;
-}
-
-/**
- * Result type for operations that can succeed or fail
- */
-export type Result<T> = SuccessResult<T> | ErrorResult<T>;
-
-export interface SuccessResult<T> {
-  success: true;
-  data: T;
-  error: null;
-}
-
-export interface ErrorResult<T> {
-  success: false;
-  error: AppError;
-  data: null;
-}
-
-/**
- * Creates a standardized error response
- */
-export function createErrorResponse<T = any>(
-  error: AppError | string,
-  data: T | null = null
-): ApiResponse<T> {
-  const appError: AppError = typeof error === 'string' 
-    ? { 
-        code: 'UNKNOWN_ERROR',
-        message: error
-      }
-    : error;
-
-  return {
-    success: false,
-    data,
-    error: appError,
-    message: appError.message
-  };
-}
-
-/**
- * Creates a standardized success response
- */
-export function createSuccessResponse<T>(
-  data: T,
-  message?: string
-): ApiResponse<T> {
-  return {
-    success: true,
-    data,
-    message
-  };
-}
-
-/**
- * Creates a success result
- */
-export function createSuccessResult<T>(data: T): SuccessResult<T> {
-  return {
-    success: true,
-    data,
-    error: null
-  };
-}
-
-/**
- * Creates an error result
+ * Creates a standardized error result
  */
 export function createErrorResult<T>(error: AppError): ErrorResult<T> {
   return {
@@ -187,79 +90,13 @@ export function createErrorResult<T>(error: AppError): ErrorResult<T> {
 }
 
 /**
- * Type guard to check if a value is an error response
+ * Creates a standardized success result
  */
-export function isErrorResponse(value: unknown): value is ApiResponse<never> {
-  if (!value || typeof value !== 'object') return false;
-  
-  const response = value as ApiResponse<unknown>;
-  return (
-    response.success === false &&
-    'error' in response &&
-    (
-      typeof response.error === 'string' ||
-      (typeof response.error === 'object' && response.error !== null && 'code' in response.error)
-    )
-  );
-}
-
-/**
- * Type guard to check if a value is a success response
- */
-export function isSuccessResponse<T>(value: unknown): value is ApiResponse<T> {
-  if (!value || typeof value !== 'object') return false;
-  
-  const response = value as ApiResponse<unknown>;
-  return response.success === true && 'data' in response;
-}
-
-/**
- * Type guard to check if a value is an AppError
- */
-export function isAppError(value: unknown): value is AppError {
-  if (!value || typeof value !== 'object') return false;
-  
-  const error = value as AppError;
-  return (
-    'code' in error &&
-    'message' in error &&
-    typeof error.code === 'string' &&
-    typeof error.message === 'string'
-  );
-}
-
-/**
- * Type guard to check if a result is an error result
- */
-export function isErrorResult<T>(result: Result<T>): result is ErrorResult<T> {
-  return !result.success;
-}
-
-/**
- * Creates a validation error
- */
-export function createValidationError(
-  message: string,
-  details: ValidationError['details']
-): ValidationError {
+export function createSuccessResult<T>(data: T): SuccessResult<T> {
   return {
-    code: 'VALIDATION_ERROR',
-    message,
-    details
-  };
-}
-
-/**
- * Creates a not found error
- */
-export function createNotFoundError(
-  resource: string,
-  id?: string | number
-): NotFoundError {
-  return {
-    code: 'NOT_FOUND',
-    message: `${resource}${id ? ` with ID ${id}` : ''} not found`,
-    details: { resource, id }
+    success: true,
+    data,
+    error: null
   };
 }
 
@@ -268,83 +105,104 @@ export function createNotFoundError(
  */
 export function createDatabaseError(
   message: string,
-  details: DatabaseError['details']
-): DatabaseError {
+  details: ErrorDetails
+): AppError {
   return {
     code: 'DATABASE_ERROR',
     message,
-    details
+    details,
+    severity: 'high',
+    retryable: true
   };
 }
 
 /**
- * Creates an API error
+ * Type guard to check if a value is an AppError
  */
-export function createApiError(
-  message: string,
-  details: ApiError['details']
-): ApiError {
-  return {
-    code: 'API_ERROR',
-    message,
-    details
-  };
+export function isAppError(value: unknown): value is AppError {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'code' in value &&
+    'message' in value
+  );
 }
 
 /**
- * Creates a service error
+ * Type guard to check if a result is a success result
  */
-export function createServiceError(
-  message: string,
-  service: string,
-  operation: string
-): ServiceError {
-  return {
-    code: 'SERVICE_ERROR',
-    message,
-    details: { service, operation }
-  };
+export function isSuccessResult<T>(result: Result<T>): result is SuccessResult<T> {
+  return result.success === true;
 }
 
 /**
- * Creates a payment error
+ * Type guard to check if a result is an error result
  */
-export function createPaymentError(
+export function isErrorResult<T>(result: Result<T>): result is ErrorResult<T> {
+  return result.success === false;
+}
+
+/**
+ * Creates a validation error
+ */
+export function createValidationError(
   message: string,
-  details: PaymentError['details']
-): PaymentError {
+  details: ErrorDetails
+): AppError {
   return {
-    code: 'PAYMENT_ERROR',
+    code: 'VALIDATION_ERROR',
     message,
-    details
+    details,
+    severity: 'medium',
+    retryable: false
   };
 }
 
 /**
  * Creates an authentication error
  */
-export function createAuthError(
+export function createAuthenticationError(
   message: string,
   details?: ErrorDetails
 ): AppError {
   return {
-    code: 'AUTH_ERROR',
+    code: 'AUTHENTICATION_ERROR',
     message,
-    details
+    details,
+    severity: 'high',
+    retryable: false
   };
 }
 
 /**
- * Creates a forbidden error
+ * Creates an authorization error
  */
-export function createForbiddenError(
+export function createAuthorizationError(
   message: string,
   details?: ErrorDetails
 ): AppError {
   return {
-    code: 'FORBIDDEN',
+    code: 'AUTHORIZATION_ERROR',
     message,
-    details
+    details,
+    severity: 'high',
+    retryable: false
+  };
+}
+
+/**
+ * Creates a not found error
+ */
+export function createNotFoundError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'NOT_FOUND_ERROR',
+    message,
+    details,
+    severity: 'medium',
+    retryable: false
   };
 }
 
@@ -358,7 +216,9 @@ export function createNetworkError(
   return {
     code: 'NETWORK_ERROR',
     message,
-    details
+    details,
+    severity: 'high',
+    retryable: true
   };
 }
 
@@ -370,8 +230,90 @@ export function createTimeoutError(
   details?: ErrorDetails
 ): AppError {
   return {
-    code: 'TIMEOUT',
+    code: 'TIMEOUT_ERROR',
     message,
-    details
+    details,
+    severity: 'medium',
+    retryable: true
+  };
+}
+
+/**
+ * Creates a rate limit error
+ */
+export function createRateLimitError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'RATE_LIMIT_ERROR',
+    message,
+    details,
+    severity: 'medium',
+    retryable: true
+  };
+}
+
+/**
+ * Creates an API error
+ */
+export function createApiError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'API_ERROR',
+    message,
+    details,
+    severity: 'high',
+    retryable: true
+  };
+}
+
+/**
+ * Creates a service error
+ */
+export function createServiceError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'SERVICE_ERROR',
+    message,
+    details,
+    severity: 'high',
+    retryable: true
+  };
+}
+
+/**
+ * Creates a payment error
+ */
+export function createPaymentError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'PAYMENT_ERROR',
+    message,
+    details,
+    severity: 'high',
+    retryable: false
+  };
+}
+
+/**
+ * Creates an unknown error
+ */
+export function createUnknownError(
+  message: string,
+  details?: ErrorDetails
+): AppError {
+  return {
+    code: 'UNKNOWN_ERROR',
+    message,
+    details,
+    severity: 'high',
+    retryable: false
   };
 } 

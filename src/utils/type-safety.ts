@@ -1,7 +1,9 @@
 import { 
   isErrorResponse as isStandardErrorResponse,
-  isAppError as isStandardAppError
+  isAppError as isStandardAppError,
+  AppError
 } from '@/types/error.types';
+import { PostgrestError } from '@supabase/supabase-js';
 
 // Re-export standardized type guards
 export const isErrorResponse = isStandardErrorResponse;
@@ -10,12 +12,15 @@ export const isAppError = isStandardAppError;
 /**
  * Type guard to check if a value is not an error
  */
-export function isNotError(value: any): boolean {
-  return value !== null && 
-         value !== undefined && 
-         typeof value !== 'string' && 
-         !isErrorResponse(value) &&
-         !isAppError(value);
+export function isNotError(value: unknown): value is Exclude<unknown, Error | AppError | PostgrestError | string> {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return false;
+  if (value instanceof Error) return false;
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if ('code' in obj && 'message' in obj) return false; // AppError or PostgrestError
+  }
+  return true;
 }
 
 /**

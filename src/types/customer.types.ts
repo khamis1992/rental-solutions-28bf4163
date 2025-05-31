@@ -1,3 +1,5 @@
+export type CustomerStatus = 'active' | 'inactive' | 'blocked' | 'pending';
+
 export interface Customer {
   id: string;
   name: string;
@@ -10,14 +12,14 @@ export interface Customer {
   driver_license?: string;
   nationality?: string;
   notes?: string;
-  status?: string;
+  status?: CustomerStatus;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CustomerFilterParams {
   search?: string;
-  status?: string;
+  status?: CustomerStatus;
   limit?: number;
   offset?: number;
 } 

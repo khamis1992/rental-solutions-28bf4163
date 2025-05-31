@@ -1,4 +1,5 @@
 import { Database } from '@/types/database.types';
+import { VehicleStatus } from '@/types/database.types';
 
 // Re-export the main database type
 export type { Database };
@@ -56,8 +57,10 @@ export type MaintenanceId = string;
 
 // Status enums from database
 export type LeaseStatus = 'active' | 'closed' | 'cancelled' | 'draft' | 'pending' | 'expired';
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'sold' | 'retired';
 export type PaymentStatus = 'pending' | 'completed' | 'overdue' | 'cancelled';
+
+// Re-export VehicleStatus from database types
+export type { VehicleStatus };
 
 // Helper function to cast strings to proper ID types
 export function asLeaseId(id: string): LeaseId {

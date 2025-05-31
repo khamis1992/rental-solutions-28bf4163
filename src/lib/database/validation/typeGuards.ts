@@ -1,8 +1,4 @@
-import { 
-  isSuccessResponse as isStandardSuccessResponse,
-  isErrorResponse as isStandardErrorResponse,
-  isAppError as isStandardAppError
-} from '@/types/error.types';
+import { Database } from '@/types/database.types';
 
 /**
  * Type guards for validating data structures
@@ -11,7 +7,7 @@ import {
 /**
  * Checks if the provided value is an array
  */
-export function isArray<T = any>(value: unknown): value is T[] {
+export function isArray<T>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 
@@ -30,6 +26,20 @@ export function isString(value: unknown): value is string {
 }
 
 /**
+ * Checks if the value is a number
+ */
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
+/**
+ * Checks if the value is a boolean
+ */
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+/**
  * Checks if the value has a specific property
  */
 export function hasProperty<K extends string>(
@@ -40,37 +50,37 @@ export function hasProperty<K extends string>(
 }
 
 /**
- * Checks if the value has a length property (like arrays or strings)
+ * Checks if the value is null or undefined
  */
-export function hasLength(value: unknown): value is { length: number } {
-  return hasProperty(value, 'length') && typeof value.length === 'number';
+export function isNullOrUndefined(value: unknown): value is null | undefined {
+  return value === null || value === undefined;
 }
 
 /**
  * Checks if the value has map function (like arrays)
  */
-export function hasMapFunction<T = any>(value: unknown): value is { map: (fn: (item: T) => any) => any[] } {
+export function hasMapFunction<T>(value: unknown): value is { map: (fn: (item: T) => unknown) => unknown[] } {
   return hasProperty(value, 'map') && typeof value.map === 'function';
 }
 
 /**
  * Checks if the value has filter function (like arrays)
  */
-export function hasFilterFunction<T = any>(value: unknown): value is { filter: (fn: (item: T) => boolean) => T[] } {
+export function hasFilterFunction<T>(value: unknown): value is { filter: (fn: (item: T) => boolean) => T[] } {
   return hasProperty(value, 'filter') && typeof value.filter === 'function';
 }
 
 /**
  * Checks if the value has find function (like arrays)
  */
-export function hasFindFunction<T = any>(value: unknown): value is { find: (fn: (item: T) => boolean) => T | undefined } {
+export function hasFindFunction<T>(value: unknown): value is { find: (fn: (item: T) => boolean) => T | undefined } {
   return hasProperty(value, 'find') && typeof value.find === 'function';
 }
 
 /**
  * Check if the value is a specific database entity
  */
-export function isEntity<T extends Record<string, any>>(
+export function isEntity<T extends Record<string, unknown>>(
   value: unknown, 
   requiredProps: Array<keyof T>
 ): value is T {
@@ -79,7 +89,39 @@ export function isEntity<T extends Record<string, any>>(
   return requiredProps.every(prop => prop in value);
 }
 
-// Re-export standardized type guards
-export const isSuccessResponse = isStandardSuccessResponse;
-export const isErrorResponse = isStandardErrorResponse;
-export const isAppError = isStandardAppError;
+/**
+ * Check if the value is a valid database table row
+ */
+export function isTableRow<T extends keyof Database['public']['Tables']>(
+  tableName: T,
+  value: unknown
+): value is Database['public']['Tables'][T]['Row'] {
+  if (!isObject(value)) return false;
+  
+  const row = value as Record<string, unknown>;
+  return 'id' in row && typeof row.id === 'string';
+}
+
+/**
+ * Check if the value is a valid database enum value
+ */
+export function isValidEnum<T extends keyof Database['public']['Enums']>(
+  enumName: T,
+  value: unknown,
+  validValues: readonly string[]
+): value is Database['public']['Enums'][T] {
+  if (!isString(value)) return false;
+  return validValues.includes(value);
+}
+
+/**
+ * Check if the value is a valid database composite type
+ */
+export function isValidCompositeType<T extends keyof Database['public']['CompositeTypes']>(
+  typeName: T,
+  value: unknown,
+  requiredProps: string[]
+): value is Database['public']['CompositeTypes'][T] {
+  if (!isObject(value)) return false;
+  return requiredProps.every(prop => prop in value);
+}

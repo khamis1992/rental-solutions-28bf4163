@@ -1,6 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { AuthResult } from '@/types/response.types';
 
 export interface RegisterCredentials {
   email: string;
@@ -9,13 +9,7 @@ export interface RegisterCredentials {
   fullName: string;
 }
 
-export interface RegisterResult {
-  success: boolean;
-  error?: string;
-  user?: any;
-}
-
-export const registerUser = async (credentials: RegisterCredentials): Promise<RegisterResult> => {
+export const registerUser = async (credentials: RegisterCredentials): Promise<AuthResult> => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email: credentials.email,
@@ -35,7 +29,15 @@ export const registerUser = async (credentials: RegisterCredentials): Promise<Re
 
     if (data?.user) {
       toast.success('Registration successful! Please check your email for verification.');
-      return { success: true, user: data.user };
+      return { 
+        success: true, 
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: data.user.user_metadata
+        },
+        message: 'Registration successful! Please check your email for verification.'
+      };
     }
 
     return { success: false, error: 'Unknown error occurred' };

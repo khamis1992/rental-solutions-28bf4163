@@ -1,22 +1,28 @@
+import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { DbTables, TableRow, TableInsert, TableUpdate, LeaseId, ProfileId, VehicleId, PaymentId } from './database-types';
 
 // Helper type for UUID strings
 export type UUID = string;
 
 // Table names type
-export type TableName = keyof DbTables;
+export type TableName = keyof Database['public']['Tables'];
 
-// Generic CRUD operations helper
-export class SupabaseTableHelper<T extends TableName> {
-  constructor(
-    private tableName: T,
-    private supabaseClient: any
-  ) {}
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+type TableInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
+type TableUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
+
+export class BaseHelper<T extends keyof Database['public']['Tables']> {
+  protected table: T;
+  private supabaseClient: SupabaseClient<Database>;
+
+  constructor(supabaseClient: SupabaseClient<Database>, table: T) {
+    this.supabaseClient = supabaseClient;
+    this.table = table;
+  }
 
   async findAll(): Promise<TableRow<T>[]> {
     const { data, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .select('*');
     
     if (error) throw error;
@@ -25,7 +31,7 @@ export class SupabaseTableHelper<T extends TableName> {
 
   async findById(id: string): Promise<TableRow<T> | null> {
     const { data, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .select('*')
       .eq('id', id)
       .single();
@@ -36,7 +42,7 @@ export class SupabaseTableHelper<T extends TableName> {
 
   async create(data: TableInsert<T>): Promise<TableRow<T>> {
     const { data: result, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .insert(data)
       .select()
       .single();
@@ -47,7 +53,7 @@ export class SupabaseTableHelper<T extends TableName> {
 
   async update(id: string, data: TableUpdate<T>): Promise<TableRow<T>> {
     const { data: result, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .update(data)
       .eq('id', id)
       .select()
@@ -59,16 +65,16 @@ export class SupabaseTableHelper<T extends TableName> {
 
   async delete(id: string): Promise<void> {
     const { error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .delete()
       .eq('id', id);
     
     if (error) throw error;
   }
 
-  async findByField(field: string, value: any): Promise<TableRow<T>[]> {
+  async findByField(field: string, value: unknown): Promise<TableRow<T>[]> {
     const { data, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .select('*')
       .eq(field, value);
     
@@ -76,9 +82,9 @@ export class SupabaseTableHelper<T extends TableName> {
     return data || [];
   }
 
-  async updateByField(field: string, value: any, updateData: TableUpdate<T>): Promise<TableRow<T>[]> {
+  async updateByField(field: string, value: unknown, updateData: TableUpdate<T>): Promise<TableRow<T>[]> {
     const { data, error } = await this.supabaseClient
-      .from(String(this.tableName))
+      .from(String(this.table))
       .update(updateData)
       .eq(field, value)
       .select();
@@ -89,14 +95,14 @@ export class SupabaseTableHelper<T extends TableName> {
 }
 
 // Create typed helpers for specific tables
-export const createLeaseHelper = (supabaseClient: any) => 
-  new SupabaseTableHelper('leases', supabaseClient);
+export const createLeaseHelper = (supabaseClient: SupabaseClient<Database>) =>
+  new BaseHelper(supabaseClient, 'leases');
 
-export const createProfileHelper = (supabaseClient: any) => 
-  new SupabaseTableHelper('profiles', supabaseClient);
+export const createProfileHelper = (supabaseClient: SupabaseClient<Database>) =>
+  new BaseHelper(supabaseClient, 'profiles');
 
-export const createVehicleHelper = (supabaseClient: any) => 
-  new SupabaseTableHelper('vehicles', supabaseClient);
+export const createVehicleHelper = (supabaseClient: SupabaseClient<Database>) =>
+  new BaseHelper(supabaseClient, 'vehicles');
 
-export const createPaymentHelper = (supabaseClient: any) => 
-  new SupabaseTableHelper('unified_payments', supabaseClient);
+export const createPaymentHelper = (supabaseClient: SupabaseClient<Database>) =>
+  new BaseHelper(supabaseClient, 'unified_payments');

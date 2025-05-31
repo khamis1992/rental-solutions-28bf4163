@@ -3,7 +3,7 @@
  * @module VehicleTypes
  */
 
-import { Database } from '@/types/database.types';
+import { Database } from './database.types';
 
 /**
  * Vehicle status options in the system.
@@ -11,14 +11,14 @@ import { Database } from '@/types/database.types';
  * - rented: Currently under an active lease
  * - maintenance: Under maintenance or repair
  * - reserved: Reserved for future rental
- * - inactive: Temporarily out of service
+ * - out_of_service: Temporarily out of service
  */
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
+export type VehicleStatus = Database['public']['Enums']['vehicle_status'];
 
 /**
  * Core vehicle data structure representing a vehicle in the fleet
  */
-export interface Vehicle {
+export interface VehicleData {
   /** Unique identifier for the vehicle */
   id: string;
   /** Current operational status */
@@ -59,7 +59,7 @@ export interface Vehicle {
 /**
  * Extended vehicle information including maintenance and rental history
  */
-export interface VehicleDetails extends Vehicle {
+export interface VehicleDetails extends VehicleData {
   maintenance_history?: MaintenanceRecord[];
   current_lease?: LeaseInfo;
   documents?: VehicleDocument[];
@@ -107,3 +107,32 @@ interface VehicleMetrics {
   maintenance_costs: number;
   availability_percentage: number;
 }
+
+export interface VehicleFilterParams {
+  statuses?: VehicleStatus[];
+  make?: string;
+  model?: string;
+  year?: number;
+  minYear?: number;
+  maxYear?: number;
+  searchTerm?: string;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+  location?: string;
+  vehicle_type_id?: string;
+}
+
+export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
+export type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];
+export type VehicleUpdate = Database['public']['Tables']['vehicles']['Update'];
+
+export interface VehicleFilters {
+  status?: VehicleStatus;
+  make?: string;
+  model?: string;
+  year?: number;
+}
+
+export type Vehicle = VehicleRow & {
+  agreements?: Database['public']['Tables']['leases']['Row'][];
+};

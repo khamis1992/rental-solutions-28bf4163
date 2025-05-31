@@ -1,6 +1,23 @@
-
 import { supabase } from '@/lib/supabase';
-import { BaseService, ServiceResult } from './base/BaseService';
+import { BaseService } from './base/BaseService';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
+
+export interface DeletionWarning {
+  type: 'payment' | 'schedule' | 'fine' | 'legal' | 'document';
+  message: string;
+  count: number;
+  details?: {
+    ids?: string[];
+    dates?: string[];
+    amounts?: number[];
+  };
+}
 
 export interface DeletionValidationResult {
   canDelete: boolean;
@@ -12,13 +29,27 @@ export interface DeletionValidationResult {
     documents: number;
   };
   totalDependencies: number;
-  warnings: string[];
+  warnings: DeletionWarning[];
 }
 
 export interface DeletionOptions {
   force?: boolean;
   cascadeDelete?: boolean;
   preservePaymentHistory?: boolean;
+}
+
+export interface DeletedRecords {
+  payments: number;
+  paymentSchedules: number;
+  trafficFines: number;
+  legalCases: number;
+  documents: number;
+  agreement: number;
+}
+
+export interface DeletionResult {
+  deletedRecords: DeletedRecords;
+  message: string;
 }
 
 export class AgreementDeletionService extends BaseService {
@@ -29,7 +60,7 @@ export class AgreementDeletionService extends BaseService {
   /**
    * Validate if an agreement can be deleted and return dependency information
    */
-  async validateDeletion(agreementId: string): Promise<ServiceResult<DeletionValidationResult>> {
+  async validateDeletion(agreementId: string): Promise<Result<DeletionValidationResult>> {
     return this.safeExecute(async () => {
       const dependentRecords = {
         payments: 0,
@@ -39,45 +70,80 @@ export class AgreementDeletionService extends BaseService {
         documents: 0
       };
 
-      const warnings: string[] = [];
+      const warnings: DeletionWarning[] = [];
 
       // Check payments
-      const { count: paymentsCount } = await supabase
+      const { count: paymentsCount, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*', { count: 'exact', head: true })
         .eq('lease_id', agreementId);
       
+      if (paymentsError) {
+        throw this.createServiceError(
+          'Failed to check payment dependencies',
+          'validateDeletion'
+        );
+      }
+      
       dependentRecords.payments = paymentsCount || 0;
 
       // Check payment schedules
-      const { count: schedulesCount } = await supabase
+      const { count: schedulesCount, error: schedulesError } = await supabase
         .from('payment_schedules')
         .select('*', { count: 'exact', head: true })
         .eq('lease_id', agreementId);
       
+      if (schedulesError) {
+        throw this.createServiceError(
+          'Failed to check payment schedule dependencies',
+          'validateDeletion'
+        );
+      }
+      
       dependentRecords.paymentSchedules = schedulesCount || 0;
 
       // Check traffic fines
-      const { count: finesCount } = await supabase
+      const { count: finesCount, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*', { count: 'exact', head: true })
         .eq('lease_id', agreementId);
       
+      if (finesError) {
+        throw this.createServiceError(
+          'Failed to check traffic fine dependencies',
+          'validateDeletion'
+        );
+      }
+      
       dependentRecords.trafficFines = finesCount || 0;
 
       // Check legal cases
-      const { count: casesCount } = await supabase
+      const { count: casesCount, error: casesError } = await supabase
         .from('legal_cases')
         .select('*', { count: 'exact', head: true })
         .eq('lease_id', agreementId);
       
+      if (casesError) {
+        throw this.createServiceError(
+          'Failed to check legal case dependencies',
+          'validateDeletion'
+        );
+      }
+      
       dependentRecords.legalCases = casesCount || 0;
 
       // Check documents
-      const { count: docsCount } = await supabase
+      const { count: docsCount, error: docsError } = await supabase
         .from('agreement_documents')
         .select('*', { count: 'exact', head: true })
         .eq('lease_id', agreementId);
+      
+      if (docsError) {
+        throw this.createServiceError(
+          'Failed to check document dependencies',
+          'validateDeletion'
+        );
+      }
       
       dependentRecords.documents = docsCount || 0;
 
@@ -85,16 +151,32 @@ export class AgreementDeletionService extends BaseService {
 
       // Generate warnings based on dependencies
       if (dependentRecords.payments > 0) {
-        warnings.push(`${dependentRecords.payments} payment record(s) will be permanently deleted`);
+        warnings.push({
+          type: 'payment',
+          message: `${dependentRecords.payments} payment record(s) will be permanently deleted`,
+          count: dependentRecords.payments
+        });
       }
       if (dependentRecords.trafficFines > 0) {
-        warnings.push(`${dependentRecords.trafficFines} traffic fine(s) will be permanently deleted`);
+        warnings.push({
+          type: 'fine',
+          message: `${dependentRecords.trafficFines} traffic fine(s) will be permanently deleted`,
+          count: dependentRecords.trafficFines
+        });
       }
       if (dependentRecords.legalCases > 0) {
-        warnings.push(`${dependentRecords.legalCases} legal case(s) will be permanently deleted`);
+        warnings.push({
+          type: 'legal',
+          message: `${dependentRecords.legalCases} legal case(s) will be permanently deleted`,
+          count: dependentRecords.legalCases
+        });
       }
       if (dependentRecords.documents > 0) {
-        warnings.push(`${dependentRecords.documents} document(s) will be permanently deleted`);
+        warnings.push({
+          type: 'document',
+          message: `${dependentRecords.documents} document(s) will be permanently deleted`,
+          count: dependentRecords.documents
+        });
       }
 
       return {
@@ -112,9 +194,9 @@ export class AgreementDeletionService extends BaseService {
   async deleteAgreement(
     agreementId: string, 
     options: DeletionOptions = {}
-  ): Promise<ServiceResult<{ deletedRecords: any; message: string }>> {
+  ): Promise<Result<DeletionResult>> {
     return this.safeExecute(async () => {
-      const deletedRecords = {
+      const deletedRecords: DeletedRecords = {
         payments: 0,
         paymentSchedules: 0,
         trafficFines: 0,
@@ -126,7 +208,10 @@ export class AgreementDeletionService extends BaseService {
       // First validate the deletion
       const validationResult = await this.validateDeletion(agreementId);
       if (!validationResult.success) {
-        throw new Error('Failed to validate deletion requirements');
+        throw this.createServiceError(
+          'Failed to validate deletion requirements',
+          'deleteAgreement'
+        );
       }
 
       // Delete dependent records in correct order (most dependent first)
@@ -137,7 +222,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
       
-      if (docsError) throw new Error(`Failed to delete documents: ${docsError.message}`);
+      if (docsError) {
+        throw this.createServiceError(
+          `Failed to delete documents: ${docsError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.documents = docsDeleted || 0;
 
       // 2. Delete legal cases
@@ -146,7 +236,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
       
-      if (casesError) throw new Error(`Failed to delete legal cases: ${casesError.message}`);
+      if (casesError) {
+        throw this.createServiceError(
+          `Failed to delete legal cases: ${casesError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.legalCases = casesDeleted || 0;
 
       // 3. Delete traffic fines
@@ -155,7 +250,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
       
-      if (finesError) throw new Error(`Failed to delete traffic fines: ${finesError.message}`);
+      if (finesError) {
+        throw this.createServiceError(
+          `Failed to delete traffic fines: ${finesError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.trafficFines = finesDeleted || 0;
 
       // 4. Delete payment schedules
@@ -164,7 +264,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
       
-      if (schedulesError) throw new Error(`Failed to delete payment schedules: ${schedulesError.message}`);
+      if (schedulesError) {
+        throw this.createServiceError(
+          `Failed to delete payment schedules: ${schedulesError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.paymentSchedules = schedulesDeleted || 0;
 
       // 5. Delete payments
@@ -173,7 +278,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
       
-      if (paymentsError) throw new Error(`Failed to delete payments: ${paymentsError.message}`);
+      if (paymentsError) {
+        throw this.createServiceError(
+          `Failed to delete payments: ${paymentsError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.payments = paymentsDeleted || 0;
 
       // 6. Finally delete the agreement itself
@@ -182,7 +292,12 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('id', agreementId);
       
-      if (agreementError) throw new Error(`Failed to delete agreement: ${agreementError.message}`);
+      if (agreementError) {
+        throw this.createServiceError(
+          `Failed to delete agreement: ${agreementError.message}`,
+          'deleteAgreement'
+        );
+      }
       deletedRecords.agreement = agreementDeleted || 0;
 
       const totalDeleted = Object.values(deletedRecords).reduce((sum, count) => sum + count, 0);
@@ -197,30 +312,49 @@ export class AgreementDeletionService extends BaseService {
   /**
    * Check if agreement has any completed payments (business rule validation)
    */
-  async hasCompletedPayments(agreementId: string): Promise<ServiceResult<boolean>> {
+  async hasCompletedPayments(agreementId: string): Promise<Result<boolean>> {
     return this.safeExecute(async () => {
-      const { count } = await supabase
+      const { data, error } = await supabase
         .from('unified_payments')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('lease_id', agreementId)
-        .eq('status', 'completed');
-      
-      return (count || 0) > 0;
-    }, 'Failed to check payment status');
+        .eq('status', 'completed')
+        .limit(1);
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to check completed payments',
+          'hasCompletedPayments'
+        );
+      }
+
+      return data && data.length > 0;
+    }, 'Failed to check completed payments');
   }
 
   /**
    * Check if agreement is currently active
    */
-  async isActiveAgreement(agreementId: string): Promise<ServiceResult<boolean>> {
+  async isActiveAgreement(agreementId: string): Promise<Result<boolean>> {
     return this.safeExecute(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('leases')
         .select('status')
         .eq('id', agreementId)
         .single();
-      
-      return data?.status === 'active';
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to check agreement status',
+          'isActiveAgreement'
+        );
+      }
+
+      if (!data) {
+        throw createNotFoundError('Agreement', agreementId);
+      }
+
+      return data.status === 'active';
     }, 'Failed to check agreement status');
   }
 }

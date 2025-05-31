@@ -1,111 +1,185 @@
-
-import { supabase } from '@/lib/supabase';
-import { DbTables } from './types';
-
-export interface VehicleFilters {
-  status?: string;
-  make?: string;
-  model?: string;
-  year?: number;
-}
+import { Database } from '@/types/database.types';
+import { VehicleRow, VehicleInsert, VehicleUpdate, VehicleFilters, ExtendedVehicle, VehicleStatus } from '@/types/vehicle';
+import { createClient } from '@supabase/supabase-js';
+import { isTableRow } from '@/lib/database/validation/typeGuards';
 
 export class VehicleRepository {
-  constructor(private client: any) {}
+  private supabase;
 
-  async findAll(filters?: VehicleFilters): Promise<{ data: DbTables['vehicles']['Row'][] | null; error: any }> {
+  constructor() {
+    this.supabase = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+
+  async findAll(filters?: VehicleFilters): Promise<{ data: ExtendedVehicle[] | null; error: Error | null }> {
     try {
-      let query = this.client.from('vehicles').select('*');
-      
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
+      let query = this.supabase
+        .from('vehicles')
+        .select(`
+          *,
+          agreements:leases(*),
+          vehicle_type:vehicle_types(*),
+          maintenance_records:maintenance(*)
+        `);
+
+      if (filters) {
+        if (filters.status) {
+          query = query.eq('status', filters.status as VehicleStatus);
+        }
+        if (filters.make) {
+          query = query.eq('make', filters.make);
+        }
+        if (filters.model) {
+          query = query.eq('model', filters.model);
+        }
+        if (filters.year) {
+          query = query.eq('year', filters.year);
+        }
       }
-      if (filters?.make) {
-        query = query.ilike('make', `%${filters.make}%`);
-      }
-      if (filters?.model) {
-        query = query.ilike('model', `%${filters.model}%`);
-      }
-      if (filters?.year) {
-        query = query.eq('year', filters.year);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      return { data, error };
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return {
+        data: data?.map(vehicle => ({
+          ...vehicle,
+          full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+          status_display: vehicle.status,
+          type_display: vehicle.vehicle_type?.name
+        })) || null,
+        error: null
+      };
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
     }
   }
 
-  async findById(id: string): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+  async findById(id: string): Promise<{ data: ExtendedVehicle | null; error: Error | null }> {
     try {
-      const { data, error } = await this.client
+      const { data, error } = await this.supabase
         .from('vehicles')
-        .select('*')
+        .select(`
+          *,
+          agreements:leases(*),
+          vehicle_type:vehicle_types(*),
+          maintenance_records:maintenance(*)
+        `)
         .eq('id', id)
         .single();
-      
-      return { data, error };
+
+      if (error) throw error;
+
+      if (!data) {
+        return { data: null, error: null };
+      }
+
+      return {
+        data: {
+          ...data,
+          full_name: `${data.make} ${data.model} (${data.license_plate})`,
+          status_display: data.status,
+          type_display: data.vehicle_type?.name
+        },
+        error: null
+      };
     } catch (error) {
-      console.error('Error fetching vehicle by ID:', error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
     }
   }
 
-  async create(vehicleData: DbTables['vehicles']['Insert']): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+  async create(vehicle: VehicleInsert): Promise<{ data: VehicleRow | null; error: Error | null }> {
     try {
-      const { data, error } = await this.client
+      const { data, error } = await this.supabase
         .from('vehicles')
-        .insert([vehicleData])
+        .insert(vehicle)
         .select()
         .single();
-      
-      return { data, error };
+
+      if (error) throw error;
+
+      return { data, error: null };
     } catch (error) {
-      console.error('Error creating vehicle:', error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
     }
   }
 
-  async update(id: string, updates: DbTables['vehicles']['Update']): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
+  async update(id: string, vehicle: VehicleUpdate): Promise<{ data: VehicleRow | null; error: Error | null }> {
     try {
-      const { data, error } = await this.client
+      const { data, error } = await this.supabase
         .from('vehicles')
-        .update(updates)
+        .update(vehicle)
         .eq('id', id)
         .select()
         .single();
-      
-      return { data, error };
+
+      if (error) throw error;
+
+      return { data, error: null };
     } catch (error) {
-      console.error('Error updating vehicle:', error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
     }
   }
 
-  async delete(id: string): Promise<{ error: any }> {
+  async delete(id: string): Promise<{ error: Error | null }> {
     try {
-      const { error } = await this.client
+      const { error } = await this.supabase
         .from('vehicles')
         .delete()
         .eq('id', id);
-      
-      return { error };
+
+      if (error) throw error;
+
+      return { error: null };
     } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      return { error };
+      return {
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
     }
   }
 
-  async findAvailable(): Promise<{ data: DbTables['vehicles']['Row'][] | null; error: any }> {
-    return this.findAll({ status: 'available' });
-  }
+  async findAvailable(): Promise<{ data: ExtendedVehicle[] | null; error: Error | null }> {
+    try {
+      const { data, error } = await this.supabase
+        .from('vehicles')
+        .select(`
+          *,
+          agreements:leases(*),
+          vehicle_type:vehicle_types(*),
+          maintenance_records:maintenance(*)
+        `)
+        .eq('status', 'available' as VehicleStatus);
 
-  async updateStatus(id: string, status: string): Promise<{ data: DbTables['vehicles']['Row'] | null; error: any }> {
-    return this.update(id, { status });
+      if (error) throw error;
+
+      return {
+        data: data?.map(vehicle => ({
+          ...vehicle,
+          full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+          status_display: vehicle.status,
+          type_display: vehicle.vehicle_type?.name
+        })) || null,
+        error: null
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error : new Error('Unknown error occurred')
+      };
+    }
   }
 }
-
-export const vehicleRepository = new VehicleRepository(supabase);
-export const createVehicleRepository = (client: any) => new VehicleRepository(client);

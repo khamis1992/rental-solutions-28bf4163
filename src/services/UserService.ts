@@ -1,8 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { User, UserRole } from '@/types/user.types';
-import { Result } from '@/lib/errors/types';
-import { createServiceError } from '@/lib/errors/types';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 
 /**
  * Service for managing user accounts and roles
@@ -17,17 +22,15 @@ export class UserService extends BaseService {
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to get current user',
-          'UserService',
           'getCurrentUser'
         );
       }
 
       if (!user) {
-        throw createServiceError(
+        throw this.createServiceError(
           'No user found',
-          'UserService',
           'getCurrentUser'
         );
       }
@@ -39,9 +42,8 @@ export class UserService extends BaseService {
         .single();
 
       if (profileError) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to get user profile',
-          'UserService',
           'getCurrentUser'
         );
       }
@@ -63,19 +65,14 @@ export class UserService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to update user role',
-          'UserService',
           'updateUserRole'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'User not found',
-          'UserService',
-          'updateUserRole'
-        );
+        throw createNotFoundError('User', userId);
       }
 
       return data;
@@ -87,9 +84,8 @@ export class UserService extends BaseService {
       const { error } = await supabase.auth.admin.deleteUser(userId);
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to delete user',
-          'UserService',
           'deleteUser'
         );
       }
@@ -108,19 +104,14 @@ export class UserService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to update user profile',
-          'UserService',
           'updateUserProfile'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'User not found',
-          'UserService',
-          'updateUserProfile'
-        );
+        throw createNotFoundError('User', userId);
       }
 
       return data;
@@ -134,9 +125,8 @@ export class UserService extends BaseService {
         .select('*');
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch users',
-          'UserService',
           'getAllUsers'
         );
       }
@@ -154,19 +144,14 @@ export class UserService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch user',
-          'UserService',
           'getUserById'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'User not found',
-          'UserService',
-          'getUserById'
-        );
+        throw createNotFoundError('User', userId);
       }
 
       return data;

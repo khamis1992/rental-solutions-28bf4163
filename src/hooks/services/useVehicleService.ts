@@ -1,122 +1,129 @@
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { VehicleService, VehicleFilterParams, vehicleService } from '@/services/VehicleService';
-import { Vehicle } from '@/types/vehicle.types';
-import { toast } from 'sonner';
-import { getErrorMessage, ServiceResult } from '@/types/service.types';
+import { useState, useCallback } from 'react';
+import { VehicleService } from '@/services/VehicleService';
+import { ExtendedVehicle, VehicleStatus, VehicleInsert, VehicleUpdate } from '@/types/vehicle';
+import { Result } from '@/types/response.types';
 
-interface UseVehicleServiceOptions {
-  filters?: VehicleFilterParams;
-}
+export function useVehicleService() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const service = new VehicleService();
 
-export function useVehicleService(options: UseVehicleServiceOptions = {}) {
-  const queryClient = useQueryClient();
-
-  const listVehicles = useCallback(async () => {
+  const getAllVehicles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const result = await vehicleService.getVehicles(options.filters);
+      const result = await service.getAllVehicles();
       if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+        setError(result.error);
+        return null;
       }
       return result.data;
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to fetch vehicles: ${errorMessage}`);
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, [options.filters]);
+  }, [service]);
 
-  const getVehicle = useCallback(async (id: string) => {
+  const getVehicleById = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      const result = await vehicleService.getVehicleById(id);
+      const result = await service.getVehicleById(id);
       if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+        setError(result.error);
+        return null;
       }
       return result.data;
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to fetch vehicle: ${errorMessage}`);
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [service]);
 
-  const createVehicle = useCallback(async (data: Partial<Vehicle>) => {
+  const createVehicle = useCallback(async (vehicle: VehicleInsert) => {
+    setLoading(true);
+    setError(null);
     try {
-      const result = await vehicleService.createVehicle(data);
+      const result = await service.createVehicle(vehicle);
       if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+        setError(result.error);
+        return null;
       }
       return result.data;
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to create vehicle: ${errorMessage}`);
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [service]);
 
-  const updateVehicle = useCallback(async (id: string, data: Partial<Vehicle>) => {
+  const updateVehicle = useCallback(async (id: string, vehicle: VehicleUpdate) => {
+    setLoading(true);
+    setError(null);
     try {
-      const result = await vehicleService.updateVehicle(id, data);
+      const result = await service.updateVehicle(id, vehicle);
       if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+        setError(result.error);
+        return null;
       }
       return result.data;
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to update vehicle: ${errorMessage}`);
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return null;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [service]);
 
   const deleteVehicle = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      const result = await vehicleService.deleteVehicle(id);
+      const result = await service.deleteVehicle(id);
       if (!result.success) {
-        throw new Error(getErrorMessage(result.error));
+        setError(result.error);
+        return false;
       }
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      toast.error(`Failed to delete vehicle: ${errorMessage}`);
-      throw error;
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return false;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [service]);
 
-  const { data: vehicles = [], isLoading: isLoadingVehicles } = useQuery({
-    queryKey: ['vehicles', options.filters],
-    queryFn: listVehicles,
-  });
-
-  const createVehicleMutation = useMutation({
-    mutationFn: createVehicle,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      toast.success('Vehicle created successfully');
-    },
-  });
-
-  const updateVehicleMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Vehicle> }) =>
-      updateVehicle(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      toast.success('Vehicle updated successfully');
-    },
-  });
-
-  const deleteVehicleMutation = useMutation({
-    mutationFn: deleteVehicle,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      toast.success('Vehicle deleted successfully');
-    },
-  });
+  const getAvailableVehicles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await service.getAvailableVehicles();
+      if (!result.success) {
+        setError(result.error);
+        return null;
+      }
+      return result.data;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [service]);
 
   return {
-    vehicles,
-    isLoadingVehicles,
-    createVehicle: createVehicleMutation.mutate,
-    updateVehicle: updateVehicleMutation.mutate,
-    deleteVehicle: deleteVehicleMutation.mutate,
-    getVehicle,
+    loading,
+    error,
+    getAllVehicles,
+    getVehicleById,
+    createVehicle,
+    updateVehicle,
+    deleteVehicle,
+    getAvailableVehicles
   };
 }

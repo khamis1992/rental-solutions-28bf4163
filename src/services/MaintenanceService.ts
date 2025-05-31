@@ -1,8 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
-import { Maintenance, MaintenanceFilterParams } from '@/types/maintenance.types';
-import { Result } from '@/lib/errors/types';
-import { createServiceError } from '@/lib/errors/types';
+import { Maintenance, MaintenanceFilterParams, MaintenanceStatus, MaintenanceType } from '@/types/maintenance.types';
+import { 
+  Result, 
+  ServiceError, 
+  createServiceError, 
+  createNotFoundError,
+  ErrorContext
+} from '@/types/error.types';
 import { paymentService } from './PaymentService';
 
 export class MaintenanceService extends BaseService {
@@ -35,9 +40,8 @@ export class MaintenanceService extends BaseService {
       const { data, error } = await query;
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch maintenance records',
-          'MaintenanceService',
           'fetchMaintenanceRecords'
         );
       }
@@ -55,19 +59,14 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to fetch maintenance record',
-          'MaintenanceService',
           'getMaintenanceById'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Maintenance record not found',
-          'MaintenanceService',
-          'getMaintenanceById'
-        );
+        throw createNotFoundError('Maintenance record', id);
       }
 
       return data;
@@ -83,9 +82,8 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to create maintenance record',
-          'MaintenanceService',
           'createMaintenanceRecord'
         );
       }
@@ -104,19 +102,14 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to update maintenance record',
-          'MaintenanceService',
           'updateMaintenanceRecord'
         );
       }
 
       if (!data) {
-        throw createServiceError(
-          'Maintenance record not found',
-          'MaintenanceService',
-          'updateMaintenanceRecord'
-        );
+        throw createNotFoundError('Maintenance record', id);
       }
 
       return data;
@@ -131,9 +124,8 @@ export class MaintenanceService extends BaseService {
         .eq('id', id);
 
       if (error) {
-        throw createServiceError(
+        throw this.createServiceError(
           'Failed to delete maintenance record',
-          'MaintenanceService',
           'deleteMaintenanceRecord'
         );
       }
@@ -146,11 +138,11 @@ export class MaintenanceService extends BaseService {
     return this.fetchMaintenanceRecords({ vehicleId });
   }
 
-  async getMaintenanceByStatus(status: string): Promise<Result<Maintenance[]>> {
+  async getMaintenanceByStatus(status: MaintenanceStatus): Promise<Result<Maintenance[]>> {
     return this.fetchMaintenanceRecords({ status });
   }
 
-  async getMaintenanceByType(type: string): Promise<Result<Maintenance[]>> {
+  async getMaintenanceByType(type: MaintenanceType): Promise<Result<Maintenance[]>> {
     return this.fetchMaintenanceRecords({ type });
   }
 
@@ -160,7 +152,7 @@ export class MaintenanceService extends BaseService {
 
   private async recordExpense(record: Maintenance) {
     await paymentService.recordPayment({
-      lease_id: null, // Remove agreement_id reference since it doesn't exist in the maintenance table
+      lease_id: null,
       amount: record.cost ?? 0,
       payment_date: new Date().toISOString(),
       description: `Maintenance expense for vehicle ${record.vehicle_id}`,

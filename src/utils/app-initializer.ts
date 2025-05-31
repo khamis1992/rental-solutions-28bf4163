@@ -1,61 +1,106 @@
-
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
 import { registerPaymentEventHandlers } from '@/events/payment-handlers';
 
+interface SystemStatus {
+  agreementImport?: boolean;
+  customerImport?: boolean;
+  paymentProcessing?: boolean;
+  documentGeneration?: boolean;
+  [key: string]: boolean | undefined;
+}
+
 // Initialize services check status flag
 let servicesChecked = false;
+let systemStatus: SystemStatus | null = null;
+
+const checkEnvironmentConfig = () => {
+  const issues: string[] = [];
+
+  if (!supabase.functions) {
+    issues.push("Edge functions not available");
+  }
+
+  if (!process.env.VITE_SUPABASE_URL) {
+    issues.push("Supabase URL not configured");
+  }
+
+  if (!process.env.VITE_SUPABASE_ANON_KEY) {
+    issues.push("Supabase anonymous key not configured");
+  }
+
+  return issues;
+};
+
+const handleServiceStatus = (status: SystemStatus) => {
+  const unavailableServices = Object.entries(status)
+    .filter(([_, available]) => available === false)
+    .map(([service]) => service);
+
+  if (unavailableServices.length > 0) {
+    const message = `The following services are unavailable: ${unavailableServices.join(", ")}. Some features may not work properly.`;
+    toast.error(message, {
+      duration: 6000,
+      id: "services-unavailable",
+    });
+  }
+
+  return status;
+};
+
+export const getSystemStatus = () => systemStatus;
 
 export const initializeApp = async () => {
-  registerPaymentEventHandlers();
-  // Set up database tables and other requirements
-  await setupInvoiceTemplatesTable();
-  
-  // Only check system services once per session
-  if (!servicesChecked) {
-    // Check system services status
-    console.log("Checking system services availability...");
-    
-    try {
-      const servicesStatus = await getSystemServicesStatus();
-      
-      if (!servicesStatus.agreementImport) {
-        console.warn("Agreement import function unavailable");
-        toast.error("Agreement import function unavailable. Some features may not work properly.", {
-          duration: 6000,
-          id: "agreement-import-error", // Prevent duplicate toasts
-        });
-      }
-      
-      if (!servicesStatus.customerImport) {
-        console.warn("Customer import function unavailable");
-        toast.error("Customer import function unavailable. Some features may not work properly.", {
-          duration: 6000,
-          id: "customer-import-error", // Prevent duplicate toasts
-        });
-      }
-      
-      // Log overall system status
-      console.log("System services status:", servicesStatus);
-      
-      // Mark services as checked
-      servicesChecked = true;
-    } catch (err) {
-      console.error("Failed to check system services:", err);
-      toast.error("System service check failed. Some features may be limited.", {
-        duration: 6000,
-      });
+  try {
+    // Register event handlers
+    registerPaymentEventHandlers();
+
+    // Set up database tables
+    await setupInvoiceTemplatesTable();
+
+    // Check environment configuration
+    const configIssues = checkEnvironmentConfig();
+    if (configIssues.length > 0) {
+      throw new Error(`Configuration issues found: ${configIssues.join(", ")}`);
     }
-  }
-  
-  // Check for any environment configuration issues
-  if (!supabase.functions) {
-    console.error("Supabase functions client is not properly initialized");
-    toast.error("System configuration error: Edge functions not available", {
+
+    // Only check system services once per session
+    if (!servicesChecked) {
+      console.log("Checking system services availability...");
+
+      try {
+        const servicesStatus = await getSystemServicesStatus();
+        systemStatus = handleServiceStatus(servicesStatus);
+        servicesChecked = true;
+
+        // Log overall system status
+        console.log("System services status:", systemStatus);
+      } catch (error) {
+        console.error("Failed to check system services:", error);
+        toast.error("System service check failed. Some features may be limited.", {
+          duration: 6000,
+          id: "service-check-error",
+        });
+      }
+    }
+
+    return {
+      success: true,
+      status: systemStatus,
+    };
+  } catch (error) {
+    console.error("Application initialization failed:", error);
+    toast.error("Failed to initialize application. Please refresh the page or contact support.", {
       duration: 6000,
+      id: "init-error",
     });
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown initialization error",
+    };
   }
 };
 

@@ -1,4 +1,6 @@
 import { Database } from '@/types/database.types';
+import { VehicleStatus } from '@/types/database.types';
+import { isValidVehicleStatus as validateVehicleStatus } from '@/lib/validation/vehicle-status';
 
 // Only include table names that exist in the actual database schema
 export type AvailableTableName = keyof Database['public']['Tables'];
@@ -51,9 +53,8 @@ export function isValidLeaseStatus(status: string): status is 'active' | 'closed
   return ['active', 'closed', 'cancelled', 'draft', 'pending', 'expired'].includes(status);
 }
 
-export function isValidVehicleStatus(status: string): status is 'available' | 'rented' | 'maintenance' | 'sold' | 'retired' {
-  return ['available', 'rented', 'maintenance', 'sold', 'retired'].includes(status);
-}
+// Re-export the centralized vehicle status validation
+export { validateVehicleStatus as isValidVehicleStatus };
 
 export function isValidPaymentStatus(status: string): status is 'pending' | 'completed' | 'overdue' | 'cancelled' {
   return ['pending', 'completed', 'overdue', 'cancelled'].includes(status);

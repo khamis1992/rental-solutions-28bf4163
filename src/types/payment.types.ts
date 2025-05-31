@@ -1,6 +1,7 @@
 import { Database } from './database.types';
 import { UnifiedPaymentStatus } from './status.types';
 import { isErrorResponse as isStandardErrorResponse } from '../types/error.types';
+import { DbId } from './database-common';
 
 // Database types
 export type Payment = Database['public']['Tables']['unified_payments']['Row'];
@@ -8,8 +9,8 @@ export type PaymentInsert = Database['public']['Tables']['unified_payments']['In
 export type PaymentUpdate = Database['public']['Tables']['unified_payments']['Update'];
 
 // Payment status and type definitions
-export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
-export type PaymentType = 'regular' | 'late_fee' | 'deposit' | 'refund';
+export type PaymentStatus = 'pending' | 'completed' | 'partially_paid' | 'overdue' | 'cancelled' | 'voided';
+export type PaymentType = 'rent' | 'deposit' | 'fine' | 'maintenance' | 'other';
 
 export interface SpecialPaymentOptions {
   notes?: string;
@@ -19,6 +20,9 @@ export interface SpecialPaymentOptions {
   isPartialPayment?: boolean;
   paymentType?: string;
   targetPaymentId?: string;
+  type: PaymentType;
+  description?: string;
+  transaction_id?: string;
 }
 
 export interface PaymentMetrics {
