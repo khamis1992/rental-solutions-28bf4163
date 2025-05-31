@@ -16,19 +16,38 @@ interface SystemStatus {
 let servicesChecked = false;
 let systemStatus: SystemStatus | null = null;
 
+const REQUIRED_ENV_VARS = {
+  VITE_SUPABASE_URL: 'Supabase URL',
+  VITE_SUPABASE_ANON_KEY: 'Supabase anonymous key',
+  VITE_API_URL: 'API URL',
+  VITE_APP_ENV: 'Application environment',
+} as const;
+
 const checkEnvironmentConfig = () => {
   const issues: string[] = [];
 
+  // Check required environment variables
+  Object.entries(REQUIRED_ENV_VARS).forEach(([key, description]) => {
+    if (!import.meta.env[key]) {
+      issues.push(`${description} (${key}) not configured`);
+    }
+  });
+
+  // Validate Supabase configuration
   if (!supabase.functions) {
     issues.push("Edge functions not available");
   }
 
-  if (!process.env.VITE_SUPABASE_URL) {
-    issues.push("Supabase URL not configured");
+  // Validate API URL format
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl && !apiUrl.startsWith('http')) {
+    issues.push("API URL must start with http:// or https://");
   }
 
-  if (!process.env.VITE_SUPABASE_ANON_KEY) {
-    issues.push("Supabase anonymous key not configured");
+  // Validate environment value
+  const appEnv = import.meta.env.VITE_APP_ENV;
+  if (appEnv && !['development', 'staging', 'production'].includes(appEnv)) {
+    issues.push("Invalid application environment value");
   }
 
   return issues;
@@ -63,7 +82,19 @@ export const initializeApp = async () => {
     // Check environment configuration
     const configIssues = checkEnvironmentConfig();
     if (configIssues.length > 0) {
-      throw new Error(`Configuration issues found: ${configIssues.join(", ")}`);
+      const message = `Configuration issues found: ${configIssues.join(", ")}`;
+      console.error(message);
+      
+      // In development, show detailed error
+      if (import.meta.env.DEV) {
+        throw new Error(message);
+      }
+      
+      // In production, show user-friendly message
+      toast.error("Application configuration is incomplete. Please contact support.", {
+        duration: 6000,
+        id: "config-error",
+      });
     }
 
     // Only check system services once per session
