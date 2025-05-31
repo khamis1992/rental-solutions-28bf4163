@@ -55,7 +55,6 @@ export function AgreementDetail({
     generatingPdf: false
   });
 
-  const [selectedPayment, setSelectedPayment] = useState(null as Payment | null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Use payment management hook
@@ -240,7 +239,11 @@ export function AgreementDetail({
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
         onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={onGenerateDocument || (() => {})}
+        onGenerateDocument={async () => {
+          if (onGenerateDocument) {
+            await Promise.resolve(onGenerateDocument());
+          }
+        }}
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 
@@ -304,7 +307,7 @@ export function AgreementDetail({
           description="Add a new payment to this agreement"
           leaseId={agreement.id}
           rentAmount={rentAmount}
-          selectedPayment={selectedPayment}
+          selectedPayment={null}
         />
       )}
     </div>

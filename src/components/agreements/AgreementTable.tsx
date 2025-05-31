@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { TableContent } from './table/TableContent';
 import { processAgreementData } from './table/agreement-data';
