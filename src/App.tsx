@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { LoadingFallback } from "./components/ui/loading-fallback";
@@ -26,6 +26,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Settings from "./pages/Settings";
 
 // Lazy-loaded components with error boundaries
 const withErrorBoundary = (Component: React.LazyExoticComponent<any>) => (
@@ -199,9 +200,13 @@ function App() {
                                 <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
                                 <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
                                 <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
-                                <Route path="/settings" element={withErrorBoundary(SystemSettings)} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
                                 <Route path="/users" element={withErrorBoundary(UserManagement)} />
                                 <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />
+                                
+                                {/* Redirect /fines to /traffic-fines for backward compatibility */}
+                                <Route path="/fines" element={<Navigate to="/traffic-fines" replace />} />
                                 
                                 {/* 404 Route */}
                                 <Route path="*" element={withErrorBoundary(NotFound)} />

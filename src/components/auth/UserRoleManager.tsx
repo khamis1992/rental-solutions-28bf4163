@@ -37,7 +37,7 @@ export const UserRoleManager = ({
 
     try {
       setIsChanging(true);
-      const result = await userService.updateRole(userId, newRole as UserRole);
+      const result = await userService.updateUserRole(userId, newRole as UserRole);
 
       if (!result.success) {
         throw result.error || new Error('Role update failed');

@@ -1,22 +1,22 @@
 import { PostgrestError } from '@supabase/supabase-js';
-import { 
-  ApiResponse as StandardApiResponse,
-  AppError as StandardApiError,
-  isSuccessResponse as isStandardApiResponse,
-  isAppError as isStandardApiError,
-  createErrorResponse as createStandardErrorResponse,
-  createSuccessResponse as createStandardSuccessResponse
-} from './error.types';
 
 /**
  * Base API response type
  */
-export type ApiResponse<T = any> = StandardApiResponse<T>;
+export type ApiResponse<T = any> = {
+  success: boolean;
+  data: T | null;
+  error: any;
+};
 
 /**
  * API error type
  */
-export type ApiError = StandardApiError;
+export type ApiError = {
+  code: string;
+  message: string;
+  details?: any;
+};
 
 /**
  * Paginated response type
@@ -48,16 +48,6 @@ export interface DatabaseResponse<T> {
 }
 
 /**
- * Type guard for API responses
- */
-export const isApiResponse = isStandardApiResponse;
-
-/**
- * Type guard for API errors
- */
-export const isApiError = isStandardApiError;
-
-/**
  * Type guard for paginated responses
  */
 export function isPaginatedResponse<T>(value: unknown): value is PaginatedResponse<T> {
@@ -75,27 +65,21 @@ export function isPaginatedResponse<T>(value: unknown): value is PaginatedRespon
 /**
  * Helper to create a success response
  */
-export const createSuccessResponse = createStandardSuccessResponse;
+export function createSuccessResponse<T>(data: T) {
+  return {
+    success: true,
+    data,
+    error: null
+  };
+}
 
 /**
  * Helper to create an error response
  */
-export const createErrorResponse = createStandardErrorResponse;
-
-/**
- * Helper to create a paginated response
- */
-export function createPaginatedResponse<T>(
-  items: T[],
-  total: number,
-  page: number,
-  pageSize: number
-): PaginatedResponse<T> {
+export function createErrorResponse(error: any) {
   return {
-    items,
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    success: false,
+    error,
+    data: null
   };
 } 

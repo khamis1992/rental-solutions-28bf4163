@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { LegalCaseFormActions } from './LegalCaseFormActions';
 export interface LegalCaseFormValues {
   status?: string;
   customer_id?: string;
+  agreement_id?: string;
   description?: string;
   amount_owed?: number;
   assigned_to?: string;
@@ -48,6 +48,7 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
     defaultValues: {
       status: initialData?.status || 'pending',
       customer_id: initialData?.customer_id || '',
+      agreement_id: initialData?.agreement_id || '',
       description: initialData?.description || '',
       amount_owed: initialData?.amount_owed || 0,
       assigned_to: initialData?.assigned_to || '',

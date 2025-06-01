@@ -380,7 +380,7 @@ const UserList = () => {
             userId={user.id}
             currentRole={user.role}
             fullName={user.full_name}
-            disabled={!isAdmin || isSelf}
+            disabled={isSelf}
           />
         );
       },
@@ -592,14 +592,7 @@ const UserList = () => {
         </div>
       </div>
       <div className="flex justify-end space-x-2">
-        <Button 
-          variant="destructive" 
-          size="sm" 
-          onClick={handleDeleteKhamis}
-          disabled={bulkDeletingUsers}
-        >
-          {bulkDeletingUsers ? "Deleting..." : "Delete Duplicate Khamis Accounts"}
-        </Button>
+        {/* Delete Duplicate Khamis Accounts button removed */}
       </div>
       <div className="border rounded-md">
         <Table>
@@ -818,6 +811,20 @@ const UserList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Simple test dropdown for debugging */}
+      <div style={{ margin: '16px 0' }}>
+        <label>Test Dropdown:&nbsp;</label>
+        <Select value="admin" onValueChange={() => {}}>
+          <SelectTrigger className="w-[130px] h-8">
+            <SelectValue placeholder="Test role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="staff">Staff</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 };

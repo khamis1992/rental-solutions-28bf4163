@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 import { asUUID, UUID } from '@/lib/uuid-helpers';
 import { getResponseData } from '@/utils/supabase-type-helpers';
 import { PostgrestError } from '@supabase/supabase-js';

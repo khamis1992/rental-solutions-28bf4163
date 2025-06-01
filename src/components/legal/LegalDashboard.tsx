@@ -1,125 +1,104 @@
-
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription,
-  CardHeader, 
-  CardTitle,
-} from '@/components/ui/card';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, ArrowUpRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { useLegalCases } from '@/hooks/legal/useLegalCases';
-import { LegalStats } from './stats/LegalStats';
-import { RecentLegalActivity } from './activity/RecentLegalActivity';
-import { UpcomingDeadlines } from './deadlines/UpcomingDeadlines';
-import LegalCaseManagement from './LegalCaseManagement';
-import LegalRiskAssessment from './LegalRiskAssessment';
-import ComplianceReporting from './ComplianceReporting';
-import ComplianceCalendar from './ComplianceCalendar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 
 const LegalDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const { legalCases, isLoading } = useLegalCases();
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Calculate statistics
-  const activeCases = !isLoading ? legalCases.filter(c => c.status === 'active').length : 0;
-  const pendingCases = !isLoading ? legalCases.filter(c => c.status === 'pending').length : 0;
-  const resolvedCases = !isLoading ? legalCases.filter(c => c.status === 'resolved').length : 0;
-  const highPriorityCases = !isLoading ? legalCases.filter(c => c.priority === 'high').length : 0;
-  
-  const handleNewCase = () => {
-    navigate('/legal/cases/new');
-  };
+  const { legalCases, isLoading, error } = useLegalCases();
 
-  const handleViewAll = (filterType: string, value: string) => {
-    navigate(`/legal/cases?${filterType}=${value}`);
-  };
-  
+  // Calculate stats
+  const totalCases = legalCases.length;
+  const openCases = legalCases.filter(c => c.status === 'active' || c.status === 'pending').length;
+  const resolvedCases = legalCases.filter(c => c.status === 'resolved').length;
+  const highPriorityCases = legalCases.filter(c => c.priority === 'high').length;
+
+  // Get 5 most recent cases
+  const recentCases = [...legalCases]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span className="text-muted-foreground">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center bg-red-50 p-4 rounded">
+        <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+        <span className="text-red-700">Error loading dashboard: {error instanceof Error ? error.message : String(error)}</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <CardTitle className="text-xl font-semibold flex items-center">
-                Legal Management Console
-              </CardTitle>
-              <CardDescription>
-                Monitor and manage all legal aspects of your operation
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-full md:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search cases, documents..."
-                  className="pl-8 w-full md:w-[200px] h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleNewCase} className="w-full md:w-auto">
-                New Case
-              </Button>
-            </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Cases</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-2xl font-bold">{totalCases}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Cases</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-2xl font-bold">{openCases}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Resolved Cases</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-2xl font-bold">{resolvedCases}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>High Priority</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <span className="text-2xl font-bold">{highPriorityCases}</span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Cases */}
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Recent Cases</h3>
+        {recentCases.length === 0 ? (
+          <div className="text-muted-foreground">No recent cases found.</div>
+        ) : (
+          <div className="space-y-2">
+            {recentCases.map((c) => (
+              <Card key={c.id} className="border p-2">
+                <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div>
+                    <div className="font-medium">{c.description || c.id}</div>
+                    <div className="text-xs text-muted-foreground">{formatDate(c.created_at)}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{c.status || 'unknown'}</Badge>
+                    <Badge variant="outline">{c.priority || 'unknown'}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </CardHeader>
-
-        <CardContent className="pb-2">
-          <LegalStats 
-            activeCases={activeCases}
-            highPriorityCases={highPriorityCases}
-            pendingCases={pendingCases}
-            resolvedCases={resolvedCases}
-            onViewAll={handleViewAll}
-          />
-
-          <Tabs 
-            defaultValue={activeTab} 
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="space-y-4"
-          >
-            <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <TabsTrigger value="overview">Dashboard Overview</TabsTrigger>
-              <TabsTrigger value="cases">Case Management</TabsTrigger>
-              <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
-              <TabsTrigger value="compliance">Compliance</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <RecentLegalActivity />
-                <UpcomingDeadlines />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="cases">
-              <LegalCaseManagement />
-            </TabsContent>
-            
-            <TabsContent value="risk">
-              <LegalRiskAssessment />
-            </TabsContent>
-            
-            <TabsContent value="compliance" className="space-y-6">
-              <ComplianceCalendar />
-              <ComplianceReporting />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   );
 };

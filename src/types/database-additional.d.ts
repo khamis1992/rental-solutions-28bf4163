@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 
 // Add additional type definitions to enhance the Database interface
 declare module './database.types' {

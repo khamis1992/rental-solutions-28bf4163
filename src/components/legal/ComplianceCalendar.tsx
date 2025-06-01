@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -53,7 +52,7 @@ const MOCK_COMPLIANCE_ITEMS = [
   }
 ];
 
-const ComplianceCalendar = () => {
+const ComplianceCalendar: React.FC = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   
@@ -113,100 +112,9 @@ const ComplianceCalendar = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Compliance Calendar</CardTitle>
-          <CardDescription>
-            Track upcoming compliance deadlines and regulatory requirements
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleSelect}
-            className="border rounded-md p-4"
-            modifiers={{
-              compliance: complianceDates
-            }}
-            modifiersStyles={{
-              compliance: {
-                backgroundColor: '#fef3c7',
-                color: '#92400e',
-                fontWeight: 'bold'
-              }
-            }}
-          />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {date ? (
-              <>
-                <CalendarIcon className="inline-block mr-2 h-5 w-5" />
-                <span>Compliance Items for {formatDate(date)}</span>
-              </>
-            ) : (
-              'Select a Date'
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedItems.length > 0 ? (
-            <div className="space-y-4">
-              {selectedItems.map(item => (
-                <div key={item.id} className="border rounded-md p-4 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      {getTypeIcon(item.type)}
-                      <h3 className="ml-2 font-medium">{item.title}</h3>
-                    </div>
-                    {getPriorityBadge(item.priority)}
-                  </div>
-                  <p className="text-sm text-gray-600">{item.description}</p>
-                  <div className="flex justify-between items-center pt-2">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="mr-1 h-4 w-4" />
-                      Due: {formatDate(item.dueDate)}
-                    </div>
-                    <Button size="sm">Take Action</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              {date 
-                ? "No compliance items due on this date." 
-                : "Select a date to view compliance items."}
-            </div>
-          )}
-          
-          <div className="mt-4 pt-4 border-t">
-            <h3 className="font-medium mb-2">Upcoming Compliance Deadlines</h3>
-            <div className="space-y-2">
-              {MOCK_COMPLIANCE_ITEMS
-                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                .slice(0, 3)
-                .map(item => (
-                  <div key={item.id} className="flex justify-between items-center rounded-md p-2 bg-gray-50">
-                    <div className="flex items-center">
-                      {getTypeIcon(item.type)}
-                      <span className="ml-2 text-sm">{item.title}</span>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {formatDate(item.dueDate)}
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="p-6 bg-white rounded shadow">
+      <h2 className="text-xl font-semibold mb-2">Compliance Tracking</h2>
+      <p className="text-gray-600">Track compliance deadlines and requirements here.</p>
     </div>
   );
 };

@@ -1,8 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
+import { handleError } from '@/hooks/use-api';
 
 export const useVehicleTypes = () => {
   return useQuery({
@@ -35,7 +34,7 @@ export const useVehicleTypes = () => {
         return data;
       } catch (error) {
         console.error('Failed to fetch vehicle types:', error);
-        handleApiError(error, 'Failed to fetch vehicle types');
+        handleError(error, { errorContext: 'Failed to fetch vehicle types' });
         return [];
       }
     },

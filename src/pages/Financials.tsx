@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartPieIcon, FileText, BarChartBig, FileSpreadsheet, Printer } from "lucide-react";
+import { PieChart, FileText, BarChartBig, FileSpreadsheet, Printer } from "lucide-react";
 import FinancialDashboard from "@/components/financials/FinancialDashboard";
 import PaymentGatewaySettings from "@/components/payments/PaymentGatewaySettings";
 import InvoiceTemplateEditor from "@/components/invoices/InvoiceTemplateEditor";
@@ -34,7 +33,7 @@ const Financials = () => {
       <SectionHeader 
         title="Financial Management" 
         description="Manage payments, invoices, financial reporting and installment contracts" 
-        icon={ChartPieIcon}
+        icon={PieChart}
         actions={
           activeTab === "invoices" && (
             <Button 
@@ -61,7 +60,7 @@ const Financials = () => {
             Invoice Templates
           </TabsTrigger>
           <TabsTrigger value="payments" className="flex items-center">
-            <ChartPieIcon className="h-4 w-4 mr-2" />
+            <PieChart className="h-4 w-4 mr-2" />
             Payment Settings
           </TabsTrigger>
           <TabsTrigger value="installments" className="flex items-center">

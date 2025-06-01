@@ -2,12 +2,11 @@ import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Maintenance, MaintenanceFilterParams, MaintenanceStatus, MaintenanceType } from '@/types/maintenance.types';
 import { 
-  Result, 
-  ServiceError, 
   createServiceError, 
   createNotFoundError,
   ErrorContext
 } from '@/types/error.types';
+import { Result } from '@/types/response.types';
 import { paymentService } from './PaymentService';
 
 export class MaintenanceService extends BaseService {
@@ -40,9 +39,9 @@ export class MaintenanceService extends BaseService {
       const { data, error } = await query;
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to fetch maintenance records',
-          'fetchMaintenanceRecords'
+          { operation: 'fetchMaintenanceRecords' }
         );
       }
 
@@ -59,14 +58,14 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to fetch maintenance record',
-          'getMaintenanceById'
+          { operation: 'getMaintenanceById' }
         );
       }
 
       if (!data) {
-        throw createNotFoundError('Maintenance record', id);
+        throw createNotFoundError(`Maintenance record not found: ${id}`);
       }
 
       return data;
@@ -82,10 +81,25 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to create maintenance record',
-          'createMaintenanceRecord'
+          { operation: 'createMaintenanceRecord' }
         );
+      }
+
+      // Sync vehicle status
+      if (data && data.vehicle_id && data.status) {
+        if (['scheduled', 'in_progress'].includes(data.status)) {
+          await supabase
+            .from('vehicles')
+            .update({ status: 'maintenance' })
+            .eq('id', data.vehicle_id);
+        } else if (['completed', 'cancelled'].includes(data.status)) {
+          await supabase
+            .from('vehicles')
+            .update({ status: 'available' })
+            .eq('id', data.vehicle_id);
+        }
       }
 
       return data;
@@ -102,14 +116,29 @@ export class MaintenanceService extends BaseService {
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to update maintenance record',
-          'updateMaintenanceRecord'
+          { operation: 'updateMaintenanceRecord' }
         );
       }
 
       if (!data) {
-        throw createNotFoundError('Maintenance record', id);
+        throw createNotFoundError(`Maintenance record not found: ${id}`);
+      }
+
+      // Sync vehicle status
+      if (data && data.vehicle_id && data.status) {
+        if (['scheduled', 'in_progress'].includes(data.status)) {
+          await supabase
+            .from('vehicles')
+            .update({ status: 'maintenance' })
+            .eq('id', data.vehicle_id);
+        } else if (['completed', 'cancelled'].includes(data.status)) {
+          await supabase
+            .from('vehicles')
+            .update({ status: 'available' })
+            .eq('id', data.vehicle_id);
+        }
       }
 
       return data;
@@ -124,9 +153,9 @@ export class MaintenanceService extends BaseService {
         .eq('id', id);
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to delete maintenance record',
-          'deleteMaintenanceRecord'
+          { operation: 'deleteMaintenanceRecord' }
         );
       }
 

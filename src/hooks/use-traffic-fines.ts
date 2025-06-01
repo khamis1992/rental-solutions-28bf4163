@@ -4,27 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { asTableId } from '@/lib/uuid-helpers';
 import { hasData } from '@/utils/supabase-type-helpers';
+import type { TrafficFine } from '@/types/traffic-fine';
 
 export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
-
-export interface TrafficFine {
-  id: string;
-  violationNumber: string;
-  licensePlate?: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge?: string;
-  paymentStatus: TrafficFineStatusType;
-  location?: string;
-  vehicleId?: string;
-  vehicleModel?: string;
-  customerId?: string;
-  customerName?: string;
-  paymentDate?: Date;
-  leaseId?: string;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
-}
 
 export interface TrafficFinePayload {
   id: string;

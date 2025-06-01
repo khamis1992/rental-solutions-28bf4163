@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/errors/error-handler';
-import { type ApiResponse } from '@/types/error.types';
+import { handleError } from '@/lib/errors/error-handler';
+import { type ApiResponse } from '@/types/api.types';
 
 export function useApiQuery<TData = any, TError = Error>(
   queryKey: string[],
@@ -39,7 +39,7 @@ export function useApiQuery<TData = any, TError = Error>(
         console.error(`API query error for ${queryKey.join('/')}:`, error);
         
         // Use our centralized error handler
-        handleApiError(error, options?.errorContext || `Query ${queryKey.join('/')}`);
+        handleError(error, { errorContext: options?.errorContext || `Query ${queryKey.join('/')}` });
         
         // Convert error to expected format before rejecting
         const errorResult = { 

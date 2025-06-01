@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import { Database } from '@/types/database';
 import { 
   ExtendedVehicle, 
   VehicleInsert, 
@@ -11,17 +11,17 @@ import {
 import { isValidVehicleStatus } from '@/lib/validation/vehicle-status';
 
 const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
 );
 
 // Helper function to safely convert status strings to VehicleStatus
 const safeMapToVehicleStatus = (status: string): VehicleStatus => {
   if (!isValidVehicleStatus(status)) {
     console.warn(`Invalid vehicle status: ${status}. Defaulting to 'available'`);
-    return 'available';
+    return 'available' as VehicleStatus;
   }
-  return status;
+  return status === 'reserved' ? 'reserve' as VehicleStatus : status as VehicleStatus;
 };
 
 // Helper function to handle API errors
@@ -31,14 +31,16 @@ const handleApiError = (operation: string, error: any): never => {
 };
 
 // Fetch vehicles with optional filtering
-export async function fetchVehicles(filters?: VehicleFilterParams): Promise<ExtendedVehicle[]> {
+export async function fetchVehicles(filters?: VehicleFilterParams): Promise<ExtendedVehicle[] | undefined> {
   try {
     let query = supabase.from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)');
     
     if (filters) {
       if (filters.statuses?.length) {
-        query = query.in('status', filters.statuses);
+        // Map 'reserved' to 'reserve' for DB compatibility
+        const statuses = filters.statuses.map(s => s === 'reserved' ? 'reserve' : s);
+        query = query.in('status', statuses as any);
       }
       
       if (filters.make) {
@@ -61,7 +63,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Exte
         query = query.eq('vehicle_type_id', filters.vehicle_type_id);
       }
       
-      if (filters.searchTerm) {
+      if (filters?.searchTerm) {
         query = query.or(`vin.ilike.%${filters.searchTerm}%,license_plate.ilike.%${filters.searchTerm}%`);
       }
 
@@ -76,19 +78,15 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Exte
       throw error;
     }
     
-    return (data || []).map(vehicle => ({
-      ...vehicle,
-      full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
-      status_display: vehicle.status,
-      type_display: vehicle.vehicle_type?.name
-    }));
+    return data as unknown as ExtendedVehicle[];
   } catch (error) {
     handleApiError('fetch vehicles', error);
   }
+  return undefined;
 }
 
 // Fetch a single vehicle by ID
-export async function fetchVehicleById(id: string): Promise<ExtendedVehicle> {
+export async function fetchVehicleById(id: string): Promise<ExtendedVehicle | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicles')
@@ -104,19 +102,15 @@ export async function fetchVehicleById(id: string): Promise<ExtendedVehicle> {
       throw new Error(`Vehicle with ID ${id} not found`);
     }
 
-    return {
-      ...data,
-      full_name: `${data.make} ${data.model} (${data.license_plate})`,
-      status_display: data.status,
-      type_display: data.vehicle_type?.name
-    };
+    return data as unknown as ExtendedVehicle;
   } catch (error) {
     handleApiError(`fetch vehicle with ID ${id}`, error);
   }
+  return undefined;
 }
 
 // Fetch all vehicle types
-export async function fetchVehicleTypes(): Promise<VehicleType[]> {
+export async function fetchVehicleTypes(): Promise<VehicleType[] | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicle_types')
@@ -128,14 +122,18 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
       throw error;
     }
     
-    return data || [];
+    return (data || []).map(type => ({
+      ...type,
+      features: type.features ?? undefined
+    })) as unknown as VehicleType[];
   } catch (error) {
     handleApiError('fetch vehicle types', error);
   }
+  return undefined;
 }
 
 // Create a new vehicle
-export async function createVehicle(vehicle: VehicleInsert): Promise<ExtendedVehicle> {
+export async function createVehicle(vehicle: VehicleInsert): Promise<ExtendedVehicle | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicles')
@@ -151,19 +149,15 @@ export async function createVehicle(vehicle: VehicleInsert): Promise<ExtendedVeh
       throw new Error('Failed to create vehicle - no data returned');
     }
 
-    return {
-      ...data,
-      full_name: `${data.make} ${data.model} (${data.license_plate})`,
-      status_display: data.status,
-      type_display: data.vehicle_type?.name
-    };
+    return data as ExtendedVehicle;
   } catch (error) {
     handleApiError('create vehicle', error);
   }
+  return undefined;
 }
 
 // Update a vehicle
-export async function updateVehicle(id: string, vehicle: VehicleUpdate): Promise<ExtendedVehicle> {
+export async function updateVehicle(id: string, vehicle: VehicleUpdate): Promise<ExtendedVehicle | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicles')
@@ -180,15 +174,11 @@ export async function updateVehicle(id: string, vehicle: VehicleUpdate): Promise
       throw new Error(`Vehicle not found with ID: ${id}`);
     }
 
-    return {
-      ...data,
-      full_name: `${data.make} ${data.model} (${data.license_plate})`,
-      status_display: data.status,
-      type_display: data.vehicle_type?.name
-    };
+    return data as ExtendedVehicle;
   } catch (error) {
     handleApiError(`update vehicle with ID ${id}`, error);
   }
+  return undefined;
 }
 
 // Delete a vehicle
@@ -208,7 +198,7 @@ export async function deleteVehicle(id: string): Promise<void> {
 }
 
 // Get available vehicles
-export async function getAvailableVehicles(): Promise<ExtendedVehicle[]> {
+export async function getAvailableVehicles(): Promise<ExtendedVehicle[] | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicles')
@@ -219,42 +209,35 @@ export async function getAvailableVehicles(): Promise<ExtendedVehicle[]> {
       throw error;
     }
 
-    return (data || []).map(vehicle => ({
-      ...vehicle,
-      full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
-      status_display: vehicle.status,
-      type_display: vehicle.vehicle_type?.name
-    }));
+    return data as ExtendedVehicle[];
   } catch (error) {
     handleApiError('fetch available vehicles', error);
   }
+  return undefined;
 }
 
 // Get vehicles by status
-export async function getVehiclesByStatus(status: VehicleStatus): Promise<ExtendedVehicle[]> {
+export async function getVehiclesByStatus(status: VehicleStatus): Promise<ExtendedVehicle[] | undefined> {
   try {
+    const dbStatus = status === 'reserved' ? 'reserve' : status;
     const { data, error } = await supabase
       .from('vehicles')
       .select('*, vehicle_types(*), agreements:leases(*)')
-      .eq('status', status);
+      .eq('status', dbStatus);
 
     if (error) {
       throw error;
     }
 
-    return (data || []).map(vehicle => ({
-      ...vehicle,
-      full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
-      status_display: vehicle.status,
-      type_display: vehicle.vehicle_type?.name
-    }));
+    return data as ExtendedVehicle[];
   } catch (error) {
     handleApiError(`fetch vehicles with status ${status}`, error);
   }
+  return undefined;
 }
 
 // Search vehicles
-export async function searchVehicles(searchTerm: string): Promise<ExtendedVehicle[]> {
+export async function searchVehicles(searchTerm: string): Promise<ExtendedVehicle[] | undefined> {
   try {
     const { data, error } = await supabase
       .from('vehicles')
@@ -265,13 +248,9 @@ export async function searchVehicles(searchTerm: string): Promise<ExtendedVehicl
       throw error;
     }
 
-    return (data || []).map(vehicle => ({
-      ...vehicle,
-      full_name: `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
-      status_display: vehicle.status,
-      type_display: vehicle.vehicle_type?.name
-    }));
+    return data as ExtendedVehicle[];
   } catch (error) {
     handleApiError('search vehicles', error);
   }
+  return undefined;
 }

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { LegalCase, LegalCaseType, LegalCaseStatus, CasePriority } from '@/types/legal-case';
@@ -254,3 +253,44 @@ export const useLegalCases = () => {
     casePriorities: Object.values(CasePriority),
   };
 };
+
+/**
+ * Calculate the total amount owed for an agreement:
+ * - All pending/unpaid payments
+ * - All pending traffic fines
+ * - All late fees (from overdue payments)
+ */
+export async function calculateAgreementAmountOwed(agreementId: string): Promise<number> {
+  if (!agreementId) return 0;
+  let total = 0;
+
+  // 1. Fetch pending/unpaid payments
+  const { data: payments, error: paymentsError } = await supabase
+    .from('unified_payments')
+    .select('*')
+    .eq('lease_id', agreementId)
+    .in('status', ['pending', 'overdue']);
+  if (paymentsError) {
+    console.error('Error fetching payments:', paymentsError);
+    throw new Error('Failed to fetch payments');
+  }
+  if (payments) {
+    total += payments.reduce((sum, p) => sum + (p.amount || 0) + (p.late_fine_amount || 0), 0);
+  }
+
+  // 2. Fetch pending traffic fines
+  const { data: fines, error: finesError } = await supabase
+    .from('traffic_fines')
+    .select('*')
+    .eq('lease_id', agreementId)
+    .eq('payment_status', 'pending');
+  if (finesError) {
+    console.error('Error fetching traffic fines:', finesError);
+    throw new Error('Failed to fetch traffic fines');
+  }
+  if (fines) {
+    total += fines.reduce((sum, f) => sum + (f.fine_amount || 0), 0);
+  }
+
+  return total;
+}

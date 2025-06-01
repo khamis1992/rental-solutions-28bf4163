@@ -1,7 +1,6 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
+import { handleError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
 import { CacheManager, useCachedData } from '@/lib/cache-utils';
 
@@ -165,9 +164,11 @@ export function useDashboardData() {
           .gte('created_at', twoMonthsAgo.toISOString())
           .lt('created_at', firstDayLastMonth.toISOString());
         
-        const customerGrowth = twoMonthsAgoNewCustomers.length ? 
-          ((lastMonthNewCustomers.length - twoMonthsAgoNewCustomers.length) / twoMonthsAgoNewCustomers.length) * 100 : 
-          (lastMonthNewCustomers.length > 0 ? 100 : 0);
+        const lastMonthNewCustomersSafe = lastMonthNewCustomers || [];
+        const twoMonthsAgoNewCustomersSafe = twoMonthsAgoNewCustomers || [];
+        const customerGrowth = twoMonthsAgoNewCustomersSafe.length ? 
+          ((lastMonthNewCustomersSafe.length - twoMonthsAgoNewCustomersSafe.length) / twoMonthsAgoNewCustomersSafe.length) * 100 : 
+          (lastMonthNewCustomersSafe.length > 0 ? 100 : 0);
         
         const { data: lastMonthNewAgreements } = await supabase
           .from('leases')
@@ -181,9 +182,11 @@ export function useDashboardData() {
           .gte('created_at', twoMonthsAgo.toISOString())
           .lt('created_at', firstDayLastMonth.toISOString());
         
-        const agreementGrowth = twoMonthsAgoNewAgreements.length ? 
-          ((lastMonthNewAgreements.length - twoMonthsAgoNewAgreements.length) / twoMonthsAgoNewAgreements.length) * 100 : 
-          (lastMonthNewAgreements.length > 0 ? 100 : 0);
+        const lastMonthNewAgreementsSafe = lastMonthNewAgreements || [];
+        const twoMonthsAgoNewAgreementsSafe = twoMonthsAgoNewAgreements || [];
+        const agreementGrowth = twoMonthsAgoNewAgreementsSafe.length ? 
+          ((lastMonthNewAgreementsSafe.length - twoMonthsAgoNewAgreementsSafe.length) / twoMonthsAgoNewAgreementsSafe.length) * 100 : 
+          (lastMonthNewAgreementsSafe.length > 0 ? 100 : 0);
         
         const stats = {
           vehicleStats,
@@ -202,7 +205,7 @@ export function useDashboardData() {
         CacheManager.set('dashboardStats', stats, 5 * 60 * 1000);
         return stats;
       } catch (error) {
-        handleApiError(error);
+        handleError(error);
         throw error;
       }
     },
@@ -251,7 +254,7 @@ export function useDashboardData() {
         CacheManager.set('dashboardRevenue', result, 5 * 60 * 1000);
         return result;
       } catch (error) {
-        handleApiError(error);
+        handleError(error);
         throw error;
       }
     },
@@ -362,7 +365,7 @@ export function useDashboardData() {
         CacheManager.set('dashboardActivity', result, 3 * 60 * 1000);
         return result;
       } catch (error) {
-        handleApiError(error);
+        handleError(error);
         return [];
       }
     },

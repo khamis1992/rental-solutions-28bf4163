@@ -1,120 +1,133 @@
 import { useState, useCallback } from 'react';
-import { VehicleService } from '@/services/VehicleService';
-import { ExtendedVehicle, VehicleStatus, VehicleInsert, VehicleUpdate } from '@/types/vehicle';
-import { Result } from '@/types/response.types';
+import { ExtendedVehicle } from '@/types/vehicle';
+import { supabase } from '@/lib/supabase';
+import { handleError } from '@/utils/error-handler';
 
-export function useVehicleService() {
+export const useVehicleService = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const service = new VehicleService();
 
-  const getAllVehicles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const getAllVehicles = useCallback(async (): Promise<ExtendedVehicle[]> => {
     try {
-      const result = await service.getAllVehicles();
-      if (!result.success) {
-        setError(result.error);
-        return null;
+      setLoading(true);
+      setError(null);
+
+      const { data, error: supabaseError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      return result.data;
+
+      return data as ExtendedVehicle[];
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return null;
+      const error = handleError(err);
+      setError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [service]);
+  }, []);
 
-  const getVehicleById = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
+  const getVehicleById = useCallback(async (id: string): Promise<ExtendedVehicle | null> => {
     try {
-      const result = await service.getVehicleById(id);
-      if (!result.success) {
-        setError(result.error);
-        return null;
+      setLoading(true);
+      setError(null);
+
+      const { data, error: supabaseError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      return result.data;
+
+      return data as ExtendedVehicle;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return null;
+      const error = handleError(err);
+      setError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [service]);
+  }, []);
 
-  const createVehicle = useCallback(async (vehicle: VehicleInsert) => {
-    setLoading(true);
-    setError(null);
+  const createVehicle = useCallback(async (vehicle: Omit<ExtendedVehicle, 'id' | 'created_at' | 'updated_at'>): Promise<ExtendedVehicle> => {
     try {
-      const result = await service.createVehicle(vehicle);
-      if (!result.success) {
-        setError(result.error);
-        return null;
+      setLoading(true);
+      setError(null);
+
+      const { data, error: supabaseError } = await supabase
+        .from('vehicles')
+        .insert(vehicle)
+        .select()
+        .single();
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      return result.data;
+
+      return data as ExtendedVehicle;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return null;
+      const error = handleError(err);
+      setError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [service]);
+  }, []);
 
-  const updateVehicle = useCallback(async (id: string, vehicle: VehicleUpdate) => {
-    setLoading(true);
-    setError(null);
+  const updateVehicle = useCallback(async (id: string, vehicle: Partial<ExtendedVehicle>): Promise<ExtendedVehicle> => {
     try {
-      const result = await service.updateVehicle(id, vehicle);
-      if (!result.success) {
-        setError(result.error);
-        return null;
+      setLoading(true);
+      setError(null);
+
+      const { data, error: supabaseError } = await supabase
+        .from('vehicles')
+        .update(vehicle)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      return result.data;
+
+      return data as ExtendedVehicle;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return null;
+      const error = handleError(err);
+      setError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [service]);
+  }, []);
 
-  const deleteVehicle = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
+  const deleteVehicle = useCallback(async (id: string): Promise<void> => {
     try {
-      const result = await service.deleteVehicle(id);
-      if (!result.success) {
-        setError(result.error);
-        return false;
+      setLoading(true);
+      setError(null);
+
+      const { error: supabaseError } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', id);
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
       }
-      return true;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return false;
+      const error = handleError(err);
+      setError(error);
+      throw error;
     } finally {
       setLoading(false);
     }
-  }, [service]);
-
-  const getAvailableVehicles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await service.getAvailableVehicles();
-      if (!result.success) {
-        setError(result.error);
-        return null;
-      }
-      return result.data;
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [service]);
+  }, []);
 
   return {
     loading,
@@ -123,7 +136,6 @@ export function useVehicleService() {
     getVehicleById,
     createVehicle,
     updateVehicle,
-    deleteVehicle,
-    getAvailableVehicles
+    deleteVehicle
   };
-}
+};

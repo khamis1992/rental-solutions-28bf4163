@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +43,7 @@ export function ActiveFilters({ activeFilters, setSearchParams }: ActiveFiltersP
       case 'license_plate':
         return `Plate: ${value}`;
       case 'searchTerm':
-        return `Search: ${value}`;
+        return `Search: ${value || ''}`;
       default:
         return `${key}: ${value}`;
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -68,7 +67,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
             type="search"
             placeholder="Search by VIN..."
             className="pl-10"
-            value={filters.search || ''}
+            value={filters?.search || ''}
             onChange={handleSearchChange}
           />
         </div>

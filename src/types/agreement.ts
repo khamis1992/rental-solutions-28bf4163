@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 
 // Base Agreement type that matches the database schema exactly
 export type Agreement = Database['public']['Tables']['leases']['Row'] & {

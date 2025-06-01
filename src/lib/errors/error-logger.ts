@@ -46,9 +46,9 @@ export class ErrorLogger {
   private defaultContext: Partial<ErrorLogContext>;
 
   private constructor() {
-    this.isDevelopment = process.env.NODE_ENV === 'development';
+    this.isDevelopment = import.meta.env.MODE === 'development';
     this.defaultContext = {
-      environment: process.env.NODE_ENV,
+      environment: import.meta.env.MODE,
       timestamp: new Date().toISOString(),
       stackTrace: this.isDevelopment
     };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { handleApiError } from '@/lib/errors/error-handler';
+import { handleApiError } from '@/lib/api/enhanced-error-handlers';
 import { createValidationError } from '@/types/error.types';
 
 /**

@@ -4,10 +4,10 @@
  * It serves as a compatibility layer for other modules that expect these functions.
  */
 
-import { handleApiError, handleApiSuccess } from '@/lib/errors/error-handler';
+import { handleError } from '@/lib/errors/error-handler';
 
 // Re-export the centralized error handling functions
-export { handleApiError, handleApiSuccess };
+export { handleError };
 
 /**
  * Format validation errors into a readable string

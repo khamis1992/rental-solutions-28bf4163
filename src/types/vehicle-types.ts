@@ -1,5 +1,4 @@
-import { Database } from './database.types';
-import { VehicleStatus } from './database.types';
+import { Database, VehicleStatus } from './database';
 
 export type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
 export type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];

@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 import type { Payment as PaymentType } from '@/types/payment.types';
 
 export type LegalCase = {

@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 import { DbId } from '@/types/database-common';
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];

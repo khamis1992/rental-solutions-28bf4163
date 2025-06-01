@@ -1,15 +1,17 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
-import { 
+import {
+  ApiError,
+  ApiResponse,
+  createErrorResponse,
+  createSuccessResponse
+} from '@/types/api.types';
+import {
   AppError,
   ErrorCode,
   ErrorDetails,
-  ApiResponse,
-  createErrorResponse,
-  createSuccessResponse,
   createServiceError,
   createDatabaseError,
-  createSuccessError,
   isAppError as isStandardAppError,
   ErrorContext,
   ErrorSeverity
@@ -121,19 +123,19 @@ export function toAppError(error: unknown, context?: ErrorContext): AppError {
       stack: error.stack,
       name: error.name,
       ...(error as any).cause && { cause: (error as any).cause }
-    }, context);
+    });
   }
 
   // Handle string errors
   if (typeof error === 'string') {
-    return createServiceError(error, { type: 'string' }, context);
+    return createServiceError(error, { type: 'string' });
   }
 
   // Fallback for unknown error types
   return createServiceError('An unknown error occurred', {
     type: typeof error,
     value: String(error)
-  }, context);
+  });
 }
 
 /**
@@ -232,13 +234,7 @@ export function handleSuccess<T>(
   context?: ErrorContext
 ): ApiResponse<T> {
   // Log success with context
-  const successError = createSuccessError(
-    message || 'Operation completed successfully',
-    { data },
-    context
-  );
-
-  errorLogger.logError(successError, 'low', {
+  errorLogger.logError({ message: message || 'Operation completed successfully', data }, 'low', {
     ...context,
     details: { message, data }
   });

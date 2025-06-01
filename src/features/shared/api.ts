@@ -2,15 +2,9 @@ import {
   ApiResponse, 
   createErrorResponse, 
   createSuccessResponse,
-  type AppError
-} from '../../types/error.types';
-import { handleApiError } from '@/lib/errors/error-handler';
-
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: any;
-}
+  ApiError
+} from '../../types/api.types';
+import { handleError } from '@/lib/errors/error-handler';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -36,8 +30,8 @@ export const createPaginatedResponse = <T>(
 };
 
 // Re-export the centralized error handler
-export { handleApiError };
+export { handleError };
 
 // Export types and response creators for backward compatibility
-export type { ApiResponse, AppError };
+export type { ApiResponse, ApiError };
 export { createErrorResponse, createSuccessResponse };

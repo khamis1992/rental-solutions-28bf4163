@@ -26,7 +26,7 @@ const FinancialReport = () => {
     return <div>Loading financial data...</div>;
   }
 
-  const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
+  const categoryTotals = (transactions || []).reduce<Record<string, CategoryTotal>>((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
       acc[category] = {
@@ -88,8 +88,8 @@ const FinancialReport = () => {
         />
         <StatCard 
           title="Overdue Expenses" 
-          value={formatCurrency(financialSummary?.overdueExpenses || 0)} 
-          trend={financialSummary?.overdueExpenses > 0 ? 100 : 0}
+          value={formatCurrency(financialSummary?.overdueExpenses ?? 0)} 
+          trend={(financialSummary?.overdueExpenses ?? 0) > 0 ? 100 : 0}
           trendLabel="requires attention"
           icon={AlertTriangle}
           iconColor="text-red-600"

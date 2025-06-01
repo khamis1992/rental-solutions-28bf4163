@@ -1,11 +1,13 @@
 import { PostgrestError, PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import { 
+  createErrorResponse,
+  createSuccessResponse
+} from '@/types/api.types';
+import { 
   Result, 
   createSuccessResult, 
   createErrorResult,
   AppError,
-  createErrorResponse,
-  createSuccessResponse,
   createDatabaseError,
   type ApiResponse,
   isErrorResponse as isStandardErrorResponse,

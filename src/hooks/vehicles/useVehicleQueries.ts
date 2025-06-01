@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +9,7 @@ import {
 import { CacheManager } from '@/lib/cache-utils';
 import { checkSupabaseHealth } from '@/lib/supabase';
 import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
-import { handleApiError } from '@/hooks/use-api';
+import { handleError } from '@/hooks/use-api';
 import { safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
 export const useVehicleQueries = () => {
@@ -118,7 +117,7 @@ export const useVehicleQueries = () => {
           throw lastError;
         } catch (error) {
           console.error('Failed to fetch vehicles:', error);
-          handleApiError(error, 'Failed to fetch vehicles');
+          handleError(error, { errorContext: 'Failed to fetch vehicles' });
           throw error;
         }
       },
@@ -162,7 +161,7 @@ export const useVehicleQueries = () => {
           return mappedVehicle;
         } catch (error) {
           console.error(`Failed to fetch vehicle ${id}:`, error);
-          handleApiError(error, `Failed to fetch vehicle ${id}`);
+          handleError(error, { errorContext: `Failed to fetch vehicle ${id}` });
           throw error;
         }
       },

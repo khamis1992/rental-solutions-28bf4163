@@ -4,7 +4,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import VehicleTable from '@/components/vehicles/VehicleTable';
 import VehicleFilters from '@/components/vehicles/VehicleFilters';
-import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
+import { VehicleFilterParams, VehicleStatus, ExtendedVehicle } from '@/types/vehicle';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,28 +36,112 @@ const Vehicles = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [error, setError] = useState<Error | null>(null);
   
-  // Use the vehicle service hook with pagination
-  const { vehicles, isLoadingVehicles } = useVehicleService({ filters });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  
+  // Use the vehicle service hook
+  const { loading, error: serviceError, getAllVehicles } = useVehicleService();
+
+  // Update vehicles state with proper type
+  const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
+  
+  // Fetch vehicles with pagination
+  const fetchVehicles = async () => {
+    try {
+      setError(null);
+      const vehicles = await getAllVehicles();
+      if (vehicles) {
+        // Apply filters
+        let filteredVehicles = vehicles as ExtendedVehicle[];
+        
+        // Filter by status
+        if (filters.statuses?.length) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            filters.statuses?.includes(v.status)
+          );
+        }
+        
+        // Filter by make
+        if (filters.make) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.make.toLowerCase().includes(filters.make?.toLowerCase() || '')
+          );
+        }
+        
+        // Filter by location
+        if (filters.location) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.location.toLowerCase().includes(filters.location?.toLowerCase() || '')
+          );
+        }
+        
+        // Filter by year
+        if (filters.year) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.year === filters.year
+          );
+        }
+        
+        // Filter by vehicle type
+        if (filters.vehicle_type_id) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.vehicle_type_id === filters.vehicle_type_id
+          );
+        }
+        
+        // Filter by search term
+        if (filters.searchTerm) {
+          const searchTerm = filters.searchTerm.toLowerCase();
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.vin.toLowerCase().includes(searchTerm) ||
+            v.make.toLowerCase().includes(searchTerm) ||
+            v.model.toLowerCase().includes(searchTerm) ||
+            v.license_plate?.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        // Calculate pagination
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
+        
+        setTotalItems(filteredVehicles.length);
+        return paginatedVehicles;
+      }
+      return [];
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch vehicles'));
+      return [];
+    }
+  };
+
+  // Fetch vehicles when filters or pagination changes
+  useEffect(() => {
+    const loadVehicles = async () => {
+      const data = await fetchVehicles();
+      setVehicles(data);
+    };
+    loadVehicles();
+  }, [filters, currentPage, itemsPerPage]);
 
   // Get status from URL search params
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     
     if (statusFromUrl && statusFromUrl !== 'all') {
-      // Validate that the status is a valid enum value
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
         setFilters(prevFilters => ({ 
           ...prevFilters,
-          status: statusFromUrl as VehicleStatus
+          statuses: [statusFromUrl as VehicleStatus]
         }));
         
         setActiveTab(statusFromUrl);
-        
-        // Show a toast to indicate filtered view
         toast.info(`Showing vehicles with status: ${statusFromUrl}`);
       } else {
-        // If invalid status, show error toast and reset filters
         toast.error(`Invalid status filter: ${statusFromUrl}`);
         navigate('/vehicles');
       }
@@ -81,25 +165,20 @@ const Vehicles = () => {
       setFilters(prev => ({ ...prev, statuses: [value as VehicleStatus] }));
     }
     
-    // Reset to first page when changing tabs
-    pagination.setPage(1);
+    setCurrentPage(1);
   };
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     const updated = {
       ...filters,
-      searchTerm: query.trim() !== '' ? query : undefined
+      searchTerm: query?.trim() !== '' ? query : undefined
     } as VehicleFilterParams;
     setFilters(updated);
-    updateFilters(updated);
-    
-    // Reset to first page when searching
-    pagination.setPage(1);
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (newFilters: any) => {
-    // Convert from form values to filter parameters
     const convertedFilters: VehicleFilterParams = {};
     
     if (newFilters.status && newFilters.status !== 'all') 
@@ -114,29 +193,24 @@ const Vehicles = () => {
     if (newFilters.year && newFilters.year !== 'all') 
       convertedFilters.year = parseInt(newFilters.year);
     
-    // Handle the category to vehicle_type_id mapping
     if (newFilters.category && newFilters.category !== 'all') {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
-    // Handle search parameter from filters or search bar
     if (newFilters.search && newFilters.search.trim() !== '') {
-      convertedFilters.searchTerm = newFilters.search.trim();
+      convertedFilters.searchTerm = newFilters?.search?.trim() || '';
     } else if (searchQuery && searchQuery.trim() !== '') {
-      convertedFilters.searchTerm = searchQuery.trim();
+      convertedFilters.searchTerm = searchQuery?.trim() || '';
     }
     
     setFilters(convertedFilters);
-    updateFilters(convertedFilters);
-    
-    // Reset to first page when changing filters
-    pagination.setPage(1);
+    setCurrentPage(1);
   };
 
   // Create array of active filters for filter chips
   const activeFilters = Object.entries(filters)
     .filter(([key, value]) =>
-      key !== 'status' &&
+      key !== 'statuses' &&
       key !== 'search' &&
       key !== 'searchTerm' &&
       value !== undefined &&
@@ -149,12 +223,9 @@ const Vehicles = () => {
       className="max-w-full"
     >
       <div className="space-y-6">
-        {/* Statistics Cards */}
         <VehicleStats />
         
-        {/* Main Content Card */}
         <Card className="overflow-hidden">
-          {/* Header with Tabs */}
           <div className="p-4 border-b">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <Tabs 
@@ -171,7 +242,6 @@ const Vehicles = () => {
                 </TabsList>
               </Tabs>
               
-              {/* View Mode Toggle */}
               <div className="flex items-center space-x-2">
                 <Button 
                   variant={viewMode === 'grid' ? 'default' : 'outline'} 
@@ -190,7 +260,6 @@ const Vehicles = () => {
               </div>
             </div>
             
-            {/* Search and Action Bar */}
             <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
               <div className="flex-1 max-w-md">
                 <VehicleSearch
@@ -233,7 +302,6 @@ const Vehicles = () => {
               </div>
             </div>
             
-            {/* Active Filters */}
             {activeFilters.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {activeFilters.map(([key, value]) => (
@@ -248,7 +316,6 @@ const Vehicles = () => {
                         const updatedFilters = { ...filters };
                         delete updatedFilters[key as keyof VehicleFilterParams];
                         setFilters(updatedFilters);
-                        updateFilters(updatedFilters);
                       }}
                       className="ml-1 rounded-full hover:bg-accent p-1"
                     >
@@ -264,10 +331,9 @@ const Vehicles = () => {
                   size="sm" 
                   onClick={() => {
                     const cleanFilters: VehicleFilterParams = {};
-                    if (filters.status) cleanFilters.status = filters.status;
+                    if (filters.statuses) cleanFilters.statuses = filters.statuses;
                     if (searchQuery) cleanFilters.searchTerm = searchQuery;
                     setFilters(cleanFilters);
-                    updateFilters(cleanFilters);
                   }}
                 >
                   Clear filters
@@ -276,13 +342,12 @@ const Vehicles = () => {
             )}
           </div>
           
-          {/* Filter Panel */}
           {showFilters && (
             <div className="border-b p-4">
               <VehicleFilters 
                 onFilterChange={handleFilterChange} 
                 initialValues={{
-                  status: filters.status || 'all',
+                  status: filters.statuses?.[0] || 'all',
                   make: filters.make || 'all',
                   location: filters.location || 'all',
                   year: filters.year?.toString() || 'all',
@@ -293,37 +358,35 @@ const Vehicles = () => {
             </div>
           )}
           
-          {/* Content Area */}
           <CardContent className="p-4">
             {viewMode === 'grid' ? (
               <VehicleGrid 
-                vehicles={vehicles || []}
-                isLoading={isLoadingVehicles}
+                vehicles={vehicles}
+                isLoading={loading}
                 onVehicleClick={handleSelectVehicle}
               />
             ) : (
               <VehicleTable 
-                vehicles={vehicles || []}
-                isLoading={isLoadingVehicles}
+                vehicles={vehicles}
+                isLoading={loading}
                 onRowClick={handleSelectVehicle}
               />
             )}
             
-            {error && (
+            {(error || serviceError) && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4">
                 <p className="font-medium">Error loading vehicles</p>
-                <p>{error?.message || 'An unknown error occurred'}</p>
+                <p>{(error || serviceError)?.message || 'An unknown error occurred'}</p>
               </div>
             )}
             
-            {/* Pagination Controls */}
             <PaginationControls
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalItems / itemsPerPage)}
               totalItems={totalItems}
-              itemsPerPage={pagination.itemsPerPage}
-              onPageChange={pagination.setPage}
-              onItemsPerPageChange={pagination.setItemsPerPage}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
               className="mt-4"
             />
           </CardContent>

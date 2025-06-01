@@ -1,4 +1,5 @@
-import { handleApiError, handleApiSuccess } from '@/lib/errors/error-handler';
+import { handleError as handleApiError, handleSuccess } from './error-handlers';
 
 // Re-export the centralized error handling functions
-export { handleApiError, handleApiSuccess };
+export { handleApiError };
+export { handleSuccess as handleApiSuccess };

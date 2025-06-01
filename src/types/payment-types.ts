@@ -1,5 +1,5 @@
-import { Database } from '@/types/database.types';
-import { isErrorResponse as isStandardErrorResponse } from '../types/error.types';
+import { Database } from './database';
+import { isErrorResult as isStandardErrorResponse } from '../types/response.types';
 
 export type PaymentRow = Database['public']['Tables']['unified_payments']['Row'];
 export type PaymentInsert = Database['public']['Tables']['unified_payments']['Insert'];

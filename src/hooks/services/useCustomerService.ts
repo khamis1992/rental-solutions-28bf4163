@@ -1,19 +1,23 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CustomerService, CustomerFilters, Customer, customerService } from '@/services/CustomerService';
+import { CustomerService, customerService } from '@/services/CustomerService';
+import { Customer, CustomerFilterParams } from '@/types/customer.types';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/types/service.types';
 
 interface UseCustomerServiceOptions {
-  filters?: CustomerFilters;
+  filters?: CustomerFilterParams;
 }
 
 export function useCustomerService(options: UseCustomerServiceOptions = {}) {
   const queryClient = useQueryClient();
 
+  // Always ensure filters is defined and searchTerm is present
+  const [filters, setFilters] = useState<CustomerFilterParams>({ searchTerm: '', ...(options.filters || {}) });
+
   const listCustomers = useCallback(async () => {
     try {
-      const result = await customerService.findCustomers(options.filters);
+      const result = await customerService.fetchCustomers(filters);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
@@ -23,11 +27,11 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
       toast.error(`Failed to fetch customers: ${errorMessage}`);
       throw error;
     }
-  }, [options.filters]);
+  }, [filters]);
 
   const getCustomer = useCallback(async (id: string) => {
     try {
-      const result = await customerService.getCustomerDetails(id);
+      const result = await customerService.getCustomerById(id);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
@@ -41,7 +45,7 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
 
   const createCustomer = useCallback(async (data: Partial<Customer>) => {
     try {
-      const result = await customerService.create(data);
+      const result = await customerService.createCustomer(data);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
@@ -55,7 +59,7 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
 
   const updateCustomer = useCallback(async (id: string, data: Partial<Customer>) => {
     try {
-      const result = await customerService.update(id, data);
+      const result = await customerService.updateCustomer(id, data);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
@@ -69,7 +73,7 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
 
   const deleteCustomer = useCallback(async (id: string) => {
     try {
-      const result = await customerService.delete(id);
+      const result = await customerService.deleteCustomer(id);
       if (!result.success) {
         throw new Error(getErrorMessage(result.error));
       }
@@ -80,8 +84,13 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
     }
   }, []);
 
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['customers', options.filters],
+  const {
+    data: customers = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['customers', filters],
     queryFn: listCustomers,
   });
 
@@ -112,7 +121,11 @@ export function useCustomerService(options: UseCustomerServiceOptions = {}) {
 
   return {
     customers,
-    isLoadingCustomers,
+    isLoading,
+    error,
+    filters,
+    setFilters,
+    refetch,
     createCustomer: createCustomerMutation.mutate,
     updateCustomer: updateCustomerMutation.mutate,
     deleteCustomer: deleteCustomerMutation.mutate,

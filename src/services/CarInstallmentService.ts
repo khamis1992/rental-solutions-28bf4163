@@ -38,7 +38,7 @@ export class CarInstallmentService extends BaseService {
         if (filters.status) {
           query = query.eq('status', filters.status);
         }
-        if (filters.searchTerm) {
+        if (filters?.searchTerm) {
           query = query.ilike('contract_number', `%${filters.searchTerm}%`);
         }
         if (filters.startDate) {

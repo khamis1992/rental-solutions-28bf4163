@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 import { CustomerImportHistory } from '@/components/customers/CustomerImportHistory';
@@ -27,8 +26,7 @@ const Customers = () => {
     error,
     filters,
     setFilters,
-    refetch,
-    isPending
+    refetch
   } = useCustomerService();
 
   // Transform customers data to match CustomerInfo type
@@ -108,7 +106,7 @@ const Customers = () => {
         />
         
         <CustomerPageToolbar
-          filters={filters}
+          filters={{ ...filters, search: filters?.search || '' }}
           setFilters={setFilters}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}

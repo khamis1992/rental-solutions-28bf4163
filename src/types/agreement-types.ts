@@ -1,4 +1,4 @@
-import { Database } from '@/types/database.types';
+import { Database } from './database';
 import { DbId, LeaseStatus, PaymentStatus } from '@/types/database-common';
 
 export type AgreementStatus = LeaseStatus;

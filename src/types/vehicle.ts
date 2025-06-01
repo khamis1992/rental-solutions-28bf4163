@@ -4,7 +4,15 @@ import { isValidVehicleStatus, getVehicleStatusDisplay, getVehicleStatusColor } 
 /**
  * Vehicle status options from the database schema
  */
-export type VehicleStatus = Database['public']['Enums']['vehicle_status'];
+export type VehicleStatus = 
+  | 'available'
+  | 'rented'
+  | 'reserved'
+  | 'maintenance'
+  | 'police_station'
+  | 'accident'
+  | 'stolen'
+  | 'retired';
 
 /**
  * Core vehicle data structure representing a vehicle in the fleet
@@ -48,13 +56,26 @@ export interface MaintenanceRecord {
 /**
  * Extended vehicle information including maintenance and rental history
  */
-export interface ExtendedVehicle extends VehicleRow {
-  agreements?: Database['public']['Tables']['leases']['Row'][];
-  vehicle_type?: VehicleType;
-  maintenance_records?: MaintenanceRecord[];
-  full_name?: string;
-  status_display?: string;
-  type_display?: string;
+export interface ExtendedVehicle extends Database['public']['Tables']['vehicles']['Row'] {
+  make: string;
+  model: string;
+  year: number;
+  vin: string;
+  license_plate?: string;
+  status: VehicleStatus;
+  location: string;
+  vehicle_type_id: string;
+  mileage: number;
+  last_maintenance_date?: string;
+  next_maintenance_date?: string;
+  daily_rate: number;
+  weekly_rate: number;
+  monthly_rate: number;
+  images?: string[];
+  features?: string[];
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 /**

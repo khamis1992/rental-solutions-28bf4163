@@ -7,33 +7,27 @@ export {
   type AppError,
   type ErrorCode,
   type ErrorDetails,
-  type Result,
-  type SuccessResult,
-  type ErrorResult,
-  type ValidationError,
-  type DatabaseError,
-  type NotFoundError,
-  type ApiError,
-  type ServiceError,
-  type PaymentError,
-  
+  type ErrorSeverity,
+  type ErrorContext,
+
   // Functions
-  createSuccessResult,
   createErrorResult,
-  createValidationError,
-  createNotFoundError,
+  createSuccessResult,
   createDatabaseError,
+  createValidationError,
+  createAuthenticationError,
+  createAuthorizationError,
+  createNotFoundError,
+  createNetworkError,
+  createTimeoutError,
+  createRateLimitError,
   createApiError,
   createServiceError,
   createPaymentError,
-  createAuthError,
-  createForbiddenError,
-  createNetworkError,
-  createTimeoutError,
-  
+  createUnknownError,
+
   // Type guards
   isAppError,
-  isErrorResult,
-  isErrorResponse,
-  isSuccessResponse
+  isSuccessResult,
+  isErrorResult
 } from '@/types/error.types'; 

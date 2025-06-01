@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -264,10 +263,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               />
 
               <NavLink
-                to="/user-management"
+                to="/users"
                 icon={<Users className="h-5 w-5 flex-shrink-0" />}
                 label="User Management"
-                isActive={isActive('/user-management')}
+                isActive={isActive('/users')}
                 onClick={handleNavClick}
               />
 

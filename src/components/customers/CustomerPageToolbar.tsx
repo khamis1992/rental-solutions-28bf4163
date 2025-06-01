@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomerListFilter } from '@/components/customers/CustomerListFilter';
@@ -7,7 +6,7 @@ import { PlusCircle, Upload, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface CustomerPageToolbarProps {
   filters: {
-    searchTerm?: string;
+    search?: string;
   };
   setFilters: (filters: any) => void;
   onRefresh: () => void;
@@ -33,8 +32,8 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   return (
     <div className="flex flex-col sm:flex-row justify-between gap-4">
       <CustomerListFilter 
-        onSearch={(query) => setFilters({ ...filters, searchTerm: query })} 
-        searchTerm={filters.searchTerm || ''}
+        onSearch={(query) => setFilters({ ...filters, search: query })} 
+        searchTerm={filters.search || ''}
       />
       
       <div className="flex flex-wrap gap-2">

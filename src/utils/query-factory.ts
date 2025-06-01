@@ -1,5 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { handleApiError } from '@/lib/errors/error-handler';
+import { handleApiError } from '@/lib/api/enhanced-error-handlers';
+import type { ErrorContext } from '@/types/error.types';
 
 /**
  * Options for creating a query
@@ -12,7 +13,7 @@ interface QueryFactoryOptions<TData, TError> {
   retryDelay?: number;
   onSuccess?: (data: TData) => void;
   onError?: (error: TError) => void;
-  errorContext?: string;
+  errorContext?: ErrorContext;
   [key: string]: any;
 }
 
@@ -34,7 +35,7 @@ export function createQuery<TData, TError = Error>(
         return await queryFn();
       } catch (error) {
         // Handle the error with our centralized error handler
-        handleApiError(error, options?.errorContext);
+        handleApiError(error, { context: options?.errorContext });
         throw error;
       }
     },
@@ -66,7 +67,7 @@ export function createResilientQuery<TData, TError = Error>(
       } catch (error) {
         // Handle the error with our centralized error handler, but only if not silent
         if (!options?.silentRetry) {
-          handleApiError(error, options?.errorContext);
+          handleApiError(error, { context: options?.errorContext });
         } else {
           console.error(`Silent error in query ${queryKey.join('/')}:`, error);
         }

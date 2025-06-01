@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -65,7 +64,7 @@ const MaintenanceFilters = ({ onFilterChange, vehicleOptions }: MaintenanceFilte
         <div className="relative flex-1">
           <Input
             placeholder="Search maintenance records..."
-            value={filters.searchTerm}
+            value={filters?.searchTerm || ''}
             onChange={(e) => handleInputChange('searchTerm', e.target.value)}
             className="pl-10"
           />

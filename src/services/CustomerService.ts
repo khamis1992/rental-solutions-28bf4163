@@ -2,12 +2,11 @@ import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Customer, CustomerFilterParams, CustomerStatus } from '@/types/customer.types';
 import { 
-  Result, 
-  ServiceError, 
   createServiceError, 
   createNotFoundError,
   ErrorContext
 } from '@/types/error.types';
+import { Result } from '@/types/response.types';
 
 export class CustomerService extends BaseService {
   constructor() {
@@ -16,11 +15,11 @@ export class CustomerService extends BaseService {
 
   async fetchCustomers(filters?: CustomerFilterParams): Promise<Result<Customer[]>> {
     return this.safeExecute(async () => {
-      let query = supabase.from('customers').select('*');
+      let query = supabase.from('profiles').select('*');
 
       if (filters) {
         if (filters.search) {
-          query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`);
+          query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone_number.ilike.%${filters.search}%`);
         }
         
         if (filters.status) {
@@ -31,9 +30,9 @@ export class CustomerService extends BaseService {
       const { data, error } = await query;
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to fetch customers',
-          'fetchCustomers'
+          { operation: 'fetchCustomers' }
         );
       }
 
@@ -44,20 +43,20 @@ export class CustomerService extends BaseService {
   async getCustomerById(id: string): Promise<Result<Customer>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
-        .from('customers')
+        .from('profiles')
         .select('*')
         .eq('id', id)
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to fetch customer',
-          'getCustomerById'
+          { operation: 'getCustomerById' }
         );
       }
 
       if (!data) {
-        throw createNotFoundError('Customer', id);
+        throw createNotFoundError(`Customer not found: ${id}`);
       }
 
       return data;
@@ -67,15 +66,15 @@ export class CustomerService extends BaseService {
   async createCustomer(customerData: Partial<Customer>): Promise<Result<Customer>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
-        .from('customers')
+        .from('profiles')
         .insert([customerData])
         .select()
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to create customer',
-          'createCustomer'
+          { operation: 'createCustomer' }
         );
       }
 
@@ -86,21 +85,21 @@ export class CustomerService extends BaseService {
   async updateCustomer(id: string, customerData: Partial<Customer>): Promise<Result<Customer>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
-        .from('customers')
+        .from('profiles')
         .update(customerData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to update customer',
-          'updateCustomer'
+          { operation: 'updateCustomer' }
         );
       }
 
       if (!data) {
-        throw createNotFoundError('Customer', id);
+        throw createNotFoundError(`Customer not found: ${id}`);
       }
 
       return data;
@@ -110,14 +109,14 @@ export class CustomerService extends BaseService {
   async deleteCustomer(id: string): Promise<Result<boolean>> {
     return this.safeExecute(async () => {
       const { error } = await supabase
-        .from('customers')
+        .from('profiles')
         .delete()
         .eq('id', id);
 
       if (error) {
-        throw this.createServiceError(
+        throw createServiceError(
           'Failed to delete customer',
-          'deleteCustomer'
+          { operation: 'deleteCustomer' }
         );
       }
 
