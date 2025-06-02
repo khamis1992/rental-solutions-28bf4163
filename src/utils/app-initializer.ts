@@ -1,17 +1,14 @@
-
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
 import { registerPaymentEventHandlers } from '@/events/payment-handlers';
-import { getCSPHeaders } from '@/utils/security';
 
 interface SystemStatus {
   agreementImport?: boolean;
   customerImport?: boolean;
   paymentProcessing?: boolean;
   documentGeneration?: boolean;
-  security?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -19,64 +16,22 @@ interface SystemStatus {
 let servicesChecked = false;
 let systemStatus: SystemStatus | null = null;
 
-const REQUIRED_ENV_VARS = {
-  VITE_SUPABASE_URL: 'Supabase URL',
-  VITE_SUPABASE_ANON_KEY: 'Supabase anonymous key',
-  VITE_API_URL: 'API URL',
-  VITE_APP_ENV: 'Application environment',
-} as const;
-
 const checkEnvironmentConfig = () => {
   const issues: string[] = [];
 
-  // Check required environment variables
-  Object.entries(REQUIRED_ENV_VARS).forEach(([key, description]) => {
-    if (!import.meta.env[key]) {
-      issues.push(`${description} (${key}) not configured`);
-    }
-  });
-
-  // Validate Supabase URL format
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (supabaseUrl) {
-    try {
-      new URL(supabaseUrl);
-    } catch {
-      issues.push("Invalid Supabase URL format");
-    }
+  if (!supabase.functions) {
+    issues.push("Edge functions not available");
   }
 
-  // Validate API URL format
-  const apiUrl = import.meta.env.VITE_API_URL;
-  if (apiUrl && !apiUrl.startsWith('http')) {
-    issues.push("API URL must start with http:// or https://");
+  if (!process.env.VITE_SUPABASE_URL) {
+    issues.push("Supabase URL not configured");
   }
 
-  // Validate environment value
-  const appEnv = import.meta.env.VITE_APP_ENV;
-  if (appEnv && !['development', 'staging', 'production'].includes(appEnv)) {
-    issues.push("Invalid application environment value");
+  if (!process.env.VITE_SUPABASE_ANON_KEY) {
+    issues.push("Supabase anonymous key not configured");
   }
 
   return issues;
-};
-
-const initializeSecurity = () => {
-  try {
-    // Apply Content Security Policy headers if supported
-    if (typeof document !== 'undefined') {
-      const cspHeaders = getCSPHeaders();
-      const meta = document.createElement('meta');
-      meta.httpEquiv = 'Content-Security-Policy';
-      meta.content = cspHeaders['Content-Security-Policy'];
-      document.head.appendChild(meta);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Failed to initialize security features:', error);
-    return false;
-  }
 };
 
 const handleServiceStatus = (status: SystemStatus) => {
@@ -99,9 +54,6 @@ export const getSystemStatus = () => systemStatus;
 
 export const initializeApp = async () => {
   try {
-    // Initialize security features first
-    const securityInitialized = initializeSecurity();
-
     // Register event handlers
     registerPaymentEventHandlers();
 
@@ -111,22 +63,7 @@ export const initializeApp = async () => {
     // Check environment configuration
     const configIssues = checkEnvironmentConfig();
     if (configIssues.length > 0) {
-      const message = `Configuration issues found: ${configIssues.join(", ")}`;
-      console.error(message);
-      
-      // In development, show detailed error
-      if (import.meta.env.DEV) {
-        toast.warning("Configuration issues detected. Check console for details.", {
-          duration: 8000,
-          id: "config-warning",
-        });
-      } else {
-        // In production, show user-friendly message
-        toast.error("Application configuration is incomplete. Please contact support.", {
-          duration: 6000,
-          id: "config-error",
-        });
-      }
+      throw new Error(`Configuration issues found: ${configIssues.join(", ")}`);
     }
 
     // Only check system services once per session
@@ -135,17 +72,13 @@ export const initializeApp = async () => {
 
       try {
         const servicesStatus = await getSystemServicesStatus();
-        systemStatus = {
-          ...handleServiceStatus(servicesStatus),
-          security: securityInitialized
-        };
+        systemStatus = handleServiceStatus(servicesStatus);
         servicesChecked = true;
 
         // Log overall system status
         console.log("System services status:", systemStatus);
       } catch (error) {
         console.error("Failed to check system services:", error);
-        systemStatus = { security: securityInitialized };
         toast.error("System service check failed. Some features may be limited.", {
           duration: 6000,
           id: "service-check-error",

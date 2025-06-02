@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 interface AgreementFormStatusProps {
   updateProgress: number | ((progress: number) => void) | null | undefined;
   validationErrors: Record<string, string> | null | undefined;

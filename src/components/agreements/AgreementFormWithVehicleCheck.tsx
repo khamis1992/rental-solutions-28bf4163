@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -173,13 +172,7 @@ const AgreementFormWithVehicleCheck = ({
                 acknowledgedPayments={acknowledgedPayments}
                 onAcknowledgePayments={setAcknowledgedPayments}
                 isPaymentHistoryOpen={isPaymentHistoryOpen}
-                formatDate={(date) => {
-                  if (!date) return 'N/A';
-                  if (typeof date === 'string') {
-                    return formatDate(new Date(date));
-                  }
-                  return formatDate(date);
-                }}
+                formatDate={(date) => formatDate(new Date(date))}
               />
             </div>
           </CardContent>
