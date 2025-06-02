@@ -1,14 +1,17 @@
+
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { getSystemServicesStatus } from './service-availability';
 import { registerPaymentEventHandlers } from '@/events/payment-handlers';
+import { getCSPHeaders } from '@/utils/security';
 
 interface SystemStatus {
   agreementImport?: boolean;
   customerImport?: boolean;
   paymentProcessing?: boolean;
   documentGeneration?: boolean;
+  security?: boolean;
   [key: string]: boolean | undefined;
 }
 
@@ -33,9 +36,14 @@ const checkEnvironmentConfig = () => {
     }
   });
 
-  // Validate Supabase configuration
-  if (!supabase.functions) {
-    issues.push("Edge functions not available");
+  // Validate Supabase URL format
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      new URL(supabaseUrl);
+    } catch {
+      issues.push("Invalid Supabase URL format");
+    }
   }
 
   // Validate API URL format
@@ -51,6 +59,24 @@ const checkEnvironmentConfig = () => {
   }
 
   return issues;
+};
+
+const initializeSecurity = () => {
+  try {
+    // Apply Content Security Policy headers if supported
+    if (typeof document !== 'undefined') {
+      const cspHeaders = getCSPHeaders();
+      const meta = document.createElement('meta');
+      meta.httpEquiv = 'Content-Security-Policy';
+      meta.content = cspHeaders['Content-Security-Policy'];
+      document.head.appendChild(meta);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize security features:', error);
+    return false;
+  }
 };
 
 const handleServiceStatus = (status: SystemStatus) => {
@@ -73,6 +99,9 @@ export const getSystemStatus = () => systemStatus;
 
 export const initializeApp = async () => {
   try {
+    // Initialize security features first
+    const securityInitialized = initializeSecurity();
+
     // Register event handlers
     registerPaymentEventHandlers();
 
@@ -87,14 +116,17 @@ export const initializeApp = async () => {
       
       // In development, show detailed error
       if (import.meta.env.DEV) {
-        throw new Error(message);
+        toast.warning("Configuration issues detected. Check console for details.", {
+          duration: 8000,
+          id: "config-warning",
+        });
+      } else {
+        // In production, show user-friendly message
+        toast.error("Application configuration is incomplete. Please contact support.", {
+          duration: 6000,
+          id: "config-error",
+        });
       }
-      
-      // In production, show user-friendly message
-      toast.error("Application configuration is incomplete. Please contact support.", {
-        duration: 6000,
-        id: "config-error",
-      });
     }
 
     // Only check system services once per session
@@ -103,13 +135,17 @@ export const initializeApp = async () => {
 
       try {
         const servicesStatus = await getSystemServicesStatus();
-        systemStatus = handleServiceStatus(servicesStatus);
+        systemStatus = {
+          ...handleServiceStatus(servicesStatus),
+          security: securityInitialized
+        };
         servicesChecked = true;
 
         // Log overall system status
         console.log("System services status:", systemStatus);
       } catch (error) {
         console.error("Failed to check system services:", error);
+        systemStatus = { security: securityInitialized };
         toast.error("System service check failed. Some features may be limited.", {
           duration: 6000,
           id: "service-check-error",
