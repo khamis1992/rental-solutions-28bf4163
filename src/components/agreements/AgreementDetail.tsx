@@ -1,8 +1,12 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { differenceInMonths } from 'date-fns';
-import { Card } from '@/components/ui/card';
+import { format, differenceInMonths } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
@@ -45,7 +49,7 @@ export function AgreementDetail({
   const navigate = useNavigate();
   
   // Use the dialog management hook
-  const { openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
+  const { dialogs, openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
     delete: false,
     payment: false
   });
@@ -55,6 +59,11 @@ export function AgreementDetail({
     generatingPdf: false
   });
 
+  const [lateFeeDetails, setLateFeeDetails] = useState(null as {
+    amount: number;
+    daysLate: number;
+  } | null);
+  const [selectedPayment, setSelectedPayment] = useState(null as Payment | null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Use payment management hook
@@ -63,19 +72,31 @@ export function AgreementDetail({
     isLoading: isLoadingPayments,
     updatePayment: updatePaymentMutation,
     addPayment: addPaymentMutation,
-    deletePayment: deletePaymentMutation
+    deletePayment: deletePaymentMutation,
+    updateHistoricalStatuses,
+    loadingStates: paymentLoadingStates
   } = usePaymentManagement(agreement?.id);
   
   // Use special payment hook
-  const { calculateLateFee } = useSpecialPayment(agreement?.id);
+  const { processPayment, calculateLateFee } = useSpecialPayment(agreement?.id);
   
   // Calculate late fee on component mount
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
-      calculateLateFee(today);
+      const { amount, daysLate } = calculateLateFee(today);
+      setLateFeeDetails({ amount, daysLate });
+    } else {
+      setLateFeeDetails(null);
     }
   }, [calculateLateFee]);
+
+  // Handle agreement deletion
+  const handleDelete = useCallback(() => {
+    if (agreement) {
+      onDelete(agreement.id);
+    }
+  }, [agreement, onDelete]);
 
   // Confirm delete dialog
   const confirmDelete = useCallback(() => {
@@ -84,6 +105,11 @@ export function AgreementDetail({
       closeDialog('delete');
     }
   }, [agreement, onDelete, closeDialog]);
+
+  // Print functionality
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
   // Edit agreement
   const handleEdit = useCallback(() => {
@@ -199,12 +225,14 @@ export function AgreementDetail({
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex gap-2">
-          <button
-            className="text-xs px-2 py-1 border rounded"
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-xs"
           >
             {showDebugPanel ? 'Hide' : 'Show'} Debug
-          </button>
+          </Button>
           <PaymentSyncButton 
             agreementId={agreement.id} 
             variant="fix"
@@ -239,11 +267,7 @@ export function AgreementDetail({
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
         onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={async () => {
-          if (onGenerateDocument) {
-            await Promise.resolve(onGenerateDocument());
-          }
-        }}
+        onGenerateDocument={onGenerateDocument}
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 
@@ -307,7 +331,7 @@ export function AgreementDetail({
           description="Add a new payment to this agreement"
           leaseId={agreement.id}
           rentAmount={rentAmount}
-          selectedPayment={null}
+          selectedPayment={selectedPayment}
         />
       )}
     </div>

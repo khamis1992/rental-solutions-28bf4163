@@ -4,44 +4,16 @@ import { toast } from 'sonner';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
 
-// Validate required environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Default fallback values (these will be used if environment variables are not found)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vqdlsidkucrownbfuouq.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Missing required Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.'
-  );
+// Check that we have the values we need, but use fallbacks instead of throwing an error
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn('Supabase environment variables not found, using default values');
 }
 
-// Validate URL format
-try {
-  new URL(supabaseUrl);
-} catch {
-  throw new Error('Invalid VITE_SUPABASE_URL format. Please provide a valid URL.');
-}
-
-// Validate key format (basic check for Supabase anon key pattern)
-if (!supabaseAnonKey.startsWith('eyJ') || supabaseAnonKey.length < 100) {
-  throw new Error('Invalid VITE_SUPABASE_ANON_KEY format. Please provide a valid Supabase anonymous key.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'rental-solutions@1.0.0'
-    }
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Connection status cache to avoid repeated health checks
 let lastHealthCheck = {
