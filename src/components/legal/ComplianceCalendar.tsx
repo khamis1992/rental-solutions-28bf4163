@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -9,66 +9,88 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Calendar as CalendarIcon, Clock, FileText } from 'lucide-react';
+import { AlertTriangle, Calendar as CalendarIcon, FileText } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
-
-// Mock compliance data
-const MOCK_COMPLIANCE_ITEMS = [
-  {
-    id: '1',
-    title: 'Vehicle Insurance Renewal',
-    dueDate: new Date(2024, 2, 15),
-    type: 'insurance',
-    status: 'pending',
-    priority: 'high',
-    description: 'Renew insurance policies for fleet vehicles.'
-  },
-  {
-    id: '2',
-    title: 'Annual Tax Filing',
-    dueDate: new Date(2024, 3, 30),
-    type: 'tax',
-    status: 'pending',
-    priority: 'high',
-    description: 'Submit annual tax returns for the company.'
-  },
-  {
-    id: '3',
-    title: 'Driver License Verifications',
-    dueDate: new Date(2024, 2, 25),
-    type: 'license',
-    status: 'pending',
-    priority: 'medium',
-    description: 'Verify all driver licenses are valid and up to date.'
-  },
-  {
-    id: '4',
-    title: 'Vehicle Inspection Certificates',
-    dueDate: new Date(2024, 4, 10),
-    type: 'inspection',
-    status: 'pending',
-    priority: 'medium',
-    description: 'Renew vehicle inspection certificates.'
-  }
-];
+import { supabase } from '@/lib/supabase';
+import type { VehicleData } from '@/types/vehicle.types';
 
 const ComplianceCalendar: React.FC = () => {
+  const [vehicles, setVehicles] = useState<VehicleData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
-  
-  // Generate compliance event dates for the calendar highlighting
-  const complianceDates = MOCK_COMPLIANCE_ITEMS.map(item => {
-    const date = new Date(item.dueDate);
-    return date;
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, make, model, year, license_plate, insurance_expiry, inspection_expiry');
+      if (!error && data) setVehicles(data as VehicleData[]);
+      setLoading(false);
+    };
+    fetchVehicles();
+  }, []);
+
+  // Build compliance items from vehicle data
+  const complianceItems = vehicles.flatMap(vehicle => {
+    const items = [];
+    if (vehicle.insurance_expiry) {
+      items.push({
+        id: `${vehicle.id}-insurance`,
+        title: `Insurance Expiry: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+        dueDate: new Date(vehicle.insurance_expiry),
+        type: 'insurance',
+        status: new Date(vehicle.insurance_expiry) < new Date() ? 'expired' : 'pending',
+        priority: new Date(vehicle.insurance_expiry) < new Date() ? 'high' : 'medium',
+        description: `Insurance expires for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+      });
+    } else {
+      items.push({
+        id: `${vehicle.id}-insurance-missing`,
+        title: `Missing Insurance: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+        dueDate: null,
+        type: 'insurance',
+        status: 'missing',
+        priority: 'high',
+        description: `No insurance expiry set for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+      });
+    }
+    if (vehicle.inspection_expiry) {
+      items.push({
+        id: `${vehicle.id}-inspection`,
+        title: `Inspection Expiry: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+        dueDate: new Date(vehicle.inspection_expiry),
+        type: 'inspection',
+        status: new Date(vehicle.inspection_expiry) < new Date() ? 'expired' : 'pending',
+        priority: new Date(vehicle.inspection_expiry) < new Date() ? 'high' : 'medium',
+        description: `Inspection expires for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+      });
+    } else {
+      items.push({
+        id: `${vehicle.id}-inspection-missing`,
+        title: `Missing Inspection: ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+        dueDate: null,
+        type: 'inspection',
+        status: 'missing',
+        priority: 'high',
+        description: `No inspection expiry set for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
+      });
+    }
+    return items;
   });
+
+  // Dates for calendar highlights
+  const complianceDates = complianceItems
+    .filter(item => item.dueDate)
+    .map(item => item.dueDate);
 
   // Handle date selection in calendar
   const handleSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
-    
     if (selectedDate) {
-      // Find items due on the selected date
-      const items = MOCK_COMPLIANCE_ITEMS.filter(item => {
+      const items = complianceItems.filter(item => {
+        if (!item.dueDate) return false;
         const itemDate = new Date(item.dueDate);
         return (
           itemDate.getDate() === selectedDate.getDate() &&
@@ -76,7 +98,6 @@ const ComplianceCalendar: React.FC = () => {
           itemDate.getFullYear() === selectedDate.getFullYear()
         );
       });
-      
       setSelectedItems(items);
     } else {
       setSelectedItems([]);
@@ -100,10 +121,6 @@ const ComplianceCalendar: React.FC = () => {
     switch (type) {
       case 'insurance':
         return <FileText className="h-4 w-4 text-blue-500" />;
-      case 'tax':
-        return <FileText className="h-4 w-4 text-red-500" />;
-      case 'license':
-        return <FileText className="h-4 w-4 text-green-500" />;
       case 'inspection':
         return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       default:
@@ -114,7 +131,40 @@ const ComplianceCalendar: React.FC = () => {
   return (
     <div className="p-6 bg-white rounded shadow">
       <h2 className="text-xl font-semibold mb-2">Compliance Tracking</h2>
-      <p className="text-gray-600">Track compliance deadlines and requirements here.</p>
+      <p className="text-gray-600 mb-4">Track insurance and inspection deadlines for your vehicles.</p>
+      {loading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleSelect}
+          />
+          <div className="mt-6">
+            <h3 className="font-semibold mb-2">Compliance Items</h3>
+            {selectedItems.length === 0 ? (
+              <div className="text-gray-500">Select a date to view compliance items due.</div>
+            ) : (
+              <ul className="space-y-3">
+                {selectedItems.map(item => (
+                  <li key={item.id} className="flex items-center gap-3 p-3 border rounded">
+                    {getTypeIcon(item.type)}
+                    <div className="flex-1">
+                      <div className="font-medium">{item.title}</div>
+                      <div className="text-xs text-gray-500">{item.description}</div>
+                    </div>
+                    {item.dueDate && (
+                      <span className="text-xs text-gray-400">Due: {formatDate(item.dueDate)}</span>
+                    )}
+                    {getPriorityBadge(item.priority)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

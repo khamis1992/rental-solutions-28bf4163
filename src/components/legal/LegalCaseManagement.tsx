@@ -140,7 +140,6 @@ const LegalCaseManagement: React.FC = () => {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="px-2 py-1 text-left">ID</th>
                     <th className="px-2 py-1 text-left">Customer</th>
                     <th className="px-2 py-1 text-left">Type</th>
                     <th className="px-2 py-1 text-left">Status</th>
@@ -153,7 +152,6 @@ const LegalCaseManagement: React.FC = () => {
                 <tbody>
                   {filteredCases.map((c) => (
                     <tr key={c.id} className="border-b hover:bg-gray-50 cursor-pointer group" onClick={() => { setSelectedCase(c); setShowEditModal(true); }}>
-                      <td className="px-2 py-1">{c.id}</td>
                       <td className="px-2 py-1">{c.profiles?.full_name || 'N/A'}</td>
                       <td className="px-2 py-1">{c.case_type}</td>
                       <td className="px-2 py-1">{c.status}</td>

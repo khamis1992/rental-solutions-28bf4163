@@ -117,16 +117,14 @@ const Agreements = () => {
   // Updated to ensure pagination resets when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === 'all' || value === 'agreements') {
-      setSearchParams({ status: undefined });
+    if (value === 'all' || value === 'agreements' || value === 'history') {
+      setSearchParams({});
     } else if (
       value === 'active' ||
       value === 'closed' ||
-      value === 'cancelled' ||
-      value === 'history'
+      value === 'cancelled'
     ) {
-      // Only set the status filter for valid status values
-      setSearchParams({ status: value === 'history' ? undefined : value });
+      setSearchParams({ statuses: [value] });
     }
   };
 
@@ -184,21 +182,6 @@ const Agreements = () => {
         <Card>
           <div className="p-4 border-b">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <Tabs 
-                defaultValue={activeTab} 
-                value={activeTab} 
-                onValueChange={handleTabChange}
-                className="w-full sm:w-auto"
-              >
-                <TabsList>
-                  <TabsTrigger value="agreements">All Agreements</TabsTrigger>
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="closed">Closed</TabsTrigger>
-                  <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                  <TabsTrigger value="history">Import History</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
               {/* View Mode Selector */}
               <div className="flex items-center gap-2">
                 <AgreementViewSelectors viewMode={viewMode} setViewMode={setViewMode} />
@@ -276,7 +259,14 @@ const Agreements = () => {
           
           {/* Content Area */}
           <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full sm:w-auto">
+              <TabsList>
+                <TabsTrigger value="agreements">All Agreements</TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="closed">Closed</TabsTrigger>
+                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+                <TabsTrigger value="history">Import History</TabsTrigger>
+              </TabsList>
               <AgreementTabPanel
                 value="agreements"
                 viewMode={viewMode}
@@ -285,7 +275,6 @@ const Agreements = () => {
                 onDeleteAgreement={deleteAgreement}
                 loadingText="Loading agreements..."
               />
-
               <AgreementTabPanel
                 value="active"
                 viewMode={viewMode}
@@ -294,7 +283,6 @@ const Agreements = () => {
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
-
               <AgreementTabPanel
                 value="closed"
                 viewMode={viewMode}
@@ -303,7 +291,6 @@ const Agreements = () => {
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
-
               <AgreementTabPanel
                 value="cancelled"
                 viewMode={viewMode}
@@ -312,7 +299,6 @@ const Agreements = () => {
                 onDeleteAgreement={deleteAgreement}
                 loadingText=""
               />
-
               <TabsContent value="history" className="m-0">
                 <div className="p-4">
                   <h2 className="text-lg font-semibold mb-4 flex items-center">

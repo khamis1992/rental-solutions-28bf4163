@@ -38,8 +38,7 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
     supabase
       .from('profiles')
       .select('id, full_name, email')
-      .ilike('full_name', `%${customerSearch}%`)
-      .or(`email.ilike.%${customerSearch}%`)
+      .or(`full_name.ilike.%${customerSearch}%,email.ilike.%${customerSearch}%`)
       .limit(10)
       .then(({ data }) => {
         setCustomerResults(data || []);

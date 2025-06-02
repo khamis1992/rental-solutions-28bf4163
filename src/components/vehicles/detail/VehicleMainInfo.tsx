@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatDate } from '@/lib/formatters';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +6,14 @@ import { FileText, Car, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VehicleImageSection } from './VehicleImageSection';
 import { VehicleDetailsSection } from './VehicleDetailsSection';
-import { Vehicle } from '@/types/vehicle';
+import type { VehicleData } from '@/types/vehicle.types';
 import { VehicleStatusUpdateDialog } from '../VehicleStatusUpdateDialog';
 import { useVehicleStatus } from '@/hooks/use-vehicle-status';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface VehicleMainInfoProps {
-  vehicle: Vehicle;
+  vehicle: VehicleData;
   vehicleDetails: {
     label: string;
     value: string | number | React.ReactNode;
@@ -71,6 +72,20 @@ export const VehicleMainInfo: React.FC<VehicleMainInfoProps> = ({
     setDialogConfig(prev => ({ ...prev, isOpen: false }));
   };
 
+  // Handler to update inspection_expiry
+  const handleEditInspectionExpiry = async (date: string) => {
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ inspection_expiry: date })
+      .eq('id', vehicle.id);
+    if (error) {
+      toast.error('Failed to update inspection expiry');
+    } else {
+      toast.success('Inspection expiry updated');
+      window.location.reload(); // Quick way to refresh, or you can refetch data via state
+    }
+  };
+
   return (
     <Card className="md:col-span-2">
       <CardHeader>
@@ -88,7 +103,8 @@ export const VehicleMainInfo: React.FC<VehicleMainInfoProps> = ({
         
         <VehicleDetailsSection 
           details={vehicleDetails}
-          notes={vehicle.notes}
+          inspection_expiry={vehicle.inspection_expiry}
+          onEditInspectionExpiry={handleEditInspectionExpiry}
         />
       </CardContent>
       <CardFooter className="flex justify-between border-t pt-6">

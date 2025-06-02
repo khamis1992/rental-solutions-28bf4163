@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,7 @@ export function PaymentHistorySection({
   agreement
 }: PaymentHistorySectionProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   const {
     syncAll,
@@ -49,17 +49,31 @@ export function PaymentHistorySection({
     method?: string,
     reference?: string
   ) => {
-    const newPayment: Partial<Payment> = {
-      amount,
-      payment_date: date.toISOString(),
-      description: notes || '',
-      payment_method: method || 'cash',
-      reference_number: reference || '',
-      lease_id: leaseId,
-      status: 'completed'
-    };
-
-    await onRecordPayment(newPayment);
+    if (selectedPayment) {
+      const updatedPayment: Partial<Payment> = {
+        id: selectedPayment.id,
+        amount,
+        payment_date: date.toISOString(),
+        description: notes || selectedPayment.description || '',
+        payment_method: method || selectedPayment.payment_method || 'cash',
+        reference_number: reference || selectedPayment.reference_number || '',
+        lease_id: leaseId,
+        status: 'completed',
+      };
+      await onPaymentUpdated(updatedPayment);
+      setSelectedPayment(null);
+    } else {
+      const newPayment: Partial<Payment> = {
+        amount,
+        payment_date: date.toISOString(),
+        description: notes || '',
+        payment_method: method || 'cash',
+        reference_number: reference || '',
+        lease_id: leaseId,
+        status: 'completed'
+      };
+      await onRecordPayment(newPayment);
+    }
     return true;
   };
 
@@ -115,12 +129,18 @@ export function PaymentHistorySection({
             )}
             <Button
               size="sm"
-              onClick={() => setIsPaymentDialogOpen(true)}
+              onClick={() => {
+                setSelectedPayment(null);
+                setIsPaymentDialogOpen(true);
+              }}
             >
               <Plus className="h-4 w-4 mr-2" />
               Record Payment
             </Button>
           </div>
+        </div>
+        <div className="text-muted-foreground text-sm mt-1">
+          Track payments and financial transactions for this agreement
         </div>
       </CardHeader>
       <CardContent>
@@ -160,6 +180,18 @@ export function PaymentHistorySection({
                       {payment.payment_method}
                     </Badge>
                   )}
+                  {payment.status !== 'completed' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedPayment(payment);
+                        setIsPaymentDialogOpen(true);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -169,13 +201,17 @@ export function PaymentHistorySection({
 
       <PaymentEntryDialog
         open={isPaymentDialogOpen}
-        onOpenChange={setIsPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setIsPaymentDialogOpen(open);
+          if (!open) setSelectedPayment(null);
+        }}
         onSubmit={handleRecordPayment}
-        defaultAmount={rentAmount || 0}
+        defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
         title="Record Payment"
-        description="Add a new payment to this agreement"
+        description={selectedPayment ? "Clear this payment" : "Add a new payment to this agreement"}
         leaseId={leaseId}
         rentAmount={rentAmount}
+        selectedPayment={selectedPayment}
       />
     </Card>
   );

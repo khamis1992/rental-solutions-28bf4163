@@ -34,7 +34,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
 import CustomerSection from '@/components/agreements/CustomerSection';
 import VehicleSection from '@/components/agreements/VehicleSection';
-import { generateAgreementReport } from '@/utils/agreement-report-utils';
+import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { usePayment } from '@/hooks/use-payment';
@@ -169,10 +169,8 @@ const AgreementDetailPage = () => {
 
   const handleGenerateReport = async () => {
     if (!agreement) return;
-    
     try {
-      const doc = generateAgreementReport(agreement, rentAmount, contractAmount, payments);
-      doc.save(`agreement-report-${agreement.agreement_number}.pdf`);
+      generateAgreementReportPdfmake(agreement, rentAmount, contractAmount, payments);
       toast.success('Agreement report generated successfully');
     } catch (error) {
       console.error('Error generating report:', error);

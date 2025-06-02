@@ -12,7 +12,7 @@ import LegalDashboard from '@/components/legal/LegalDashboard';
 import LegalCaseManagement from '@/components/legal/LegalCaseManagement';
 import LegalDocumentManager from '@/components/legal/LegalDocumentManager';
 import ComplianceCalendar from '@/components/legal/ComplianceCalendar';
-import { CustomerLegalObligations } from '@/components/legal/CustomerLegalObligations';
+import CustomerObligationsDashboard from '@/components/legal/CustomerObligationsDashboard';
 import LegalTemplateManager from '@/components/legal/LegalTemplateManager';
 import LegalReportBuilder from '@/components/legal/LegalReportBuilder';
 
@@ -76,7 +76,7 @@ const Legal: React.FC = () => {
               <ComplianceCalendar />
             </TabsContent>
             <TabsContent value="obligations" className="mt-0 space-y-4">
-              <CustomerLegalObligations />
+              <CustomerObligationsDashboard />
             </TabsContent>
             <TabsContent value="templates" className="mt-0 space-y-4">
               <LegalTemplateManager />

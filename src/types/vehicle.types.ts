@@ -3,7 +3,7 @@
  * @module VehicleTypes
  */
 
-import { Database } from './database.types';
+import type { Database } from './database';
 
 /**
  * Vehicle status options in the system.
@@ -43,6 +43,8 @@ export interface VehicleData {
   insurance_company?: string;
   /** Insurance expiry date */
   insurance_expiry?: string;
+  /** Inspection expiry date */
+  inspection_expiry?: string;
   /** Current location/branch */
   location?: string;
   /** URL to vehicle image */

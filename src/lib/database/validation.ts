@@ -1,5 +1,4 @@
-import { ValidationError } from '@/lib/errors/types';
-import { createValidationError } from '@/lib/errors/error-handler';
+import { createValidationError } from '@/types/error.types';
 import { isNotNull } from '@/lib/utils/null-safety';
 
 /**
@@ -15,7 +14,10 @@ import { isNotNull } from '@/lib/utils/null-safety';
  */
 export function required<T>(value: T | null | undefined, name: string): T {
   if (!isNotNull(value)) {
-    throw createValidationError(name, `Required parameter ${name} is missing`);
+    throw createValidationError(
+      `Required parameter ${name} is missing`,
+      { field: name, message: `Required parameter ${name} is missing` }
+    );
   }
   return value;
 }
@@ -30,7 +32,10 @@ export function required<T>(value: T | null | undefined, name: string): T {
 export function nonEmptyString(value: string | null | undefined, name: string): string {
   const validated = required(value, name);
   if (validated.trim().length === 0) {
-    throw createValidationError(name, `${name} cannot be empty`);
+    throw createValidationError(
+      `${name} cannot be empty`,
+      { field: name, message: `${name} cannot be empty` }
+    );
   }
   return validated;
 }
@@ -47,7 +52,10 @@ export function nonEmptyString(value: string | null | undefined, name: string): 
 export function inRange(value: number | null | undefined, name: string, min: number, max: number): number {
   const validated = required(value, name);
   if (validated < min || validated > max) {
-    throw createValidationError(name, `${name} must be between ${min} and ${max}`);
+    throw createValidationError(
+      `${name} must be between ${min} and ${max}`,
+      { field: name, message: `${name} must be between ${min} and ${max}` }
+    );
   }
   return validated;
 }
@@ -63,7 +71,10 @@ export function inRange(value: number | null | undefined, name: string, min: num
 export function oneOf<T>(value: T | null | undefined, name: string, allowedValues: T[]): T {
   const validated = required(value, name);
   if (!allowedValues.includes(validated)) {
-    throw createValidationError(name, `${name} must be one of: ${allowedValues.join(', ')}`);
+    throw createValidationError(
+      `${name} must be one of: ${allowedValues.join(', ')}`,
+      { field: name, message: `${name} must be one of: ${allowedValues.join(', ')}` }
+    );
   }
   return validated;
 }
