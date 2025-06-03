@@ -508,6 +508,44 @@ export type Database = {
         }
         Relationships: []
       }
+      agreements: {
+        Row: {
+          amount_due: number | null
+          created_at: string | null
+          customer_id: string | null
+          due_date: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_due?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_due?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analysis: {
         Row: {
           agreement_id: string | null
@@ -8097,6 +8135,7 @@ export type Database = {
         Row: {
           assignment_status: string | null
           created_at: string | null
+          customer_id: string | null
           entry_type: string | null
           fine_amount: number | null
           fine_location: string | null
@@ -8123,6 +8162,7 @@ export type Database = {
         Insert: {
           assignment_status?: string | null
           created_at?: string | null
+          customer_id?: string | null
           entry_type?: string | null
           fine_amount?: number | null
           fine_location?: string | null
@@ -8149,6 +8189,7 @@ export type Database = {
         Update: {
           assignment_status?: string | null
           created_at?: string | null
+          customer_id?: string | null
           entry_type?: string | null
           fine_amount?: number | null
           fine_location?: string | null
@@ -8173,6 +8214,13 @@ export type Database = {
           violation_points?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "traffic_fines_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "traffic_fines_lease_id_fkey"
             columns: ["lease_id"]
@@ -9481,6 +9529,7 @@ export type Database = {
           device_type: string | null
           id: string
           image_url: string | null
+          inspection_expiry: string | null
           insurance_company: string | null
           insurance_expiry: string | null
           is_test_data: boolean | null
@@ -9503,6 +9552,7 @@ export type Database = {
           device_type?: string | null
           id?: string
           image_url?: string | null
+          inspection_expiry?: string | null
           insurance_company?: string | null
           insurance_expiry?: string | null
           is_test_data?: boolean | null
@@ -9525,6 +9575,7 @@ export type Database = {
           device_type?: string | null
           id?: string
           image_url?: string | null
+          inspection_expiry?: string | null
           insurance_company?: string | null
           insurance_expiry?: string | null
           is_test_data?: boolean | null
@@ -10390,6 +10441,13 @@ export type Database = {
       generate_template_recommendations: {
         Args: { p_template_id: string }
         Returns: undefined
+      }
+      get_customers_with_obligations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+        }[]
       }
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>
