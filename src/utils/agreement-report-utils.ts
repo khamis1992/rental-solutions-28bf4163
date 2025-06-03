@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -8,23 +7,25 @@ import {
   formatArabicCurrency, 
   formatArabicDate 
 } from './arabic-text-utils';
+import { amiriNormalVfs } from '@/fonts/Amiri-normal.js';
+import { amiriBoldVfs } from '@/fonts/Amiri-Bold.js';
 
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
   try {
     (pdfMake as any).fonts = {
-      Amiri: {
-        normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
+  Amiri: {
+        normal: 'Amiri-normal.ttf',
+    bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-normal.ttf',
         bolditalics: 'Amiri-Bold.ttf',
       },
     };
-    
-    // Set VFS if not already set
-    if (!(pdfMake as any).vfs) {
-      (pdfMake as any).vfs = {};
-    }
+    // Merge both VFS objects
+    (pdfMake as any).vfs = {
+      ...amiriNormalVfs,
+      ...amiriBoldVfs,
+    };
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
@@ -220,8 +221,8 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['25%', '25%', '25%', '25%'],
-              body: [
-                [
+          body: [
+            [
                   createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel'),
                   createArabicTextBlock(labels.status.ar, 'cardLabel'),
                   createArabicTextBlock(labels.duration.ar, 'cardLabel'),
@@ -257,11 +258,11 @@ export async function generateAgreementReportPdfmake(
             width: '48%',
             stack: [
               createArabicTextBlock(labels.customerInfo.ar, 'sectionHeader'),
-              {
-                table: {
+      {
+        table: {
                   widths: ['40%', '60%'],
-                  body: [
-                    [
+          body: [
+            [
                       createArabicTextBlock(labels.name.ar, 'labelStyle'),
                       createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'valueStyle')
                     ],
@@ -326,8 +327,8 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['20%', '20%', '20%', '20%', '20%'],
-              body: [
-                [
+          body: [
+            [
                   createArabicTextBlock(labels.contractTotal.ar, 'metricLabel'),
                   createArabicTextBlock(labels.totalPaid.ar, 'metricLabel'),
                   createArabicTextBlock(labels.remainingBalance.ar, 'metricLabel'),
@@ -359,11 +360,11 @@ export async function generateAgreementReportPdfmake(
       // Payment history with RTL support (if payments exist)
       ...(payments.length > 0 ? [
         createArabicTextBlock(labels.paymentHistory.ar, 'sectionHeader'),
-        {
-          table: {
+      {
+        table: {
             headerRows: 1,
             widths: ['25%', '25%', '25%', '25%'],
-            body: [
+          body: [
               [
                 createArabicTextBlock(labels.paymentDate.ar, 'tableHeader'),
                 createArabicTextBlock(labels.amount.ar, 'tableHeader'),
@@ -378,9 +379,9 @@ export async function generateAgreementReportPdfmake(
                   color: getStatusColor(payment.status)
                 },
                 createArabicTextBlock(payment.payment_method || prepareArabicForPDF('غير محدد'), 'tableCell')
-              ])
-            ]
-          },
+            ])
+          ]
+        },
           layout: 'lightHorizontalLines',
           margin: [0, 0, 0, 20]
         }
