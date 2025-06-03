@@ -41,6 +41,8 @@ import { usePayment } from '@/hooks/use-payment';
 import DocumentList from '@/components/documents/DocumentList';
 import { DocumentEntityType } from '@/types/document.types';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { AgreementPaymentAnalytics } from '@/components/agreements/analytics/AgreementPaymentAnalytics';
+import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 
 const AgreementDetailPage = () => {
   const {
@@ -268,6 +270,9 @@ const AgreementDetailPage = () => {
       toast.error('Failed to delete payment');
     }
   };
+
+  // Add payment calculation hook
+  const paymentMetrics = usePaymentCalculation(payments, contractAmount);
 
   // Render loading state while fetching agreement
   if (isLoading) {
@@ -582,6 +587,17 @@ const AgreementDetailPage = () => {
             }
           </CardContent>
         </Card>
+
+        {/* Payment Analytics Section */}
+        <AgreementPaymentAnalytics
+          totalAmount={paymentMetrics.totalAmount}
+          amountPaid={paymentMetrics.amountPaid}
+          balance={paymentMetrics.balance}
+          lateFees={paymentMetrics.lateFees}
+          paidOnTime={paymentMetrics.paidOnTime}
+          paidLate={paymentMetrics.paidLate}
+          unpaid={paymentMetrics.unpaid}
+        />
       </TabsContent>
       
       <TabsContent value="documents" className="space-y-6">
