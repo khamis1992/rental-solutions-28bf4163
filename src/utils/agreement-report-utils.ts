@@ -7,8 +7,6 @@ import {
   formatArabicCurrency, 
   formatArabicDate 
 } from './arabic-text-utils';
-import { amiriNormalVfs } from '@/fonts/Amiri-normal.js';
-import { amiriBoldVfs } from '@/fonts/Amiri-Bold.js';
 
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
@@ -21,11 +19,7 @@ export async function ensureFontsLoaded() {
         bolditalics: 'Amiri-Bold.ttf',
       },
     };
-    // Merge both VFS objects
-    (pdfMake as any).vfs = {
-      ...amiriNormalVfs,
-      ...amiriBoldVfs,
-    };
+  // Fonts are preloaded via script tags and already available in pdfMake.vfs
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
