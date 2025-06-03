@@ -1,4 +1,6 @@
-
+import pdfMake from 'pdfmake/build/pdfmake';
+(window as any).pdfMake = pdfMake;
+(window as any).pdfMake.vfs = {};
 import { createRoot } from 'react-dom/client';
 import ReactDOMLegacy from 'react-dom';
 import App from './App.tsx';

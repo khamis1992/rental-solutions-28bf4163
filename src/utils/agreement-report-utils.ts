@@ -1,15 +1,36 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
-import '../fonts/amiri-vfs.js';
 
-pdfMake.vfs = (window as any).pdfMake ? (window as any).pdfMake.vfs : pdfMake.vfs;
+// Helper to dynamically load a script
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+// Ensure both Amiri font files are loaded and vfs is merged
+export async function ensureFontsLoaded() {
+  (pdfMake as any).fonts = {
+    Amiri: {
+      normal: 'Amiri-Regular.ttf',
+      bold: 'Amiri-Bold.ttf',
+      italics: 'Amiri-Regular.ttf',
+      bolditalics: 'Amiri-Bold.ttf',
+    },
+  };
+}
+
 pdfMake.fonts = {
   Amiri: {
-    normal: 'Amiri-Regular.ttf',
+    normal: 'Amiri-normal.ttf',
     bold: 'Amiri-Bold.ttf',
-    italics: 'Amiri-Slanted.ttf',
-    bolditalics: 'Amiri-BoldSlanted.ttf'
+    italics: 'Amiri-normal.ttf', // fallback to normal
+    bolditalics: 'Amiri-Bold.ttf', // fallback to bold
   }
 };
 
@@ -47,73 +68,81 @@ const labels = {
   date: { en: 'Date', ar: 'التاريخ' },
 };
 
-export function generateAgreementReportPdfmake(
+export async function generateAgreementReportPdfmake(
   agreement: any,
   rentAmount: any,
   contractAmount: any,
   payments: any[] = [],
   trafficFines: any[] = []
 ) {
+  await ensureFontsLoaded();
   const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [40, 40, 40, 40],
     content: [
-      { text: 'Rental Agreement Report', style: 'header', alignment: 'left', font: 'Amiri' },
-      { text: 'تقرير عقد الإيجار', style: 'header', alignment: 'right', font: 'Amiri' },
-      { text: `${labels.date.en}: ${new Date().toLocaleDateString()}  |  ${labels.date.ar}: ${new Date().toLocaleDateString()}`, alignment: 'center', margin: [0, 0, 0, 10], font: 'Amiri' },
-      { text: labels.agreementInfo.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.agreementInfo.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { text: 'تقرير عقد الإيجار', style: 'headerAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 0, 0, 8] },
+      { text: `${labels.date.ar}: ${new Date().toLocaleDateString()}`, alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 0, 0, 10] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.agreementInfo.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         table: {
-          widths: ['*', '*', '*', '*', '*', '*', '*', '*'],
+          headerRows: 1,
+          widths: [80, 80, 80, 80],
           body: [
             [
-              labels.agreementNumber.en, labels.status.en, labels.startDate.en, labels.endDate.en,
-              labels.monthlyRent.en, labels.contractTotal.en, labels.depositAmount.en, labels.rentDueDay.en
+              { text: labels.agreementNumber.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0,0,4,0] },
+              { text: labels.startDate.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.endDate.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.contractTotal.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true }
             ],
             [
               agreement.agreement_number || '',
-              agreement.status || '',
               agreement.start_date ? new Date(agreement.start_date).toLocaleDateString() : '',
               agreement.end_date ? new Date(agreement.end_date).toLocaleDateString() : '',
-              rentAmount || '',
-              contractAmount || agreement.total_amount || '',
-              agreement.deposit_amount || '',
-              agreement.rent_due_day || ''
+              contractAmount || agreement.total_amount || ''
             ]
           ]
         },
+        layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 10],
-        font: 'Amiri'
+        fontSize: 11
       },
-      { text: labels.customerInfo.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.customerInfo.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.customerInfo.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         table: {
-          widths: ['*', '*', '*', '*', '*', '*'],
+          headerRows: 1,
+          widths: [120, 120, 120],
           body: [
             [
-              labels.name.en, labels.email.en, labels.phone.en, labels.driverLicense.en, labels.nationality.en, labels.address.en
+              { text: labels.name.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0,0,4,0] },
+              { text: labels.phone.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.nationality.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true }
             ],
             [
               agreement.customers?.full_name || '',
-              agreement.customers?.email || '',
               agreement.customers?.phone_number || '',
-              agreement.customers?.driver_license || '',
-              agreement.customers?.nationality || '',
-              agreement.customers?.address || ''
+              agreement.customers?.nationality || ''
             ]
           ]
         },
+        layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 10],
-        font: 'Amiri'
+        fontSize: 11
       },
-      { text: labels.vehicleInfo.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.vehicleInfo.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.vehicleInfo.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         table: {
-          widths: ['*', '*', '*', '*', '*'],
+          headerRows: 1,
+          widths: [99, 99, 99, 99, 99],
           body: [
             [
-              labels.makeModel.en, labels.year.en, labels.licensePlate.en, labels.color.en, labels.vin.en
+              { text: labels.makeModel.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0,0,4,0] },
+              { text: labels.year.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.licensePlate.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.color.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.vin.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true }
             ],
             [
               `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim(),
@@ -124,66 +153,77 @@ export function generateAgreementReportPdfmake(
             ]
           ]
         },
+        layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 10],
-        font: 'Amiri'
+        fontSize: 11
       },
-      { text: labels.paymentSummary.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.paymentSummary.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.paymentSummary.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         table: {
-          widths: ['*', '*', '*', '*', '*'],
+          headerRows: 1,
+          widths: [150, 150, 150],
           body: [
             [
-              labels.totalPaid.en, labels.lateFees.en, labels.remainingBalance.en, labels.pendingPayments.en, labels.nextPaymentDue.en
+              { text: labels.lateFees.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0,0,4,0] },
+              { text: labels.pendingPayments.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.nextPaymentDue.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true }
             ],
             [
-              payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount_paid || p.amount || 0), 0),
               payments.reduce((sum, p) => sum + (p.late_fine_amount || 0), 0),
-              (contractAmount || agreement.total_amount || 0) - payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount_paid || p.amount || 0), 0),
               payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amount || 0), 0),
               agreement.next_payment_date ? new Date(agreement.next_payment_date).toLocaleDateString() : ''
             ]
           ]
         },
+        layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 10],
-        font: 'Amiri'
+        fontSize: 11
       },
-      { text: labels.trafficFines.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.trafficFines.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.trafficFines.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         table: {
-          widths: ['*', '*', '*', '*'],
+          headerRows: 1,
+          widths: [125, 125, 125, 124],
           body: [
-            [labels.date.en, labels.date.ar, 'Amount', 'Status'],
+            [
+              { text: labels.date.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0,0,4,0] },
+              { text: 'المبلغ', style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: 'الحالة', style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true },
+              { text: labels.date.ar, style: 'tableHeaderAr', alignment: 'right', font: 'Amiri', rtl: true }
+            ],
             ...trafficFines.map(fine => [
               fine.date ? new Date(fine.date).toLocaleDateString() : '',
-              fine.date ? new Date(fine.date).toLocaleDateString() : '',
               fine.amount || '',
-              fine.status || ''
+              fine.status || '',
+              fine.date ? new Date(fine.date).toLocaleDateString() : ''
             ])
           ]
         },
+        layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 10],
-        font: 'Amiri'
+        fontSize: 11
       },
-      { text: labels.signature.en, style: 'subheader', alignment: 'left', font: 'Amiri' },
-      { text: labels.signature.ar, style: 'subheader', alignment: 'right', font: 'Amiri' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#eee' }] },
+      { text: labels.signature.ar, style: 'sectionAr', alignment: 'right', font: 'Amiri', rtl: true, margin: [0, 10, 0, 2] },
       {
         columns: [
-          { text: '_________________________', width: '50%', font: 'Amiri' },
+          { text: '_________________________', width: '50%', alignment: 'right', font: 'Amiri' },
           { text: '_________________________', width: '50%', alignment: 'right', font: 'Amiri' }
         ]
       },
       {
         columns: [
-          { text: `${labels.name.en} / ${labels.name.ar}`, width: '50%', font: 'Amiri' },
-          { text: `${labels.date.en} / ${labels.date.ar}`, width: '50%', alignment: 'right', font: 'Amiri' }
+          { text: `${labels.name.ar}`, width: '50%', alignment: 'right', font: 'Amiri' },
+          { text: `${labels.date.ar}`, width: '50%', alignment: 'right', font: 'Amiri' }
         ]
       }
     ],
     styles: {
-      header: { fontSize: 18, bold: true },
-      subheader: { fontSize: 14, bold: true },
+      headerAr: { fontSize: 18, bold: true, font: 'Amiri', alignment: 'right', rtl: true, margin: [0, 0, 0, 8] },
+      sectionAr: { fontSize: 14, bold: true, font: 'Amiri', color: '#333', rtl: true, alignment: 'right', margin: [0, 10, 0, 2] },
+      tableHeaderAr: { fontSize: 12, bold: true, fillColor: '#f5f5f5', font: 'Amiri', rtl: true, alignment: 'right' },
     },
     defaultStyle: {
       font: 'Amiri',
