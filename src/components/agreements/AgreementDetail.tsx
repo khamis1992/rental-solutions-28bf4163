@@ -20,10 +20,12 @@ import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
 import { AgreementDetailsCard } from './details/AgreementDetailsCard';
 import { AgreementActionButtons } from './details/AgreementActionButtons';
+import { AgreementPaymentAnalytics } from './analytics/AgreementPaymentAnalytics';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
+import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { PaymentSyncButton } from './PaymentSyncButton';
 import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
 
@@ -76,6 +78,9 @@ export function AgreementDetail({
     updateHistoricalStatuses,
     loadingStates: paymentLoadingStates
   } = usePaymentManagement(agreement?.id);
+  
+  // Use payment calculation hook
+  const paymentMetrics = usePaymentCalculation(payments, contractAmount);
   
   // Use special payment hook
   const { processPayment, calculateLateFee } = useSpecialPayment(agreement?.id);
@@ -260,6 +265,17 @@ export function AgreementDetail({
         duration={duration}
         rentAmount={rentAmount}
         contractAmount={contractAmount}
+      />
+
+      {/* Payment Analytics Section */}
+      <AgreementPaymentAnalytics
+        totalAmount={paymentMetrics.totalAmount}
+        amountPaid={paymentMetrics.amountPaid}
+        balance={paymentMetrics.balance}
+        lateFees={paymentMetrics.lateFees}
+        paidOnTime={paymentMetrics.paidOnTime}
+        paidLate={paymentMetrics.paidLate}
+        unpaid={paymentMetrics.unpaid}
       />
       
       {/* Action Buttons */}
