@@ -1,227 +1,163 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Sidebar from "./components/layout/Sidebar";
-import { useState, useEffect, lazy, Suspense } from "react";
-import { LoadingFallback } from "./components/ui/loading-fallback";
-import { ErrorBoundary } from "./components/ui/error-boundary";
-import { getRetryConfig } from "./lib/api/retry-utils";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { useAuth } from "@/hooks/use-auth";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Dashboard from "@/pages/Dashboard";
+import Agreements from "@/pages/Agreements";
+import AddAgreement from "@/pages/AddAgreement";
+import EditAgreement from "@/pages/EditAgreement";
+import AgreementDetailPage from "@/pages/AgreementDetailPage";
+import Customers from "@/pages/Customers";
+import AddCustomer from "@/pages/AddCustomer";
+import EditCustomer from "@/pages/EditCustomer";
+import CustomerDetailPage from "@/pages/CustomerDetailPage";
+import Vehicles from "@/pages/Vehicles";
+import AddVehicle from "@/pages/AddVehicle";
+import EditVehicle from "@/pages/EditVehicle";
+import VehicleDetailPage from "@/pages/VehicleDetailPage";
+import Maintenance from "@/pages/Maintenance";
+import AddMaintenance from "@/pages/AddMaintenance";
+import EditMaintenance from "@/pages/EditMaintenance";
+import MaintenanceDetailPage from "@/pages/MaintenanceDetailPage";
+import TrafficFines from "@/pages/TrafficFines";
+import Financials from "@/pages/Financials";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
+import UserSettings from "@/pages/UserSettings";
+import UserManagement from "@/pages/UserManagement";
+import Legal from "@/pages/Legal";
+import LegalCasesPage from "@/pages/LegalCasesPage";
+import NewLegalCasePage from "@/pages/NewLegalCasePage";
+import LegalDocumentsPage from "@/pages/LegalDocumentsPage";
+import LegalCompliancePage from "@/pages/LegalCompliancePage";
+import LegalCalendarPage from "@/pages/LegalCalendarPage";
+import LegalActivityPage from "@/pages/LegalActivityPage";
+import DocumentsPage from "@/pages/DocumentsPage";
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import ResetPassword from "@/pages/auth/ResetPassword";
+import AuthLayout from "@/pages/auth/AuthLayout";
+import NotFound from "@/pages/NotFound";
+import CustomerPortal from "@/pages/CustomerPortal";
+import ReportBuilder from "@/pages/ReportBuilder";
+import ScheduledReports from "@/pages/ScheduledReports";
+import ServiceTester from "@/pages/ServiceTester";
+import VehicleStatusUpdatePage from "@/pages/VehicleStatusUpdatePage";
+import MaintenanceJobCard from "@/pages/MaintenanceJobCard";
+import QRScanPage from "@/pages/mobile/QRScanPage";
+import VehicleInspectionPage from "@/pages/mobile/VehicleInspectionPage";
+import FieldOperations from "@/pages/mobile/FieldOperations";
+import './App.css';
 
-// Context Providers
-import { AuthProvider } from "./contexts/AuthContext";
-import { ProfileProvider } from "./contexts/ProfileContext";
-import { SettingsProvider } from "./contexts/SettingsContext";
-import { NotificationProvider } from "./contexts/NotificationContext";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-// Auth components
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AuthLayout from "./pages/auth/AuthLayout";
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
+function AppRoutes() {
+  const { isAuthenticated } = useAuth();
 
-// Pages
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/auth/*" element={<AuthLayout />}>
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+      </Routes>
+    );
+  }
 
-// Lazy-loaded components with error boundaries
-const withErrorBoundary = (Component: React.LazyExoticComponent<any>) => (
-  <ErrorBoundary>
-    <Suspense fallback={<LoadingFallback />}>
-      <Component />
-    </Suspense>
-  </ErrorBoundary>
-);
-
-// Vehicle Management
-const Vehicles = lazy(() => import("./pages/Vehicles"));
-const AddVehicle = lazy(() => import("./pages/AddVehicle"));
-const VehicleDetailPage = lazy(() => import("./pages/VehicleDetailPage"));
-const EditVehicle = lazy(() => import("./pages/EditVehicle"));
-
-// User Management
-const UserSettings = lazy(() => import("./pages/UserSettings"));
-const UserManagement = lazy(() => import("./pages/UserManagement"));
-
-// Customer Management
-const Customers = lazy(() => import("./pages/Customers"));
-const AddCustomer = lazy(() => import("./pages/AddCustomer"));
-const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
-const EditCustomer = lazy(() => import("./pages/EditCustomer"));
-
-// Agreement Management
-const Agreements = lazy(() => import("./pages/Agreements"));
-const AgreementDetailPage = lazy(() => import("./pages/AgreementDetailPage"));
-const AddAgreement = lazy(() => import("./pages/AddAgreement"));
-const EditAgreement = lazy(() => import("./pages/EditAgreement"));
-
-// Maintenance Management
-const Maintenance = lazy(() => import("./pages/Maintenance"));
-const AddMaintenance = lazy(() => import("./pages/AddMaintenance"));
-const EditMaintenance = lazy(() => import("./pages/EditMaintenance"));
-const MaintenanceDetailPage = lazy(() => import("./pages/MaintenanceDetailPage"));
-const MaintenanceJobCard = lazy(() => import("./pages/MaintenanceJobCard"));
-
-// Legal Management
-const Legal = lazy(() => import("./pages/Legal"));
-const NewLegalCasePage = lazy(() => import("./pages/NewLegalCasePage"));
-const LegalCasesPage = lazy(() => import("./pages/LegalCasesPage"));
-const LegalDocumentsPage = lazy(() => import("./pages/LegalDocumentsPage"));
-const LegalCalendarPage = lazy(() => import("./pages/LegalCalendarPage"));
-const LegalCompliancePage = lazy(() => import("./pages/LegalCompliancePage"));
-const LegalActivityPage = lazy(() => import("./pages/LegalActivityPage"));
-
-// Other Features
-const TrafficFines = lazy(() => import("./pages/TrafficFines"));
-const Financials = lazy(() => import("./pages/Financials"));
-const Reports = lazy(() => import("./pages/Reports"));
-const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
-const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
-const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
-const SystemSettings = lazy(() => import("./pages/SystemSettings"));
-const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-
-// Mobile Field Operations
-const FieldOperations = lazy(() => import("./pages/mobile/FieldOperations"));
-const QRScanPage = lazy(() => import("./pages/mobile/QRScanPage"));
-const VehicleInspectionPage = lazy(() => import("./pages/mobile/VehicleInspectionPage"));
-
-import initializeApp from "./utils/app-initializer";
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/agreements" element={<ProtectedRoute><Agreements /></ProtectedRoute>} />
+            <Route path="/agreements/new" element={<ProtectedRoute><AddAgreement /></ProtectedRoute>} />
+            <Route path="/agreements/:id/edit" element={<ProtectedRoute><EditAgreement /></ProtectedRoute>} />
+            <Route path="/agreements/:id" element={<ProtectedRoute><AgreementDetailPage /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+            <Route path="/customers/new" element={<ProtectedRoute><AddCustomer /></ProtectedRoute>} />
+            <Route path="/customers/:id/edit" element={<ProtectedRoute><EditCustomer /></ProtectedRoute>} />
+            <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetailPage /></ProtectedRoute>} />
+            <Route path="/vehicles" element={<ProtectedRoute><Vehicles /></ProtectedRoute>} />
+            <Route path="/vehicles/new" element={<ProtectedRoute><AddVehicle /></ProtectedRoute>} />
+            <Route path="/vehicles/:id/edit" element={<ProtectedRoute><EditVehicle /></ProtectedRoute>} />
+            <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetailPage /></ProtectedRoute>} />
+            <Route path="/vehicles/:id/status" element={<ProtectedRoute><VehicleStatusUpdatePage /></ProtectedRoute>} />
+            <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
+            <Route path="/maintenance/new" element={<ProtectedRoute><AddMaintenance /></ProtectedRoute>} />
+            <Route path="/maintenance/:id/edit" element={<ProtectedRoute><EditMaintenance /></ProtectedRoute>} />
+            <Route path="/maintenance/:id" element={<ProtectedRoute><MaintenanceDetailPage /></ProtectedRoute>} />
+            <Route path="/maintenance/:id/job-card" element={<ProtectedRoute><MaintenanceJobCard /></ProtectedRoute>} />
+            <Route path="/traffic-fines" element={<ProtectedRoute><TrafficFines /></ProtectedRoute>} />
+            <Route path="/financials" element={<ProtectedRoute><Financials /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/reports/builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
+            <Route path="/reports/scheduled" element={<ProtectedRoute><ScheduledReports /></ProtectedRoute>} />
+            <Route path="/legal" element={<ProtectedRoute><Legal /></ProtectedRoute>} />
+            <Route path="/legal/cases" element={<ProtectedRoute><LegalCasesPage /></ProtectedRoute>} />
+            <Route path="/legal/cases/new" element={<ProtectedRoute><NewLegalCasePage /></ProtectedRoute>} />
+            <Route path="/legal/documents" element={<ProtectedRoute><LegalDocumentsPage /></ProtectedRoute>} />
+            <Route path="/legal/compliance" element={<ProtectedRoute><LegalCompliancePage /></ProtectedRoute>} />
+            <Route path="/legal/calendar" element={<ProtectedRoute><LegalCalendarPage /></ProtectedRoute>} />
+            <Route path="/legal/activity" element={<ProtectedRoute><LegalActivityPage /></ProtectedRoute>} />
+            <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/settings/user" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+            <Route path="/settings/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+            <Route path="/customer-portal" element={<CustomerPortal />} />
+            <Route path="/service-tester" element={<ProtectedRoute><ServiceTester /></ProtectedRoute>} />
+            <Route path="/mobile/qr-scan" element={<ProtectedRoute><QRScanPage /></ProtectedRoute>} />
+            <Route path="/mobile/vehicle-inspection/:vehicleId" element={<ProtectedRoute><VehicleInspectionPage /></ProtectedRoute>} />
+            <Route path="/mobile/field-operations" element={<ProtectedRoute><FieldOperations /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function App() {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        ...getRetryConfig(),
-        retryOnMount: true,
-        refetchOnWindowFocus: false,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000,  // 10 minutes
-      },
-    },
-  }));
-
-  useEffect(() => {
-    initializeApp();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <ProfileProvider>
-            <SettingsProvider>
-              <NotificationProvider>
-                <TooltipProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <ProfileProvider>
+              <SettingsProvider>
+                <NotificationProvider>
+                  <AppRoutes />
                   <Toaster />
                   <Sonner />
-                  <ErrorBoundary>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      
-                      {/* Auth Routes */}
-                      <Route path="auth" element={<AuthLayout />}>
-                        <Route path="login" element={<Login />} />
-                        <Route path="register" element={<Register />} />
-                        <Route path="forgot-password" element={<ForgotPassword />} />
-                        <Route path="reset-password" element={<ResetPassword />} />
-                      </Route>
-
-                      {/* Customer Portal */}
-                      <Route
-                        path="/portal"
-                        element={
-                          <ProtectedRoute>
-                            {withErrorBoundary(CustomerPortal)}
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      {/* Protected Routes */}
-                      <Route
-                        path="/*"
-                        element={
-                          <ProtectedRoute>
-                            <>
-                              {/* Mobile Field Operations */}
-                              <Routes>
-                                <Route path="/field-ops" element={withErrorBoundary(FieldOperations)} />
-                                <Route path="/field-ops/scan" element={withErrorBoundary(QRScanPage)} />
-                                <Route path="/field-ops/inspection/:vehicleId" element={withErrorBoundary(VehicleInspectionPage)} />
-                              </Routes>
-
-                              <Sidebar />
-                              <Routes>
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                
-                                {/* Vehicle Management */}
-                                <Route path="/vehicles" element={withErrorBoundary(Vehicles)} />
-                                <Route path="/vehicles/add" element={withErrorBoundary(AddVehicle)} />
-                                <Route path="/vehicles/:id" element={withErrorBoundary(VehicleDetailPage)} />
-                                <Route path="/vehicles/edit/:id" element={withErrorBoundary(EditVehicle)} />
-                                
-                                {/* Customer Management */}
-                                <Route path="/customers" element={withErrorBoundary(Customers)} />
-                                <Route path="/customers/add" element={withErrorBoundary(AddCustomer)} />
-                                <Route path="/customers/:id" element={withErrorBoundary(CustomerDetailPage)} />
-                                <Route path="/customers/edit/:id" element={withErrorBoundary(EditCustomer)} />
-                                
-                                {/* Agreement Management */}
-                                <Route path="/agreements" element={withErrorBoundary(Agreements)} />
-                                <Route path="/agreements/add" element={withErrorBoundary(AddAgreement)} />
-                                <Route path="/agreements/edit/:id" element={withErrorBoundary(EditAgreement)} />
-                                <Route path="/agreements/:id" element={withErrorBoundary(AgreementDetailPage)} />
-                                
-                                {/* Maintenance Management */}
-                                <Route path="/maintenance" element={withErrorBoundary(Maintenance)} />
-                                <Route path="/maintenance/add" element={withErrorBoundary(AddMaintenance)} />
-                                <Route path="/maintenance/job/:vehicleId" element={withErrorBoundary(MaintenanceJobCard)} />
-                                <Route path="/maintenance/:id" element={withErrorBoundary(MaintenanceDetailPage)} />
-                                <Route path="/maintenance/edit/:id" element={withErrorBoundary(EditMaintenance)} />
-                                
-                                {/* Legal Management */}
-                                <Route path="/legal" element={withErrorBoundary(Legal)} />
-                                <Route path="/legal/new-case" element={withErrorBoundary(NewLegalCasePage)} />
-                                <Route path="/legal/cases" element={withErrorBoundary(LegalCasesPage)} />
-                                <Route path="/legal/documents" element={withErrorBoundary(LegalDocumentsPage)} />
-                                <Route path="/legal/calendar" element={withErrorBoundary(LegalCalendarPage)} />
-                                <Route path="/legal/compliance" element={withErrorBoundary(LegalCompliancePage)} />
-                                <Route path="/legal/activity" element={withErrorBoundary(LegalActivityPage)} />
-                                
-                                {/* Other Features */}
-                                <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
-                                <Route path="/financials" element={withErrorBoundary(Financials)} />
-                                <Route path="/reports" element={withErrorBoundary(Reports)} />
-                                <Route path="/reports/scheduled" element={withErrorBoundary(ScheduledReports)} />
-                                <Route path="/reports/builder" element={withErrorBoundary(ReportBuilder)} />
-                                <Route path="/documents" element={withErrorBoundary(DocumentsPage)} />
-                                <Route path="/settings" element={<Settings />} />
-                                <Route path="/settings/system" element={<Navigate to="/settings" replace />} />
-                                <Route path="/users" element={withErrorBoundary(UserManagement)} />
-                                <Route path="/user-settings" element={withErrorBoundary(UserSettings)} />
-                                
-                                {/* Redirect /fines to /traffic-fines for backward compatibility */}
-                                <Route path="/fines" element={<Navigate to="/traffic-fines" replace />} />
-                                
-                                {/* 404 Route */}
-                                <Route path="*" element={withErrorBoundary(NotFound)} />
-                              </Routes>
-                            </>
-                          </ProtectedRoute>
-                        }
-                      />
-                    </Routes>
-                  </ErrorBoundary>
-                </TooltipProvider>
-              </NotificationProvider>
-            </SettingsProvider>
-          </ProfileProvider>
-        </AuthProvider>
+                </NotificationProvider>
+              </SettingsProvider>
+            </ProfileProvider>
+          </AuthProvider>
+        </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
