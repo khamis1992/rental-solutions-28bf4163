@@ -540,6 +540,16 @@ const AgreementDetailPage = () => {
       </TabsContent>
       
       <TabsContent value="payments" className="space-y-6">
+        {/* Payment Analytics Section - moved up */}
+        <AgreementPaymentAnalytics
+          totalAmount={paymentMetrics.totalAmount}
+          amountPaid={paymentMetrics.amountPaid}
+          balance={paymentMetrics.balance}
+          lateFees={paymentMetrics.lateFees}
+          paidOnTime={paymentMetrics.paidOnTime}
+          paidLate={paymentMetrics.paidLate}
+          unpaid={paymentMetrics.unpaid}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Payment History</CardTitle>
@@ -587,17 +597,6 @@ const AgreementDetailPage = () => {
             }
           </CardContent>
         </Card>
-
-        {/* Payment Analytics Section */}
-        <AgreementPaymentAnalytics
-          totalAmount={paymentMetrics.totalAmount}
-          amountPaid={paymentMetrics.amountPaid}
-          balance={paymentMetrics.balance}
-          lateFees={paymentMetrics.lateFees}
-          paidOnTime={paymentMetrics.paidOnTime}
-          paidLate={paymentMetrics.paidLate}
-          unpaid={paymentMetrics.unpaid}
-        />
       </TabsContent>
       
       <TabsContent value="documents" className="space-y-6">
