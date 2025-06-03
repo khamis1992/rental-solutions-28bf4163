@@ -13,9 +13,9 @@ export async function ensureFontsLoaded() {
   try {
     (pdfMake as any).fonts = {
   Amiri: {
-        normal: 'Amiri-normal.ttf',
+        normal: 'Amiri-Regular.ttf',
     bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-normal.ttf',
+        italics: 'Amiri-Regular.ttf',
         bolditalics: 'Amiri-Bold.ttf',
       },
     };
