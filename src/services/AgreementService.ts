@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
@@ -176,12 +177,28 @@ export class AgreementService extends BaseService {
   }
 
   private async generateAgreementNumber(): Promise<string> {
-    // Use the atomic Postgres function to get the next agreement number
-    const { data, error } = await supabase.rpc('get_next_agreement_number');
-    if (error || !data) {
-      throw new Error('Failed to generate agreement number: ' + (error?.message || 'Unknown error'));
+    console.log('Generating new agreement number...');
+    
+    try {
+      // Use the atomic Postgres function to get the next agreement number
+      const { data, error } = await supabase.rpc('get_next_agreement_number');
+      
+      if (error) {
+        console.error('Error calling get_next_agreement_number:', error);
+        throw new Error(`Failed to generate agreement number: ${error.message}`);
+      }
+      
+      if (!data) {
+        console.error('No data returned from get_next_agreement_number');
+        throw new Error('Failed to generate agreement number: No data returned');
+      }
+      
+      console.log('Generated agreement number:', data);
+      return data;
+    } catch (error) {
+      console.error('Exception in generateAgreementNumber:', error);
+      throw new Error(`Failed to generate agreement number: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    return data;
   }
 
   async createAgreement(agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
@@ -195,52 +212,86 @@ export class AgreementService extends BaseService {
         agreementData.agreement_duration = `${diffDays} days`;
       }
 
-      // Generate agreement number if not provided
-      let agreementNumber = agreementData.agreement_number;
-      if (!agreementNumber) {
+      // Always generate a new agreement number for new agreements
+      let agreementNumber: string;
+      try {
         agreementNumber = await this.generateAgreementNumber();
+        console.log('Using generated agreement number:', agreementNumber);
+      } catch (error) {
+        console.error('Failed to generate agreement number:', error);
+        throw this.createServiceError(
+          'Failed to generate unique agreement number',
+          'createAgreement'
+        );
       }
+
+      const insertData = {
+        vehicle_id: agreementData.vehicle_id,
+        customer_id: agreementData.customer_id,
+        agreement_number: agreementNumber, // Always use the generated number
+        start_date: agreementData.start_date,
+        end_date: agreementData.end_date,
+        status: ensureValidLeaseStatus(agreementData.status),
+        deposit_amount: agreementData.deposit_amount,
+        total_amount: agreementData.total_amount,
+        rent_amount: agreementData.rent_amount,
+        daily_late_fee: agreementData.daily_late_fee,
+        agreement_type: agreementData.agreement_type || 'short_term',
+        agreement_duration: agreementData.agreement_duration,
+        rent_due_day: agreementData.rent_due_day ?? agreementData.payment_day,
+        notes: agreementData.notes
+      };
+
+      console.log('Creating agreement with data:', insertData);
 
       const { data, error } = await supabase
         .from('leases')
-        .insert({
-          vehicle_id: agreementData.vehicle_id,
-          customer_id: agreementData.customer_id,
-          agreement_number: agreementNumber,
-          start_date: agreementData.start_date,
-          end_date: agreementData.end_date,
-          status: ensureValidLeaseStatus(agreementData.status),
-          deposit_amount: agreementData.deposit_amount,
-          total_amount: agreementData.total_amount,
-          rent_amount: agreementData.rent_amount,
-          daily_late_fee: agreementData.daily_late_fee,
-          agreement_type: agreementData.agreement_type || 'short_term',
-          agreement_duration: agreementData.agreement_duration,
-          rent_due_day: agreementData.rent_due_day ?? agreementData.payment_day,
-          notes: agreementData.notes
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
+        console.error('Error creating agreement:', error);
+        
+        // Handle unique constraint violation specifically
+        if (error.code === '23505' && error.message.includes('agreement_number')) {
+          throw this.createServiceError(
+            'Agreement number already exists. Please try again.',
+            'createAgreement'
+          );
+        }
+        
         throw this.createServiceError(
           'Failed to create agreement',
           'createAgreement'
         );
       }
 
+      console.log('Agreement created successfully:', data);
       return data;
     }, 'Failed to create agreement');
   }
 
   async updateAgreement(id: string, agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
     return this.safeExecute(async () => {
+      // For updates, only generate new agreement number if one is not provided AND the existing one is empty
+      let agreementNumber = agreementData.agreement_number;
+      
+      if (!agreementNumber) {
+        // Get the existing agreement to check if it has an agreement number
+        const existing = await this.getAgreementById(id);
+        if (existing.success && !existing.data.agreement_number) {
+          // Only generate new number if the existing agreement doesn't have one
+          agreementNumber = await this.generateAgreementNumber();
+        }
+      }
+
       const { data, error } = await supabase
         .from('leases')
         .update({
           vehicle_id: agreementData.vehicle_id,
           customer_id: agreementData.customer_id,
-          agreement_number: agreementData.agreement_number || this.generateAgreementNumber(),
+          agreement_number: agreementNumber,
           start_date: agreementData.start_date,
           end_date: agreementData.end_date,
           status: ensureValidLeaseStatus(agreementData.status),
