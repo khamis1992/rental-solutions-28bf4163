@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -13,6 +14,7 @@ import CustomerSection from './CustomerSection';
 import { CustomerInfo } from '@/types/customer';
 import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
+import { paymentService } from '@/services/PaymentService';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -48,6 +50,8 @@ const AgreementForm = ({
         daily_late_fee: 120,
         notes: '',
         additional_drivers: [],
+        payment_frequency: 'monthly',
+        payment_day: 1,
       }
     },
   });
@@ -164,31 +168,67 @@ const AgreementForm = ({
         id: initialData?.id
       };
       
+      console.log('Submitting agreement data:', finalData);
+      
+      // Call the parent onSubmit function
       await onSubmit(finalData);
 
-      // --- NEW: Generate and save payment schedule after agreement creation ---
-      // Only do this if this is a new agreement (not edit)
+      // Generate and save payment schedule for new agreements
       if (!initialData?.id && finalData.id) {
-        const schedule = generatePaymentSchedule({
-          startDate: new Date(finalData.start_date),
-          endDate: new Date(finalData.end_date),
-          rentAmount: finalData.rent_amount,
-          paymentFrequency: finalData.payment_frequency || 'monthly',
-          paymentDay: finalData.payment_day || 1,
-          includeDeposit: !!finalData.deposit_amount,
-          depositAmount: finalData.deposit_amount || 0
-        });
-        for (const payment of schedule) {
-          await paymentScheduleService.createPaymentSchedule({
-            lease_id: finalData.id,
-            amount: payment.amount,
-            due_date: payment.dueDate.toISOString(),
-            status: 'pending',
-            description: payment.description
+        console.log('Generating payment schedule for new agreement:', finalData.id);
+        
+        try {
+          // Generate the payment schedule using the same logic as preview
+          const schedule = generatePaymentSchedule({
+            startDate: new Date(finalData.start_date),
+            endDate: new Date(finalData.end_date),
+            rentAmount: finalData.rent_amount,
+            paymentFrequency: finalData.payment_frequency || 'monthly',
+            paymentDay: finalData.payment_day || 1,
+            includeDeposit: !!finalData.deposit_amount,
+            depositAmount: finalData.deposit_amount || 0
           });
+
+          console.log('Generated payment schedule:', schedule);
+
+          // Save each payment schedule item to the database
+          for (const payment of schedule) {
+            const scheduleData = {
+              lease_id: finalData.id,
+              amount: payment.amount,
+              due_date: payment.dueDate.toISOString(),
+              status: 'pending' as const,
+              description: payment.description
+            };
+
+            console.log('Creating payment schedule item:', scheduleData);
+            
+            const result = await paymentScheduleService.createPaymentSchedule(scheduleData);
+            
+            if (!result.success) {
+              console.error('Failed to create payment schedule item:', result.error);
+              throw new Error(`Failed to create payment schedule: ${result.error}`);
+            }
+          }
+
+          // Generate corresponding payment records in unified_payments
+          console.log('Generating payment records for agreement:', finalData.id);
+          const paymentResult = await paymentService.fixAgreementPayments(finalData.id);
+          
+          if (!paymentResult.success) {
+            console.error('Failed to generate payment records:', paymentResult.error);
+            // Don't throw here as the schedule was created successfully
+            toast.error('Payment schedule created but payment records may need manual sync');
+          } else {
+            console.log('Payment records generated successfully:', paymentResult.data);
+            toast.success('Agreement and payment schedule created successfully');
+          }
+          
+        } catch (scheduleError) {
+          console.error('Error generating payment schedule:', scheduleError);
+          toast.error(`Agreement created but failed to generate payment schedule: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`);
         }
       }
-      // --- END NEW ---
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error("Failed to save agreement");

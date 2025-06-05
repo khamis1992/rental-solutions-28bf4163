@@ -35,6 +35,8 @@ import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
 import { CustomerInfo } from '@/types/customer';
 import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
 import { paymentService } from '@/services/PaymentService';
+import { paymentScheduleService } from '@/services/PaymentScheduleService';
+import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -69,7 +71,7 @@ const AgreementEditor = () => {
   
   // Add payment schedule management
   const {
-    generatePaymentSchedule,
+    generatePaymentSchedule: generateScheduleHook,
     isGenerating
   } = usePaymentScheduleManagement(id);
   
@@ -195,8 +197,9 @@ const AgreementEditor = () => {
       
       let result;
       let agreementId = id;
+      const isNewAgreement = !id || id === 'undefined' || id === 'null';
       
-      if (id && id !== 'undefined' && id !== 'null') {
+      if (!isNewAgreement) {
         // Update existing agreement
         result = await agreementService.updateAgreement({
           id,
@@ -206,25 +209,76 @@ const AgreementEditor = () => {
         // Create new agreement
         result = await agreementService.createAgreement(data);
         agreementId = result?.id;
+        
         if (result && agreementId) {
-          // Always generate payment schedule for new agreements
-          await generatePaymentSchedule(
-            (data as any).start_date,
-            (data as any).end_date,
-            (data as any).rent_amount,
-            // Suppress TS error: payment_frequency is a dynamic form field
-            (data as any)['payment_frequency'] || 'monthly',
-            typeof (data as any).payment_day === 'number' && !isNaN((data as any).payment_day) ? (data as any).payment_day : 1
-          );
-          // --- NEW: Sync payment schedule to unified_payments ---
-          await paymentService.fixAgreementPayments(agreementId);
+          console.log('Created new agreement:', agreementId);
+          
+          // Generate payment schedule for new agreements
+          try {
+            console.log('Generating payment schedule for new agreement:', agreementId);
+            
+            const schedule = generatePaymentSchedule({
+              startDate: data.start_date,
+              endDate: data.end_date,
+              rentAmount: data.rent_amount || 0,
+              paymentFrequency: data.payment_frequency || 'monthly',
+              paymentDay: typeof data.payment_day === 'number' && !isNaN(data.payment_day) ? data.payment_day : 1,
+              includeDeposit: !!data.deposit_amount,
+              depositAmount: data.deposit_amount || 0
+            });
+
+            console.log('Generated payment schedule:', schedule);
+
+            // Save each payment schedule item to the database
+            for (const payment of schedule) {
+              const scheduleData = {
+                lease_id: agreementId,
+                amount: payment.amount,
+                due_date: payment.dueDate.toISOString(),
+                status: 'pending' as const,
+                description: payment.description
+              };
+
+              console.log('Creating payment schedule item:', scheduleData);
+              
+              const scheduleResult = await paymentScheduleService.createPaymentSchedule(scheduleData);
+              
+              if (!scheduleResult.success) {
+                console.error('Failed to create payment schedule item:', scheduleResult.error);
+                throw new Error(`Failed to create payment schedule: ${scheduleResult.error}`);
+              }
+            }
+
+            // Generate corresponding payment records in unified_payments
+            console.log('Generating payment records for agreement:', agreementId);
+            const paymentResult = await paymentService.fixAgreementPayments(agreementId);
+            
+            if (!paymentResult.success) {
+              console.error('Failed to generate payment records:', paymentResult.error);
+              toast({
+                title: "Partial Success",
+                description: "Agreement created but payment records may need manual sync",
+                variant: "destructive",
+              });
+            } else {
+              console.log('Payment records generated successfully:', paymentResult.data);
+            }
+            
+          } catch (scheduleError) {
+            console.error('Error generating payment schedule:', scheduleError);
+            toast({
+              title: "Partial Success",
+              description: `Agreement created but failed to generate payment schedule: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`,
+              variant: "destructive",
+            });
+          }
         }
       }
       
       if (result && agreementId) {
         toast({
           title: "Success",
-          description: id ? "Agreement updated successfully" : "Agreement created successfully",
+          description: isNewAgreement ? "Agreement and payment schedule created successfully" : "Agreement updated successfully",
         });
         
         navigate(`/agreements/${agreementId}`);
@@ -575,8 +629,7 @@ const AgreementEditor = () => {
                   </Button>
                   <Button type="submit" disabled={isLoading || isGenerating}>
                     {(isLoading || isGenerating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement"}
-                    {isGenerating && " & Generate Schedule"}
+                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement & Generate Schedule"}
                   </Button>
                 </div>
               </form>
