@@ -36,7 +36,14 @@ export class CustomerService extends BaseService {
         );
       }
 
-      return data as Customer[];
+      // Map to ensure full_name and phone_number are always present
+      const mapped = (data || []).map((c: any) => ({
+        ...c,
+        full_name: c.full_name || c.name || '',
+        phone_number: c.phone_number || c.phone || '',
+      }));
+
+      return mapped as Customer[];
     }, 'Failed to fetch customers');
   }
 

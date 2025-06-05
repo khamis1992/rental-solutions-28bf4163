@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +9,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
+import CustomerSelector from '@/components/customers/CustomerSelector';
 
 interface AgreementBasicDetailsProps {
   form: UseFormReturn<Agreement>;
@@ -47,24 +47,8 @@ export const AgreementBasicDetails = ({
     }
   };
 
-  // When customer is selected, update selected customer state
-  const handleCustomerChange = (customerId: string) => {
-    if (customers && Array.isArray(customers)) {
-      const customer = customers.find(c => c.id === customerId);
-      if (customer) {
-        const customerData: CustomerInfo = {
-          id: customer.id,
-          full_name: customer.full_name,
-          email: customer.email || '',
-          phone_number: customer.phone || '',  // Map phone to phone_number
-          driver_license: customer.driver_license || '',
-          nationality: customer.nationality || '',
-          address: customer.address || '',
-        };
-        onCustomerChange(customerId, customerData);
-      }
-    }
-  };
+  // Track selected customer for CustomerSelector
+  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -118,36 +102,14 @@ export const AgreementBasicDetails = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Customer</FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  handleCustomerChange(value);
+              <CustomerSelector
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={(customer) => {
+                  field.onChange(customer.id);
+                  onCustomerChange(customer.id, customer);
                 }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {isLoadingCustomers ? (
-                    <SelectItem value="loading" disabled>
-                      <Skeleton className="h-5 w-full" />
-                    </SelectItem>
-                  ) : customers && Array.isArray(customers) && customers.length > 0 ? (
-                    customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.full_name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-customers" disabled>
-                      No customers available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                disabled={isLoadingCustomers}
+              />
               <FormMessage />
             </FormItem>
           )}

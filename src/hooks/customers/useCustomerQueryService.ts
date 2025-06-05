@@ -58,7 +58,7 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
           id: profile.id,
           full_name: profile.full_name || '',
           email: profile.email || '',
-          phone: profile.phone_number ? stripCountryCode(profile.phone_number) : '',
+          phone: profile.phone_number || profile.phone || '',
           driver_license: profile.driver_license || '',
           nationality: profile.nationality || '',
           address: profile.address || '',
@@ -72,6 +72,7 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
         return processedCustomers as Customer[];
       } catch (catchError: any) {
         console.error('Unexpected error in customer fetch:', catchError);
+        toast.error('Error loading customers', { description: catchError?.message || String(catchError) });
         return [];
       }
     },
