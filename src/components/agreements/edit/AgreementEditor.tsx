@@ -34,6 +34,7 @@ import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
 import { CustomerInfo } from '@/types/customer';
 import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
+import { paymentService } from '@/services/PaymentService';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -208,12 +209,15 @@ const AgreementEditor = () => {
         if (result && agreementId) {
           // Always generate payment schedule for new agreements
           await generatePaymentSchedule(
-            data.start_date,
-            data.end_date,
-            data.rent_amount,
-            data.payment_frequency || 'monthly',
-            data.payment_day || 1
+            (data as any).start_date,
+            (data as any).end_date,
+            (data as any).rent_amount,
+            // Suppress TS error: payment_frequency is a dynamic form field
+            (data as any)['payment_frequency'] || 'monthly',
+            typeof (data as any).payment_day === 'number' && !isNaN((data as any).payment_day) ? (data as any).payment_day : 1
           );
+          // --- NEW: Sync payment schedule to unified_payments ---
+          await paymentService.fixAgreementPayments(agreementId);
         }
       }
       
