@@ -25,6 +25,14 @@ export class CustomerService extends BaseService {
         if (filters.status) {
           query = query.eq('status', filters.status);
         }
+
+        if (filters.limit) {
+          query = query.limit(filters.limit);
+        }
+
+        if (filters.offset) {
+          query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+        }
       }
 
       const { data, error } = await query;
@@ -45,6 +53,10 @@ export class CustomerService extends BaseService {
 
       return mapped as Customer[];
     }, 'Failed to fetch customers');
+  }
+
+  async findCustomers(filters?: CustomerFilterParams): Promise<Result<Customer[]>> {
+    return this.fetchCustomers(filters);
   }
 
   async getCustomerById(id: string): Promise<Result<Customer>> {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown, Loader2, RefreshCw } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CustomerInfo } from '@/types/customer';
 import { useCustomerSelectorService } from '@/hooks/services/useCustomerSelectorService';
@@ -39,11 +39,19 @@ const CustomerSelector = ({
   // Debounce search input
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      console.log('Setting search query to:', internalSearchQuery);
       setSearchQuery(internalSearchQuery);
     }, 300);
     
     return () => clearTimeout(timeoutId);
   }, [internalSearchQuery, setSearchQuery]);
+
+  // Log error for debugging
+  useEffect(() => {
+    if (error) {
+      console.error('CustomerSelector error:', error);
+    }
+  }, [error]);
 
   // Filter customers based on search query locally for better UX
   const filteredCustomers = customers.filter(customer => {
@@ -75,11 +83,12 @@ const CustomerSelector = ({
   // Handle manual refresh
   const handleRefresh = async () => {
     try {
+      console.log('Manual refresh triggered');
       await refreshCustomers();
       toast.success('Customer list refreshed');
     } catch (error) {
-      toast.error('Failed to refresh customer list');
       console.error('Refresh error:', error);
+      toast.error('Failed to refresh customer list');
     }
   };
 
@@ -127,8 +136,19 @@ const CustomerSelector = ({
               </div>
             )}
             {error && (
-              <div className="flex items-center justify-center py-4 text-destructive text-sm">
-                Error loading customers
+              <div className="flex flex-col items-center justify-center py-4 px-3 space-y-2">
+                <div className="flex items-center text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Error loading customers
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  className="text-xs"
+                >
+                  Try Again
+                </Button>
               </div>
             )}
             {!isLoading && !error && filteredCustomers.length === 0 && (
@@ -139,33 +159,35 @@ const CustomerSelector = ({
                 }
               </CommandEmpty>
             )}
-            <CommandGroup>
-              {!isLoading && !error && filteredCustomers.map((customer) => {
-                // Create a searchable value that includes name, email, phone, and ID
-                const searchableValue = `${customer.full_name}|${customer.email}|${customer.phone_number}|${customer.id}`;
-                
-                return (
-                  <CommandItem
-                    key={customer.id}
-                    value={searchableValue}
-                    onSelect={() => handleSelect(searchableValue)}
-                    className="flex items-center"
-                  >
-                    <span className="flex-1 truncate">
-                      {customer.full_name}
-                      {customer.phone_number && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          ({customer.phone_number})
-                        </span>
+            {!error && (
+              <CommandGroup>
+                {!isLoading && filteredCustomers.map((customer) => {
+                  // Create a searchable value that includes name, email, phone, and ID
+                  const searchableValue = `${customer.full_name}|${customer.email}|${customer.phone_number}|${customer.id}`;
+                  
+                  return (
+                    <CommandItem
+                      key={customer.id}
+                      value={searchableValue}
+                      onSelect={() => handleSelect(searchableValue)}
+                      className="flex items-center"
+                    >
+                      <span className="flex-1 truncate">
+                        {customer.full_name}
+                        {customer.phone_number && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({customer.phone_number})
+                          </span>
+                        )}
+                      </span>
+                      {selectedCustomer?.id === customer.id && (
+                        <Check className="h-4 w-4 text-green-500" />
                       )}
-                    </span>
-                    {selectedCustomer?.id === customer.id && (
-                      <Check className="h-4 w-4 text-green-500" />
-                    )}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

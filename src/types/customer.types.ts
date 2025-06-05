@@ -1,10 +1,13 @@
+
 export type CustomerStatus = 'active' | 'inactive' | 'blocked' | 'pending';
 
 export interface Customer {
   id: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string;
   phone?: string;
+  phone_number?: string;
   address?: string;
   city?: string;
   state?: string;
@@ -22,4 +25,4 @@ export interface CustomerFilterParams {
   status?: CustomerStatus;
   limit?: number;
   offset?: number;
-} 
+}
