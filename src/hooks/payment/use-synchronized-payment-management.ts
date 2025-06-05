@@ -59,13 +59,7 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
       if (!agreementId) return null;
       
       try {
-        // First check if we need to fix any issues using the PaymentSyncService
-        const fixResult = await paymentSyncService.fixAgreementPaymentSync(agreementId);
-        if (!fixResult.success) {
-          console.warn('Payment sync fix had issues:', fixResult.error);
-        }
-        
-        // Now get the actual sync status
+        // Get the actual sync status
         const [paymentsResult, scheduleResult] = await Promise.all([
           paymentService.getPayments(agreementId),
           paymentScheduleService.getPaymentSchedule(agreementId)
@@ -110,8 +104,8 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     },
     enabled: !!agreementId,
     refetchInterval: 30000, // Check every 30 seconds
-    retry: 2, // Only retry twice on failure
-    retryDelay: 1000 // Wait 1 second between retries
+    retry: 2,
+    retryDelay: 1000
   });
 
   // Auto-sync with better error handling
@@ -123,32 +117,15 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
       setProcessingSync(true);
       
       try {
-        // First, ensure we have a payment schedule
-        const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
-        if (!scheduleResult.success || scheduleResult.data.length === 0) {
-          console.log('No payment schedule found, will be created during sync');
-        }
-  
-        // Run the comprehensive sync
-        await syncAll();
+        // Use the enhanced PaymentSyncService for comprehensive fix
+        const result = await paymentSyncService.fixAgreementPaymentSync(agreementId);
         
-        // Try to fix duplicate payments, but don't fail if this step fails
-        try {
-          const { data: fixResult, error: fixError } = await supabase.rpc('fix_duplicate_payments', { 
-            p_lease_id: agreementId 
-          });
-          
-          if (fixError) {
-            console.warn('Error fixing duplicate payments (non-critical):', fixError);
-          } else if (fixResult?.fixed_count > 0) {
-            console.log(`Fixed ${fixResult.fixed_count} duplicate payments`);
-            toast.info(`Fixed ${fixResult.fixed_count} duplicate payment records`);
-          }
-        } catch (duplicateFixError) {
-          console.warn('Could not fix duplicate payments (continuing):', duplicateFixError);
+        if (!result.success) {
+          throw new Error(result.error?.toString() || 'Failed to sync payments');
         }
         
-        return true;
+        console.log('Payment sync completed successfully:', result.data);
+        return result.data;
       } finally {
         setProcessingSync(false);
       }

@@ -172,15 +172,8 @@ export function AgreementDetail({
   // Convert onGenerateDocument to a Promise - fix the async handling
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      // Ensure the function is properly awaited
-      return new Promise<void>((resolve) => {
-        const result = onGenerateDocument();
-        if (result && typeof result.then === 'function') {
-          result.then(() => resolve()).catch(() => resolve());
-        } else {
-          resolve();
-        }
-      });
+      // Wrap in Promise to ensure it returns Promise<void>
+      return Promise.resolve(onGenerateDocument());
     }
     return Promise.resolve();
   }, [onGenerateDocument]);
