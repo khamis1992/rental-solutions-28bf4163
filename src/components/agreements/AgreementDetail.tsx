@@ -11,7 +11,7 @@ import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import LegalCaseCard from './LegalCaseCard';
+import L from './LegalCaseCard';
 import { Payment } from '@/types/payment.types';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
@@ -24,6 +24,7 @@ import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { PaymentSyncButton } from './PaymentSyncButton';
 import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
+import LegalCaseCard from './LegalCaseCard';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -68,8 +69,13 @@ export function AgreementDetail({
     deletePayment: deletePaymentMutation
   } = usePaymentManagement(agreement?.id);
   
-  // Use payment calculation hook
-  const paymentMetrics = usePaymentCalculation(payments, contractAmount);
+  // Use payment calculation hook with correct parameters
+  const paymentMetrics = usePaymentCalculation(
+    payments, 
+    contractAmount,
+    agreement?.start_date ? new Date(agreement.start_date) : null,
+    agreement?.end_date ? new Date(agreement.end_date) : null
+  );
 
   // Handle agreement deletion
   const confirmDelete = useCallback(() => {
@@ -163,6 +169,14 @@ export function AgreementDetail({
       console.error('Failed to delete payment:', error);
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
+  
+  // Convert onGenerateDocument to a Promise
+  const handleGenerateDocument = useCallback(async () => {
+    if (onGenerateDocument) {
+      onGenerateDocument();
+    }
+    return Promise.resolve();
+  }, [onGenerateDocument]);
 
   if (!agreement) {
     return (
@@ -246,7 +260,7 @@ export function AgreementDetail({
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
         onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={onGenerateDocument || (() => {})}
+        onGenerateDocument={handleGenerateDocument}
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 

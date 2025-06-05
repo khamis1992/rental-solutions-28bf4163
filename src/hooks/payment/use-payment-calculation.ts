@@ -1,89 +1,67 @@
+
 import { useMemo } from 'react';
-import { Payment, PaymentStatus } from '@/types/payment.types';
-import { differenceInCalendarMonths, addMonths, startOfMonth, endOfMonth, isAfter, isBefore, min, max } from 'date-fns';
+import { Payment } from '@/types/payment.types';
 
-/**
- * Hook for calculating payment-related metrics and statistics
- */
+interface PaymentMetrics {
+  totalAmount: number;
+  amountPaid: number;
+  balance: number;
+  lateFees: number;
+  paidOnTime: number;
+  paidLate: number;
+  unpaid: number;
+}
+
 export const usePaymentCalculation = (
-  payments: Payment[],
-  rentAmount: number | null,
-  startDate: string | Date | null,
-  endDate: string | Date | null
-) => {
-  // Calculate duration in months (inclusive)
-  const duration = useMemo(() => {
-    if (!startDate || !endDate) return 0;
-    const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-    return differenceInCalendarMonths(end, start) + 1;
-  }, [startDate, endDate]);
+  payments: Payment[] = [],
+  contractAmount: number | null = null,
+  startDate: Date | string | null = null,
+  endDate: Date | string | null = null
+): PaymentMetrics => {
+  return useMemo(() => {
+    // Default values
+    const metrics: PaymentMetrics = {
+      totalAmount: contractAmount || 0,
+      amountPaid: 0,
+      balance: 0,
+      lateFees: 0,
+      paidOnTime: 0,
+      paidLate: 0,
+      unpaid: 0
+    };
 
-  // Calculate total amount
-  const totalAmount = useMemo(() => {
-    if (!rentAmount || !duration) return 0;
-    return rentAmount * duration;
-  }, [rentAmount, duration]);
+    if (!payments || payments.length === 0) {
+      return metrics;
+    }
 
-  // Calculate amount paid (only payments with status 'paid', 'completed', or 'partially_paid')
-  const amountPaid = useMemo(() => {
-    return payments
-      .filter(p => ['paid', 'completed', 'partially_paid'].includes(String(p.status)))
-      .reduce((sum, p) => sum + (p.amount_paid || p.amount || 0), 0);
-  }, [payments]);
+    // Calculate total amount paid
+    metrics.amountPaid = payments
+      .filter(payment => payment.status === 'paid' || payment.status === 'completed')
+      .reduce((sum, payment) => sum + (payment.amount_paid || payment.amount || 0), 0);
 
-  // Calculate balance (sum of pending and overdue payments)
-  const balance = useMemo(() => {
-    return payments
-      .filter(p => ['pending', 'overdue'].includes(String(p.status)))
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-  }, [payments]);
+    // Calculate total late fees
+    metrics.lateFees = payments
+      .reduce((sum, payment) => sum + (payment.late_fine_amount || 0), 0);
 
-  // Calculate late fees: sum of late_fine_amount from all payments (matches Payment History table)
-  const lateFees = useMemo(() => {
-    return payments.reduce((sum, p) => sum + (p.late_fine_amount || 0), 0);
-  }, [payments]);
-
-  // Calculate payment status counts
-  const {
-    paidOnTime,
-    paidLate,
-    unpaid,
-    totalPayments
-  } = useMemo(() => {
-    let onTime = 0;
-    let late = 0;
-    let pending = 0;
+    // Count payments by status
     payments.forEach(payment => {
-      if (['paid', 'completed', 'partially_paid'].includes(String(payment.status))) {
-        // Paid late if days_overdue > 0 or late_fine_amount > 0
-        if ((payment.days_overdue && payment.days_overdue > 0) || (payment.late_fine_amount && payment.late_fine_amount > 0)) {
-          late++;
+      if (payment.type === 'LATE_PAYMENT_FEE') return;
+      
+      if (payment.status === 'paid' || payment.status === 'completed') {
+        if (payment.days_overdue && payment.days_overdue > 0) {
+          metrics.paidLate++;
         } else {
-          onTime++;
+          metrics.paidOnTime++;
         }
       } else if (payment.status === 'pending' || payment.status === 'overdue') {
-        pending++;
+        metrics.unpaid++;
       }
     });
-    return {
-      paidOnTime: onTime,
-      paidLate: late,
-      unpaid: pending,
-      totalPayments: payments.length,
-      duration
-    };
-  }, [payments, duration]);
 
-  return {
-    totalAmount,
-    amountPaid,
-    balance,
-    lateFees,
-    paidOnTime,
-    paidLate,
-    unpaid,
-    totalPayments,
-    duration
-  };
+    // Calculate balance
+    metrics.balance = metrics.totalAmount - metrics.amountPaid;
+    if (metrics.balance < 0) metrics.balance = 0;
+
+    return metrics;
+  }, [payments, contractAmount, startDate, endDate]);
 };

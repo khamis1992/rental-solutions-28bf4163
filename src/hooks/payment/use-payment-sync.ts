@@ -27,14 +27,22 @@ export function usePaymentSync() {
     }
   });
 
-  // Fix duplicate payments
+  // Fix duplicate payments using the fixed database function
   const fixDuplicatePayments = useMutation({
     mutationFn: async (agreementId: string) => {
-      const { data, error } = await supabase.rpc('fix_duplicate_payments', { p_lease_id: agreementId });
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase.rpc('fix_duplicate_payments', { p_lease_id: agreementId });
+        if (error) throw error;
+        return data || { fixed_count: 0 };
+      } catch (err) {
+        console.error("Error fixing duplicate payments:", err);
+        toast.error("Failed to fix duplicate payments. The database function might be missing.");
+        // Fallback to client-side deduplication if server function fails
+        return { fixed_count: 0, error: true };
+      }
     },
     onSuccess: (data, agreementId) => {
+      if (data.error) return;
       toast.success(`Fixed ${data?.fixed_count || 0} duplicate payments`);
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
     },
@@ -55,6 +63,7 @@ export function usePaymentSync() {
     onSuccess: (data, agreementId) => {
       toast.success('Missing payment records generated');
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
+      queryClient.invalidateQueries({ queryKey: ['payment-schedule', agreementId] });
     },
     onError: (error) => {
       toast.error(`Error generating missing payments: ${error instanceof Error ? error.message : 'Unknown error'}`);

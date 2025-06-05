@@ -1,79 +1,115 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { RefreshCcw, Wrench, AlertTriangle } from 'lucide-react';
-import { usePaymentSync } from '@/hooks/payment/use-payment-sync';
+import { Button } from "@/components/ui/button";
+import { usePaymentSync } from "@/hooks/payment/use-payment-sync";
+import { paymentSyncService } from "@/services/PaymentSyncService";
+import { RefreshCw, Settings, Zap } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface PaymentSyncButtonProps {
-  agreementId?: string;
-  variant?: 'sync' | 'fix';
+  agreementId: string;
+  variant?: "sync" | "fix";
   className?: string;
 }
 
 export function PaymentSyncButton({ 
-  agreementId,
-  variant = 'sync',
-  className = ''
+  agreementId, 
+  variant = "sync",
+  className = ""
 }: PaymentSyncButtonProps) {
+  const [isFixing, setIsFixing] = useState(false);
+  const [isDebugging, setIsDebugging] = useState(false);
+  
   const { 
-    syncPaymentSchedule, 
     fixDuplicatePayments,
-    generateMissingPayments,
+    syncPaymentSchedule,
     isPending 
   } = usePaymentSync();
 
+  // Handle deep fix using our dedicated service
+  const handleDeepFix = async () => {
+    setIsFixing(true);
+    try {
+      toast.info("Running comprehensive payment synchronization...");
+      const result = await paymentSyncService.fixAgreementPaymentSync(agreementId);
+      
+      if (result.success) {
+        toast.success("Payment sync fixed successfully!");
+        // Give visual feedback about what was done
+        const { data } = result;
+        if (data) {
+          const message = `Created ${data.scheduleItems} payment schedule items`;
+          toast.info(message);
+        }
+      } else {
+        toast.error("Failed to fix payment sync issues");
+      }
+    } catch (error) {
+      console.error("Error fixing payment sync:", error);
+      toast.error("Error fixing payment synchronization");
+    } finally {
+      setIsFixing(false);
+    }
+  };
+  
+  // Handle sync which just synchronizes with existing data
   const handleSync = async () => {
-    if (!agreementId) return;
-    await syncPaymentSchedule.mutateAsync(agreementId);
+    try {
+      await syncPaymentSchedule.mutateAsync(agreementId);
+    } catch (error) {
+      console.error("Error syncing payments:", error);
+    }
   };
-
-  const handleFix = async () => {
-    if (!agreementId) return;
-    await fixDuplicatePayments.mutateAsync(agreementId);
+  
+  // Debug mode - fix duplicates
+  const handleFixDuplicates = async () => {
+    setIsDebugging(true);
+    try {
+      toast.info("Fixing duplicate payment records...");
+      await fixDuplicatePayments.mutateAsync(agreementId);
+    } catch (error) {
+      console.error("Error fixing duplicates:", error);
+    } finally {
+      setIsDebugging(false);
+    }
   };
-
-  const handleGenerate = async () => {
-    if (!agreementId) return;
-    await generateMissingPayments.mutateAsync(agreementId);
-  };
-
-  if (variant === 'fix') {
+  
+  if (variant === "fix") {
     return (
-      <div className="flex gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleFix}
-          disabled={isPending.fix || !agreementId}
-          className={`h-8 px-2 text-xs ${className}`}
-        >
-          <Wrench className="h-3 w-3 mr-1" />
-          Fix Duplicates
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleGenerate}
-          disabled={isPending.generate || !agreementId}
-          className={`h-8 px-2 text-xs ${className}`}
-        >
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          Generate Missing
-        </Button>
-      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleDeepFix}
+        disabled={isFixing}
+        className={className}
+      >
+        <Zap className={`h-4 w-4 mr-1 ${isFixing ? "animate-pulse" : ""}`} />
+        {isFixing ? "Fixing..." : "Fix Sync"}
+      </Button>
     );
   }
-
+  
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleSync}
-      disabled={isPending.sync || !agreementId}
-      className={`h-8 px-2 text-xs ${className}`}
-    >
-      <RefreshCcw className={`h-3 w-3 mr-1 ${isPending.sync ? 'animate-spin' : ''}`} />
-      Sync Schedule
-    </Button>
+    <div className="flex gap-1">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleSync}
+        disabled={isPending.sync}
+        className={className}
+      >
+        <RefreshCw className={`h-4 w-4 mr-1 ${isPending.sync ? "animate-spin" : ""}`} />
+        {isPending.sync ? "Syncing..." : "Sync"}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={handleFixDuplicates}
+        disabled={isDebugging}
+        className={className}
+      >
+        <Settings className={`h-4 w-4 ${isDebugging ? "animate-spin" : ""}`} />
+      </Button>
+    </div>
   );
 }

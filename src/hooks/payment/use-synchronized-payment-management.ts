@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Payment } from '@/types/payment.types';
@@ -8,6 +8,7 @@ import { usePaymentScheduleManagement } from './use-payment-schedule-management'
 import { useAgreementPaymentSync } from './use-agreement-payment-sync';
 import { paymentService } from '@/services/PaymentService';
 import { paymentScheduleService } from '@/services/PaymentScheduleService';
+import { paymentSyncService } from '@/services/PaymentSyncService';
 
 export interface SynchronizedPaymentData {
   payments: Payment[];
@@ -22,6 +23,7 @@ export interface SynchronizedPaymentData {
 
 export const useSynchronizedPaymentManagement = (agreementId?: string) => {
   const queryClient = useQueryClient();
+  const [processingSync, setProcessingSync] = useState(false);
   
   // Use existing payment management hook
   const {
@@ -39,7 +41,8 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     isLoading: isScheduleLoading,
     generatePaymentSchedule,
     updateScheduleItem,
-    isPending: scheduleLoadingStates
+    isPending: scheduleLoadingStates,
+    fetchPaymentSchedule
   } = usePaymentScheduleManagement(agreementId);
 
   // Use payment sync functionality
@@ -49,40 +52,52 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
   } = useAgreementPaymentSync(agreementId);
 
   // Query to check synchronization status
-  const { data: syncStatus } = useQuery({
+  const { data: syncStatus, refetch: refetchSyncStatus } = useQuery({
     queryKey: ['payment-sync-status', agreementId],
     queryFn: async () => {
       if (!agreementId) return null;
       
-      const [paymentsResult, scheduleResult] = await Promise.all([
-        paymentService.getPayments(agreementId),
-        paymentScheduleService.getPaymentSchedule(agreementId)
-      ]);
+      try {
+        // First check if we need to fix any issues
+        const fixResult = await paymentSyncService.fixAgreementPaymentSync(agreementId);
+        if (!fixResult.success) {
+          console.error('Failed to fix payment sync:', fixResult.error);
+        }
+        
+        // Now get the actual sync status
+        const [paymentsResult, scheduleResult] = await Promise.all([
+          paymentService.getPayments(agreementId),
+          paymentScheduleService.getPaymentSchedule(agreementId)
+        ]);
 
-      if (!paymentsResult.success || !scheduleResult.success) {
-        return { synchronized: false, reason: 'Failed to fetch data' };
+        if (!paymentsResult.success || !scheduleResult.success) {
+          return { synchronized: false, reason: 'Failed to fetch data' };
+        }
+
+        const payments = paymentsResult.data || [];
+        const schedule = scheduleResult.data || [];
+
+        // Check if payment records exist for each schedule item
+        const unsyncedItems = schedule.filter(scheduleItem => {
+          return !payments.some(payment => 
+            payment.schedule_id === scheduleItem.id ||
+            (new Date(payment.payment_date || payment.created_at || '').getMonth() === 
+             new Date(scheduleItem.due_date).getMonth() &&
+             new Date(payment.payment_date || payment.created_at || '').getFullYear() === 
+             new Date(scheduleItem.due_date).getFullYear())
+          );
+        });
+
+        return {
+          synchronized: unsyncedItems.length === 0,
+          unsyncedCount: unsyncedItems.length,
+          totalSchedule: schedule.length,
+          totalPayments: payments.length
+        };
+      } catch (error) {
+        console.error('Error checking sync status:', error);
+        return { synchronized: false, reason: 'Error checking sync status', error };
       }
-
-      const payments = paymentsResult.data;
-      const schedule = scheduleResult.data;
-
-      // Check if payment records exist for each schedule item
-      const unsyncedItems = schedule.filter(scheduleItem => {
-        return !payments.some(payment => 
-          payment.schedule_id === scheduleItem.id ||
-          (new Date(payment.payment_date || payment.created_at || '').getMonth() === 
-           new Date(scheduleItem.due_date).getMonth() &&
-           new Date(payment.payment_date || payment.created_at || '').getFullYear() === 
-           new Date(scheduleItem.due_date).getFullYear())
-        );
-      });
-
-      return {
-        synchronized: unsyncedItems.length === 0,
-        unsyncedCount: unsyncedItems.length,
-        totalSchedule: schedule.length,
-        totalPayments: payments.length
-      };
     },
     enabled: !!agreementId,
     refetchInterval: 30000 // Check every 30 seconds
@@ -94,17 +109,30 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
       if (!agreementId) throw new Error('Agreement ID required');
       
       console.log('Auto-syncing payment data for agreement:', agreementId);
+      setProcessingSync(true);
       
-      // First, ensure we have a payment schedule
-      const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
-      if (!scheduleResult.success || scheduleResult.data.length === 0) {
-        console.log('No payment schedule found, will be created during sync');
+      try {
+        // First, ensure we have a payment schedule
+        const scheduleResult = await paymentScheduleService.getPaymentSchedule(agreementId);
+        if (!scheduleResult.success || scheduleResult.data.length === 0) {
+          console.log('No payment schedule found, will be created during sync');
+        }
+  
+        // Run the comprehensive sync
+        await syncAll();
+        
+        // Check if we need to fix duplicate payments and fix them if needed
+        const { data: fixResult, error: fixError } = await supabase.rpc('fix_duplicate_payments', { p_lease_id: agreementId });
+        if (fixError) {
+          console.error('Error fixing duplicate payments:', fixError);
+        } else if (fixResult?.fixed_count > 0) {
+          console.log(`Fixed ${fixResult.fixed_count} duplicate payments`);
+        }
+        
+        return true;
+      } finally {
+        setProcessingSync(false);
       }
-
-      // Run the comprehensive sync
-      await syncAll();
-      
-      return true;
     },
     onSuccess: () => {
       toast.success('Payment data synchronized successfully');
@@ -120,11 +148,19 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
 
   // Trigger auto-sync if not synchronized
   const checkAndSync = useCallback(async () => {
-    if (syncStatus && !syncStatus.synchronized && !autoSyncMutation.isPending) {
+    if (syncStatus && !syncStatus.synchronized && !autoSyncMutation.isPending && !processingSync) {
       console.log('Payment data not synchronized, triggering auto-sync');
       await autoSyncMutation.mutateAsync();
     }
-  }, [syncStatus, autoSyncMutation]);
+  }, [syncStatus, autoSyncMutation, processingSync]);
+  
+  // Auto-check synchronization on mount and when agreement changes
+  useEffect(() => {
+    if (agreementId && syncStatus && !syncStatus.synchronized && !processingSync) {
+      console.log('Payment schedule not synchronized, will auto-sync');
+      checkAndSync();
+    }
+  }, [agreementId, syncStatus, processingSync, checkAndSync]);
 
   // Calculate synchronized payment data
   const synchronizedData: SynchronizedPaymentData = {
@@ -163,12 +199,17 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     checkAndSync,
     autoSync: autoSyncMutation.mutateAsync,
     
+    // Data refresh
+    refetchSyncStatus,
+    fetchPaymentSchedule,
+    
     // Loading states
     loadingStates: {
       ...paymentLoadingStates,
       schedule: scheduleLoadingStates,
       sync: syncLoadingStates,
-      autoSync: autoSyncMutation.isPending
+      autoSync: autoSyncMutation.isPending,
+      processingSync
     }
   };
 };

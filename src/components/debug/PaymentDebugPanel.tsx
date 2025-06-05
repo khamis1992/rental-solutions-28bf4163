@@ -1,16 +1,17 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
-import { PaymentSyncButton } from '@/components/agreements/PaymentSyncButton';
-import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
-import { Agreement } from '@/types/agreement';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AlertTriangle, ChevronDown, ChevronUp, Calendar, Clock, CheckCircle, RotateCw } from 'lucide-react';
+import { Agreement } from "@/types/agreement";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "../ui/button";
+import { usePaymentSync } from "@/hooks/payment/use-payment-sync";
+import { useState } from "react";
+import { AlertCircle, CheckCircle2, RefreshCw, RotateCw } from "lucide-react";
+import { Badge } from "../ui/badge";
+import { usePaymentManagement } from "@/hooks/payment/use-payment-management";
+import { usePaymentScheduleManagement } from "@/hooks/payment/use-payment-schedule-management";
+import { Separator } from "../ui/separator";
+import { paymentSyncService } from "@/services/PaymentSyncService";
+import { toast } from "sonner";
 
 interface PaymentDebugPanelProps {
   agreement: Agreement;
@@ -18,164 +19,204 @@ interface PaymentDebugPanelProps {
 }
 
 export function PaymentDebugPanel({ agreement, isOpen }: PaymentDebugPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
-  const { 
-    generatePaymentSchedule, 
-    isGenerating,
-    isPending 
-  } = usePaymentScheduleManagement(agreement.id);
-
-  const { 
-    syncAll,
-    isPending: syncIsPending 
-  } = useAgreementPaymentSync(agreement.id);
-
-  // Parse dates for display and calculation
-  const startDate = new Date(agreement.start_date);
-  const endDate = new Date(agreement.end_date);
+  // Get payment data
+  const { payments, isLoading: paymentsLoading } = usePaymentManagement(agreement.id);
   
-  // Create new payment schedule
-  const handleGenerateSchedule = async () => {
-    await generatePaymentSchedule(
-      startDate,
-      endDate,
-      agreement.rent_amount,
-      agreement.payment_frequency || 'monthly',
-      agreement.rent_due_day || 1
-    );
+  // Get payment schedule data
+  const { paymentSchedule, isLoading: scheduleLoading } = usePaymentScheduleManagement(agreement.id);
+  
+  // Get payment sync utilities
+  const { 
+    fixDuplicatePayments, 
+    generateMissingPayments,
+    syncPaymentSchedule,
+    isPending
+  } = usePaymentSync();
+  
+  // Function to run full sync
+  const runFullSync = async () => {
+    setIsSyncing(true);
+    try {
+      toast.info("Running comprehensive payment synchronization...");
+      await paymentSyncService.fixAgreementPaymentSync(agreement.id);
+      toast.success("Synchronization completed");
+    } catch (error) {
+      toast.error("Synchronization failed");
+      console.error("Sync error:", error);
+    } finally {
+      setIsSyncing(false);
+    }
   };
   
-  // Synchronize all payment data
-  const handleSyncAll = async () => {
-    await syncAll();
+  // Function to fix duplicate payments
+  const fixDuplicates = async () => {
+    try {
+      await fixDuplicatePayments.mutateAsync(agreement.id);
+    } catch (error) {
+      console.error("Error fixing duplicates:", error);
+    }
   };
-
+  
+  // Function to generate missing payments
+  const generateMissing = async () => {
+    try {
+      await generateMissingPayments.mutateAsync(agreement.id);
+    } catch (error) {
+      console.error("Error generating missing payments:", error);
+    }
+  };
+  
+  // Function to sync payment schedule
+  const syncSchedule = async () => {
+    try {
+      await syncPaymentSchedule.mutateAsync(agreement.id);
+    } catch (error) {
+      console.error("Error syncing schedule:", error);
+    }
+  };
+  
   if (!isOpen) return null;
-
+  
   return (
-    <Card className="bg-muted/20 border-dashed">
-      <CardHeader className="px-4 py-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2 text-yellow-500" />
-            Payment System Debug
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 p-0"
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
+    <Card className="border-dashed border-yellow-300 bg-yellow-50">
+      <CardHeader>
+        <CardTitle className="text-yellow-800 flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          Payment Debug Panel
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Developer Tools</AlertTitle>
+          <AlertDescription>
+            This panel is for debugging payment synchronization issues.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Payment Info */}
+          <div>
+            <h4 className="font-medium mb-2">Payment Records</h4>
+            {paymentsLoading ? (
+              <Badge variant="outline" className="animate-pulse">Loading...</Badge>
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <Badge>{payments.length} payment(s)</Badge>
+            )}
+            <div className="mt-2 text-xs text-muted-foreground">
+              {payments.length > 0 && (
+                <div>
+                  {payments.filter(p => p.status === 'paid' || p.status === 'completed').length} paid, {' '}
+                  {payments.filter(p => p.status === 'pending').length} pending, {' '}
+                  {payments.filter(p => p.status === 'overdue').length} overdue
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Schedule Info */}
+          <div>
+            <h4 className="font-medium mb-2">Schedule Records</h4>
+            {scheduleLoading ? (
+              <Badge variant="outline" className="animate-pulse">Loading...</Badge>
+            ) : (
+              <Badge>{paymentSchedule.length} schedule item(s)</Badge>
+            )}
+            <div className="mt-2 text-xs text-muted-foreground">
+              {paymentSchedule.length > 0 && (
+                <div>
+                  {paymentSchedule.filter(p => p.status === 'completed').length} completed, {' '}
+                  {paymentSchedule.filter(p => p.status === 'pending').length} pending, {' '}
+                  {paymentSchedule.filter(p => p.status === 'partial').length} partial
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            onClick={fixDuplicates} 
+            variant="outline"
+            size="sm"
+            disabled={isPending.fix}
+            className="text-xs"
+          >
+            {isPending.fix ? (
+              <>
+                <RotateCw className="h-3 w-3 mr-1 animate-spin" /> 
+                Fixing...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Fix Duplicates
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={generateMissing} 
+            variant="outline" 
+            size="sm"
+            disabled={isPending.generate}
+            className="text-xs"
+          >
+            {isPending.generate ? (
+              <>
+                <RotateCw className="h-3 w-3 mr-1 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Generate Missing
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={syncSchedule} 
+            variant="outline"
+            size="sm"
+            disabled={isPending.sync}
+            className="text-xs"
+          >
+            {isPending.sync ? (
+              <>
+                <RotateCw className="h-3 w-3 mr-1 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sync Schedule
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={runFullSync}
+            variant="default"
+            size="sm"
+            disabled={isSyncing}
+            className="text-xs"
+          >
+            {isSyncing ? (
+              <>
+                <RotateCw className="h-3 w-3 mr-1 animate-spin" />
+                Running...
+              </>
+            ) : (
+              "Run Full Sync"
             )}
           </Button>
         </div>
-      </CardHeader>
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CollapsibleContent>
-          <CardContent className="px-4 py-2 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Frequency:</span>
-                  <Badge variant="outline">{agreement.payment_frequency || 'monthly'}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Day:</span>
-                  <Badge variant="outline">{agreement.payment_day || 1}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rent Due Day:</span>
-                  <Badge variant="outline">{agreement.rent_due_day || 1}</Badge>
-                </div>
-              </div>
-
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Start Date:</span>
-                  <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                    <span>{format(startDate, 'PPP')}</span>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">End Date:</span>
-                  <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                    <span>{format(endDate, 'PPP')}</span>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rent Amount:</span>
-                  <Badge variant="outline">${agreement.rent_amount.toFixed(2)}</Badge>
-                </div>
-              </div>
-
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Daily Late Fee:</span>
-                  <Badge variant="outline">${agreement.daily_late_fee?.toFixed(2) || '0.00'}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Agreement Status:</span>
-                  <Badge variant={agreement.status === 'active' ? 'success' : 'secondary'}>
-                    {agreement.status}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            <Alert variant="warning" className="py-2">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                Caution: These actions directly modify payment data. Use only for fixing inconsistencies.
-              </AlertDescription>
-            </Alert>
-
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="secondary"
-                size="sm"
-                onClick={handleGenerateSchedule}
-                disabled={isGenerating || isPending.generate}
-                className="h-8 text-xs"
-              >
-                {isPending.generate ? (
-                  <RotateCw className="h-3 w-3 mr-1 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                )}
-                Generate Payment Schedule
-              </Button>
-
-              <Button 
-                variant="secondary"
-                size="sm"
-                onClick={handleSyncAll}
-                disabled={syncIsPending.all}
-                className="h-8 text-xs"
-              >
-                {syncIsPending.all ? (
-                  <RotateCw className="h-3 w-3 mr-1 animate-spin" />
-                ) : (
-                  <Clock className="h-3 w-3 mr-1" />
-                )}
-                Sync All Payment Data
-              </Button>
-
-              <PaymentSyncButton 
-                agreementId={agreement.id} 
-                variant="fix"
-                className="text-xs"
-              />
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+      </CardContent>
     </Card>
   );
 }
