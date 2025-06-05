@@ -34,7 +34,7 @@ export function PaymentSyncButton({
       const result = await paymentSyncService.fixAgreementPaymentSync(agreementId);
       
       if (result.success) {
-        toast.success("Payment sync fixed successfully!");
+        toast.success("Payment sync completed successfully!");
         // Give visual feedback about what was done
         const { data } = result;
         if (data) {
@@ -42,11 +42,13 @@ export function PaymentSyncButton({
           toast.info(message);
         }
       } else {
-        toast.error("Failed to fix payment sync issues");
+        const errorMessage = result.error instanceof Error ? result.error.message : 'Unknown error';
+        toast.error(`Payment sync encountered issues: ${errorMessage}`);
       }
     } catch (error) {
       console.error("Error fixing payment sync:", error);
-      toast.error("Error fixing payment synchronization");
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Error fixing payment synchronization: ${errorMessage}`);
     } finally {
       setIsFixing(false);
     }
@@ -61,14 +63,20 @@ export function PaymentSyncButton({
     }
   };
   
-  // Debug mode - fix duplicates
+  // Debug mode - fix duplicates with error handling
   const handleFixDuplicates = async () => {
     setIsDebugging(true);
     try {
-      toast.info("Fixing duplicate payment records...");
+      toast.info("Checking for duplicate payment records...");
       await fixDuplicatePayments.mutateAsync(agreementId);
     } catch (error) {
       console.error("Error fixing duplicates:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('fix_duplicate_payments')) {
+        toast.warning("Duplicate payment fix function not available. Please contact support.");
+      } else {
+        toast.error(`Error fixing duplicates: ${errorMessage}`);
+      }
     } finally {
       setIsDebugging(false);
     }

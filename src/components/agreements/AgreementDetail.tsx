@@ -169,10 +169,18 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Convert onGenerateDocument to a Promise
-  const handleGenerateDocument = useCallback(async () => {
+  // Convert onGenerateDocument to a Promise - fix the async handling
+  const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await Promise.resolve(onGenerateDocument());
+      // Ensure the function is properly awaited
+      return new Promise<void>((resolve) => {
+        const result = onGenerateDocument();
+        if (result && typeof result.then === 'function') {
+          result.then(() => resolve()).catch(() => resolve());
+        } else {
+          resolve();
+        }
+      });
     }
     return Promise.resolve();
   }, [onGenerateDocument]);

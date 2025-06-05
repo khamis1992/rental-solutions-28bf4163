@@ -43,7 +43,7 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     generatePaymentSchedule,
     updateScheduleItem,
     isPending: scheduleLoadingStates,
-    fetchPaymentSchedule
+    refetch: fetchPaymentSchedule
   } = usePaymentScheduleManagement(agreementId);
 
   // Use payment sync functionality
@@ -52,17 +52,17 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     isPending: syncLoadingStates
   } = useAgreementPaymentSync(agreementId);
 
-  // Query to check synchronization status
+  // Query to check synchronization status with better error handling
   const { data: syncStatus, refetch: refetchSyncStatus } = useQuery({
     queryKey: ['payment-sync-status', agreementId],
     queryFn: async () => {
       if (!agreementId) return null;
       
       try {
-        // First check if we need to fix any issues
+        // First check if we need to fix any issues using the PaymentSyncService
         const fixResult = await paymentSyncService.fixAgreementPaymentSync(agreementId);
         if (!fixResult.success) {
-          console.error('Failed to fix payment sync:', fixResult.error);
+          console.warn('Payment sync fix had issues:', fixResult.error);
         }
         
         // Now get the actual sync status
@@ -72,7 +72,11 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
         ]);
 
         if (!paymentsResult.success || !scheduleResult.success) {
-          return { synchronized: false, reason: 'Failed to fetch data' };
+          return { 
+            synchronized: false, 
+            reason: 'Failed to fetch data',
+            error: paymentsResult.error || scheduleResult.error
+          };
         }
 
         const payments = paymentsResult.data || [];
@@ -97,14 +101,20 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
         };
       } catch (error) {
         console.error('Error checking sync status:', error);
-        return { synchronized: false, reason: 'Error checking sync status', error };
+        return { 
+          synchronized: false, 
+          reason: 'Error checking sync status', 
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
       }
     },
     enabled: !!agreementId,
-    refetchInterval: 30000 // Check every 30 seconds
+    refetchInterval: 30000, // Check every 30 seconds
+    retry: 2, // Only retry twice on failure
+    retryDelay: 1000 // Wait 1 second between retries
   });
 
-  // Auto-sync if not synchronized
+  // Auto-sync with better error handling
   const autoSyncMutation = useMutation({
     mutationFn: async () => {
       if (!agreementId) throw new Error('Agreement ID required');
@@ -122,12 +132,20 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
         // Run the comprehensive sync
         await syncAll();
         
-        // Check if we need to fix duplicate payments and fix them if needed
-        const { data: fixResult, error: fixError } = await supabase.rpc('fix_duplicate_payments', { p_lease_id: agreementId });
-        if (fixError) {
-          console.error('Error fixing duplicate payments:', fixError);
-        } else if (fixResult?.fixed_count > 0) {
-          console.log(`Fixed ${fixResult.fixed_count} duplicate payments`);
+        // Try to fix duplicate payments, but don't fail if this step fails
+        try {
+          const { data: fixResult, error: fixError } = await supabase.rpc('fix_duplicate_payments', { 
+            p_lease_id: agreementId 
+          });
+          
+          if (fixError) {
+            console.warn('Error fixing duplicate payments (non-critical):', fixError);
+          } else if (fixResult?.fixed_count > 0) {
+            console.log(`Fixed ${fixResult.fixed_count} duplicate payments`);
+            toast.info(`Fixed ${fixResult.fixed_count} duplicate payment records`);
+          }
+        } catch (duplicateFixError) {
+          console.warn('Could not fix duplicate payments (continuing):', duplicateFixError);
         }
         
         return true;
@@ -143,7 +161,8 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     },
     onError: (error) => {
       console.error('Auto-sync failed:', error);
-      toast.error('Failed to synchronize payment data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to synchronize payment data: ${errorMessage}`);
     }
   });
 
@@ -151,7 +170,11 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
   const checkAndSync = useCallback(async () => {
     if (syncStatus && !syncStatus.synchronized && !autoSyncMutation.isPending && !processingSync) {
       console.log('Payment data not synchronized, triggering auto-sync');
-      await autoSyncMutation.mutateAsync();
+      try {
+        await autoSyncMutation.mutateAsync();
+      } catch (error) {
+        console.error('Auto-sync failed:', error);
+      }
     }
   }, [syncStatus, autoSyncMutation, processingSync]);
   
@@ -159,7 +182,12 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
   useEffect(() => {
     if (agreementId && syncStatus && !syncStatus.synchronized && !processingSync) {
       console.log('Payment schedule not synchronized, will auto-sync');
-      checkAndSync();
+      // Add a small delay to avoid immediate sync on component mount
+      const timeoutId = setTimeout(() => {
+        checkAndSync();
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [agreementId, syncStatus, processingSync, checkAndSync]);
 
