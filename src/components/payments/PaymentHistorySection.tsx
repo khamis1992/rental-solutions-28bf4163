@@ -100,7 +100,7 @@ export function PaymentHistorySection({
         payment_method: method || 'cash',
         reference_number: reference || '',
         lease_id: leaseId,
-        status: 'paid'
+        status: 'completed' // Fix: use 'completed' instead of 'paid'
       };
       await onRecordPayment(newPayment);
     }
@@ -109,14 +109,15 @@ export function PaymentHistorySection({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'completed':
       case 'paid':
-        return 'success';
+        return 'default';
       case 'pending':
-        return 'warning';
+        return 'secondary';
       case 'overdue':
         return 'destructive';
       default:
-        return 'default';
+        return 'outline';
     }
   };
 
@@ -210,7 +211,7 @@ export function PaymentHistorySection({
                               Late Fee: QAR {formatCurrency(payment.late_fine_amount ?? fee)}
                             </div>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               onClick={() => {
                                 setSelectedPayment(payment);
@@ -224,14 +225,14 @@ export function PaymentHistorySection({
                         );
                       }
                       // Show static late_fine_amount for paid/completed/partially_paid
-                      if ((['paid', 'completed', 'partially_paid'].includes(String(payment.status))) && payment.late_fine_amount && payment.late_fine_amount > 0) {
+                      if ((['completed', 'paid', 'partially_paid'].includes(String(payment.status))) && payment.late_fine_amount && payment.late_fine_amount > 0) {
                         return (
                           <div className="flex items-center gap-2">
                             <div className="text-xs text-red-600 mt-1">
                               Late Fee: QAR {formatCurrency(payment.late_fine_amount)}
                             </div>
                             <Button
-                              size="xs"
+                              size="sm"
                               variant="outline"
                               onClick={() => {
                                 setSelectedPayment(payment);
@@ -260,7 +261,7 @@ export function PaymentHistorySection({
                   <Badge variant="outline">
                     {payment.payment_method ? payment.payment_method : 'N/A'}
                   </Badge>
-                  {payment.status !== 'paid' && (
+                  {payment.status !== 'completed' && payment.status !== 'paid' && (
                     <Button
                       size="sm"
                       variant="outline"

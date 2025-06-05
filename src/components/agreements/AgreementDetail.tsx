@@ -1,12 +1,9 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
@@ -51,7 +48,7 @@ export function AgreementDetail({
   const navigate = useNavigate();
   
   // Use the dialog management hook
-  const { dialogs, openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
+  const { openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
     delete: false,
     payment: false
   });
@@ -61,11 +58,6 @@ export function AgreementDetail({
     generatingPdf: false
   });
 
-  const [lateFeeDetails, setLateFeeDetails] = useState(null as {
-    amount: number;
-    daysLate: number;
-  } | null);
-  const [selectedPayment, setSelectedPayment] = useState(null as Payment | null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Use payment management hook
@@ -74,47 +66,22 @@ export function AgreementDetail({
     isLoading: isLoadingPayments,
     updatePayment: updatePaymentMutation,
     addPayment: addPaymentMutation,
-    deletePayment: deletePaymentMutation,
-    updateHistoricalStatuses,
-    loadingStates: paymentLoadingStates
+    deletePayment: deletePaymentMutation
   } = usePaymentManagement(agreement?.id);
   
   // Use payment calculation hook
   const paymentMetrics = usePaymentCalculation(payments, contractAmount);
   
   // Use special payment hook
-  const { processPayment, calculateLateFee } = useSpecialPayment(agreement?.id);
-  
-  // Calculate late fee on component mount
-  useEffect(() => {
-    const today = new Date();
-    if (today.getDate() > 1) {
-      const { amount, daysLate } = calculateLateFee(today);
-      setLateFeeDetails({ amount, daysLate });
-    } else {
-      setLateFeeDetails(null);
-    }
-  }, [calculateLateFee]);
+  const { calculateLateFee } = useSpecialPayment(agreement?.id);
 
   // Handle agreement deletion
-  const handleDelete = useCallback(() => {
-    if (agreement) {
-      onDelete(agreement.id);
-    }
-  }, [agreement, onDelete]);
-
-  // Confirm delete dialog
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
       closeDialog('delete');
     }
   }, [agreement, onDelete, closeDialog]);
-
-  // Print functionality
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
 
   // Edit agreement
   const handleEdit = useCallback(() => {
@@ -182,7 +149,7 @@ export function AgreementDetail({
         if (success) {
           onDataRefresh();
         }
-        return success;
+        return !!success;
       } catch (error) {
         console.error('Failed to update payment:', error);
         return false;
@@ -347,7 +314,7 @@ export function AgreementDetail({
           description="Add a new payment to this agreement"
           leaseId={agreement.id}
           rentAmount={rentAmount}
-          selectedPayment={selectedPayment}
+          selectedPayment={null}
         />
       )}
     </div>
