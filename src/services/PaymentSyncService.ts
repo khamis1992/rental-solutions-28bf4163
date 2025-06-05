@@ -3,17 +3,19 @@ import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Result } from '@/types/error.types';
 import { paymentScheduleService } from './PaymentScheduleService';
+import { paymentScheduleSyncService } from './PaymentScheduleSyncService';
 
 interface FixResult {
   agreementId: string;
   syncCompleted: boolean;
   scheduleExists: boolean;
   scheduleItems: number;
+  unifiedPaymentsCreated: number;
 }
 
 /**
- * Simplified Payment Synchronization Service
- * Focuses on fixing payment schedule generation and synchronization
+ * Enhanced Payment Synchronization Service
+ * Focuses on fixing payment schedule generation and synchronization with unified_payments
  */
 export class PaymentSyncService extends BaseService {
   
@@ -22,7 +24,7 @@ export class PaymentSyncService extends BaseService {
    */
   async fixAgreementPaymentSync(agreementId: string): Promise<Result<FixResult>> {
     try {
-      console.log(`[PaymentSync] Starting fix for agreement ${agreementId}`);
+      console.log(`[PaymentSync] Starting comprehensive fix for agreement ${agreementId}`);
       
       // Step 1: Get agreement details
       const { data: agreement, error: agreementError } = await supabase
@@ -80,19 +82,30 @@ export class PaymentSyncService extends BaseService {
         }
       }
 
-      // Step 4: Generate missing payment records
-      try {
-        await paymentScheduleService.generateMissingPaymentRecords();
-        console.log(`[PaymentSync] Generated missing payment records`);
-      } catch (error) {
-        console.warn(`[PaymentSync] Failed to generate missing payment records:`, error);
+      // Step 4: Sync payment schedule with unified_payments table
+      let unifiedPaymentsCreated = 0;
+      if (scheduleItems > 0) {
+        console.log(`[PaymentSync] Syncing ${scheduleItems} schedule items with unified_payments`);
+        
+        const syncResult = await paymentScheduleSyncService.checkPaymentScheduleSync(agreementId);
+        if (syncResult.success) {
+          unifiedPaymentsCreated = syncResult.data.scheduleItemsCreated;
+          console.log(`[PaymentSync] Created ${unifiedPaymentsCreated} unified payment records`);
+          
+          if (syncResult.data.errors.length > 0) {
+            console.warn(`[PaymentSync] Sync errors:`, syncResult.data.errors);
+          }
+        } else {
+          console.error(`[PaymentSync] Failed to sync with unified_payments:`, syncResult.error);
+        }
       }
 
       const result: FixResult = {
         agreementId,
         syncCompleted: true,
         scheduleExists: scheduleItems > 0,
-        scheduleItems
+        scheduleItems,
+        unifiedPaymentsCreated
       };
 
       console.log(`[PaymentSync] Fix completed:`, result);
@@ -100,6 +113,17 @@ export class PaymentSyncService extends BaseService {
     } catch (error) {
       console.error(`[PaymentSync] Failed to fix agreement payment sync:`, error);
       return this.error(error, 'Failed to fix agreement payment sync');
+    }
+  }
+
+  /**
+   * Get detailed payment sync status
+   */
+  async getPaymentSyncStatus(agreementId: string): Promise<Result<any>> {
+    try {
+      return await paymentScheduleSyncService.getPaymentComparisonDetails(agreementId);
+    } catch (error) {
+      return this.error(error, 'Failed to get payment sync status');
     }
   }
 }

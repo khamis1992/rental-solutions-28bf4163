@@ -65,15 +65,24 @@ export function AgreementDetail({
     isLoading: isLoadingPayments,
     updatePayment: updatePaymentMutation,
     addPayment: addPaymentMutation,
-    deletePayment: deletePaymentMutation
+    deletePayment: deletePaymentMutation,
+    refetch: fetchPayments
   } = usePaymentManagement(agreement?.id);
   
+  // Helper function to safely convert date string to Date object
+  const ensureDate = (dateValue: string | Date): Date => {
+    if (typeof dateValue === 'string') {
+      return new Date(dateValue);
+    }
+    return dateValue;
+  };
+
   // Use payment calculation hook with correct parameters
   const paymentMetrics = usePaymentCalculation(
     payments, 
     contractAmount,
-    agreement?.start_date ? new Date(agreement.start_date) : null,
-    agreement?.end_date ? new Date(agreement.end_date) : null
+    agreement?.start_date ? ensureDate(agreement.start_date) : null,
+    agreement?.end_date ? ensureDate(agreement.end_date) : null
   );
 
   // Handle agreement deletion
@@ -90,14 +99,6 @@ export function AgreementDetail({
       navigate(`/agreements/edit/${agreement.id}`);
     }
   }, [agreement, navigate]);
-
-  // Helper function to safely convert date string to Date object
-  const ensureDate = (dateValue: string | Date): Date => {
-    if (typeof dateValue === 'string') {
-      return new Date(dateValue);
-    }
-    return dateValue;
-  };
 
   // Download PDF - ensure dates are Date objects
   const handleDownloadPdf = useCallback(async () => {
@@ -277,6 +278,7 @@ export function AgreementDetail({
         leaseEndDate={agreement.end_date}
         leaseId={agreement.id}
         agreement={agreement}
+        fetchPayments={fetchPayments}
       />
 
       {/* Traffic Fines Section */}
