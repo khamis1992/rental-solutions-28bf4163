@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import { AgreementPaymentAnalytics } from './analytics/AgreementPaymentAnalytics
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
-import { useSpecialPayment } from '@/hooks/payment/use-special-payment';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { PaymentSyncButton } from './PaymentSyncButton';
 import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
@@ -71,9 +70,6 @@ export function AgreementDetail({
   
   // Use payment calculation hook
   const paymentMetrics = usePaymentCalculation(payments, contractAmount);
-  
-  // Use special payment hook
-  const { calculateLateFee } = useSpecialPayment(agreement?.id);
 
   // Handle agreement deletion
   const confirmDelete = useCallback(() => {
@@ -250,7 +246,7 @@ export function AgreementDetail({
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
         onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={onGenerateDocument}
+        onGenerateDocument={onGenerateDocument || (() => {})}
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 
@@ -303,7 +299,7 @@ export function AgreementDetail({
               payment_method: method,
               reference_number: reference,
               lease_id: agreement.id,
-              status: 'completed'
+              status: 'paid'
             };
             await handleRecordPayment(payment);
             closeDialog('payment');

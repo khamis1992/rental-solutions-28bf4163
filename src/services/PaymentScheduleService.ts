@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { PaymentStatus } from '@/types/payment-schedule.types';
+import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 import { 
   Result, 
   ServiceError, 
@@ -63,6 +64,111 @@ export interface PaymentScheduleSyncResult {
 export class PaymentScheduleService extends BaseService {
   constructor() {
     super(supabase);
+  }
+
+  async getPaymentSchedule(leaseId: string): Promise<Result<PaymentScheduleItem[]>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .select('*')
+        .eq('lease_id', leaseId)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to fetch payment schedule',
+          'getPaymentSchedule'
+        );
+      }
+
+      return data as PaymentScheduleItem[];
+    }, 'Failed to fetch payment schedule');
+  }
+
+  async createPaymentSchedule(scheduleData: PaymentScheduleCreateData): Promise<Result<PaymentScheduleItem>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .insert([scheduleData])
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to create payment schedule',
+          'createPaymentSchedule'
+        );
+      }
+
+      return data;
+    }, 'Failed to create payment schedule');
+  }
+
+  async generateAndPersistSchedule(
+    leaseId: string,
+    startDate: Date,
+    endDate: Date,
+    rentAmount: number,
+    paymentFrequency: string,
+    paymentDay: number
+  ): Promise<Result<PaymentScheduleItem[]>> {
+    return this.safeExecute(async () => {
+      console.log('Generating payment schedule for lease:', leaseId);
+      
+      // Generate the schedule
+      const schedule = generatePaymentSchedule({
+        startDate,
+        endDate,
+        rentAmount,
+        paymentFrequency,
+        paymentDay,
+        includeDeposit: false,
+        depositAmount: 0
+      });
+
+      if (schedule.length === 0) {
+        throw new Error('No payment schedule items generated');
+      }
+
+      console.log('Generated schedule with', schedule.length, 'items');
+
+      // Create the schedule items
+      const schedulePromises = schedule.map(async (payment) => {
+        const scheduleData: PaymentScheduleCreateData = {
+          lease_id: leaseId,
+          amount: payment.amount,
+          due_date: payment.dueDate.toISOString(),
+          status: 'pending' as PaymentStatus,
+          description: payment.description
+        };
+
+        const result = await this.createPaymentSchedule(scheduleData);
+        if (!result.success) {
+          throw new Error(`Failed to create schedule item: ${result.error}`);
+        }
+        return result.data;
+      });
+
+      const createdSchedules = await Promise.all(schedulePromises);
+      console.log('Created', createdSchedules.length, 'schedule items');
+
+      return createdSchedules;
+    }, 'Failed to generate and persist payment schedule');
+  }
+
+  async generateMissingPaymentRecords(): Promise<Result<{ createdCount: number }>> {
+    return this.safeExecute(async () => {
+      const { data, error } = await supabase.rpc('generate_missing_payment_records');
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to generate missing payment records',
+          'generateMissingPaymentRecords'
+        );
+      }
+
+      return { createdCount: data?.created_count || 0 };
+    }, 'Failed to generate missing payment records');
   }
 
   async fetchPaymentSchedules(filters?: PaymentScheduleFilterParams): Promise<Result<PaymentScheduleItem[]>> {
@@ -139,25 +245,6 @@ export class PaymentScheduleService extends BaseService {
     }, 'Failed to fetch payment schedules');
   }
 
-  async createPaymentSchedule(scheduleData: PaymentScheduleCreateData): Promise<Result<PaymentScheduleItem>> {
-    return this.safeExecute(async () => {
-      const { data, error } = await supabase
-        .from('payment_schedules')
-        .insert([scheduleData])
-        .select()
-        .single();
-
-      if (error) {
-        throw this.createServiceError(
-          'Failed to create payment schedule',
-          'createPaymentSchedule'
-        );
-      }
-
-      return data;
-    }, 'Failed to create payment schedule');
-  }
-
   async updatePaymentSchedule(id: string, scheduleData: Partial<PaymentScheduleItem>): Promise<Result<PaymentScheduleItem>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
@@ -198,30 +285,6 @@ export class PaymentScheduleService extends BaseService {
 
       return true;
     }, 'Failed to delete payment schedule');
-  }
-
-  async updateScheduleItemStatus(id: string, status: PaymentStatus): Promise<Result<PaymentScheduleItem>> {
-    return this.safeExecute(async () => {
-      const { data, error } = await supabase
-        .from('payment_schedules')
-        .update({ status })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw this.createServiceError(
-          'Failed to update payment schedule status',
-          'updateScheduleItemStatus'
-        );
-      }
-
-      if (!data) {
-        throw createNotFoundError('Payment Schedule', id);
-      }
-
-      return data;
-    }, 'Failed to update payment schedule status');
   }
 
   async syncWithPayments(leaseId: string): Promise<Result<PaymentScheduleSyncResult>> {
@@ -279,6 +342,34 @@ export class PaymentScheduleService extends BaseService {
 
       return result;
     }, 'Failed to sync payment schedules with payments');
+  }
+
+  async updateScheduleItemStatus(id: string, status: PaymentStatus, actualPaymentDate?: string, transactionId?: string): Promise<Result<PaymentScheduleItem>> {
+    return this.safeExecute(async () => {
+      const updateData: any = { status };
+      if (actualPaymentDate) updateData.actual_payment_date = actualPaymentDate;
+      if (transactionId) updateData.transaction_id = transactionId;
+
+      const { data, error } = await supabase
+        .from('payment_schedules')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        throw this.createServiceError(
+          'Failed to update payment schedule status',
+          'updateScheduleItemStatus'
+        );
+      }
+
+      if (!data) {
+        throw createNotFoundError('Payment Schedule', id);
+      }
+
+      return data;
+    }, 'Failed to update payment schedule status');
   }
 }
 

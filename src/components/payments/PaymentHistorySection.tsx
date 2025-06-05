@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,7 +101,7 @@ export function PaymentHistorySection({
         payment_method: method || 'cash',
         reference_number: reference || '',
         lease_id: leaseId,
-        status: 'completed' // Fix: use 'completed' instead of 'paid'
+        status: 'paid' // Fix: use valid status
       };
       await onRecordPayment(newPayment);
     }
@@ -208,7 +209,7 @@ export function PaymentHistorySection({
                         return (
                           <div className="flex items-center gap-2">
                             <div className="text-xs text-red-600 mt-1">
-                              Late Fee: QAR {formatCurrency(payment.late_fine_amount ?? fee)}
+                              Late Fee: {formatCurrency(payment.late_fine_amount ?? fee)}
                             </div>
                             <Button
                               size="sm"
@@ -229,7 +230,7 @@ export function PaymentHistorySection({
                         return (
                           <div className="flex items-center gap-2">
                             <div className="text-xs text-red-600 mt-1">
-                              Late Fee: QAR {formatCurrency(payment.late_fine_amount)}
+                              Late Fee: {formatCurrency(payment.late_fine_amount)}
                             </div>
                             <Button
                               size="sm"

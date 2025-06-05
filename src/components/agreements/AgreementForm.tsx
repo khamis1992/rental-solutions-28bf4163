@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -17,14 +18,12 @@ interface AgreementFormProps {
   initialData?: Agreement;
   onSubmit: (data: Agreement) => Promise<void>;
   isSubmitting?: boolean;
-  validationErrors?: Record<string, string> | null;
 }
 
 const AgreementForm = ({
   initialData,
   onSubmit,
-  isSubmitting = false,
-  validationErrors
+  isSubmitting = false
 }: AgreementFormProps) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const [selectedVehicle, setSelectedVehicle] = useState(null as any);
@@ -53,41 +52,35 @@ const AgreementForm = ({
     },
   });
 
-  // Make sure to set the ID from initialData
+  // Set form values from initialData
   useEffect(() => {
     if (initialData?.id) {
       form.setValue('id', initialData.id);
     }
 
-    // Ensure rent_amount is correctly set
     if (initialData?.rent_amount) {
       console.log("Setting rent_amount from initialData:", initialData.rent_amount);
       form.setValue('rent_amount', initialData.rent_amount);
     }
 
-    // Set vehicle_id if it exists
     if (initialData?.vehicle_id) {
       console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
       form.setValue('vehicle_id', initialData.vehicle_id);
       
-      // If we have vehicle information, set the selected vehicle
       if (initialData.vehicles) {
         console.log("Setting selected vehicle from initialData:", initialData.vehicles);
         setSelectedVehicle(initialData.vehicles);
       }
     }
     
-    // Set customer_id and selected customer if it exists
     if (initialData?.customer_id) {
       console.log("Setting customer_id from initialData:", initialData.customer_id);
       form.setValue('customer_id', initialData.customer_id);
       
-      // If we have customer information, set the selected customer
       if (initialData.customers) {
         const customerData = initialData.customers;
         console.log("Setting selected customer from initialData:", customerData);
         
-        // Convert to CustomerInfo format with proper type handling
         const customer: CustomerInfo = {
           id: customerData.id || initialData.customer_id,
           full_name: customerData.full_name || '',
@@ -108,31 +101,26 @@ const AgreementForm = ({
       }
     }
 
-    // Set total_amount if it exists
     if (initialData?.total_amount) {
       console.log("Setting total_amount from initialData:", initialData.total_amount);
       form.setValue('total_amount', initialData.total_amount);
     }
 
-    // Set deposit_amount if it exists
     if (initialData?.deposit_amount) {
       console.log("Setting deposit_amount from initialData:", initialData.deposit_amount);
       form.setValue('deposit_amount', initialData.deposit_amount);
     }
 
-    // Set daily_late_fee if it exists
     if (initialData?.daily_late_fee) {
       console.log("Setting daily_late_fee from initialData:", initialData.daily_late_fee);
       form.setValue('daily_late_fee', initialData.daily_late_fee);
     }
 
-    // Set notes if it exists
     if (initialData?.notes) {
       console.log("Setting notes from initialData:", initialData.notes);
       form.setValue('notes', initialData.notes);
     }
 
-    // Set all other fields that might be needed
     if (initialData?.agreement_number) {
       form.setValue('agreement_number', initialData.agreement_number);
     }
@@ -157,8 +145,6 @@ const AgreementForm = ({
         return;
       }
       
-      // We'll handle the terms separately from the form data
-      // to avoid sending it to the database
       const finalData = {
         ...data,
         terms_accepted: termsAccepted,
@@ -172,19 +158,21 @@ const AgreementForm = ({
 
       // Only generate payment schedule for NEW agreements (not edits)
       if (!initialData?.id && finalData.id) {
-        console.log('Generating payment schedule for new agreement:', finalData.id);
+        console.log('Creating payment schedule for new agreement:', finalData.id);
         
         try {
           const result = await agreementPaymentService.createPaymentScheduleForAgreement(finalData);
           
           if (result.success) {
+            console.log(`Payment schedule created successfully: ${result.scheduleCount} schedule items, ${result.paymentCount} payment records`);
             toast.success(`Agreement and payment schedule created successfully (${result.paymentCount} payments)`);
           } else {
-            toast.error(`Agreement created but failed to generate payment schedule: ${result.error}`);
+            console.error('Failed to create payment schedule:', result.error);
+            toast.warning(`Agreement created but payment schedule creation failed: ${result.error}`);
           }
         } catch (scheduleError) {
-          console.error('Error generating payment schedule:', scheduleError);
-          toast.error(`Agreement created but failed to generate payment schedule: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`);
+          console.error('Error creating payment schedule:', scheduleError);
+          toast.warning(`Agreement created but payment schedule creation failed: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`);
         }
       }
     } catch (error) {

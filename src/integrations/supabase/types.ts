@@ -10453,6 +10453,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_next_agreement_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_pending_payments_report: {
         Args: Record<PropertyKey, never>
         Returns: {
