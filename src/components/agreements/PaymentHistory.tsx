@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
@@ -16,6 +15,7 @@ interface PaymentHistoryProps {
   leaseEndDate: string | Date | null;
   leaseId?: string;
   agreement?: Agreement | null;
+  fetchPayments?: () => void;
 }
 
 export function PaymentHistory({
@@ -29,7 +29,8 @@ export function PaymentHistory({
   leaseStartDate,
   leaseEndDate,
   leaseId,
-  agreement
+  agreement,
+  fetchPayments
 }: PaymentHistoryProps) {
   return (
     <PaymentHistorySection 
@@ -43,6 +44,7 @@ export function PaymentHistory({
       onPaymentUpdated={onPaymentUpdated}
       showAnalytics={true}
       agreement={agreement}
+      fetchPayments={fetchPayments}
     />
   );
 }

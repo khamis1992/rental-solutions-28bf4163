@@ -43,6 +43,7 @@ import { DocumentEntityType } from '@/types/document.types';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { AgreementPaymentAnalytics } from '@/components/agreements/analytics/AgreementPaymentAnalytics';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
+import { Database } from '@/types/database.types';
 
 const AgreementDetailPage = () => {
   const {
@@ -242,7 +243,7 @@ const AgreementDetailPage = () => {
         payment_method: paymentMethod,
         reference_number: referenceNumber,
         notes,
-        status: 'completed' as PaymentStatus,
+        status: 'paid' as Database['public']['Enums']['payment_status'],
         description: notes || 'Payment'
       };
       
@@ -271,8 +272,13 @@ const AgreementDetailPage = () => {
     }
   };
 
-  // Add payment calculation hook
-  const paymentMetrics = usePaymentCalculation(payments, contractAmount);
+  // Always call usePaymentCalculation, even if agreement is not loaded yet
+  const paymentMetrics = usePaymentCalculation(
+    payments ?? [],
+    typeof rentAmount === 'number' ? rentAmount : null,
+    agreement?.start_date ?? null,
+    agreement?.end_date ?? null
+  );
 
   // Render loading state while fetching agreement
   if (isLoading) {
@@ -425,8 +431,8 @@ const AgreementDetailPage = () => {
             <AgreementDetail 
               agreement={agreement} 
               onDelete={handleDeleteAgreement} 
-              rentAmount={rentAmount} 
-              contractAmount={contractAmount} 
+              rentAmount={typeof rentAmount === 'number' ? rentAmount : null} 
+              contractAmount={typeof contractAmount === 'number' ? contractAmount : null} 
               onPaymentDeleted={refreshAgreementData} 
               onDataRefresh={refreshAgreementData} 
               onGenerateDocument={handleGenerateDocument} 
@@ -560,8 +566,8 @@ const AgreementDetailPage = () => {
               <PaymentHistory 
                 payments={payments}
                 isLoading={isLoadingPayments} 
-                rentAmount={rentAmount} 
-                contractAmount={agreement?.total_amount || null}
+                rentAmount={typeof rentAmount === 'number' ? rentAmount : null} 
+                contractAmount={typeof contractAmount === 'number' ? contractAmount : null}
                 onPaymentDeleted={handleDeletePayment}
                 leaseStartDate={agreement.start_date}
                 leaseEndDate={agreement.end_date}
@@ -570,7 +576,7 @@ const AgreementDetailPage = () => {
                     const fullPayment = {
                       ...payment,
                       lease_id: id,
-                      status: 'completed' as PaymentStatus
+                      status: 'paid' as Database['public']['Enums']['payment_status']
                     };
                     await addPayment(fullPayment);
                     fetchPayments();
@@ -581,7 +587,10 @@ const AgreementDetailPage = () => {
                   try {
                     await updatePayment({
                       id: payment.id,
-                      data: payment
+                      data: {
+                        ...payment,
+                        status: 'paid' as Database['public']['Enums']['payment_status']
+                      }
                     });
                     fetchPayments();
                     toast.success('Payment updated successfully');
@@ -593,6 +602,8 @@ const AgreementDetailPage = () => {
                   }
                 }}
                 leaseId={id}
+                agreement={agreement}
+                fetchPayments={fetchPayments}
               />
             }
           </CardContent>

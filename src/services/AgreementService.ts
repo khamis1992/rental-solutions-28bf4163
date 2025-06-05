@@ -4,9 +4,8 @@ import { asLeaseId } from '@/utils/database-type-helpers';
 import { ensureValidLeaseStatus } from '@/types/lease-types';
 import { BaseService } from '@/services/base/BaseService';
 import { agreementDeletionService } from './AgreementDeletionService';
+import { Result } from '@/types/response.types';
 import { 
-  Result, 
-  ServiceError, 
   createServiceError, 
   createNotFoundError,
   ErrorContext
@@ -97,59 +96,40 @@ export class AgreementService extends BaseService {
         query = query.eq('vehicles.license_plate', filters.license_plate);
       }
 
-      // Search by customer name or vehicle license plate
+      // Search by customer name only (two-step: find customer IDs, then fetch agreements)
       if (filters?.searchTerm && filters.searchTerm.trim() !== '') {
         const searchTerm = filters.searchTerm.trim();
-        
-        // We need to search in both related tables using separate queries then combine results
-        // First, get agreements that match by customer name
-        const { data: customerMatches, error: customerError } = await supabase
-          .from('leases')
-          .select(`
-            *,
-            customers:profiles(*),
-            vehicles(*)
-          `)
-          .ilike('profiles.full_name', `%${searchTerm}%`);
-          
+        // 1. Find matching customer IDs
+        const { data: customers, error: customerError } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('full_name', `%${searchTerm}%`);
         if (customerError) {
-          throw this.createServiceError(
-            'Failed to search agreements by customer name',
-            'fetchAgreements'
+          throw createServiceError(
+            'Failed to search customers by name',
+            { operation: 'fetchAgreements' }
           );
         }
-          
-        // Second, get agreements that match by license plate
-        const { data: vehicleMatches, error: vehicleError } = await supabase
+        const customerIds = (customers || []).map((c: any) => c.id);
+        if (customerIds.length === 0) {
+          return [];
+        }
+        // 2. Fetch agreements for those customer IDs, with full join
+        const { data: agreements, error: agreementError } = await supabase
           .from('leases')
           .select(`
             *,
             customers:profiles(*),
             vehicles(*)
           `)
-          .ilike('vehicles.license_plate', `%${searchTerm}%`);
-          
-        if (vehicleError) {
-          throw this.createServiceError(
-            'Failed to search agreements by license plate',
-            'fetchAgreements'
+          .in('customer_id', customerIds);
+        if (agreementError) {
+          throw createServiceError(
+            'Failed to fetch agreements for matching customers',
+            { operation: 'fetchAgreements' }
           );
         }
-          
-        // Merge and deduplicate the results
-        if (customerMatches || vehicleMatches) {
-          const mergedData = [...(customerMatches || []), ...(vehicleMatches || [])];
-          
-          // Deduplicate by agreement id
-          const uniqueData = Array.from(
-            new Map(mergedData.map(item => [item.id, item])).values()
-          );
-          
-          return uniqueData as Agreement[];
-        }
-        
-        // If no matches found, return empty array
-        return [];
+        return (agreements || []) as unknown as Agreement[];
       }
 
       const { data, error } = await query;
@@ -161,7 +141,10 @@ export class AgreementService extends BaseService {
         );
       }
 
-      return data as Agreement[];
+      if (!data || !Array.isArray(data)) {
+        return [] as Agreement[];
+      }
+      return data as unknown as Agreement[];
     }, 'Failed to fetch agreements');
   }
 
@@ -185,7 +168,7 @@ export class AgreementService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Agreement', id);
+        throw createNotFoundError('Agreement not found', { id });
       }
 
       return data;
@@ -268,7 +251,7 @@ export class AgreementService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Agreement', id);
+        throw createNotFoundError('Agreement not found', { id });
       }
 
       return data;

@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Customer } from '@/lib/validation-schemas/customer';
@@ -32,9 +31,6 @@ export const useCustomerQueryService = (searchParams: SearchParams) => {
           .from(PROFILES_TABLE)
           .select('*');
           
-        // Apply role filter as a string
-        query = query.eq('role', CUSTOMER_ROLE);
-        
         // Order by created_at descending
         query = query.order('created_at', { ascending: false });
 

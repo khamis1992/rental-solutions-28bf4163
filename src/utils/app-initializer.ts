@@ -23,11 +23,11 @@ const checkEnvironmentConfig = () => {
     issues.push("Edge functions not available");
   }
 
-  if (!process.env.VITE_SUPABASE_URL) {
+  if (!import.meta.env.VITE_SUPABASE_URL) {
     issues.push("Supabase URL not configured");
   }
 
-  if (!process.env.VITE_SUPABASE_ANON_KEY) {
+  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
     issues.push("Supabase anonymous key not configured");
   }
 

@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Plus, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { Payment } from '@/types/payment.types';
 import { Agreement } from '@/types/agreement';
 import { useAgreementPaymentSync } from '@/hooks/payment/use-agreement-payment-sync';
 import { PaymentEntryDialog } from '@/components/agreements/PaymentEntryDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PaymentHistorySectionProps {
   payments: Payment[];
@@ -20,6 +23,7 @@ interface PaymentHistorySectionProps {
   onPaymentUpdated: (payment: Partial<Payment>) => Promise<boolean>;
   showAnalytics?: boolean;
   agreement?: Agreement | null;
+  fetchPayments?: () => void;
 }
 
 export function PaymentHistorySection({
@@ -32,37 +36,63 @@ export function PaymentHistorySection({
   onPaymentUpdated,
   onPaymentDeleted,
   showAnalytics = true,
-  agreement
+  agreement,
+  fetchPayments
 }: PaymentHistorySectionProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [isEditLateFeeDialogOpen, setIsEditLateFeeDialogOpen] = useState(false);
+  const [newLateFee, setNewLateFee] = useState('');
 
   const {
     syncAll,
     isPending
   } = useAgreementPaymentSync(leaseId);
 
+  // Compute pending/overdue payments for the dialog
+  const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'overdue');
+
+  // Utility to call the process-payment edge function
+  async function processPartialPayment(paymentId: string, paymentAmount: number) {
+    const response = await fetch('/functions/v1/process-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentId, paymentAmount }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Payment failed');
+    }
+    return result.payment;
+  }
+
+  // Updated handleRecordPayment to use the edge function
   const handleRecordPayment = async (
     amount: number,
     date: Date,
     notes?: string,
     method?: string,
-    reference?: string
+    reference?: string,
+    includeLateFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string,
+    paymentId?: string
   ) => {
-    if (selectedPayment) {
-      const updatedPayment: Partial<Payment> = {
-        id: selectedPayment.id,
-        amount,
-        payment_date: date.toISOString(),
-        description: notes || selectedPayment.description || '',
-        payment_method: method || selectedPayment.payment_method || 'cash',
-        reference_number: reference || selectedPayment.reference_number || '',
-        lease_id: leaseId,
-        status: 'completed',
-      };
-      await onPaymentUpdated(updatedPayment);
-      setSelectedPayment(null);
+    if (paymentId) {
+      try {
+        await processPartialPayment(paymentId, amount);
+        // Optionally, show a success message
+        if (typeof fetchPayments === 'function') {
+          fetchPayments();
+        } else if (typeof window !== 'undefined') {
+          window.location.reload(); // fallback: reload page
+        }
+      } catch (err) {
+        alert('Payment failed: ' + (err instanceof Error ? err.message : err));
+        return false;
+      }
     } else {
+      // Fallback: create a new payment (if needed)
       const newPayment: Partial<Payment> = {
         amount,
         payment_date: date.toISOString(),
@@ -70,7 +100,7 @@ export function PaymentHistorySection({
         payment_method: method || 'cash',
         reference_number: reference || '',
         lease_id: leaseId,
-        status: 'completed'
+        status: 'paid'
       };
       await onRecordPayment(newPayment);
     }
@@ -79,7 +109,7 @@ export function PaymentHistorySection({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'paid':
         return 'success';
       case 'pending':
         return 'warning';
@@ -161,9 +191,61 @@ export function PaymentHistorySection({
                     <div className="font-medium">
                       {formatCurrency(payment.amount)}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(payment.payment_date), 'PPP')}
-                    </div>
+                    {payment.payment_date && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Payment Date: {format(new Date(payment.payment_date), 'MMM d, yyyy')}
+                      </div>
+                    )}
+                    {(() => {
+                      // Show dynamic late fee for pending/overdue
+                      if ((payment.status === 'pending' || payment.status === 'overdue') && payment.payment_date) {
+                        const today = new Date();
+                        const dueDate = new Date(payment.payment_date);
+                        const firstOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth(), 1);
+                        const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
+                        const fee = Math.min(daysLate * 120, 3000);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs text-red-600 mt-1">
+                              Late Fee: QAR {formatCurrency(payment.late_fine_amount ?? fee)}
+                            </div>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setNewLateFee(String(payment.late_fine_amount ?? fee));
+                                setIsEditLateFeeDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        );
+                      }
+                      // Show static late_fine_amount for paid/completed/partially_paid
+                      if ((['paid', 'completed', 'partially_paid'].includes(String(payment.status))) && payment.late_fine_amount && payment.late_fine_amount > 0) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs text-red-600 mt-1">
+                              Late Fee: QAR {formatCurrency(payment.late_fine_amount)}
+                            </div>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setNewLateFee(String(payment.late_fine_amount));
+                                setIsEditLateFeeDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     {payment.description && (
                       <div className="text-sm text-muted-foreground mt-1">
                         {payment.description}
@@ -173,14 +255,12 @@ export function PaymentHistorySection({
                 </div>
                 <div className="flex items-center space-x-2">
                   <Badge variant={getStatusColor(payment.status)}>
-                    {payment.status}
+                    {payment.status || 'pending'}
                   </Badge>
-                  {payment.payment_method && (
-                    <Badge variant="outline">
-                      {payment.payment_method}
-                    </Badge>
-                  )}
-                  {payment.status !== 'completed' && (
+                  <Badge variant="outline">
+                    {payment.payment_method ? payment.payment_method : 'N/A'}
+                  </Badge>
+                  {payment.status !== 'paid' && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -209,10 +289,44 @@ export function PaymentHistorySection({
         defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
         title="Record Payment"
         description={selectedPayment ? "Clear this payment" : "Add a new payment to this agreement"}
-        leaseId={leaseId}
+        leaseId={leaseId || ''}
         rentAmount={rentAmount}
         selectedPayment={selectedPayment}
+        pendingPayments={pendingPayments}
       />
+
+      {/* Edit Late Fee Dialog */}
+      <Dialog open={isEditLateFeeDialogOpen} onOpenChange={setIsEditLateFeeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Late Fee</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (selectedPayment && newLateFee !== '') {
+                await onPaymentUpdated({
+                  id: selectedPayment.id,
+                  late_fine_amount: Number(newLateFee),
+                });
+                setIsEditLateFeeDialogOpen(false);
+                setSelectedPayment(null);
+              }
+            }}
+          >
+            <Label>Late Fee (QAR)</Label>
+            <Input
+              type="number"
+              value={newLateFee}
+              onChange={(e) => setNewLateFee(e.target.value)}
+              min={0}
+              step={1}
+              required
+            />
+            <Button type="submit" className="mt-2">Save</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

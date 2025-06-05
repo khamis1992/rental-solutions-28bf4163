@@ -1,9 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
-import { 
-  Result, 
-  ServiceError, 
-  createServiceError, 
+import { Result } from '@/types/response.types';
+import {
+  createServiceError,
   createNotFoundError,
   ErrorContext
 } from '@/types/error.types';
@@ -117,19 +116,30 @@ export class AgreementDeletionService extends BaseService {
       
       dependentRecords.trafficFines = finesCount || 0;
 
-      // Check legal cases
+      // Check legal cases (by customer_id, not lease_id)
+      // 1. Fetch the agreement to get customer_id
+      const { data: agreement, error: agreementError } = await supabase
+        .from('leases')
+        .select('customer_id')
+        .eq('id', agreementId)
+        .single();
+      if (agreementError || !agreement) {
+        throw this.createServiceError(
+          'Failed to fetch agreement for legal case check',
+          'validateDeletion'
+        );
+      }
+      // 2. Check for legal cases with that customer_id
       const { count: casesCount, error: casesError } = await supabase
         .from('legal_cases')
         .select('*', { count: 'exact', head: true })
-        .eq('lease_id', agreementId);
-      
+        .eq('customer_id', agreement.customer_id);
       if (casesError) {
         throw this.createServiceError(
           'Failed to check legal case dependencies',
           'validateDeletion'
         );
       }
-      
       dependentRecords.legalCases = casesCount || 0;
 
       // Check documents
@@ -230,15 +240,26 @@ export class AgreementDeletionService extends BaseService {
       }
       deletedRecords.documents = docsDeleted || 0;
 
-      // 2. Delete legal cases
+      // 2. Delete legal cases (by customer_id, not lease_id)
+      // Fetch the agreement to get customer_id
+      const { data: agreementForDelete, error: agreementForDeleteError } = await supabase
+        .from('leases')
+        .select('customer_id')
+        .eq('id', agreementId)
+        .single();
+      if (agreementForDeleteError || !agreementForDelete) {
+        throw this.createServiceError(
+          'Failed to fetch agreement for legal case deletion',
+          'deleteAgreement'
+        );
+      }
       const { error: casesError, count: casesDeleted } = await supabase
         .from('legal_cases')
         .delete({ count: 'exact' })
-        .eq('lease_id', agreementId);
-      
+        .eq('customer_id', agreementForDelete.customer_id);
       if (casesError) {
         throw this.createServiceError(
-          `Failed to delete legal cases: ${casesError.message}`,
+          `Failed to delete legal cases: ${typeof casesError === 'object' && casesError !== null && 'message' in casesError ? (casesError as any).message : casesError}`,
           'deleteAgreement'
         );
       }
@@ -351,7 +372,7 @@ export class AgreementDeletionService extends BaseService {
       }
 
       if (!data) {
-        throw createNotFoundError('Agreement', agreementId);
+        throw createNotFoundError('Agreement not found', { id: agreementId });
       }
 
       return data.status === 'active';

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -38,22 +37,15 @@ export function AgreementPaymentAnalytics({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Financial Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg border">
-            <p className="text-sm font-medium text-blue-600 mb-1">Total Amount</p>
-            <p className="text-2xl font-bold text-blue-900">QAR {formatCurrency(totalAmount)}</p>
-          </div>
-          
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-green-50 p-4 rounded-lg border">
             <p className="text-sm font-medium text-green-600 mb-1">Amount Paid</p>
             <p className="text-2xl font-bold text-green-900">QAR {formatCurrency(amountPaid)}</p>
           </div>
-          
           <div className="bg-orange-50 p-4 rounded-lg border">
             <p className="text-sm font-medium text-orange-600 mb-1">Remaining Balance</p>
             <p className="text-2xl font-bold text-orange-900">QAR {formatCurrency(balance)}</p>
           </div>
-          
           <div className="bg-red-50 p-4 rounded-lg border">
             <p className="text-sm font-medium text-red-600 mb-1">Late Fees</p>
             <p className="text-2xl font-bold text-red-900">QAR {formatCurrency(lateFees)}</p>
