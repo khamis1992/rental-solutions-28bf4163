@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -206,38 +205,23 @@ const AgreementEditor = () => {
         // Create new agreement
         result = await agreementService.createAgreement(data);
         agreementId = result?.id;
+        if (result && agreementId) {
+          // Always generate payment schedule for new agreements
+          await generatePaymentSchedule(
+            data.start_date,
+            data.end_date,
+            data.rent_amount,
+            data.payment_frequency || 'monthly',
+            data.payment_day || 1
+          );
+        }
       }
       
       if (result && agreementId) {
-        // Auto-generate payment schedule for active agreements
-        if (data.status === 'active' && data.start_date && data.end_date && data.rent_amount) {
-          try {
-            await generatePaymentSchedule(
-              data.start_date,
-              data.end_date,
-              data.rent_amount,
-              data.payment_frequency || 'monthly',
-              data.payment_day || 1
-            );
-            
-            toast({
-              title: "Success",
-              description: `Agreement ${id ? 'updated' : 'created'} successfully with payment schedule generated`,
-            });
-          } catch (scheduleError) {
-            console.warn('Failed to generate payment schedule:', scheduleError);
-            toast({
-              title: "Success",
-              description: `Agreement ${id ? 'updated' : 'created'} successfully, but payment schedule generation failed`,
-              variant: "default",
-            });
-          }
-        } else {
-          toast({
-            title: "Success",
-            description: id ? "Agreement updated successfully" : "Agreement created successfully",
-          });
-        }
+        toast({
+          title: "Success",
+          description: id ? "Agreement updated successfully" : "Agreement created successfully",
+        });
         
         navigate(`/agreements/${agreementId}`);
       } else {

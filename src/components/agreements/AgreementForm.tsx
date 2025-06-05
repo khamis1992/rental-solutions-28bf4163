@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -12,6 +11,8 @@ import { AgreementContractTerms } from './form/AgreementContractTerms';
 import { VehicleDetailsCard } from './form/VehicleDetailsCard';
 import CustomerSection from './CustomerSection';
 import { CustomerInfo } from '@/types/customer';
+import { paymentScheduleService } from '@/services/PaymentScheduleService';
+import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -164,6 +165,30 @@ const AgreementForm = ({
       };
       
       await onSubmit(finalData);
+
+      // --- NEW: Generate and save payment schedule after agreement creation ---
+      // Only do this if this is a new agreement (not edit)
+      if (!initialData?.id && finalData.id) {
+        const schedule = generatePaymentSchedule({
+          startDate: new Date(finalData.start_date),
+          endDate: new Date(finalData.end_date),
+          rentAmount: finalData.rent_amount,
+          paymentFrequency: finalData.payment_frequency || 'monthly',
+          paymentDay: finalData.payment_day || 1,
+          includeDeposit: !!finalData.deposit_amount,
+          depositAmount: finalData.deposit_amount || 0
+        });
+        for (const payment of schedule) {
+          await paymentScheduleService.createPaymentSchedule({
+            lease_id: finalData.id,
+            amount: payment.amount,
+            due_date: payment.dueDate.toISOString(),
+            status: 'pending',
+            description: payment.description
+          });
+        }
+      }
+      // --- END NEW ---
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error("Failed to save agreement");
