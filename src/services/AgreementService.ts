@@ -175,6 +175,15 @@ export class AgreementService extends BaseService {
     }, 'Failed to fetch agreement');
   }
 
+  private async generateAgreementNumber(): Promise<string> {
+    // Use the atomic Postgres function to get the next agreement number
+    const { data, error } = await supabase.rpc('get_next_agreement_number');
+    if (error || !data) {
+      throw new Error('Failed to generate agreement number: ' + (error?.message || 'Unknown error'));
+    }
+    return data;
+  }
+
   async createAgreement(agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
     return this.safeExecute(async () => {
       // Calculate agreement duration if not provided
@@ -186,12 +195,18 @@ export class AgreementService extends BaseService {
         agreementData.agreement_duration = `${diffDays} days`;
       }
 
+      // Generate agreement number if not provided
+      let agreementNumber = agreementData.agreement_number;
+      if (!agreementNumber) {
+        agreementNumber = await this.generateAgreementNumber();
+      }
+
       const { data, error } = await supabase
         .from('leases')
         .insert({
           vehicle_id: agreementData.vehicle_id,
           customer_id: agreementData.customer_id,
-          agreement_number: agreementData.agreement_number || this.generateAgreementNumber(),
+          agreement_number: agreementNumber,
           start_date: agreementData.start_date,
           end_date: agreementData.end_date,
           status: ensureValidLeaseStatus(agreementData.status),
@@ -304,12 +319,6 @@ export class AgreementService extends BaseService {
       startDate: new Date(startDate), 
       endDate: new Date(endDate) 
     });
-  }
-
-  private generateAgreementNumber(): string {
-    const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `AGR-${timestamp}-${random}`;
   }
 }
 
