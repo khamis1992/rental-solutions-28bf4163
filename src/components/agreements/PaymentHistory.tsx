@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 import { Agreement } from '@/types/agreement';
@@ -32,6 +32,15 @@ export function PaymentHistory({
   agreement,
   fetchPayments
 }: PaymentHistoryProps) {
+  
+  // Log for debugging
+  console.log('PaymentHistory component received:', {
+    paymentsCount: payments?.length || 0,
+    isLoading,
+    leaseId,
+    agreementId: agreement?.id
+  });
+
   return (
     <PaymentHistorySection 
       payments={payments} 
