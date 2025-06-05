@@ -78,6 +78,7 @@ export class PaymentScheduleSyncService extends BaseService {
       // Create unified payment records for missing schedule items
       for (const scheduleItem of scheduleItemsToCreate) {
         try {
+          // Use only the core required columns that exist in the schema
           const { error: insertError } = await supabase
             .from('unified_payments')
             .insert({
@@ -89,12 +90,13 @@ export class PaymentScheduleSyncService extends BaseService {
               original_due_date: scheduleItem.due_date,
               status: 'pending',
               description: scheduleItem.description || `Payment for ${new Date(scheduleItem.due_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
-              type: 'Income',
-              schedule_id: scheduleItem.id
+              type: 'Income'
+              // Removed schedule_id field as it might not exist in the current schema
             });
 
           if (insertError) {
             result.errors.push(`Failed to create unified payment for schedule ${scheduleItem.id}: ${insertError.message}`);
+            console.error('Insert error details:', insertError);
           } else {
             result.scheduleItemsCreated++;
             console.log(`Created unified payment for schedule item ${scheduleItem.id}`);

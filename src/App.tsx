@@ -82,7 +82,6 @@ const Reports = lazy(() => import("./pages/Reports"));
 const ScheduledReports = lazy(() => import("./pages/ScheduledReports"));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder"));
 const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
-const SystemSettings = lazy(() => import("./pages/SystemSettings"));
 const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
