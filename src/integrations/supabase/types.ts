@@ -10384,6 +10384,10 @@ export type Database = {
         Args: { agreement_id: string }
         Returns: undefined
       }
+      fix_duplicate_payments: {
+        Args: { p_lease_id: string }
+        Returns: Json
+      }
       fuzzy_name_match: {
         Args: { search_name: string }
         Returns: {

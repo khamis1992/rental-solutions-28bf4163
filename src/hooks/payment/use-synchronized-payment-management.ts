@@ -9,6 +9,7 @@ import { useAgreementPaymentSync } from './use-agreement-payment-sync';
 import { paymentService } from '@/services/PaymentService';
 import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { paymentSyncService } from '@/services/PaymentSyncService';
+import { supabase } from '@/lib/supabase';
 
 export interface SynchronizedPaymentData {
   payments: Payment[];

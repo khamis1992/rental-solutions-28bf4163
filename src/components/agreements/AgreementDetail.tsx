@@ -11,7 +11,6 @@ import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import L from './LegalCaseCard';
 import { Payment } from '@/types/payment.types';
 import { CustomerInformationCard } from './details/CustomerInformationCard';
 import { VehicleInformationCard } from './details/VehicleInformationCard';
@@ -173,7 +172,7 @@ export function AgreementDetail({
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async () => {
     if (onGenerateDocument) {
-      onGenerateDocument();
+      await Promise.resolve(onGenerateDocument());
     }
     return Promise.resolve();
   }, [onGenerateDocument]);
