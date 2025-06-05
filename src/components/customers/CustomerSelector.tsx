@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown, Loader2, RefreshCw } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CustomerInfo } from '@/types/customer';
 import { useCustomerSelectorService } from '@/hooks/services/useCustomerSelectorService';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CustomerSelectorProps {
   onCustomerSelect: (customer: CustomerInfo) => void;
@@ -53,7 +54,8 @@ const CustomerSelector = ({
     return (
       customer.full_name.toLowerCase().includes(searchTerm) ||
       customer.email.toLowerCase().includes(searchTerm) ||
-      customer.phone_number.toLowerCase().includes(searchTerm)
+      customer.phone_number.toLowerCase().includes(searchTerm) ||
+      (customer.driver_license && customer.driver_license.toLowerCase().includes(searchTerm))
     );
   });
 
@@ -82,6 +84,29 @@ const CustomerSelector = ({
       console.error('Refresh error:', error);
     }
   };
+
+  // Show error state
+  if (error && !isLoading) {
+    return (
+      <div className="space-y-2">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading customers. Please try refreshing.
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              className="ml-2 h-6"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -126,8 +151,9 @@ const CustomerSelector = ({
                 <span className="ml-2 text-sm text-muted-foreground">Loading customers...</span>
               </div>
             )}
-            {error && (
+            {error && !isLoading && (
               <div className="flex items-center justify-center py-4 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 mr-2" />
                 Error loading customers
               </div>
             )}
