@@ -6,14 +6,7 @@ import {
   createNotFoundError,
   ErrorContext
 } from '@/types/error.types';
-import { Result, createSuccessResult, createErrorResult } from '@/types/response.types';
-
-interface FindCustomersParams {
-  search?: string;
-  status?: CustomerStatus;
-  limit?: number;
-  offset?: number;
-}
+import { Result } from '@/types/response.types';
 
 export class CustomerService extends BaseService {
   constructor() {
@@ -34,8 +27,6 @@ export class CustomerService extends BaseService {
         }
       }
 
-      query = query.order('created_at', { ascending: false });
-
       const { data, error } = await query;
 
       if (error) {
@@ -47,68 +38,6 @@ export class CustomerService extends BaseService {
 
       return data as Customer[];
     }, 'Failed to fetch customers');
-  }
-
-  async findCustomers(params: FindCustomersParams): Promise<Result<Customer[]>> {
-    return this.safeExecute(async () => {
-      let query = supabase.from('profiles').select('*');
-
-      // Apply search filter
-      if (params.search && params.search.trim()) {
-        const searchTerm = params.search.trim();
-        query = query.or(
-          `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,driver_license.ilike.%${searchTerm}%`
-        );
-      }
-
-      // Apply status filter
-      if (params.status) {
-        query = query.eq('status', params.status);
-      }
-
-      // Apply pagination
-      if (params.limit) {
-        query = query.limit(params.limit);
-      }
-
-      if (params.offset) {
-        query = query.range(params.offset, (params.offset + (params.limit || 10)) - 1);
-      }
-
-      // Order by name for consistent results
-      query = query.order('full_name', { ascending: true });
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Supabase error in findCustomers:', error);
-        throw createServiceError(
-          `Failed to find customers: ${error.message}`,
-          { operation: 'findCustomers', error }
-        );
-      }
-
-      // Transform the data to ensure consistent format
-      const customers = (data || []).map(profile => ({
-        id: profile.id,
-        name: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone_number || '',
-        address: profile.address || '',
-        driver_license: profile.driver_license || '',
-        nationality: profile.nationality || '',
-        notes: profile.notes || '',
-        status: (profile.status || 'active') as CustomerStatus,
-        created_at: profile.created_at,
-        updated_at: profile.updated_at,
-        // Add additional fields that might be expected
-        city: profile.city || '',
-        state: profile.state || '',
-        zip_code: profile.zip_code || ''
-      })) as Customer[];
-
-      return customers;
-    }, 'Failed to find customers');
   }
 
   async getCustomerById(id: string): Promise<Result<Customer>> {
@@ -196,11 +125,11 @@ export class CustomerService extends BaseService {
   }
 
   async searchCustomers(searchTerm: string): Promise<Result<Customer[]>> {
-    return this.findCustomers({ search: searchTerm });
+    return this.fetchCustomers({ search: searchTerm });
   }
 
   async getCustomersByStatus(status: CustomerStatus): Promise<Result<Customer[]>> {
-    return this.findCustomers({ status });
+    return this.fetchCustomers({ status });
   }
 }
 
