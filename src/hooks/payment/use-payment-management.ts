@@ -7,11 +7,13 @@ import { Payment } from '@/types/payment.types';
 export const usePaymentManagement = (leaseId?: string) => {
   const queryClient = useQueryClient();
 
-  // Fetch payments for a specific lease
-  const { data: payments = [], isLoading, error } = useQuery({
+  // Fetch payments for a specific lease with better error handling
+  const { data: payments = [], isLoading, error, refetch } = useQuery({
     queryKey: ['payments', leaseId],
     queryFn: async () => {
       if (!leaseId) return [];
+      
+      console.log('Fetching payments for lease:', leaseId);
       
       const { data, error } = await supabase
         .from('unified_payments')
@@ -19,29 +21,45 @@ export const usePaymentManagement = (leaseId?: string) => {
         .eq('lease_id', leaseId)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching payments:', error);
+        throw error;
+      }
+      
+      console.log('Found payments:', data?.length || 0);
+      return data || [];
     },
-    enabled: !!leaseId
+    enabled: !!leaseId,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: false
   });
 
   // Create payment mutation
   const createPayment = useMutation({
     mutationFn: async (paymentData: Partial<Payment>) => {
+      console.log('Creating payment:', paymentData);
+      
       const { data, error } = await supabase
         .from('unified_payments')
         .insert(paymentData)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating payment:', error);
+        throw error;
+      }
+      
+      console.log('Payment created:', data);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      queryClient.invalidateQueries({ queryKey: ['payment-sync-status', leaseId] });
       toast.success('Payment created successfully');
     },
     onError: (error: any) => {
+      console.error('Failed to create payment:', error);
       toast.error(`Failed to create payment: ${error.message}`);
     }
   });
@@ -54,6 +72,8 @@ export const usePaymentManagement = (leaseId?: string) => {
   // Update payment mutation
   const updatePayment = useMutation({
     mutationFn: async ({ id, data: updates }: { id: string; data: Partial<Payment> }) => {
+      console.log('Updating payment:', id, updates);
+      
       const { data, error } = await supabase
         .from('unified_payments')
         .update(updates)
@@ -61,14 +81,21 @@ export const usePaymentManagement = (leaseId?: string) => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating payment:', error);
+        throw error;
+      }
+      
+      console.log('Payment updated:', data);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      queryClient.invalidateQueries({ queryKey: ['payment-sync-status', leaseId] });
       toast.success('Payment updated successfully');
     },
     onError: (error: any) => {
+      console.error('Failed to update payment:', error);
       toast.error(`Failed to update payment: ${error.message}`);
     }
   });
@@ -76,18 +103,27 @@ export const usePaymentManagement = (leaseId?: string) => {
   // Delete payment mutation
   const deletePayment = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting payment:', id);
+      
       const { error } = await supabase
         .from('unified_payments')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting payment:', error);
+        throw error;
+      }
+      
+      console.log('Payment deleted:', id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+      queryClient.invalidateQueries({ queryKey: ['payment-sync-status', leaseId] });
       toast.success('Payment deleted successfully');
     },
     onError: (error: any) => {
+      console.error('Failed to delete payment:', error);
       toast.error(`Failed to delete payment: ${error.message}`);
     }
   });
@@ -152,6 +188,7 @@ export const usePaymentManagement = (leaseId?: string) => {
     payments,
     isLoading,
     error,
+    refetch,
     createPayment,
     addPayment,
     updatePayment,

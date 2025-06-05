@@ -38,7 +38,7 @@ export function PaymentHistory({
   fetchPayments
 }: PaymentHistoryProps) {
   
-  // Use synchronized payment management
+  // Use synchronized payment management - but only use sync status, not payments
   const {
     syncStatus,
     isSynchronized,
@@ -64,6 +64,14 @@ export function PaymentHistory({
     isSynchronized
   });
 
+  // Convert dates to strings for the PaymentHistorySection
+  const startDateString = leaseStartDate 
+    ? (typeof leaseStartDate === 'string' ? leaseStartDate : leaseStartDate.toISOString()) 
+    : null;
+  const endDateString = leaseEndDate 
+    ? (typeof leaseEndDate === 'string' ? leaseEndDate : leaseEndDate.toISOString()) 
+    : null;
+
   return (
     <div className="space-y-4">
       {/* Synchronization Status Alert */}
@@ -81,7 +89,7 @@ export function PaymentHistory({
               ) : (
                 <span className="text-yellow-800">
                   Payment schedule needs synchronization 
-                  ({syncStatus.unsyncedCount} of {syncStatus.totalSchedule} items need attention)
+                  ({syncStatus.unsyncedCount || 0} of {syncStatus.totalSchedule || 0} items need attention)
                 </span>
               )}
             </div>
@@ -100,7 +108,7 @@ export function PaymentHistory({
         </Alert>
       )}
 
-      {/* Payment History Section */}
+      {/* Payment History Section - use original payments from props */}
       <PaymentHistorySection 
         payments={payments} 
         isLoading={isLoading} 

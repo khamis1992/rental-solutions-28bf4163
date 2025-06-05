@@ -264,7 +264,7 @@ export function AgreementDetail({
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 
-      {/* Payment History Section */}
+      {/* Payment History Section - Pass leaseStartDate and leaseEndDate as strings */}
       <PaymentHistory
         payments={payments}
         isLoading={isLoadingPayments}
@@ -273,8 +273,8 @@ export function AgreementDetail({
         onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handleUpdatePayment}
         onRecordPayment={handleRecordPayment}
-        leaseStartDate={getDateString(agreement.start_date)}
-        leaseEndDate={getDateString(agreement.end_date)}
+        leaseStartDate={agreement.start_date}
+        leaseEndDate={agreement.end_date}
         leaseId={agreement.id}
         agreement={agreement}
       />
