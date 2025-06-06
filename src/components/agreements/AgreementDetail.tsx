@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -77,7 +77,7 @@ export function AgreementDetail({
     return dateValue;
   };
 
-  // Use payment calculation hook with correct parameters
+  // Use payment calculation hook with correct parameters - fix date handling
   const paymentMetrics = usePaymentCalculation(
     payments, 
     contractAmount,

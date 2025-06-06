@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Result } from '@/types/response.types';
@@ -39,7 +40,7 @@ export interface DeletedRecords {
   legalCases: number;
   documents: number;
   agreement: number;
-  importedAgreements: number;
+  newUnifiedPayments: number;
 }
 
 export interface DeletionResult {
@@ -67,7 +68,7 @@ export class AgreementDeletionService extends BaseService {
 
       const warnings: DeletionWarning[] = [];
 
-      // Check payments
+      // Check unified_payments
       const { count: paymentsCount, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*', { count: 'exact', head: true })
@@ -104,7 +105,6 @@ export class AgreementDeletionService extends BaseService {
       }
 
       // Check legal cases (by customer_id, not lease_id)
-      // 1. Fetch the agreement to get customer_id
       const { data: agreement, error: agreementError } = await supabase
         .from('leases')
         .select('customer_id')
@@ -114,7 +114,6 @@ export class AgreementDeletionService extends BaseService {
       if (agreementError || !agreement) {
         console.error('Failed to fetch agreement for legal case check:', agreementError);
       } else {
-        // 2. Check for legal cases with that customer_id
         const { count: casesCount, error: casesError } = await supabase
           .from('legal_cases')
           .select('*', { count: 'exact', head: true })
@@ -188,6 +187,8 @@ export class AgreementDeletionService extends BaseService {
     options: DeletionOptions = {}
   ): Promise<Result<DeletionResult>> {
     return this.safeExecute(async () => {
+      console.log(`Starting agreement deletion for ID: ${agreementId}`);
+      
       const deletedRecords: DeletedRecords = {
         payments: 0,
         paymentSchedules: 0,
@@ -195,7 +196,7 @@ export class AgreementDeletionService extends BaseService {
         legalCases: 0,
         documents: 0,
         agreement: 0,
-        importedAgreements: 0
+        newUnifiedPayments: 0
       };
 
       // First validate the deletion
@@ -204,17 +205,21 @@ export class AgreementDeletionService extends BaseService {
         throw new Error('Failed to validate deletion requirements');
       }
 
-      // Defensive: Delete from imported_agreements (import tracking)
-      const { error: importedAgreementsError, count: importedAgreementsDeleted } = await supabase
-        .from('imported_agreements')
-        .delete({ count: 'exact' })
-        .eq('lease_id', agreementId);
-      if (importedAgreementsError) {
-        console.warn('Failed to delete imported_agreements:', importedAgreementsError.message);
+      // Delete from new_unified_payments table (if it exists)
+      try {
+        const { error: newUnifiedPaymentsError, count: newUnifiedPaymentsDeleted } = await supabase
+          .from('new_unified_payments')
+          .delete({ count: 'exact' })
+          .eq('lease_id', agreementId);
+        if (newUnifiedPaymentsError && !newUnifiedPaymentsError.message.includes('does not exist')) {
+          console.warn('Failed to delete new_unified_payments:', newUnifiedPaymentsError.message);
+        }
+        deletedRecords.newUnifiedPayments = newUnifiedPaymentsDeleted || 0;
+      } catch (error) {
+        console.warn('Error deleting from new_unified_payments (table may not exist):', error);
       }
-      deletedRecords.importedAgreements = importedAgreementsDeleted || 0;
 
-      // Defensive: Delete from agreement_documents
+      // Delete from agreement_documents
       const { error: docsError, count: docsDeleted } = await supabase
         .from('agreement_documents')
         .delete({ count: 'exact' })
@@ -224,7 +229,7 @@ export class AgreementDeletionService extends BaseService {
       }
       deletedRecords.documents = docsDeleted || 0;
 
-      // Defensive: Delete from legal_cases (by customer_id)
+      // Delete from legal_cases (by customer_id)
       const { data: agreementForDelete, error: agreementForDeleteError } = await supabase
         .from('leases')
         .select('customer_id')
@@ -243,7 +248,7 @@ export class AgreementDeletionService extends BaseService {
         deletedRecords.legalCases = casesDeleted || 0;
       }
 
-      // Defensive: Delete from traffic_fines
+      // Delete from traffic_fines
       const { error: finesError, count: finesDeleted } = await supabase
         .from('traffic_fines')
         .delete({ count: 'exact' })
@@ -253,7 +258,7 @@ export class AgreementDeletionService extends BaseService {
       }
       deletedRecords.trafficFines = finesDeleted || 0;
 
-      // Defensive: Delete from payment_schedules
+      // Delete from payment_schedules
       const { error: schedulesError, count: schedulesDeleted } = await supabase
         .from('payment_schedules')
         .delete({ count: 'exact' })
@@ -263,7 +268,7 @@ export class AgreementDeletionService extends BaseService {
       }
       deletedRecords.paymentSchedules = schedulesDeleted || 0;
 
-      // Defensive: Delete from unified_payments
+      // Delete from unified_payments
       const { error: paymentsError, count: paymentsDeleted } = await supabase
         .from('unified_payments')
         .delete({ count: 'exact' })
@@ -279,11 +284,14 @@ export class AgreementDeletionService extends BaseService {
         .delete({ count: 'exact' })
         .eq('id', agreementId);
       if (agreementError) {
+        console.error('Failed to delete agreement:', agreementError);
         throw new Error(`Failed to delete agreement: ${agreementError.message}`);
       }
       deletedRecords.agreement = agreementDeleted || 0;
 
       const totalDeleted = Object.values(deletedRecords).reduce((sum, count) => sum + count, 0);
+      
+      console.log(`Agreement deletion completed. Total records deleted: ${totalDeleted}`);
       
       return {
         deletedRecords,
@@ -312,9 +320,6 @@ export class AgreementDeletionService extends BaseService {
     }, 'Failed to check completed payments');
   }
 
-  /**
-   * Check if agreement is currently active
-   */
   async isActiveAgreement(agreementId: string): Promise<Result<boolean>> {
     return this.safeExecute(async () => {
       const { data, error } = await supabase
