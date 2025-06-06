@@ -39,6 +39,19 @@ const labels = {
   duration: { ar: prepareArabicForPDF('مدة العقد') },
   monthlyRent: { ar: prepareArabicForPDF('الايجار الشهري') },
   
+  // Payment section
+  paymentRecord: { ar: prepareArabicForPDF('سجل الدفعات') },
+  paymentMethod: { ar: prepareArabicForPDF('طريقة الدفع') },
+  paymentStatus: { ar: prepareArabicForPDF('حالة الدفع') },
+  amount: { ar: prepareArabicForPDF('المبلغ') },
+  paymentDate: { ar: prepareArabicForPDF('تاريخ الدفع') },
+  
+  // Status translations
+  pending: { ar: prepareArabicForPDF('معلق') },
+  paid: { ar: prepareArabicForPDF('مدفوع') },
+  overdue: { ar: prepareArabicForPDF('متأخر') },
+  undefined: { ar: prepareArabicForPDF('غير محدد') },
+  
   // Document info
   agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
   startDate: { ar: prepareArabicForPDF('تاريخ البدء') },
@@ -78,16 +91,29 @@ const colors = {
   text: '#334155',         // Dark gray
   textLight: '#64748b',    // Light text
   border: '#e2e8f0',       // Border gray
-  white: '#ffffff'
+  white: '#ffffff',
+  pendingOrange: '#f59e0b' // Orange for pending status
 };
 
 const getStatusColor = (status: string): string => {
   switch (status?.toLowerCase()) {
     case 'active': case 'نشط': return '#059669';
-    case 'pending': case 'معلق': return '#d97706';
+    case 'pending': case 'معلق': return colors.pendingOrange;
     case 'completed': case 'مكتمل': return colors.primary;
     case 'cancelled': case 'ملغي': return '#dc2626';
+    case 'paid': case 'مدفوع': return '#059669';
+    case 'overdue': case 'متأخر': return '#dc2626';
     default: return colors.secondary;
+  }
+};
+
+const getStatusText = (status: string): string => {
+  switch (status?.toLowerCase()) {
+    case 'pending': return 'Pending';
+    case 'paid': return 'مدفوع';
+    case 'overdue': return 'متأخر';
+    case 'active': return 'نشط';
+    default: return status || 'غير محدد';
   }
 };
 
@@ -111,6 +137,59 @@ export async function generateAgreementReportPdfmake(
       return `${diffMonths} شهر`;
     }
     return 'غير محدد';
+  };
+
+  // Prepare payments table rows
+  const preparePaymentsTable = () => {
+    if (!payments || payments.length === 0) {
+      return [
+        [
+          { text: labels.paymentMethod.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+          { text: labels.paymentStatus.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+          { text: labels.amount.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+          { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border }
+        ],
+        [
+          { text: 'غير محدد', style: 'tableData', alignment: 'center' },
+          { text: 'لا توجد دفعات', style: 'tableData', alignment: 'center' },
+          { text: 'QAR 0', style: 'tableData', alignment: 'center' },
+          { text: 'غير محدد', style: 'tableData', alignment: 'center' }
+        ]
+      ];
+    }
+
+    const headerRow = [
+      { text: labels.paymentMethod.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+      { text: labels.paymentStatus.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+      { text: labels.amount.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
+      { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border }
+    ];
+
+    const dataRows = payments.slice(0, 8).map(payment => [
+      { 
+        text: payment.payment_method || 'غير محدد', 
+        style: 'tableData', 
+        alignment: 'center' 
+      },
+      { 
+        text: getStatusText(payment.status || 'pending'), 
+        style: 'tableData', 
+        alignment: 'center',
+        color: getStatusColor(payment.status || 'pending')
+      },
+      { 
+        text: formatArabicCurrency(payment.amount || rentAmount || 1600),
+        style: 'tableData', 
+        alignment: 'center' 
+      },
+      { 
+        text: payment.payment_date ? formatArabicDate(payment.payment_date) : 'غير محدد',
+        style: 'tableData', 
+        alignment: 'center' 
+      }
+    ]);
+
+    return [headerRow, ...dataRows];
   };
 
   // Document definition matching the exact layout from the image
@@ -258,6 +337,52 @@ export async function generateAgreementReportPdfmake(
           }
         },
         margin: [0, 0, 0, 30]
+      },
+
+      // Payment Records Section with blue title bar
+      {
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              text: labels.paymentRecord.ar,
+              style: 'sectionTitle',
+              alignment: 'center',
+              fillColor: colors.headerBg,
+              color: colors.white
+            }
+          ]]
+        },
+        layout: {
+          hLineWidth: function () { return 2; },
+          vLineWidth: function () { return 2; },
+          hLineColor: function () { return colors.headerBg; },
+          vLineColor: function () { return colors.headerBg; }
+        },
+        margin: [0, 20, 0, 10]
+      },
+
+      // Payments table matching the image
+      {
+        table: {
+          widths: ['25%', '25%', '25%', '25%'],
+          body: preparePaymentsTable()
+        },
+        layout: {
+          hLineWidth: function (i, node) {
+            return 1;
+          },
+          vLineWidth: function (i, node) {
+            return 1;
+          },
+          hLineColor: function () {
+            return colors.border;
+          },
+          vLineColor: function () {
+            return colors.border;
+          }
+        },
+        margin: [0, 0, 0, 30]
       }
     ],
     
@@ -272,6 +397,11 @@ export async function generateAgreementReportPdfmake(
         fontSize: 18,
         bold: true,
         margin: [10, 15, 10, 15]
+      },
+      sectionTitle: {
+        fontSize: 16,
+        bold: true,
+        margin: [10, 12, 10, 12]
       },
       tableHeader: {
         fontSize: 12,
