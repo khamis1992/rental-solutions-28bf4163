@@ -3,21 +3,22 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 
-// Configure fonts with browser-safe defaults
+// Configure fonts to use only browser defaults without any file loading
 export async function ensureFontsLoaded() {
   try {
-    // Use only built-in browser fonts to avoid file loading issues
-    (pdfMake as any).fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
+    // Use only basic font names that don't require file loading
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Times-Roman',
+        bold: 'Times-Bold',
+        italics: 'Times-Italic',
+        bolditalics: 'Times-BoldItalic'
       }
     };
     
-    (pdfMake as any).vfs = {}; // Empty virtual file system to avoid font file issues
-    console.log('Fonts configured successfully');
+    // Set empty VFS to avoid any file loading
+    pdfMake.vfs = {};
+    console.log('Fonts configured successfully with system defaults');
   } catch (error) {
     console.warn('Font configuration failed, using fallback:', error);
   }
@@ -102,13 +103,13 @@ export async function generateAgreementReportPdfmake(
   const metrics = calculateFinancialMetrics(payments, contractAmount);
   const currentDate = new Date().toLocaleDateString('en-US');
   
-  // Simple document definition without complex layouts
+  // Simple document definition with minimal font requirements
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [40, 60, 40, 60],
     defaultStyle: {
-      font: 'Helvetica',
-      fontSize: 11
+      fontSize: 11,
+      font: 'Roboto'
     },
     
     content: [
