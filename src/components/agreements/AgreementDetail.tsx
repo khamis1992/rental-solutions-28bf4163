@@ -5,7 +5,7 @@ import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
@@ -100,30 +100,22 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - ensure dates are Date objects
+  // Download PDF - using the new report generator
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         
-        // Create PDF-compatible agreement object with proper date conversion
-        const agreementForPdf = {
-          ...agreement,
-          start_date: ensureDate(agreement.start_date),
-          end_date: ensureDate(agreement.end_date),
-          created_at: ensureDate(agreement.created_at),
-          updated_at: ensureDate(agreement.updated_at),
-        };
+        await generateAgreementReportPdfmake(
+          agreement,
+          rentAmount,
+          contractAmount,
+          payments,
+          [] // traffic fines - empty for now
+        );
         
-        // Use type assertion to handle the interface differences
-        const success = await generatePdfDocument(agreementForPdf as any);
-        
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+        toast.success("Agreement PDF generated successfully");
       } catch (error) {
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF document");
@@ -131,7 +123,7 @@ export function AgreementDetail({
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, rentAmount, contractAmount, payments, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {

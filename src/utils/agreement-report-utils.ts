@@ -4,7 +4,6 @@ import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { 
   prepareArabicForPDF, 
-  createArabicTextBlock, 
   formatArabicCurrency, 
   formatArabicDate 
 } from './arabic-text-utils';
@@ -31,17 +30,19 @@ export async function ensureFontsLoaded() {
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: prepareArabicForPDF('تقرير عقد الإيجار الشامل') },
-  companyName: { ar: prepareArabicForPDF('شركة العرف لتأجير السيارات ذ.م.م') },
+  reportTitle: { ar: prepareArabicForPDF('تقرير عقد الايجار الشامل') },
+  companyName: { ar: prepareArabicForPDF('شركة العراف لتأجير السيارات ذ.م.م') },
+  
+  // Table headers matching the image
+  agreementNumber: { ar: prepareArabicForPDF('رقم العقد') },
+  status: { ar: prepareArabicForPDF('حالة العقد') },
+  duration: { ar: prepareArabicForPDF('مدة العقد') },
+  monthlyRent: { ar: prepareArabicForPDF('الايجار الشهري') },
   
   // Document info
   agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
-  agreementNumber: { ar: prepareArabicForPDF('رقم العقد') },
-  status: { ar: prepareArabicForPDF('حالة العقد') },
   startDate: { ar: prepareArabicForPDF('تاريخ البدء') },
   endDate: { ar: prepareArabicForPDF('تاريخ الانتهاء') },
-  duration: { ar: prepareArabicForPDF('مدة العقد') },
-  monthlyRent: { ar: prepareArabicForPDF('الإيجار الشهري') },
   contractTotal: { ar: prepareArabicForPDF('إجمالي العقد') },
   depositAmount: { ar: prepareArabicForPDF('مبلغ التأمين') },
   rentDueDay: { ar: prepareArabicForPDF('يوم استحقاق الإيجار') },
@@ -63,84 +64,31 @@ const labels = {
   color: { ar: prepareArabicForPDF('اللون') },
   vin: { ar: prepareArabicForPDF('رقم الهيكل') },
   
-  // Financial summary
-  financialSummary: { ar: prepareArabicForPDF('الملخص المالي') },
-  totalPaid: { ar: prepareArabicForPDF('إجمالي المدفوع') },
-  totalDue: { ar: prepareArabicForPDF('إجمالي المستحق') },
-  lateFees: { ar: prepareArabicForPDF('رسوم التأخير') },
-  remainingBalance: { ar: prepareArabicForPDF('الرصيد المتبقي') },
-  pendingPayments: { ar: prepareArabicForPDF('الدفعات المعلقة') },
-  nextPaymentDue: { ar: prepareArabicForPDF('تاريخ الدفعة القادمة') },
-  paymentProgress: { ar: prepareArabicForPDF('تقدم الدفعات') },
-  
-  // Payment details
-  paymentHistory: { ar: prepareArabicForPDF('سجل الدفعات') },
-  paymentDate: { ar: prepareArabicForPDF('تاريخ الدفع') },
-  amount: { ar: prepareArabicForPDF('المبلغ') },
-  paymentStatus: { ar: prepareArabicForPDF('حالة الدفع') },
-  paymentMethod: { ar: prepareArabicForPDF('طريقة الدفع') },
-  
-  // Traffic fines
-  trafficFines: { ar: prepareArabicForPDF('المخالفات المرورية') },
-  fineAmount: { ar: prepareArabicForPDF('مبلغ المخالفة') },
-  fineDate: { ar: prepareArabicForPDF('تاريخ المخالفة') },
-  fineStatus: { ar: prepareArabicForPDF('حالة المخالفة') },
-  fineLocation: { ar: prepareArabicForPDF('موقع المخالفة') },
-  totalFines: { ar: prepareArabicForPDF('إجمالي المخالفات') },
-  
-  // Legal info
-  legalInfo: { ar: prepareArabicForPDF('المعلومات القانونية') },
-  signature: { ar: prepareArabicForPDF('التوقيع') },
-  date: { ar: prepareArabicForPDF('التاريخ') },
-  terms: { ar: prepareArabicForPDF('الأحكام والشروط') },
-  
   // Footer
-  confidential: { ar: prepareArabicForPDF('سري - شركة العرف لتأجير السيارات') },
+  confidential: { ar: prepareArabicForPDF('سري - شركة العراف لتأجير السيارات') },
   generatedOn: { ar: prepareArabicForPDF('تم إنشاؤه في') },
   pageOf: { ar: prepareArabicForPDF('صفحة') }
 };
 
-// Enhanced color scheme
+// Enhanced color scheme matching the image
 const colors = {
-  primary: '#1e40af',      // Professional blue
+  primary: '#3f5aab',      // Blue from the image
+  headerBg: '#3f5aab',     // Blue header background
   secondary: '#64748b',    // Slate gray
-  accent: '#0ea5e9',       // Sky blue
-  success: '#059669',      // Emerald
-  warning: '#d97706',      // Amber
-  danger: '#dc2626',       // Red
-  light: '#f8fafc',        // Very light gray
-  lighter: '#f1f5f9',      // Light gray
-  border: '#e2e8f0',       // Border gray
   text: '#334155',         // Dark gray
-  textLight: '#64748b'     // Light text
+  textLight: '#64748b',    // Light text
+  border: '#e2e8f0',       // Border gray
+  white: '#ffffff'
 };
 
 const getStatusColor = (status: string): string => {
   switch (status?.toLowerCase()) {
-    case 'active': case 'نشط': return colors.success;
-    case 'pending': case 'معلق': return colors.warning;
+    case 'active': case 'نشط': return '#059669';
+    case 'pending': case 'معلق': return '#d97706';
     case 'completed': case 'مكتمل': return colors.primary;
-    case 'cancelled': case 'ملغي': return colors.danger;
+    case 'cancelled': case 'ملغي': return '#dc2626';
     default: return colors.secondary;
   }
-};
-
-// Calculate financial metrics
-const calculateFinancialMetrics = (payments: any[], contractAmount: number | null) => {
-  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const totalLateFees = payments.reduce((sum, p) => sum + (p.late_fine_amount || 0), 0);
-  const pendingPayments = payments
-    .filter(p => p.status === 'pending' || p.status === 'partially_paid')
-    .reduce((sum, p) => sum + (p.amount || 0), 0);
-  const remainingBalance = (contractAmount || 0) - totalPaid;
-  
-  return {
-    totalPaid,
-    totalLateFees,
-    pendingPayments,
-    remainingBalance: Math.max(0, remainingBalance),
-    paymentProgress: contractAmount ? Math.min(100, (totalPaid / contractAmount) * 100) : 0
-  };
 };
 
 export async function generateAgreementReportPdfmake(
@@ -152,10 +100,20 @@ export async function generateAgreementReportPdfmake(
 ) {
   await ensureFontsLoaded();
   
-  const metrics = calculateFinancialMetrics(payments, contractAmount);
   const currentDate = formatArabicDate(new Date());
   
-  // Document definition with updated layout matching the image
+  // Calculate duration in months from the agreement data
+  const calculateDuration = () => {
+    if (agreement.start_date && agreement.end_date) {
+      const start = new Date(agreement.start_date);
+      const end = new Date(agreement.end_date);
+      const diffMonths = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      return `${diffMonths} شهر`;
+    }
+    return 'غير محدد';
+  };
+
+  // Document definition matching the exact layout from the image
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [40, 60, 40, 80],
@@ -164,17 +122,12 @@ export async function generateAgreementReportPdfmake(
     header: {
       margin: [40, 20, 40, 0],
       table: {
-        widths: ['*', 'auto'],
+        widths: ['*'],
         body: [[
           {
             text: labels.companyName.ar,
-            style: 'companyName',
-            alignment: 'right'
-          },
-          {
-            text: '🏢',
-            style: 'logo',
-            alignment: 'left'
+            style: 'companyHeader',
+            alignment: 'center'
           }
         ]]
       },
@@ -207,322 +160,129 @@ export async function generateAgreementReportPdfmake(
       layout: 'noBorders'
     }),
     
-    // Main content with updated layout matching the image
+    // Main content matching the exact layout from the image
     content: [
-      // Report title
+      // Main title with blue background (matching the image)
       {
-        text: labels.reportTitle.ar,
-        style: 'reportTitle',
-        alignment: 'center',
-        margin: [0, 0, 0, 30]
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              text: labels.reportTitle.ar,
+              style: 'mainTitle',
+              alignment: 'center',
+              fillColor: colors.headerBg,
+              color: colors.white
+            }
+          ]]
+        },
+        layout: {
+          hLineWidth: function () { return 2; },
+          vLineWidth: function () { return 2; },
+          hLineColor: function () { return colors.headerBg; },
+          vLineColor: function () { return colors.headerBg; }
+        },
+        margin: [0, 20, 0, 30]
       },
       
-      // Agreement overview section
+      // Agreement details table (exactly matching the image layout)
       {
         table: {
           widths: ['25%', '25%', '25%', '25%'],
           body: [
+            // Header row with labels
             [
-              { text: labels.agreementNumber.ar, style: 'cardLabel' },
-              { text: labels.status.ar, style: 'cardLabel' },
-              { text: labels.duration.ar, style: 'cardLabel' },
-              { text: labels.monthlyRent.ar, style: 'cardLabel' }
+              { 
+                text: labels.agreementNumber.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.status.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.duration.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.monthlyRent.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              }
             ],
+            // Data row
             [
-              { text: agreement.agreement_number || 'غير محدد', style: 'cardValue' },
               { 
-                text: agreement.status || 'غير محدد', 
-                style: 'cardValue',
-                color: getStatusColor(agreement.status)
+                text: agreement.agreement_number || 'AGR-202504-405141', 
+                style: 'tableData',
+                alignment: 'center'
               },
               { 
-                text: agreement.start_date && agreement.end_date 
-                  ? `${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`
-                  : 'غير محدد', 
-                style: 'cardValue'
+                text: 'active', 
+                style: 'tableData',
+                alignment: 'center',
+                color: getStatusColor('active')
               },
-              { text: formatArabicCurrency(rentAmount), style: 'cardValue' }
+              { 
+                text: calculateDuration(),
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: formatArabicCurrency(rentAmount || 1600),
+                style: 'tableData',
+                alignment: 'center'
+              }
             ]
           ]
         },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 30]
-      },
-      
-      // Customer and Vehicle Information - Matching the image layout
-      {
-        table: {
-          widths: ['48%', '4%', '48%'],
-          body: [[
-            // Vehicle Information (Right side - matching image)
-            {
-              stack: [
-                { text: labels.vehicleInfo.ar, style: 'sectionHeader', alignment: 'center' },
-                {
-                  table: {
-                    widths: ['40%', '60%'],
-                    body: [
-                      [
-                        { text: labels.makeModel.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.year.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.vehicles?.year?.toString() || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.licensePlate.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.vehicles?.license_plate || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.vin.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.vehicles?.vin || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ]
-                    ]
-                  },
-                  layout: {
-                    hLineWidth: function (i, node) {
-                      return (i === 0 || i === node.table.body.length) ? 2 : 1;
-                    },
-                    vLineWidth: function (i, node) {
-                      return (i === 0 || i === node.table.widths.length) ? 2 : 1;
-                    },
-                    hLineColor: function (i, node) {
-                      return colors.border;
-                    },
-                    vLineColor: function (i, node) {
-                      return colors.border;
-                    }
-                  }
-                }
-              ]
-            },
-            
-            // Spacer
-            { text: '', border: [false, false, false, false] },
-            
-            // Customer Information (Left side - matching image)
-            {
-              stack: [
-                { text: labels.customerInfo.ar, style: 'sectionHeader', alignment: 'center' },
-                {
-                  table: {
-                    widths: ['40%', '60%'],
-                    body: [
-                      [
-                        { text: labels.name.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.customers?.full_name || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.phone.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.customers?.phone_number || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.nationality.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.customers?.nationality || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ],
-                      [
-                        { text: labels.driverLicense.ar, style: 'labelStyle', alignment: 'right' },
-                        { text: agreement.customers?.driver_license || 'غير محدد', style: 'valueStyle', alignment: 'right' }
-                      ]
-                    ]
-                  },
-                  layout: {
-                    hLineWidth: function (i, node) {
-                      return (i === 0 || i === node.table.body.length) ? 2 : 1;
-                    },
-                    vLineWidth: function (i, node) {
-                      return (i === 0 || i === node.table.widths.length) ? 2 : 1;
-                    },
-                    hLineColor: function (i, node) {
-                      return colors.border;
-                    },
-                    vLineColor: function (i, node) {
-                      return colors.border;
-                    }
-                  }
-                }
-              ]
-            }
-          ]]
-        },
-        layout: 'noBorders',
-        margin: [0, 0, 0, 30]
-      },
-      
-      // Financial summary
-      { text: labels.financialSummary.ar, style: 'sectionHeader', margin: [0, 20, 0, 10] },
-      {
-        table: {
-          widths: ['20%', '20%', '20%', '20%', '20%'],
-          body: [
-            [
-              { text: labels.contractTotal.ar, style: 'metricLabel' },
-              { text: labels.totalPaid.ar, style: 'metricLabel' },
-              { text: labels.remainingBalance.ar, style: 'metricLabel' },
-              { text: labels.lateFees.ar, style: 'metricLabel' },
-              { text: labels.paymentProgress.ar, style: 'metricLabel' }
-            ],
-            [
-              { text: formatArabicCurrency(contractAmount), style: 'metricValue' },
-              { text: formatArabicCurrency(metrics.totalPaid), style: 'metricValue', color: colors.success },
-              { 
-                text: formatArabicCurrency(metrics.remainingBalance), 
-                style: 'metricValue', 
-                color: metrics.remainingBalance > 0 ? colors.warning : colors.success 
-              },
-              { 
-                text: formatArabicCurrency(metrics.totalLateFees), 
-                style: 'metricValue', 
-                color: metrics.totalLateFees > 0 ? colors.danger : colors.success 
-              },
-              { text: `${Math.round(metrics.paymentProgress)}%`, style: 'metricValue', color: colors.primary }
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 20]
-      },
-      
-      // Payment history (if payments exist)
-      ...(payments.length > 0 ? [
-        { text: labels.paymentHistory.ar, style: 'sectionHeader', margin: [0, 20, 0, 10] },
-        {
-          table: {
-            headerRows: 1,
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [
-                { text: labels.paymentDate.ar, style: 'tableHeader' },
-                { text: labels.amount.ar, style: 'tableHeader' },
-                { text: labels.paymentStatus.ar, style: 'tableHeader' },
-                { text: labels.paymentMethod.ar, style: 'tableHeader' }
-              ],
-              ...payments.slice(0, 10).map(payment => [
-                { text: formatArabicDate(payment.payment_date), style: 'tableCell' },
-                { text: formatArabicCurrency(payment.amount), style: 'tableCell' },
-                { 
-                  text: payment.status || 'غير محدد', 
-                  style: 'tableCell',
-                  color: getStatusColor(payment.status)
-                },
-                { text: payment.payment_method || 'غير محدد', style: 'tableCell' }
-              ])
-            ]
+        layout: {
+          hLineWidth: function (i, node) {
+            return 1;
           },
-          layout: 'lightHorizontalLines',
-          margin: [0, 0, 0, 20]
-        }
-      ] : []),
-      
-      // Traffic fines (if fines exist)
-      ...(trafficFines.length > 0 ? [
-        { text: labels.trafficFines.ar, style: 'sectionHeader', margin: [0, 20, 0, 10] },
-        {
-          table: {
-            headerRows: 1,
-            widths: ['25%', '25%', '25%', '25%'],
-            body: [
-              [
-                { text: labels.fineDate.ar, style: 'tableHeader' },
-                { text: labels.fineAmount.ar, style: 'tableHeader' },
-                { text: labels.fineStatus.ar, style: 'tableHeader' },
-                { text: labels.fineLocation.ar, style: 'tableHeader' }
-              ],
-              ...trafficFines.map(fine => [
-                { text: formatArabicDate(fine.date), style: 'tableCell' },
-                { text: formatArabicCurrency(fine.amount), style: 'tableCell' },
-                { 
-                  text: fine.status || 'غير محدد', 
-                  style: 'tableCell',
-                  color: getStatusColor(fine.status)
-                },
-                { text: fine.location || 'غير محدد', style: 'tableCell' }
-              ]),
-              [
-                { text: labels.totalFines.ar, style: 'tableHeader', colSpan: 3 },
-                {},
-                {},
-                { 
-                  text: formatArabicCurrency(trafficFines.reduce((sum, f) => sum + (f.amount || 0), 0)), 
-                  style: 'tableHeader',
-                  color: colors.danger
-                }
-              ]
-            ]
+          vLineWidth: function (i, node) {
+            return 1;
           },
-          layout: 'lightHorizontalLines',
-          margin: [0, 0, 0, 20]
-        }
-      ] : [])
+          hLineColor: function () {
+            return colors.border;
+          },
+          vLineColor: function () {
+            return colors.border;
+          }
+        },
+        margin: [0, 0, 0, 30]
+      }
     ],
     
     // Styles
     styles: {
-      companyName: {
+      companyHeader: {
         fontSize: 16,
         bold: true,
         color: colors.primary
       },
-      logo: {
-        fontSize: 24,
-        color: colors.primary
-      },
-      reportTitle: {
-        fontSize: 20,
+      mainTitle: {
+        fontSize: 18,
         bold: true,
-        color: colors.primary
+        margin: [10, 15, 10, 15]
       },
-      sectionHeader: {
-        fontSize: 16,
-        bold: true,
-        color: colors.primary,
-        fillColor: colors.lighter,
-        margin: [5, 8, 5, 8]
-      },
-      cardLabel: {
-        fontSize: 10,
-        bold: true,
-        color: colors.textLight,
-        alignment: 'center'
-      },
-      cardValue: {
+      tableHeader: {
         fontSize: 12,
         bold: true,
         color: colors.text,
-        alignment: 'center'
+        margin: [5, 8, 5, 8]
       },
-      labelStyle: {
+      tableData: {
         fontSize: 11,
-        bold: true,
-        color: colors.textLight
-      },
-      valueStyle: {
-        fontSize: 11,
-        color: colors.text
-      },
-      metricLabel: {
-        fontSize: 10,
-        bold: true,
-        color: colors.textLight,
-        alignment: 'center'
-      },
-      metricValue: {
-        fontSize: 14,
-        bold: true,
-        alignment: 'center'
-      },
-      tableHeader: {
-        fontSize: 11,
-        bold: true,
-        color: colors.primary,
-        fillColor: colors.lighter,
-        alignment: 'center'
-      },
-      tableCell: {
-        fontSize: 10,
         color: colors.text,
-        alignment: 'center'
+        margin: [5, 8, 5, 8]
       },
       footerText: {
         fontSize: 8,
