@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { BaseService } from './base/BaseService';
 import { Result } from '@/types/response.types';
@@ -40,6 +39,7 @@ export interface DeletedRecords {
   legalCases: number;
   documents: number;
   agreement: number;
+  importedAgreements: number;
 }
 
 export interface DeletionResult {
@@ -194,7 +194,8 @@ export class AgreementDeletionService extends BaseService {
         trafficFines: 0,
         legalCases: 0,
         documents: 0,
-        agreement: 0
+        agreement: 0,
+        importedAgreements: 0
       };
 
       // First validate the deletion
@@ -203,80 +204,80 @@ export class AgreementDeletionService extends BaseService {
         throw new Error('Failed to validate deletion requirements');
       }
 
-      // Delete dependent records in correct order (most dependent first)
-      
-      // 1. Delete agreement documents
+      // Defensive: Delete from imported_agreements (import tracking)
+      const { error: importedAgreementsError, count: importedAgreementsDeleted } = await supabase
+        .from('imported_agreements')
+        .delete({ count: 'exact' })
+        .eq('lease_id', agreementId);
+      if (importedAgreementsError) {
+        console.warn('Failed to delete imported_agreements:', importedAgreementsError.message);
+      }
+      deletedRecords.importedAgreements = importedAgreementsDeleted || 0;
+
+      // Defensive: Delete from agreement_documents
       const { error: docsError, count: docsDeleted } = await supabase
         .from('agreement_documents')
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
-      
       if (docsError) {
-        throw new Error(`Failed to delete documents: ${docsError.message}`);
+        console.warn('Failed to delete agreement_documents:', docsError.message);
       }
       deletedRecords.documents = docsDeleted || 0;
 
-      // 2. Delete legal cases (by customer_id, not lease_id)
-      // Fetch the agreement to get customer_id
+      // Defensive: Delete from legal_cases (by customer_id)
       const { data: agreementForDelete, error: agreementForDeleteError } = await supabase
         .from('leases')
         .select('customer_id')
         .eq('id', agreementId)
         .single();
-      
       if (agreementForDeleteError || !agreementForDelete) {
-        throw new Error('Failed to fetch agreement for legal case deletion');
+        console.warn('Failed to fetch agreement for legal case deletion');
+      } else {
+        const { error: casesError, count: casesDeleted } = await supabase
+          .from('legal_cases')
+          .delete({ count: 'exact' })
+          .eq('customer_id', agreementForDelete.customer_id);
+        if (casesError) {
+          console.warn('Failed to delete legal_cases:', casesError.message);
+        }
+        deletedRecords.legalCases = casesDeleted || 0;
       }
-      
-      const { error: casesError, count: casesDeleted } = await supabase
-        .from('legal_cases')
-        .delete({ count: 'exact' })
-        .eq('customer_id', agreementForDelete.customer_id);
-      
-      if (casesError) {
-        throw new Error(`Failed to delete legal cases: ${casesError.message}`);
-      }
-      deletedRecords.legalCases = casesDeleted || 0;
 
-      // 3. Delete traffic fines
+      // Defensive: Delete from traffic_fines
       const { error: finesError, count: finesDeleted } = await supabase
         .from('traffic_fines')
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
-      
       if (finesError) {
-        throw new Error(`Failed to delete traffic fines: ${finesError.message}`);
+        console.warn('Failed to delete traffic_fines:', finesError.message);
       }
       deletedRecords.trafficFines = finesDeleted || 0;
 
-      // 4. Delete payment schedules
+      // Defensive: Delete from payment_schedules
       const { error: schedulesError, count: schedulesDeleted } = await supabase
         .from('payment_schedules')
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
-      
       if (schedulesError) {
-        throw new Error(`Failed to delete payment schedules: ${schedulesError.message}`);
+        console.warn('Failed to delete payment_schedules:', schedulesError.message);
       }
       deletedRecords.paymentSchedules = schedulesDeleted || 0;
 
-      // 5. Delete payments
+      // Defensive: Delete from unified_payments
       const { error: paymentsError, count: paymentsDeleted } = await supabase
         .from('unified_payments')
         .delete({ count: 'exact' })
         .eq('lease_id', agreementId);
-      
       if (paymentsError) {
-        throw new Error(`Failed to delete payments: ${paymentsError.message}`);
+        console.warn('Failed to delete unified_payments:', paymentsError.message);
       }
       deletedRecords.payments = paymentsDeleted || 0;
 
-      // 6. Finally delete the agreement itself
+      // Finally delete the agreement itself
       const { error: agreementError, count: agreementDeleted } = await supabase
         .from('leases')
         .delete({ count: 'exact' })
         .eq('id', agreementId);
-      
       if (agreementError) {
         throw new Error(`Failed to delete agreement: ${agreementError.message}`);
       }

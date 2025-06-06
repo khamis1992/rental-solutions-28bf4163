@@ -5,6 +5,7 @@ import { agreementDeletionService } from '@/services/AgreementDeletionService';
 import { toast } from 'sonner';
 import { AgreementStatus } from '@/types/agreement-types';
 import { Agreement } from '@/types/agreement';
+import { getErrorMessage } from '@/types/service.types';
 
 /**
  * Hook for working with the Agreement Service
@@ -96,7 +97,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = getErrorMessage(error);
       toast.error(`Deletion failed: ${errorMessage}`);
     }
   });
