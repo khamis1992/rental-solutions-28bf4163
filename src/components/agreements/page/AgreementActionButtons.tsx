@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 import { 
   Link, 
   Download, 
@@ -20,7 +20,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from 'react-router-dom';
 
 interface AgreementActionButtonsProps {
@@ -55,18 +54,15 @@ export function AgreementActionButtons({
 
   return (
     <div className="flex items-center space-x-2">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            onClick={handleAddAgreement} 
-            className="hidden sm:flex"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Agreement
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Create a new rental agreement</TooltipContent>
-      </Tooltip>
+      <TooltipWrapper content="Create a new rental agreement.">
+        <Button 
+          onClick={handleAddAgreement} 
+          className="hidden sm:flex"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Agreement
+        </Button>
+      </TooltipWrapper>
       
       <Button 
         onClick={handleAddAgreement}
@@ -76,20 +72,17 @@ export function AgreementActionButtons({
         <Plus className="h-4 w-4" />
       </Button>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="outline" 
-            onClick={handleImportAgreements}
-            disabled={!isEdgeFunctionAvailable}
-            className="hidden sm:flex"
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            Import
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Import agreements from CSV</TooltipContent>
-      </Tooltip>
+      <TooltipWrapper content="Import agreements from a file.">
+        <Button 
+          variant="outline" 
+          onClick={handleImportAgreements}
+          disabled={!isEdgeFunctionAvailable}
+          className="hidden sm:flex"
+        >
+          <FileUp className="mr-2 h-4 w-4" />
+          Import
+        </Button>
+      </TooltipWrapper>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

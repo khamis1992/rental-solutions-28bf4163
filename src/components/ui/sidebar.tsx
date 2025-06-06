@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { TooltipWrapper } from "@/components/ui/TooltipWrapper"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -576,15 +577,9 @@ const SidebarMenuButton = React.forwardRef<
     }
 
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
-        />
-      </Tooltip>
+      <TooltipWrapper content={typeof tooltip === 'string' ? tooltip : tooltip.children}>
+        {button}
+      </TooltipWrapper>
     )
   }
 )

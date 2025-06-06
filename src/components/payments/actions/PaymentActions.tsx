@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 import { FileText, Plus } from 'lucide-react';
 
 interface PaymentActionsProps {
@@ -12,15 +12,19 @@ interface PaymentActionsProps {
 export function PaymentActions({ rentAmount, onRecordPaymentClick, onExportHistoryClick }: PaymentActionsProps) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Button onClick={onRecordPaymentClick}>
-        <Plus className="mr-2 h-4 w-4" />
-        Record Payment
-      </Button>
-      {onExportHistoryClick && (
-        <Button variant="outline" onClick={onExportHistoryClick}>
-          <FileText className="mr-2 h-4 w-4" />
-          Export History
+      <TooltipWrapper content="Record a new payment for this agreement.">
+        <Button onClick={onRecordPaymentClick}>
+          <Plus className="mr-2 h-4 w-4" />
+          Record Payment
         </Button>
+      </TooltipWrapper>
+      {onExportHistoryClick && (
+        <TooltipWrapper content="Export the payment history for this agreement.">
+          <Button variant="outline" onClick={onExportHistoryClick}>
+            <FileText className="mr-2 h-4 w-4" />
+            Export History
+          </Button>
+        </TooltipWrapper>
       )}
     </div>
   );

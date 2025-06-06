@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ButtonProps } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 
 interface LoadingButtonProps extends ButtonProps {
   isLoading?: boolean;
   loadingText?: string;
+  tooltip?: string;
 }
 
 export const LoadingButton: React.FC<LoadingButtonProps> = ({
@@ -14,9 +15,10 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   isLoading = false,
   loadingText,
   disabled,
+  tooltip,
   ...props
 }) => {
-  return (
+  const button = (
     <Button disabled={disabled || isLoading} {...props}>
       {isLoading ? (
         <>
@@ -27,5 +29,10 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
         children
       )}
     </Button>
+  );
+  return tooltip ? (
+    <TooltipWrapper content={tooltip}>{button}</TooltipWrapper>
+  ) : (
+    button
   );
 };

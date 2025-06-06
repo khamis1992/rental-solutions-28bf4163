@@ -1,16 +1,17 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button, ButtonProps } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 
 interface CustomButtonProps extends ButtonProps {
   // Add any custom props here
   glossy?: boolean;
+  tooltip?: string;
 }
 
 const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
-  ({ className, variant, size, glossy, ...props }, ref) => {
-    return (
+  ({ className, variant, size, glossy, tooltip, ...props }, ref) => {
+    const button = (
       <Button
         className={cn(
           // Add custom styles for the glossy effect
@@ -25,6 +26,11 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
         ref={ref}
         {...props}
       />
+    );
+    return tooltip ? (
+      <TooltipWrapper content={tooltip}>{button}</TooltipWrapper>
+    ) : (
+      button
     );
   }
 );

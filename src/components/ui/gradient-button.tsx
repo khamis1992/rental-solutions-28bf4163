@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 import { cn } from '@/lib/utils';
 import { type ButtonProps } from '@/components/ui/button';
 
 interface GradientButtonProps extends ButtonProps {
   gradient?: 'primary' | 'success' | 'warning' | 'danger';
   isLoading?: boolean;
+  tooltip?: string;
 }
 
 export function GradientButton({
@@ -14,6 +15,7 @@ export function GradientButton({
   isLoading,
   className,
   children,
+  tooltip,
   ...props
 }: GradientButtonProps) {
   const gradientStyles = {
@@ -23,7 +25,7 @@ export function GradientButton({
     danger: 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600',
   };
 
-  return (
+  const button = (
     <Button
       className={cn(
         gradientStyles[gradient],
@@ -43,5 +45,11 @@ export function GradientButton({
         children
       )}
     </Button>
+  );
+
+  return tooltip ? (
+    <TooltipWrapper content={tooltip}>{button}</TooltipWrapper>
+  ) : (
+    button
   );
 }

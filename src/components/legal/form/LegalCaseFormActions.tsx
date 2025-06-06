@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 
 export interface LegalCaseFormActionsProps {
   onCancel?: () => void;
@@ -8,28 +8,21 @@ export interface LegalCaseFormActionsProps {
   isEdit?: boolean;
 }
 
-export const LegalCaseFormActions: React.FC<LegalCaseFormActionsProps> = ({ 
-  onCancel, 
-  isSubmitting,
-  isEdit = false 
-}) => {
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      // Default behavior if no onCancel is provided
-      window.history.back();
-    }
-  };
-
+export function LegalCaseFormActions({ onCancel, isSubmitting, isEdit }: LegalCaseFormActionsProps) {
   return (
-    <div className="flex gap-4 justify-end">
-      <Button type="button" variant="outline" onClick={handleCancel}>
-        Cancel
-      </Button>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : isEdit ? 'Update Case' : 'Create Case'}
-      </Button>
+    <div className="flex gap-2">
+      <TooltipWrapper content={isEdit ? 'Update this legal case.' : 'Create a new legal case.'}>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (isEdit ? 'Updating...' : 'Creating...') : (isEdit ? 'Update' : 'Create')}
+        </Button>
+      </TooltipWrapper>
+      {onCancel && (
+        <TooltipWrapper content="Cancel and return to the previous page.">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </TooltipWrapper>
+      )}
     </div>
   );
-};
+}

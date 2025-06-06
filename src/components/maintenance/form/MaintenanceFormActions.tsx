@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
 
 interface MaintenanceFormActionsProps {
   isSubmitting: boolean;
@@ -8,27 +8,21 @@ interface MaintenanceFormActionsProps {
   onCancel?: () => void;
 }
 
-export const MaintenanceFormActions: React.FC<MaintenanceFormActionsProps> = ({
-  isSubmitting,
-  hasInitialData,
-  onCancel
-}) => {
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      window.history.back();
-    }
-  };
-
+export function MaintenanceFormActions({ isSubmitting, hasInitialData, onCancel }: MaintenanceFormActionsProps) {
   return (
-    <div className="flex justify-end space-x-2">
-      <Button variant="outline" type="button" onClick={handleCancel}>
-        Cancel
-      </Button>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : hasInitialData ? 'Update' : 'Create'}
-      </Button>
+    <div className="flex gap-2">
+      <TooltipWrapper content="Save maintenance record.">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : 'Save'}
+        </Button>
+      </TooltipWrapper>
+      {hasInitialData && onCancel && (
+        <TooltipWrapper content="Cancel and return to the previous page.">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </TooltipWrapper>
+      )}
     </div>
   );
-};
+}

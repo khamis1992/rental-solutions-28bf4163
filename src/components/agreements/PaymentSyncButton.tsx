@@ -1,5 +1,5 @@
-
 import { Button } from "@/components/ui/button";
+import { TooltipWrapper } from "@/components/ui/TooltipWrapper";
 import { usePaymentSync } from "@/hooks/payment/use-payment-sync";
 import { paymentSyncService } from "@/services/PaymentSyncService";
 import { RefreshCw, Settings, Zap, Info } from "lucide-react";
@@ -103,50 +103,58 @@ export function PaymentSyncButton({
   if (variant === "fix") {
     return (
       <div className="flex gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleDeepFix}
-          disabled={isFixing}
-          className={className}
-        >
-          <Zap className={`h-4 w-4 mr-1 ${isFixing ? "animate-pulse" : ""}`} />
-          {isFixing ? "Fixing..." : "Fix Sync"}
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleCheckStatus}
-          disabled={isChecking}
-          className={className}
-        >
-          <Info className={`h-4 w-4 ${isChecking ? "animate-pulse" : ""}`} />
-        </Button>
+        <TooltipWrapper content="Fix payment sync issues for this agreement.">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDeepFix}
+            disabled={isFixing}
+            className={className}
+          >
+            <Zap className={`h-4 w-4 mr-1 ${isFixing ? "animate-pulse" : ""}`} />
+            {isFixing ? "Fixing..." : "Fix Sync"}
+          </Button>
+        </TooltipWrapper>
+        <TooltipWrapper content="Check the current sync status for this agreement.">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleCheckStatus}
+            disabled={isChecking}
+            className={className}
+          >
+            <Info className={`h-4 w-4 ${isChecking ? "animate-pulse" : ""}`} />
+          </Button>
+        </TooltipWrapper>
       </div>
     );
   }
   
   return (
     <div className="flex gap-1">
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleSync}
-        disabled={isPending.sync}
-        className={className}
-      >
-        <RefreshCw className={`h-4 w-4 mr-1 ${isPending.sync ? "animate-spin" : ""}`} />
-        {isPending.sync ? "Syncing..." : "Sync"}
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={handleFixDuplicates}
-        disabled={isDebugging}
-        className={className}
-      >
-        <Settings className={`h-4 w-4 ${isDebugging ? "animate-spin" : ""}`} />
-      </Button>
+      <TooltipWrapper content="Sync payments and schedules for this agreement.">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleSync}
+          disabled={isPending.sync}
+          className={className}
+        >
+          <RefreshCw className={`h-4 w-4 mr-1 ${isPending.sync ? "animate-spin" : ""}`} />
+          {isPending.sync ? "Syncing..." : "Sync"}
+        </Button>
+      </TooltipWrapper>
+      <TooltipWrapper content="Fix duplicate payments for this agreement.">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleFixDuplicates}
+          disabled={isDebugging}
+          className={className}
+        >
+          <Settings className={`h-4 w-4 ${isDebugging ? "animate-spin" : ""}`} />
+        </Button>
+      </TooltipWrapper>
     </div>
   );
 }
