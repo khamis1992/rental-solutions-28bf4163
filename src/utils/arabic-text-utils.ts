@@ -1,4 +1,4 @@
-import { getTextAlignmentAndDirection } from './language-utils';
+import { getTextAlignmentAndDirection, toEnglishNumerals, isArabic } from './language-utils';
 
 // Utility functions for proper Arabic text handling in PDFs
 
@@ -20,14 +20,11 @@ export function fixArabicTextOrder(text: string): string {
  */
 export function prepareArabicForPDF(text: string): string {
   if (!text) return text;
-  
   // Check if text contains Arabic characters
-  const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
-  
+  const hasArabic = isArabic(text);
   if (!hasArabic) return text;
-  
-  // For Arabic text, ensure proper RTL ordering
-  return fixArabicTextOrder(text);
+  // For Arabic text, wrap with RLE (\u202B) and PDF end mark (\u202C)
+  return '\u202B' + text.replace(/[\u200E\u200F\u202A-\u202E]/g, '') + '\u202C';
 }
 
 /**
@@ -35,11 +32,12 @@ export function prepareArabicForPDF(text: string): string {
  */
 export function createArabicTextBlock(text: string, style?: any): any {
   const { alignment, rtl } = getTextAlignmentAndDirection(text);
+  const isAr = isArabic(text);
   return {
-    text: prepareArabicForPDF(text),
+    text: isAr ? prepareArabicForPDF(text) : text,
     style: style || (alignment === 'right' ? 'arabicText' : undefined),
     alignment,
-    rtl
+    rtl: isAr ? true : false
   };
 }
 
@@ -47,8 +45,9 @@ export function createArabicTextBlock(text: string, style?: any): any {
  * Formats currency amounts in Arabic with proper text direction
  */
 export function formatArabicCurrency(amount: number | null | undefined): string {
-  if (!amount && amount !== 0) return prepareArabicForPDF('0 ر.ق');
-  return prepareArabicForPDF(`${amount.toLocaleString('ar-QA')} ر.ق`);
+  if (!amount && amount !== 0) return toEnglishNumerals('\u200E0 QAR');
+  // Use LTR mark to force left-to-right display for numbers and currency
+  return '\u200E' + toEnglishNumerals(`${amount.toLocaleString('en-US')} QAR`);
 }
 
 /**

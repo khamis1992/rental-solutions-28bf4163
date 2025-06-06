@@ -163,11 +163,11 @@ export async function generateAgreementReportPdfmake(
       table: {
         widths: ['*', 'auto'],
         body: [[
-          createArabicTextBlock([
-            { text: labels.companyName.ar, style: 'companyName' },
-            '\n',
-            { text: 'Commercial Registration: 146832', style: 'companyDetails' }
-          ]),
+          [
+            createArabicTextBlock(labels.companyName.ar, 'companyName'),
+            createArabicTextBlock('\n', undefined),
+            createArabicTextBlock('Commercial Registration: 146832', 'companyDetails')
+          ],
           {
             text: '🏢',
             style: 'logo',
@@ -211,35 +211,29 @@ export async function generateAgreementReportPdfmake(
       // Agreement overview card with RTL support
       {
         table: {
-          widths: ['*'],
-          body: [[{
-            table: {
-              widths: ['25%', '25%', '25%', '25%'],
+          widths: ['25%', '25%', '25%', '25%'],
           body: [
             [
-                  createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel'),
-                  createArabicTextBlock(labels.status.ar, 'cardLabel'),
-                  createArabicTextBlock(labels.duration.ar, 'cardLabel'),
-                  createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel')
-                ],
-                [
-                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('غير محدد'), 'cardValue'),
-                  { 
-                    ...createArabicTextBlock(agreement.status || prepareArabicForPDF('غير محدد'), 'cardValue'),
-                    color: getStatusColor(agreement.status)
-                  },
-                  createArabicTextBlock(
-                    agreement.start_date && agreement.end_date 
-                      ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
-                      : prepareArabicForPDF('غير محدد'), 
-                    'cardValue'
-                  ),
-                  createArabicTextBlock(formatArabicCurrency(rentAmount), 'cardValue')
-                ]
-              ]
-            },
-            fillColor: colors.lighter
-          }]]
+              createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel'),
+              createArabicTextBlock(labels.duration.ar, 'cardLabel'),
+              createArabicTextBlock(labels.status.ar, 'cardLabel'),
+              createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel')
+            ],
+            [
+              createArabicTextBlock(formatArabicCurrency(rentAmount), 'cardValue'),
+              createArabicTextBlock(
+                agreement.start_date && agreement.end_date
+                  ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
+                  : prepareArabicForPDF('غير محدد'),
+                'cardValue'
+              ),
+              {
+                ...createArabicTextBlock(agreement.status || prepareArabicForPDF('غير محدد'), 'cardValue'),
+                color: getStatusColor(agreement.status)
+              },
+              createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('غير محدد'), 'cardValue')
+            ]
+          ]
         },
         layout: 'lightHorizontalLines',
         margin: [0, 0, 0, 20]
@@ -252,25 +246,25 @@ export async function generateAgreementReportPdfmake(
             width: '48%',
             stack: [
               createArabicTextBlock(labels.customerInfo.ar, 'sectionHeader'),
-      {
-        table: {
-                  widths: ['40%', '60%'],
-          body: [
-            [
-                      createArabicTextBlock(labels.name.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'valueStyle')
+              {
+                table: {
+                  widths: ['60%', '40%'],
+                  body: [
+                    [
+                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.name.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.phone.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.customers?.phone_number || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.customers?.phone_number || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.phone.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.nationality.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.customers?.nationality || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.customers?.nationality || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.nationality.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.driverLicense.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.customers?.driver_license || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.customers?.driver_license || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.driverLicense.ar, 'labelStyle')
                     ]
                   ]
                 },
@@ -285,23 +279,23 @@ export async function generateAgreementReportPdfmake(
               createArabicTextBlock(labels.vehicleInfo.ar, 'sectionHeader'),
               {
                 table: {
-                  widths: ['40%', '60%'],
+                  widths: ['60%', '40%'],
                   body: [
                     [
-                      createArabicTextBlock(labels.makeModel.ar, 'labelStyle'),
-                      createArabicTextBlock(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.makeModel.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.year.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.vehicles?.year?.toString() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.vehicles?.year?.toString() || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.year.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.licensePlate.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.vehicles?.license_plate || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.vehicles?.license_plate || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.licensePlate.ar, 'labelStyle')
                     ],
                     [
-                      createArabicTextBlock(labels.vin.ar, 'labelStyle'),
-                      createArabicTextBlock(agreement.vehicles?.vin || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                      createArabicTextBlock(agreement.vehicles?.vin || prepareArabicForPDF('غير محدد'), 'valueStyle'),
+                      createArabicTextBlock(labels.vin.ar, 'labelStyle')
                     ]
                   ]
                 },
