@@ -8,10 +8,10 @@ import {
   formatArabicDate 
 } from './arabic-text-utils';
 
-// Simple font configuration for basic PDF generation
+// Simple font configuration - use only built-in fonts to avoid loading issues
 export async function ensureFontsLoaded() {
   try {
-    // Use only basic fonts to avoid loading issues
+    // Use only standard fonts available in all browsers
     (pdfMake as any).fonts = {
       Helvetica: {
         normal: 'Helvetica',
@@ -20,7 +20,7 @@ export async function ensureFontsLoaded() {
         bolditalics: 'Helvetica-BoldOblique'
       }
     };
-    // Clear VFS to avoid font file loading issues
+    // Clear VFS to prevent font file loading issues
     (pdfMake as any).vfs = {};
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
