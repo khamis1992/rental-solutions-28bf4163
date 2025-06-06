@@ -4,7 +4,7 @@ import { BaseService } from './base/BaseService';
 import { Result } from '@/types/response.types';
 
 export interface DeletionWarning {
-  type: 'payment' | 'schedule' | 'fine' | 'legal' | 'document' | 'damage' | 'other';
+  type: 'payment' | 'schedule' | 'fine' | 'legal' | 'document' | 'damage' | 'overdue' | 'other';
   message: string;
   count: number;
   details?: {
@@ -23,6 +23,7 @@ export interface DeletionValidationResult {
     legalCases: number;
     documents: number;
     damages: number;
+    overduePayments: number;
     other: number;
   };
   totalDependencies: number;
@@ -42,6 +43,7 @@ export interface DeletedRecords {
   legalCases: number;
   documents: number;
   damages: number;
+  overduePayments: number;
   agreement: number;
   newUnifiedPayments: number;
   other: number;
@@ -69,6 +71,7 @@ export class AgreementDeletionService extends BaseService {
         legalCases: 0,
         documents: 0,
         damages: 0,
+        overduePayments: 0,
         other: 0
       };
 
@@ -124,6 +127,22 @@ export class AgreementDeletionService extends BaseService {
         }
       } catch (error) {
         console.warn('Damages table may not exist:', error);
+      }
+
+      // Check overdue_payments table
+      try {
+        const { count: overdueCount, error: overdueError } = await supabase
+          .from('overdue_payments')
+          .select('*', { count: 'exact', head: true })
+          .eq('agreement_id', agreementId);
+        
+        if (overdueError && !overdueError.message.includes('does not exist')) {
+          console.error('Failed to check overdue payments dependencies:', overdueError);
+        } else {
+          dependentRecords.overduePayments = overdueCount || 0;
+        }
+      } catch (error) {
+        console.warn('Overdue payments table may not exist:', error);
       }
 
       // Check legal cases (by customer_id, not lease_id)
@@ -198,6 +217,13 @@ export class AgreementDeletionService extends BaseService {
           count: dependentRecords.damages
         });
       }
+      if (dependentRecords.overduePayments > 0) {
+        warnings.push({
+          type: 'overdue',
+          message: `${dependentRecords.overduePayments} overdue payment record(s) will be permanently deleted`,
+          count: dependentRecords.overduePayments
+        });
+      }
 
       return {
         canDelete: true, // We can always delete with proper cascade
@@ -225,6 +251,7 @@ export class AgreementDeletionService extends BaseService {
         legalCases: 0,
         documents: 0,
         damages: 0,
+        overduePayments: 0,
         agreement: 0,
         newUnifiedPayments: 0,
         other: 0
@@ -262,6 +289,20 @@ export class AgreementDeletionService extends BaseService {
         deletedRecords.damages = damagesDeleted || 0;
       } catch (error) {
         console.warn('Error deleting from damages (table may not exist):', error);
+      }
+
+      // Delete from overdue_payments table (if it exists)
+      try {
+        const { error: overdueError, count: overdueDeleted } = await supabase
+          .from('overdue_payments')
+          .delete({ count: 'exact' })
+          .eq('agreement_id', agreementId);
+        if (overdueError && !overdueError.message.includes('does not exist')) {
+          console.warn('Failed to delete overdue_payments:', overdueError.message);
+        }
+        deletedRecords.overduePayments = overdueDeleted || 0;
+      } catch (error) {
+        console.warn('Error deleting from overdue_payments (table may not exist):', error);
       }
 
       // Delete from agreement_documents

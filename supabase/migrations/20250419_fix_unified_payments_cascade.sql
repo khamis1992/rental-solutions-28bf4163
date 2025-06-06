@@ -46,6 +46,24 @@ BEGIN
 END
 $$;
 
+-- Fix overdue_payments table if it exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'overdue_payments'
+    ) THEN
+        ALTER TABLE public.overdue_payments DROP CONSTRAINT IF EXISTS overdue_payments_agreement_id_fkey;
+        ALTER TABLE public.overdue_payments 
+        ADD CONSTRAINT overdue_payments_agreement_id_fkey 
+        FOREIGN KEY (agreement_id) 
+        REFERENCES public.leases(id) 
+        ON DELETE CASCADE;
+    END IF;
+END
+$$;
+
 -- Fix payment_schedules table
 ALTER TABLE public.payment_schedules DROP CONSTRAINT IF EXISTS payment_schedules_lease_id_fkey;
 ALTER TABLE public.payment_schedules 
