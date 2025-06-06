@@ -1,3 +1,4 @@
+import { getTextAlignmentAndDirection } from './language-utils';
 
 // Utility functions for proper Arabic text handling in PDFs
 
@@ -30,14 +31,15 @@ export function prepareArabicForPDF(text: string): string {
 }
 
 /**
- * Creates a properly formatted Arabic text block for PDF tables
+ * Creates a properly formatted text block for PDF tables, with correct alignment for Arabic or English
  */
 export function createArabicTextBlock(text: string, style?: any): any {
+  const { alignment, rtl } = getTextAlignmentAndDirection(text);
   return {
     text: prepareArabicForPDF(text),
-    style: style || 'arabicText',
-    alignment: 'right',
-    rtl: true
+    style: style || (alignment === 'right' ? 'arabicText' : undefined),
+    alignment,
+    rtl
   };
 }
 
