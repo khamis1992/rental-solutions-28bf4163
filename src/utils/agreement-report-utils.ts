@@ -1,7 +1,10 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
+// @ts-expect-error: No types for pdfmake/build/vfs_fonts
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+import '../fonts/Amiri-normal.js';
+import '../fonts/Amiri-Bold.js';
 import { 
   prepareArabicForPDF, 
   formatArabicCurrency, 
@@ -11,17 +14,19 @@ import {
 // Simple font configuration - use only built-in fonts to avoid loading issues
 export async function ensureFontsLoaded() {
   try {
-    // Use only standard fonts available in all browsers
+    // Merge Amiri font files into the VFS
+    pdfMake.vfs = {
+      ...(pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs),
+      ...pdfMake.vfs // Amiri font files are attached to pdfMake.vfs by the imported JS
+    };
     (pdfMake as any).fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
+      Amiri: {
+        normal: 'Amiri-normal.ttf',
+        bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-normal.ttf',
+        bolditalics: 'Amiri-Bold.ttf'
       }
     };
-    // Clear VFS to prevent font file loading issues
-    (pdfMake as any).vfs = {};
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
@@ -324,10 +329,10 @@ export async function generateAgreementReportPdfmake(
           ]
         },
         layout: {
-          hLineWidth: function (i, node) { return 1; },
-          vLineWidth: function (i, node) { return 1; },
-          hLineColor: function () { return colors.border; },
-          vLineColor: function () { return colors.border; }
+          hLineWidth: function (i: number, node: any) { return 1; },
+          vLineWidth: function (i: number, node: any) { return 1; },
+          hLineColor: function (i: number, node: any) { return colors.border; },
+          vLineColor: function (i: number, node: any) { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       },
@@ -347,10 +352,10 @@ export async function generateAgreementReportPdfmake(
           ]]
         },
         layout: {
-          hLineWidth: function () { return 2; },
-          vLineWidth: function () { return 2; },
-          hLineColor: function () { return colors.headerBg; },
-          vLineColor: function () { return colors.headerBg; }
+          hLineWidth: function (i: number, node: any) { return 2; },
+          vLineWidth: function (i: number, node: any) { return 2; },
+          hLineColor: function (i: number, node: any) { return colors.headerBg; },
+          vLineColor: function (i: number, node: any) { return colors.headerBg; }
         },
         margin: [0, 20, 0, 10]
       },
@@ -400,10 +405,10 @@ export async function generateAgreementReportPdfmake(
           ]
         },
         layout: {
-          hLineWidth: function (i, node) { return 1; },
-          vLineWidth: function (i, node) { return 1; },
-          hLineColor: function () { return colors.border; },
-          vLineColor: function () { return colors.border; }
+          hLineWidth: function (i: number, node: any) { return 1; },
+          vLineWidth: function (i: number, node: any) { return 1; },
+          hLineColor: function (i: number, node: any) { return colors.border; },
+          vLineColor: function (i: number, node: any) { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       },
@@ -423,10 +428,10 @@ export async function generateAgreementReportPdfmake(
           ]]
         },
         layout: {
-          hLineWidth: function () { return 2; },
-          vLineWidth: function () { return 2; },
-          hLineColor: function () { return colors.headerBg; },
-          vLineColor: function () { return colors.headerBg; }
+          hLineWidth: function (i: number, node: any) { return 2; },
+          vLineWidth: function (i: number, node: any) { return 2; },
+          hLineColor: function (i: number, node: any) { return colors.headerBg; },
+          vLineColor: function (i: number, node: any) { return colors.headerBg; }
         },
         margin: [0, 20, 0, 10]
       },
@@ -476,10 +481,10 @@ export async function generateAgreementReportPdfmake(
           ]
         },
         layout: {
-          hLineWidth: function (i, node) { return 1; },
-          vLineWidth: function (i, node) { return 1; },
-          hLineColor: function () { return colors.border; },
-          vLineColor: function () { return colors.border; }
+          hLineWidth: function (i: number, node: any) { return 1; },
+          vLineWidth: function (i: number, node: any) { return 1; },
+          hLineColor: function (i: number, node: any) { return colors.border; },
+          vLineColor: function (i: number, node: any) { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       },
@@ -499,10 +504,10 @@ export async function generateAgreementReportPdfmake(
           ]]
         },
         layout: {
-          hLineWidth: function () { return 2; },
-          vLineWidth: function () { return 2; },
-          hLineColor: function () { return colors.headerBg; },
-          vLineColor: function () { return colors.headerBg; }
+          hLineWidth: function (i: number, node: any) { return 2; },
+          vLineWidth: function (i: number, node: any) { return 2; },
+          hLineColor: function (i: number, node: any) { return colors.headerBg; },
+          vLineColor: function (i: number, node: any) { return colors.headerBg; }
         },
         margin: [0, 20, 0, 10]
       },
@@ -552,10 +557,10 @@ export async function generateAgreementReportPdfmake(
           ]
         },
         layout: {
-          hLineWidth: function (i, node) { return 1; },
-          vLineWidth: function (i, node) { return 1; },
-          hLineColor: function () { return colors.border; },
-          vLineColor: function () { return colors.border; }
+          hLineWidth: function (i: number, node: any) { return 1; },
+          vLineWidth: function (i: number, node: any) { return 1; },
+          hLineColor: function (i: number, node: any) { return colors.border; },
+          vLineColor: function (i: number, node: any) { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       },
@@ -575,10 +580,10 @@ export async function generateAgreementReportPdfmake(
           ]]
         },
         layout: {
-          hLineWidth: function () { return 2; },
-          vLineWidth: function () { return 2; },
-          hLineColor: function () { return colors.headerBg; },
-          vLineColor: function () { return colors.headerBg; }
+          hLineWidth: function (i: number, node: any) { return 2; },
+          vLineWidth: function (i: number, node: any) { return 2; },
+          hLineColor: function (i: number, node: any) { return colors.headerBg; },
+          vLineColor: function (i: number, node: any) { return colors.headerBg; }
         },
         margin: [0, 20, 0, 10]
       },
@@ -590,10 +595,10 @@ export async function generateAgreementReportPdfmake(
           body: preparePaymentsTable()
         },
         layout: {
-          hLineWidth: function (i, node) { return 1; },
-          vLineWidth: function (i, node) { return 1; },
-          hLineColor: function () { return colors.border; },
-          vLineColor: function () { return colors.border; }
+          hLineWidth: function (i: number, node: any) { return 1; },
+          vLineWidth: function (i: number, node: any) { return 1; },
+          hLineColor: function (i: number, node: any) { return colors.border; },
+          vLineColor: function (i: number, node: any) { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       }
@@ -604,37 +609,49 @@ export async function generateAgreementReportPdfmake(
       companyHeader: {
         fontSize: 16,
         bold: true,
-        color: colors.primary
+        color: colors.primary,
+        font: 'Amiri'
       },
       mainTitle: {
         fontSize: 18,
         bold: true,
-        margin: [10, 15, 10, 15]
+        color: colors.primary,
+        alignment: 'center',
+        font: 'Amiri'
       },
       sectionTitle: {
         fontSize: 16,
         bold: true,
-        margin: [10, 12, 10, 12]
+        margin: [10, 12, 10, 12],
+        font: 'Amiri'
       },
       tableHeader: {
         fontSize: 12,
         bold: true,
-        color: colors.text,
-        margin: [5, 8, 5, 8]
+        fillColor: colors.headerBg,
+        color: colors.white,
+        alignment: 'center',
+        font: 'Amiri'
       },
       tableData: {
         fontSize: 11,
         color: colors.text,
-        margin: [5, 8, 5, 8]
+        alignment: 'center',
+        font: 'Amiri'
       },
       footerText: {
         fontSize: 8,
-        color: colors.textLight
+        color: colors.textLight,
+        font: 'Amiri'
+      },
+      englishText: {
+        font: 'Amiri',
+        fontSize: 12
       }
     },
     
     defaultStyle: {
-      font: 'Helvetica',
+      font: 'Amiri',
       fontSize: 12
     }
   };
