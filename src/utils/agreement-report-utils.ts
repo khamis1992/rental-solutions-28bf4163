@@ -3,24 +3,28 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 
-// Configure fonts to use only browser defaults without any file loading
+// Configure pdfMake to use minimal font setup without any file loading
 export async function ensureFontsLoaded() {
   try {
-    // Use only basic font names that don't require file loading
+    // Use the most basic font configuration possible
     pdfMake.fonts = {
       Roboto: {
-        normal: 'Times-Roman',
-        bold: 'Times-Bold',
-        italics: 'Times-Italic',
-        bolditalics: 'Times-BoldItalic'
+        normal: 'Helvetica',
+        bold: 'Helvetica',
+        italics: 'Helvetica',
+        bolditalics: 'Helvetica'
       }
     };
     
-    // Set empty VFS to avoid any file loading
+    // Completely empty VFS to prevent any file system access
     pdfMake.vfs = {};
-    console.log('Fonts configured successfully with system defaults');
+    
+    console.log('Fonts configured successfully with browser defaults');
   } catch (error) {
     console.warn('Font configuration failed, using fallback:', error);
+    // Fallback: don't set any fonts at all
+    pdfMake.fonts = {};
+    pdfMake.vfs = {};
   }
 }
 
@@ -103,49 +107,51 @@ export async function generateAgreementReportPdfmake(
   const metrics = calculateFinancialMetrics(payments, contractAmount);
   const currentDate = new Date().toLocaleDateString('en-US');
   
-  // Simple document definition with minimal font requirements
+  // Ultra-simple document definition without any font specifications
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [40, 60, 40, 60],
-    defaultStyle: {
-      fontSize: 11,
-      font: 'Roboto'
-    },
     
     content: [
       // Company Header
       {
         text: labels.companyName.en,
-        style: 'header',
+        fontSize: 18,
+        bold: true,
         alignment: 'center',
-        margin: [0, 0, 0, 10]
+        margin: [0, 0, 0, 10],
+        color: colors.primary
       },
       
       // Report Title
       {
         text: labels.reportTitle.en,
-        style: 'title',
+        fontSize: 16,
+        bold: true,
         alignment: 'center',
-        margin: [0, 0, 0, 20]
+        margin: [0, 0, 0, 20],
+        color: colors.text
       },
       
       // Agreement Information Section
       {
         text: labels.agreementInfo.en,
-        style: 'sectionHeader',
-        margin: [0, 10, 0, 5]
+        fontSize: 14,
+        bold: true,
+        margin: [0, 10, 0, 5],
+        color: colors.primary
       },
       {
         table: {
           widths: ['30%', '70%'],
           body: [
             [
-              { text: labels.agreementNumber.en, style: 'label' },
-              { text: agreement.agreement_number || 'Not specified', style: 'value' }
+              { text: labels.agreementNumber.en, fontSize: 11, bold: true, color: colors.text },
+              { text: agreement.agreement_number || 'Not specified', fontSize: 11, color: colors.text }
             ],
             [
-              { text: labels.status.en, style: 'label' },
-              { text: agreement.status || 'Not specified', style: 'value' }
+              { text: labels.status.en, fontSize: 11, bold: true, color: colors.text },
+              { text: agreement.status || 'Not specified', fontSize: 11, color: colors.text }
             ]
           ]
         },
@@ -156,20 +162,22 @@ export async function generateAgreementReportPdfmake(
       // Customer Information Section
       {
         text: labels.customerInfo.en,
-        style: 'sectionHeader',
-        margin: [0, 10, 0, 5]
+        fontSize: 14,
+        bold: true,
+        margin: [0, 10, 0, 5],
+        color: colors.primary
       },
       {
         table: {
           widths: ['30%', '70%'],
           body: [
             [
-              { text: labels.name.en, style: 'label' },
-              { text: agreement.customers?.full_name || 'Not specified', style: 'value' }
+              { text: labels.name.en, fontSize: 11, bold: true, color: colors.text },
+              { text: agreement.customers?.full_name || 'Not specified', fontSize: 11, color: colors.text }
             ],
             [
-              { text: labels.phone.en, style: 'label' },
-              { text: agreement.customers?.phone_number || 'Not specified', style: 'value' }
+              { text: labels.phone.en, fontSize: 11, bold: true, color: colors.text },
+              { text: agreement.customers?.phone_number || 'Not specified', fontSize: 11, color: colors.text }
             ]
           ]
         },
@@ -180,20 +188,22 @@ export async function generateAgreementReportPdfmake(
       // Vehicle Information Section
       {
         text: labels.vehicleInfo.en,
-        style: 'sectionHeader',
-        margin: [0, 10, 0, 5]
+        fontSize: 14,
+        bold: true,
+        margin: [0, 10, 0, 5],
+        color: colors.primary
       },
       {
         table: {
           widths: ['30%', '70%'],
           body: [
             [
-              { text: labels.makeModel.en, style: 'label' },
-              { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'Not specified', style: 'value' }
+              { text: labels.makeModel.en, fontSize: 11, bold: true, color: colors.text },
+              { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'Not specified', fontSize: 11, color: colors.text }
             ],
             [
-              { text: labels.licensePlate.en, style: 'label' },
-              { text: agreement.vehicles?.license_plate || 'Not specified', style: 'value' }
+              { text: labels.licensePlate.en, fontSize: 11, bold: true, color: colors.text },
+              { text: agreement.vehicles?.license_plate || 'Not specified', fontSize: 11, color: colors.text }
             ]
           ]
         },
@@ -204,24 +214,26 @@ export async function generateAgreementReportPdfmake(
       // Financial Summary Section
       {
         text: labels.financialSummary.en,
-        style: 'sectionHeader',
-        margin: [0, 10, 0, 5]
+        fontSize: 14,
+        bold: true,
+        margin: [0, 10, 0, 5],
+        color: colors.primary
       },
       {
         table: {
           widths: ['30%', '70%'],
           body: [
             [
-              { text: labels.contractTotal.en, style: 'label' },
-              { text: formatEnglishCurrency(contractAmount), style: 'value' }
+              { text: labels.contractTotal.en, fontSize: 11, bold: true, color: colors.text },
+              { text: formatEnglishCurrency(contractAmount), fontSize: 11, color: colors.text }
             ],
             [
-              { text: labels.totalPaid.en, style: 'label' },
-              { text: formatEnglishCurrency(metrics.totalPaid), style: 'value' }
+              { text: labels.totalPaid.en, fontSize: 11, bold: true, color: colors.text },
+              { text: formatEnglishCurrency(metrics.totalPaid), fontSize: 11, color: colors.text }
             ],
             [
-              { text: labels.remainingBalance.en, style: 'label' },
-              { text: formatEnglishCurrency(metrics.remainingBalance), style: 'value' }
+              { text: labels.remainingBalance.en, fontSize: 11, bold: true, color: colors.text },
+              { text: formatEnglishCurrency(metrics.remainingBalance), fontSize: 11, color: colors.text }
             ]
           ]
         },
@@ -232,47 +244,18 @@ export async function generateAgreementReportPdfmake(
       // Footer
       {
         text: `${labels.generatedOn.en}: ${currentDate}`,
-        style: 'footer',
+        fontSize: 9,
         alignment: 'center',
-        margin: [0, 30, 0, 0]
+        margin: [0, 30, 0, 0],
+        color: '#666666'
       },
       {
         text: labels.confidential.en,
-        style: 'footer',
-        alignment: 'center'
-      }
-    ],
-    
-    styles: {
-      header: {
-        fontSize: 18,
-        bold: true,
-        color: colors.primary
-      },
-      title: {
-        fontSize: 16,
-        bold: true,
-        color: colors.text
-      },
-      sectionHeader: {
-        fontSize: 14,
-        bold: true,
-        color: colors.primary
-      },
-      label: {
-        fontSize: 11,
-        bold: true,
-        color: colors.text
-      },
-      value: {
-        fontSize: 11,
-        color: colors.text
-      },
-      footer: {
         fontSize: 9,
+        alignment: 'center',
         color: '#666666'
       }
-    }
+    ]
   };
 
   try {
