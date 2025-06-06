@@ -1,4 +1,4 @@
-import { getTextAlignmentAndDirection, toEnglishNumerals, isArabic } from './language-utils';
+import { getTextAlignmentAndDirection, toEnglishNumerals } from './language-utils';
 
 // Utility functions for proper Arabic text handling in PDFs
 
@@ -20,11 +20,14 @@ export function fixArabicTextOrder(text: string): string {
  */
 export function prepareArabicForPDF(text: string): string {
   if (!text) return text;
+  
   // Check if text contains Arabic characters
-  const hasArabic = isArabic(text);
+  const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+  
   if (!hasArabic) return text;
-  // For Arabic text, wrap with RLE (\u202B) and PDF end mark (\u202C)
-  return '\u202B' + text.replace(/[\u200E\u200F\u202A-\u202E]/g, '') + '\u202C';
+  
+  // For Arabic text, ensure proper RTL ordering
+  return fixArabicTextOrder(text);
 }
 
 /**
@@ -32,12 +35,11 @@ export function prepareArabicForPDF(text: string): string {
  */
 export function createArabicTextBlock(text: string, style?: any): any {
   const { alignment, rtl } = getTextAlignmentAndDirection(text);
-  const isAr = isArabic(text);
   return {
-    text: isAr ? prepareArabicForPDF(text) : text,
+    text: prepareArabicForPDF(text),
     style: style || (alignment === 'right' ? 'arabicText' : undefined),
     alignment,
-    rtl: isAr ? true : false
+    rtl
   };
 }
 
