@@ -2,37 +2,24 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
-import { 
-  prepareArabicForPDF, 
-  createArabicTextBlock, 
-  formatArabicCurrency, 
-  formatArabicDate 
-} from './arabic-text-utils';
 
-// Enhanced font configuration with better fallbacks
+// Enhanced font configuration with browser defaults only
 export async function ensureFontsLoaded() {
   try {
-    // Set up font configuration with proper fallbacks
+    // Use browser default fonts only - no external font files
     (pdfMake as any).fonts = {
       Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
-      },
-      Amiri: {
-        normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf',
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
       }
     };
     
-    // Set default font to Roboto with Amiri as fallback for Arabic
     (pdfMake as any).defaultFont = 'Roboto';
   } catch (error) {
     console.warn('Font loading failed, using browser defaults:', error);
-    // Fallback to browser defaults if font loading fails
+    // Fallback configuration
     (pdfMake as any).fonts = {
       Roboto: {
         normal: 'Helvetica',
@@ -56,7 +43,7 @@ const formatEnglishCurrency = (value: number | null | undefined): string => {
   return `QAR ${value.toLocaleString('en-US')}`;
 };
 
-// Simplified Arabic labels without complex RTL formatting
+// Simplified labels without complex RTL formatting
 const labels = {
   // Header
   reportTitle: { ar: 'تقرير عقد الإيجار الشامل', en: 'COMPREHENSIVE RENTAL AGREEMENT REPORT' },
@@ -152,16 +139,16 @@ const calculateFinancialMetrics = (payments: any[], contractAmount: number | nul
   };
 };
 
-// Simplified bilingual text creation without complex RTL handling
-const createBilingualRow = (arabicText: string, englishText: string, arabicStyle: string = 'arabicText', englishStyle: string = 'englishText') => [
+// Simplified bilingual text creation
+const createBilingualRow = (arabicText: string, englishText: string) => [
   {
     text: arabicText,
-    style: arabicStyle,
+    style: 'arabicText',
     alignment: 'right'
   },
   {
     text: englishText,
-    style: englishStyle,
+    style: 'englishText',
     alignment: 'left'
   }
 ];
@@ -170,7 +157,7 @@ const createBilingualRow = (arabicText: string, englishText: string, arabicStyle
 const createSectionHeader = (arabicText: string, englishText: string) => ({
   table: {
     widths: ['50%', '50%'],
-    body: [createBilingualRow(arabicText, englishText, 'sectionHeaderAr', 'sectionHeaderEn')]
+    body: [createBilingualRow(arabicText, englishText)]
   },
   layout: {
     hLineWidth: () => 2,
@@ -209,9 +196,7 @@ export async function generateAgreementReportPdfmake(
         widths: ['50%', '50%'],
         body: [createBilingualRow(
           labels.companyName.ar,
-          labels.companyName.en,
-          'companyNameAr',
-          'companyNameEn'
+          labels.companyName.en
         )]
       },
       layout: 'noBorders'
@@ -251,9 +236,7 @@ export async function generateAgreementReportPdfmake(
           widths: ['50%', '50%'],
           body: [createBilingualRow(
             labels.reportTitle.ar,
-            labels.reportTitle.en,
-            'reportTitleAr',
-            'reportTitleEn'
+            labels.reportTitle.en
           )]
         },
         layout: 'noBorders',
@@ -352,23 +335,22 @@ export async function generateAgreementReportPdfmake(
       createSectionHeader(labels.financialSummary.ar, labels.financialSummary.en),
       {
         table: {
-          widths: ['20%', '20%', '20%', '20%', '20%'],
+          widths: ['25%', '25%', '25%', '25%'],
           body: [
             // Headers
-            createBilingualRow(labels.contractTotal.ar, labels.contractTotal.en).concat([
-              { text: labels.totalPaid.ar, style: 'metricLabel', alignment: 'right' },
-              { text: labels.totalPaid.en, style: 'metricLabel', alignment: 'left' },
-              { text: labels.remainingBalance.en, style: 'metricLabel', alignment: 'center' }
-            ]),
+            createBilingualRow(labels.contractTotal.ar, labels.contractTotal.en).concat(
+              createBilingualRow(labels.totalPaid.ar, labels.totalPaid.en)
+            ),
             // Values
             createBilingualRow(
               formatEnglishCurrency(contractAmount),
               formatEnglishCurrency(contractAmount)
-            ).concat([
-              { text: formatEnglishCurrency(metrics.totalPaid), style: 'metricValueSuccess', alignment: 'right' },
-              { text: formatEnglishCurrency(metrics.totalPaid), style: 'metricValueSuccess', alignment: 'left' },
-              { text: formatEnglishCurrency(metrics.remainingBalance), style: 'metricValue', alignment: 'center' }
-            ])
+            ).concat(
+              createBilingualRow(
+                formatEnglishCurrency(metrics.totalPaid),
+                formatEnglishCurrency(metrics.totalPaid)
+              )
+            )
           ]
         },
         layout: 'lightHorizontalLines',
@@ -379,78 +361,16 @@ export async function generateAgreementReportPdfmake(
     
     // Simplified styles
     styles: {
-      // Company styles
-      companyNameAr: {
-        fontSize: 16,
-        bold: true,
-        color: colors.primary,
-        margin: [0, 0, 0, 2]
-      },
-      companyNameEn: {
-        fontSize: 16,
-        bold: true,
-        color: colors.primary,
-        margin: [0, 0, 0, 2]
-      },
-      
-      // Report title styles
-      reportTitleAr: {
-        fontSize: 18,
-        bold: true,
-        color: 'white',
-        margin: [5, 12, 5, 12]
-      },
-      reportTitleEn: {
-        fontSize: 18,
-        bold: true,
-        color: 'white',
-        margin: [5, 12, 5, 12]
-      },
-      
-      // Section header styles
-      sectionHeaderAr: {
-        fontSize: 14,
-        bold: true,
-        color: colors.primary,
-        margin: [5, 8, 5, 8]
-      },
-      sectionHeaderEn: {
-        fontSize: 14,
-        bold: true,
-        color: colors.primary,
-        margin: [5, 8, 5, 8]
-      },
-      
       // Text styles
       arabicText: {
-        fontSize: 10,
+        fontSize: 11,
         color: colors.text,
         margin: [3, 4, 3, 4]
       },
       englishText: {
-        fontSize: 10,
+        fontSize: 11,
         color: colors.text,
         margin: [3, 4, 3, 4]
-      },
-      
-      // Metric styles
-      metricLabel: {
-        fontSize: 9,
-        bold: true,
-        color: colors.textLight,
-        margin: [2, 3, 2, 3]
-      },
-      metricValue: {
-        fontSize: 12,
-        bold: true,
-        color: colors.text,
-        margin: [2, 3, 2, 3]
-      },
-      metricValueSuccess: {
-        fontSize: 12,
-        bold: true,
-        color: colors.success,
-        margin: [2, 3, 2, 3]
       },
       
       // Footer styles
