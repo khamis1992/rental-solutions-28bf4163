@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { asLeaseId } from '@/utils/database-type-helpers';
@@ -202,6 +201,22 @@ export class AgreementService extends BaseService {
   }
 
   async createAgreement(agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
+    // Backend validation: Prevent duplicate active vehicle assignment
+    if (agreementData.vehicle_id) {
+      const { data: existing, error: existingError } = await supabase
+        .from('leases')
+        .select('id, status')
+        .eq('vehicle_id', agreementData.vehicle_id)
+        .in('status', ['active', 'pending'])
+        .neq('id', agreementData.id || null);
+      if (existingError) {
+        return this.error(existingError, 'Failed to check vehicle assignment');
+      }
+      if (existing && existing.length > 0) {
+        return this.error('This vehicle is already assigned to another active agreement.', 'Vehicle assignment conflict');
+      }
+    }
+
     return this.safeExecute(async () => {
       // Calculate agreement duration if not provided
       if (!agreementData.agreement_duration && agreementData.start_date && agreementData.end_date) {
@@ -273,6 +288,22 @@ export class AgreementService extends BaseService {
   }
 
   async updateAgreement(id: string, agreementData: Partial<Agreement>): Promise<Result<Agreement>> {
+    // Backend validation: Prevent duplicate active vehicle assignment
+    if (agreementData.vehicle_id) {
+      const { data: existing, error: existingError } = await supabase
+        .from('leases')
+        .select('id, status')
+        .eq('vehicle_id', agreementData.vehicle_id)
+        .in('status', ['active', 'pending'])
+        .neq('id', id);
+      if (existingError) {
+        return this.error(existingError, 'Failed to check vehicle assignment');
+      }
+      if (existing && existing.length > 0) {
+        return this.error('This vehicle is already assigned to another active agreement.', 'Vehicle assignment conflict');
+      }
+    }
+
     return this.safeExecute(async () => {
       // For updates, only generate new agreement number if one is not provided AND the existing one is empty
       let agreementNumber = agreementData.agreement_number;
