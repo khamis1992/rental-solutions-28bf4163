@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,6 @@ import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
 import CustomerSelector from '@/components/customers/CustomerSelector';
-import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 
 interface AgreementBasicDetailsProps {
   form: UseFormReturn<Agreement>;
@@ -32,11 +28,6 @@ export const AgreementBasicDetails = ({
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
 
-  const [conflictAgreement, setConflictAgreement] = useState<any>(null);
-  const [showConflictDialog, setShowConflictDialog] = useState(false);
-  const [pendingVehicle, setPendingVehicle] = useState<any>(null);
-  const [isClosing, setIsClosing] = useState(false);
-
   const statusOptions = [
     { label: "Draft", value: AgreementStatus.DRAFT },
     { label: "Pending", value: AgreementStatus.PENDING },
@@ -46,61 +37,18 @@ export const AgreementBasicDetails = ({
     { label: "Closed", value: AgreementStatus.CLOSED }
   ];
 
-  // Track selected customer for CustomerSelector
-  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
-
-  // Real-time vehicle assignment check
-  const handleVehicleChange = async (vehicleId: string) => {
+  // When vehicle is selected, update selected vehicle state
+  const handleVehicleChange = (vehicleId: string) => {
     if (vehicles && Array.isArray(vehicles)) {
       const vehicle = vehicles.find(v => v.id === vehicleId);
       if (vehicle) {
-        // Check for active agreement with this vehicle
-        const { data: agreements, error } = await supabase
-          .from('leases')
-          .select('id, agreement_number, status, start_date, end_date')
-          .eq('vehicle_id', vehicleId)
-          .in('status', ['active', 'pending']);
-        if (error) {
-          toast.error('Failed to check vehicle assignment.');
-          onVehicleChange(vehicleId, vehicle);
-          return;
-        }
-        // Exclude current agreement if editing
-        const currentAgreementId = form.getValues('id');
-        const conflict = agreements?.find(a => a.id !== currentAgreementId);
-        if (conflict) {
-          setConflictAgreement(conflict);
-          setPendingVehicle(vehicle);
-          setShowConflictDialog(true);
-          toast.error('This vehicle is already assigned to another active agreement.');
-          return;
-        }
-        // No conflict, proceed
         onVehicleChange(vehicleId, vehicle);
       }
     }
   };
 
-  // Option to close the current agreement and reassign
-  const handleCloseAndReassign = async () => {
-    if (!conflictAgreement || !pendingVehicle) return;
-    setIsClosing(true);
-    // Update the conflicting agreement to closed
-    const { error } = await supabase
-      .from('leases')
-      .update({ status: 'closed' })
-      .eq('id', conflictAgreement.id);
-    setIsClosing(false);
-    setShowConflictDialog(false);
-    if (error) {
-      toast.error('Failed to close the current agreement.');
-      return;
-    }
-    toast.success('Previous agreement closed. Vehicle reassigned.');
-    onVehicleChange(pendingVehicle.id, pendingVehicle);
-    setConflictAgreement(null);
-    setPendingVehicle(null);
-  };
+  // Track selected customer for CustomerSelector
+  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -208,27 +156,6 @@ export const AgreementBasicDetails = ({
           )}
         />
       </div>
-      {/* Conflict dialog */}
-      <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Vehicle Already Assigned</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            This vehicle is currently assigned to agreement <b>{conflictAgreement?.agreement_number}</b> (status: {conflictAgreement?.status}).
-            <br />
-            Would you like to close that agreement and reassign the vehicle?
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConflictDialog(false)} disabled={isClosing}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleCloseAndReassign} isLoading={isClosing}>
-              Close &amp; Reassign
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
