@@ -1,6 +1,8 @@
 import pdfMake from 'pdfmake/build/pdfmake';
+// @ts-expect-error: No types for pdfmake/build/vfs_fonts
+import pdfFonts from 'pdfmake/build/vfs_fonts';
+pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 (window as any).pdfMake = pdfMake;
-(window as any).pdfMake.vfs = {};
 import { createRoot } from 'react-dom/client';
 import ReactDOMLegacy from 'react-dom';
 import App from './App.tsx';
