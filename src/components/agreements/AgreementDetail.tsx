@@ -173,8 +173,9 @@ export function AgreementDetail({
   // Convert onGenerateDocument to a Promise - fix the async handling
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      // Wrap in Promise to ensure it returns Promise<void>
-      return Promise.resolve(onGenerateDocument());
+      // Call the function and wrap in Promise.resolve to ensure Promise<void>
+      const result = onGenerateDocument();
+      return Promise.resolve(result);
     }
     return Promise.resolve();
   }, [onGenerateDocument]);
@@ -274,8 +275,8 @@ export function AgreementDetail({
         onPaymentDeleted={handleDeletePayment}
         onPaymentUpdated={handleUpdatePayment}
         onRecordPayment={handleRecordPayment}
-        leaseStartDate={agreement.start_date}
-        leaseEndDate={agreement.end_date}
+        leaseStartDate={getDateString(agreement.start_date)}
+        leaseEndDate={getDateString(agreement.end_date)}
         leaseId={agreement.id}
         agreement={agreement}
         fetchPayments={fetchPayments}
