@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
@@ -85,18 +86,32 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Enhanced mutation for deleting an agreement with proper cascade handling
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
-      // Use the enhanced deletion service for proper cascade handling
-      const result = await agreementDeletionService.deleteAgreement(id);
-      if (!result.success) {
-        throw new Error(result.error?.toString() || 'Failed to delete agreement');
+      try {
+        console.log('Starting agreement deletion for ID:', id);
+        
+        // Use the enhanced deletion service for proper cascade handling
+        const result = await agreementDeletionService.deleteAgreement(id);
+        
+        if (!result.success) {
+          console.error('Deletion service returned error:', result.error);
+          throw new Error(result.error?.toString() || 'Failed to delete agreement');
+        }
+        
+        console.log('Agreement deletion successful:', result.data);
+        return { id, deletionResult: result.data };
+      } catch (error) {
+        console.error('Error in deleteAgreement mutationFn:', error);
+        // Re-throw the error to be caught by onError
+        throw error;
       }
-      return { id, deletionResult: result.data };
     },
     onSuccess: (data) => {
+      console.log('Delete mutation onSuccess called with:', data);
       toast.success(`Agreement deleted successfully. ${data.deletionResult?.message || ''}`);
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
+      console.error('Delete mutation onError called with:', error);
       const errorMessage = getErrorMessage(error);
       toast.error(`Deletion failed: ${errorMessage}`);
     }
@@ -179,6 +194,7 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
     createAgreement: createAgreement.mutateAsync,
     updateAgreement: updateAgreement.mutateAsync,
     changeStatus: changeStatus.mutateAsync,
+    // Fix: Return the mutateAsync function directly instead of wrapping it
     deleteAgreement: deleteAgreement.mutateAsync,
     calculateRemainingAmount: calculateRemainingAmount.mutateAsync,
     validateDeletion,

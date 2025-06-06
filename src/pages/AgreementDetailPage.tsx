@@ -181,14 +181,21 @@ const AgreementDetailPage = () => {
     }
   };
 
-  // Enhanced delete handler with better error handling
+  // Enhanced delete handler with proper error handling
   const handleDeleteAgreement = async (agreementId: string) => {
     try {
+      console.log('handleDeleteAgreement called with ID:', agreementId);
+      
+      // Call the enhanced delete function and await the result
       await enhancedDeleteAgreement(agreementId);
+      
+      console.log('Agreement deletion completed, navigating to agreements list');
       navigate('/agreements');
     } catch (error) {
-      console.error('Error deleting agreement:', error);
-      // Error toast is already shown by the service
+      console.error('Error in handleDeleteAgreement:', error);
+      // Error toast is already shown by the service, but we can add additional logging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Deletion error details:', errorMessage);
     }
   };
 
