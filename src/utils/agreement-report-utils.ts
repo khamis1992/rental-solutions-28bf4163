@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -6,25 +5,22 @@ import pdfMake from 'pdfmake/build/pdfmake';
 // Configure pdfMake to use minimal font setup without any file loading
 export async function ensureFontsLoaded() {
   try {
-    // Use the most basic font configuration possible
-    pdfMake.fonts = {
-      Roboto: {
-        normal: 'Helvetica',
-        bold: 'Helvetica',
-        italics: 'Helvetica',
-        bolditalics: 'Helvetica'
-      }
-    };
-    
-    // Completely empty VFS to prevent any file system access
-    pdfMake.vfs = {};
-    
-    console.log('Fonts configured successfully with browser defaults');
+    // Removed custom font configuration to use pdfMake's default fonts
+    // pdfMake.fonts = {
+    //   Roboto: {
+    //     normal: 'Helvetica',
+    //     bold: 'Helvetica',
+    //     italics: 'Helvetica',
+    //     bolditalics: 'Helvetica'
+    //   }
+    // };
+    // pdfMake.vfs = {};
+    console.log('Using pdfMake default fonts');
   } catch (error) {
     console.warn('Font configuration failed, using fallback:', error);
     // Fallback: don't set any fonts at all
-    pdfMake.fonts = {};
-    pdfMake.vfs = {};
+    // pdfMake.fonts = {};
+    // pdfMake.vfs = {};
   }
 }
 
