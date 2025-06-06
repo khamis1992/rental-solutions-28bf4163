@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Payment } from '@/types/payment.types';
@@ -9,7 +9,6 @@ import { useAgreementPaymentSync } from './use-agreement-payment-sync';
 import { paymentService } from '@/services/PaymentService';
 import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { paymentSyncService } from '@/services/PaymentSyncService';
-import { supabase } from '@/lib/supabase';
 
 export interface SynchronizedPaymentData {
   payments: Payment[];
@@ -25,6 +24,11 @@ export interface SynchronizedPaymentData {
 export const useSynchronizedPaymentManagement = (agreementId?: string) => {
   const queryClient = useQueryClient();
   const [processingSync, setProcessingSync] = useState(false);
+  const lastSyncTime = useRef<number>(0);
+  const syncInProgress = useRef<boolean>(false);
+  
+  // Debounce sync operations - only allow sync every 30 seconds
+  const SYNC_COOLDOWN = 30000; // 30 seconds
   
   // Use existing payment management hook
   const {
@@ -52,7 +56,7 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     isPending: syncLoadingStates
   } = useAgreementPaymentSync(agreementId);
 
-  // Query to check synchronization status with better error handling
+  // Query to check synchronization status with better error handling and reduced frequency
   const { data: syncStatus, refetch: refetchSyncStatus } = useQuery({
     queryKey: ['payment-sync-status', agreementId],
     queryFn: async () => {
@@ -103,15 +107,26 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
       }
     },
     enabled: !!agreementId,
-    refetchInterval: 30000, // Check every 30 seconds
-    retry: 2,
-    retryDelay: 1000
+    refetchInterval: 60000, // Reduced frequency: Check every 60 seconds instead of 30
+    retry: 1, // Reduced retries
+    retryDelay: 2000,
+    staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
-  // Auto-sync with better error handling
+  // Auto-sync with better debouncing and error handling
   const autoSyncMutation = useMutation({
     mutationFn: async () => {
       if (!agreementId) throw new Error('Agreement ID required');
+      
+      // Check if sync is already in progress or too recent
+      const now = Date.now();
+      if (syncInProgress.current || (now - lastSyncTime.current) < SYNC_COOLDOWN) {
+        console.log('Sync skipped: too recent or already in progress');
+        return { skipped: true };
+      }
+      
+      syncInProgress.current = true;
+      lastSyncTime.current = now;
       
       console.log('Auto-syncing payment data for agreement:', agreementId);
       setProcessingSync(true);
@@ -128,10 +143,14 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
         return result.data;
       } finally {
         setProcessingSync(false);
+        syncInProgress.current = false;
       }
     },
-    onSuccess: () => {
-      toast.success('Payment data synchronized successfully');
+    onSuccess: (data) => {
+      // Only show success notification if sync actually did something
+      if (data && !data.skipped && (data.scheduleItems > 0 || data.unifiedPaymentsCreated > 0)) {
+        toast.success(`Payment data synchronized! Created ${data.scheduleItems} schedule items and ${data.unifiedPaymentsCreated} payment records.`);
+      }
       queryClient.invalidateQueries({ queryKey: ['payment-sync-status', agreementId] });
       queryClient.invalidateQueries({ queryKey: ['payments', agreementId] });
       queryClient.invalidateQueries({ queryKey: ['payment-schedule', agreementId] });
@@ -139,14 +158,23 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     onError: (error) => {
       console.error('Auto-sync failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Failed to synchronize payment data: ${errorMessage}`);
+      // Only show error notification for actual errors, not skipped syncs
+      if (!errorMessage.includes('skipped')) {
+        toast.error(`Failed to synchronize payment data: ${errorMessage}`);
+      }
     }
   });
 
-  // Trigger auto-sync if not synchronized
+  // Trigger auto-sync with better conditions
   const checkAndSync = useCallback(async () => {
-    if (syncStatus && !syncStatus.synchronized && !autoSyncMutation.isPending && !processingSync) {
-      console.log('Payment data not synchronized, triggering auto-sync');
+    if (!syncStatus || syncStatus.synchronized || autoSyncMutation.isPending || processingSync) {
+      return;
+    }
+    
+    // Only sync if there are actually unsynced items and it's been a while
+    const now = Date.now();
+    if (syncStatus.unsyncedCount > 0 && (now - lastSyncTime.current) >= SYNC_COOLDOWN) {
+      console.log('Payment schedule not synchronized, triggering auto-sync');
       try {
         await autoSyncMutation.mutateAsync();
       } catch (error) {
@@ -155,18 +183,19 @@ export const useSynchronizedPaymentManagement = (agreementId?: string) => {
     }
   }, [syncStatus, autoSyncMutation, processingSync]);
   
-  // Auto-check synchronization on mount and when agreement changes
+  // Auto-check synchronization with better debouncing
   useEffect(() => {
-    if (agreementId && syncStatus && !syncStatus.synchronized && !processingSync) {
-      console.log('Payment schedule not synchronized, will auto-sync');
-      // Add a small delay to avoid immediate sync on component mount
-      const timeoutId = setTimeout(() => {
-        checkAndSync();
-      }, 1000);
-      
-      return () => clearTimeout(timeoutId);
+    if (!agreementId || !syncStatus || syncStatus.synchronized || processingSync) {
+      return;
     }
-  }, [agreementId, syncStatus, processingSync, checkAndSync]);
+
+    // Add a longer delay to prevent immediate sync on component mount
+    const timeoutId = setTimeout(() => {
+      checkAndSync();
+    }, 5000); // Increased delay to 5 seconds
+    
+    return () => clearTimeout(timeoutId);
+  }, [agreementId, syncStatus?.synchronized, syncStatus?.unsyncedCount, processingSync, checkAndSync]);
 
   // Calculate synchronized payment data
   const synchronizedData: SynchronizedPaymentData = {
