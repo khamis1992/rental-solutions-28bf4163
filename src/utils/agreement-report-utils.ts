@@ -51,8 +51,9 @@ const labels = {
   paid: { ar: prepareArabicForPDF('مدفوع') },
   overdue: { ar: prepareArabicForPDF('متأخر') },
   undefined: { ar: prepareArabicForPDF('غير محدد') },
+  active: { ar: prepareArabicForPDF('نشط') },
   
-  // Document info
+  // Agreement info section
   agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
   startDate: { ar: prepareArabicForPDF('تاريخ البدء') },
   endDate: { ar: prepareArabicForPDF('تاريخ الانتهاء') },
@@ -64,15 +65,15 @@ const labels = {
   customerInfo: { ar: prepareArabicForPDF('معلومات العميل') },
   name: { ar: prepareArabicForPDF('الاسم الكامل') },
   email: { ar: prepareArabicForPDF('البريد الإلكتروني') },
-  phone: { ar: prepareArabicForPDF('الهاتف رقم') },
+  phone: { ar: prepareArabicForPDF('رقم الهاتف') },
   driverLicense: { ar: prepareArabicForPDF('رخصة القيادة') },
   nationality: { ar: prepareArabicForPDF('الجنسية') },
   address: { ar: prepareArabicForPDF('العنوان') },
   
   // Vehicle info
   vehicleInfo: { ar: prepareArabicForPDF('معلومات المركبة') },
-  makeModel: { ar: prepareArabicForPDF('ماركة المركبة') },
-  year: { ar: prepareArabicForPDF('الصنعة') },
+  makeModel: { ar: prepareArabicForPDF('ماركة وموديل المركبة') },
+  year: { ar: prepareArabicForPDF('سنة الصنع') },
   licensePlate: { ar: prepareArabicForPDF('رقم اللوحة') },
   color: { ar: prepareArabicForPDF('اللون') },
   vin: { ar: prepareArabicForPDF('رقم الهيكل') },
@@ -109,7 +110,7 @@ const getStatusColor = (status: string): string => {
 
 const getStatusText = (status: string): string => {
   switch (status?.toLowerCase()) {
-    case 'pending': return 'Pending';
+    case 'pending': return 'معلق';
     case 'paid': return 'مدفوع';
     case 'overdue': return 'متأخر';
     case 'active': return 'نشط';
@@ -241,7 +242,7 @@ export async function generateAgreementReportPdfmake(
     
     // Main content matching the exact layout from the image
     content: [
-      // Main title with blue background (matching the image)
+      // Main title with blue background
       {
         table: {
           widths: ['*'],
@@ -264,7 +265,7 @@ export async function generateAgreementReportPdfmake(
         margin: [0, 20, 0, 30]
       },
       
-      // Agreement details table (exactly matching the image layout)
+      // Agreement details table
       {
         table: {
           widths: ['25%', '25%', '25%', '25%'],
@@ -304,7 +305,7 @@ export async function generateAgreementReportPdfmake(
                 alignment: 'center'
               },
               { 
-                text: 'active', 
+                text: labels.active.ar, 
                 style: 'tableData',
                 alignment: 'center',
                 color: getStatusColor('active')
@@ -323,18 +324,238 @@ export async function generateAgreementReportPdfmake(
           ]
         },
         layout: {
-          hLineWidth: function (i, node) {
-            return 1;
-          },
-          vLineWidth: function (i, node) {
-            return 1;
-          },
-          hLineColor: function () {
-            return colors.border;
-          },
-          vLineColor: function () {
-            return colors.border;
-          }
+          hLineWidth: function (i, node) { return 1; },
+          vLineWidth: function (i, node) { return 1; },
+          hLineColor: function () { return colors.border; },
+          vLineColor: function () { return colors.border; }
+        },
+        margin: [0, 0, 0, 30]
+      },
+
+      // Agreement Information Section
+      {
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              text: labels.agreementInfo.ar,
+              style: 'sectionTitle',
+              alignment: 'center',
+              fillColor: colors.headerBg,
+              color: colors.white
+            }
+          ]]
+        },
+        layout: {
+          hLineWidth: function () { return 2; },
+          vLineWidth: function () { return 2; },
+          hLineColor: function () { return colors.headerBg; },
+          vLineColor: function () { return colors.headerBg; }
+        },
+        margin: [0, 20, 0, 10]
+      },
+
+      // Agreement info table
+      {
+        table: {
+          widths: ['33%', '33%', '34%'],
+          body: [
+            [
+              { 
+                text: labels.startDate.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.endDate.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.contractTotal.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              }
+            ],
+            [
+              { 
+                text: formatArabicDate(agreement.start_date),
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: formatArabicDate(agreement.end_date),
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: formatArabicCurrency(contractAmount || rentAmount || 1600),
+                style: 'tableData',
+                alignment: 'center'
+              }
+            ]
+          ]
+        },
+        layout: {
+          hLineWidth: function (i, node) { return 1; },
+          vLineWidth: function (i, node) { return 1; },
+          hLineColor: function () { return colors.border; },
+          vLineColor: function () { return colors.border; }
+        },
+        margin: [0, 0, 0, 30]
+      },
+
+      // Customer Information Section
+      {
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              text: labels.customerInfo.ar,
+              style: 'sectionTitle',
+              alignment: 'center',
+              fillColor: colors.headerBg,
+              color: colors.white
+            }
+          ]]
+        },
+        layout: {
+          hLineWidth: function () { return 2; },
+          vLineWidth: function () { return 2; },
+          hLineColor: function () { return colors.headerBg; },
+          vLineColor: function () { return colors.headerBg; }
+        },
+        margin: [0, 20, 0, 10]
+      },
+
+      // Customer info table
+      {
+        table: {
+          widths: ['33%', '33%', '34%'],
+          body: [
+            [
+              { 
+                text: labels.name.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.email.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.phone.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              }
+            ],
+            [
+              { 
+                text: agreement.customers?.full_name || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: agreement.customers?.email || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: agreement.customers?.phone_number || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              }
+            ]
+          ]
+        },
+        layout: {
+          hLineWidth: function (i, node) { return 1; },
+          vLineWidth: function (i, node) { return 1; },
+          hLineColor: function () { return colors.border; },
+          vLineColor: function () { return colors.border; }
+        },
+        margin: [0, 0, 0, 30]
+      },
+
+      // Vehicle Information Section
+      {
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              text: labels.vehicleInfo.ar,
+              style: 'sectionTitle',
+              alignment: 'center',
+              fillColor: colors.headerBg,
+              color: colors.white
+            }
+          ]]
+        },
+        layout: {
+          hLineWidth: function () { return 2; },
+          vLineWidth: function () { return 2; },
+          hLineColor: function () { return colors.headerBg; },
+          vLineColor: function () { return colors.headerBg; }
+        },
+        margin: [0, 20, 0, 10]
+      },
+
+      // Vehicle info table
+      {
+        table: {
+          widths: ['33%', '33%', '34%'],
+          body: [
+            [
+              { 
+                text: labels.makeModel.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.licensePlate.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              },
+              { 
+                text: labels.vin.ar, 
+                style: 'tableHeader',
+                alignment: 'center',
+                fillColor: colors.border
+              }
+            ],
+            [
+              { 
+                text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: agreement.vehicles?.license_plate || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              },
+              { 
+                text: agreement.vehicles?.vin || 'غير محدد',
+                style: 'tableData',
+                alignment: 'center'
+              }
+            ]
+          ]
+        },
+        layout: {
+          hLineWidth: function (i, node) { return 1; },
+          vLineWidth: function (i, node) { return 1; },
+          hLineColor: function () { return colors.border; },
+          vLineColor: function () { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       },
@@ -369,18 +590,10 @@ export async function generateAgreementReportPdfmake(
           body: preparePaymentsTable()
         },
         layout: {
-          hLineWidth: function (i, node) {
-            return 1;
-          },
-          vLineWidth: function (i, node) {
-            return 1;
-          },
-          hLineColor: function () {
-            return colors.border;
-          },
-          vLineColor: function () {
-            return colors.border;
-          }
+          hLineWidth: function (i, node) { return 1; },
+          vLineWidth: function (i, node) { return 1; },
+          hLineColor: function () { return colors.border; },
+          vLineColor: function () { return colors.border; }
         },
         margin: [0, 0, 0, 30]
       }
