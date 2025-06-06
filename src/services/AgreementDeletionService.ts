@@ -4,7 +4,7 @@ import { BaseService } from './base/BaseService';
 import { Result } from '@/types/response.types';
 
 export interface DeletionWarning {
-  type: 'payment' | 'schedule' | 'fine' | 'legal' | 'document';
+  type: 'payment' | 'schedule' | 'fine' | 'legal' | 'document' | 'damage' | 'other';
   message: string;
   count: number;
   details?: {
@@ -22,6 +22,8 @@ export interface DeletionValidationResult {
     trafficFines: number;
     legalCases: number;
     documents: number;
+    damages: number;
+    other: number;
   };
   totalDependencies: number;
   warnings: DeletionWarning[];
@@ -39,8 +41,10 @@ export interface DeletedRecords {
   trafficFines: number;
   legalCases: number;
   documents: number;
+  damages: number;
   agreement: number;
   newUnifiedPayments: number;
+  other: number;
 }
 
 export interface DeletionResult {
@@ -63,7 +67,9 @@ export class AgreementDeletionService extends BaseService {
         paymentSchedules: 0,
         trafficFines: 0,
         legalCases: 0,
-        documents: 0
+        documents: 0,
+        damages: 0,
+        other: 0
       };
 
       const warnings: DeletionWarning[] = [];
@@ -102,6 +108,22 @@ export class AgreementDeletionService extends BaseService {
         console.error('Failed to check traffic fine dependencies:', finesError);
       } else {
         dependentRecords.trafficFines = finesCount || 0;
+      }
+
+      // Check damages table
+      try {
+        const { count: damagesCount, error: damagesError } = await supabase
+          .from('damages')
+          .select('*', { count: 'exact', head: true })
+          .eq('lease_id', agreementId);
+        
+        if (damagesError && !damagesError.message.includes('does not exist')) {
+          console.error('Failed to check damages dependencies:', damagesError);
+        } else {
+          dependentRecords.damages = damagesCount || 0;
+        }
+      } catch (error) {
+        console.warn('Damages table may not exist:', error);
       }
 
       // Check legal cases (by customer_id, not lease_id)
@@ -169,6 +191,13 @@ export class AgreementDeletionService extends BaseService {
           count: dependentRecords.documents
         });
       }
+      if (dependentRecords.damages > 0) {
+        warnings.push({
+          type: 'damage',
+          message: `${dependentRecords.damages} damage record(s) will be permanently deleted`,
+          count: dependentRecords.damages
+        });
+      }
 
       return {
         canDelete: true, // We can always delete with proper cascade
@@ -195,8 +224,10 @@ export class AgreementDeletionService extends BaseService {
         trafficFines: 0,
         legalCases: 0,
         documents: 0,
+        damages: 0,
         agreement: 0,
-        newUnifiedPayments: 0
+        newUnifiedPayments: 0,
+        other: 0
       };
 
       // First validate the deletion
@@ -217,6 +248,20 @@ export class AgreementDeletionService extends BaseService {
         deletedRecords.newUnifiedPayments = newUnifiedPaymentsDeleted || 0;
       } catch (error) {
         console.warn('Error deleting from new_unified_payments (table may not exist):', error);
+      }
+
+      // Delete from damages table (if it exists)
+      try {
+        const { error: damagesError, count: damagesDeleted } = await supabase
+          .from('damages')
+          .delete({ count: 'exact' })
+          .eq('lease_id', agreementId);
+        if (damagesError && !damagesError.message.includes('does not exist')) {
+          console.warn('Failed to delete damages:', damagesError.message);
+        }
+        deletedRecords.damages = damagesDeleted || 0;
+      } catch (error) {
+        console.warn('Error deleting from damages (table may not exist):', error);
       }
 
       // Delete from agreement_documents
