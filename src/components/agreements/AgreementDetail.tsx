@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -197,7 +196,7 @@ export function AgreementDetail({
 
   return (
     <div className="space-y-6">
-      {/* Debug Panel Toggle */}
+      
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex gap-2">

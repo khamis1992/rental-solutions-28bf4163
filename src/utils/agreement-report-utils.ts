@@ -1,3 +1,4 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -15,39 +16,54 @@ export async function ensureFontsLoaded() {
     // Use the built-in fonts from pdfMake
     pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
     
-    // Add Amiri font files to the virtual file system
-    pdfMake.vfs['Amiri-Regular.ttf'] = await fetch('/Amiri-Regular.ttf')
-      .then(response => response.arrayBuffer())
-      .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))))
-      .catch(() => {
-        console.warn('Could not load Amiri-Regular.ttf, using default font');
-        return '';
-      });
+    // Try to load Amiri fonts, but fall back gracefully
+    let amiriLoaded = false;
     
-    pdfMake.vfs['Amiri-Bold.ttf'] = await fetch('/Amiri-Bold.ttf')
-      .then(response => response.arrayBuffer())
-      .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))))
-      .catch(() => {
-        console.warn('Could not load Amiri-Bold.ttf, using default font');
-        return '';
-      });
-    
-    // Configure Amiri fonts
-    (pdfMake as any).fonts = {
-      Amiri: {
-        normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf'
-      },
-      // Keep Roboto as fallback
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
+    try {
+      const amiriRegularResponse = await fetch('/Amiri-Regular.ttf');
+      const amiriBoldResponse = await fetch('/Amiri-Bold.ttf');
+      
+      if (amiriRegularResponse.ok && amiriBoldResponse.ok) {
+        const regularBuffer = await amiriRegularResponse.arrayBuffer();
+        const boldBuffer = await amiriBoldResponse.arrayBuffer();
+        
+        pdfMake.vfs['Amiri-Regular.ttf'] = btoa(String.fromCharCode(...new Uint8Array(regularBuffer)));
+        pdfMake.vfs['Amiri-Bold.ttf'] = btoa(String.fromCharCode(...new Uint8Array(boldBuffer)));
+        amiriLoaded = true;
       }
-    };
+    } catch (fontError) {
+      console.warn('Could not load Amiri fonts:', fontError);
+    }
+    
+    // Configure fonts based on what loaded successfully
+    if (amiriLoaded) {
+      (pdfMake as any).fonts = {
+        Amiri: {
+          normal: 'Amiri-Regular.ttf',
+          bold: 'Amiri-Bold.ttf',
+          italics: 'Amiri-Regular.ttf',
+          bolditalics: 'Amiri-Bold.ttf'
+        },
+        Roboto: {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf'
+        }
+      };
+    } else {
+      // Use only Roboto if Amiri fails to load
+      (pdfMake as any).fonts = {
+        Roboto: {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf'
+        }
+      };
+    }
+    
+    return amiriLoaded;
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
     // Fallback to default configuration
@@ -59,6 +75,7 @@ export async function ensureFontsLoaded() {
         bolditalics: 'Roboto-MediumItalic.ttf'
       }
     };
+    return false;
   }
 }
 
@@ -160,7 +177,8 @@ export async function generateAgreementReportPdfmake(
   payments: any[] = [],
   trafficFines: any[] = []
 ) {
-  await ensureFontsLoaded();
+  const amiriLoaded = await ensureFontsLoaded();
+  const fontFamily = amiriLoaded ? 'Amiri' : 'Roboto';
   
   const currentDate = formatArabicDate(new Date());
   
@@ -634,26 +652,26 @@ export async function generateAgreementReportPdfmake(
       }
     ],
     
-    // Styles - using Amiri font
+    // Styles - use font family based on what loaded successfully
     styles: {
       companyHeader: {
         fontSize: 16,
         bold: true,
         color: colors.primary,
-        font: 'Amiri'
+        font: fontFamily
       },
       mainTitle: {
         fontSize: 18,
         bold: true,
         color: colors.primary,
         alignment: 'center',
-        font: 'Amiri'
+        font: fontFamily
       },
       sectionTitle: {
         fontSize: 16,
         bold: true,
         margin: [10, 12, 10, 12],
-        font: 'Amiri'
+        font: fontFamily
       },
       tableHeader: {
         fontSize: 12,
@@ -661,27 +679,27 @@ export async function generateAgreementReportPdfmake(
         fillColor: colors.headerBg,
         color: colors.white,
         alignment: 'center',
-        font: 'Amiri'
+        font: fontFamily
       },
       tableData: {
         fontSize: 11,
         color: colors.text,
         alignment: 'center',
-        font: 'Amiri'
+        font: fontFamily
       },
       footerText: {
         fontSize: 8,
         color: colors.textLight,
-        font: 'Amiri'
+        font: fontFamily
       },
       englishText: {
-        font: 'Amiri',
+        font: fontFamily,
         fontSize: 12
       }
     },
     
     defaultStyle: {
-      font: 'Amiri',
+      font: fontFamily,
       fontSize: 12
     }
   };
