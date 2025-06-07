@@ -11,15 +11,48 @@ import {
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
   try {
+    // Configure fonts for pdfMake with proper Arabic support
     (pdfMake as any).fonts = {
-  Amiri: {
+      Amiri: {
         normal: 'Amiri-Regular.ttf',
-    bold: 'Amiri-Bold.ttf',
+        bold: 'Amiri-Bold.ttf',
         italics: 'Amiri-Regular.ttf',
         bolditalics: 'Amiri-Bold.ttf',
       },
     };
-  // Fonts are preloaded via script tags and already available in pdfMake.vfs
+    
+    // Load the font files into pdfMake's virtual file system
+    if (!(pdfMake as any).vfs) {
+      (pdfMake as any).vfs = {};
+    }
+    
+    // Try to load fonts from public directory
+    try {
+      const [regularFont, boldFont] = await Promise.all([
+        fetch('/Amiri-Regular.ttf').then(res => res.arrayBuffer()),
+        fetch('/Amiri-Bold.ttf').then(res => res.arrayBuffer())
+      ]);
+      
+      // Convert ArrayBuffer to base64
+      const regularBase64 = btoa(String.fromCharCode(...new Uint8Array(regularFont)));
+      const boldBase64 = btoa(String.fromCharCode(...new Uint8Array(boldFont)));
+      
+      (pdfMake as any).vfs['Amiri-Regular.ttf'] = regularBase64;
+      (pdfMake as any).vfs['Amiri-Bold.ttf'] = boldBase64;
+      
+      console.log('Arabic fonts loaded successfully');
+    } catch (fontError) {
+      console.warn('Could not load Arabic fonts from public directory:', fontError);
+      // Fallback to default fonts
+      (pdfMake as any).fonts = {
+        Roboto: {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf'
+        }
+      };
+    }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
@@ -28,73 +61,73 @@ export async function ensureFontsLoaded() {
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: 'تقرير عقد الإيجار الشامل' },
-  companyName: { ar: 'شركة العرف لتأجير السيارات ذ.م.م' },
+  reportTitle: { ar: prepareArabicForPDF('تقرير عقد الإيجار الشامل') },
+  companyName: { ar: prepareArabicForPDF('شركة العرف لتأجير السيارات ذ.م.م') },
   
   // Document info
-  agreementInfo: { ar: 'معلومات العقد' },
-  agreementNumber: { ar: 'رقم العقد' },
-  status: { ar: 'حالة العقد' },
-  startDate: { ar: 'تاريخ البدء' },
-  endDate: { ar: 'تاريخ الانتهاء' },
-  duration: { ar: 'مدة العقد' },
-  monthlyRent: { ar: 'الإيجار الشهري' },
-  contractTotal: { ar: 'إجمالي العقد' },
-  depositAmount: { ar: 'مبلغ التأمين' },
-  rentDueDay: { ar: 'يوم استحقاق الإيجار' },
+  agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
+  agreementNumber: { ar: prepareArabicForPDF('رقم العقد') },
+  status: { ar: prepareArabicForPDF('حالة العقد') },
+  startDate: { ar: prepareArabicForPDF('تاريخ البدء') },
+  endDate: { ar: prepareArabicForPDF('تاريخ الانتهاء') },
+  duration: { ar: prepareArabicForPDF('مدة العقد') },
+  monthlyRent: { ar: prepareArabicForPDF('الإيجار الشهري') },
+  contractTotal: { ar: prepareArabicForPDF('إجمالي العقد') },
+  depositAmount: { ar: prepareArabicForPDF('مبلغ التأمين') },
+  rentDueDay: { ar: prepareArabicForPDF('يوم استحقاق الإيجار') },
   
   // Customer info
-  customerInfo: { ar: 'معلومات العميل' },
-  name: { ar: 'الاسم الكامل' },
-  email: { ar: 'البريد الإلكتروني' },
-  phone: { ar: 'رقم الهاتف' },
-  driverLicense: { ar: 'رخصة القيادة' },
-  nationality: { ar: 'الجنسية' },
-  address: { ar: 'العنوان' },
+  customerInfo: { ar: prepareArabicForPDF('معلومات العميل') },
+  name: { ar: prepareArabicForPDF('الاسم الكامل') },
+  email: { ar: prepareArabicForPDF('البريد الإلكتروني') },
+  phone: { ar: prepareArabicForPDF('رقم الهاتف') },
+  driverLicense: { ar: prepareArabicForPDF('رخصة القيادة') },
+  nationality: { ar: prepareArabicForPDF('الجنسية') },
+  address: { ar: prepareArabicForPDF('العنوان') },
   
   // Vehicle info
-  vehicleInfo: { ar: 'معلومات المركبة' },
-  makeModel: { ar: 'الماركة والموديل' },
-  year: { ar: 'سنة الصنع' },
-  licensePlate: { ar: 'رقم اللوحة' },
-  color: { ar: 'اللون' },
-  vin: { ar: 'رقم الهيكل' },
+  vehicleInfo: { ar: prepareArabicForPDF('معلومات المركبة') },
+  makeModel: { ar: prepareArabicForPDF('الماركة والموديل') },
+  year: { ar: prepareArabicForPDF('سنة الصنع') },
+  licensePlate: { ar: prepareArabicForPDF('رقم اللوحة') },
+  color: { ar: prepareArabicForPDF('اللون') },
+  vin: { ar: prepareArabicForPDF('رقم الهيكل') },
   
   // Financial summary
-  financialSummary: { ar: 'الملخص المالي' },
-  totalPaid: { ar: 'إجمالي المدفوع' },
-  totalDue: { ar: 'إجمالي المستحق' },
-  lateFees: { ar: 'رسوم التأخير' },
-  remainingBalance: { ar: 'الرصيد المتبقي' },
-  pendingPayments: { ar: 'الدفعات المعلقة' },
-  nextPaymentDue: { ar: 'تاريخ الدفعة القادمة' },
-  paymentProgress: { ar: 'تقدم الدفعات' },
+  financialSummary: { ar: prepareArabicForPDF('الملخص المالي') },
+  totalPaid: { ar: prepareArabicForPDF('إجمالي المدفوع') },
+  totalDue: { ar: prepareArabicForPDF('إجمالي المستحق') },
+  lateFees: { ar: prepareArabicForPDF('رسوم التأخير') },
+  remainingBalance: { ar: prepareArabicForPDF('الرصيد المتبقي') },
+  pendingPayments: { ar: prepareArabicForPDF('الدفعات المعلقة') },
+  nextPaymentDue: { ar: prepareArabicForPDF('تاريخ الدفعة القادمة') },
+  paymentProgress: { ar: prepareArabicForPDF('تقدم الدفعات') },
   
   // Payment details
-  paymentHistory: { ar: 'سجل الدفعات' },
-  paymentDate: { ar: 'تاريخ الدفع' },
-  amount: { ar: 'المبلغ' },
-  paymentStatus: { ar: 'حالة الدفع' },
-  paymentMethod: { ar: 'طريقة الدفع' },
+  paymentHistory: { ar: prepareArabicForPDF('سجل الدفعات') },
+  paymentDate: { ar: prepareArabicForPDF('تاريخ الدفع') },
+  amount: { ar: prepareArabicForPDF('المبلغ') },
+  paymentStatus: { ar: prepareArabicForPDF('حالة الدفع') },
+  paymentMethod: { ar: prepareArabicForPDF('طريقة الدفع') },
   
   // Traffic fines
-  trafficFines: { ar: 'المخالفات المرورية' },
-  fineAmount: { ar: 'مبلغ المخالفة' },
-  fineDate: { ar: 'تاريخ المخالفة' },
-  fineStatus: { ar: 'حالة المخالفة' },
-  fineLocation: { ar: 'موقع المخالفة' },
-  totalFines: { ar: 'إجمالي المخالفات' },
+  trafficFines: { ar: prepareArabicForPDF('المخالفات المرورية') },
+  fineAmount: { ar: prepareArabicForPDF('مبلغ المخالفة') },
+  fineDate: { ar: prepareArabicForPDF('تاريخ المخالفة') },
+  fineStatus: { ar: prepareArabicForPDF('حالة المخالفة') },
+  fineLocation: { ar: prepareArabicForPDF('موقع المخالفة') },
+  totalFines: { ar: prepareArabicForPDF('إجمالي المخالفات') },
   
   // Legal info
-  legalInfo: { ar: 'المعلومات القانونية' },
-  signature: { ar: 'التوقيع' },
-  date: { ar: 'التاريخ' },
-  terms: { ar: 'الأحكام والشروط' },
+  legalInfo: { ar: prepareArabicForPDF('المعلومات القانونية') },
+  signature: { ar: prepareArabicForPDF('التوقيع') },
+  date: { ar: prepareArabicForPDF('التاريخ') },
+  terms: { ar: prepareArabicForPDF('الأحكام والشروط') },
   
   // Footer
-  confidential: { ar: 'سري - شركة العرف لتأجير السيارات' },
-  generatedOn: { ar: 'تم إنشاؤه في' },
-  pageOf: { ar: 'صفحة' }
+  confidential: { ar: prepareArabicForPDF('سري - شركة العرف لتأجير السيارات') },
+  generatedOn: { ar: prepareArabicForPDF('تم إنشاؤه في') },
+  pageOf: { ar: prepareArabicForPDF('صفحة') }
 };
 
 // Enhanced color scheme
@@ -200,7 +233,7 @@ export async function generateAgreementReportPdfmake(
         table: {
           widths: ['*'],
           body: [[
-            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right', rtl: true }
+            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right' }
           ]]
         },
         layout: {
@@ -218,8 +251,8 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['25%', '25%', '25%', '25%'],
-          body: [
-            [
+              body: [
+                [
                   createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel'),
                   createArabicTextBlock(labels.status.ar, 'cardLabel'),
                   createArabicTextBlock(labels.duration.ar, 'cardLabel'),
@@ -336,8 +369,8 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['20%', '20%', '20%', '20%', '20%'],
-          body: [
-            [
+              body: [
+                [
                   createArabicTextBlock(labels.contractTotal.ar, 'metricLabel'),
                   createArabicTextBlock(labels.totalPaid.ar, 'metricLabel'),
                   createArabicTextBlock(labels.remainingBalance.ar, 'metricLabel'),
@@ -552,7 +585,6 @@ export async function generateAgreementReportPdfmake(
     defaultStyle: {
       font: 'Amiri',
       fontSize: 12,
-      rtl: true,
       alignment: 'right'
     }
   };
