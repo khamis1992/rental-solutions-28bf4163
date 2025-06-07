@@ -36,7 +36,7 @@ export function prepareArabicForPDF(text: string): string {
 export function createArabicTextBlock(text: string, style?: any): any {
   const { alignment, rtl } = getTextAlignmentAndDirection(text);
   return {
-    text: prepareArabicForPDF(text),
+    text: toEnglishNumerals(prepareArabicForPDF(text)),
     style: style || (alignment === 'right' ? 'arabicText' : undefined),
     alignment,
     rtl
