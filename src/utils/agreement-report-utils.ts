@@ -245,162 +245,71 @@ export async function generateAgreementReportPdfmake(
         margin: [0, 0, 0, 20]
       },
       
-      // Updated Customer and Vehicle Information sections to match reference image
+      // Two-column layout for customer and vehicle info with RTL
+      {
+        columns: [
+          {
+            width: '48%',
+            stack: [
+              createArabicTextBlock(labels.customerInfo.ar, 'sectionHeader'),
       {
         table: {
-          widths: ['50%', '50%'],
+                  widths: ['40%', '60%'],
           body: [
-            // Headers row
             [
-              {
-                text: createArabicTextBlock(labels.vehicleInfo.ar, 'sectionHeader'),
-                fillColor: colors.lighter,
-                border: [true, true, true, false],
-                alignment: 'center'
-              },
-              {
-                text: createArabicTextBlock(labels.customerInfo.ar, 'sectionHeader'),
-                fillColor: colors.lighter,
-                border: [true, true, true, false],
-                alignment: 'center'
+                      createArabicTextBlock(labels.name.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.phone.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.phone_number || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.nationality.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.nationality || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.driverLicense.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.driver_license || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ]
+                  ]
+                },
+                layout: 'lightHorizontalLines'
               }
-            ],
-            // Field labels row
-            [
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(labels.makeModel.ar, 'fieldLabel'),
-                      createArabicTextBlock(labels.name.ar, 'fieldLabel')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              },
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock('GAC GS3', 'fieldValue'),
-                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'fieldValue')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              }
-            ],
-            // Values row 1
-            [
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'GAC GS3', 'fieldValue'),
-                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'fieldValue')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              },
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(labels.year.ar, 'fieldLabel'),
-                      createArabicTextBlock(labels.phone.ar, 'fieldLabel')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              }
-            ],
-            // Values row 2
-            [
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(agreement.vehicles?.year?.toString() || '2024', 'fieldValue'),
-                      createArabicTextBlock(agreement.customers?.phone_number || '+97450055884', 'fieldValue')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              },
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(labels.licensePlate.ar, 'fieldLabel'),
-                      createArabicTextBlock(labels.nationality.ar, 'fieldLabel')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              }
-            ],
-            // Values row 3
-            [
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(agreement.vehicles?.license_plate || '8212', 'fieldValue'),
-                      createArabicTextBlock(agreement.customers?.nationality || 'سوداني', 'fieldValue')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, false]
-              },
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(labels.vin.ar, 'fieldLabel'),
-                      createArabicTextBlock(labels.driverLicense.ar, 'fieldLabel')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, true]
-              }
-            ],
-            // Values row 4
-            [
-              {
-                table: {
-                  widths: ['50%', '50%'],
-                  body: [
-                    [
-                      createArabicTextBlock(agreement.vehicles?.vin || 'LMWHA1G88KR1019614', 'fieldValue'),
-                      createArabicTextBlock(agreement.customers?.driver_license || '30173603044', 'fieldValue')
-                    ]
-                  ]
-                },
-                layout: 'noBorders',
-                border: [true, false, true, true]
-              },
-              ''
             ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
+          },
+          { width: '4%', text: '' }, // Spacer
+          {
+            width: '48%',
+            stack: [
+              createArabicTextBlock(labels.vehicleInfo.ar, 'sectionHeader'),
+              {
+                table: {
+                  widths: ['40%', '60%'],
+                  body: [
+                    [
+                      createArabicTextBlock(labels.makeModel.ar, 'labelStyle'),
+                      createArabicTextBlock(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.year.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.year?.toString() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.licensePlate.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.license_plate || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.vin.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.vin || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ]
+                  ]
+                },
+                layout: 'lightHorizontalLines'
+              }
+            ]
+          }
+        ],
         margin: [0, 0, 0, 20]
       },
       
@@ -546,20 +455,7 @@ export async function generateAgreementReportPdfmake(
         color: colors.primary,
         fillColor: colors.lighter,
         margin: [5, 8, 5, 8],
-        alignment: 'center'
-      },
-      fieldLabel: {
-        fontSize: 11,
-        bold: true,
-        font: 'Amiri',
-        color: colors.primary,
-        alignment: 'center'
-      },
-      fieldValue: {
-        fontSize: 11,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'center'
+        alignment: 'right'
       },
       cardLabel: {
         fontSize: 10,
