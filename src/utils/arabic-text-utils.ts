@@ -1,22 +1,26 @@
+
 import { getTextAlignmentAndDirection, toEnglishNumerals } from './language-utils';
 
 // Utility functions for proper Arabic text handling in PDFs
 
 /**
  * Fixes Arabic text order and ensures proper RTL rendering
+ * Updated to work better with pdfMake's built-in RTL support
  */
 export function fixArabicTextOrder(text: string): string {
   if (!text) return text;
   
-  // Remove any existing directional marks
+  // Remove any existing directional marks that might interfere with natural text flow
   const cleaned = text.replace(/[\u200E\u200F\u202A-\u202E]/g, '');
   
-  // Add RTL mark at the beginning for proper Arabic text direction
-  return '\u202B' + cleaned + '\u202C';
+  // Return the cleaned text without adding directional override marks
+  // Let pdfMake handle the RTL rendering with the Amiri font
+  return cleaned;
 }
 
 /**
  * Prepares Arabic text for PDF rendering with proper bidirectional handling
+ * Simplified to rely on pdfMake's built-in RTL support
  */
 export function prepareArabicForPDF(text: string): string {
   if (!text) return text;
@@ -26,7 +30,8 @@ export function prepareArabicForPDF(text: string): string {
   
   if (!hasArabic) return text;
   
-  // For Arabic text, ensure proper RTL ordering
+  // For Arabic text, just clean it without adding directional marks
+  // pdfMake with Amiri font will handle the RTL rendering properly
   return fixArabicTextOrder(text);
 }
 
