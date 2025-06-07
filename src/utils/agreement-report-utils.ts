@@ -1,9 +1,10 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 // @ts-expect-error: No types for pdfmake/build/vfs_fonts
 import pdfFonts from 'pdfmake/build/vfs_fonts';
+import '../fonts/Amiri-normal.js';
+import '../fonts/Amiri-Bold.js';
 import { 
   prepareArabicForPDF, 
   formatArabicCurrency, 
@@ -13,60 +14,27 @@ import {
 // Configure fonts for Arabic text support
 export async function ensureFontsLoaded() {
   try {
-    // Use the built-in fonts from pdfMake
-    pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
-    
-    // Try to load Amiri fonts, but fall back gracefully
-    let amiriLoaded = false;
-    
-    try {
-      const amiriRegularResponse = await fetch('/Amiri-Regular.ttf');
-      const amiriBoldResponse = await fetch('/Amiri-Bold.ttf');
-      
-      if (amiriRegularResponse.ok && amiriBoldResponse.ok) {
-        const regularBuffer = await amiriRegularResponse.arrayBuffer();
-        const boldBuffer = await amiriBoldResponse.arrayBuffer();
-        
-        pdfMake.vfs['Amiri-Regular.ttf'] = btoa(String.fromCharCode(...new Uint8Array(regularBuffer)));
-        pdfMake.vfs['Amiri-Bold.ttf'] = btoa(String.fromCharCode(...new Uint8Array(boldBuffer)));
-        amiriLoaded = true;
+    pdfMake.vfs = {
+      ...(pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs),
+      ...pdfMake.vfs // Amiri font VFS is now present after import
+    };
+    (pdfMake as any).fonts = {
+      Amiri: {
+        normal: 'Amiri-Regular.ttf',
+        bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-Regular.ttf',
+        bolditalics: 'Amiri-Bold.ttf'
+      },
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
       }
-    } catch (fontError) {
-      console.warn('Could not load Amiri fonts:', fontError);
-    }
-    
-    // Configure fonts based on what loaded successfully
-    if (amiriLoaded) {
-      (pdfMake as any).fonts = {
-        Amiri: {
-          normal: 'Amiri-Regular.ttf',
-          bold: 'Amiri-Bold.ttf',
-          italics: 'Amiri-Regular.ttf',
-          bolditalics: 'Amiri-Bold.ttf'
-        },
-        Roboto: {
-          normal: 'Roboto-Regular.ttf',
-          bold: 'Roboto-Medium.ttf',
-          italics: 'Roboto-Italic.ttf',
-          bolditalics: 'Roboto-MediumItalic.ttf'
-        }
-      };
-    } else {
-      // Use only Roboto if Amiri fails to load
-      (pdfMake as any).fonts = {
-        Roboto: {
-          normal: 'Roboto-Regular.ttf',
-          bold: 'Roboto-Medium.ttf',
-          italics: 'Roboto-Italic.ttf',
-          bolditalics: 'Roboto-MediumItalic.ttf'
-        }
-      };
-    }
-    
-    return amiriLoaded;
+    };
+    return true;
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
-    // Fallback to default configuration
     (pdfMake as any).fonts = {
       Roboto: {
         normal: 'Roboto-Regular.ttf',
@@ -698,10 +666,7 @@ export async function generateAgreementReportPdfmake(
       }
     },
     
-    defaultStyle: {
-      font: fontFamily,
-      fontSize: 12
-    }
+    defaultStyle: { font: 'Amiri' }
   };
 
   try {
