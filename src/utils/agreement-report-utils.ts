@@ -1,10 +1,9 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 // @ts-expect-error: No types for pdfmake/build/vfs_fonts
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-import '../fonts/Amiri-normal.js';
-import '../fonts/Amiri-Bold.js';
 import { 
   prepareArabicForPDF, 
   formatArabicCurrency, 
@@ -14,21 +13,22 @@ import {
 // Simple font configuration - use only built-in fonts to avoid loading issues
 export async function ensureFontsLoaded() {
   try {
-    // Merge Amiri font files into the VFS
-    pdfMake.vfs = {
-      ...(pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs),
-      ...pdfMake.vfs // Amiri font files are attached to pdfMake.vfs by the imported JS
-    };
+    // Use only the default fonts from pdfMake
+    pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+    
+    // Configure to use built-in Roboto fonts
     (pdfMake as any).fonts = {
-      Amiri: {
-        normal: 'Amiri-normal.ttf',
-        bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-normal.ttf',
-        bolditalics: 'Amiri-Bold.ttf'
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
       }
     };
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
+    // Fallback to default configuration
+    (pdfMake as any).fonts = undefined;
   }
 }
 
@@ -604,54 +604,46 @@ export async function generateAgreementReportPdfmake(
       }
     ],
     
-    // Styles
+    // Styles - using Roboto instead of Amiri
     styles: {
       companyHeader: {
         fontSize: 16,
         bold: true,
-        color: colors.primary,
-        font: 'Amiri'
+        color: colors.primary
       },
       mainTitle: {
         fontSize: 18,
         bold: true,
         color: colors.primary,
-        alignment: 'center',
-        font: 'Amiri'
+        alignment: 'center'
       },
       sectionTitle: {
         fontSize: 16,
         bold: true,
-        margin: [10, 12, 10, 12],
-        font: 'Amiri'
+        margin: [10, 12, 10, 12]
       },
       tableHeader: {
         fontSize: 12,
         bold: true,
         fillColor: colors.headerBg,
         color: colors.white,
-        alignment: 'center',
-        font: 'Amiri'
+        alignment: 'center'
       },
       tableData: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'center',
-        font: 'Amiri'
+        alignment: 'center'
       },
       footerText: {
         fontSize: 8,
-        color: colors.textLight,
-        font: 'Amiri'
+        color: colors.textLight
       },
       englishText: {
-        font: 'Amiri',
         fontSize: 12
       }
     },
     
     defaultStyle: {
-      font: 'Amiri',
       fontSize: 12
     }
   };
