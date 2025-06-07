@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -10,14 +9,38 @@ import {
   formatArabicDate 
 } from './arabic-text-utils';
 
-// Simple font configuration - use only built-in fonts to avoid loading issues
+// Configure fonts for Arabic text support
 export async function ensureFontsLoaded() {
   try {
-    // Use only the default fonts from pdfMake
+    // Use the built-in fonts from pdfMake
     pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
     
-    // Configure to use built-in Roboto fonts
+    // Add Amiri font files to the virtual file system
+    pdfMake.vfs['Amiri-Regular.ttf'] = await fetch('/Amiri-Regular.ttf')
+      .then(response => response.arrayBuffer())
+      .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))))
+      .catch(() => {
+        console.warn('Could not load Amiri-Regular.ttf, using default font');
+        return '';
+      });
+    
+    pdfMake.vfs['Amiri-Bold.ttf'] = await fetch('/Amiri-Bold.ttf')
+      .then(response => response.arrayBuffer())
+      .then(buffer => btoa(String.fromCharCode(...new Uint8Array(buffer))))
+      .catch(() => {
+        console.warn('Could not load Amiri-Bold.ttf, using default font');
+        return '';
+      });
+    
+    // Configure Amiri fonts
     (pdfMake as any).fonts = {
+      Amiri: {
+        normal: 'Amiri-Regular.ttf',
+        bold: 'Amiri-Bold.ttf',
+        italics: 'Amiri-Regular.ttf',
+        bolditalics: 'Amiri-Bold.ttf'
+      },
+      // Keep Roboto as fallback
       Roboto: {
         normal: 'Roboto-Regular.ttf',
         bold: 'Roboto-Medium.ttf',
@@ -28,7 +51,14 @@ export async function ensureFontsLoaded() {
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
     // Fallback to default configuration
-    (pdfMake as any).fonts = undefined;
+    (pdfMake as any).fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      }
+    };
   }
 }
 
@@ -604,46 +634,54 @@ export async function generateAgreementReportPdfmake(
       }
     ],
     
-    // Styles - using Roboto instead of Amiri
+    // Styles - using Amiri font
     styles: {
       companyHeader: {
         fontSize: 16,
         bold: true,
-        color: colors.primary
+        color: colors.primary,
+        font: 'Amiri'
       },
       mainTitle: {
         fontSize: 18,
         bold: true,
         color: colors.primary,
-        alignment: 'center'
+        alignment: 'center',
+        font: 'Amiri'
       },
       sectionTitle: {
         fontSize: 16,
         bold: true,
-        margin: [10, 12, 10, 12]
+        margin: [10, 12, 10, 12],
+        font: 'Amiri'
       },
       tableHeader: {
         fontSize: 12,
         bold: true,
         fillColor: colors.headerBg,
         color: colors.white,
-        alignment: 'center'
+        alignment: 'center',
+        font: 'Amiri'
       },
       tableData: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'center'
+        alignment: 'center',
+        font: 'Amiri'
       },
       footerText: {
         fontSize: 8,
-        color: colors.textLight
+        color: colors.textLight,
+        font: 'Amiri'
       },
       englishText: {
+        font: 'Amiri',
         fontSize: 12
       }
     },
     
     defaultStyle: {
+      font: 'Amiri',
       fontSize: 12
     }
   };
