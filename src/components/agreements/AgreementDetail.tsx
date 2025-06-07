@@ -24,6 +24,7 @@ import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { PaymentSyncButton } from './PaymentSyncButton';
 import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
 import LegalCaseCard from './LegalCaseCard';
+import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -133,6 +134,31 @@ export function AgreementDetail({
     }
   }, [agreement, setLoading, setIdle]);
 
+  // Generate Arabic Report - Fixed implementation
+  const handleGenerateArabicReport = useCallback(async (): Promise<void> => {
+    if (agreement) {
+      try {
+        setLoading('generatingPdf');
+        toast.info("Generating Arabic agreement report...");
+        
+        await generateAgreementReportPdfmake(
+          agreement,
+          rentAmount,
+          contractAmount,
+          payments,
+          [] // Traffic fines will be added later
+        );
+        
+        toast.success("Arabic report generated successfully");
+      } catch (error) {
+        console.error("Error generating Arabic report:", error);
+        toast.error("Failed to generate Arabic report");
+      } finally {
+        setIdle('generatingPdf');
+      }
+    }
+  }, [agreement, rentAmount, contractAmount, payments, setLoading, setIdle]);
+
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {
     try {
@@ -169,16 +195,6 @@ export function AgreementDetail({
       console.error('Failed to delete payment:', error);
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
-  
-  // Convert onGenerateDocument to a Promise - fix the async handling
-  const handleGenerateDocument = useCallback(async (): Promise<void> => {
-    if (onGenerateDocument) {
-      // Call the function and wrap in Promise.resolve to ensure Promise<void>
-      const result = onGenerateDocument();
-      return Promise.resolve(result);
-    }
-    return Promise.resolve();
-  }, [onGenerateDocument]);
 
   if (!agreement) {
     return (
@@ -262,7 +278,7 @@ export function AgreementDetail({
         onEdit={handleEdit}
         onDelete={() => openDialog('delete')}
         onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={handleGenerateDocument}
+        onGenerateDocument={handleGenerateArabicReport}
         isGeneratingPdf={loadingStates.generatingPdf}
       />
 
