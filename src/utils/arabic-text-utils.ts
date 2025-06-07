@@ -47,9 +47,9 @@ export function createArabicTextBlock(text: string, style?: any): any {
  * Formats currency amounts in Arabic with proper text direction
  */
 export function formatArabicCurrency(amount: number | null | undefined): string {
-  const LTR = String.fromCharCode(8206); // Unicode LTR mark
-  if (!amount && amount !== 0) return `${LTR}${toEnglishNumerals('0 QAR')}`;
-  return `${LTR}${toEnglishNumerals(`${amount.toLocaleString('en-US')} QAR`)}`;
+  if (!amount && amount !== 0) return toEnglishNumerals('\u200E0 QAR');
+  // Use LTR mark to force left-to-right display for numbers and currency
+  return '\u200E' + toEnglishNumerals(`${amount.toLocaleString('en-US')} QAR`);
 }
 
 /**

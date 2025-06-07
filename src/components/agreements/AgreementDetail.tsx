@@ -1,10 +1,11 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
+import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
@@ -99,22 +100,30 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - using the new report generator
+  // Download PDF - ensure dates are Date objects
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
         
-        await generateAgreementReportPdfmake(
-          agreement,
-          rentAmount,
-          contractAmount,
-          payments,
-          [] // traffic fines - empty for now
-        );
+        // Create PDF-compatible agreement object with proper date conversion
+        const agreementForPdf = {
+          ...agreement,
+          start_date: ensureDate(agreement.start_date),
+          end_date: ensureDate(agreement.end_date),
+          created_at: ensureDate(agreement.created_at),
+          updated_at: ensureDate(agreement.updated_at),
+        };
         
-        toast.success("Agreement PDF generated successfully");
+        // Use type assertion to handle the interface differences
+        const success = await generatePdfDocument(agreementForPdf as any);
+        
+        if (success) {
+          toast.success("Agreement PDF generated successfully");
+        } else {
+          toast.error("Failed to generate PDF document");
+        }
       } catch (error) {
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF document");
@@ -122,7 +131,7 @@ export function AgreementDetail({
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, rentAmount, contractAmount, payments, setLoading, setIdle]);
+  }, [agreement, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {
@@ -196,7 +205,7 @@ export function AgreementDetail({
 
   return (
     <div className="space-y-6">
-      
+      {/* Debug Panel Toggle */}
       <div className="flex justify-between items-center">
         <div></div>
         <div className="flex gap-2">

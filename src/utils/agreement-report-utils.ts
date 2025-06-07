@@ -1,82 +1,44 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
-// @ts-expect-error: No types for pdfmake/build/vfs_fonts
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-import '../fonts/Amiri-normal.js';
-import '../fonts/Amiri-Bold.js';
 import { 
   prepareArabicForPDF, 
+  createArabicTextBlock, 
   formatArabicCurrency, 
   formatArabicDate 
 } from './arabic-text-utils';
 
-// Configure fonts for Arabic text support
+// Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
   try {
-    pdfMake.vfs = {
-      ...(pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs),
-      ...pdfMake.vfs // Amiri font VFS is now present after import
-    };
     (pdfMake as any).fonts = {
-      Amiri: {
+  Amiri: {
         normal: 'Amiri-Regular.ttf',
-        bold: 'Amiri-Bold.ttf',
+    bold: 'Amiri-Bold.ttf',
         italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf'
+        bolditalics: 'Amiri-Bold.ttf',
       },
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
-      }
     };
-    return true;
+  // Fonts are preloaded via script tags and already available in pdfMake.vfs
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
-    (pdfMake as any).fonts = {
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
-      }
-    };
-    return false;
   }
 }
 
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: prepareArabicForPDF('تقرير عقد الايجار الشامل') },
-  companyName: { ar: prepareArabicForPDF('شركة العراف لتأجير السيارات ذ.م.م') },
+  reportTitle: { ar: prepareArabicForPDF('تقرير عقد الإيجار الشامل') },
+  companyName: { ar: prepareArabicForPDF('شركة العرف لتأجير السيارات ذ.م.م') },
   
-  // Table headers matching the image
+  // Document info
+  agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
   agreementNumber: { ar: prepareArabicForPDF('رقم العقد') },
   status: { ar: prepareArabicForPDF('حالة العقد') },
-  duration: { ar: prepareArabicForPDF('مدة العقد') },
-  monthlyRent: { ar: prepareArabicForPDF('الايجار الشهري') },
-  
-  // Payment section
-  paymentRecord: { ar: prepareArabicForPDF('سجل الدفعات') },
-  paymentMethod: { ar: prepareArabicForPDF('طريقة الدفع') },
-  paymentStatus: { ar: prepareArabicForPDF('حالة الدفع') },
-  amount: { ar: prepareArabicForPDF('المبلغ') },
-  paymentDate: { ar: prepareArabicForPDF('تاريخ الدفع') },
-  
-  // Status translations
-  pending: { ar: prepareArabicForPDF('معلق') },
-  paid: { ar: prepareArabicForPDF('مدفوع') },
-  overdue: { ar: prepareArabicForPDF('متأخر') },
-  undefined: { ar: prepareArabicForPDF('غير محدد') },
-  active: { ar: prepareArabicForPDF('نشط') },
-  
-  // Agreement info section
-  agreementInfo: { ar: prepareArabicForPDF('معلومات العقد') },
   startDate: { ar: prepareArabicForPDF('تاريخ البدء') },
   endDate: { ar: prepareArabicForPDF('تاريخ الانتهاء') },
+  duration: { ar: prepareArabicForPDF('مدة العقد') },
+  monthlyRent: { ar: prepareArabicForPDF('الإيجار الشهري') },
   contractTotal: { ar: prepareArabicForPDF('إجمالي العقد') },
   depositAmount: { ar: prepareArabicForPDF('مبلغ التأمين') },
   rentDueDay: { ar: prepareArabicForPDF('يوم استحقاق الإيجار') },
@@ -92,50 +54,90 @@ const labels = {
   
   // Vehicle info
   vehicleInfo: { ar: prepareArabicForPDF('معلومات المركبة') },
-  makeModel: { ar: prepareArabicForPDF('ماركة وموديل المركبة') },
+  makeModel: { ar: prepareArabicForPDF('الماركة والموديل') },
   year: { ar: prepareArabicForPDF('سنة الصنع') },
   licensePlate: { ar: prepareArabicForPDF('رقم اللوحة') },
   color: { ar: prepareArabicForPDF('اللون') },
   vin: { ar: prepareArabicForPDF('رقم الهيكل') },
   
+  // Financial summary
+  financialSummary: { ar: prepareArabicForPDF('الملخص المالي') },
+  totalPaid: { ar: prepareArabicForPDF('إجمالي المدفوع') },
+  totalDue: { ar: prepareArabicForPDF('إجمالي المستحق') },
+  lateFees: { ar: prepareArabicForPDF('رسوم التأخير') },
+  remainingBalance: { ar: prepareArabicForPDF('الرصيد المتبقي') },
+  pendingPayments: { ar: prepareArabicForPDF('الدفعات المعلقة') },
+  nextPaymentDue: { ar: prepareArabicForPDF('تاريخ الدفعة القادمة') },
+  paymentProgress: { ar: prepareArabicForPDF('تقدم الدفعات') },
+  
+  // Payment details
+  paymentHistory: { ar: prepareArabicForPDF('سجل الدفعات') },
+  paymentDate: { ar: prepareArabicForPDF('تاريخ الدفع') },
+  amount: { ar: prepareArabicForPDF('المبلغ') },
+  paymentStatus: { ar: prepareArabicForPDF('حالة الدفع') },
+  paymentMethod: { ar: prepareArabicForPDF('طريقة الدفع') },
+  
+  // Traffic fines
+  trafficFines: { ar: prepareArabicForPDF('المخالفات المرورية') },
+  fineAmount: { ar: prepareArabicForPDF('مبلغ المخالفة') },
+  fineDate: { ar: prepareArabicForPDF('تاريخ المخالفة') },
+  fineStatus: { ar: prepareArabicForPDF('حالة المخالفة') },
+  fineLocation: { ar: prepareArabicForPDF('موقع المخالفة') },
+  totalFines: { ar: prepareArabicForPDF('إجمالي المخالفات') },
+  
+  // Legal info
+  legalInfo: { ar: prepareArabicForPDF('المعلومات القانونية') },
+  signature: { ar: prepareArabicForPDF('التوقيع') },
+  date: { ar: prepareArabicForPDF('التاريخ') },
+  terms: { ar: prepareArabicForPDF('الأحكام والشروط') },
+  
   // Footer
-  confidential: { ar: prepareArabicForPDF('سري - شركة العراف لتأجير السيارات') },
+  confidential: { ar: prepareArabicForPDF('سري - شركة العرف لتأجير السيارات') },
   generatedOn: { ar: prepareArabicForPDF('تم إنشاؤه في') },
   pageOf: { ar: prepareArabicForPDF('صفحة') }
 };
 
-// Enhanced color scheme matching the image
+// Enhanced color scheme
 const colors = {
-  primary: '#3f5aab',      // Blue from the image
-  headerBg: '#3f5aab',     // Blue header background
+  primary: '#1e40af',      // Professional blue
   secondary: '#64748b',    // Slate gray
-  text: '#334155',         // Dark gray
-  textLight: '#64748b',    // Light text
+  accent: '#0ea5e9',       // Sky blue
+  success: '#059669',      // Emerald
+  warning: '#d97706',      // Amber
+  danger: '#dc2626',       // Red
+  light: '#f8fafc',        // Very light gray
+  lighter: '#f1f5f9',      // Light gray
   border: '#e2e8f0',       // Border gray
-  white: '#ffffff',
-  pendingOrange: '#f59e0b' // Orange for pending status
+  text: '#334155',         // Dark gray
+  textLight: '#64748b'     // Light text
 };
 
 const getStatusColor = (status: string): string => {
   switch (status?.toLowerCase()) {
-    case 'active': case 'نشط': return '#059669';
-    case 'pending': case 'معلق': return colors.pendingOrange;
+    case 'active': case 'نشط': return colors.success;
+    case 'pending': case 'معلق': return colors.warning;
     case 'completed': case 'مكتمل': return colors.primary;
-    case 'cancelled': case 'ملغي': return '#dc2626';
-    case 'paid': case 'مدفوع': return '#059669';
-    case 'overdue': case 'متأخر': return '#dc2626';
+    case 'cancelled': case 'ملغي': return colors.danger;
     default: return colors.secondary;
   }
 };
 
-const getStatusText = (status: string): string => {
-  switch (status?.toLowerCase()) {
-    case 'pending': return 'معلق';
-    case 'paid': return 'مدفوع';
-    case 'overdue': return 'متأخر';
-    case 'active': return 'نشط';
-    default: return status || 'غير محدد';
-  }
+// Calculate financial metrics
+const calculateFinancialMetrics = (payments: any[], contractAmount: number | null) => {
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalLateFees = payments.reduce((sum, p) => sum + (p.late_fine_amount || 0), 0);
+  const pendingPayments = payments
+    .filter(p => p.status === 'pending' || p.status === 'partially_paid')
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const remainingBalance = (contractAmount || 0) - totalPaid;
+  
+  return {
+    totalPaid,
+    totalLateFees,
+    pendingPayments,
+    remainingBalance: Math.max(0, remainingBalance),
+    paymentProgress: contractAmount ? Math.min(100, (totalPaid / contractAmount) * 100) : 0
+  };
 };
 
 export async function generateAgreementReportPdfmake(
@@ -145,535 +147,395 @@ export async function generateAgreementReportPdfmake(
   payments: any[] = [],
   trafficFines: any[] = []
 ) {
-  const amiriLoaded = await ensureFontsLoaded();
-  const fontFamily = amiriLoaded ? 'Amiri' : 'Roboto';
+  await ensureFontsLoaded();
   
+  const metrics = calculateFinancialMetrics(payments, contractAmount);
   const currentDate = formatArabicDate(new Date());
   
-  // Calculate duration in months from the agreement data
-  const calculateDuration = () => {
-    if (agreement.start_date && agreement.end_date) {
-      const start = new Date(agreement.start_date);
-      const end = new Date(agreement.end_date);
-      const diffMonths = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
-      return `${diffMonths} شهر`;
-    }
-    return 'غير محدد';
-  };
-
-  // Prepare payments table rows
-  const preparePaymentsTable = () => {
-    if (!payments || payments.length === 0) {
-      return [
-        [
-          { text: labels.paymentMethod.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-          { text: labels.paymentStatus.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-          { text: labels.amount.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-          { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border }
-        ],
-        [
-          { text: 'غير محدد', style: 'tableData', alignment: 'center' },
-          { text: 'لا توجد دفعات', style: 'tableData', alignment: 'center' },
-          { text: 'QAR 0', style: 'tableData', alignment: 'center' },
-          { text: 'غير محدد', style: 'tableData', alignment: 'center' }
-        ]
-      ];
-    }
-
-    const headerRow = [
-      { text: labels.paymentMethod.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-      { text: labels.paymentStatus.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-      { text: labels.amount.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border },
-      { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.border }
-    ];
-
-    const dataRows = payments.slice(0, 8).map(payment => [
-      { 
-        text: payment.payment_method || 'غير محدد', 
-        style: 'tableData', 
-        alignment: 'center' 
-      },
-      { 
-        text: getStatusText(payment.status || 'pending'), 
-        style: 'tableData', 
-        alignment: 'center',
-        color: getStatusColor(payment.status || 'pending')
-      },
-      { 
-        text: formatArabicCurrency(payment.amount || rentAmount || 1600),
-        style: 'tableData', 
-        alignment: 'center' 
-      },
-      { 
-        text: payment.payment_date ? formatArabicDate(payment.payment_date) : 'غير محدد',
-        style: 'tableData', 
-        alignment: 'center' 
-      }
-    ]);
-
-    return [headerRow, ...dataRows];
-  };
-
-  // Document definition matching the exact layout from the image
+  // Enhanced document definition with proper Arabic RTL support
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [40, 60, 40, 80],
     
-    // Header
+    // Header with RTL support
     header: {
       margin: [40, 20, 40, 0],
       table: {
-        widths: ['*'],
+        widths: ['*', 'auto'],
         body: [[
+          createArabicTextBlock([
+            { text: labels.companyName.ar, style: 'companyName' },
+            '\n',
+            { text: 'Commercial Registration: 146832', style: 'companyDetails' }
+          ]),
           {
-            text: labels.companyName.ar,
-            style: 'companyHeader',
-            alignment: 'center'
-          }
-        ]]
-      },
-      layout: 'noBorders'
-    },
-    
-    // Footer
-    footer: (currentPage: number, pageCount: number) => ({
-      margin: [40, 10, 40, 20],
-      table: {
-        widths: ['*', 'auto', '*'],
-        body: [[
-          {
-            text: labels.confidential.ar,
-            style: 'footerText',
-            alignment: 'right'
-          },
-          {
-            text: `${labels.pageOf.ar} ${currentPage} من ${pageCount}`,
-            style: 'footerText',
-            alignment: 'center'
-          },
-          {
-            text: `${labels.generatedOn.ar}: ${currentDate}`,
-            style: 'footerText',
+            text: '🏢',
+            style: 'logo',
             alignment: 'left'
           }
         ]]
       },
       layout: 'noBorders'
+    },
+    
+    // Footer with RTL support
+    footer: (currentPage: number, pageCount: number) => ({
+      margin: [40, 10, 40, 20],
+      table: {
+        widths: ['*', 'auto', '*'],
+        body: [[
+          createArabicTextBlock(labels.confidential.ar, 'footerText'),
+          createArabicTextBlock(`${labels.pageOf.ar} ${currentPage} من ${pageCount}`, 'footerText'),
+          createArabicTextBlock(`${labels.generatedOn.ar}: ${currentDate}`, 'footerText')
+        ]]
+      },
+      layout: 'noBorders'
     }),
     
-    // Main content matching the exact layout from the image
+    // Main content with enhanced Arabic support
     content: [
-      // Main title with blue background
+      // Report title with proper RTL
       {
         table: {
           widths: ['*'],
-          body: [[
-            {
-              text: labels.reportTitle.ar,
-              style: 'mainTitle',
-              alignment: 'center',
-              fillColor: colors.headerBg,
-              color: colors.white
-            }
-          ]]
+          body: [[createArabicTextBlock(labels.reportTitle.ar, 'reportTitle')]]
         },
         layout: {
-          hLineWidth: function () { return 2; },
-          vLineWidth: function () { return 2; },
-          hLineColor: function () { return colors.headerBg; },
-          vLineColor: function () { return colors.headerBg; }
+          hLineWidth: () => 0,
+          vLineWidth: () => 0,
+          fillColor: () => colors.primary
         },
-        margin: [0, 20, 0, 30]
+        margin: [0, 0, 0, 20]
       },
       
-      // Agreement details table
-      {
-        table: {
-          widths: ['25%', '25%', '25%', '25%'],
-          body: [
-            // Header row with labels
-            [
-              { 
-                text: labels.agreementNumber.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.status.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.duration.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.monthlyRent.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              }
-            ],
-            // Data row
-            [
-              { 
-                text: agreement.agreement_number || 'AGR-202504-405141', 
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: labels.active.ar, 
-                style: 'tableData',
-                alignment: 'center',
-                color: getStatusColor('active')
-              },
-              { 
-                text: calculateDuration(),
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: formatArabicCurrency(rentAmount || 1600),
-                style: 'tableData',
-                alignment: 'center'
-              }
-            ]
-          ]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 1; },
-          vLineWidth: function (i: number, node: any) { return 1; },
-          hLineColor: function (i: number, node: any) { return colors.border; },
-          vLineColor: function (i: number, node: any) { return colors.border; }
-        },
-        margin: [0, 0, 0, 30]
-      },
-
-      // Agreement Information Section
+      // Agreement overview card with RTL support
       {
         table: {
           widths: ['*'],
-          body: [[
-            {
-              text: labels.agreementInfo.ar,
-              style: 'sectionTitle',
-              alignment: 'center',
-              fillColor: colors.headerBg,
-              color: colors.white
-            }
-          ]]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 2; },
-          vLineWidth: function (i: number, node: any) { return 2; },
-          hLineColor: function (i: number, node: any) { return colors.headerBg; },
-          vLineColor: function (i: number, node: any) { return colors.headerBg; }
-        },
-        margin: [0, 20, 0, 10]
-      },
-
-      // Agreement info table
-      {
-        table: {
-          widths: ['33%', '33%', '34%'],
+          body: [[{
+            table: {
+              widths: ['25%', '25%', '25%', '25%'],
           body: [
             [
-              { 
-                text: labels.startDate.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.endDate.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.contractTotal.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              }
-            ],
+                  createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel'),
+                  createArabicTextBlock(labels.status.ar, 'cardLabel'),
+                  createArabicTextBlock(labels.duration.ar, 'cardLabel'),
+                  createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel')
+                ],
+                [
+                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('غير محدد'), 'cardValue'),
+                  { 
+                    ...createArabicTextBlock(agreement.status || prepareArabicForPDF('غير محدد'), 'cardValue'),
+                    color: getStatusColor(agreement.status)
+                  },
+                  createArabicTextBlock(
+                    agreement.start_date && agreement.end_date 
+                      ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
+                      : prepareArabicForPDF('غير محدد'), 
+                    'cardValue'
+                  ),
+                  createArabicTextBlock(formatArabicCurrency(rentAmount), 'cardValue')
+                ]
+              ]
+            },
+            fillColor: colors.lighter
+          }]]
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 20]
+      },
+      
+      // Two-column layout for customer and vehicle info with RTL
+      {
+        columns: [
+          {
+            width: '48%',
+            stack: [
+              createArabicTextBlock(labels.customerInfo.ar, 'sectionHeader'),
+      {
+        table: {
+                  widths: ['40%', '60%'],
+          body: [
             [
-              { 
-                text: formatArabicDate(agreement.start_date),
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: formatArabicDate(agreement.end_date),
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: formatArabicCurrency(contractAmount || rentAmount || 1600),
-                style: 'tableData',
-                alignment: 'center'
+                      createArabicTextBlock(labels.name.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.phone.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.phone_number || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.nationality.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.nationality || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.driverLicense.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.customers?.driver_license || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ]
+                  ]
+                },
+                layout: 'lightHorizontalLines'
               }
             ]
-          ]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 1; },
-          vLineWidth: function (i: number, node: any) { return 1; },
-          hLineColor: function (i: number, node: any) { return colors.border; },
-          vLineColor: function (i: number, node: any) { return colors.border; }
-        },
-        margin: [0, 0, 0, 30]
+          },
+          { width: '4%', text: '' }, // Spacer
+          {
+            width: '48%',
+            stack: [
+              createArabicTextBlock(labels.vehicleInfo.ar, 'sectionHeader'),
+              {
+                table: {
+                  widths: ['40%', '60%'],
+                  body: [
+                    [
+                      createArabicTextBlock(labels.makeModel.ar, 'labelStyle'),
+                      createArabicTextBlock(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.year.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.year?.toString() || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.licensePlate.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.license_plate || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ],
+                    [
+                      createArabicTextBlock(labels.vin.ar, 'labelStyle'),
+                      createArabicTextBlock(agreement.vehicles?.vin || prepareArabicForPDF('غير محدد'), 'valueStyle')
+                    ]
+                  ]
+                },
+                layout: 'lightHorizontalLines'
+              }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 20]
       },
-
-      // Customer Information Section
+      
+      // Financial summary with RTL support
+      createArabicTextBlock(labels.financialSummary.ar, 'sectionHeader'),
       {
         table: {
           widths: ['*'],
-          body: [[
-            {
-              text: labels.customerInfo.ar,
-              style: 'sectionTitle',
-              alignment: 'center',
-              fillColor: colors.headerBg,
-              color: colors.white
-            }
-          ]]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 2; },
-          vLineWidth: function (i: number, node: any) { return 2; },
-          hLineColor: function (i: number, node: any) { return colors.headerBg; },
-          vLineColor: function (i: number, node: any) { return colors.headerBg; }
-        },
-        margin: [0, 20, 0, 10]
-      },
-
-      // Customer info table
-      {
-        table: {
-          widths: ['33%', '33%', '34%'],
+          body: [[{
+            table: {
+              widths: ['20%', '20%', '20%', '20%', '20%'],
           body: [
             [
-              { 
-                text: labels.name.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.email.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.phone.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              }
-            ],
-            [
-              { 
-                text: agreement.customers?.full_name || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: agreement.customers?.email || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: agreement.customers?.phone_number || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              }
-            ]
-          ]
+                  createArabicTextBlock(labels.contractTotal.ar, 'metricLabel'),
+                  createArabicTextBlock(labels.totalPaid.ar, 'metricLabel'),
+                  createArabicTextBlock(labels.remainingBalance.ar, 'metricLabel'),
+                  createArabicTextBlock(labels.lateFees.ar, 'metricLabel'),
+                  createArabicTextBlock(labels.paymentProgress.ar, 'metricLabel')
+                ],
+                [
+                  createArabicTextBlock(formatArabicCurrency(contractAmount), 'metricValue'),
+                  { ...createArabicTextBlock(formatArabicCurrency(metrics.totalPaid), 'metricValue'), color: colors.success },
+                  { 
+                    ...createArabicTextBlock(formatArabicCurrency(metrics.remainingBalance), 'metricValue'), 
+                    color: metrics.remainingBalance > 0 ? colors.warning : colors.success 
+                  },
+                  { 
+                    ...createArabicTextBlock(formatArabicCurrency(metrics.totalLateFees), 'metricValue'), 
+                    color: metrics.totalLateFees > 0 ? colors.danger : colors.success 
+                  },
+                  { ...createArabicTextBlock(prepareArabicForPDF(`${Math.round(metrics.paymentProgress)}%`), 'metricValue'), color: colors.primary }
+                ]
+              ]
+            },
+            fillColor: colors.light
+          }]]
         },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 1; },
-          vLineWidth: function (i: number, node: any) { return 1; },
-          hLineColor: function (i: number, node: any) { return colors.border; },
-          vLineColor: function (i: number, node: any) { return colors.border; }
-        },
-        margin: [0, 0, 0, 30]
+        layout: 'lightHorizontalLines',
+        margin: [0, 0, 0, 20]
       },
-
-      // Vehicle Information Section
+      
+      // Payment history with RTL support (if payments exist)
+      ...(payments.length > 0 ? [
+        createArabicTextBlock(labels.paymentHistory.ar, 'sectionHeader'),
       {
         table: {
-          widths: ['*'],
-          body: [[
-            {
-              text: labels.vehicleInfo.ar,
-              style: 'sectionTitle',
-              alignment: 'center',
-              fillColor: colors.headerBg,
-              color: colors.white
-            }
-          ]]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 2; },
-          vLineWidth: function (i: number, node: any) { return 2; },
-          hLineColor: function (i: number, node: any) { return colors.headerBg; },
-          vLineColor: function (i: number, node: any) { return colors.headerBg; }
-        },
-        margin: [0, 20, 0, 10]
-      },
-
-      // Vehicle info table
-      {
-        table: {
-          widths: ['33%', '33%', '34%'],
+            headerRows: 1,
+            widths: ['25%', '25%', '25%', '25%'],
           body: [
-            [
-              { 
-                text: labels.makeModel.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.licensePlate.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              },
-              { 
-                text: labels.vin.ar, 
-                style: 'tableHeader',
-                alignment: 'center',
-                fillColor: colors.border
-              }
-            ],
-            [
-              { 
-                text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: agreement.vehicles?.license_plate || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              },
-              { 
-                text: agreement.vehicles?.vin || 'غير محدد',
-                style: 'tableData',
-                alignment: 'center'
-              }
-            ]
+              [
+                createArabicTextBlock(labels.paymentDate.ar, 'tableHeader'),
+                createArabicTextBlock(labels.amount.ar, 'tableHeader'),
+                createArabicTextBlock(labels.paymentStatus.ar, 'tableHeader'),
+                createArabicTextBlock(labels.paymentMethod.ar, 'tableHeader')
+              ],
+              ...payments.slice(0, 10).map(payment => [
+                createArabicTextBlock(formatArabicDate(payment.payment_date), 'tableCell'),
+                createArabicTextBlock(formatArabicCurrency(payment.amount), 'tableCell'),
+                { 
+                  ...createArabicTextBlock(payment.status || prepareArabicForPDF('غير محدد'), 'tableCell'),
+                  color: getStatusColor(payment.status)
+                },
+                createArabicTextBlock(payment.payment_method || prepareArabicForPDF('غير محدد'), 'tableCell')
+            ])
           ]
         },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 1; },
-          vLineWidth: function (i: number, node: any) { return 1; },
-          hLineColor: function (i: number, node: any) { return colors.border; },
-          vLineColor: function (i: number, node: any) { return colors.border; }
-        },
-        margin: [0, 0, 0, 30]
-      },
-
-      // Payment Records Section with blue title bar
-      {
-        table: {
-          widths: ['*'],
-          body: [[
-            {
-              text: labels.paymentRecord.ar,
-              style: 'sectionTitle',
-              alignment: 'center',
-              fillColor: colors.headerBg,
-              color: colors.white
-            }
-          ]]
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 2; },
-          vLineWidth: function (i: number, node: any) { return 2; },
-          hLineColor: function (i: number, node: any) { return colors.headerBg; },
-          vLineColor: function (i: number, node: any) { return colors.headerBg; }
-        },
-        margin: [0, 20, 0, 10]
-      },
-
-      // Payments table matching the image
-      {
-        table: {
-          widths: ['25%', '25%', '25%', '25%'],
-          body: preparePaymentsTable()
-        },
-        layout: {
-          hLineWidth: function (i: number, node: any) { return 1; },
-          vLineWidth: function (i: number, node: any) { return 1; },
-          hLineColor: function (i: number, node: any) { return colors.border; },
-          vLineColor: function (i: number, node: any) { return colors.border; }
-        },
-        margin: [0, 0, 0, 30]
-      }
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        }
+      ] : []),
+      
+      // Traffic fines with RTL support (if fines exist)
+      ...(trafficFines.length > 0 ? [
+        createArabicTextBlock(labels.trafficFines.ar, 'sectionHeader'),
+        {
+          table: {
+            headerRows: 1,
+            widths: ['25%', '25%', '25%', '25%'],
+            body: [
+              [
+                createArabicTextBlock(labels.fineDate.ar, 'tableHeader'),
+                createArabicTextBlock(labels.fineAmount.ar, 'tableHeader'),
+                createArabicTextBlock(labels.fineStatus.ar, 'tableHeader'),
+                createArabicTextBlock(labels.fineLocation.ar, 'tableHeader')
+              ],
+              ...trafficFines.map(fine => [
+                createArabicTextBlock(formatArabicDate(fine.date), 'tableCell'),
+                createArabicTextBlock(formatArabicCurrency(fine.amount), 'tableCell'),
+                { 
+                  ...createArabicTextBlock(fine.status || prepareArabicForPDF('غير محدد'), 'tableCell'),
+                  color: getStatusColor(fine.status)
+                },
+                createArabicTextBlock(fine.location || prepareArabicForPDF('غير محدد'), 'tableCell')
+              ]),
+              [
+                { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 3 },
+                {},
+                {},
+                { 
+                  ...createArabicTextBlock(formatArabicCurrency(trafficFines.reduce((sum, f) => sum + (f.amount || 0), 0)), 'tableHeader'),
+                  color: colors.danger
+                }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        }
+      ] : [])
     ],
     
-    // Styles - use font family based on what loaded successfully
+    // Enhanced styles with proper Arabic text handling
     styles: {
-      companyHeader: {
+      companyName: {
         fontSize: 16,
         bold: true,
+        font: 'Amiri',
         color: colors.primary,
-        font: fontFamily
+        alignment: 'right'
       },
-      mainTitle: {
-        fontSize: 18,
+      companyDetails: {
+        fontSize: 10,
+        font: 'Amiri',
+        color: colors.textLight,
+        alignment: 'right'
+      },
+      logo: {
+        fontSize: 24,
+        color: colors.primary
+      },
+      reportTitle: {
+        fontSize: 20,
         bold: true,
-        color: colors.primary,
+        font: 'Amiri',
+        margin: [0, 10, 0, 10],
         alignment: 'center',
-        font: fontFamily
+        color: 'white'
       },
-      sectionTitle: {
+      sectionHeader: {
         fontSize: 16,
         bold: true,
-        margin: [10, 12, 10, 12],
-        font: fontFamily
+        font: 'Amiri',
+        color: colors.primary,
+        fillColor: colors.lighter,
+        margin: [5, 8, 5, 8],
+        alignment: 'right'
       },
-      tableHeader: {
+      cardLabel: {
+        fontSize: 10,
+        bold: true,
+        font: 'Amiri',
+        color: colors.textLight,
+        alignment: 'center'
+      },
+      cardValue: {
         fontSize: 12,
         bold: true,
-        fillColor: colors.headerBg,
-        color: colors.white,
-        alignment: 'center',
-        font: fontFamily
-      },
-      tableData: {
-        fontSize: 11,
+        font: 'Amiri',
         color: colors.text,
-        alignment: 'center',
-        font: fontFamily
+        alignment: 'center'
+      },
+      labelStyle: {
+        fontSize: 11,
+        bold: true,
+        font: 'Amiri',
+        color: colors.textLight,
+        alignment: 'right'
+      },
+      valueStyle: {
+        fontSize: 11,
+        font: 'Amiri',
+        color: colors.text,
+        alignment: 'right'
+      },
+      metricLabel: {
+        fontSize: 10,
+        bold: true,
+        font: 'Amiri',
+        color: colors.textLight,
+        alignment: 'center'
+      },
+      metricValue: {
+        fontSize: 14,
+        bold: true,
+        font: 'Amiri',
+        alignment: 'center'
+      },
+      tableHeader: {
+        fontSize: 11,
+        bold: true,
+        font: 'Amiri',
+        color: colors.primary,
+        fillColor: colors.lighter,
+        alignment: 'center'
+      },
+      tableCell: {
+        fontSize: 10,
+        font: 'Amiri',
+        color: colors.text,
+        alignment: 'center'
       },
       footerText: {
         fontSize: 8,
+        font: 'Amiri',
         color: colors.textLight,
-        font: fontFamily
+        alignment: 'center'
       },
-      englishText: {
-        font: fontFamily,
-        fontSize: 12
+      arabicText: {
+        font: 'Amiri',
+        alignment: 'right'
       }
     },
     
-    defaultStyle: { font: 'Amiri' }
+    defaultStyle: {
+      font: 'Amiri',
+      fontSize: 12,
+      rtl: true,
+      alignment: 'right'
+    }
   };
 
   try {
-    const fileName = `تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`;
+    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`);
     pdfMake.createPdf(docDefinition).download(fileName);
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error('فشل في إنشاء تقرير PDF');
+    throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
   }
 }
