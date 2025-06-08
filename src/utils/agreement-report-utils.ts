@@ -210,7 +210,7 @@ export async function generateAgreementReportPdfmake(
     
     // Main content with enhanced Arabic support
     content: [
-      // Report title with blue background, centered alignment
+      // Report title with blue background, matching the design
       {
         table: {
           widths: ['*'],
