@@ -62,7 +62,93 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   return (
     <FormProvider form={form} onSubmit={handleSubmit} className="space-y-6">
-      {/* Form fields */}
+      {/* Basic vehicle fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Make</label>
+          <input
+            {...form.register('make')}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Vehicle make"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Model</label>
+          <input
+            {...form.register('model')}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Vehicle model"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Year</label>
+          <input
+            {...form.register('year', { valueAsNumber: true })}
+            type="number"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Year"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Color</label>
+          <input
+            {...form.register('color')}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Vehicle color"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">License Plate</label>
+          <input
+            {...form.register('license_plate')}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="License plate"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">VIN</label>
+          <input
+            {...form.register('vin')}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Vehicle identification number"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Status</label>
+          <select
+            {...form.register('status')}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="available">Available</option>
+            <option value="rented">Rented</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="out_of_service">Out of Service</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Mileage</label>
+          <input
+            {...form.register('mileage', { valueAsNumber: true })}
+            type="number"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Current mileage"
+          />
+        </div>
+      </div>
       
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Vehicle Image</label>

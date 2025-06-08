@@ -22,6 +22,11 @@ export interface SimpleAgreement {
   down_payment?: number;
   created_at: string | Date;
   updated_at: string | Date;
+  // Additional properties for compatibility with Agreement interface
+  customer?: any;
+  vehicle?: any;
+  profiles?: any;
+  vehicles?: any;
 }
 
 export interface FileUploadState {

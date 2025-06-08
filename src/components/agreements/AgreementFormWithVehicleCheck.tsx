@@ -27,29 +27,18 @@ const statusOptions = [
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'on_hold', label: 'On Hold' },
-  { value: 'in_negotiation', label: 'In Negotiation' },
-  { value: 'expired', label: 'Expired' },
-  { value: 'terminated', label: 'Terminated' },
-  { value: 'breached', label: 'Breached' },
-  { value: 'renewed', label: 'Renewed' },
 ];
 
 const paymentFrequencyOptions = [
   { value: 'weekly', label: 'Weekly' },
-  { value: 'biweekly', label: 'Bi-Weekly' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
-  { value: 'annually', label: 'Annually' },
-  { value: 'one_time', label: 'One Time' },
 ];
 
 const agreementTypeOptions = [
   { value: 'lease', label: 'Lease' },
   { value: 'rental', label: 'Rental' },
   { value: 'service', label: 'Service' },
-  { value: 'sales', label: 'Sales' },
-  { value: 'partnership', label: 'Partnership' },
-  { value: 'other', label: 'Other' },
 ];
 
 // Define the actual component with a minimal implementation
@@ -107,7 +96,7 @@ const AgreementFormWithVehicleCheck = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Agreement type and status would go here */}
+              {/* Agreement type and status */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
