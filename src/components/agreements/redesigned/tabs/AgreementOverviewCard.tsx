@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,7 +87,7 @@ export function AgreementOverviewCard({
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Monthly</p>
                 <p className="font-semibold">
-                  {rentAmount ? `$${rentAmount.toFixed(2)}` : 'N/A'}
+                  {rentAmount ? `QAR ${rentAmount.toFixed(2)}` : 'N/A'}
                 </p>
               </div>
             </div>
@@ -191,10 +192,10 @@ export function AgreementOverviewCard({
               <div>
                 <p className="text-sm text-muted-foreground">Financial Details</p>
                 <p className="font-medium">
-                  Monthly Rent: {rentAmount ? `$${rentAmount.toFixed(2)}` : 'N/A'}
+                  Monthly Rent: {rentAmount ? `QAR ${rentAmount.toFixed(2)}` : 'N/A'}
                 </p>
                 <p className="font-medium">
-                  Contract Amount: {contractAmount ? `$${contractAmount.toFixed(2)}` : 'N/A'}
+                  Contract Amount: {contractAmount ? `QAR ${contractAmount.toFixed(2)}` : 'N/A'}
                 </p>
               </div>
               
