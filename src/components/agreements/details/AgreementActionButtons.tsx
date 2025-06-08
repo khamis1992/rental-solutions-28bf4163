@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { TooltipWrapper } from "@/components/ui/TooltipWrapper";
@@ -6,7 +7,7 @@ import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react
 interface AgreementActionButtonsProps {
   onEdit: () => void;
   onDownloadPdf: () => void;
-  onGenerateDocument: () => void;
+  onGenerateDocument: () => Promise<void>;
   onDelete: () => void;
   isGeneratingPdf?: boolean;
 }

@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Toggle } from '@/components/ui/toggle';
 import { AgreementDetail } from './AgreementDetail';
 import { RedesignedAgreementDetail } from './redesigned/RedesignedAgreementDetail';
 import { Agreement } from '@/types/agreement';
