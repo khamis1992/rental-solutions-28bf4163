@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
 import { formatDate } from '@/lib/date-utils';
+
+interface PaymentRecord {
+  id: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
+  due_date: string;
+}
 
 interface AgreementFormWithVehicleCheckProps {
   onSubmit: (data: any) => Promise<void> | void;
@@ -60,11 +68,11 @@ const AgreementFormWithVehicleCheck = ({
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   
-  const mockPendingPayments = [
+  const mockPendingPayments: PaymentRecord[] = [
     {
       id: '1',
       amount: 500,
-      status: 'pending',
+      status: 'pending' as const,
       due_date: new Date().toISOString(),
     }
   ];
@@ -72,6 +80,11 @@ const AgreementFormWithVehicleCheck = ({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const formatDateSafe = (date: string | Date | null | undefined): string => {
+    if (!date) return '';
+    return formatDate(new Date(date));
   };
 
   if (isCheckingTemplate) {
@@ -172,7 +185,7 @@ const AgreementFormWithVehicleCheck = ({
                 acknowledgedPayments={acknowledgedPayments}
                 onAcknowledgePayments={setAcknowledgedPayments}
                 isPaymentHistoryOpen={isPaymentHistoryOpen}
-                formatDate={(date) => formatDate(new Date(date))}
+                formatDate={formatDateSafe}
               />
             </div>
           </CardContent>

@@ -22,7 +22,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isEditMode = false,
   isLoading = false
 }) => {
-  const [selectedImage, setSelectedImage] = React.useState(null as File | null);
+  const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   
   const form = useForm({
     defaultValues: {

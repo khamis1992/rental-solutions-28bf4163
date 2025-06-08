@@ -1,0 +1,31 @@
+
+// Common type definitions for the application
+export interface PaymentRecord {
+  id: string;
+  amount: number;
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
+  due_date: string;
+}
+
+export interface SimpleAgreement {
+  id: string;
+  agreement_number?: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  status: string;
+  total_amount?: number;
+  rent_amount?: number;
+  payment_frequency: string;
+  confirmation_email_sent?: boolean;
+  down_payment?: number;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+export interface FileUploadState {
+  file: File | null;
+  uploading: boolean;
+  error: string | null;
+}
