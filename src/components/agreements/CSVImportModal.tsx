@@ -1,12 +1,13 @@
+
 import React, { useState, useCallback } from 'react';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  Button,
-} from "@/components/ui";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useDropzone } from 'react-dropzone';
 
@@ -22,7 +23,6 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   onImport
 }) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const { toast } = useToast();
@@ -38,7 +38,6 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
       setCsvFile(file);
       setUploadError(null);
       
-      // Process the CSV file
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
@@ -90,10 +89,12 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
   };
 
   return (
-    <Modal open={isOpen} onOpenChange={onClose}>
-      <ModalContent>
-        <ModalHeader>Import Agreements from CSV</ModalHeader>
-        <ModalBody>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Import Agreements from CSV</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
           <div {...getRootProps()} className="dropzone border-2 border-dashed rounded-md p-4 cursor-pointer">
             <input {...getInputProps()} />
             {
@@ -108,17 +109,17 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({
               <p>Selected file: {csvFile.name}</p>
             </div>
           )}
-        </ModalBody>
-        <ModalFooter>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleImport}>
             Import
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

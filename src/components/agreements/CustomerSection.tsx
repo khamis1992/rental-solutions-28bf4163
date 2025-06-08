@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,8 +63,8 @@ const CustomerSection: React.FC<CustomerSectionProps> = ({
     customer.email.toLowerCase().includes(searchTerm?.toLowerCase() || '')
   );
 
-  const handleSelectCustomer = (customer: any) => {
-    onCustomerSelect(customer.id || '');
+  const handleSelectCustomer = (customer: Customer) => {
+    onCustomerSelect(customer.id);
   };
 
   return (

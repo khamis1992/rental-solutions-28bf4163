@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { SimpleAgreement } from '@/types/common';
 import { formatDate } from '@/lib/date-utils';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -27,19 +27,6 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({
   onDelete,
   onView
 }) => {
-  // Convert SimpleAgreement to Agreement for compatibility
-  const convertToAgreement = (agreement: SimpleAgreement): SimpleAgreement => {
-    return {
-      ...agreement,
-      start_date: agreement.start_date,
-      end_date: agreement.end_date,
-      created_at: agreement.created_at,
-      updated_at: agreement.updated_at
-    };
-  };
-
-  const convertedAgreements = agreements.map(convertToAgreement);
-
   return (
     <Table>
       <TableHeader>
@@ -54,11 +41,16 @@ const AgreementListSimple: React.FC<AgreementListSimpleProps> = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {convertedAgreements.map((agreement) => (
+        {agreements.map((agreement) => (
           <TableRow key={agreement.id}>
             <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
             <TableCell>{agreement.customer?.name || 'N/A'}</TableCell>
-            <TableCell>{agreement.vehicle?.make} {agreement.vehicle?.model} ({agreement.vehicle?.year}) || N/A</TableCell>
+            <TableCell>
+              {agreement.vehicle ? 
+                `${agreement.vehicle.make} ${agreement.vehicle.model} (${agreement.vehicle.year})` : 
+                'N/A'
+              }
+            </TableCell>
             <TableCell>{formatDate(agreement.start_date)}</TableCell>
             <TableCell>{formatDate(agreement.end_date)}</TableCell>
             <TableCell>{agreement.status}</TableCell>
