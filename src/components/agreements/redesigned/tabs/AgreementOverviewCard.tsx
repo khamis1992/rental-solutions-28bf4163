@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Agreement } from '@/types/agreement';
-import { CalendarDays, User, Car, DollarSign, Clock, FileText } from 'lucide-react';
+import { CalendarDays, User, Car, DollarSign, Clock } from 'lucide-react';
 
 interface AgreementOverviewCardProps {
   agreement: Agreement;
@@ -102,60 +102,94 @@ export function AgreementOverviewCard({
         </Card>
       </div>
 
-      {/* Main Information Grid - Similar to your reference image */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Customer Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Customer</h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Contact</p>
-                <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
+      {/* Combined Customer & Vehicle Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Customer & Vehicle Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Customer Information Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <User className="h-5 w-5 text-blue-500" />
+                Customer Information
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Full Name</p>
+                  <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{agreement.customers?.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Address</p>
+                  <p className="font-medium">{agreement.customers?.address || 'N/A'}</p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Rental Period</h3>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <CalendarDays className="h-4 w-4" />
-              <span className="font-medium">
-                {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Vehicle Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Vehicle</h3>
-            <div className="space-y-3">
+            {/* Vehicle Information Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Car className="h-5 w-5 text-green-500" />
+                Vehicle Information
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Make & Model</p>
+                  <p className="font-medium">
+                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">License Plate</p>
+                  <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Year</p>
+                  <p className="font-medium">{agreement.vehicles?.year || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Color</p>
+                  <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Basic Agreement Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5" />
+            Agreement Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Details</p>
+                <p className="text-sm text-muted-foreground">Rental Period</p>
                 <p className="font-medium">
-                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model} (${agreement.vehicles.year || 'N/A'})` : 'N/A'}
+                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Duration: {duration} {duration === 1 ? 'month' : 'months'}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">License Plate</p>
-                <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Additional Information</h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Notes</p>
-                <p className="font-medium">{agreement.notes || 'No notes'}</p>
-              </div>
+
               <div>
                 <p className="text-sm text-muted-foreground">Agreement Status</p>
                 <Badge 
@@ -166,31 +200,22 @@ export function AgreementOverviewCard({
                 </Badge>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Summary Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Financial Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Monthly Rent</p>
-              <p className="text-xl font-bold">{formatCurrency(rentAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Contract Total</p>
-              <p className="text-xl font-bold">{formatCurrency(contractAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Agreement Number</p>
-              <p className="text-xl font-bold">{agreement.agreement_number || 'N/A'}</p>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Financial Details</p>
+                <p className="font-medium">
+                  Monthly Rent: {formatCurrency(rentAmount)}
+                </p>
+                <p className="font-medium">
+                  Contract Amount: {formatCurrency(contractAmount)}
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground">Agreement Number</p>
+                <p className="font-medium">{agreement.agreement_number || 'N/A'}</p>
+              </div>
             </div>
           </div>
         </CardContent>
