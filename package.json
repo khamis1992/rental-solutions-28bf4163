@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:dev": "vite build --mode development",
     "build:server": "cd server && npm run build",
     "build:all": "npm run build && npm run build:server",
-    "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "check-boundaries": "tsc --noEmit",
     "start:server": "cd server && npm start",
