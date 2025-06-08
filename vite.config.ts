@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: [
       "3443e083-f60b-43c2-aa17-354a2369068f.lovableproject.com",
       "localhost",
-      "d2cd0355-32f1-4a1c-8126-f471727111ab-00-2ovli70y4qqjz.pike.replit.dev"
+      "d2cd0355-32f1-4a1c-8126-f471727111ab-00-2ovli70y4qqjz.pike.replit.dev",
+      "rental-solutions-28-bf-4163-khamis4everever.replit.app"
     ],
   },
   plugins: [
