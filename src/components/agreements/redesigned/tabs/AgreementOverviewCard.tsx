@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Agreement } from '@/types/agreement';
-import { CalendarDays, User, Car, DollarSign, Clock } from 'lucide-react';
+import { User, Car, DollarSign, Clock } from 'lucide-react';
 
 interface AgreementOverviewCardProps {
   agreement: Agreement;
@@ -26,9 +26,6 @@ export function AgreementOverviewCard({
   rentAmount,
   contractAmount
 }: AgreementOverviewCardProps) {
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-
   return (
     <div className="space-y-6">
       {/* Key Information Cards */}
@@ -163,58 +160,6 @@ export function AgreementOverviewCard({
                   <p className="text-sm text-muted-foreground">Color</p>
                   <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Basic Agreement Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            Agreement Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Rental Period</p>
-                <p className="font-medium">
-                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Duration: {duration} {duration === 1 ? 'month' : 'months'}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-muted-foreground">Agreement Status</p>
-                <Badge 
-                  variant={agreement.status === 'active' ? 'default' : 'secondary'}
-                  className="mt-1"
-                >
-                  {agreement.status}
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Financial Details</p>
-                <p className="font-medium">
-                  Monthly Rent: {formatCurrency(rentAmount)}
-                </p>
-                <p className="font-medium">
-                  Contract Amount: {formatCurrency(contractAmount)}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground">Agreement Number</p>
-                <p className="font-medium">{agreement.agreement_number || 'N/A'}</p>
               </div>
             </div>
           </div>
