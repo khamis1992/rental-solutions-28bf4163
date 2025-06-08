@@ -28,7 +28,7 @@ export async function ensureFontsLoaded() {
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: 'تقرير عقد الإيجار الشامل' },
+  reportTitle: { ar: 'تقرير عقد تأجير الشامل الإيجار' },
   companyName: { ar: 'شركة العرف لتأجير السيارات ذ.م.م' },
   
   // Document info
@@ -170,9 +170,9 @@ export async function generateAgreementReportPdfmake(
             alignment: 'left',
             margin: [0, 0, 0, 0]
           },
-          // Center: 'تقرير الإيجار الشامل'
+          // Center: 'تقرير عقد تأجير الشامل الإيجار'
           {
-            text: 'تقرير الإيجار الشامل',
+            text: 'تقرير عقد تأجير الشامل الإيجار',
             style: 'reportTitle',
             alignment: 'center',
             rtl: false,
@@ -215,7 +215,7 @@ export async function generateAgreementReportPdfmake(
         table: {
           widths: ['*'],
           body: [[
-            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right', rtl: true }
+            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'center', rtl: true }
           ]]
         },
         rtl: true,
@@ -581,6 +581,3 @@ export async function generateAgreementReportPdfmake(
     throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
   }
 }
-
-
-
