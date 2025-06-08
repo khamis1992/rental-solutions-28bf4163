@@ -102,72 +102,70 @@ export function AgreementOverviewCard({
         </Card>
       </div>
 
-      {/* Combined Customer & Vehicle Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Customer & Vehicle Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Customer Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-500" />
-                Customer Information
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{agreement.customers?.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">{agreement.customers?.address || 'N/A'}</p>
-                </div>
+      {/* Customer & Vehicle Information Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Customer Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-500" />
+              Customer Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Full Name</p>
+                <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{agreement.customers?.email || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Address</p>
+                <p className="font-medium">{agreement.customers?.address || 'N/A'}</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Vehicle Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Car className="h-5 w-5 text-green-500" />
-                Vehicle Information
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Make & Model</p>
-                  <p className="font-medium">
-                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">License Plate</p>
-                  <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Year</p>
-                  <p className="font-medium">{agreement.vehicles?.year || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Color</p>
-                  <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
-                </div>
+        {/* Vehicle Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-green-500" />
+              Vehicle Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Make & Model</p>
+                <p className="font-medium">
+                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">License Plate</p>
+                <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Year</p>
+                <p className="font-medium">{agreement.vehicles?.year || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Color</p>
+                <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Basic Agreement Information */}
       <Card>
