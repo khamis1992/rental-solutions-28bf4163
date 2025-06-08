@@ -3,11 +3,10 @@ import {
   type PostgrestResponse,
 } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { Result, createSuccessResult, createErrorResult, createDatabaseError } from '@/types/error.types';
+import { Result, createSuccessResult, createErrorResult } from '@/types/response.types';
+import { createDatabaseError } from '@/types/error.types';
 import { toAppError } from '@/lib/errors/error-handler';
 import {
-  isSuccessResponse as isStandardSuccessResponse,
-  isErrorResponse as isStandardErrorResponse,
   isAppError as isStandardAppError
 } from '@/types/error.types';
 import {
@@ -112,11 +111,6 @@ export function isValidDatabaseId(id: unknown): id is DatabaseId {
 export function castToDatabaseId(id: string): DatabaseId {
   return id as DatabaseId;
 }
-
-// Re-export standardized type guards
-export const isSuccessResponse = isStandardSuccessResponse;
-export const isErrorResponse = isStandardErrorResponse;
-export const isAppError = isStandardAppError;
 
 /**
  * Type guard to check if a Supabase response has data and is not an error
@@ -232,7 +226,7 @@ export function handleDatabaseResponse<T>(
   if (!response?.data) {
     const error = createDatabaseError('No data returned from database query', {
       query: 'unknown',
-      params: null
+      params: {}
     });
     console.warn(error.message);
     return createErrorResult<T>(error);
