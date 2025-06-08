@@ -1,4 +1,4 @@
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { 
@@ -28,72 +28,74 @@ export async function ensureFontsLoaded() {
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: 'تقرير عقد الإيجار الشامل' },
-  companyName: { ar: 'شركة العرف لتأجير السيارات ذ.م.م' },
+  reportTitle: { ar: 'الشامل الإيجار  تقرير' },
+
+  companyName: { ar: ' ذ.م.م السيارات لتأجير العراف  شركة' },
+
   
   // Document info
-  agreementInfo: { ar: 'معلومات العقد' },
-  agreementNumber: { ar: 'رقم العقد' },
-  status: { ar: 'حالة العقد' },
-  startDate: { ar: 'تاريخ البدء' },
-  endDate: { ar: 'تاريخ الانتهاء' },
-  duration: { ar: 'مدة العقد' },
-  monthlyRent: { ar: 'الإيجار الشهري' },
-  contractTotal: { ar: 'إجمالي العقد' },
-  depositAmount: { ar: 'مبلغ التأمين' },
-  rentDueDay: { ar: 'يوم استحقاق الإيجار' },
+  agreementInfo: { ar: 'العقد معلومات' },
+  agreementNumber: { ar: 'العقد  رقم' },
+  status: { ar: 'العقد حالة' },
+  startDate: { ar: 'البدء تاريخ ' },
+  endDate: { ar: 'الانتهاء تاريخ ' },
+  duration: { ar: ' المدة' },
+  monthlyRent: { ar: 'الشهري  الايجار' },
+  contractTotal: { ar: ' العقد إجمالي' },
+  depositAmount: { ar: 'الضمان مبلغ  ' },
+  rentDueDay: { ar: 'الايجار استحقاق يوم ' },
   
   // Customer info
-  customerInfo: { ar: 'معلومات العميل' },
-  name: { ar: 'الاسم الكامل' },
-  email: { ar: 'البريد الإلكتروني' },
-  phone: { ar: 'رقم الهاتف' },
-  driverLicense: { ar: 'رخصة القيادة' },
+  customerInfo: { ar: ' العميل  معلومات' },
+  name: { ar: 'الكامل  الاسم' },
+  email: { ar: 'الالكتروني البريد' },
+  phone: { ar: 'الهاتف رقم ' },
+  driverLicense: { ar: 'الشخصي الرقم ' },
   nationality: { ar: 'الجنسية' },
   address: { ar: 'العنوان' },
   
   // Vehicle info
-  vehicleInfo: { ar: 'معلومات المركبة' },
-  makeModel: { ar: 'الماركة والموديل' },
-  year: { ar: 'سنة الصنع' },
-  licensePlate: { ar: 'رقم اللوحة' },
+  vehicleInfo: { ar: ' المركبة معلومات' },
+  makeModel: { ar: ' المركبة  نوع' },
+  year: { ar: 'الصنع سنة ' },
+  licensePlate: { ar: 'اللوحة رقم ' },
   color: { ar: 'اللون' },
-  vin: { ar: 'رقم الهيكل' },
+  vin: { ar: 'الهيكل رقم ' },
   
   // Financial summary
-  financialSummary: { ar: 'الملخص المالي' },
-  totalPaid: { ar: 'إجمالي المدفوع' },
-  totalDue: { ar: 'إجمالي المستحق' },
-  lateFees: { ar: 'رسوم التأخير' },
-  remainingBalance: { ar: 'الرصيد المتبقي' },
-  pendingPayments: { ar: 'الدفعات المعلقة' },
-  nextPaymentDue: { ar: 'تاريخ الدفعة القادمة' },
-  paymentProgress: { ar: 'تقدم الدفعات' },
+  financialSummary: { ar: ' المالي الملخص' },
+  totalPaid: { ar: ' المدفوع  المبلغ ' },
+  totalDue: { ar: ' المستحق المبلغ' },
+  lateFees: { ar: ' التاخير  رسوم' },
+  remainingBalance: { ar: ' العقد من المتبقي  المبلغ' },
+  pendingPayments: { ar: ' مسدد الغير المبلغ' },
+  nextPaymentDue: { ar: 'القادمة الدفعة تاريخ  ' },
+  paymentProgress: { ar: 'العقد تقدم ' },
   
   // Payment details
-  paymentHistory: { ar: 'سجل الدفعات' },
-  paymentDate: { ar: 'تاريخ الدفع' },
-  amount: { ar: 'المبلغ' },
-  paymentStatus: { ar: 'حالة الدفع' },
-  paymentMethod: { ar: 'طريقة الدفع' },
+  paymentHistory: { ar: 'الدفعات  سجل' },
+  paymentDate: { ar: 'الدفع  تاريخ' },
+  amount: { ar: 'الايجار  مبلغ' },
+  paymentStatus: { ar: 'الدفع  حالة' },
+  paymentMethod: { ar: 'الدفع  طريقة' },
   
   // Traffic fines
-  trafficFines: { ar: 'المخالفات المرورية' },
-  fineAmount: { ar: 'مبلغ المخالفة' },
-  fineDate: { ar: 'تاريخ المخالفة' },
-  fineStatus: { ar: 'حالة المخالفة' },
-  fineLocation: { ar: 'موقع المخالفة' },
-  totalFines: { ar: 'إجمالي المخالفات' },
+  trafficFines: { ar: 'المرورية المخالفات' },
+  fineAmount: { ar: 'المخالفة مبلغ' },
+  fineDate: { ar: 'المخالفة تاريخ' },
+  fineStatus: { ar: 'المخالفة حالة' },
+  fineLocation: { ar: 'المخالفة موقع' },
+  totalFines: { ar: 'المخالفات اجمالي ' },
   
   // Legal info
-  legalInfo: { ar: 'المعلومات القانونية' },
+  legalInfo: { ar: 'القانونية المعلومات' },
   signature: { ar: 'التوقيع' },
   date: { ar: 'التاريخ' },
-  terms: { ar: 'الأحكام والشروط' },
+  terms: { ar: 'و الشروط الاحكام' },
   
   // Footer
-  confidential: { ar: 'سري - شركة العرف لتأجير السيارات' },
-  generatedOn: { ar: 'تم إنشاؤه في' },
+  confidential: { ar: '  السيارات لتأجير العراف شركة ' },
+  generatedOn: { ar: 'في انشاءه تم ' },
   pageOf: { ar: 'صفحة' }
 };
 
@@ -161,18 +163,28 @@ export async function generateAgreementReportPdfmake(
     header: {
       margin: [40, 20, 40, 0],
       table: {
-        widths: ['*', 'auto'],
+        widths: ['auto', '*', 'auto'],
         body: [[
+          // Left: date
           {
-            stack: [
-              { text: labels.companyName.ar, style: 'companyName' },
-              { text: 'Commercial Registration: 146832', style: 'companyDetails' }
-            ]
+            text: new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
+            style: 'companyDetails',
+            alignment: 'left',
+            margin: [0, 0, 0, 0]
           },
+          // Center: 'تقرير الإيجار الشامل'
+          {
+            text: 'تقرير الإيجار الشامل',
+            style: 'reportTitle',
+            alignment: 'center',
+            rtl: false,
+            margin: [0, 0, 0, 0]
+          },
+          // Right: logo
           {
             text: '🏢',
             style: 'logo',
-            alignment: 'left'
+            alignment: 'right'
           }
         ]]
       },
@@ -180,18 +192,23 @@ export async function generateAgreementReportPdfmake(
     },
     
     // Footer with RTL support
-    footer: (currentPage: number, pageCount: number) => ({
-      margin: [40, 10, 40, 20],
-      table: {
-        widths: ['*', 'auto', '*'],
-        body: [[
-          createArabicTextBlock(labels.confidential.ar, 'footerText'),
-          createArabicTextBlock(`${labels.pageOf.ar} ${currentPage} من ${pageCount}`, 'footerText'),
-          createArabicTextBlock(`${labels.generatedOn.ar}: ${currentDate}`, 'footerText')
-        ]]
-      },
-      layout: 'noBorders'
-    }),
+    footer: (currentPage: number, pageCount: number) => {
+      return {
+        margin: [40, 10, 40, 20],
+        table: {
+          widths: ['33%', '34%', '33%'],
+          body: [[
+            // Left: 'شركة العراف لتأجير السيارات'
+            { text: 'ذ.م.م السيارات لتأجير العراف شركة   ', style: 'footerText', alignment: 'left' },
+            // Center: page number only
+            { text: String(currentPage), style: 'footerText', alignment: 'center' },
+            // Right: 'سري'
+            { text: 'سري', style: 'footerText', alignment: 'right' }
+          ]]
+        },
+        layout: 'noBorders'
+      };
+    },
     
     // Main content with enhanced Arabic support
     content: [
@@ -200,9 +217,10 @@ export async function generateAgreementReportPdfmake(
         table: {
           widths: ['*'],
           body: [[
-            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right', rtl: true }
+            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right' }
           ]]
         },
+        rtl: true,
         layout: {
           hLineWidth: () => 0,
           vLineWidth: () => 0,
@@ -226,15 +244,15 @@ export async function generateAgreementReportPdfmake(
                   createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel')
                 ],
                 [
-                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('غير محدد'), 'cardValue'),
+                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('محدد غير'), 'cardValue'),
                   { 
-                    ...createArabicTextBlock(agreement.status || prepareArabicForPDF('غير محدد'), 'cardValue'),
+                    ...createArabicTextBlock(agreement.status || prepareArabicForPDF('محدد غير'), 'cardValue'),
                     color: getStatusColor(agreement.status)
                   },
                   createArabicTextBlock(
                     agreement.start_date && agreement.end_date 
                       ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
-                      : prepareArabicForPDF('غير محدد'), 
+                      : prepareArabicForPDF('محدد غير'), 
                     'cardValue'
                   ),
                   createArabicTextBlock(formatArabicCurrency(rentAmount), 'cardValue')
@@ -266,19 +284,19 @@ export async function generateAgreementReportPdfmake(
                   widths: ['60%', '40%'],
                   body: [
                     [
-                      { text: agreement.customers?.full_name || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.customers?.full_name || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.name.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.phone_number || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.customers?.phone_number || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.phone.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.nationality || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.customers?.nationality || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.nationality.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.driver_license || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.customers?.driver_license || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.driverLicense.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ]
                   ]
@@ -303,19 +321,19 @@ export async function generateAgreementReportPdfmake(
                   widths: ['60%', '40%'],
                   body: [
                     [
-                      { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.makeModel.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.year?.toString() || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.vehicles?.year?.toString() || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.year.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.license_plate || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.vehicles?.license_plate || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.licensePlate.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.vin || prepareArabicForPDF('غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: agreement.vehicles?.vin || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.vin.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ]
                   ]
@@ -381,10 +399,10 @@ export async function generateAgreementReportPdfmake(
                 { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...payments.slice(0, 10).map(payment => [
-                { text: payment.payment_method || prepareArabicForPDF('غير محدد'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('غير محدد'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
+                { text: payment.payment_method || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
                 { text: formatArabicCurrency(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('غير محدد'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ])
             ]
           },
@@ -425,10 +443,10 @@ export async function generateAgreementReportPdfmake(
                 createArabicTextBlock(formatArabicDate(fine.date), 'tableCell'),
                 createArabicTextBlock(formatArabicCurrency(fine.amount), 'tableCell'),
                 { 
-                  ...createArabicTextBlock(fine.status || prepareArabicForPDF('غير محدد'), 'tableCell'),
+                  ...createArabicTextBlock(fine.status || prepareArabicForPDF('محدد غير'), 'tableCell'),
                   color: getStatusColor(fine.status)
                 },
-                createArabicTextBlock(fine.location || prepareArabicForPDF('غير محدد'), 'tableCell')
+                createArabicTextBlock(fine.location || prepareArabicForPDF('محدد غير'), 'tableCell')
               ]),
               [
                 { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 3 },
@@ -565,3 +583,6 @@ export async function generateAgreementReportPdfmake(
     throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
   }
 }
+
+
+
