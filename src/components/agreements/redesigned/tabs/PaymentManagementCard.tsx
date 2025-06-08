@@ -1,11 +1,9 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/types/agreement';
 import { Payment } from '@/types/payment.types';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentHistorySection } from '@/components/payments/redesigned/PaymentHistorySection';
 import { PaymentAnalytics } from '@/components/payments/analytics/PaymentAnalytics';
-import { CreditCard } from 'lucide-react';
 
 interface PaymentManagementCardProps {
   agreement: Agreement;
@@ -47,31 +45,20 @@ export function PaymentManagementCard({
         unpaid={paymentMetrics.unpaid}
       />
 
-      {/* Payment History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payment History & Management
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PaymentHistory
-            payments={payments}
-            isLoading={isLoading}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={onPaymentDeleted}
-            onPaymentUpdated={onPaymentUpdated}
-            onRecordPayment={onRecordPayment}
-            leaseStartDate={getDateString(agreement.start_date)}
-            leaseEndDate={getDateString(agreement.end_date)}
-            leaseId={agreement.id}
-            agreement={agreement}
-            fetchPayments={fetchPayments}
-          />
-        </CardContent>
-      </Card>
+      {/* Redesigned Payment History */}
+      <PaymentHistorySection 
+        payments={payments} 
+        isLoading={isLoading} 
+        rentAmount={rentAmount}
+        contractAmount={contractAmount}
+        leaseId={agreement.id}
+        onPaymentDeleted={onPaymentDeleted}
+        onRecordPayment={onRecordPayment}
+        onPaymentUpdated={onPaymentUpdated}
+        showAnalytics={true}
+        agreement={agreement}
+        fetchPayments={fetchPayments}
+      />
     </div>
   );
 }
