@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     allowedHosts: [
       "3443e083-f60b-43c2-aa17-354a2369068f.lovableproject.com",
-      "localhost"
+      "localhost",
+      "d2cd0355-32f1-4a1c-8126-f471727111ab-00-2ovli70y4qqjz.pike.replit.dev"
     ],
   },
   plugins: [
