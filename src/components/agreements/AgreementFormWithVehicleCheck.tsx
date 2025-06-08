@@ -1,17 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
 import { formatDate } from '@/lib/date-utils';
-
-interface PaymentRecord {
-  id: string;
-  amount: number;
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
-  due_date: string;
-}
 
 interface AgreementFormWithVehicleCheckProps {
   onSubmit: (data: any) => Promise<void> | void;
@@ -27,18 +19,29 @@ const statusOptions = [
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'on_hold', label: 'On Hold' },
+  { value: 'in_negotiation', label: 'In Negotiation' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'terminated', label: 'Terminated' },
+  { value: 'breached', label: 'Breached' },
+  { value: 'renewed', label: 'Renewed' },
 ];
 
 const paymentFrequencyOptions = [
   { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Bi-Weekly' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+  { value: 'one_time', label: 'One Time' },
 ];
 
 const agreementTypeOptions = [
   { value: 'lease', label: 'Lease' },
   { value: 'rental', label: 'Rental' },
   { value: 'service', label: 'Service' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'partnership', label: 'Partnership' },
+  { value: 'other', label: 'Other' },
 ];
 
 // Define the actual component with a minimal implementation
@@ -57,11 +60,11 @@ const AgreementFormWithVehicleCheck = ({
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   
-  const mockPendingPayments: PaymentRecord[] = [
+  const mockPendingPayments = [
     {
       id: '1',
       amount: 500,
-      status: 'pending' as const,
+      status: 'pending',
       due_date: new Date().toISOString(),
     }
   ];
@@ -69,11 +72,6 @@ const AgreementFormWithVehicleCheck = ({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit(formData);
-  };
-
-  const formatDateSafe = (date: string | Date | null | undefined): string => {
-    if (!date) return '';
-    return formatDate(new Date(date));
   };
 
   if (isCheckingTemplate) {
@@ -96,7 +94,7 @@ const AgreementFormWithVehicleCheck = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Agreement type and status */}
+              {/* Agreement type and status would go here */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
@@ -174,7 +172,7 @@ const AgreementFormWithVehicleCheck = ({
                 acknowledgedPayments={acknowledgedPayments}
                 onAcknowledgePayments={setAcknowledgedPayments}
                 isPaymentHistoryOpen={isPaymentHistoryOpen}
-                formatDate={formatDateSafe}
+                formatDate={(date) => formatDate(new Date(date))}
               />
             </div>
           </CardContent>

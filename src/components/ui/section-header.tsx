@@ -11,7 +11,7 @@ interface SectionHeaderProps {
   className?: string;
 }
 
-export const SectionHeader = ({
+const SectionHeader = ({
   title,
   description,
   icon: Icon,
@@ -42,3 +42,6 @@ export const SectionHeader = ({
     </div>
   );
 };
+
+export { SectionHeader };
+
