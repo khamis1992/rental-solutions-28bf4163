@@ -4,8 +4,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Agreement } from '@/types/agreement';
-import { CalendarDays, User, Car, DollarSign, Clock, TrendingUp, AlertCircle } from 'lucide-react';
-import { AgreementPaymentAnalytics } from '../../analytics/AgreementPaymentAnalytics';
+import { CalendarDays, User, Car, DollarSign, Clock } from 'lucide-react';
 
 interface AgreementOverviewCardProps {
   agreement: Agreement;
@@ -19,8 +18,7 @@ export function AgreementOverviewCard({
   agreement, 
   duration,
   rentAmount,
-  contractAmount,
-  paymentMetrics 
+  contractAmount
 }: AgreementOverviewCardProps) {
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
@@ -210,17 +208,6 @@ export function AgreementOverviewCard({
           </div>
         </CardContent>
       </Card>
-
-      {/* Payment Analytics */}
-      <AgreementPaymentAnalytics
-        totalAmount={paymentMetrics.totalAmount}
-        amountPaid={paymentMetrics.amountPaid}
-        balance={paymentMetrics.balance}
-        lateFees={paymentMetrics.lateFees}
-        paidOnTime={paymentMetrics.paidOnTime}
-        paidLate={paymentMetrics.paidLate}
-        unpaid={paymentMetrics.unpaid}
-      />
     </div>
   );
 }
