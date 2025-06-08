@@ -1,168 +1,125 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  Button,
+} from "@/components/ui";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import Dropzone from 'react-dropzone';
-import type { DropzoneOptions } from 'react-dropzone';
+import { useDropzone } from 'react-dropzone';
 
 interface CSVImportModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onImportComplete: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onImport: (data: any[]) => void;
 }
 
-export const CSVImportModal: React.FC<CSVImportModalProps> = ({ open, onOpenChange, onImportComplete }) => {
-  const [file, setFile] = useState(null);
-  const [processing, setProcessing] = useState(false);
+const CSVImportModal: React.FC<CSVImportModalProps> = ({
+  isOpen,
+  onClose,
+  onImport
+}) => {
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [parsedData, setParsedData] = useState<any[]>([]);
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [delimiter, setDelimiter] = useState(',');
 
-  const handleSubmit = useCallback(async () => {
-    if (!file || !user) {
-      toast({
-        title: "Error",
-        description: "Please select a file to upload.",
-      });
-      return;
-    }
-
-    setProcessing(true);
-
-    try {
-      const timestamp = new Date().getTime();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `agreement-import-${timestamp}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('agreement-imports')
-        .upload(fileName, file);
-        
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
+  const handleFileUpload = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        setUploadError('Please upload a CSV file');
+        return;
       }
       
-      const { data: importData, error: importError } = await supabase
-        .from('agreement_imports')
-        .insert({
-          file_name: fileName,
-          original_name: file.name,
-          created_by: user.id,
-          status: 'pending',
-          delimiter: delimiter
-        })
-        .select()
-        .single();
-        
-      if (importError) {
-        throw new Error(`Import log creation failed: ${importError.message}`);
-      }
+      setCsvFile(file);
+      setUploadError(null);
       
-      const { data: processData, error: processError } = await supabase.functions.invoke(
-        'process-agreement-imports', 
-        { 
-          body: { importId: importData.id } 
+      // Process the CSV file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (text) {
+          const lines = text.split('\n');
+          const headers = lines[0].split(',');
+          const data: any[] = [];
+
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',');
+            if (values.length === headers.length) {
+              const item: { [key: string]: string } = {};
+              for (let j = 0; j < headers.length; j++) {
+                item[headers[j].trim()] = values[j].trim();
+              }
+              data.push(item);
+            }
+          }
+          setParsedData(data);
         }
-      );
-      
-      if (processError) {
-        throw new Error(`Processing failed: ${processError.message}`);
-      }
-      
-      toast({
-        title: "Success",
-        description: `Agreements imported successfully. Processed: ${processData.processed}, Errors: ${processData.errors}`,
-      });
-      
-      onImportComplete();
-      onOpenChange(false);
-      setFile(null);
-    } catch (error: any) {
-      console.error("Import error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-      });
-    } finally {
-      setProcessing(false);
+      };
+      reader.readAsText(file);
     }
-  }, [file, user, delimiter, toast, onImportComplete, onOpenChange]);
+  }, []);
 
-  // Update the dropzone options with proper typing
-  const dropzoneOptions = {
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({
+    onDrop: handleFileUpload,
     accept: {
       'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.csv', '.xls']
     },
-    maxFiles: 1,
-    onDrop: (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        setFile(acceptedFiles[0]);
-      }
+    multiple: false,
+  });
+
+  const handleImport = () => {
+    if (parsedData.length > 0) {
+      onImport(parsedData);
+      toast({
+        title: "CSV Imported",
+        description: "Data has been successfully imported.",
+      });
+      onClose();
+    } else {
+      toast({
+        title: "No Data to Import",
+        description: "Please upload a CSV file with data.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Import Agreements from CSV</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file containing agreement data to import into the system.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="delimiter" className="text-right">
-              Delimiter
-            </Label>
-            <Input
-              id="delimiter"
-              defaultValue=","
-              className="col-span-3"
-              value={delimiter}
-              onChange={(e) => setDelimiter(e.target.value)}
-            />
+    <Modal open={isOpen} onOpenChange={onClose}>
+      <ModalContent>
+        <ModalHeader>Import Agreements from CSV</ModalHeader>
+        <ModalBody>
+          <div {...getRootProps()} className="dropzone border-2 border-dashed rounded-md p-4 cursor-pointer">
+            <input {...getInputProps()} />
+            {
+              isDragActive ?
+                <p>Drop the files here ...</p> :
+                <p>Drag 'n' drop a CSV file here, or click to select file</p>
+            }
+            {uploadError && <p className="text-red-500">{uploadError}</p>}
           </div>
-          <Dropzone {...dropzoneOptions}>
-            {({getRootProps, getInputProps}) => (
-              <section>
-                <div {...getRootProps()} className="border-2 border-dashed rounded-md p-4 cursor-pointer">
-                  <input {...getInputProps()} />
-                  <p className="text-sm text-muted-foreground">
-                    Drag 'n' drop some files here, or click to select files
-                  </p>
-                  {file && (
-                    <aside>
-                      <h4>Files</h4>
-                      <ul>{file.name}</ul>
-                    </aside>
-                  )}
-                </div>
-              </section>
-            )}
-          </Dropzone>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          {csvFile && (
+            <div className="mt-4">
+              <p>Selected file: {csvFile.name}</p>
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={processing}>
-            {processing ? "Importing..." : "Import"}
+          <Button onClick={handleImport}>
+            Import
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
+
+export default CSVImportModal;
