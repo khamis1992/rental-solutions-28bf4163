@@ -1,7 +1,8 @@
+
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { TooltipWrapper } from "@/components/ui/TooltipWrapper";
-import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react";
+import { CalendarClock, Download, FileEdit, FileText, Trash, Printer } from "lucide-react";
 
 interface AgreementActionButtonsProps {
   onEdit: () => void;
@@ -45,7 +46,7 @@ export function AgreementActionButtons({
 
       <TooltipWrapper content="Print this agreement.">
         <Button variant="outline" onClick={() => window.print()}>
-          <CalendarClock className="h-4 w-4 mr-2" /> Print
+          <Printer className="h-4 w-4 mr-2" /> Print
         </Button>
       </TooltipWrapper>
 
