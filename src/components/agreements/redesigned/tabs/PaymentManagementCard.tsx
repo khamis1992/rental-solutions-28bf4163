@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/types/agreement';
 import { Payment } from '@/types/payment.types';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import { AgreementPaymentAnalytics } from '../../analytics/AgreementPaymentAnalytics';
+import { PaymentAnalytics } from '@/components/payments/analytics/PaymentAnalytics';
 import { CreditCard } from 'lucide-react';
 
 interface PaymentManagementCardProps {
@@ -36,8 +36,8 @@ export function PaymentManagementCard({
 }: PaymentManagementCardProps) {
   return (
     <div className="space-y-6">
-      {/* Payment Analytics Summary */}
-      <AgreementPaymentAnalytics
+      {/* Enhanced Payment Analytics */}
+      <PaymentAnalytics
         totalAmount={paymentMetrics.totalAmount}
         amountPaid={paymentMetrics.amountPaid}
         balance={paymentMetrics.balance}

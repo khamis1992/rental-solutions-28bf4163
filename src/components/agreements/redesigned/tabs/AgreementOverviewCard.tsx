@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,6 @@ interface AgreementOverviewCardProps {
   duration: number;
   rentAmount: number | null;
   contractAmount: number | null;
-  paymentMetrics: any;
 }
 
 export function AgreementOverviewCard({ 
