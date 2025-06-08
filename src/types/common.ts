@@ -12,16 +12,16 @@ export interface SimpleAgreement {
   agreement_number?: string;
   customer_id: string;
   vehicle_id: string;
-  start_date: string | Date;
-  end_date: string | Date;
+  start_date: string;
+  end_date: string;
   status: string;
   total_amount?: number;
   rent_amount?: number;
   payment_frequency: string;
   confirmation_email_sent?: boolean;
   down_payment?: number;
-  created_at: string | Date;
-  updated_at: string | Date;
+  created_at: string;
+  updated_at: string;
   // Additional properties for compatibility with Agreement interface
   customer?: any;
   vehicle?: any;
