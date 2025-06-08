@@ -7,6 +7,7 @@
     "build": "tsc && vite build",
     "build:server": "cd server && npm run build",
     "build:all": "npm run build && npm run build:server",
+    "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "check-boundaries": "tsc --noEmit",
     "start:server": "cd server && npm start",
