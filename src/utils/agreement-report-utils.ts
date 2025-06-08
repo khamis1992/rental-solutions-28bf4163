@@ -28,7 +28,7 @@ export async function ensureFontsLoaded() {
 // Enhanced Arabic labels with proper text direction
 const labels = {
   // Header
-  reportTitle: { ar: 'تقرير عقد الإيجار الشامل' },
+  reportTitle: { ar: 'تقرير الإيجار الشامل' },
   companyName: { ar: 'شركة العرف لتأجير السيارات ذ.م.م' },
   
   // Document info
@@ -195,12 +195,12 @@ export async function generateAgreementReportPdfmake(
     
     // Main content with enhanced Arabic support
     content: [
-      // Report title with blue background, matching the design
+      // Report title with blue background, centered alignment
       {
         table: {
           widths: ['*'],
           body: [[
-            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'right', rtl: true }
+            { text: labels.reportTitle.ar, style: 'reportTitle', alignment: 'center', rtl: true }
           ]]
         },
         layout: {
