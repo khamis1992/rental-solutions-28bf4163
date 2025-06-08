@@ -13,6 +13,13 @@ interface AgreementOverviewCardProps {
   contractAmount: number | null;
 }
 
+// Helper function to format currency without unnecessary decimals
+const formatCurrency = (amount: number | null): string => {
+  if (!amount) return 'N/A';
+  const formatted = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
+  return `QAR ${formatted}`;
+};
+
 export function AgreementOverviewCard({ 
   agreement, 
   duration,
@@ -87,7 +94,7 @@ export function AgreementOverviewCard({
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Monthly</p>
                 <p className="font-semibold">
-                  {rentAmount ? `QAR ${rentAmount.toFixed(2)}` : 'N/A'}
+                  {formatCurrency(rentAmount)}
                 </p>
               </div>
             </div>
@@ -192,10 +199,10 @@ export function AgreementOverviewCard({
               <div>
                 <p className="text-sm text-muted-foreground">Financial Details</p>
                 <p className="font-medium">
-                  Monthly Rent: {rentAmount ? `QAR ${rentAmount.toFixed(2)}` : 'N/A'}
+                  Monthly Rent: {formatCurrency(rentAmount)}
                 </p>
                 <p className="font-medium">
-                  Contract Amount: {contractAmount ? `QAR ${contractAmount.toFixed(2)}` : 'N/A'}
+                  Contract Amount: {formatCurrency(contractAmount)}
                 </p>
               </div>
               
