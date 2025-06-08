@@ -24,27 +24,24 @@ export function AgreementDetailWrapper(props: AgreementDetailWrapperProps) {
       {/* Design Toggle */}
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">View Mode:</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={useRedesign ? "default" : "outline"}
-              size="sm"
-              onClick={() => setUseRedesign(true)}
-              className="flex items-center gap-2"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              New Design
-            </Button>
-            <Button
-              variant={!useRedesign ? "default" : "outline"}
-              size="sm"
-              onClick={() => setUseRedesign(false)}
-              className="flex items-center gap-2"
-            >
-              <List className="h-4 w-4" />
-              Classic
-            </Button>
-          </div>
+          <Button
+            variant={useRedesign ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUseRedesign(true)}
+            className="flex items-center gap-2"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            New Design
+          </Button>
+          <Button
+            variant={!useRedesign ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUseRedesign(false)}
+            className="flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            Classic
+          </Button>
         </div>
       </div>
 
