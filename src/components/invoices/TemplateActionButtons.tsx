@@ -48,3 +48,5 @@ export function TemplateActionButtons({
     </div>
   );
 }
+
+export default TemplateActionButtons;

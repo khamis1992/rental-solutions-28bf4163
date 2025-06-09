@@ -1,7 +1,5 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { asTableId } from '@/lib/database-helpers';
 
 // Default fallback values (these will be used if environment variables are not found)
@@ -234,35 +232,6 @@ export const monitorDatabaseConnection = (
   checkConnection();
   const interval = setInterval(checkConnection, pollingIntervalMs);
   return () => clearInterval(interval);
-};
-
-/**
- * Runs payment schedule maintenance job
- * This function checks and creates missing payment schedules for active agreements
- */
-export const runPaymentScheduleMaintenanceJob = async () => {
-  try {
-    console.log("Running payment schedule maintenance job");
-    const result = await checkAndCreateMissingPaymentSchedules();
-    
-    if (result.success) {
-      console.log(`Payment schedule maintenance job completed: ${result.message}`);
-    } else {
-      console.error(`Payment schedule maintenance job failed: ${result.message}`);
-    }
-    
-    return result;
-  } catch (error) {
-    console.error("Unexpected error in runPaymentScheduleMaintenanceJob:", error);
-    throw error;
-  }
-};
-
-/**
- * Manually run payment maintenance job for testing purposes
- */
-export const manuallyRunPaymentMaintenance = async () => {
-  return await runPaymentScheduleMaintenanceJob();
 };
 
 /**

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/types/agreement';
@@ -10,7 +11,7 @@ interface DocumentsCardProps {
   agreement: Agreement;
   onEdit: () => void;
   onDownloadPdf: () => void;
-  onGenerateDocument: () => Promise<void>;
+  onGenerateDocument: () => void;
   onDelete: () => void;
   isGeneratingPdf: boolean;
   getDateString: (date: string | Date) => string;

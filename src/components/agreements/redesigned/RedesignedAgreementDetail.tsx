@@ -170,8 +170,10 @@ export function RedesignedAgreementDetail({
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await onGenerateDocument();
+      const result = await onGenerateDocument();
+      return Promise.resolve(result);
     }
+    return Promise.resolve();
   }, [onGenerateDocument]);
 
   if (!agreement) {
@@ -354,3 +356,5 @@ export function RedesignedAgreementDetail({
     </div>
   );
 }
+
+export default RedesignedAgreementDetail;
