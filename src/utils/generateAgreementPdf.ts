@@ -1,25 +1,22 @@
 // @ts-ignore
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import pdfMake from 'pdfmake/build/pdfmake';
+import { configurePdfMakeFonts, initializeFonts } from './font-loader';
 import { supabase } from '@/lib/supabase';
 
-// Configure fonts properly
-const configureArabicFonts = () => {
-  // Define the fonts for pdfMake
-  (pdfMake as any).fonts = {
-    Amiri: {
-      normal: '/Amiri-Regular.ttf',
-      bold: '/Amiri-Bold.ttf',
-      italics: '/Amiri-Regular.ttf',
-      bolditalics: '/Amiri-Bold.ttf',
+// Ensure fonts are loaded before PDF generation
+async function ensureFontsLoaded(): Promise<void> {
+  try {
+    const initialized = await initializeFonts();
+    if (!initialized) {
+      console.warn('Font initialization failed, using fallback configuration');
+      configurePdfMakeFonts();
     }
-  };
-
-  // Set up VFS if not already configured
-  if (!(pdfMake as any).vfs) {
-    (pdfMake as any).vfs = {};
+  } catch (error) {
+    console.warn('Font loading failed, using default fonts:', error);
+    // Continue with default font configuration
+    configurePdfMakeFonts();
   }
-};
+}
 
 export async function generateAgreementPdfAndUploadAndDownload({ agreement, customer, vehicle, payment }: {
   agreement: any,
@@ -27,8 +24,8 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
   vehicle: any,
   payment: any
 }) {
-  // Configure fonts before creating PDF
-  configureArabicFonts();
+  // Ensure fonts are properly loaded
+  await ensureFontsLoaded();
 
   const docDefinition = {
     content: [
@@ -45,7 +42,7 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       { text: 'مقدمة', style: 'subheader', alignment: 'right', margin: [0, 10, 0, 0] },
       { text: 'حيث ان الطرف الأول هو شركة تأجير سيارات  مرخصة اصولا وتمتلك  المركبة المبينة نوعا وماركة وطرازا و رقم شاسيه ادناه', alignment: 'right' },
       { text: 'ولما كان الطرف الثاني يرغب في التعامل مع الطرف الأول على هذا الأساس وذلك لاستئجار المركبة المذكورة وفق نظام الايجار طبقاً للوائح الشركة وقانون دولة قطر.', alignment: 'right' },
-      { text: 'ولما كان الطرف الأول قد وافق على تأجير الطرف الثاني المركبة المذكورة وفق نظام الايجار المبين وطبقا للشروط والاحكام الواردة ادناه،', alignment: 'right' },
+      { text: 'ولما كان الطرف الأول قد وافق على تأجير الطرف الثاني المركبة المذكورة وفق نظام الايجار المبين وطبقا للشروط والاحكام الواردة ادناه，', alignment: 'right' },
       { text: 'لذلك، فقد اتفق الطرفان بعد ان قرروا بأهليتهم للتعاقد بصفتهم  ومع الاخذ بعين الاعتبار للوعود والعهود المتبادلة بينهما  على الاتي:', alignment: 'right' },
       { text: 'مادة 1', style: 'subheader', alignment: 'right', margin: [0, 10, 0, 0] },
       { text: 'يعتبر التمهيد السابق جزأ لا يتجزأ من هذا العقد ويفسر ضمن بنوده وشروطه.', alignment: 'right' },

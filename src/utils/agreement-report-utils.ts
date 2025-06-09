@@ -15,15 +15,7 @@ export async function ensureFontsLoaded() {
     const fontsInitialized = await initializeFonts();
     if (!fontsInitialized) {
       console.warn('Font initialization failed, using fallback configuration');
-      // Fallback configuration
-      configurePdfMakeFonts({
-        Amiri: {
-          normal: '/Amiri-Regular.ttf',
-          bold: '/Amiri-Bold.ttf',
-          italics: '/Amiri-Regular.ttf',
-          bolditalics: '/Amiri-Bold.ttf',
-        },
-      });
+      configurePdfMakeFonts();
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
@@ -34,7 +26,6 @@ export async function ensureFontsLoaded() {
 const labels = {
   // Header
   reportTitle: { ar: 'الشامل الإيجار  تقرير' },
-
   companyName: { ar: ' ذ.م.م السيارات لتأجير العراف  شركة' },
   
   // Document info
@@ -215,7 +206,7 @@ export async function generateAgreementReportPdfmake(
     
     // Main content with enhanced Arabic support
     content: [
-      // Report title with blue background, matching the design
+      // Report title with blue background
       {
         table: {
           widths: ['*'],
