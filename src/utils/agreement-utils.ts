@@ -1,539 +1,509 @@
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { formatDate } from '@/lib/date-utils';
-import { castDbId } from '@/utils/supabase-type-helpers';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/types/agreement';
+import { formatCurrency } from '@/lib/utils';
+import pdfMake from 'pdfmake/build/pdfmake';
+import { configurePdfMakeFonts, initializeFonts } from './font-loader';
+import { 
+  prepareArabicForPDF, 
+  createArabicTextBlock, 
+  formatArabicCurrency, 
+  formatArabicDate 
+} from './arabic-text-utils';
 
-/**
- * Updates an agreement with proper validation and status transitions
- */
-export const updateAgreementWithCheck = async (
-  { id, data }: { id: string; data: Partial<Agreement> },
-  userId?: string | null,
-  onSuccess?: () => void,
-  onError?: (error: any) => void,
-  onStatusUpdate?: (status: string) => void
-) => {
-  // Track if there's a status change that needs special handling
-  const isChangingToActive = data.status === 'active';
-  const isChangingToClosed = data.status === 'closed';
+// Enhanced font configuration with better Arabic support
+export async function ensureFontsLoaded() {
+  try {
+    const fontsInitialized = await initializeFonts();
+    if (!fontsInitialized) {
+      console.warn('Font initialization failed, using fallback configuration');
+      configurePdfMakeFonts();
+    }
+  } catch (error) {
+    console.warn('Font loading failed, using default fonts:', error);
+  }
+}
+
+// Arabic labels for vehicle rental contract
+const contractLabels = {
+  // Header
+  contractTitle: { ar: 'عقد إيجار مركبة' },
+  companyName: { ar: 'شركة العراف لتأجير السيارات ذ.م.م' },
   
-  try {
-    if (onStatusUpdate) onStatusUpdate("Updating agreement details...");
-    console.log(`Updating agreement ${id} with data:`, data);
-
-    // First, perform the basic agreement update
-    const { error: updateError } = await supabase
-      .from('leases')
-      .update(data)
-      .eq('id', castDbId(id));
-
-    if (updateError) {
-      console.error("Error updating agreement:", updateError);
-      toast.error(`Failed to update agreement: ${updateError.message}`);
-      if (onError) onError(updateError);
-      return;
-    }
-
-    // Handle status-specific operations asynchronously
-    if (isChangingToActive) {
-      if (onStatusUpdate) onStatusUpdate("Agreement updated. Processing payment schedule...");
-      
-      // Run payment schedule generation in the background
-      processingPaymentSchedule(id, onStatusUpdate).then(result => {
-        if (result.success) {
-          if (onStatusUpdate) onStatusUpdate("Payment schedule generated successfully");
-          toast.success("Payment schedule generated successfully");
-        } else {
-          toast.error(`Payment schedule issue: ${result.message}`);
-          // This doesn't block the main flow, just informs the user
-        }
-      }).catch(error => {
-        console.error("Background payment schedule error:", error);
-        toast.error("There was an issue with the payment schedule");
-      });
-    } 
-    else if (isChangingToClosed) {
-      // Handle agreement closing operations
-      if (onStatusUpdate) onStatusUpdate("Finalizing agreement closure...");
-      
-      // Add specific closing operations here if needed
-      setTimeout(() => {
-        if (onStatusUpdate) onStatusUpdate("Agreement closed successfully");
-      }, 1000);
-    }
-
-    // Allow the main flow to complete regardless of background tasks
-    if (onSuccess) onSuccess();
-  } catch (error) {
-    console.error("Error in updateAgreementWithCheck:", error);
-    toast.error(`An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`);
-    if (onError) onError(error);
-  }
+  // Parties
+  firstParty: { ar: 'الطرف الأول (المؤجر)' },
+  secondParty: { ar: 'الطرف الثاني (المستأجر)' },
+  
+  // Agreement details
+  agreementNumber: { ar: 'رقم العقد' },
+  contractDate: { ar: 'تاريخ العقد' },
+  startDate: { ar: 'تاريخ البدء' },
+  endDate: { ar: 'تاريخ الانتهاء' },
+  duration: { ar: 'مدة الإيجار' },
+  
+  // Customer information
+  customerName: { ar: 'اسم المستأجر' },
+  nationality: { ar: 'الجنسية' },
+  idNumber: { ar: 'رقم الهوية' },
+  phoneNumber: { ar: 'رقم الهاتف' },
+  email: { ar: 'البريد الإلكتروني' },
+  
+  // Vehicle information
+  vehicleDetails: { ar: 'تفاصيل المركبة' },
+  make: { ar: 'الماركة' },
+  model: { ar: 'الموديل' },
+  year: { ar: 'سنة الصنع' },
+  licensePlate: { ar: 'رقم اللوحة' },
+  color: { ar: 'اللون' },
+  vinNumber: { ar: 'رقم الهيكل' },
+  
+  // Financial terms
+  financialTerms: { ar: 'الشروط المالية' },
+  monthlyRent: { ar: 'الإيجار الشهري' },
+  totalAmount: { ar: 'المبلغ الإجمالي' },
+  depositAmount: { ar: 'مبلغ الضمان' },
+  paymentDay: { ar: 'يوم الدفع' },
+  
+  // Terms and conditions
+  termsConditions: { ar: 'الشروط والأحكام' },
+  term1: { ar: '1. يلتزم المستأجر بدفع الإيجار الشهري في التاريخ المحدد.' },
+  term2: { ar: '2. يحق للمؤجر استرداد المركبة في حالة عدم الدفع.' },
+  term3: { ar: '3. المستأجر مسؤول عن أي أضرار تلحق بالمركبة.' },
+  term4: { ar: '4. يجب إرجاع المركبة بنفس الحالة التي تم تسليمها بها.' },
+  term5: { ar: '5. أي مخالفات مرورية تقع على عهدة المستأجر.' },
+  term6: { ar: '6. يحق للمؤجر فسخ العقد في حالة مخالفة أي من هذه الشروط.' },
+  
+  // Signatures
+  signatures: { ar: 'التوقيعات' },
+  firstPartySignature: { ar: 'توقيع الطرف الأول' },
+  secondPartySignature: { ar: 'توقيع الطرف الثاني' },
+  date: { ar: 'التاريخ' },
+  
+  // Footer
+  legalNotice: { ar: 'هذا العقد محرر باللغة العربية ويخضع للقوانين المعمول بها في دولة قطر' }
 };
 
-/**
- * Handles the payment schedule processing with proper status updates and error handling
- */
-const processingPaymentSchedule = async (
-  agreementId: string, 
-  onStatusUpdate?: (status: string) => void
-): Promise<{ success: boolean; message?: string }> => {
+// Enhanced color scheme for official documents
+const colors = {
+  primary: '#1e40af',      // Professional blue
+  secondary: '#64748b',    // Slate gray
+  accent: '#0ea5e9',       // Sky blue
+  text: '#334155',         // Dark gray
+  textLight: '#64748b',    // Light text
+  border: '#e2e8f0',       // Border gray
+  light: '#f8fafc',        // Very light gray
+  lighter: '#f1f5f9'       // Light gray
+};
+
+// Helper function to format date as dd/mm/yyyy in Arabic
+function formatDateArabic(date: string | Date | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return ${day}/${month}/${year};
+}
+
+// Helper function to calculate duration in months
+function calculateDurationMonths(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
+}
+
+export async function generatePdfDocument(agreement: Agreement): Promise<boolean> {
   try {
-    if (onStatusUpdate) onStatusUpdate("Checking agreement details...");
+    await ensureFontsLoaded();
     
-    // First, get the agreement details
-    const { data: agreement, error: agreementError } = await supabase
-      .from('leases')
-      .select('*')
-      .eq('id', castDbId(agreementId))
-      .single();
-
-    if (agreementError || !agreement) {
-      console.error("Error fetching agreement for payment schedule:", agreementError);
-      return { success: false, message: agreementError?.message || "Agreement not found" };
-    }
-
-    if (onStatusUpdate) onStatusUpdate("Generating payment schedule...");
+    const currentDate = new Date();
+    const startDate = new Date(agreement.start_date);
+    const endDate = new Date(agreement.end_date);
+    const duration = calculateDurationMonths(startDate, endDate);
     
-    // Set a timeout to prevent infinite processing
-    const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
-      setTimeout(() => reject({ success: false, message: "Payment schedule generation timed out" }), 10000);
-    });
-    
-    try {
-      // Race between the generation and timeout
-      const result = await Promise.race([
-        generatePaymentSchedule(agreement, onStatusUpdate),
-        timeoutPromise
-      ]);
+    // Enhanced document definition for Arabic vehicle rental contract
+    const docDefinition = {
+      pageSize: 'A4',
+      pageMargins: [50, 80, 50, 100],
       
-      return result;
-    } catch (error) {
-      console.error("Error in payment schedule generation:", error);
-      return { 
-        success: false, 
-        message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
-      };
-    }
-  } catch (error) {
-    console.error("Error in processingPaymentSchedule:", error);
-    return { 
-      success: false, 
-      message: `Failed to process payment schedule: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Asynchronously generates a payment schedule for an agreement
- */
-const generatePaymentScheduleAsync = async (agreementId: string): Promise<{ success: boolean; message?: string }> => {
-  try {
-    // First, get the agreement details
-    const { data: agreement, error: agreementError } = await supabase
-      .from('leases')
-      .select('*')
-      .eq('id', castDbId(agreementId))
-      .single();
-
-    if (agreementError || !agreement) {
-      console.error("Error fetching agreement for payment schedule:", agreementError);
-      return { success: false, message: agreementError?.message || "Agreement not found" };
-    }
-
-    // Call the payment schedule generation with the agreement data
-    const result = await forceGeneratePaymentForAgreement(agreement);
-    return result;
-  } catch (error) {
-    console.error("Error generating payment schedule:", error);
-    return { 
-      success: false, 
-      message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Generates payment schedules for an agreement with improved error handling
- */
-export const forceGeneratePaymentForAgreement = async (agreement: any): Promise<{ success: boolean; message?: string }> => {
-  try {
-    // Set a timeout to prevent infinite processing
-    const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
-      setTimeout(() => reject({ success: false, message: "Operation timed out" }), 8000);
-    });
-
-    // Run the payment generation with a timeout
-    try {
-      const result = await Promise.race([
-        generatePaymentSchedule(agreement),
-        timeoutPromise
-      ]);
-      return result;
-    } catch (error) {
-      console.error("Payment generation timed out or failed:", error);
-      return { 
-        success: false, 
-        message: `Payment generation issue: ${error instanceof Error ? error.message : String(error)}` 
-      };
-    }
-  } catch (error) {
-    console.error("Error in forceGeneratePaymentForAgreement:", error);
-    return { 
-      success: false, 
-      message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Core payment schedule generation logic with improved performance and error handling
- */
-const generatePaymentSchedule = async (
-  agreement: any,
-  onStatusUpdate?: (status: string) => void
-): Promise<{ success: boolean; message?: string }> => {
-  try {
-    if (onStatusUpdate) onStatusUpdate("Analyzing agreement details...");
-    console.log("Generating payment schedule for agreement:", agreement.id);
-
-    // Safety checks
-    if (!agreement || !agreement.id) {
-      return { success: false, message: "Invalid agreement data" };
-    }
-
-    // Skip if no rent amount is defined
-    if (!agreement.rent_amount || agreement.rent_amount <= 0) {
-      return { success: false, message: "Cannot generate payment schedule: no rent amount specified" };
-    }
-    
-    if (onStatusUpdate) onStatusUpdate("Setting up payment due dates...");
-
-    // Determine rent due day (default to 1 if not specified)
-    const rentDueDay = agreement.rent_due_day || 1;
-    
-    // Get agreement start date with validation
-    let startDate: Date;
-    try {
-      startDate = new Date(agreement.start_date);
-      if (isNaN(startDate.getTime())) {
-        return { success: false, message: "Invalid start date" };
-      }
-    } catch (error) {
-      return { success: false, message: "Could not parse agreement start date" };
-    }
-    
-    // Create first payment due date
-    let firstDueDate = new Date(startDate);
-    firstDueDate.setDate(rentDueDay);
-    
-    // If start date is after the rent due day, move to next month
-    if (startDate.getDate() > rentDueDay) {
-      firstDueDate.setMonth(firstDueDate.getMonth() + 1);
-    }
-    
-    if (onStatusUpdate) onStatusUpdate("Checking for existing payments...");
-
-    // Check if a payment already exists for this month with better error handling
-    try {
-      const { data: existingPayments, error } = await supabase
-        .from('unified_payments')
-        .select('id')
-        .eq('lease_id', agreement.id)
-        .gte('due_date', formatDate(startDate))
-        .lt('due_date', formatDate(new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate())));
-
-      if (error) {
-        console.error("Error checking existing payments:", error);
-        return { success: false, message: `Payment check failed: ${error.message}` };
-      }
-
-      // If payments already exist, don't recreate them
-      if (existingPayments && existingPayments.length > 0) {
-        console.log("Payments already exist for this agreement:", existingPayments.length);
-        return { success: true, message: "Payments already exist for this agreement" };
-      }
-    } catch (error) {
-      console.error("Error checking existing payments:", error);
-      return { success: false, message: "Failed to check existing payments" };
-    }
-    
-    if (onStatusUpdate) onStatusUpdate("Creating payment record...");
-
-    // Prepare the first payment record
-    const paymentData = {
-      lease_id: agreement.id,
-      amount: agreement.rent_amount,
-      description: `Rent Payment - ${formatDate(firstDueDate, 'MMMM yyyy')}`,
-      type: 'Income',
-      status: 'pending',
-      due_date: formatDate(firstDueDate),
-      is_recurring: false
-    };
-
-    try {
-      // Insert the payment record
-      const { error: insertError } = await supabase
-        .from('unified_payments')
-        .insert(paymentData);
-
-      if (insertError) {
-        console.error("Error creating payment schedule:", insertError);
-        return { success: false, message: `Failed to create payment: ${insertError.message}` };
-      }
+      // Header with company branding
+      header: {
+        margin: [50, 30, 50, 0],
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              stack: [
+                {
+                  text: contractLabels.companyName.ar,
+                  style: 'companyName',
+                  alignment: 'center',
+                  margin: [0, 0, 0, 5]
+                },
+                {
+                  text: contractLabels.contractTitle.ar,
+                  style: 'contractTitle',
+                  alignment: 'center',
+                  margin: [0, 0, 0, 10]
+                }
+              ],
+              fillColor: colors.lighter,
+              border: [false, false, false, true],
+              borderColor: [colors.primary, colors.primary, colors.primary, colors.primary]
+            }
+          ]]
+        },
+        layout: 'noBorders'
+      },
       
-      if (onStatusUpdate) onStatusUpdate("Payment schedule created successfully");
-      return { success: true, message: "Payment schedule generated successfully" };
-    } catch (error) {
-      console.error("Error inserting payment record:", error);
-      return { success: false, message: "Failed to insert payment record" };
-    }
-  } catch (error) {
-    console.error("Unexpected error generating payment schedule:", error);
-    return { 
-      success: false, 
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
-    };
-  }
-};
-
-/**
- * Activates an agreement and generates the initial payment schedule
- */
-export const activateAgreement = async (
-  agreementId: string, 
-  vehicleId?: string
-): Promise<{ success: boolean; message?: string }> => {
-  try {
-    console.log(`Activating agreement ${agreementId}${vehicleId ? ` with vehicle ${vehicleId}` : ''}`);
-    
-    // First check if the agreement exists and is not already active
-    const { data: agreement, error: agreementError } = await supabase
-      .from('leases')
-      .select('id, status')
-      .eq('id', castDbId(agreementId))
-      .single();
-    
-    if (agreementError || !agreement) {
-      console.error("Error getting agreement for activation:", agreementError);
-      return { 
-        success: false, 
-        message: agreementError?.message || "Agreement not found" 
-      };
-    }
-    
-    if (agreement.status === 'active') {
-      console.log("Agreement is already active");
-      return { success: true, message: "Agreement is already active" };
-    }
-
-    // If a vehicle ID is provided and the vehicle is not already assigned
-    if (vehicleId) {
-      // Check if vehicle is available
-      const { isAvailable, existingAgreement, error } = await checkVehicleAvailability(vehicleId);
-      
-      if (error) {
-        console.error("Error checking vehicle availability:", error);
-        return { 
-          success: false, 
-          message: `Could not check vehicle availability: ${error}` 
+      // Footer with legal notice
+      footer: (currentPage: number, pageCount: number) => {
+        return {
+          margin: [50, 20, 50, 30],
+          table: {
+            widths: ['*'],
+            body: [[
+              {
+                stack: [
+                  {
+                    text: contractLabels.legalNotice.ar,
+                    style: 'legalNotice',
+                    alignment: 'center',
+                    margin: [0, 0, 0, 5]
+                  },
+                  {
+                    text: صفحة ${currentPage} من ${pageCount},
+                    style: 'pageNumber',
+                    alignment: 'center'
+                  }
+                ]
+              }
+            ]]
+          },
+          layout: 'noBorders'
         };
-      }
+      },
       
-      if (!isAvailable && existingAgreement) {
-        console.log("Vehicle is already assigned, will close existing agreement first");
+      // Main content
+      content: [
+        // Contract header information
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                createArabicTextBlock(${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}, 'contractInfo'),
+                createArabicTextBlock(${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}, 'contractInfo')
+              ]
+            ]
+          },
+          layout: 'noBorders',
+          margin: [0, 20, 0, 20]
+        },
         
-        // Close the existing agreement
-        const { error: closeError } = await supabase
-          .from('leases')
-          .update({ 
-            status: 'closed',
-            updated_at: new Date().toISOString(),
-            notes: `Closed automatically when vehicle was reassigned to agreement ${agreementId}`
-          })
-          .eq('id', existingAgreement.id);
+        // Parties section
+        {
+          text: contractLabels.firstParty.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        {
+          text: contractLabels.companyName.ar,
+          style: 'partyInfo',
+          margin: [20, 0, 0, 15]
+        },
         
-        if (closeError) {
-          console.error("Failed to close existing agreement:", closeError);
-          return { 
-            success: false, 
-            message: `Failed to close existing vehicle assignment: ${closeError.message}` 
-          };
+        {
+          text: contractLabels.secondParty.ar,
+          style: 'sectionHeader',
+          margin: [0, 10, 0, 10]
+        },
+        
+        // Customer information table
+        {
+          table: {
+            widths: ['30%', '70%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.full_name || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.nationality || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.driver_license || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.phone_number || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.email || 'غير محدد', 'valueStyle')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Vehicle details section
+        {
+          text: contractLabels.vehicleDetails.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        
+        {
+          table: {
+            widths: ['30%', '70%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.make || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.model || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.year?.toString() || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.license_plate || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.color || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.vin || 'غير محدد', 'valueStyle')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Contract terms section
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                createArabicTextBlock(${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}, 'contractTerms'),
+                createArabicTextBlock(${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}, 'contractTerms')
+              ],
+              [
+                createArabicTextBlock(${contractLabels.duration.ar}: ${duration} شهر, 'contractTerms'),
+                createArabicTextBlock(${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}, 'contractTerms')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 20, 0, 20]
+        },
+        
+        // Financial terms section
+        {
+          text: contractLabels.financialTerms.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        
+        {
+          table: {
+            widths: ['40%', '60%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.monthlyRent.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.rent_amount), 'financialValue')
+              ],
+              [
+                createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.total_amount), 'financialValue')
+              ],
+              [
+                createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.deposit_amount), 'financialValue')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 30]
+        },
+        
+        // Terms and conditions
+        {
+          text: contractLabels.termsConditions.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 15]
+        },
+        
+        {
+          stack: [
+            createArabicTextBlock(contractLabels.term1.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term2.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term3.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term4.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term5.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term6.ar, 'termText')
+          ],
+          margin: [0, 0, 0, 40]
+        },
+        
+        // Signatures section
+        {
+          text: contractLabels.signatures.ar,
+          style: 'sectionHeader',
+          margin: [0, 30, 0, 20]
+        },
+        
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                {
+                  stack: [
+                    createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureLabel'),
+                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
+                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
+                    createArabicTextBlock(${contractLabels.date.ar}: _______________, 'signatureDate')
+                  ]
+                },
+                {
+                  stack: [
+                    createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureLabel'),
+                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
+                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
+                    createArabicTextBlock(${contractLabels.date.ar}: _______________, 'signatureDate')
+                  ]
+                }
+              ]
+            ]
+          },
+          layout: 'noBorders',
+          margin: [0, 0, 0, 20]
         }
-      }
-    }
-    
-    // Update the agreement status to active
-    const { error: updateError } = await supabase
-      .from('leases')
-      .update({ 
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', castDbId(agreementId));
-    
-    if (updateError) {
-      console.error("Error activating agreement:", updateError);
-      return { 
-        success: false, 
-        message: `Failed to activate agreement: ${updateError.message}` 
-      };
-    }
-    
-    // Generate the payment schedule
-    const scheduleResult = await forceGeneratePaymentForAgreement({ id: agreementId });
-    
-    if (!scheduleResult.success) {
-      console.warn("Agreement activated but payment schedule generation failed:", scheduleResult.message);
-      return {
-        success: true, // Still return true as the activation itself succeeded
-        message: `Agreement activated but payment schedule generation had issues: ${scheduleResult.message}`
-      };
-    }
-    
-    return {
-      success: true,
-      message: "Agreement activated successfully with payment schedule"
-    };
-  } catch (error) {
-    console.error("Error in activateAgreement:", error);
-    return { 
-      success: false, 
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
-    };
-  }
-};
-
-/**
- * Checks if a vehicle is available or already assigned to an active agreement
- */
-export const checkVehicleAvailability = async (vehicleId: string) => {
-  try {
-    console.log("Checking availability for vehicle:", vehicleId);
-    
-    // Check if the vehicle is already assigned to an active agreement
-    const { data: activeAgreements, error } = await supabase
-      .from('leases')
-      .select('id, agreement_number, customer_id, status')
-      .eq('vehicle_id', vehicleId)
-      .eq('status', 'active')
-      .limit(1);
+      ],
       
-    if (error) {
-      console.error("Error checking vehicle availability:", error);
-      return { 
-        isAvailable: false, 
-        error: error.message,
-        existingAgreement: null 
-      };
-    }
-    
-    const isAvailable = !activeAgreements || activeAgreements.length === 0;
-    let existingAgreement = null;
-    
-    if (!isAvailable && activeAgreements && activeAgreements.length > 0) {
-      existingAgreement = activeAgreements[0];
-      console.log("Vehicle is already assigned to agreement:", existingAgreement.agreement_number);
-    }
-    
-    return {
-      isAvailable,
-      existingAgreement,
-      vehicleId
-    };
-  } catch (error) {
-    console.error("Error in checkVehicleAvailability:", error);
-    return { 
-      isAvailable: false, 
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-      existingAgreement: null 
-    };
-  }
-};
-
-/**
- * Helper function to check and create payment schedules for active agreements
- */
-export const checkAndCreateMissingPaymentSchedules = async (): Promise<{ 
-  success: boolean; 
-  generatedCount: number;
-  message?: string;
-  error?: any 
-}> => {
-  try {
-    console.log('Checking for missing payment schedules');
-    
-    // Find active agreements without payment records
-    const { data: activeAgreements, error: agreementsError } = await supabase
-      .from('leases')
-      .select('id, rent_amount, start_date, rent_due_day')
-      .eq('status', 'active')
-      .is('payment_status', null);
-    
-    if (agreementsError) {
-      console.error('Error fetching active agreements:', agreementsError);
-      return { 
-        success: false, 
-        generatedCount: 0,
-        message: 'Error fetching agreements', 
-        error: agreementsError 
-      };
-    }
-    
-    if (!activeAgreements || activeAgreements.length === 0) {
-      console.log('No agreements require payment schedule generation');
-      return { success: true, generatedCount: 0, message: 'No payments needed to be generated' };
-    }
-    
-    console.log(`Found ${activeAgreements.length} agreements that might need payment schedules`);
-    
-    let generatedCount = 0;
-    let failedCount = 0;
-    
-    // Process each agreement with a small delay between them to avoid overwhelming the database
-    for (const agreement of activeAgreements) {
-      try {
-        // Generate payment schedule
-        const result = await generatePaymentSchedule(agreement);
-        if (result.success) {
-          generatedCount++;
-        } else {
-          failedCount++;
-          console.error(`Failed to generate payment schedule for agreement ${agreement.id}: ${result.message}`);
+      // Enhanced styles for Arabic legal document
+      styles: {
+        companyName: {
+          fontSize: 18,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'center'
+        },
+        contractTitle: {
+          fontSize: 16,
+          bold: true,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'center'
+        },
+        contractInfo: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        sectionHeader: {
+          fontSize: 14,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'right'
+        },
+        partyInfo: {
+          fontSize: 12,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        labelStyle: {
+          fontSize: 11,
+          bold: true,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'right'
+        },
+        valueStyle: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        contractTerms: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        financialValue: {
+          fontSize: 12,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'right'
+        },
+        termText: {
+          fontSize: 10,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right',
+          margin: [0, 0, 0, 8]
+        },
+        signatureLabel: {
+          fontSize: 11,
+          bold: true,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'center'
+        },
+        signatureDate: {
+          fontSize: 10,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
+        },
+        legalNotice: {
+          fontSize: 8,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
+        },
+        pageNumber: {
+          fontSize: 8,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
         }
-        
-        // Add a small delay between operations
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (err) {
-        failedCount++;
-        console.error(`Error processing agreement ${agreement.id}:`, err);
+      },
+      
+      defaultStyle: {
+        font: 'Amiri',
+        fontSize: 11,
+        rtl: true,
+        alignment: 'right'
       }
-    }
-    
-    return { 
-      success: true, 
-      generatedCount,
-      message: `Generated ${generatedCount} payment schedules${failedCount > 0 ? `, ${failedCount} failed` : ''}` 
     };
-  } catch (err) {
-    console.error('Unexpected error in checkAndCreateMissingPaymentSchedules:', err);
-    return { 
-      success: false, 
-      generatedCount: 0,
-      message: `Failed to generate payments: ${err instanceof Error ? err.message : String(err)}`,
-      error: err 
-    };
-  }
-};
 
-/**
- * Helper to convert from simple to full agreement
- */
-export function adaptSimpleToFullAgreement(simpleAgreement: any): Agreement {
-  return {
-    ...simpleAgreement,
-    additional_drivers: simpleAgreement.additional_drivers || [],
-    terms_accepted: !!simpleAgreement.terms_accepted,
-  };
+    // Generate and download the PDF
+    const fileName = prepareArabicForPDF(عقد-إيجار-مركبة-${agreement.agreement_number || 'غير-محدد'}.pdf);
+    pdfMake.createPdf(docDefinition).download(fileName);
+    
+    return true;
+  } catch (error) {
+    console.error('Error generating Arabic vehicle rental contract PDF:', error);
+    return false;
+  }
 }

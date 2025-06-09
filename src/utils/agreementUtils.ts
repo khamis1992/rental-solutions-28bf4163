@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -103,7 +102,7 @@ function formatDateArabic(date: string | Date | undefined): string {
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return ${day}/${month}/${year};
 }
 
 // Helper function to calculate duration in months
@@ -173,7 +172,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
                     margin: [0, 0, 0, 5]
                   },
                   {
-                    text: `صفحة ${currentPage} من ${pageCount}`,
+                    text: صفحة ${currentPage} من ${pageCount},
                     style: 'pageNumber',
                     alignment: 'center'
                   }
@@ -193,8 +192,8 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
             widths: ['50%', '50%'],
             body: [
               [
-                createArabicTextBlock(`${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`, 'contractInfo'),
-                createArabicTextBlock(`${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`, 'contractInfo')
+                createArabicTextBlock(${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}, 'contractInfo'),
+                createArabicTextBlock(${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}, 'contractInfo')
               ]
             ]
           },
@@ -298,12 +297,12 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
             widths: ['50%', '50%'],
             body: [
               [
-                createArabicTextBlock(`${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`, 'contractTerms')
+                createArabicTextBlock(${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}, 'contractTerms'),
+                createArabicTextBlock(${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}, 'contractTerms')
               ],
               [
-                createArabicTextBlock(`${contractLabels.duration.ar}: ${duration} شهر`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}`, 'contractTerms')
+                createArabicTextBlock(${contractLabels.duration.ar}: ${duration} شهر, 'contractTerms'),
+                createArabicTextBlock(${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}, 'contractTerms')
               ]
             ]
           },
@@ -376,7 +375,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
                     createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureLabel'),
                     { text: '', margin: [0, 30, 0, 0] }, // Space for signature
                     { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
+                    createArabicTextBlock(${contractLabels.date.ar}: _______________, 'signatureDate')
                   ]
                 },
                 {
@@ -384,7 +383,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
                     createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureLabel'),
                     { text: '', margin: [0, 30, 0, 0] }, // Space for signature
                     { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
+                    createArabicTextBlock(${contractLabels.date.ar}: _______________, 'signatureDate')
                   ]
                 }
               ]
@@ -499,7 +498,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     };
 
     // Generate and download the PDF
-    const fileName = prepareArabicForPDF(`عقد-إيجار-مركبة-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    const fileName = prepareArabicForPDF(عقد-إيجار-مركبة-${agreement.agreement_number || 'غير-محدد'}.pdf);
     pdfMake.createPdf(docDefinition).download(fileName);
     
     return true;
