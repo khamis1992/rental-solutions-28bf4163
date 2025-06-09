@@ -1,4 +1,3 @@
-
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { supabase } from '@/lib/supabaseClient';
@@ -109,66 +108,4 @@ export async function generateAndUploadAgreementPdf({ agreement, customer, vehic
       }
     });
   });
-}
-
-export async function generateAgreementPdfAndUploadAndDownload(agreement: any): Promise<boolean> {
-  try {
-    // Prepare data for the Arabic PDF generator
-    const agreementData = {
-      agreement: {
-        agreement_number: agreement.agreement_number || 'N/A',
-        start_date: agreement.start_date,
-        agreement_duration: agreement.agreement_duration || '12 months',
-        rent_amount: agreement.rent_amount || 0,
-        daily_late_fee: agreement.daily_late_fee || 120,
-      },
-      customer: {
-        name: agreement.profiles?.full_name || agreement.customer_name || 'N/A',
-        driver_license: agreement.profiles?.driver_license || 'N/A',
-        nationality: agreement.profiles?.nationality || 'N/A',
-        email: agreement.profiles?.email || 'N/A',
-        phone_number: agreement.profiles?.phone_number || 'N/A',
-      },
-      vehicle: {
-        license_plate: agreement.vehicles?.license_plate || 'N/A',
-        vin: agreement.vehicles?.vin || 'N/A',
-        model: agreement.vehicles?.model || 'N/A',
-        make: agreement.vehicles?.make || 'N/A',
-      },
-      payment: {
-        down_payment: agreement.deposit_amount || 0,
-      }
-    };
-
-    // Generate and upload the PDF
-    const uploadResult = await generateAndUploadAgreementPdf(agreementData);
-    
-    if (!uploadResult) {
-      throw new Error('Failed to upload PDF to storage');
-    }
-
-    // Get the public URL for download
-    const fileName = `agreement_${agreement.agreement_number}.pdf`;
-    const { data: urlData } = supabase.storage
-      .from('agreements')
-      .getPublicUrl(fileName);
-
-    if (!urlData?.publicUrl) {
-      throw new Error('Failed to get download URL');
-    }
-
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = urlData.publicUrl;
-    link.download = fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    return true;
-  } catch (error) {
-    console.error('Error generating and downloading PDF:', error);
-    return false;
-  }
-}
+} 

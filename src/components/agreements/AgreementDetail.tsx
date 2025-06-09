@@ -1,10 +1,11 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
+import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
@@ -99,17 +100,27 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - Updated to use Arabic PDF generator
+  // Download PDF - ensure dates are Date objects
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing Arabic agreement PDF document...");
+        toast.info("Preparing agreement PDF document...");
         
-        const success = await generateAgreementPdfAndUploadAndDownload(agreement);
+        // Create PDF-compatible agreement object with proper date conversion
+        const agreementForPdf = {
+          ...agreement,
+          start_date: ensureDate(agreement.start_date),
+          end_date: ensureDate(agreement.end_date),
+          created_at: ensureDate(agreement.created_at),
+          updated_at: ensureDate(agreement.updated_at),
+        };
+        
+        // Use type assertion to handle the interface differences
+        const success = await generatePdfDocument(agreementForPdf as any);
         
         if (success) {
-          toast.success("Arabic agreement PDF generated and downloaded successfully");
+          toast.success("Agreement PDF generated successfully");
         } else {
           toast.error("Failed to generate PDF document");
         }
