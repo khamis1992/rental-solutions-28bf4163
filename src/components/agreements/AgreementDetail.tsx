@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generatePdfDocument } from '@/utils/agreement-utils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Payment } from '@/types/payment.types';

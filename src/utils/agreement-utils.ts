@@ -1,50 +1,67 @@
 
-import { generateAgreementPdfAndUploadAndDownload } from './generateAgreementPdf';
+import { generateSimplifiedAgreementPdf } from './simplified-pdf-generator';
 import { supabase } from '@/lib/supabase';
 
 export async function generatePdfDocument(agreement: any): Promise<boolean> {
   try {
-    console.log('Starting PDF generation for agreement:', agreement.id);
+    console.log('Starting simplified PDF generation for agreement:', agreement.id);
     
-    // Get customer information
-    const { data: customer, error: customerError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', agreement.customer_id)
-      .single();
+    // Get customer information with error handling
+    let customer = null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', agreement.customer_id)
+        .single();
 
-    if (customerError) {
-      console.error('Error fetching customer:', customerError);
-      // Continue with empty customer data rather than failing
+      if (error) {
+        console.warn('Error fetching customer:', error);
+      } else {
+        customer = data;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch customer data:', error);
     }
 
-    // Get vehicle information
-    const { data: vehicle, error: vehicleError } = await supabase
-      .from('vehicles')
-      .select('*')
-      .eq('id', agreement.vehicle_id)
-      .single();
+    // Get vehicle information with error handling
+    let vehicle = null;
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', agreement.vehicle_id)
+        .single();
 
-    if (vehicleError) {
-      console.error('Error fetching vehicle:', vehicleError);
-      // Continue with empty vehicle data rather than failing
+      if (error) {
+        console.warn('Error fetching vehicle:', error);
+      } else {
+        vehicle = data;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch vehicle data:', error);
     }
 
     // Get payment information (optional)
-    const { data: payments, error: paymentError } = await supabase
-      .from('unified_payments')
-      .select('*')
-      .eq('lease_id', agreement.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    let payment = null;
+    try {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    if (paymentError) {
-      console.error('Error fetching payments:', paymentError);
+      if (error) {
+        console.warn('Error fetching payments:', error);
+      } else if (data && data.length > 0) {
+        payment = data[0];
+      }
+    } catch (error) {
+      console.warn('Failed to fetch payment data:', error);
     }
 
-    const payment = payments && payments.length > 0 ? payments[0] : null;
-
-    // Prepare data with fallbacks
+    // Prepare data with safe fallbacks
     const agreementData = {
       ...agreement,
       agreement_number: agreement.agreement_number || `AG-${agreement.id.slice(0, 8)}`,
@@ -76,22 +93,22 @@ export async function generatePdfDocument(agreement: any): Promise<boolean> {
       down_payment: agreementData.deposit_amount || 0
     };
 
-    console.log('Generating PDF with data:', {
+    console.log('Generating simplified PDF with data:', {
       agreement: agreementData,
       customer: customerData,
       vehicle: vehicleData,
       payment: paymentData
     });
 
-    // Generate the PDF
-    await generateAgreementPdfAndUploadAndDownload({
+    // Generate the simplified PDF
+    await generateSimplifiedAgreementPdf({
       agreement: agreementData,
       customer: customerData,
       vehicle: vehicleData,
       payment: paymentData
     });
 
-    console.log('PDF generation completed successfully');
+    console.log('Simplified PDF generation completed successfully');
     return true;
 
   } catch (error) {
@@ -99,11 +116,7 @@ export async function generatePdfDocument(agreement: any): Promise<boolean> {
     
     // Provide more specific error information
     if (error instanceof Error) {
-      if (error.message.includes('xCoordinate')) {
-        console.error('PDF layout error - likely issue with font or text positioning');
-      } else if (error.message.includes('font')) {
-        console.error('Font loading error in PDF generation');
-      }
+      console.error('PDF generation error details:', error.message);
     }
     
     return false;
