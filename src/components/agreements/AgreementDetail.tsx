@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
 import { Payment } from '@/types/payment.types';
@@ -100,6 +101,27 @@ export function AgreementDetail({
     deletePayment: deletePaymentMutation,
     refetch: fetchPayments
   } = usePaymentManagement(agreement?.id);
+
+  // Fetch traffic fines for this agreement
+  const { data: trafficFines = [] } = useQuery({
+    queryKey: ['trafficFines', agreement?.id],
+    queryFn: async () => {
+      if (!agreement?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .select('*')
+        .eq('leaseId', agreement.id);
+
+      if (error) {
+        console.error('Error fetching traffic fines:', error);
+        return [];
+      }
+      
+      return data || [];
+    },
+    enabled: !!agreement?.id
+  });
   
   // Helper function to safely convert date string to Date object
   const ensureDate = (dateValue: string | Date): Date => {
@@ -132,36 +154,31 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
+  // Download PDF using Arabic generator
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing agreement PDF document...");
+        toast.info("Preparing Arabic agreement report...");
         
-        const agreementForPdf = {
-          ...agreement,
-          start_date: ensureDate(agreement.start_date),
-          end_date: ensureDate(agreement.end_date),
-          created_at: ensureDate(agreement.created_at),
-          updated_at: ensureDate(agreement.updated_at),
-        };
+        // Use the Arabic PDF generator with all required data
+        await generateAgreementReportPdfmake(
+          agreement,
+          agreement.rent_amount,
+          agreement.total_amount,
+          payments,
+          trafficFines
+        );
         
-        const success = await generatePdfDocument(agreementForPdf as any);
-        
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+        toast.success("Arabic agreement report generated successfully");
       } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF document");
+        console.error("Error generating Arabic PDF:", error);
+        toast.error("Failed to generate Arabic PDF document");
       } finally {
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, payments, trafficFines, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {

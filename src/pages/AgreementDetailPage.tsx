@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -97,11 +98,12 @@ const AgreementDetailPage = () => {
         fine.leaseId === agreement.id
       ) || [];
       
-      generateAgreementReportPdfmake(agreement, rentAmount, contractAmount, payments, agreementTrafficFines);
-      toast.success('Agreement report generated successfully');
+      toast.info("Generating Arabic agreement report...");
+      await generateAgreementReportPdfmake(agreement, rentAmount, contractAmount, payments, agreementTrafficFines);
+      toast.success('Arabic agreement report generated successfully');
     } catch (error) {
-      console.error('Error generating report:', error);
-      toast.error('Failed to generate agreement report');
+      console.error('Error generating Arabic report:', error);
+      toast.error('Failed to generate Arabic agreement report');
     }
   };
 
@@ -250,13 +252,13 @@ const AgreementDetailPage = () => {
                 className="gap-2 mr-2"
               >
                 <FileText className="h-4 w-4" />
-                Generate Report
+                Generate Arabic Report
               </Button>
             </HoverCardTrigger>
             <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-              <h4 className="font-medium mb-1">Agreement Report</h4>
+              <h4 className="font-medium mb-1">Arabic Agreement Report</h4>
               <p className="text-sm text-muted-foreground">
-                Generate a detailed PDF report of this agreement including payment history and contract details.
+                Generate a detailed Arabic PDF report of this agreement including payment history and contract details.
               </p>
             </HoverCardContent>
           </HoverCard>
