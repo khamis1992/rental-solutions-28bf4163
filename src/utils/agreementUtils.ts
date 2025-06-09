@@ -1,3 +1,4 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
 import { formatDate } from '@/lib/date-utils';
@@ -15,7 +16,8 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     // Set font size and style for the header
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Vehicle Rental Contract', 105, 20, { align: 'center' });
+    // Changed to Arabic title
+    doc.text('عقد إيجار المركبات', 105, 20, { align: 'center' });
     
     // Format dates
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
