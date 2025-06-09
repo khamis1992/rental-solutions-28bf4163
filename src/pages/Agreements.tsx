@@ -5,6 +5,7 @@ import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
+import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
 import { BarChart4, Calendar, Database, Download, Filter, Plus, RefreshCw, Upload } from 'lucide-react';
 import { AgreementStats } from '@/components/agreements/AgreementStats';
 import { Card, CardContent } from '@/components/ui/card';
@@ -82,6 +83,25 @@ const Agreements = () => {
     };
     
     checkAvailability();
+  }, []);
+  
+  // Run payment schedule maintenance job silently on page load
+  React.useEffect(() => {
+    const runMaintenanceJob = async () => {
+      try {
+        console.log("Running automatic payment schedule maintenance check");
+        await runPaymentScheduleMaintenanceJob();
+      } catch (error) {
+        console.error("Error running payment maintenance job:", error);
+      }
+    };
+    
+    // Run after a 3-second delay to allow other initial page operations to complete
+    const timer = setTimeout(() => {
+      runMaintenanceJob();
+    }, 3000);
+    
+    return () => clearTimeout(timer);
   }, []);
   
   const handleImportComplete = () => {

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -20,7 +21,6 @@ import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { usePayment } from '@/hooks/use-payment';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,14 +53,11 @@ const AgreementDetailPage = () => {
     isPending: paymentIsPending
   } = usePayment(id);
 
-  // Add traffic fines hook
-  const { trafficFines } = useTrafficFines();
-
   const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleGenerateDocument = async () => {
+  const handleGenerateDocument = () => {
     setIsDocumentDialogOpen(true);
   };
 
@@ -92,12 +89,7 @@ const AgreementDetailPage = () => {
   const handleGenerateReport = async () => {
     if (!agreement) return;
     try {
-      // Filter traffic fines for this agreement
-      const agreementTrafficFines = trafficFines?.filter(fine => 
-        fine.leaseId === agreement.id
-      ) || [];
-      
-      generateAgreementReportPdfmake(agreement, rentAmount, contractAmount, payments, agreementTrafficFines);
+      generateAgreementReportPdfmake(agreement, rentAmount, contractAmount, payments);
       toast.success('Agreement report generated successfully');
     } catch (error) {
       console.error('Error generating report:', error);

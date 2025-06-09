@@ -121,8 +121,8 @@ export function AgreementOverviewCard({
                   <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">ID Number</p>
-                  <p className="font-medium">{agreement.customers?.driver_license || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{agreement.customers?.email || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Phone</p>

@@ -1,7 +1,17 @@
-import React from 'react';
-import { RedesignedAgreementDetail } from './redesigned';
 
-// You can add logic here to switch between classic and redesigned if needed
-export function AgreementDetailWrapper(props: any) {
+import { Agreement } from '@/types/agreement';
+import { RedesignedAgreementDetail } from './redesigned/RedesignedAgreementDetail';
+
+interface AgreementDetailWrapperProps {
+  agreement: Agreement | null;
+  onDelete: (id: string) => void;
+  rentAmount: number | null;
+  contractAmount: number | null;
+  onPaymentDeleted: () => void;
+  onDataRefresh: () => void;
+  onGenerateDocument?: () => void;
+}
+
+export function AgreementDetailWrapper(props: AgreementDetailWrapperProps) {
   return <RedesignedAgreementDetail {...props} />;
-} 
+}

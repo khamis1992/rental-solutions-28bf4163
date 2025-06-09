@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreement-utils';
+import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';
 import { AgreementDeletionDialog } from '../dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
@@ -30,7 +30,7 @@ interface RedesignedAgreementDetailProps {
   contractAmount: number | null;
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
-  onGenerateDocument?: () => Promise<void>;
+  onGenerateDocument?: () => void;
 }
 
 export function RedesignedAgreementDetail({
@@ -170,7 +170,7 @@ export function RedesignedAgreementDetail({
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = await onGenerateDocument();
+      const result = onGenerateDocument();
       return Promise.resolve(result);
     }
     return Promise.resolve();
@@ -356,5 +356,3 @@ export function RedesignedAgreementDetail({
     </div>
   );
 }
-
-export default RedesignedAgreementDetail;

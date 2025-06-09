@@ -183,5 +183,3 @@ export class VehicleRepository {
     }
   }
 }
-
-export const vehicleRepository = new VehicleRepository();
