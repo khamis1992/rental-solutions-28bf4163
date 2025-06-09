@@ -1,11 +1,12 @@
-import pdfMake from 'pdfmake/build/pdfmake';
+// @ts-ignore
 import pdfFonts from 'pdfmake/build/vfs_fonts';
-import { supabase } from '@/lib/supabaseClient';
+import pdfMake from 'pdfmake/build/pdfmake';
+import { supabase } from '@/lib/supabase';
 
 // Register fonts (Amiri for Arabic)
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
-export async function generateAndUploadAgreementPdf({ agreement, customer, vehicle, payment }: {
+export async function generateAgreementPdfAndUploadAndDownload({ agreement, customer, vehicle, payment }: {
   agreement: any,
   customer: any,
   vehicle: any,
@@ -91,8 +92,12 @@ export async function generateAndUploadAgreementPdf({ agreement, customer, vehic
     }
   };
 
+  // Download to user
+  pdfMake.createPdf(docDefinition).download(`agreement_${agreement.agreement_number}.pdf`);
+
+  // Upload to Supabase
   return new Promise((resolve, reject) => {
-    pdfMake.createPdf(docDefinition).getBlob(async (blob) => {
+    pdfMake.createPdf(docDefinition).getBlob(async (blob: Blob) => {
       const fileName = `agreement_${agreement.agreement_number}.pdf`;
       const { data, error } = await supabase.storage
         .from('agreements')
