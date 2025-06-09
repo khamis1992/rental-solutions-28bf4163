@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -141,6 +140,24 @@ const calculateFinancialMetrics = (payments: any[], contractAmount: number | nul
   };
 };
 
+// Helper to force English numerals
+function toEnglishNumber(num: any): string {
+  if (typeof num === 'number') return num.toLocaleString('en-US');
+  if (typeof num === 'string') return num.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+  return String(num);
+}
+
+// Helper to format date as dd/mm/yyyy in English
+function formatDateEnglish(date: string | Date | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export async function generateAgreementReportPdfmake(
   agreement: any,
   rentAmount: any,
@@ -234,26 +251,26 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['25%', '25%', '25%', '25%'],
-          body: [
-            [
+              body: [
+                [
                   createArabicTextBlock(labels.agreementNumber.ar, 'cardLabel'),
                   createArabicTextBlock(labels.status.ar, 'cardLabel'),
                   createArabicTextBlock(labels.duration.ar, 'cardLabel'),
                   createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel')
                 ],
                 [
-                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('محدد غير'), 'cardValue'),
+                  createArabicTextBlock(toEnglishNumber(agreement.agreement_number) || prepareArabicForPDF('محدد غير'), 'cardValue'),
                   { 
                     ...createArabicTextBlock(agreement.status || prepareArabicForPDF('محدد غير'), 'cardValue'),
                     color: getStatusColor(agreement.status)
                   },
                   createArabicTextBlock(
                     agreement.start_date && agreement.end_date 
-                      ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
+                      ? toEnglishNumber(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))}`) + ' شهر'
                       : prepareArabicForPDF('محدد غير'), 
                     'cardValue'
                   ),
-                  createArabicTextBlock(formatArabicCurrency(rentAmount), 'cardValue')
+                  createArabicTextBlock(toEnglishNumber(rentAmount), 'cardValue')
                 ]
               ]
             },
@@ -352,8 +369,8 @@ export async function generateAgreementReportPdfmake(
           body: [[{
             table: {
               widths: ['20%', '20%', '20%', '20%', '20%'],
-          body: [
-            [
+              body: [
+                [
                   createArabicTextBlock(labels.contractTotal.ar, 'metricLabel'),
                   createArabicTextBlock(labels.totalPaid.ar, 'metricLabel'),
                   createArabicTextBlock(labels.remainingBalance.ar, 'metricLabel'),
@@ -361,17 +378,17 @@ export async function generateAgreementReportPdfmake(
                   createArabicTextBlock(labels.paymentProgress.ar, 'metricLabel')
                 ],
                 [
-                  createArabicTextBlock(formatArabicCurrency(contractAmount), 'metricValue'),
-                  { ...createArabicTextBlock(formatArabicCurrency(metrics.totalPaid), 'metricValue'), color: colors.success },
+                  createArabicTextBlock(toEnglishNumber(contractAmount), 'metricValue'),
+                  { ...createArabicTextBlock(toEnglishNumber(metrics.totalPaid), 'metricValue'), color: colors.success },
                   { 
-                    ...createArabicTextBlock(formatArabicCurrency(metrics.remainingBalance), 'metricValue'), 
+                    ...createArabicTextBlock(toEnglishNumber(metrics.remainingBalance), 'metricValue'), 
                     color: metrics.remainingBalance > 0 ? colors.warning : colors.success 
                   },
                   { 
-                    ...createArabicTextBlock(formatArabicCurrency(metrics.totalLateFees), 'metricValue'), 
+                    ...createArabicTextBlock(toEnglishNumber(metrics.totalLateFees), 'metricValue'), 
                     color: metrics.totalLateFees > 0 ? colors.danger : colors.success 
                   },
-                  { ...createArabicTextBlock(prepareArabicForPDF(`${Math.round(metrics.paymentProgress)}%`), 'metricValue'), color: colors.primary }
+                  { ...createArabicTextBlock(toEnglishNumber(Math.round(metrics.paymentProgress)) + '%', 'metricValue'), color: colors.primary }
                 ]
               ]
             },
@@ -399,7 +416,7 @@ export async function generateAgreementReportPdfmake(
               ...payments.slice(0, 10).map(payment => [
                 { text: payment.payment_method || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
                 { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
-                { text: formatArabicCurrency(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: toEnglishNumber(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
                 { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ])
             ]
@@ -448,8 +465,8 @@ export async function generateAgreementReportPdfmake(
                   color: getStatusColor(fine.paymentStatus),
                   border: [false, false, false, false]
                 },
-                { text: formatArabicCurrency(fine.fineAmount || fine.fine_amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: fine.violationDate ? formatArabicDate(fine.violationDate) : formatArabicDate(fine.violation_date) || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                { text: toEnglishNumber(fine.fineAmount || fine.fine_amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: fine.violationDate ? formatDateEnglish(fine.violationDate) : formatDateEnglish(fine.violation_date) || prepareArabicForPDF('N/A'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ]),
               [
                 { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 4, alignment: 'center' },
@@ -457,7 +474,7 @@ export async function generateAgreementReportPdfmake(
                 {},
                 {},
                 { 
-                  ...createArabicTextBlock(formatArabicCurrency(trafficFines.reduce((sum, f) => sum + (f.fineAmount || f.fine_amount || 0), 0)), 'tableHeader'),
+                  ...createArabicTextBlock(toEnglishNumber(trafficFines.reduce((sum, f) => sum + (f.fineAmount || f.fine_amount || 0), 0)), 'tableHeader'),
                   color: colors.danger,
                   alignment: 'center'
                 }
