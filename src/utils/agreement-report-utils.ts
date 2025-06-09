@@ -1,6 +1,8 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
+import { configurePdfMakeFonts, initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
   createArabicTextBlock, 
@@ -11,15 +13,11 @@ import {
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
   try {
-    (pdfMake as any).fonts = {
-  Amiri: {
-        normal: 'Amiri-Regular.ttf',
-    bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf',
-      },
-    };
-  // Fonts are preloaded via script tags and already available in pdfMake.vfs
+    const fontsInitialized = await initializeFonts();
+    if (!fontsInitialized) {
+      console.warn('Font initialization failed, using fallback configuration');
+      configurePdfMakeFonts();
+    }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
@@ -29,9 +27,7 @@ export async function ensureFontsLoaded() {
 const labels = {
   // Header
   reportTitle: { ar: 'الشامل الإيجار  تقرير' },
-
   companyName: { ar: ' ذ.م.م السيارات لتأجير العراف  شركة' },
-
   
   // Document info
   agreementInfo: { ar: 'العقد معلومات' },
@@ -85,6 +81,7 @@ const labels = {
   fineDate: { ar: 'المخالفة تاريخ' },
   fineStatus: { ar: 'المخالفة حالة' },
   fineLocation: { ar: 'المخالفة موقع' },
+  fineViolation: { ar: 'المخالفة نوع' },
   totalFines: { ar: 'المخالفات اجمالي ' },
   
   // Legal info
@@ -120,6 +117,8 @@ const getStatusColor = (status: string): string => {
     case 'pending': case 'معلق': return colors.warning;
     case 'completed': case 'مكتمل': return colors.primary;
     case 'cancelled': case 'ملغي': return colors.danger;
+    case 'paid': case 'مسدد': return colors.success;
+    case 'unpaid': case 'غير مسدد': return colors.danger;
     default: return colors.secondary;
   }
 };
@@ -211,7 +210,7 @@ export async function generateAgreementReportPdfmake(
     
     // Main content with enhanced Arabic support
     content: [
-      // Report title with blue background, matching the design
+      // Report title with blue background
       {
         table: {
           widths: ['*'],
@@ -430,35 +429,56 @@ export async function generateAgreementReportPdfmake(
         {
           table: {
             headerRows: 1,
-            widths: ['25%', '25%', '25%', '25%'],
+            widths: ['20%', '20%', '20%', '20%', '20%'],
             body: [
               [
-                createArabicTextBlock(labels.fineDate.ar, 'tableHeader'),
-                createArabicTextBlock(labels.fineAmount.ar, 'tableHeader'),
-                createArabicTextBlock(labels.fineStatus.ar, 'tableHeader'),
-                createArabicTextBlock(labels.fineLocation.ar, 'tableHeader')
+                { text: labels.fineLocation.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] },
+                { text: labels.fineViolation.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] },
+                { text: labels.fineStatus.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] },
+                { text: labels.fineAmount.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] },
+                { text: labels.fineDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...trafficFines.map(fine => [
-                createArabicTextBlock(formatArabicDate(fine.date), 'tableCell'),
-                createArabicTextBlock(formatArabicCurrency(fine.amount), 'tableCell'),
+                { text: fine.location || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: fine.violationCharge || fine.violation_charge || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
                 { 
-                  ...createArabicTextBlock(fine.status || prepareArabicForPDF('محدد غير'), 'tableCell'),
-                  color: getStatusColor(fine.status)
+                  text: fine.paymentStatus === 'paid' ? 'مسدد' : fine.paymentStatus === 'pending' ? 'معلق' : prepareArabicForPDF('محدد غير'), 
+                  style: 'tableCell', 
+                  alignment: 'center', 
+                  color: getStatusColor(fine.paymentStatus),
+                  border: [false, false, false, false]
                 },
-                createArabicTextBlock(fine.location || prepareArabicForPDF('محدد غير'), 'tableCell')
+                { text: formatArabicCurrency(fine.fineAmount || fine.fine_amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: fine.violationDate ? formatArabicDate(fine.violationDate) : formatArabicDate(fine.violation_date) || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ]),
               [
-                { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 3 },
+                { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 4, alignment: 'center' },
+                {},
                 {},
                 {},
                 { 
-                  ...createArabicTextBlock(formatArabicCurrency(trafficFines.reduce((sum, f) => sum + (f.amount || 0), 0)), 'tableHeader'),
-                  color: colors.danger
+                  ...createArabicTextBlock(formatArabicCurrency(trafficFines.reduce((sum, f) => sum + (f.fineAmount || f.fine_amount || 0), 0)), 'tableHeader'),
+                  color: colors.danger,
+                  alignment: 'center'
                 }
               ]
             ]
           },
-          layout: 'lightHorizontalLines',
+          layout: {
+            hLineWidth: function (i: number, node: any) {
+              // Thicker line under header
+              if (i === 1) return 2;
+              // Thin lines between rows
+              return 0.5;
+            },
+            hLineColor: function (i: number, node: any) {
+              // Dark line under header
+              if (i === 1) return colors.primary;
+              // Light gray for other lines
+              return colors.border;
+            },
+            vLineWidth: function () { return 0; }
+          },
           margin: [0, 0, 0, 20]
         }
       ] : [])
@@ -582,6 +602,3 @@ export async function generateAgreementReportPdfmake(
     throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
   }
 }
-
-
-

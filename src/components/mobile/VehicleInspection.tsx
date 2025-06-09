@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, CheckCircle, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { Vehicle } from '@/types/vehicle';
+import { VehicleRow } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -16,9 +16,11 @@ interface InspectionItem {
   photos: string[];
 }
 
-export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
+export function VehicleInspection({ vehicle }: { vehicle: VehicleRow }) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([
     { name: 'Exterior Condition', status: 'pending', notes: '', photos: [] },
     { name: 'Interior Condition', status: 'pending', notes: '', photos: [] },
@@ -126,6 +128,7 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
 
       if (error) throw error;
 
+      setSubmitted(true);
       toast.success('Inspection submitted successfully');
     } catch (error) {
       console.error('Failed to submit inspection:', error);
@@ -143,6 +146,24 @@ export function VehicleInspection({ vehicle }: { vehicle: Vehicle }) {
       setIsSubmitting(false);
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="rounded-full bg-green-100 p-4 mb-4">
+          <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Inspection submitted!</h2>
+        <p className="mb-6 text-gray-600">Thank you. The inspection has been saved.</p>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate('/field-ops')}>Back to Dashboard</Button>
+          <Button variant="outline" onClick={() => { setSubmitted(false); }}>Start Another</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4">

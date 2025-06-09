@@ -26,6 +26,17 @@ export function DocumentsCard({
   isGeneratingPdf,
   getDateString
 }: DocumentsCardProps) {
+  // Convert date strings to Date objects for AgreementTrafficFines
+  const ensureDate = (dateValue: string | Date): Date => {
+    if (typeof dateValue === 'string') {
+      return new Date(dateValue);
+    }
+    return dateValue;
+  };
+
+  const startDate = ensureDate(agreement.start_date);
+  const endDate = ensureDate(agreement.end_date);
+
   return (
     <div className="space-y-6">
       {/* Document Actions */}
@@ -63,8 +74,8 @@ export function DocumentsCard({
         <CardContent>
           <AgreementTrafficFines 
             agreementId={agreement.id}
-            startDate={getDateString(agreement.start_date)}
-            endDate={getDateString(agreement.end_date)}
+            startDate={startDate}
+            endDate={endDate}
           />
         </CardContent>
       </Card>

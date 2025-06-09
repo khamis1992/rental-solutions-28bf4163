@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -11,7 +10,8 @@ import {
   MaintenanceDateFields,
   MaintenanceCostFields,
   MaintenanceDescriptionFields,
-  MaintenanceFormActions
+  MaintenanceFormActions,
+  MaintenancePhotoUpload
 } from './form';
 
 interface MaintenanceFormProps {
@@ -50,6 +50,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }
   });
 
+  const [photos, setPhotos] = useState<string[]>(initialData?.photos || []);
+
   useEffect(() => {
     if (!initialData) return;
 
@@ -81,7 +83,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   const handleSubmit = async (data: any) => {
     try {
-      await onSubmit(data);
+      await onSubmit({ ...data, photos });
     } catch (error) {
       toast.error('Failed to save maintenance record');
       console.error('Error in maintenance form:', error);
@@ -97,6 +99,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           <MaintenanceDateFields form={form} />
           <MaintenanceCostFields form={form} />
           <MaintenanceDescriptionFields form={form} />
+          <div className="md:col-span-2">
+            <MaintenancePhotoUpload photos={photos} onChange={setPhotos} />
+          </div>
         </div>
 
         <MaintenanceFormActions 
