@@ -200,14 +200,11 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Convert onGenerateDocument to a Promise - Fixed type issue
+  // Fix the type issue by making this function async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = onGenerateDocument();
-      // Handle both sync and async cases
-      if (result instanceof Promise) {
-        await result;
-      }
+      // Call the function without awaiting since it might be sync or async
+      onGenerateDocument();
     }
   }, [onGenerateDocument]);
 
