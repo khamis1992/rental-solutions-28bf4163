@@ -7,8 +7,10 @@ import {
   prepareArabicForPDF, 
   createArabicTextBlock, 
   formatArabicCurrency, 
-  formatArabicDate 
+  formatArabicDate,
+  ensureEnglishNumbers
 } from './arabic-text-utils';
+import { toEnglishNumerals } from './language-utils';
 
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
@@ -164,9 +166,9 @@ export async function generateAgreementReportPdfmake(
       table: {
         widths: ['auto', '*', 'auto'],
         body: [[
-          // Left: date
+          // Left: date in English format
           {
-            text: new Date().toISOString().slice(0, 10).replace(/-/g, '/'),
+            text: new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY format
             style: 'companyDetails',
             alignment: 'left',
             margin: [0, 0, 0, 0]
@@ -198,8 +200,8 @@ export async function generateAgreementReportPdfmake(
           body: [[
             // Left: 'شركة العراف لتأجير السيارات'
             { text: 'ذ.م.م السيارات لتأجير العراف شركة   ', style: 'footerText', alignment: 'left' },
-            // Center: page number only
-            { text: String(currentPage), style: 'footerText', alignment: 'center' },
+            // Center: page number in English
+            { text: currentPage.toString(), style: 'footerText', alignment: 'center' },
             // Right: 'سري'
             { text: 'سري', style: 'footerText', alignment: 'right' }
           ]]
@@ -242,14 +244,14 @@ export async function generateAgreementReportPdfmake(
                   createArabicTextBlock(labels.monthlyRent.ar, 'cardLabel')
                 ],
                 [
-                  createArabicTextBlock(agreement.agreement_number || prepareArabicForPDF('محدد غير'), 'cardValue'),
+                  createArabicTextBlock(ensureEnglishNumbers(agreement.agreement_number || 'غير محدد'), 'cardValue'),
                   { 
                     ...createArabicTextBlock(agreement.status || prepareArabicForPDF('محدد غير'), 'cardValue'),
                     color: getStatusColor(agreement.status)
                   },
                   createArabicTextBlock(
                     agreement.start_date && agreement.end_date 
-                      ? prepareArabicForPDF(`${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`)
+                      ? `${Math.ceil((new Date(agreement.end_date).getTime() - new Date(agreement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} شهر`
                       : prepareArabicForPDF('محدد غير'), 
                     'cardValue'
                   ),
@@ -282,19 +284,19 @@ export async function generateAgreementReportPdfmake(
                   widths: ['60%', '40%'],
                   body: [
                     [
-                      { text: agreement.customers?.full_name || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.customers?.full_name || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.name.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.phone_number || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.customers?.phone_number || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.phone.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.nationality || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.customers?.nationality || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.nationality.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.customers?.driver_license || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.customers?.driver_license || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.driverLicense.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ]
                   ]
@@ -319,19 +321,19 @@ export async function generateAgreementReportPdfmake(
                   widths: ['60%', '40%'],
                   body: [
                     [
-                      { text: `${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(`${agreement.vehicles?.make || ''} ${agreement.vehicles?.model || ''}`.trim() || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.makeModel.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.year?.toString() || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.vehicles?.year?.toString() || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.year.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.license_plate || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.vehicles?.license_plate || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.licensePlate.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ],
                     [
-                      { text: agreement.vehicles?.vin || prepareArabicForPDF('محدد غير'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
+                      { text: ensureEnglishNumbers(agreement.vehicles?.vin || 'غير محدد'), style: 'valueStyle', alignment: 'left', border: [false, true, false, false] },
                       { text: labels.vin.ar, style: 'labelStyle', alignment: 'right', border: [false, true, false, false] }
                     ]
                   ]
@@ -371,7 +373,7 @@ export async function generateAgreementReportPdfmake(
                     ...createArabicTextBlock(formatArabicCurrency(metrics.totalLateFees), 'metricValue'), 
                     color: metrics.totalLateFees > 0 ? colors.danger : colors.success 
                   },
-                  { ...createArabicTextBlock(prepareArabicForPDF(`${Math.round(metrics.paymentProgress)}%`), 'metricValue'), color: colors.primary }
+                  { ...createArabicTextBlock(`${Math.round(metrics.paymentProgress)}%`, 'metricValue'), color: colors.primary }
                 ]
               ]
             },
@@ -397,10 +399,10 @@ export async function generateAgreementReportPdfmake(
                 { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...payments.slice(0, 10).map(payment => [
-                { text: payment.payment_method || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
+                { text: ensureEnglishNumbers(payment.payment_method || 'غير محدد'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: payment.status === 'pending' ? 'Pending' : ensureEnglishNumbers(payment.status || 'غير محدد'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
                 { text: formatArabicCurrency(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                { text: payment.payment_date ? formatArabicDate(payment.payment_date) : 'غير محدد', style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ])
             ]
           },
@@ -439,17 +441,17 @@ export async function generateAgreementReportPdfmake(
                 { text: labels.fineDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...trafficFines.map(fine => [
-                { text: fine.location || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: fine.violationCharge || fine.violation_charge || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: ensureEnglishNumbers(fine.location || 'غير محدد'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
+                { text: ensureEnglishNumbers(fine.violationCharge || fine.violation_charge || 'غير محدد'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
                 { 
-                  text: fine.paymentStatus === 'paid' ? 'مسدد' : fine.paymentStatus === 'pending' ? 'معلق' : prepareArabicForPDF('محدد غير'), 
+                  text: fine.paymentStatus === 'paid' ? 'مسدد' : fine.paymentStatus === 'pending' ? 'معلق' : 'غير محدد', 
                   style: 'tableCell', 
                   alignment: 'center', 
                   color: getStatusColor(fine.paymentStatus),
                   border: [false, false, false, false]
                 },
                 { text: formatArabicCurrency(fine.fineAmount || fine.fine_amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: fine.violationDate ? formatArabicDate(fine.violationDate) : formatArabicDate(fine.violation_date) || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                { text: fine.violationDate ? formatArabicDate(fine.violationDate) : formatArabicDate(fine.violation_date) || 'غير محدد', style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ]),
               [
                 { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 4, alignment: 'center' },
@@ -595,10 +597,10 @@ export async function generateAgreementReportPdfmake(
   };
 
   try {
-    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    const fileName = `تقرير-عقد-${ensureEnglishNumbers(agreement.agreement_number || 'غير-محدد')}.pdf`;
     pdfMake.createPdf(docDefinition).download(fileName);
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
+    throw new Error('فشل في إنشاء تقرير PDF');
   }
 }

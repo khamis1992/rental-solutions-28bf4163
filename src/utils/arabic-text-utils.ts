@@ -1,78 +1,81 @@
 
-// Unified Arabic text utilities for PDF generation and display
+import { toEnglishNumerals } from './language-utils';
 
 /**
- * Prepares Arabic text for PDF generation by handling RTL and special characters
+ * Prepares Arabic text for PDF rendering by handling text direction and encoding
  */
 export function prepareArabicForPDF(text: string): string {
   if (!text) return '';
   
-  // Basic Arabic text preparation
-  // Remove any problematic characters and normalize the text
-  return text
-    .replace(/[\u200E\u200F\u202A-\u202E]/g, '') // Remove directional marks
-    .trim();
+  // Convert any Arabic numerals to English
+  const textWithEnglishNumerals = toEnglishNumerals(text);
+  
+  // Handle Arabic text direction and encoding
+  return textWithEnglishNumerals
+    .split('')
+    .reverse()
+    .join('');
 }
 
 /**
- * Creates an Arabic text block for pdfMake with proper styling
+ * Creates a text block with proper Arabic alignment for pdfMake
  */
 export function createArabicTextBlock(text: string, style: string) {
   return {
     text: prepareArabicForPDF(text),
     style: style,
-    alignment: 'right',
+    alignment: 'right' as const,
     rtl: true
   };
 }
 
 /**
- * Formats currency for Arabic display
+ * Formats currency in Arabic context but with English numerals
  */
 export function formatArabicCurrency(amount: number | null | undefined): string {
   if (amount === null || amount === undefined || isNaN(amount)) {
-    return prepareArabicForPDF('0 ريال قطري');
+    return prepareArabicForPDF('محدد غير');
   }
   
-  const formatted = new Intl.NumberFormat('ar-QA', {
-    style: 'currency',
-    currency: 'QAR',
+  // Format with English numerals and QAR currency
+  const formattedAmount = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 0
   }).format(amount);
   
-  return prepareArabicForPDF(formatted);
+  return `QAR ${formattedAmount}`;
 }
 
 /**
- * Formats date for Arabic display
+ * Formats dates in Arabic context but with English numerals
  */
 export function formatArabicDate(date: string | Date | null | undefined): string {
-  if (!date) return prepareArabicForPDF('محدد غير');
+  if (!date) {
+    return prepareArabicForPDF('محدد غير');
+  }
   
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    
     if (isNaN(dateObj.getTime())) {
       return prepareArabicForPDF('محدد غير');
     }
     
-    const formatted = new Intl.DateTimeFormat('ar-QA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(dateObj);
+    // Format date in English format (DD/MM/YYYY)
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateObj.getFullYear().toString();
     
-    return prepareArabicForPDF(formatted);
+    return `${day}/${month}/${year}`;
   } catch (error) {
-    console.error('Error formatting Arabic date:', error);
+    console.error('Error formatting date:', error);
     return prepareArabicForPDF('محدد غير');
   }
 }
 
 /**
- * Handles Arabic text direction and formatting for RTL display
+ * Converts any text containing numbers to English numerals
  */
-export function formatArabicText(text: string): string {
-  return prepareArabicForPDF(text);
+export function ensureEnglishNumbers(text: string): string {
+  if (!text) return '';
+  return toEnglishNumerals(text);
 }
