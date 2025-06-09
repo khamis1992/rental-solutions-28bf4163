@@ -1,6 +1,7 @@
 import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
+import { configurePdfMakeFonts, initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
   createArabicTextBlock, 
@@ -11,15 +12,19 @@ import {
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
   try {
-    (pdfMake as any).fonts = {
-  Amiri: {
-        normal: 'Amiri-Regular.ttf',
-    bold: 'Amiri-Bold.ttf',
-        italics: 'Amiri-Regular.ttf',
-        bolditalics: 'Amiri-Bold.ttf',
-      },
-    };
-  // Fonts are preloaded via script tags and already available in pdfMake.vfs
+    const fontsInitialized = await initializeFonts();
+    if (!fontsInitialized) {
+      console.warn('Font initialization failed, using fallback configuration');
+      // Fallback configuration
+      configurePdfMakeFonts({
+        Amiri: {
+          normal: '/Amiri-Regular.ttf',
+          bold: '/Amiri-Bold.ttf',
+          italics: '/Amiri-Regular.ttf',
+          bolditalics: '/Amiri-Bold.ttf',
+        },
+      });
+    }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
   }
@@ -31,7 +36,6 @@ const labels = {
   reportTitle: { ar: 'الشامل الإيجار  تقرير' },
 
   companyName: { ar: ' ذ.م.م السيارات لتأجير العراف  شركة' },
-
   
   // Document info
   agreementInfo: { ar: 'العقد معلومات' },
@@ -582,6 +586,3 @@ export async function generateAgreementReportPdfmake(
     throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
   }
 }
-
-
-

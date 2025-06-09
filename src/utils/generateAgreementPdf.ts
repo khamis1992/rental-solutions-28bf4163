@@ -3,8 +3,23 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { supabase } from '@/lib/supabase';
 
-// Register fonts (Amiri for Arabic)
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+// Configure fonts properly
+const configureArabicFonts = () => {
+  // Define the fonts for pdfMake
+  (pdfMake as any).fonts = {
+    Amiri: {
+      normal: '/Amiri-Regular.ttf',
+      bold: '/Amiri-Bold.ttf',
+      italics: '/Amiri-Regular.ttf',
+      bolditalics: '/Amiri-Bold.ttf',
+    }
+  };
+
+  // Set up VFS if not already configured
+  if (!(pdfMake as any).vfs) {
+    (pdfMake as any).vfs = {};
+  }
+};
 
 export async function generateAgreementPdfAndUploadAndDownload({ agreement, customer, vehicle, payment }: {
   agreement: any,
@@ -12,6 +27,9 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
   vehicle: any,
   payment: any
 }) {
+  // Configure fonts before creating PDF
+  configureArabicFonts();
+
   const docDefinition = {
     content: [
       { text: `رقم العقد ${agreement.agreement_number}`, style: 'header', alignment: 'right' },
@@ -92,25 +110,30 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
     }
   };
 
-  // Download to user
-  pdfMake.createPdf(docDefinition).download(`agreement_${agreement.agreement_number}.pdf`);
+  try {
+    // Download to user
+    pdfMake.createPdf(docDefinition).download(`agreement_${agreement.agreement_number}.pdf`);
 
-  // Upload to Supabase
-  return new Promise((resolve, reject) => {
-    pdfMake.createPdf(docDefinition).getBlob(async (blob: Blob) => {
-      const fileName = `agreement_${agreement.agreement_number}.pdf`;
-      const { data, error } = await supabase.storage
-        .from('agreements')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: 'application/pdf',
-        });
-      if (error) {
-        reject(error);
-      } else {
-        resolve(data);
-      }
+    // Upload to Supabase
+    return new Promise((resolve, reject) => {
+      pdfMake.createPdf(docDefinition).getBlob(async (blob: Blob) => {
+        const fileName = `agreement_${agreement.agreement_number}.pdf`;
+        const { data, error } = await supabase.storage
+          .from('agreements')
+          .upload(fileName, blob, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: 'application/pdf',
+          });
+        if (error) {
+          reject(error);
+        } else {
+          resolve(data);
+        }
+      });
     });
-  });
-} 
+  } catch (error) {
+    console.error('Font loading error:', error);
+    throw new Error('Failed to generate PDF due to font loading issues');
+  }
+}
