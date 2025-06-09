@@ -203,8 +203,7 @@ export function AgreementDetail({
   // Fix the type issue by making this function async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      // Call the function without awaiting since it might be sync or async
-      onGenerateDocument();
+      await Promise.resolve(onGenerateDocument());
     }
   }, [onGenerateDocument]);
 
