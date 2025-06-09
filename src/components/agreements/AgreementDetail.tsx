@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInMonths } from 'date-fns';
@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
-import { Agreement } from '@/types/agreement';
 import { Payment } from '@/types/payment.types';
 import { supabase } from '@/lib/supabase';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
@@ -205,10 +204,8 @@ export function AgreementDetail({
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = await onGenerateDocument();
-      return Promise.resolve(result);
+      await onGenerateDocument();
     }
-    return Promise.resolve();
   }, [onGenerateDocument]);
 
   if (isLoadingAgreement) {
