@@ -60,7 +60,7 @@ const AgreementDetailPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleGenerateDocument = () => {
+  const handleGenerateDocument = async (): Promise<void> => {
     setIsDocumentDialogOpen(true);
   };
 
