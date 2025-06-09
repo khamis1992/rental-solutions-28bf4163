@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';
 import { AgreementDeletionDialog } from '../dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
@@ -22,6 +23,7 @@ import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
 import { SettingsCard } from './tabs/SettingsCard';
 import { FileText, CreditCard, FileImage, Settings, Bug } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface RedesignedAgreementDetailProps {
   agreement: Agreement | null;
@@ -99,36 +101,75 @@ export function RedesignedAgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
+  // Download PDF with Arabic generation
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing agreement PDF document...");
+        toast.info("Preparing Arabic agreement PDF document...");
         
+        // Fetch customer data
+        const { data: customer, error: customerError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', agreement.customer_id)
+          .single();
+
+        if (customerError) {
+          console.error('Error fetching customer:', customerError);
+          toast.error('Failed to fetch customer data');
+          return;
+        }
+
+        // Fetch vehicle data
+        const { data: vehicle, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', agreement.vehicle_id)
+          .single();
+
+        if (vehicleError) {
+          console.error('Error fetching vehicle:', vehicleError);
+          toast.error('Failed to fetch vehicle data');
+          return;
+        }
+
+        // Get the first payment or create a default payment structure
+        const payment = payments && payments.length > 0 
+          ? payments[0] 
+          : { 
+              down_payment: contractAmount || 0,
+              amount: rentAmount || 0 
+            };
+
+        // Format the data for Arabic PDF generation
         const agreementForPdf = {
           ...agreement,
           start_date: ensureDate(agreement.start_date),
           end_date: ensureDate(agreement.end_date),
           created_at: ensureDate(agreement.created_at),
           updated_at: ensureDate(agreement.updated_at),
+          agreement_duration: agreement.end_date && agreement.start_date 
+            ? `${differenceInMonths(ensureDate(agreement.end_date), ensureDate(agreement.start_date))} شهر`
+            : '12 شهر'
         };
         
-        const success = await generatePdfDocument(agreementForPdf as any);
+        await generateAgreementPdfAndUploadAndDownload({
+          agreement: agreementForPdf,
+          customer,
+          vehicle,
+          payment
+        });
         
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+        toast.success("Arabic agreement PDF generated successfully");
       } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF document");
+        console.error("Error generating Arabic PDF:", error);
+        toast.error("Failed to generate Arabic PDF document");
       } finally {
         setIdle('generatingPdf');
       }
     }
-  }, [agreement, setLoading, setIdle]);
+  }, [agreement, payments, contractAmount, rentAmount, setLoading, setIdle]);
 
   // Record payment
   const handleRecordPayment = useCallback(async (payment: Partial<Payment>) => {
