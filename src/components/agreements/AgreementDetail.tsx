@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -135,8 +136,8 @@ export function AgreementDetail({
         // Ensure date fields are strings for the PDF generator
         const agreementForPdf = {
           ...agreement,
-          start_date: typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date?.toISOString(),
-          end_date: typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date?.toISOString(),
+          start_date: typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date.toISOString(),
+          end_date: typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date.toISOString(),
         };
 
         await generateAgreementPdfAndUploadAndDownload({
