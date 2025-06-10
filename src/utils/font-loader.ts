@@ -13,12 +13,20 @@ export interface FontMap {
 }
 
 // Default pdfMake font configuration - matches what pdfMake expects
+// Default fonts used by pdfMake. Roboto is bundled with pdfMake itself
+// and Amiri provides better Arabic support.
 export const DEFAULT_FONTS: FontMap = {
   Roboto: {
     normal: 'Roboto-Regular.ttf',
     bold: 'Roboto-Bold.ttf',
     italics: 'Roboto-Italic.ttf',
     bolditalics: 'Roboto-BoldItalic.ttf',
+  },
+  Amiri: {
+    normal: 'Amiri-Regular.ttf',
+    bold: 'Amiri-Bold.ttf',
+    italics: 'Amiri-Regular.ttf',
+    bolditalics: 'Amiri-Bold.ttf',
   }
 };
 
@@ -31,28 +39,38 @@ async function loadVfsFonts(): Promise<void> {
       return;
     }
 
-    // Load the VFS fonts script
+    // Load the core pdfMake fonts first
     const script = document.createElement('script');
     script.src = '/vfs_fonts.js';
-    
-    return new Promise((resolve, reject) => {
+
+    return new Promise((resolve) => {
       script.onload = () => {
-        // Check if the VFS was loaded properly
+        // Merge fonts from any custom scripts (e.g. Amiri)
         if (window.pdfMake && window.pdfMake.vfs) {
           pdfMake.vfs = window.pdfMake.vfs;
           console.log('VFS fonts loaded successfully');
-          resolve();
         } else {
           console.warn('VFS fonts script loaded but no fonts found');
-          resolve(); // Don't reject, continue with defaults
         }
+
+        // Attempt to load optional Arabic font files
+        const amiriRegular = document.createElement('script');
+        amiriRegular.src = '/Amiri-Regular.js';
+        const amiriBold = document.createElement('script');
+        amiriBold.src = '/Amiri-Bold.js';
+
+        amiriBold.onload = () => resolve();
+        amiriBold.onerror = () => resolve();
+
+        document.head.appendChild(amiriRegular);
+        document.head.appendChild(amiriBold);
       };
-      
+
       script.onerror = () => {
         console.warn('Failed to load VFS fonts script, using defaults');
         resolve(); // Don't reject, continue with defaults
       };
-      
+
       document.head.appendChild(script);
     });
   } catch (error) {
@@ -79,9 +97,11 @@ export function checkFontAvailability(): boolean {
     // Check if VFS has the required Roboto fonts
     const requiredFonts = [
       'Roboto-Regular.ttf',
-      'Roboto-Bold.ttf', 
+      'Roboto-Bold.ttf',
       'Roboto-Italic.ttf',
-      'Roboto-BoldItalic.ttf'
+      'Roboto-BoldItalic.ttf',
+      'Amiri-Regular.ttf',
+      'Amiri-Bold.ttf'
     ];
     
     if (!pdfMake.vfs) {
