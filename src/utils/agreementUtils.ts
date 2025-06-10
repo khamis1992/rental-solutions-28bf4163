@@ -397,6 +397,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
       },
       
       defaultStyle: {
+        font: 'Amiri',
         fontSize: 11,
         lineHeight: 1.3
       }

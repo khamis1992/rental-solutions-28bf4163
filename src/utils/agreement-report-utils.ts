@@ -592,6 +592,7 @@ export async function generateAgreementReportPdfmake(
     },
     
     defaultStyle: {
+      font: 'Amiri',
       fontSize: 11,
       rtl: true,
       alignment: 'right',
