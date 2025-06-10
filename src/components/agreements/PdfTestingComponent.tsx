@@ -1,312 +1,105 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { generatePdfDocument } from '@/utils/agreementUtils';
+import { checkFontAvailability } from '@/utils/font-loader';
 import { toast } from 'sonner';
-import { Download, FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
-import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
-import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 
 interface TestResult {
-  test: string;
-  status: 'pending' | 'success' | 'error';
-  message?: string;
-  duration?: number;
+  success: boolean;
+  timestamp: string;
+  fontStatus: string;
+  error?: string;
 }
 
 export function PdfTestingComponent() {
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
 
-  // Sample test data
-  const sampleAgreement = {
-    id: 'test-123',
-    agreement_number: 'AGR-2024-001',
-    status: 'active',
-    start_date: '2024-01-01',
-    end_date: '2024-12-31',
-    total_amount: 24000,
-    rent_amount: 2000,
-    deposit_amount: 4000,
-    daily_late_fee: 120,
-    agreement_duration: '12 months',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  const sampleCustomer = {
-    id: 'customer-123',
-    full_name: 'أحمد محمد العلي',
-    email: 'ahmed.ali@example.com',
-    phone_number: '+974 5555 1234',
-    driver_license: 'DL123456789',
-    nationality: 'قطري'
-  };
-
-  const sampleVehicle = {
-    id: 'vehicle-123',
-    make: 'تويوتا',
-    model: 'كامري',
-    year: 2023,
-    license_plate: '123456',
-    vin: 'VIN123456789',
-    color: 'أبيض'
-  };
-
-  const samplePayment = {
-    down_payment: 4000
-  };
-
-  const samplePayments = [
-    {
-      id: 'payment-1',
-      amount: 2000,
-      payment_date: '2024-01-01',
-      status: 'paid',
-      payment_method: 'bank_transfer'
-    },
-    {
-      id: 'payment-2',
-      amount: 2000,
-      payment_date: '2024-02-01',
-      status: 'paid',
-      payment_method: 'cash'
-    }
-  ];
-
-  const updateTestResult = (testName: string, status: TestResult['status'], message?: string, duration?: number) => {
-    setTestResults(prev => {
-      const existingIndex = prev.findIndex(t => t.test === testName);
-      const newResult: TestResult = { test: testName, status, message, duration };
+  const handleTestPdfGeneration = async () => {
+    try {
+      setIsLoading(true);
+      setTestResult(null);
       
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex] = newResult;
-        return updated;
+      const mockAgreement = {
+        id: 'test-123',
+        agreement_number: 'TEST-001',
+        start_date: new Date(),
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        total_amount: 15000,
+        rent_amount: 1500,
+        status: 'active',
+        customers: {
+          full_name: 'أحمد محمد الخليفي',
+          email: 'ahmed@example.com',
+          phone_number: '+974 5555 1234',
+          nationality: 'قطري',
+          driver_license: 'DL123456'
+        },
+        vehicles: {
+          make: 'تويوتا',
+          model: 'كامري',
+          year: 2023,
+          license_plate: '12345',
+          color: 'أبيض',
+          vin: 'VIN123456789'
+        }
+      };
+
+      console.log('Starting PDF test generation...');
+      const success = await generatePdfDocument(mockAgreement as any);
+      
+      const testResult = {
+        success,
+        timestamp: new Date().toISOString(),
+        fontStatus: checkFontAvailability() ? 'available' : 'unavailable'
+      };
+      
+      setTestResult(testResult);
+      
+      if (testResult.success) {
+        toast.success('PDF test generation completed successfully!');
       } else {
-        return [...prev, newResult];
+        toast.error('PDF test generation failed. Check console for details.');
       }
-    });
-  };
-
-  const runTest = async (testName: string, testFn: () => Promise<void>) => {
-    updateTestResult(testName, 'pending');
-    const startTime = Date.now();
-    
-    try {
-      await testFn();
-      const duration = Date.now() - startTime;
-      updateTestResult(testName, 'success', 'Test completed successfully', duration);
     } catch (error) {
-      const duration = Date.now() - startTime;
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
-      updateTestResult(testName, 'error', message, duration);
-      console.error(`Test failed: ${testName}`, error);
-    }
-  };
-
-  const testBasicPdfGeneration = async () => {
-    console.log('Testing basic PDF generation...');
-    await generateAgreementPdfAndUploadAndDownload({
-      agreement: sampleAgreement,
-      customer: sampleCustomer,
-      vehicle: sampleVehicle,
-      payment: samplePayment
-    });
-    toast.success('Basic PDF generation test completed');
-  };
-
-  const testReportGeneration = async () => {
-    console.log('Testing report PDF generation...');
-    await generateAgreementReportPdfmake(
-      sampleAgreement,
-      sampleAgreement.rent_amount,
-      sampleAgreement.total_amount,
-      samplePayments,
-      [] // No traffic fines for this test
-    );
-    toast.success('Report PDF generation test completed');
-  };
-
-  const testArabicTextRendering = async () => {
-    console.log('Testing Arabic text rendering...');
-    // Test with Arabic-heavy content
-    const arabicAgreement = {
-      ...sampleAgreement,
-      agreement_number: 'عقد-٢٠٢٤-٠٠١'
-    };
-    
-    const arabicCustomer = {
-      ...sampleCustomer,
-      full_name: 'عبدالله محمد الخالدي الأنصاري',
-      nationality: 'قطري الجنسية'
-    };
-
-    await generateAgreementPdfAndUploadAndDownload({
-      agreement: arabicAgreement,
-      customer: arabicCustomer,
-      vehicle: sampleVehicle,
-      payment: samplePayment
-    });
-    toast.success('Arabic text rendering test completed');
-  };
-
-  const testLargeDocuments = async () => {
-    console.log('Testing large document generation...');
-    // Generate report with more data
-    const largePayments = Array.from({ length: 12 }, (_, i) => ({
-      id: `payment-${i + 1}`,
-      amount: 2000 + (i * 100),
-      payment_date: `2024-${String(i + 1).padStart(2, '0')}-01`,
-      status: i % 3 === 0 ? 'pending' : 'paid',
-      payment_method: ['cash', 'bank_transfer', 'credit_card'][i % 3]
-    }));
-
-    await generateAgreementReportPdfmake(
-      sampleAgreement,
-      sampleAgreement.rent_amount,
-      sampleAgreement.total_amount,
-      largePayments,
-      []
-    );
-    toast.success('Large document test completed');
-  };
-
-  const runAllTests = async () => {
-    setIsRunning(true);
-    setTestResults([]);
-    
-    try {
-      await runTest('Basic PDF Generation', testBasicPdfGeneration);
-      await runTest('Report Generation', testReportGeneration);
-      await runTest('Arabic Text Rendering', testArabicTextRendering);
-      await runTest('Large Document Generation', testLargeDocuments);
-      
-      toast.success('All tests completed!');
-    } catch (error) {
-      toast.error('Test suite failed');
-      console.error('Test suite error:', error);
+      console.error('PDF test error:', error);
+      const errorResult = {
+        success: false,
+        timestamp: new Date().toISOString(),
+        fontStatus: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+      setTestResult(errorResult);
+      toast.error('PDF test failed with error');
     } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const getStatusIcon = (status: TestResult['status']) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'pending':
-        return <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusBadge = (status: TestResult['status']) => {
-    switch (status) {
-      case 'success':
-        return <Badge className="bg-green-100 text-green-800">Success</Badge>;
-      case 'error':
-        return <Badge variant="destructive">Failed</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Running...</Badge>;
-      default:
-        return <Badge variant="outline">Pending</Badge>;
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bug className="h-5 w-5" />
-            PDF Generation Testing Suite
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <Button 
-              onClick={runAllTests} 
-              disabled={isRunning}
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Run All Tests
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTest('Basic PDF Generation', testBasicPdfGeneration)}
-              disabled={isRunning}
-            >
-              Test Basic PDF
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTest('Report Generation', testReportGeneration)}
-              disabled={isRunning}
-            >
-              Test Report
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTest('Arabic Text Rendering', testArabicTextRendering)}
-              disabled={isRunning}
-            >
-              Test Arabic Text
-            </Button>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>PDF Generation Test</CardTitle>
+        <CardDescription>
+          Test PDF generation with Arabic fonts.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Button onClick={handleTestPdfGeneration} disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Generate Test PDF'}
+        </Button>
 
-          {testResults.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-semibold">Test Results:</h3>
-              <div className="space-y-2">
-                {testResults.map((result, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(result.status)}
-                      <span className="font-medium">{result.test}</span>
-                      {result.duration && (
-                        <span className="text-sm text-muted-foreground">
-                          ({result.duration}ms)
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(result.status)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {result.message && result.status === 'error' && (
-                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{result.message}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-2">Test Information:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Basic PDF Generation: Tests standard agreement contract generation</li>
-              <li>• Report Generation: Tests comprehensive agreement report with payments</li>
-              <li>• Arabic Text Rendering: Tests RTL text handling and Arabic fonts</li>
-              <li>• Large Document Generation: Tests performance with extensive data</li>
-            </ul>
+        {testResult && (
+          <div className="mt-4">
+            <h3>Test Result:</h3>
+            <p><strong>Status:</strong> {testResult.success ? 'Success' : 'Failed'}</p>
+            <p><strong>Timestamp:</strong> {testResult.timestamp}</p>
+            <p><strong>Font Status:</strong> {testResult.fontStatus}</p>
+            {testResult.error && <p><strong>Error:</strong> {testResult.error}</p>}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -19,6 +19,8 @@ export async function ensureFontsLoaded() {
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
+    // Always configure fonts as fallback
+    configurePdfMakeFonts();
   }
 }
 
@@ -501,18 +503,16 @@ export async function generateAgreementReportPdfmake(
       ] : [])
     ],
     
-    // Enhanced styles with proper Arabic text handling
+    // Enhanced styles with proper Arabic text handling and corrected font references
     styles: {
       companyName: {
-        fontSize: 16,
+        fontSize: 18,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         alignment: 'right'
       },
       companyDetails: {
         fontSize: 10,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'right'
       },
@@ -523,7 +523,6 @@ export async function generateAgreementReportPdfmake(
       reportTitle: {
         fontSize: 20,
         bold: true,
-        font: 'Amiri',
         margin: [0, 10, 0, 10],
         alignment: 'center',
         color: 'white'
@@ -531,7 +530,6 @@ export async function generateAgreementReportPdfmake(
       sectionHeader: {
         fontSize: 16,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         fillColor: colors.lighter,
         margin: [5, 8, 5, 8],
@@ -540,82 +538,76 @@ export async function generateAgreementReportPdfmake(
       cardLabel: {
         fontSize: 10,
         bold: true,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'center'
       },
       cardValue: {
         fontSize: 12,
         bold: true,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'center'
       },
       labelStyle: {
         fontSize: 11,
         bold: true,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'right'
       },
       valueStyle: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right'
       },
       metricLabel: {
         fontSize: 10,
         bold: true,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'center'
       },
       metricValue: {
         fontSize: 14,
         bold: true,
-        font: 'Amiri',
         alignment: 'center'
       },
       tableHeader: {
         fontSize: 11,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         fillColor: colors.lighter,
         alignment: 'center'
       },
       tableCell: {
         fontSize: 10,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'center'
       },
       footerText: {
         fontSize: 8,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'center'
       },
       arabicText: {
-        font: 'Amiri',
         alignment: 'right'
       }
     },
     
     defaultStyle: {
       font: 'Amiri',
-      fontSize: 12,
+      fontSize: 11,
       rtl: true,
-      alignment: 'right'
+      alignment: 'right',
+      lineHeight: 1.3
     }
   };
 
   try {
-    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    // Generate and download the PDF
+    const fileName = prepareArabicForPDF(`تقرير-إيجار-${agreement.agreement_number || 'غير-محدد'}.pdf`);
     pdfMake.createPdf(docDefinition).download(fileName);
+    
+    return true;
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
+    console.error('Error generating Arabic agreement report PDF:', error);
+    return false;
   }
 }
