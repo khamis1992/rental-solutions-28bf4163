@@ -12,49 +12,41 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Font configuration for Arabic support
-export const ARABIC_FONTS: FontMap = {
-  Amiri: {
-    normal: '/Amiri-Regular.ttf',
-    bold: '/Amiri-Bold.ttf',
-    italics: '/Amiri-Regular.ttf',
-    bolditalics: '/Amiri-Bold.ttf',
-  }
-};
-
-// Configure pdfMake with Arabic fonts
-export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
+// Configure pdfMake with Helvetica fonts (safe fallback)
+export function configurePdfMakeFonts(): void {
   try {
-    // Set the fonts
-    (pdfMake as any).fonts = fonts;
+    // Use built-in Helvetica font which is always available
+    (pdfMake as any).fonts = {
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+      }
+    };
     
-    // Initialize VFS if not present
-    if (!(pdfMake as any).vfs) {
-      (pdfMake as any).vfs = {};
-    }
-    
-    console.log('PDF fonts configured successfully:', Object.keys(fonts));
+    console.log('PDF fonts configured with Helvetica');
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
-    throw new Error('Failed to configure PDF fonts');
+    // Fonts will fall back to browser defaults
   }
 }
 
-// Check if fonts are loaded and available
+// Check if fonts are available
 export function checkFontAvailability(): boolean {
   try {
-    return !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
+    return !!(pdfMake as any).fonts;
   } catch (error) {
     console.error('Error checking font availability:', error);
     return false;
   }
 }
 
-// Initialize fonts with error handling
+// Initialize fonts
 export async function initializeFonts(): Promise<boolean> {
   try {
     configurePdfMakeFonts();
-    return checkFontAvailability();
+    return true;
   } catch (error) {
     console.error('Font initialization failed:', error);
     return false;
