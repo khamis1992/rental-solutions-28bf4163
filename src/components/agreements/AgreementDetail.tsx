@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -201,10 +200,10 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function async and returning Promise<void>
+  // Fix the type issue by making this function async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await onGenerateDocument();
+      await Promise.resolve(onGenerateDocument());
     }
   }, [onGenerateDocument]);
 

@@ -12,7 +12,7 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Font configuration for Arabic support using Amiri
+// Font configuration for Arabic support
 export const ARABIC_FONTS: FontMap = {
   Amiri: {
     normal: '/Amiri-Regular.ttf',
@@ -22,7 +22,7 @@ export const ARABIC_FONTS: FontMap = {
   }
 };
 
-// Configure pdfMake with Amiri fonts
+// Configure pdfMake with Arabic fonts
 export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
   try {
     // Set the fonts
