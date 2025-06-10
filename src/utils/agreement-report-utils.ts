@@ -414,10 +414,10 @@ export async function generateAgreementReportPdfmake(
                 { text: labels.paymentDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...payments.slice(0, 10).map(payment => [
-                { text: payment.payment_method || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
-                { text: toEnglishNumber(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                createArabicTextBlock(payment.payment_method || 'محدد غير', 'tableCell'),
+                createArabicTextBlock(payment.status === 'pending' ? 'معلق' : payment.status || 'محدد غير', 'tableCell'),
+                createArabicTextBlock(toEnglishNumber(payment.amount), 'tableCell'),
+                createArabicTextBlock(payment.payment_date ? formatArabicDate(payment.payment_date) : 'محدد غير', 'tableCell')
               ])
             ]
           },
@@ -456,17 +456,17 @@ export async function generateAgreementReportPdfmake(
                 { text: labels.fineDate.ar, style: 'tableHeader', alignment: 'center', fillColor: colors.lighter, color: colors.primary, border: [false, false, false, true], margin: [0, 4, 0, 4] }
               ],
               ...trafficFines.map(fine => [
-                { text: fine.location || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: fine.violationCharge || fine.violation_charge || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { 
-                  text: fine.paymentStatus === 'paid' ? 'مسدد' : fine.paymentStatus === 'pending' ? 'معلق' : prepareArabicForPDF('محدد غير'), 
-                  style: 'tableCell', 
-                  alignment: 'center', 
-                  color: getStatusColor(fine.paymentStatus),
-                  border: [false, false, false, false]
-                },
-                { text: toEnglishNumber(fine.fineAmount || fine.fine_amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: fine.violationDate ? formatDateEnglish(fine.violationDate) : formatDateEnglish(fine.violation_date) || prepareArabicForPDF('N/A'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
+                createArabicTextBlock(fine.location || 'محدد غير', 'tableCell'),
+                createArabicTextBlock(fine.violationCharge || fine.violation_charge || 'محدد غير', 'tableCell'),
+                createArabicTextBlock(
+                  fine.paymentStatus === 'paid' ? 'مسدد' : fine.paymentStatus === 'pending' ? 'معلق' : 'محدد غير',
+                  'tableCell'
+                ),
+                createArabicTextBlock(toEnglishNumber(fine.fineAmount || fine.fine_amount), 'tableCell'),
+                createArabicTextBlock(
+                  fine.violationDate ? formatDateEnglish(fine.violationDate) : formatDateEnglish(fine.violation_date) || 'N/A',
+                  'tableCell'
+                )
               ]),
               [
                 { ...createArabicTextBlock(labels.totalFines.ar, 'tableHeader'), colSpan: 4, alignment: 'center' },
