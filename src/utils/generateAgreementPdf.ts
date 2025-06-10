@@ -460,8 +460,9 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       }
     },
     
-    // Default style WITHOUT font specification - uses pdfMake defaults
+    // Default style WITH Arabic font for proper shaping
     defaultStyle: {
+      font: 'Amiri',
       fontSize: 11,
       lineHeight: 1.3,
       alignment: 'right'
