@@ -22,12 +22,13 @@ export function prepareArabicForPDF(text: string): string {
 }
 
 /**
- * Creates a simple Arabic text block for pdfMake without complex styling
+ * Creates a simple Arabic text block for pdfMake without font specification
  */
 export function createArabicTextBlock(text: string, style: string) {
   return {
     text: prepareArabicForPDF(text),
-    style: style
+    style: style,
+    // Remove any font specification to use pdfMake defaults
   };
 }
 
