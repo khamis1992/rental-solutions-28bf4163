@@ -330,24 +330,21 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       // The full template would include all 15+ articles as in the original
     ],
     
-    // Enhanced styles with proper Arabic text handling and corrected font references
+    // Enhanced styles WITHOUT any font references - using only default fonts
     styles: {
       companyName: {
         fontSize: 18,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         alignment: 'right'
       },
       companyAddress: {
         fontSize: 12,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'right'
       },
       companyDetails: {
         fontSize: 10,
-        font: 'Amiri',
         color: colors.secondary,
         alignment: 'right'
       },
@@ -358,13 +355,11 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       contractTitle: {
         fontSize: 20,
         bold: true,
-        font: 'Amiri',
         alignment: 'center',
         color: 'white'
       },
       contractSubtitle: {
         fontSize: 14,
-        font: 'Amiri',
         alignment: 'center',
         color: 'white',
         margin: [0, 5, 0, 0]
@@ -372,13 +367,11 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       contractDate: {
         fontSize: 12,
         bold: true,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'center'
       },
       preamble: {
         fontSize: 12,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right',
         margin: [0, 0, 0, 10]
@@ -386,7 +379,6 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       sectionHeader: {
         fontSize: 14,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         alignment: 'right',
         margin: [0, 0, 0, 8]
@@ -394,34 +386,29 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       partyHeader: {
         fontSize: 13,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         alignment: 'right'
       },
       partyDetails: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right',
         lineHeight: 1.4
       },
       partyRepresentation: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'right',
         margin: [0, 5, 0, 0]
       },
       partyNote: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.secondary,
         alignment: 'right',
         margin: [0, 10, 0, 0]
       },
       recital: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right',
         margin: [0, 0, 0, 8],
@@ -430,7 +417,6 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       recitalConclusion: {
         fontSize: 11,
         bold: true,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right',
         margin: [0, 10, 0, 0]
@@ -438,14 +424,12 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       articleHeader: {
         fontSize: 13,
         bold: true,
-        font: 'Amiri',
         color: colors.primary,
         alignment: 'right',
         margin: [0, 0, 0, 5]
       },
       articleText: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right',
         lineHeight: 1.4,
@@ -454,38 +438,33 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       vehicleLabel: {
         fontSize: 11,
         bold: true,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'right'
       },
       vehicleValue: {
         fontSize: 11,
-        font: 'Amiri',
         color: colors.text,
         alignment: 'right'
       },
       totalAmount: {
         fontSize: 12,
         bold: true,
-        font: 'Amiri',
         color: colors.success,
         alignment: 'right',
         margin: [0, 10, 0, 0]
       },
       footerText: {
         fontSize: 8,
-        font: 'Amiri',
         color: colors.textLight,
         alignment: 'center'
       }
     },
     
+    // Default style WITHOUT font specification - uses pdfMake defaults
     defaultStyle: {
-      font: 'Amiri',
       fontSize: 11,
-      rtl: true,
-      alignment: 'right',
-      lineHeight: 1.3
+      lineHeight: 1.3,
+      alignment: 'right'
     }
   };
 
