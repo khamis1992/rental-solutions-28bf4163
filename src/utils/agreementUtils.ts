@@ -1,6 +1,8 @@
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
+import '@/fonts/Amiri-normal.js';
+import '@/fonts/Amiri-Bold.js';
 import { configurePdfMakeFonts, initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
@@ -8,6 +10,22 @@ import {
   formatArabicCurrency, 
   formatArabicDate 
 } from './arabic-text-utils';
+
+// Register Amiri font
+(pdfMake as any).fonts = {
+  Amiri: {
+    normal: 'Amiri-normal.ttf',
+    bold: 'Amiri-bold.ttf',
+    italics: 'Amiri-normal.ttf',
+    bolditalics: 'Amiri-bold.ttf'
+  },
+  Helvetica: {
+    normal: 'Helvetica',
+    bold: 'Helvetica-Bold',
+    italics: 'Helvetica-Oblique',
+    bolditalics: 'Helvetica-BoldOblique'
+  }
+};
 
 // Enhanced font configuration with better Arabic support
 export async function ensureFontsLoaded() {
