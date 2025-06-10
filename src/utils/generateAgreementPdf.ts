@@ -1,3 +1,4 @@
+
 // @ts-ignore
 import pdfMake from 'pdfmake/build/pdfmake';
 import { configurePdfMakeFonts, initializeFonts } from './font-loader';
