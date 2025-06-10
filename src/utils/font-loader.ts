@@ -12,21 +12,20 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Simplified font configuration using available system fonts as fallback
+// Use only default pdfMake fonts - no custom font loading
 export const ARABIC_FONTS: FontMap = {
-  // Use system fonts that are more reliable for Arabic text
   Roboto: {
-    normal: 'Roboto-Regular.ttf',
-    bold: 'Roboto-Medium.ttf',
-    italics: 'Roboto-Regular.ttf',
-    bolditalics: 'Roboto-Medium.ttf',
+    normal: 'Roboto',
+    bold: 'Roboto',
+    italics: 'Roboto',
+    bolditalics: 'Roboto',
   }
 };
 
-// Configure pdfMake with reliable fonts
+// Configure pdfMake with default fonts only
 export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
   try {
-    // Use the default pdfMake fonts which are more stable
+    // Don't set custom fonts, use pdfMake defaults
     console.log('Using default pdfMake fonts for better compatibility');
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
@@ -46,10 +45,10 @@ export function checkFontAvailability(): boolean {
   }
 }
 
-// Simplified font initialization using default fonts
+// Simplified font initialization - no custom fonts
 export async function initializeFonts(): Promise<boolean> {
   try {
-    // Don't try to load custom fonts, use defaults
+    // Don't load any custom fonts, just use defaults
     console.log('Using default pdfMake fonts for stability');
     return true;
   } catch (error) {

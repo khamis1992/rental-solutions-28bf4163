@@ -131,7 +131,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     const endDate = new Date(agreement.end_date);
     const duration = calculateDurationMonths(startDate, endDate);
     
-    // Simplified document definition with basic text rendering
+    // Simplified document definition with NO custom fonts
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [50, 80, 50, 100],
@@ -346,7 +346,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Simplified styles without complex font features
+      // Simplified styles using ONLY default fonts
       styles: {
         companyName: {
           fontSize: 16,
