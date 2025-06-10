@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -132,8 +133,8 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
-  const handleDownloadPdf = useCallback(async () => {
+  // Download PDF - Fixed to return Promise<void>
+  const handleDownloadPdf = useCallback(async (): Promise<void> => {
     if (agreement) {
       try {
         setLoading('generatingPdf');

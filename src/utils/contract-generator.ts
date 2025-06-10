@@ -1,6 +1,6 @@
 
 import { Agreement } from '@/types/agreement';
-import { ensureFontsLoaded } from './font-loader';
+import { initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
   createArabicTextBlock, 
@@ -521,8 +521,8 @@ export async function generateArabicContract(agreement: Agreement): Promise<bool
   try {
     console.log('Starting Arabic contract generation for agreement:', agreement.id);
     
-    // Ensure fonts are loaded
-    await ensureFontsLoaded();
+    // Ensure fonts are loaded - using initializeFonts instead of ensureFontsLoaded
+    await initializeFonts();
     
     // Map agreement data to contract placeholders
     const contractData = mapAgreementData(agreement);
