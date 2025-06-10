@@ -200,12 +200,11 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function async and ensuring it returns Promise<void>
+  // Fix the type issue by making this function async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      return await onGenerateDocument();
+      await Promise.resolve(onGenerateDocument());
     }
-    return Promise.resolve();
   }, [onGenerateDocument]);
 
   if (isLoadingAgreement) {
