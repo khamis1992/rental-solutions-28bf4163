@@ -3,218 +3,131 @@ import { Agreement } from '@/types/agreement';
 import pdfMake from 'pdfmake/build/pdfmake';
 import { toast } from 'sonner';
 
-// Safe text processing function
-function safeText(text: string | undefined | null): string {
-  if (!text) return 'غير محدد';
+// Ultra-simple text processing - no special characters or bidirectional text
+function cleanText(text: string | undefined | null): string {
+  if (!text) return 'Not specified';
   
-  // Clean and sanitize text for PDF generation
+  // Convert to string and remove any problematic characters
   return String(text)
-    .replace(/\0/g, '') // Remove null bytes
-    .replace(/[\u200E\u200F\u202A-\u202E]/g, '') // Remove bidirectional marks
-    .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0020-\u007E\u000A\u000D]/g, '') // Keep only Arabic, Latin, and line breaks
-    .trim() || 'غير محدد';
+    .replace(/[^\u0020-\u007E\u0600-\u06FF]/g, '') // Keep only basic Latin and Arabic
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim() || 'Not specified';
 }
 
-// Safe currency formatting
+// Simple currency formatting
 function formatCurrency(amount: number | undefined | null): string {
-  if (!amount && amount !== 0) return 'غير محدد';
-  
+  if (!amount && amount !== 0) return 'Not specified';
   try {
-    return `${amount.toFixed(2)} ريال قطري`;
+    return `${amount.toFixed(2)} QAR`;
   } catch {
-    return 'غير محدد';
+    return 'Not specified';
   }
 }
 
-// Safe date formatting
+// Simple date formatting
 function formatDate(date: string | Date | undefined): string {
-  if (!date) return 'غير محدد';
+  if (!date) return 'Not specified';
   
   try {
     const d = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(d.getTime())) return 'غير محدد';
+    if (isNaN(d.getTime())) return 'Not specified';
     
     const day = d.getDate().toString().padStart(2, '0');
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
   } catch {
-    return 'غير محدد';
+    return 'Not specified';
   }
 }
 
-// Create a simple text element with consistent formatting
-function createTextElement(text: string, style = 'normal') {
-  return {
-    text: safeText(text),
-    style: style,
-    alignment: 'right'
+// Create ultra-simple document structure
+function createUltraSimpleDocument(agreement: Agreement) {
+  // Extract data safely
+  const data = {
+    agreementNumber: cleanText(agreement.agreement_number),
+    customerName: cleanText(agreement.customers?.full_name),
+    customerPhone: cleanText(agreement.customers?.phone_number),
+    vehicleMake: cleanText(agreement.vehicles?.make),
+    vehicleModel: cleanText(agreement.vehicles?.model),
+    vehicleYear: cleanText(agreement.vehicles?.year?.toString()),
+    licensePlate: cleanText(agreement.vehicles?.license_plate),
+    startDate: formatDate(agreement.start_date),
+    endDate: formatDate(agreement.end_date),
+    monthlyRent: formatCurrency(agreement.rent_amount),
+    totalAmount: formatCurrency(agreement.total_amount),
+    depositAmount: formatCurrency(agreement.deposit_amount),
+    currentDate: formatDate(new Date())
   };
-}
 
-// Create label-value pair
-function createLabelValue(label: string, value: string) {
-  return {
-    columns: [
-      { width: '*', text: '' },
-      { 
-        width: 'auto', 
-        text: `${safeText(label)}: ${safeText(value)}`,
-        style: 'valueText',
-        alignment: 'right'
-      }
-    ]
-  };
-}
-
-// Extract and validate agreement data
-function extractAgreementData(agreement: Agreement) {
-  try {
-    return {
-      agreementNumber: safeText(agreement.agreement_number),
-      customerName: safeText(agreement.customers?.full_name),
-      customerPhone: safeText(agreement.customers?.phone_number),
-      customerEmail: safeText(agreement.customers?.email),
-      vehicleMake: safeText(agreement.vehicles?.make),
-      vehicleModel: safeText(agreement.vehicles?.model),
-      vehicleYear: safeText(agreement.vehicles?.year?.toString()),
-      licensePlate: safeText(agreement.vehicles?.license_plate),
-      startDate: formatDate(agreement.start_date),
-      endDate: formatDate(agreement.end_date),
-      monthlyRent: formatCurrency(agreement.rent_amount),
-      totalAmount: formatCurrency(agreement.total_amount),
-      depositAmount: formatCurrency(agreement.deposit_amount),
-      currentDate: formatDate(new Date())
-    };
-  } catch (error) {
-    console.error('Error extracting agreement data:', error);
-    throw new Error('Failed to process agreement data');
-  }
-}
-
-// Create the document definition with minimal complexity
-function createSimpleDocumentDefinition(data: ReturnType<typeof extractAgreementData>) {
   return {
     pageSize: 'A4',
-    pageMargins: [50, 60, 50, 60],
+    pageMargins: [40, 60, 40, 60],
     
     content: [
-      // Header
-      createTextElement('شركة العراف لتأجير السيارات ذ.م.م', 'companyName'),
-      createTextElement('الدوحة - قطر', 'companyInfo'),
-      { text: '', margin: [0, 20] },
+      // Simple header
+      { text: 'Al Aaraf Car Rental Company L.L.C', fontSize: 14, bold: true, alignment: 'center', margin: [0, 0, 0, 10] },
+      { text: 'Doha - Qatar', fontSize: 10, alignment: 'center', margin: [0, 0, 0, 20] },
       
       // Title
-      createTextElement('عقد إيجار مركبة', 'title'),
-      { text: '', margin: [0, 20] },
+      { text: 'Vehicle Rental Agreement', fontSize: 16, bold: true, alignment: 'center', margin: [0, 0, 0, 20] },
       
-      // Agreement details
-      createLabelValue('رقم العقد', data.agreementNumber),
-      createLabelValue('تاريخ العقد', data.currentDate),
-      { text: '', margin: [0, 15] },
+      // Agreement info
+      { text: `Agreement Number: ${data.agreementNumber}`, fontSize: 10, margin: [0, 0, 0, 5] },
+      { text: `Date: ${data.currentDate}`, fontSize: 10, margin: [0, 0, 0, 15] },
       
-      // Customer information
-      createTextElement('بيانات المستأجر', 'sectionHeader'),
-      createLabelValue('الاسم', data.customerName),
-      createLabelValue('الهاتف', data.customerPhone),
-      createLabelValue('البريد الإلكتروني', data.customerEmail),
-      { text: '', margin: [0, 15] },
+      // Customer section
+      { text: 'Customer Information:', fontSize: 12, bold: true, margin: [0, 0, 0, 5] },
+      { text: `Name: ${data.customerName}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `Phone: ${data.customerPhone}`, fontSize: 10, margin: [0, 0, 0, 15] },
       
-      // Vehicle information
-      createTextElement('بيانات المركبة', 'sectionHeader'),
-      createLabelValue('الماركة', data.vehicleMake),
-      createLabelValue('الموديل', data.vehicleModel),
-      createLabelValue('سنة الصنع', data.vehicleYear),
-      createLabelValue('رقم اللوحة', data.licensePlate),
-      { text: '', margin: [0, 15] },
+      // Vehicle section
+      { text: 'Vehicle Information:', fontSize: 12, bold: true, margin: [0, 0, 0, 5] },
+      { text: `Make: ${data.vehicleMake}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `Model: ${data.vehicleModel}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `Year: ${data.vehicleYear}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `License Plate: ${data.licensePlate}`, fontSize: 10, margin: [0, 0, 0, 15] },
       
-      // Financial information
-      createTextElement('الشروط المالية', 'sectionHeader'),
-      createLabelValue('الإيجار الشهري', data.monthlyRent),
-      createLabelValue('المبلغ الإجمالي', data.totalAmount),
-      createLabelValue('مبلغ الضمان', data.depositAmount),
-      { text: '', margin: [0, 15] },
+      // Financial section
+      { text: 'Financial Terms:', fontSize: 12, bold: true, margin: [0, 0, 0, 5] },
+      { text: `Monthly Rent: ${data.monthlyRent}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `Total Amount: ${data.totalAmount}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `Security Deposit: ${data.depositAmount}`, fontSize: 10, margin: [0, 0, 0, 15] },
       
-      // Contract period
-      createTextElement('مدة العقد', 'sectionHeader'),
-      createLabelValue('تاريخ البدء', data.startDate),
-      createLabelValue('تاريخ الانتهاء', data.endDate),
-      { text: '', margin: [0, 30] },
+      // Period section
+      { text: 'Rental Period:', fontSize: 12, bold: true, margin: [0, 0, 0, 5] },
+      { text: `Start Date: ${data.startDate}`, fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: `End Date: ${data.endDate}`, fontSize: 10, margin: [0, 0, 0, 20] },
       
       // Basic terms
-      createTextElement('الشروط الأساسية', 'sectionHeader'),
-      createTextElement('١. يلتزم المستأجر بدفع الإيجار في التاريخ المحدد', 'termText'),
-      createTextElement('٢. يلتزم المستأجر بالمحافظة على المركبة', 'termText'),
-      createTextElement('٣. جميع المخالفات المرورية على عهدة المستأجر', 'termText'),
-      createTextElement('٤. يخضع هذا العقد للقوانين المعمول بها في دولة قطر', 'termText'),
-      { text: '', margin: [0, 30] },
+      { text: 'Terms and Conditions:', fontSize: 12, bold: true, margin: [0, 0, 0, 10] },
+      { text: '1. The tenant agrees to pay rent on the specified date', fontSize: 9, margin: [0, 0, 0, 3] },
+      { text: '2. The tenant is responsible for vehicle maintenance', fontSize: 9, margin: [0, 0, 0, 3] },
+      { text: '3. All traffic violations are the responsibility of the tenant', fontSize: 9, margin: [0, 0, 0, 3] },
+      { text: '4. This agreement is subject to Qatar laws', fontSize: 9, margin: [0, 0, 0, 30] },
       
       // Signatures
-      createTextElement('التوقيعات', 'sectionHeader'),
-      { text: '', margin: [0, 20] },
+      { text: 'Signatures:', fontSize: 12, bold: true, margin: [0, 0, 0, 20] },
       {
-        columns: [
-          {
-            width: '50%',
-            stack: [
-              createTextElement('المؤجر', 'signatureLabel'),
-              { text: '________________________', alignment: 'center', margin: [0, 20, 0, 5] },
-              createTextElement('التوقيع', 'signatureLabel')
+        table: {
+          widths: ['50%', '50%'],
+          body: [
+            [
+              { text: 'Lessor:', alignment: 'center', border: [false, false, false, false] },
+              { text: 'Lessee:', alignment: 'center', border: [false, false, false, false] }
+            ],
+            [
+              { text: '\n\n_____________________', alignment: 'center', border: [false, false, false, false] },
+              { text: '\n\n_____________________', alignment: 'center', border: [false, false, false, false] }
+            ],
+            [
+              { text: 'Signature', alignment: 'center', fontSize: 8, border: [false, false, false, false] },
+              { text: 'Signature', alignment: 'center', fontSize: 8, border: [false, false, false, false] }
             ]
-          },
-          {
-            width: '50%',
-            stack: [
-              createTextElement('المستأجر', 'signatureLabel'),
-              { text: '________________________', alignment: 'center', margin: [0, 20, 0, 5] },
-              createTextElement('التوقيع', 'signatureLabel')
-            ]
-          }
-        ]
+          ]
+        }
       }
     ],
-    
-    styles: {
-      companyName: {
-        fontSize: 16,
-        bold: true,
-        alignment: 'center',
-        font: 'Helvetica'
-      },
-      companyInfo: {
-        fontSize: 12,
-        alignment: 'center',
-        font: 'Helvetica'
-      },
-      title: {
-        fontSize: 18,
-        bold: true,
-        alignment: 'center',
-        font: 'Helvetica'
-      },
-      sectionHeader: {
-        fontSize: 14,
-        bold: true,
-        alignment: 'right',
-        font: 'Helvetica'
-      },
-      valueText: {
-        fontSize: 11,
-        alignment: 'right',
-        font: 'Helvetica'
-      },
-      termText: {
-        fontSize: 10,
-        alignment: 'right',
-        font: 'Helvetica',
-        margin: [0, 3]
-      },
-      signatureLabel: {
-        fontSize: 11,
-        alignment: 'center',
-        font: 'Helvetica'
-      }
-    },
     
     defaultStyle: {
       font: 'Helvetica',
@@ -223,60 +136,57 @@ function createSimpleDocumentDefinition(data: ReturnType<typeof extractAgreement
   };
 }
 
-// Main contract generation function
+// Main contract generation function with maximum error protection
 export async function generateArabicContract(agreement: Agreement): Promise<boolean> {
   try {
-    console.log('Generating Arabic contract for agreement:', agreement.id);
+    console.log('Starting ultra-simple contract generation for agreement:', agreement.id);
     
-    // Extract and validate data
-    const agreementData = extractAgreementData(agreement);
-    console.log('Agreement data extracted successfully');
-    
-    // Create document definition
-    const docDefinition = createSimpleDocumentDefinition(agreementData);
-    console.log('Document definition created');
+    // Create the simplest possible document
+    const docDefinition = createUltraSimpleDocument(agreement);
+    console.log('Document definition created successfully');
     
     // Generate filename
-    const fileName = `contract-${agreementData.agreementNumber}-${Date.now()}.pdf`;
+    const fileName = `contract-${agreement.agreement_number || 'unknown'}-${Date.now()}.pdf`;
     
-    // Create and download PDF
     try {
+      // Create PDF with minimal configuration
       const pdfDoc = pdfMake.createPdf(docDefinition);
       pdfDoc.download(fileName);
       
       console.log('PDF generated and downloaded successfully');
-      toast.success('تم إنشاء العقد العربي بنجاح');
+      toast.success('Contract generated successfully');
       return true;
       
     } catch (pdfError) {
       console.error('PDF generation error:', pdfError);
       
-      // Ultra-simple fallback
-      const fallbackDoc = {
+      // Ultimate fallback - text-only document
+      const textOnlyDoc = {
         content: [
-          { text: 'عقد إيجار مركبة', style: 'title' },
-          { text: `رقم العقد: ${agreementData.agreementNumber}`, style: 'normal' },
-          { text: `المستأجر: ${agreementData.customerName}`, style: 'normal' },
-          { text: `المركبة: ${agreementData.vehicleMake} ${agreementData.vehicleModel}`, style: 'normal' },
-          { text: `الإيجار الشهري: ${agreementData.monthlyRent}`, style: 'normal' }
+          { text: 'VEHICLE RENTAL AGREEMENT', fontSize: 16, bold: true, alignment: 'center' },
+          { text: '\n' },
+          { text: `Agreement: ${agreement.agreement_number || 'N/A'}`, fontSize: 12 },
+          { text: `Customer: ${agreement.customers?.full_name || 'N/A'}`, fontSize: 12 },
+          { text: `Vehicle: ${agreement.vehicles?.make || 'N/A'} ${agreement.vehicles?.model || 'N/A'}`, fontSize: 12 },
+          { text: `Monthly Rent: ${agreement.rent_amount || 0} QAR`, fontSize: 12 },
+          { text: '\n' },
+          { text: 'This is a simplified contract document.', fontSize: 10 }
         ],
-        styles: {
-          title: { fontSize: 16, bold: true, alignment: 'center' },
-          normal: { fontSize: 12, alignment: 'right', margin: [0, 5] }
-        },
-        defaultStyle: { font: 'Helvetica' }
+        defaultStyle: {
+          font: 'Helvetica'
+        }
       };
       
-      const fallbackPdf = pdfMake.createPdf(fallbackDoc);
+      const fallbackPdf = pdfMake.createPdf(textOnlyDoc);
       fallbackPdf.download(`simple-${fileName}`);
       
-      toast.success('تم إنشاء عقد مبسط بنجاح');
+      toast.success('Simplified contract generated');
       return true;
     }
     
   } catch (error) {
-    console.error('Contract generation failed:', error);
-    toast.error('فشل في إنشاء العقد العربي');
+    console.error('Complete contract generation failure:', error);
+    toast.error('Failed to generate contract');
     return false;
   }
 }

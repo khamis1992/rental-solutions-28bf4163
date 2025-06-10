@@ -12,10 +12,10 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Configure pdfMake with Helvetica fonts (safe fallback)
+// Configure pdfMake with only Helvetica fonts (most basic setup)
 export function configurePdfMakeFonts(): void {
   try {
-    // Use built-in Helvetica font which is always available
+    // Use only the most basic Helvetica configuration
     (pdfMake as any).fonts = {
       Helvetica: {
         normal: 'Helvetica',
@@ -25,10 +25,10 @@ export function configurePdfMakeFonts(): void {
       }
     };
     
-    console.log('PDF fonts configured with Helvetica');
+    console.log('PDF fonts configured with basic Helvetica only');
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
-    // Fonts will fall back to browser defaults
+    // Leave fonts undefined to use browser defaults
   }
 }
 
@@ -42,7 +42,7 @@ export function checkFontAvailability(): boolean {
   }
 }
 
-// Initialize fonts
+// Initialize fonts with minimal setup
 export async function initializeFonts(): Promise<boolean> {
   try {
     configurePdfMakeFonts();
