@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
 import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 
@@ -288,9 +288,14 @@ export function PdfTestingComponent() {
                 ))}
               </div>
               
-              {result.message && result.status === 'error' && (
+              {testResults.some(result => result.message && result.status === 'error') && (
                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{result.message}</p>
+                  {testResults
+                    .filter(result => result.message && result.status === 'error')
+                    .map((result, index) => (
+                      <p key={index} className="text-sm text-red-800">{result.message}</p>
+                    ))
+                  }
                 </div>
               )}
             </div>

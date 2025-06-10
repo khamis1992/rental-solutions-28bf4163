@@ -5,6 +5,7 @@ import { Agreement } from '@/types/agreement';
 import { AgreementActionButtons } from '../../details/AgreementActionButtons';
 import { AgreementTrafficFines } from '../../AgreementTrafficFines';
 import LegalCaseCard from '../../LegalCaseCard';
+import { ContractGenerationButton } from '../ContractGenerationButton';
 import { FileText, AlertTriangle, Scale } from 'lucide-react';
 
 interface DocumentsCardProps {
@@ -52,13 +53,16 @@ export function DocumentsCard({
             <p className="text-sm text-muted-foreground">
               Generate, download, and manage agreement documents.
             </p>
-            <AgreementActionButtons
-              onEdit={onEdit}
-              onDownloadPdf={onDownloadPdf}
-              onGenerateDocument={onGenerateDocument}
-              onDelete={onDelete}
-              isGeneratingPdf={isGeneratingPdf}
-            />
+            <div className="flex flex-wrap gap-2">
+              <AgreementActionButtons
+                onEdit={onEdit}
+                onDownloadPdf={onDownloadPdf}
+                onGenerateDocument={onGenerateDocument}
+                onDelete={onDelete}
+                isGeneratingPdf={isGeneratingPdf}
+              />
+              <ContractGenerationButton agreement={agreement} />
+            </div>
           </div>
         </CardContent>
       </Card>
