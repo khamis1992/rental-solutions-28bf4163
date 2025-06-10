@@ -12,28 +12,24 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Updated font configuration for JavaScript font files
+// Updated font configuration to use correct .ttf names that match the JavaScript font files
 export const ARABIC_FONTS: FontMap = {
   Amiri: {
-    normal: 'Amiri-normal.js',
-    bold: 'Amiri-bold.js',
-    italics: 'Amiri-normal.js',
-    bolditalics: 'Amiri-bold.js',
+    normal: 'Amiri-Regular.ttf',
+    bold: 'Amiri-Bold.ttf',
+    italics: 'Amiri-Regular.ttf', // Use regular for italics as fallback
+    bolditalics: 'Amiri-Bold.ttf', // Use bold for bold italics as fallback
   }
 };
 
-// Configure pdfMake with Arabic fonts using JavaScript files
+// Configure pdfMake with Arabic fonts using the correct font names
 export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
   try {
-    // Set the fonts
+    // Set the fonts - the JavaScript files have already populated pdfMake.vfs
     (pdfMake as any).fonts = fonts;
     
-    // Initialize VFS if not present
-    if (!(pdfMake as any).vfs) {
-      (pdfMake as any).vfs = {};
-    }
-    
-    console.log('PDF fonts configured successfully with JS files:', Object.keys(fonts));
+    console.log('PDF fonts configured successfully:', Object.keys(fonts));
+    console.log('Available fonts in VFS:', Object.keys((pdfMake as any).vfs || {}));
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
     throw new Error('Failed to configure PDF fonts');
@@ -43,48 +39,43 @@ export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
 // Check if fonts are loaded and available
 export function checkFontAvailability(): boolean {
   try {
-    return !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
+    const hasVfs = !!(pdfMake as any).vfs;
+    const hasAmiriRegular = hasVfs && (pdfMake as any).vfs['Amiri-Regular.ttf'];
+    const hasAmiriBold = hasVfs && (pdfMake as any).vfs['Amiri-Bold.ttf'];
+    const hasFontsConfig = !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
+    
+    console.log('Font availability check:', {
+      hasVfs,
+      hasAmiriRegular,
+      hasAmiriBold,
+      hasFontsConfig
+    });
+    
+    return hasVfs && hasAmiriRegular && hasAmiriBold && hasFontsConfig;
   } catch (error) {
     console.error('Error checking font availability:', error);
     return false;
   }
 }
 
-// Enhanced font initialization with proper JavaScript font handling
+// Simplified font initialization - no manual loading needed since JS files handle it
 export async function initializeFonts(): Promise<boolean> {
   try {
-    // First configure the fonts
+    // Just configure the fonts - the JavaScript files have already loaded the font data
     configurePdfMakeFonts();
     
-    // Try to load font files from public directory
-    const fontFiles = [
-      '/fonts/Amiri-normal.js',
-      '/fonts/Amiri-bold.js'
-    ];
+    // Check if fonts are available
+    const available = checkFontAvailability();
     
-    // Attempt to load fonts if they exist
-    for (const fontFile of fontFiles) {
-      try {
-        const response = await fetch(fontFile);
-        if (response.ok) {
-          const fontData = await response.text();
-          // Extract font name from file path
-          const fontName = fontFile.split('/').pop() || '';
-          if (!(pdfMake as any).vfs) {
-            (pdfMake as any).vfs = {};
-          }
-          (pdfMake as any).vfs[fontName] = fontData;
-          console.log(`Loaded font: ${fontName}`);
-        }
-      } catch (fontError) {
-        console.warn(`Could not load font ${fontFile}:`, fontError);
-      }
+    if (available) {
+      console.log('Fonts initialized successfully');
+    } else {
+      console.warn('Font initialization completed but fonts may not be fully available');
     }
     
-    return checkFontAvailability();
+    return available;
   } catch (error) {
     console.error('Font initialization failed:', error);
-    // Don't throw error, just return false to allow fallback
     return false;
   }
 }
