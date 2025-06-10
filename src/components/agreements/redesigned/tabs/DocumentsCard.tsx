@@ -6,7 +6,7 @@ import { Agreement } from '@/types/agreement';
 import { AgreementActionButtons } from '../../details/AgreementActionButtons';
 import { AgreementTrafficFines } from '../../AgreementTrafficFines';
 import LegalCaseCard from '../../LegalCaseCard';
-import { FileText, AlertTriangle, Scale, Download } from 'lucide-react';
+import { FileText, AlertTriangle, Scale, Download, Award } from 'lucide-react';
 import { generateArabicContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
 
@@ -40,19 +40,19 @@ export function DocumentsCard({
   const startDate = ensureDate(agreement.start_date);
   const endDate = ensureDate(agreement.end_date);
 
-  // Handle Arabic contract generation
-  const handleGenerateArabicContract = async () => {
+  // Handle comprehensive Arabic contract generation
+  const handleGenerateComprehensiveContract = async () => {
     try {
-      toast.info('جاري إنشاء عقد الإيجار العربي...');
+      toast.info('جاري إنشاء عقد الإيجار العربي الشامل...');
       const success = await generateArabicContract(agreement);
       
       if (success) {
-        toast.success('تم إنشاء العقد العربي بنجاح');
+        toast.success('تم إنشاء العقد العربي الشامل بنجاح');
       } else {
         toast.error('فشل في إنشاء العقد العربي');
       }
     } catch (error) {
-      console.error('Error generating Arabic contract:', error);
+      console.error('Error generating comprehensive Arabic contract:', error);
       toast.error('فشل في إنشاء العقد العربي');
     }
   };
@@ -70,32 +70,39 @@ export function DocumentsCard({
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Generate, download, and manage agreement documents.
+              Generate professional Arabic contracts and manage agreement documents.
             </p>
             
-            {/* Arabic Contract Button */}
-            <div className="mb-4">
+            {/* Comprehensive Arabic Contract Button */}
+            <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="h-5 w-5 text-emerald-600" />
+                <h4 className="font-semibold text-emerald-800">عقد إيجار شامل (Comprehensive Contract)</h4>
+              </div>
+              <p className="text-sm text-emerald-700 mb-3">
+                Professional Arabic rental agreement with complete legal articles, terms, and conditions
+              </p>
               <Button
-                onClick={handleGenerateArabicContract}
+                onClick={handleGenerateComprehensiveContract}
                 disabled={isGeneratingPdf}
                 className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <Download className="h-4 w-4 mr-2" />
-                عقد الإيجار العربي (Arabic Contract)
+                إنشاء العقد الشامل (Generate Full Contract)
               </Button>
-              <p className="text-xs text-muted-foreground mt-1">
-                Generate official Arabic rental agreement contract
-              </p>
             </div>
             
             {/* Standard Action Buttons */}
-            <AgreementActionButtons
-              onEdit={onEdit}
-              onDownloadPdf={onDownloadPdf}
-              onGenerateDocument={onGenerateDocument}
-              onDelete={onDelete}
-              isGeneratingPdf={isGeneratingPdf}
-            />
+            <div className="pt-4 border-t">
+              <h4 className="font-medium mb-3">Other Document Options</h4>
+              <AgreementActionButtons
+                onEdit={onEdit}
+                onDownloadPdf={onDownloadPdf}
+                onGenerateDocument={onGenerateDocument}
+                onDelete={onDelete}
+                isGeneratingPdf={isGeneratingPdf}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

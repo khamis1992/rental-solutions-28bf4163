@@ -275,10 +275,10 @@ const AgreementEditor = () => {
             });
           }
 
-          // Auto-generate Arabic contract for new agreements
+          // Auto-generate comprehensive Arabic contract for new agreements
           try {
-            console.log('Auto-generating Arabic contract for new agreement:', agreementId);
-            toast.info('Generating Arabic contract...');
+            console.log('Auto-generating comprehensive Arabic contract for new agreement:', agreementId);
+            toast.info('جاري إنشاء العقد العربي الشامل...');
             
             // Create a temporary agreement object for contract generation
             const agreementForContract = {
@@ -297,22 +297,22 @@ const AgreementEditor = () => {
             const contractResult = await generateAndStoreContract(agreementForContract);
             
             if (contractResult.success) {
-              console.log('Arabic contract generated successfully');
-              toast.success('Agreement created and Arabic contract generated successfully!');
+              console.log('Comprehensive Arabic contract generated successfully');
+              toast.success('تم إنشاء الاتفاقية والعقد العربي الشامل بنجاح!');
             } else {
-              console.error('Failed to generate Arabic contract:', contractResult.error);
-              toast.warning(`Agreement created but contract generation failed: ${contractResult.error}`);
+              console.error('Failed to generate comprehensive Arabic contract:', contractResult.error);
+              toast.warning(`Agreement created but comprehensive contract generation failed: ${contractResult.error}`);
             }
           } catch (contractError) {
-            console.error('Error auto-generating contract:', contractError);
-            toast.warning(`Agreement created but contract generation failed: ${contractError instanceof Error ? contractError.message : 'Unknown error'}`);
+            console.error('Error auto-generating comprehensive contract:', contractError);
+            toast.warning(`Agreement created but comprehensive contract generation failed: ${contractError instanceof Error ? contractError.message : 'Unknown error'}`);
           }
         }
       }
       
       if (result && agreementId) {
         const successMessage = isNewAgreement 
-          ? "Agreement, payment schedule, and contract created successfully" 
+          ? "Agreement, payment schedule, and comprehensive contract created successfully" 
           : "Agreement updated successfully";
           
         useToastHook({
@@ -668,7 +668,7 @@ const AgreementEditor = () => {
                   </Button>
                   <Button type="submit" disabled={isLoading || isGenerating}>
                     {(isLoading || isGenerating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement & Generate All"}
+                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement & Generate Comprehensive Contract"}
                   </Button>
                 </div>
               </form>
