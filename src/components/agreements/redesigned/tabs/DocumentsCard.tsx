@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Agreement } from '@/types/agreement';
@@ -6,13 +5,14 @@ import { AgreementActionButtons } from '../../details/AgreementActionButtons';
 import { AgreementTrafficFines } from '../../AgreementTrafficFines';
 import LegalCaseCard from '../../LegalCaseCard';
 import { ContractGenerationButton } from '../ContractGenerationButton';
+import { Contract2GenerationButton } from '../Contract2GenerationButton';
 import { FileText, AlertTriangle, Scale } from 'lucide-react';
 
 interface DocumentsCardProps {
   agreement: Agreement;
   onEdit: () => void;
   onDownloadPdf: () => void;
-  onGenerateDocument: () => void;
+  onGenerateDocument: () => Promise<void>;
   onDelete: () => void;
   isGeneratingPdf: boolean;
   getDateString: (date: string | Date) => string;
@@ -62,6 +62,7 @@ export function DocumentsCard({
                 isGeneratingPdf={isGeneratingPdf}
               />
               <ContractGenerationButton agreement={agreement} />
+              <Contract2GenerationButton agreement={agreement} />
             </div>
           </div>
         </CardContent>
