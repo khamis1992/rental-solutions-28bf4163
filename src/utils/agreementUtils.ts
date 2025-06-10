@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -351,48 +350,58 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         companyName: {
           fontSize: 16,
           bold: true,
-          color: colors.primary
+          color: colors.primary,
+          font: 'Amiri'
         },
         contractTitle: {
           fontSize: 18,
           bold: true,
-          color: colors.text
+          color: colors.text,
+          font: 'Amiri'
         },
         contractInfo: {
           fontSize: 12,
-          color: colors.text
+          color: colors.text,
+          font: 'Amiri'
         },
         sectionHeader: {
           fontSize: 14,
           bold: true,
-          color: colors.primary
+          color: colors.primary,
+          font: 'Amiri'
         },
         partyText: {
           fontSize: 11,
           color: colors.text,
-          lineHeight: 1.4
+          lineHeight: 1.4,
+          font: 'Amiri'
         },
         infoText: {
           fontSize: 11,
-          color: colors.text
+          color: colors.text,
+          font: 'Amiri'
         },
         financialText: {
           fontSize: 12,
           bold: true,
-          color: colors.primary
+          color: colors.primary,
+          font: 'Amiri'
         },
         termText: {
           fontSize: 10,
           color: colors.text,
-          lineHeight: 1.3
+          lineHeight: 1.3,
+          font: 'Amiri'
         },
         signatureText: {
           fontSize: 11,
-          color: colors.text
+          color: colors.text,
+          font: 'Amiri'
         },
         pageNumber: {
           fontSize: 8,
-          color: colors.textLight
+          color: colors.textLight,
+          font: 'Amiri'
         }
       },
       
