@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -20,6 +19,8 @@ export async function ensureFontsLoaded() {
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
+    // Always configure fonts as fallback
+    configurePdfMakeFonts();
   }
 }
 
@@ -395,7 +396,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Enhanced styles for Arabic legal document
+      // Enhanced styles for Arabic legal document with corrected font references
       styles: {
         companyName: {
           fontSize: 18,

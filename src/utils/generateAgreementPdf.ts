@@ -330,7 +330,7 @@ export async function generateAgreementPdfAndUploadAndDownload({ agreement, cust
       // The full template would include all 15+ articles as in the original
     ],
     
-    // Enhanced styles with proper Arabic text handling
+    // Enhanced styles with proper Arabic text handling and corrected font references
     styles: {
       companyName: {
         fontSize: 18,

@@ -19,6 +19,8 @@ export async function ensureFontsLoaded() {
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
+    // Always configure fonts as fallback
+    configurePdfMakeFonts();
   }
 }
 
@@ -501,10 +503,10 @@ export async function generateAgreementReportPdfmake(
       ] : [])
     ],
     
-    // Enhanced styles with proper Arabic text handling
+    // Enhanced styles with proper Arabic text handling and corrected font references
     styles: {
       companyName: {
-        fontSize: 16,
+        fontSize: 18,
         bold: true,
         font: 'Amiri',
         color: colors.primary,
@@ -605,17 +607,21 @@ export async function generateAgreementReportPdfmake(
     
     defaultStyle: {
       font: 'Amiri',
-      fontSize: 12,
+      fontSize: 11,
       rtl: true,
-      alignment: 'right'
+      alignment: 'right',
+      lineHeight: 1.3
     }
   };
 
   try {
-    const fileName = prepareArabicForPDF(`تقرير-عقد-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    // Generate and download the PDF
+    const fileName = prepareArabicForPDF(`تقرير-إيجار-${agreement.agreement_number || 'غير-محدد'}.pdf`);
     pdfMake.createPdf(docDefinition).download(fileName);
+    
+    return true;
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw new Error(prepareArabicForPDF('فشل في إنشاء تقرير PDF'));
+    console.error('Error generating Arabic agreement report PDF:', error);
+    return false;
   }
 }
