@@ -1,5 +1,5 @@
-
 import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 export interface FontConfig {
   normal: string;
@@ -12,20 +12,25 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Configure pdfMake with only Helvetica fonts (most basic setup)
+// Configure pdfMake with Roboto font for browser compatibility
 export function configurePdfMakeFonts(): void {
   try {
-    // Use only the most basic Helvetica configuration
+    // Assign the vfs to pdfMake, which contains the font data
+    if (pdfFonts && pdfFonts.pdfMake) {
+      pdfMake.vfs = pdfFonts.pdfMake.vfs;
+    }
+
+    // Use Roboto as the default font, pointing to the correct file names in the VFS
     (pdfMake as any).fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
       }
     };
     
-    console.log('PDF fonts configured with basic Helvetica only');
+    console.log('PDF fonts configured with Roboto and VFS');
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
     // Leave fonts undefined to use browser defaults
