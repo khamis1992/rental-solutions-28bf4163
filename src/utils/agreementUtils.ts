@@ -19,6 +19,7 @@ export async function ensureFontsLoaded() {
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
+    configurePdfMakeFonts();
   }
 }
 
@@ -29,7 +30,7 @@ const contractLabels = {
   companyName: { ar: 'شركة العراف لتأجير السيارات ذ.م.م' },
   
   // Parties
-  firstParty: { ar: 'الطرف الأول (المؤجر)' },
+  firstParty: { ar: 'الطرف الأول: شركة العراف لتاجير السيارات ذ م م، وهي شركة محدودة المسؤولية مسجلة اصولا طبقا لقوانين دولة قطر، سجل تجاري رقم 146832 ومقرها الكائن في منطقة ام صلال علي، الدوحة، قطر، ص ب 36126 . ويمثلها قانونا السيد/ خميس هاشم الجبر بصفته المدير المخول بالتوقيع للشركة، ويشار اليه لاحقا بلفظ المؤجر | الطرف الاول' },
   secondParty: { ar: 'الطرف الثاني (المستأجر)' },
   
   // Agreement details
@@ -62,47 +63,24 @@ const contractLabels = {
   depositAmount: { ar: 'مبلغ الضمان' },
   paymentDay: { ar: 'يوم الدفع' },
   
-  // Terms and conditions
+  // Terms and conditions - Comprehensive 15 articles
   termsConditions: { ar: 'الشروط والأحكام' },
-  term1: { ar: '1. يلتزم المستأجر بدفع الإيجار الشهري في التاريخ المحدد.' },
-  term2: { ar: '2. يحق للمؤجر استرداد المركبة في حالة عدم الدفع.' },
-  term3: { ar: '3. المستأجر مسؤول عن أي أضرار تلحق بالمركبة.' },
-  term4: { ar: '4. يجب إرجاع المركبة بنفس الحالة التي تم تسليمها بها.' },
-  term5: { ar: '5. أي مخالفات مرورية تقع على عهدة المستأجر.' },
-  term6: { ar: '6. يحق للمؤجر فسخ العقد في حالة مخالفة أي من هذه الشروط.' },
-  term7: { ar: 'يعتبر التمهيد السابق جزء لا يتجزأ من هذا العقد ويفسر ضمن بنوده وشروطه.' },
-  term8: { ar: 'يكون الدفع في أول يوم من كل شهر، وفي حال التأخير عن سداد القيمة الإيجارية أو في حال تخلف الطرف الثاني عن سداد أي من الدفعات الشهرية المستحقة لأي سبب كان، تُطبق على الطرف الثاني دون حاجة إلى إنذار أو إعذار من قبل الطرف الأول غرامة تأخير مبلغ قدره 200 ريال قطري عن كل يوم تأخير من تاريخ الاستحقاق حتى تاريخ سداد المتأخرات، وتدفع المتأخرات مع الغرامات على حد سواء.' },
-  term9: { ar: 'اتفق الطرفان على أن تكون مدة هذا العقد حتى تاريخ endDate تبدأ اعتباراً من تاريخ النفاذ المذكور في بداية هذا العقد، وغير قابلة للتجديد، وينتهي العقد بانتهاء مدته، كما لا يجوز للطرف الثاني أن ينهي العقد قبل انتهاء مدته إلا بموافقة خطية من الطرف الأول.' },
-  term10: { ar: 'يدفع الطرف الثاني للطرف الأول قيمة إيجارية مبلغ كما هو موضح في الشروط المالية طبقاً لجدول الدفعات المرفق بهذا العقد. يلتزم الطرف الثاني بسداد كامل دفعات الإيجار المحددة شهرياً وبصورة منتظمة، ولا يجوز له خصم أي مبلغ منها مقابل رسوم أو ضرائب أو غير ذلك.' },
-  term11: { ar: 'يلتزم الطرف الثاني عند التوقيع على هذا العقد أن يسلم الطرف الأول قيمة كما هو موضح في الشروط المالية كوديعة ضمان ("وديعة الضمان") وذلك لضمان تنفيذ الطرف الثاني لالتزاماته بموجب هذا العقد ولتعويض الطرف الأول عن أي خسائر أو أضرار قد يتسبب بها الطرف الثاني أو وكلائه أو ممثليه للمركبة طوال مدة هذا العقد. بالإضافة إلى ذلك، يحق للطرف الأول أن يخصم من وديعة الضمان أي مبالغ يدين بها الطرف الثاني للطرف الأول بموجب هذا العقد، ولا يمكن استرجاع مبلغ الضمان بعد إنهاء العقد من قبل الطرف الثاني.' },
-  term12: { ar: 'يقر الطرف الثاني بأنه بمجرد توقيعه على هذا العقد يكون قد عاين المركبة المؤجرة إليه معاينة تامة نافية للجهالة وقبل بها بحالتها الراهنة وأنه تحقق بأنها بحالة جيدة خالية من أي عيوب، وأنها بكفاءة عالية ولا يحق له الادعاء بعد ذلك بوجود عيب فيها. لا يقدم الطرف الأول أي ضمانات، صريحة أو ضمنية، فيما يتعلق بالمركبة المؤجرة ويتحمل الطرف الثاني وحده المسؤولية عن حالة المركبة المؤجرة.' },
-  term13: { ar: 'مع عدم الإخلال بأحكام المواد 4 و6 أعلاه، يلتزم الطرف الأول عند التوقيع على هذا العقد بتسليم الطرف الثاني المركبة المؤجرة إليه طبقاً لنموذج محضر التسليم المرفق بهذا العقد ويوقع عليه من كلا الطرفين، وفي حال إرجاع السيارة أو إنهاء العقد يكون الطرف الثاني مسؤول عن أي تلف أو مخالفة أو أضرار على السيارة أو تسبب بها للغير.' },
-  term14: { ar: 'عند التوقيع على هذا العقد يقر ويضمن الطرف الثاني بعد أن أصبحت المركبة في حيازته أنه المسؤول الوحيد عن:' },
-  term14_1: { ar: '14.1 يتحمل الطرف الثاني كافة المخالفات المرورية التي تقع خلال مدة الإيجار ويجب تسويتها خلال 30 يومًا كحد أقصى من تاريخ وقوع المخالفة، وبالعدم يحق للطرف الأول إنهاء العقد وتحميله قيمة المخالفات.' },
-  term14_2: { ar: '14.2 جميع مصاريف تشغيل المركبة من وقود وزيوت وقطع الغيار الاستهلاكية ومغيّر ذلك.' },
-  term14_3: { ar: '14.3 جميع أعمال الصيانة الدورية وغير الدورية والإصلاح وإجراء الفحص الفني للمركبة المؤجرة في مواعيدها والالتزام بكافة متطلبات الفحص الفني وضمان اجتياز المركبة المؤجرة للفحص الفني طوال مدة هذا العقد.' },
-  term14_4: { ar: '14.4 يقر الطرف الثاني بأنه وحده المسؤول عن هلاك المركبة سواء كان هلاكاً كلياً أو جزئياً، والناتج عن إهماله أو تقصيره ولو كان بسبب الغير، وبالتالي فإن الطرف الثاني يتعهد بدفع تكلفة هذا الهلاك.' },
-  term14_5: { ar: '14.5 يقر الطرف الثاني بأنه سيقود المركبة بنفسه ولمنفعته الشخصية ولن يسمح لأحد غيره بقيادتها والانتفاع بها طوال مدة هذا العقد، وفي حال مخالفته لذلك يحق للطرف الأول إنهاء العقد دون إنذار أو إعذار أو حكم من المحكمة.' },
-  term15: { ar: 'يلتزم الطرف الثاني بتوفير بوليصة تأمين شاملة ضد جميع الأخطار للمركبة المؤجرة من شركة تأمين معتمدة والحفاظ عليها سارية الصلاحية طوال مدة هذا العقد.' },
-  term16: { ar: 'بموجب هذا العقد إذا رغب الطرف الثاني شراء المركبة بنهاية مدة العقد يجب أن يخطر الطرف الأول كتابياً برغبته بشراء المركبة المبين بيانها أعلاه محل العقد، علماً بأن قيمة السيارة مساوية لقيمة الإيجار الشهري، ويحق للطرف الثاني الانتفاع بهذا العرض فقط مع نهاية العقد.' },
-  term17: { ar: 'إن أي من الأفعال التالية تشكل حدث إخلال من قبل الطرف الثاني:' },
-  term17_1: { ar: '17.1 إخفاق الطرف الثاني في سداد أي من الدفعات الإيجارية أو أي مبلغ مستحق بموجب هذا العقد في مواعيد استحقاقه.' },
-  term17_2: { ar: '17.2 خرق الطرف الثاني لأي من التزاماته الأخرى غير المالية المفروضة بموجب هذا العقد.' },
-  term17_3: { ar: '17.3 إفلاس أو إعسار الطرف الثاني.' },
-  term17_4: { ar: '17.4 هجر أو ترك المركبة.' },
-  term17_5: { ar: '17.5 مغادرة أو ترحيل الطرف الثاني من البلاد بصورة نهائية.' },
-  term17_6: { ar: '17.6 عدم التزام المستأجر بدفع كل مخالفة مرورية مرتكبة أثناء حيازته السيارة في غضون 30 يوم من تاريخ ارتكابها.' },
-  term18: { ar: 'في حال وقوع حدث الإخلال من قبل الطرف الثاني يحق للطرف الأول دون حاجة إلى إنذار أو إعذار أو حكم من المحكمة:' },
-  term18_1: { ar: '18.1 إنهاء العقد وسحب السيارة بواسطة أحد موظفي الشركة فوراً، كما يلتزم الطرف الثاني بدفع القيمة الإيجارية المستحقة وبتعويض الطرف الأول مقابل إنهاء العقد بدفع غرامة 5000 ريال قطري، ولا يحق للطرف الثاني المطالبة بأي مبالغ مدفوعة قبل إنهاء العقد.' },
-  term18_2: { ar: '18.2 يلتزم الطرف الثاني على الفور بتسليم المركبة المؤجرة إلى الطرف الأول، ويدفع الطرف الثاني تعويضاً للطرف الأول يعادل 200 ريال عن كل يوم تأخير حتى تسليمها إلى الطرف الأول. يستحق الطرف الأول الغرامات المفروضة عن التأخر في السداد والأجرة اليومية للسيارة ويكون مجموعهما تعويضاً عما لحق الطرف الأول من أضرار.' },
-  term19: { ar: 'في حال مخالفة الطرف الثاني لأي من بنود هذا العقد يحق للطرف الأول إنهاء العقد دون الحاجة إلى إنذار أو إعذار أو حكم من المحكمة وسحب السيارة بواسطة موظفي الشركة عن طريق نسخة المفتاح الموجود لدى الشركة، ويكون الطرف الثاني ملزماً بتسليم نسخته للطرف الأول أو يتحمل قيمتها. كما يقر ويوافق الطرف الثاني بعدم مسؤولية الطرف الأول عن أي أغراض أو مبالغ داخل السيارة عند سحبها، ويتنازل المستأجر عن أي مطالبات قانونية تتعلق بالأغراض الشخصية المتبقية في السيارة في حالة استردادها نتيجة لعدم الدفع أو خرق العقد، ولا تعد الشركة مسؤولة مدنياً أو جنائياً.' },
-  term20: { ar: 'لا يجوز للطرف الثاني في حال قرر سداد قيمة العقد وإنهاء العقد قبل تاريخ الانتهاء، ويلتزم الطرف الثاني بجدول السداد، وعليه إخطار الطرف الأول قبلها بشهر ما إذا أراد خلاصها قبل ذلك لأخذ الموافقة.' },
-  term21: { ar: '14.1 القانون الحاكم والاختصاص القضائي: يخضع هذا العقد من جميع النواحي للقوانين المطبقة في دولة قطر. يوافق الطرفان على الاختصاص القضائي أمام محاكم دولة قطر. يتفق الطرفان على أن هذا الاختيار للقانون والمكان والولاية القضائية ليس اختيارياً، ولكنه إلزامي بطبيعته.' },
-  term22: { ar: '14.2 يجوز أن تكون جميع الاتصالات أو الإشعارات أو المراسلات المقدمة بموجب هذا عبر الواتساب أو البريد الإلكتروني أو الرسائل النصية.' },
-  term23: { ar: '14.3 التنازل: لا يجوز التنازل عن هذا العقد أو الحقوق الممنوحة بموجبه أو بيعها أو تأجيرها أو نقلها كلياً أو جزئياً بواسطة الطرف الثاني دون موافقة خطية مسبقة من الطرف الأول.' },
-  term24: { ar: '14.4 القابلية للفصل: إذا تم اعتبار أي حكم أو بند من هذا العقد غير قابل للتنفيذ، فيعتبر هذا العقد معدل بالقدر اللازم لجعل الحكم غير قابل للتنفيذ، وبقية العقد ساري وقابل للتنفيذ. إذا رفضت المحكمة تعديل هذا العقد على النحو المنصوص عليه في هذا البند، فإن بطلان أو عدم قابلية تنفيذ أي حكم من أحكام هذا العقد لن يؤثر على صلاحية أو قابلية تنفيذ البنود والأحكام المتبقية، والتي يجب أن يتم إنفاذها كما لو لم تكن مدرجة في هذا العقد.' },
-  term25: { ar: '14.5 الاتفاق بمجمله: يشكل هذا العقد الاتفاق الكامل بين الطرفين ويحل محل أي تفاهمات سابقة أو معاصرة، سواء كانت مكتوبة أو شفهية.' },
-  term26: { ar: '14.6 نسخ العقد: يجوز توقيع هذا العقد من عدة نسخ، وتشكل جميعها عقد واحد.' },
+  term1: { ar: '1. يعتبر التمهيد السابق جزأ لا يتجزأ من هذا العقد ويفسر ضمن بنوده وشروطه.' },
+  term2: { ar: '2. يكون الدفع في أول يوم من كل شهر و في حال التأخير عن سداد القيمة الإيجارية او في حال تخلف الطرف الثاني عن سداد أي من الدفعات الشهرية المستحقة لاي سبب كان تطبق على الطرف الثاني دون حاجة الى اعذار او انذار من قبل الطرف الأول غرامة تأخير مبلغ قدره 200 ريال قطري عن كل يوم تأخير من تاريخ الاستحقاق حتى تاريخ سدادة المتأخرات وتدفع المتأخرات مع الغرامات على حد سواء.' },
+  term3: { ar: '3. اتفق الطرفان على ان تكون مدة هذا العقد تبدأ اعتبارا من تاريخ النفاذ المذكور في بداية هذا العقد، غير قابل للتجديد وينتهي العقد بانتهاء مدته كما لا يجوز للطرف الثاني ان ينهي العقد قبل انتهاء مدته الا بموافقة كتابية من الطرف الأول.' },
+  term4: { ar: '4. يدفع الطرف الثاني للطرف الأول قيمة ايجارية مبلغ كما هو موضح في الشروط المالية طبقا لجدول الدفعات المرفق بهذا العقد. يلتزم الطرف الثاني بسداد كامل دفعات الايجار المحددة شهريا وبصورة منتظمة ولا يجوز له خصم أي مبلغ منها مقابل رسوم او ضرائب او غير ذلك.' },
+  term5: { ar: '5. يكون الدفع في أول يوم من كل شهر و في حال التأخير عن سداد القيمة الإيجارية او في حال تخلف الطرف الثاني عن سداد أي من الدفعات الشهرية المستحقة لاي سبب كان تطبق على الطرف الثاني دون حاجة الى اعذار او انذار من قبل الطرف الأول غرامة تأخير مبلغ قدره 200 ريال قطري عن كل يوم تأخير من تاريخ الاستحقاق حتى تاريخ سدادة المتأخرات وتدفع المتأخرات مع الغرامات على حد سواء.' },
+  term6: { ar: '6. يلتزم الطرف الثاني عند التوقيع على هذا العقد ان يسلم الطرف الأول قيمة كما هو موضح في الشروط المالية كوديعة ضمان ("وديعة الضمان") وذلك لضمان تنفيذ الطرف الثاني لالتزاماته بموجب هذا العقد ولتعويض الطرف الأول عن اية خسائر او اضرار قد يتسبب بها الطرف الثاني او وكلائه او ممثليه للمركبة طوال مدة هذا العقد. بالإضافة الى ذلك، يحق للطرف الأول ان يخصم من وديعة الضمان اية مبالغ يدين بها الطرف الثاني للطرف الأول بموجب هذا العقد ولا يمكن استرجاع مبلغ الضمان بعد إنهاء العقد من قبل الطرف الثاني.' },
+  term7: { ar: '7. يقر الطرف الثاني انه بمجرد توقيعه على هذا العقد يكون قد عاين المركبة المؤجرة اليه معاينة تامة نافية للجهالة وقبل بها بحالتها الراهنة وانه تحقق بانها بحالة جيدة خالية من اية عيوب، وانها بكفاءة عالية ولا يحق له الادعاء بعد ذلك بوجود عيب فيها. لا يقدم الطرف الاول أي ضمانات، صريحة أو ضمنية، فيما يتعلق بالمركبة المؤجرة و يتحمل الطرف الثاني وحده المسؤولية عن حالة المركبة المؤجرة.' },
+  term8: { ar: '8. مع عدم الاخلال بأحكام المادتين 4 و 6 أعلاه، يلتزم الطرف الأول عند التوقيع على هذا العقد بتسليم الطرف الثاني المركبة المؤجرة اليه طبقا لنموذج محضر التسليم المرفق بهذا العقد ويوقع عليه من كلا الطرفين وفي حال إرجاع السيارة او إنهاء العقد يكون الطرف الثاني مسوول عن أي تلف او مخالفة أو أضرار على السيارة أو تسبب بها للغير.' },
+  term9: { ar: '9. عند التوقيع على هذا العقد يقر ويضمن الطرف الثاني بعد ان أصبحت المركبة في حيازته انه المسؤول الوحيد عن: 9.1 يتحمل الطرف الثاني كافة المخالفات المرورية التي تقع خلال مدة الإيجار ويجب تسويتها خلال 30 يومًا كحد أقصى من تاريخ وقوع المخالفة وبالعدم يحق للطرف الأول إنهاء العقد وتحميلة قيمة المخالفات. 9.2 جميع مصاريف تشغيل المركبة من وقود وزيوت وقطع الغيار الاستهلاكية ومغير ذلك. 9.3 جميع اعمال الصيانة الدورية وغير الدورية والإصلاح واجراء الفحص الفني للمركبة المؤجرة في مواعيدها والالتزام بكافة متطلبات الفحص الفني وضمان اجتياز المركبة المؤجرة للفحص الفني طوال مدة هذا العقد. 9.4 يقر الطرف الثاني بانه وحده المسؤول عن هلاك المركبة سواء كان هلاكا كليا او جزئيا، والناتج عن اهماله او تقصيره ولو كان بسبب الغير وبالتالي فان الطرف الثاني يتعهد بدفع تكلفة هذا الهلاك. 9.5 يقر الطرف الثاني انه سيقود المركبة بنفسه ولمنفعته الشخصية ولن يسمح لاحد غيره بقيادتها والانتفاع بها طوال مدة هذا العقد و في حال مخالفة ذلك يحق للطرف الأول انهاء العقد دون اعذار أو انذار او حكم محكمة.' },
+  term10: { ar: '10. يلتزم الطرف الثاني بتوفير بوليصة تامين شاملة ضد جميع الاخطار للمركبة المؤجرة من شركة تامين معتمدة والحفاظ عليها سارية الصلاحية طوال مدة هذا العقد.' },
+  term11: { ar: '11. بموجب هذا العقد إذا رغب الطرف الثاني شراء المركبة بنهاية مدة العقد يجب ان يخطر الطرف الاول كتابيا برغبته بشراء المركبة المبين بيانها اعلاه محل العقد علما بأن قيمة السيارة مساوية لقيمة الايجار الشهري، يحق للطرف للثاني الانتفاع بهذا العرض فقط مع نهاية العقد.' },
+  term12: { ar: '12. ان أي من الأفعال التالية تشكل حدث اخلال من قبل الطرف الثاني: 12.1 الإخفاق في الدفع: اخفاق الطرف الثاني في سداد أي من الدفعات الايجارية او أي مبلغ مستحق بموجب هذا العقد في مواعيد استحقاقها 12.2 خرق العقد: خرق الطرف الثاني لاي من التزاماته الأخرى غير المالية المفروضة بموجب هذا العقد 12.3 افلاس او اعسار الطرف الثاني. 12.4 هجر او ترك المركبة. 12.5 مغادرة او ترحيل الطرف الثاني من البلاد بصورة نهائية. 12.6 عدم التزام المستأجر بدفع كل مخالفة مرورية مرتكبة أثناء حيازته السيارة في غضون 30 يوم من تاريخ ارتكابها.' },
+  term13: { ar: '13. في حال وقوع حدث الاخلال من قبل الطرف الثاني يحق للطرف الأول دون حاجة الى اعذار او انذار او حكم محكمة: انهاء العقد وسحب السيارة بواسطة أحد موظفي الشركة فورا، كما يلتزم الطرف الثاني بدفع القيمة الايجارية المستحقة وبتعويض الطرف الأول مقابل إنهاء العقد بدفع غرامة 5000 ريال قطري ولايحق للطرف الثاني المطالبة باي مبالغ مدفوعة قبل إنهاء العقد 13.2 يلتزم الطرف الثاني على الفور بتسليم المركبة المؤجرة الى الطرف الأول ويدفع الطرف الثاني تعويض الى الطرف الأول يعادل 200 ريال عن كل يوم تأخير حتى تسليمها الى الطرف الأول. يستحق الطرف الأول الغرامات المفروضة عن التأخر في السداد والاجرة اليومية للسيارة ويكون مجموعهما تعويضا عما لحق الطرف الأول من أضرار. في حال مخالفة الطرف الثاني لأي من بنود هذا العقد يحق للطرف الأول إنهاء العقد دون الحاجة إلى اعذار او إنذار او حكم محكمة وسحب السيارة بواسطة موظفي الشركة عن طريق نسخة المفتاح الموجود لدى الشركة ويكون الطرف الثاني ملزم بتسليم نسختة للطرف الأول او يتحمل قيمتة. كما يقر ويوافق الطرف الثاني بعدم مسؤولية الطرف الثاني عن أي أغراض أو مبالغ دأخل السيارة عند سحبها ويتنازل المستأجر عن أي مطالبات قانونية تتعلق بالأغراض الشخصية المتبقية في السيارة في حالة استردادها نتيجة لعدم الدفع أو خرق العقد ولا تعد الشركة مسؤولة مدنيا او جنائيا.' },
+  term14: { ar: '14. لا يجوز للطرف الثاني في حال قرر سداد قيمة العقد وانهاء العقد قبل تاريخ الانتهاء ويلتزم الطرف الثاني بجدول السداد وعليه اخطار الطرف الأول قبلها بشهر ما اذا اراد خلاصها قبل ذلك لأخد الموافقة.' },
+  term15: { ar: '15. 15.1 القانون الحاكم والاختصاص القضائي: يخضع هذا العقد من جميع النواحي للقوانين المطبقة في دولة قطر. يوافق الطرفان على الاختصاص القضائي أمام محاكم دولة قطر. يتفق الطرفان على أن هذا الاختيار للقانون والمكان والولاية القضائية ليس اختياريا، ولكنه إلزامي بطبيعته. 15.2 يجوز أن تكون جميع الاتصالات أوالإشعارات أو المراسلات المقدمة بموجب هذا عبر الواتساب او الايميل او الرسائل النصية 15.3 التنازل: لا يجوز التنازل عن هذا العقد أو الحقوق الممنوحة بموجبه أو بيعها أو تأجيرها أو نقلها كليًا أو جزئيًا بواسطة الطرف الثاني دون موافقة خطية مسبقة من الطرف الاول. 15.4 القابلية للفصل: إذا تم اعتبار أي حكم أو بند من هذا العقد غير قابل للتنفيذ، فسيتم اعتبار هذا العقد معدل بالقدر اللازم لجعل الحكم غير قابل للتنفيذ، وبقية العقد، ساري وقابل للتنفيذ. إذا رفضت المحكمة تعديل هذا العقد على النحو المنصوص عليه في هذا العقد، فإن بطلان أو عدم قابلية تنفيذ أي حكم من أحكام هذا العقد لن يؤثر على صلاحية أو قابلية تنفيذ البنود والأحكام المتبقية، والتي يجب أن يتم إنفاذها كما لو لم تكن مدرجة في هذا العقد. 15.5 الاتفاق بمجمله: يشكل هذا العقد الاتفاق الكامل بين الطرفين ويحل محل أي تفاهمات سابقة أو معاصرة، سواء كانت مكتوبة أو شفهية. 15.6 نسخ العقد: يجوز توقيع هذا العقد من عدة نسخ، وتشكل جميعها عقد واحد.' },
+  
   // Signatures
   signatures: { ar: 'التوقيعات' },
   firstPartySignature: { ar: 'توقيع الطرف الأول' },
@@ -113,19 +91,18 @@ const contractLabels = {
   legalNotice: { ar: 'هذا العقد محرر باللغة العربية ويخضع للقوانين المعمول بها في دولة قطر' }
 };
 
-// Enhanced color scheme for official documents
+// Simplified color scheme
 const colors = {
-  primary: '#1e40af',      // Professional blue
-  secondary: '#64748b',    // Slate gray
-  accent: '#0ea5e9',       // Sky blue
-  text: '#334155',         // Dark gray
-  textLight: '#64748b',    // Light text
-  border: '#e2e8f0',       // Border gray
-  light: '#f8fafc',        // Very light gray
-  lighter: '#f1f5f9'       // Light gray
+  primary: '#1e40af',
+  secondary: '#64748b',
+  text: '#334155',
+  textLight: '#64748b',
+  border: '#e2e8f0',
+  light: '#f8fafc',
+  lighter: '#f1f5f9'
 };
 
-// Helper function to format date as dd/mm/yyyy in Arabic
+// Helper function to format date as dd/mm/yyyy
 function formatDateArabic(date: string | Date | undefined): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -153,136 +130,105 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     const endDate = new Date(agreement.end_date);
     const duration = calculateDurationMonths(startDate, endDate);
     
-    // Enhanced document definition for Arabic vehicle rental contract
+    // Simplified document definition with NO custom fonts
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [50, 80, 50, 100],
       
-      // Header with company branding
+      // Simple header
       header: {
         margin: [50, 30, 50, 0],
         table: {
           widths: ['*'],
           body: [[
             {
-              stack: [
-                {
-                  text: contractLabels.companyName.ar,
-                  style: 'companyName',
-                  alignment: 'center',
-                  margin: [0, 0, 0, 5]
-                },
-                {
-                  text: contractLabels.contractTitle.ar,
-                  style: 'contractTitle',
-                  alignment: 'center',
-                  margin: [0, 0, 0, 10]
-                }
-              ],
-              fillColor: colors.lighter,
-              border: [false, false, false, true],
-              borderColor: [colors.primary, colors.primary, colors.primary, colors.primary]
+              text: contractLabels.companyName.ar,
+              style: 'companyName',
+              alignment: 'center'
             }
           ]]
         },
         layout: 'noBorders'
       },
       
-      // Footer with legal notice
+      // Simple footer
       footer: (currentPage: number, pageCount: number) => {
         return {
           margin: [50, 20, 50, 30],
-          table: {
-            widths: ['*'],
-            body: [[
-              {
-                stack: [
-                  {
-                    text: contractLabels.legalNotice.ar,
-                    style: 'legalNotice',
-                    alignment: 'center',
-                    margin: [0, 0, 0, 5]
-                  },
-                  {
-                    text: `صفحة ${currentPage} من ${pageCount}`,
-                    style: 'pageNumber',
-                    alignment: 'center'
-                  }
-                ]
-              }
-            ]]
-          },
-          layout: 'noBorders'
+          text: `صفحة ${currentPage} من ${pageCount}`,
+          style: 'pageNumber',
+          alignment: 'center'
         };
       },
       
-      // Main content
+      // Simplified content without complex layouts
       content: [
-        // Contract header information
+        // Contract title
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                createArabicTextBlock(`${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`, 'contractInfo'),
-                createArabicTextBlock(`${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`, 'contractInfo')
-              ]
-            ]
-          },
-          layout: 'noBorders',
+          text: contractLabels.contractTitle.ar,
+          style: 'contractTitle',
+          alignment: 'center',
           margin: [0, 20, 0, 20]
         },
         
-        // Parties section
+        // Contract information
         {
-          text: contractLabels.firstParty.ar,
-          style: 'sectionHeader',
-          margin: [0, 20, 0, 10]
-        },
-        {
-          text: contractLabels.companyName.ar,
-          style: 'partyInfo',
-          margin: [20, 0, 0, 15]
+          text: `${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`,
+          style: 'contractInfo',
+          margin: [0, 10, 0, 5]
         },
         
         {
-          text: contractLabels.secondParty.ar,
-          style: 'sectionHeader',
-          margin: [0, 10, 0, 10]
-        },
-        
-        // Customer information table
-        {
-          table: {
-            widths: ['30%', '70%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.full_name || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.nationality || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.driver_license || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.phone_number || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.email || 'غير محدد', 'valueStyle')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`,
+          style: 'contractInfo',
           margin: [0, 0, 0, 20]
         },
         
-        // Vehicle details section
+        // First Party
+        {
+          text: contractLabels.firstParty.ar,
+          style: 'partyText',
+          margin: [0, 10, 0, 10]
+        },
+        
+        // Customer information
+        {
+          text: contractLabels.secondParty.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        
+        {
+          text: `${contractLabels.customerName.ar}: ${agreement.customers?.full_name || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 5, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.nationality.ar}: ${agreement.customers?.nationality || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.idNumber.ar}: ${agreement.customers?.driver_license || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.phoneNumber.ar}: ${agreement.customers?.phone_number || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.email.ar}: ${agreement.customers?.email || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Vehicle information
         {
           text: contractLabels.vehicleDetails.ar,
           style: 'sectionHeader',
@@ -290,59 +236,55 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['30%', '70%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.make || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.model || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.year?.toString() || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.license_plate || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.color || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.vin || 'غير محدد', 'valueStyle')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.make.ar}: ${agreement.vehicles?.make || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 5, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.model.ar}: ${agreement.vehicles?.model || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.year.ar}: ${agreement.vehicles?.year?.toString() || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.licensePlate.ar}: ${agreement.vehicles?.license_plate || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.color.ar}: ${agreement.vehicles?.color || 'غير محدد'}`,
+          style: 'infoText',
           margin: [0, 0, 0, 20]
         },
         
-        // Contract terms section
+        // Contract terms
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                createArabicTextBlock(`${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`, 'contractTerms')
-              ],
-              [
-                createArabicTextBlock(`${contractLabels.duration.ar}: ${duration} شهر`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}`, 'contractTerms')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
-          margin: [0, 20, 0, 20]
+          text: `${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`,
+          style: 'infoText',
+          margin: [0, 10, 0, 5]
         },
         
-        // Financial terms section
+        {
+          text: `${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.duration.ar}: ${duration} شهر`,
+          style: 'infoText',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Financial terms
         {
           text: contractLabels.financialTerms.ar,
           style: 'sectionHeader',
@@ -350,24 +292,20 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['40%', '60%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.monthlyRent.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.rent_amount), 'financialValue')
-              ],
-              [
-                createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.total_amount), 'financialValue')
-              ],
-              [
-                createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.deposit_amount), 'financialValue')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.monthlyRent.ar}: ${formatArabicCurrency(agreement.rent_amount)}`,
+          style: 'financialText',
+          margin: [0, 5, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.totalAmount.ar}: ${formatArabicCurrency(agreement.total_amount)}`,
+          style: 'financialText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.depositAmount.ar}: ${formatArabicCurrency(agreement.deposit_amount)}`,
+          style: 'financialText',
           margin: [0, 0, 0, 30]
         },
         
@@ -378,23 +316,16 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
           margin: [0, 20, 0, 15]
         },
         
-        {
-          stack: [
-            createArabicTextBlock(contractLabels.term1.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term2.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term3.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term4.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term5.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term6.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term7.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term8.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term9.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term10.ar, 'termText')
-          ],
-          margin: [0, 0, 0, 40]
-        },
+        // All 15 terms with simple text rendering
+        ...Object.keys(contractLabels)
+          .filter(key => key.startsWith('term'))
+          .map(termKey => ({
+            text: contractLabels[termKey as keyof typeof contractLabels].ar,
+            style: 'termText',
+            margin: [0, 0, 0, 8]
+          })),
         
-        // Signatures section
+        // Signatures
         {
           text: contractLabels.signatures.ar,
           style: 'sectionHeader',
@@ -402,134 +333,82 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                {
-                  stack: [
-                    createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureLabel'),
-                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
-                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
-                  ]
-                },
-                {
-                  stack: [
-                    createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureLabel'),
-                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
-                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
-                  ]
-                }
-              ]
-            ]
-          },
-          layout: 'noBorders',
+          text: contractLabels.firstPartySignature.ar,
+          style: 'signatureText',
+          margin: [0, 10, 0, 30]
+        },
+        
+        {
+          text: contractLabels.secondPartySignature.ar,
+          style: 'signatureText',
           margin: [0, 0, 0, 20]
         }
       ],
       
-      // Enhanced styles for Arabic legal document
+      // Simplified styles using ONLY default fonts
       styles: {
         companyName: {
-          fontSize: 18,
-          bold: true,
-          font: 'Amiri',
-          color: colors.primary,
-          alignment: 'center'
-        },
-        contractTitle: {
           fontSize: 16,
           bold: true,
-          font: 'Amiri',
+          color: colors.primary,
+          font: 'Amiri'
+        },
+        contractTitle: {
+          fontSize: 18,
+          bold: true,
           color: colors.text,
-          alignment: 'center'
+          font: 'Amiri'
         },
         contractInfo: {
-          fontSize: 11,
-          font: 'Amiri',
+          fontSize: 12,
           color: colors.text,
-          alignment: 'right'
+          font: 'Amiri'
         },
         sectionHeader: {
           fontSize: 14,
           bold: true,
-          font: 'Amiri',
           color: colors.primary,
-          alignment: 'right'
+          font: 'Amiri'
         },
-        partyInfo: {
-          fontSize: 12,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'right'
-        },
-        labelStyle: {
+        partyText: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'right'
-        },
-        valueStyle: {
-          fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'right'
+          lineHeight: 1.4,
+          font: 'Amiri'
         },
-        contractTerms: {
+        infoText: {
           fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'right'
+          font: 'Amiri'
         },
-        financialValue: {
+        financialText: {
           fontSize: 12,
           bold: true,
-          font: 'Amiri',
           color: colors.primary,
-          alignment: 'right'
+          font: 'Amiri'
         },
         termText: {
           fontSize: 10,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'right',
-          margin: [0, 0, 0, 8]
+          lineHeight: 1.3,
+          font: 'Amiri'
         },
-        signatureLabel: {
+        signatureText: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'center'
-        },
-        signatureDate: {
-          fontSize: 10,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'center'
-        },
-        legalNotice: {
-          fontSize: 8,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'center'
+          font: 'Amiri'
         },
         pageNumber: {
           fontSize: 8,
-          font: 'Amiri',
           color: colors.textLight,
-          alignment: 'center'
+          font: 'Amiri'
         }
       },
       
       defaultStyle: {
         font: 'Amiri',
         fontSize: 11,
-        rtl: true,
-        alignment: 'right'
+        lineHeight: 1.3
       }
     };
 
