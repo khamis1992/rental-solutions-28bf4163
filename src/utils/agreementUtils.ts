@@ -1,3 +1,4 @@
+
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -19,7 +20,6 @@ export async function ensureFontsLoaded() {
     }
   } catch (error) {
     console.warn('Font loading failed, using default fonts:', error);
-    // Always configure fonts as fallback
     configurePdfMakeFonts();
   }
 }
@@ -92,19 +92,18 @@ const contractLabels = {
   legalNotice: { ar: 'هذا العقد محرر باللغة العربية ويخضع للقوانين المعمول بها في دولة قطر' }
 };
 
-// Enhanced color scheme for official documents
+// Simplified color scheme
 const colors = {
-  primary: '#1e40af',      // Professional blue
-  secondary: '#64748b',    // Slate gray
-  accent: '#0ea5e9',       // Sky blue
-  text: '#334155',         // Dark gray
-  textLight: '#64748b',    // Light text
-  border: '#e2e8f0',       // Border gray
-  light: '#f8fafc',        // Very light gray
-  lighter: '#f1f5f9'       // Light gray
+  primary: '#1e40af',
+  secondary: '#64748b',
+  text: '#334155',
+  textLight: '#64748b',
+  border: '#e2e8f0',
+  light: '#f8fafc',
+  lighter: '#f1f5f9'
 };
 
-// Helper function to format date as dd/mm/yyyy in Arabic
+// Helper function to format date as dd/mm/yyyy
 function formatDateArabic(date: string | Date | undefined): string {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -132,131 +131,105 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     const endDate = new Date(agreement.end_date);
     const duration = calculateDurationMonths(startDate, endDate);
     
-    // Enhanced document definition for Arabic vehicle rental contract
+    // Simplified document definition with basic text rendering
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [50, 80, 50, 100],
       
-      // Header with company branding
+      // Simple header
       header: {
         margin: [50, 30, 50, 0],
         table: {
           widths: ['*'],
           body: [[
             {
-              stack: [
-                {
-                  text: contractLabels.companyName.ar,
-                  style: 'companyName',
-                  alignment: 'center',
-                  margin: [0, 0, 0, 5]
-                },
-                {
-                  text: contractLabels.contractTitle.ar,
-                  style: 'contractTitle',
-                  alignment: 'center',
-                  margin: [0, 0, 0, 10]
-                }
-              ],
-              fillColor: colors.lighter,
-              border: [false, false, false, true],
-              borderColor: [colors.primary, colors.primary, colors.primary, colors.primary]
+              text: contractLabels.companyName.ar,
+              style: 'companyName',
+              alignment: 'center'
             }
           ]]
         },
         layout: 'noBorders'
       },
       
-      // Footer with legal notice
+      // Simple footer
       footer: (currentPage: number, pageCount: number) => {
         return {
           margin: [50, 20, 50, 30],
-          table: {
-            widths: ['*'],
-            body: [[
-              {
-                stack: [
-                  {
-                    text: contractLabels.legalNotice.ar,
-                    style: 'legalNotice',
-                    alignment: 'center',
-                    margin: [0, 0, 0, 5]
-                  },
-                  {
-                    text: `صفحة ${currentPage} من ${pageCount}`,
-                    style: 'pageNumber',
-                    alignment: 'center'
-                  }
-                ]
-              }
-            ]]
-          },
-          layout: 'noBorders'
+          text: `صفحة ${currentPage} من ${pageCount}`,
+          style: 'pageNumber',
+          alignment: 'center'
         };
       },
       
-      // Main content
+      // Simplified content without complex layouts
       content: [
-        // Contract header information
+        // Contract title
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                createArabicTextBlock(`${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`, 'contractInfo'),
-                createArabicTextBlock(`${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`, 'contractInfo')
-              ]
-            ]
-          },
-          layout: 'noBorders',
+          text: contractLabels.contractTitle.ar,
+          style: 'contractTitle',
+          alignment: 'center',
           margin: [0, 20, 0, 20]
         },
         
-        // Parties section with updated first party definition
+        // Contract information
+        {
+          text: `${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`,
+          style: 'contractInfo',
+          margin: [0, 10, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`,
+          style: 'contractInfo',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // First Party
         {
           text: contractLabels.firstParty.ar,
+          style: 'partyText',
+          margin: [0, 10, 0, 10]
+        },
+        
+        // Customer information
+        {
+          text: contractLabels.secondParty.ar,
           style: 'sectionHeader',
           margin: [0, 20, 0, 10]
         },
         
         {
-          text: contractLabels.secondParty.ar,
-          style: 'sectionHeader',
-          margin: [0, 10, 0, 10]
+          text: `${contractLabels.customerName.ar}: ${agreement.customers?.full_name || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 5, 0, 5]
         },
         
-        // Customer information table
         {
-          table: {
-            widths: ['30%', '70%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.full_name || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.nationality || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.driver_license || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.phone_number || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.customers?.email || 'غير محدد', 'valueStyle')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.nationality.ar}: ${agreement.customers?.nationality || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.idNumber.ar}: ${agreement.customers?.driver_license || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.phoneNumber.ar}: ${agreement.customers?.phone_number || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.email.ar}: ${agreement.customers?.email || 'غير محدد'}`,
+          style: 'infoText',
           margin: [0, 0, 0, 20]
         },
         
-        // Vehicle details section
+        // Vehicle information
         {
           text: contractLabels.vehicleDetails.ar,
           style: 'sectionHeader',
@@ -264,59 +237,55 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['30%', '70%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.make || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.model || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.year?.toString() || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.license_plate || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.color || 'غير محدد', 'valueStyle')
-              ],
-              [
-                createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
-                createArabicTextBlock(agreement.vehicles?.vin || 'غير محدد', 'valueStyle')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.make.ar}: ${agreement.vehicles?.make || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 5, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.model.ar}: ${agreement.vehicles?.model || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.year.ar}: ${agreement.vehicles?.year?.toString() || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.licensePlate.ar}: ${agreement.vehicles?.license_plate || 'غير محدد'}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.color.ar}: ${agreement.vehicles?.color || 'غير محدد'}`,
+          style: 'infoText',
           margin: [0, 0, 0, 20]
         },
         
-        // Contract terms section
+        // Contract terms
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                createArabicTextBlock(`${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`, 'contractTerms')
-              ],
-              [
-                createArabicTextBlock(`${contractLabels.duration.ar}: ${duration} شهر`, 'contractTerms'),
-                createArabicTextBlock(`${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}`, 'contractTerms')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
-          margin: [0, 20, 0, 20]
+          text: `${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`,
+          style: 'infoText',
+          margin: [0, 10, 0, 5]
         },
         
-        // Financial terms section
+        {
+          text: `${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`,
+          style: 'infoText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.duration.ar}: ${duration} شهر`,
+          style: 'infoText',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Financial terms
         {
           text: contractLabels.financialTerms.ar,
           style: 'sectionHeader',
@@ -324,56 +293,40 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['40%', '60%'],
-            body: [
-              [
-                createArabicTextBlock(contractLabels.monthlyRent.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.rent_amount), 'financialValue')
-              ],
-              [
-                createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.total_amount), 'financialValue')
-              ],
-              [
-                createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
-                createArabicTextBlock(formatArabicCurrency(agreement.deposit_amount), 'financialValue')
-              ]
-            ]
-          },
-          layout: 'lightHorizontalLines',
+          text: `${contractLabels.monthlyRent.ar}: ${formatArabicCurrency(agreement.rent_amount)}`,
+          style: 'financialText',
+          margin: [0, 5, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.totalAmount.ar}: ${formatArabicCurrency(agreement.total_amount)}`,
+          style: 'financialText',
+          margin: [0, 0, 0, 5]
+        },
+        
+        {
+          text: `${contractLabels.depositAmount.ar}: ${formatArabicCurrency(agreement.deposit_amount)}`,
+          style: 'financialText',
           margin: [0, 0, 0, 30]
         },
         
-        // Terms and conditions with comprehensive 15 articles
+        // Terms and conditions
         {
           text: contractLabels.termsConditions.ar,
           style: 'sectionHeader',
           margin: [0, 20, 0, 15]
         },
         
-        {
-          stack: [
-            createArabicTextBlock(contractLabels.term1.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term2.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term3.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term4.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term5.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term6.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term7.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term8.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term9.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term10.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term11.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term12.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term13.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term14.ar, 'termText'),
-            createArabicTextBlock(contractLabels.term15.ar, 'termText')
-          ],
-          margin: [0, 0, 0, 40]
-        },
+        // All 15 terms with simple text rendering
+        ...Object.keys(contractLabels)
+          .filter(key => key.startsWith('term'))
+          .map(termKey => ({
+            text: contractLabels[termKey as keyof typeof contractLabels].ar,
+            style: 'termText',
+            margin: [0, 0, 0, 8]
+          })),
         
-        // Signatures section
+        // Signatures
         {
           text: contractLabels.signatures.ar,
           style: 'sectionHeader',
@@ -381,134 +334,71 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         },
         
         {
-          table: {
-            widths: ['50%', '50%'],
-            body: [
-              [
-                {
-                  stack: [
-                    createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureLabel'),
-                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
-                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
-                  ]
-                },
-                {
-                  stack: [
-                    createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureLabel'),
-                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
-                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
-                  ]
-                }
-              ]
-            ]
-          },
-          layout: 'noBorders',
+          text: contractLabels.firstPartySignature.ar,
+          style: 'signatureText',
+          margin: [0, 10, 0, 30]
+        },
+        
+        {
+          text: contractLabels.secondPartySignature.ar,
+          style: 'signatureText',
           margin: [0, 0, 0, 20]
         }
       ],
       
-      // Enhanced styles for Arabic legal document with corrected font references
+      // Simplified styles without complex font features
       styles: {
         companyName: {
-          fontSize: 18,
-          bold: true,
-          font: 'Amiri',
-          color: colors.primary,
-          alignment: 'center'
-        },
-        contractTitle: {
           fontSize: 16,
           bold: true,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'center'
+          color: colors.primary
+        },
+        contractTitle: {
+          fontSize: 18,
+          bold: true,
+          color: colors.text
         },
         contractInfo: {
-          fontSize: 11,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'right'
+          fontSize: 12,
+          color: colors.text
         },
         sectionHeader: {
           fontSize: 14,
           bold: true,
-          font: 'Amiri',
-          color: colors.primary,
-          alignment: 'right'
+          color: colors.primary
         },
-        partyInfo: {
-          fontSize: 12,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'right'
-        },
-        labelStyle: {
+        partyText: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'right'
-        },
-        valueStyle: {
-          fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'right'
+          lineHeight: 1.4
         },
-        contractTerms: {
+        infoText: {
           fontSize: 11,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'right'
+          color: colors.text
         },
-        financialValue: {
+        financialText: {
           fontSize: 12,
           bold: true,
-          font: 'Amiri',
-          color: colors.primary,
-          alignment: 'right'
+          color: colors.primary
         },
         termText: {
           fontSize: 10,
-          font: 'Amiri',
           color: colors.text,
-          alignment: 'right',
-          margin: [0, 0, 0, 8]
+          lineHeight: 1.3
         },
-        signatureLabel: {
+        signatureText: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
-          color: colors.text,
-          alignment: 'center'
-        },
-        signatureDate: {
-          fontSize: 10,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'center'
-        },
-        legalNotice: {
-          fontSize: 8,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'center'
+          color: colors.text
         },
         pageNumber: {
           fontSize: 8,
-          font: 'Amiri',
-          color: colors.textLight,
-          alignment: 'center'
+          color: colors.textLight
         }
       },
       
       defaultStyle: {
-        font: 'Amiri',
         fontSize: 11,
-        rtl: true,
-        alignment: 'right'
+        lineHeight: 1.3
       }
     };
 

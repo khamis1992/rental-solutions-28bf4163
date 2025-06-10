@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -200,12 +201,15 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function async and return Promise<void>
+  // Fix the type issue by making this function return Promise<void>
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
       await onGenerateDocument();
+    } else {
+      // If no onGenerateDocument prop provided, use the default PDF generation
+      await handleDownloadPdf();
     }
-  }, [onGenerateDocument]);
+  }, [onGenerateDocument, handleDownloadPdf]);
 
   if (isLoadingAgreement) {
     return (
