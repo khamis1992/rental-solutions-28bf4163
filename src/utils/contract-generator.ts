@@ -3,15 +3,14 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import { Agreement } from '@/types/agreement';
 import { prepareArabicForPDF, formatArabicDate } from './arabic-text-utils';
 
-// Configure basic fonts for PDF generation
+// Configure Amiri fonts for Arabic support
 const configureFonts = () => {
-  // Use system fonts or basic fallback
   (pdfMake as any).fonts = {
-    Roboto: {
-      normal: 'Roboto-Regular.ttf',
-      bold: 'Roboto-Medium.ttf',
-      italics: 'Roboto-Italic.ttf',
-      bolditalics: 'Roboto-MediumItalic.ttf'
+    Amiri: {
+      normal: '/Amiri-Regular.ttf',
+      bold: '/Amiri-Bold.ttf',
+      italics: '/Amiri-Regular.ttf',
+      bolditalics: '/Amiri-Bold.ttf'
     }
   };
 };
@@ -110,7 +109,7 @@ export async function generateArabicContractPdf(agreement: Agreement): Promise<v
 يلتزم الطرف الثاني عند التوقيع على هذا العقد ان يسلم الطرف الأول قيمة ${contractData.depositAmount} ضمان ("وديعة الضمان") وذلك لضمان تنفيذ الطرف الثاني لالتزاماته بموجب هذا العقد ولتعويض الطرف الأول عن اية خسائر او اضرار قد يتسبب بها الطرف الثاني او وكلائه او ممثليه للمركبة طوال مدة هذا العقد. بالإضافة الى ذلك، يحق للطرف الأول ان يخصم من وديعة الضمان اية مبالغ يدين بها الطرف الثاني للطرف الأول بموجب هذا العقد ولا يمكن استرجاع مبلغ الضمان بعد إنهاء العقد من قبل الطرف الثاني.
 `;
 
-    // Create PDF document definition
+    // Create PDF document definition with Amiri font
     const docDefinition = {
       content: [
         {
@@ -123,11 +122,12 @@ export async function generateArabicContractPdf(agreement: Agreement): Promise<v
         arabicText: {
           fontSize: 12,
           lineHeight: 1.5,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Amiri'
         }
       },
       defaultStyle: {
-        font: 'Roboto',
+        font: 'Amiri',
         fontSize: 12,
         alignment: 'right'
       }
