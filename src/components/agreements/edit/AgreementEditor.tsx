@@ -681,5 +681,3 @@ const AgreementEditor = () => {
 };
 
 export default AgreementEditor;
-
-}
