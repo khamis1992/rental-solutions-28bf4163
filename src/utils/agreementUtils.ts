@@ -1,336 +1,510 @@
 
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import jsPDF from 'jspdf';
-import { formatDate } from '@/lib/date-utils';
+import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
-import { format, differenceInMonths } from 'date-fns';
-import { addCompanyLogo, addFooterImage } from './report-utils';
+import pdfMake from 'pdfmake/build/pdfmake';
+import { configurePdfMakeFonts, initializeFonts } from './font-loader';
+import { 
+  prepareArabicForPDF, 
+  createArabicTextBlock, 
+  formatArabicCurrency, 
+  formatArabicDate 
+} from './arabic-text-utils';
 
-export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
-  try {    // Create a new PDF document
-    const doc = new jsPDF();
-    
-    // Add company logo
-    addCompanyLogo(doc);
-    
-    // Set font size and style for the header
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    // Changed to Arabic title
-    doc.text('عقد إيجار المركبات', 105, 20, { align: 'center' });
-    
-    // Format dates
-    const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-    const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-    
-    // Calculate agreement duration in months
-    const durationMonths = differenceInMonths(endDate, startDate);
-    const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
-    
-    // Start position for text
-    let y = 30;
-    const leftMargin = 20;
-    const lineHeight = 5;
-    
-    // Set regular font for body text
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    
-    // Add contract introduction
-    doc.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`, leftMargin, y);
-    y += lineHeight * 2;
-    
-    // Parties section
-    doc.setFont('helvetica', 'bold');
-    doc.text('Between:', leftMargin, y);
-    y += lineHeight * 2;
-    
-    doc.setFont('helvetica', 'normal');
-    const partyOneText = 'Party One: Al-Araf Rent-a-Car LLC, a limited liability company legally registered under the laws of Qatar, with commercial registration number 146832 and located at Umm Salal Ali, Doha, Qatar, P.O. Box 36126. Represented by Mr. Khamees Hashem Al-Jaber, the authorized signatory for the company, referred to hereafter as the Lessor | Party One.';
-    
-    // Handle long text wrapping
-    const splitPartyOne = doc.splitTextToSize(partyOneText, 170);
-    doc.text(splitPartyOne, leftMargin, y);
-    y += splitPartyOne.length * lineHeight + lineHeight;
-    
-    doc.text('And:', leftMargin, y);
-    y += lineHeight * 2;
-    
-    const customerName = agreement.customers?.full_name || 'N/A';
-    const customerLicense = agreement.customers?.driver_license || 'N/A';
-    const customerNationality = agreement.customers?.nationality || 'N/A';
-    const customerEmail = agreement.customers?.email || 'N/A';
-    const customerPhone = agreement.customers?.phone_number || 'N/A';
-    
-    const partyTwoText = `Party Two: ${customerName}, holder of driver's license ${customerLicense}, nationality ${customerNationality}, residing in Qatar, email ${customerEmail}, mobile number ${customerPhone}. Referred to hereafter as the Lessee | Party Two.`;
-    
-    const splitPartyTwo = doc.splitTextToSize(partyTwoText, 170);
-    doc.text(splitPartyTwo, leftMargin, y);
-    y += splitPartyTwo.length * lineHeight + lineHeight;
-    
-    const partiesText = 'Each party shall individually be referred to as a "Party" and collectively as the "Parties."';
-    doc.text(partiesText, leftMargin, y);
-    y += lineHeight * 2;
-    
-    // Preamble
-    doc.setFont('helvetica', 'bold');
-    doc.text('Preamble', leftMargin, y);
-    y += lineHeight * 2;
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text('Whereas Party One is a legally licensed car rental company and owns the vehicle described below:', leftMargin, y);
-    y += lineHeight * 2;
-    
-    // Vehicle information
-    const vehicleMake = agreement.vehicles?.make || 'N/A';
-    const vehicleModel = agreement.vehicles?.model || 'N/A';
-    const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
-    const vehicleVin = agreement.vehicles?.vin || 'N/A';
-    
-    doc.text(`Vehicle Type:`, leftMargin, y);
-    y += lineHeight;
-    doc.text(`License Plate Number: ${vehiclePlate}`, leftMargin, y);
-    y += lineHeight;
-    doc.text(`VIN: ${vehicleVin}`, leftMargin, y);
-    y += lineHeight;
-    doc.text(`Vehicle Model: ${vehicleModel} - ${vehicleMake}`, leftMargin, y);
-    y += lineHeight * 2;
-    
-    const preambleText = 'And whereas Party Two wishes to rent this vehicle from Party One under the terms and conditions of this Agreement, and Party One agrees to rent the vehicle to Party Two, both Parties hereby agree to the following:';
-    const splitPreamble = doc.splitTextToSize(preambleText, 170);
-    doc.text(splitPreamble, leftMargin, y);
-    y += splitPreamble.length * lineHeight + lineHeight;
-    
-    // Articles
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 1:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    doc.text('The preamble above forms an integral part of this Agreement and shall be interpreted within its terms and conditions.', leftMargin + 15, y);
-    y += lineHeight * 2;
-    
-    // Article 2 - Vehicle Information
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 2 - Vehicle Information:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    doc.text('Party One hereby rents to Party Two the following vehicle:', leftMargin + 15, y);
-    y += lineHeight * 2;
-    
-    doc.text(`Vehicle Type:`, leftMargin + 15, y);
-    y += lineHeight;
-    doc.text(`License Plate Number: ${vehiclePlate}`, leftMargin + 15, y);
-    y += lineHeight;
-    doc.text(`VIN: ${vehicleVin}`, leftMargin + 15, y);
-    y += lineHeight;
-    doc.text(`Model: ${vehicleModel} - ${vehicleMake}`, leftMargin + 15, y);
-    y += lineHeight * 2;
-    
-    // Check if we need a new page
-    if (y > 250) {
-      doc.addPage();
-      y = 20;
+// Enhanced font configuration with better Arabic support
+export async function ensureFontsLoaded() {
+  try {
+    const fontsInitialized = await initializeFonts();
+    if (!fontsInitialized) {
+      console.warn('Font initialization failed, using fallback configuration');
+      configurePdfMakeFonts();
     }
+  } catch (error) {
+    console.warn('Font loading failed, using default fonts:', error);
+  }
+}
+
+// Arabic labels for vehicle rental contract
+const contractLabels = {
+  // Header
+  contractTitle: { ar: 'عقد إيجار مركبة' },
+  companyName: { ar: 'شركة العراف لتأجير السيارات ذ.م.م' },
+  
+  // Parties
+  firstParty: { ar: 'الطرف الأول (المؤجر)' },
+  secondParty: { ar: 'الطرف الثاني (المستأجر)' },
+  
+  // Agreement details
+  agreementNumber: { ar: 'رقم العقد' },
+  contractDate: { ar: 'تاريخ العقد' },
+  startDate: { ar: 'تاريخ البدء' },
+  endDate: { ar: 'تاريخ الانتهاء' },
+  duration: { ar: 'مدة الإيجار' },
+  
+  // Customer information
+  customerName: { ar: 'اسم المستأجر' },
+  nationality: { ar: 'الجنسية' },
+  idNumber: { ar: 'رقم الهوية' },
+  phoneNumber: { ar: 'رقم الهاتف' },
+  email: { ar: 'البريد الإلكتروني' },
+  
+  // Vehicle information
+  vehicleDetails: { ar: 'تفاصيل المركبة' },
+  make: { ar: 'الماركة' },
+  model: { ar: 'الموديل' },
+  year: { ar: 'سنة الصنع' },
+  licensePlate: { ar: 'رقم اللوحة' },
+  color: { ar: 'اللون' },
+  vinNumber: { ar: 'رقم الهيكل' },
+  
+  // Financial terms
+  financialTerms: { ar: 'الشروط المالية' },
+  monthlyRent: { ar: 'الإيجار الشهري' },
+  totalAmount: { ar: 'المبلغ الإجمالي' },
+  depositAmount: { ar: 'مبلغ الضمان' },
+  paymentDay: { ar: 'يوم الدفع' },
+  
+  // Terms and conditions
+  termsConditions: { ar: 'الشروط والأحكام' },
+  term1: { ar: '1. يلتزم المستأجر بدفع الإيجار الشهري في التاريخ المحدد.' },
+  term2: { ar: '2. يحق للمؤجر استرداد المركبة في حالة عدم الدفع.' },
+  term3: { ar: '3. المستأجر مسؤول عن أي أضرار تلحق بالمركبة.' },
+  term4: { ar: '4. يجب إرجاع المركبة بنفس الحالة التي تم تسليمها بها.' },
+  term5: { ar: '5. أي مخالفات مرورية تقع على عهدة المستأجر.' },
+  term6: { ar: '6. يحق للمؤجر فسخ العقد في حالة مخالفة أي من هذه الشروط.' },
+  
+  // Signatures
+  signatures: { ar: 'التوقيعات' },
+  firstPartySignature: { ar: 'توقيع الطرف الأول' },
+  secondPartySignature: { ar: 'توقيع الطرف الثاني' },
+  date: { ar: 'التاريخ' },
+  
+  // Footer
+  legalNotice: { ar: 'هذا العقد محرر باللغة العربية ويخضع للقوانين المعمول بها في دولة قطر' }
+};
+
+// Enhanced color scheme for official documents
+const colors = {
+  primary: '#1e40af',      // Professional blue
+  secondary: '#64748b',    // Slate gray
+  accent: '#0ea5e9',       // Sky blue
+  text: '#334155',         // Dark gray
+  textLight: '#64748b',    // Light text
+  border: '#e2e8f0',       // Border gray
+  light: '#f8fafc',        // Very light gray
+  lighter: '#f1f5f9'       // Light gray
+};
+
+// Helper function to format date as dd/mm/yyyy in Arabic
+function formatDateArabic(date: string | Date | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+// Helper function to calculate duration in months
+function calculateDurationMonths(startDate: Date, endDate: Date): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
+}
+
+export async function generatePdfDocument(agreement: Agreement): Promise<boolean> {
+  try {
+    await ensureFontsLoaded();
     
-    // Article 3 - Rental Duration
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 3 - Rental Duration:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    const durationText = `The rental duration of this Agreement is ${duration}, commencing from the effective date of this Agreement. The Agreement is non-renewable and will terminate upon the expiration of the term. Party Two may not terminate the Agreement before its expiration without written consent from Party One.`;
-    const splitDuration = doc.splitTextToSize(durationText, 170);
-    doc.text(splitDuration, leftMargin + 15, y);
-    y += splitDuration.length * lineHeight + lineHeight;
+    const currentDate = new Date();
+    const startDate = new Date(agreement.start_date);
+    const endDate = new Date(agreement.end_date);
+    const duration = calculateDurationMonths(startDate, endDate);
     
-    // Article 4 - Rental Fee
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 4 - Rental Fee:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    const feeText = `Party Two agrees to pay Party One a monthly rental fee of ${formatCurrency(agreement.total_amount || 0)}, in accordance with the attached payment schedule. Party Two agrees to make full monthly rental payments regularly and without deductions for any fees, taxes, or other charges.`;
-    const splitFee = doc.splitTextToSize(feeText, 170);
-    doc.text(splitFee, leftMargin + 15, y);
-    y += splitFee.length * lineHeight + lineHeight;
-    
-    // Check if we need a new page
-    if (y > 250) {
-      doc.addPage();
-      y = 20;
-    }
-    
-    // Article 5 - Late Payment Penalties
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 5 - Late Payment Penalties:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    const penaltyText = `Payments are due on the first day of each month. If Party Two fails to make a payment on time, a late fee of 120 Qatari Riyals will apply for each day of delay from the due date until the overdue payments are settled.`;
-    const splitPenalty = doc.splitTextToSize(penaltyText, 170);
-    doc.text(splitPenalty, leftMargin + 15, y);
-    y += splitPenalty.length * lineHeight + lineHeight;
-    
-    // Article 6 - Security Deposit
-    doc.setFont('helvetica', 'bold');
-    doc.text('Article 6 - Security Deposit:', leftMargin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    const depositText = `Party Two agrees to pay a security deposit of ${formatCurrency(agreement.deposit_amount || 0)} to Party One upon signing this Agreement, to guarantee Party Two's obligations under this Agreement and to compensate Party One for any damages caused to the vehicle during the rental period.`;
-    const splitDeposit = doc.splitTextToSize(depositText, 170);
-    doc.text(splitDeposit, leftMargin + 15, y);
-    y += splitDeposit.length * lineHeight + lineHeight;
-    
-    // Continue with remaining articles (adding new pages as needed)
-    if (y > 230) {
-      doc.addPage();
-      y = 20;
-    }
-    
-    // Articles 7-15 (add more as needed)
-    const remainingArticles = [
-      {
-        title: 'Article 7 - Inspection:',
-        content: "Party Two acknowledges that by signing this Agreement, they have inspected the vehicle and accept it as it is, confirming it is in good condition and free from defects. Party One makes no warranties, either express or implied, regarding the vehicle's condition."
+    // Enhanced document definition for Arabic vehicle rental contract
+    const docDefinition = {
+      pageSize: 'A4',
+      pageMargins: [50, 80, 50, 100],
+      
+      // Header with company branding
+      header: {
+        margin: [50, 30, 50, 0],
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              stack: [
+                {
+                  text: contractLabels.companyName.ar,
+                  style: 'companyName',
+                  alignment: 'center',
+                  margin: [0, 0, 0, 5]
+                },
+                {
+                  text: contractLabels.contractTitle.ar,
+                  style: 'contractTitle',
+                  alignment: 'center',
+                  margin: [0, 0, 0, 10]
+                }
+              ],
+              fillColor: colors.lighter,
+              border: [false, false, false, true],
+              borderColor: [colors.primary, colors.primary, colors.primary, colors.primary]
+            }
+          ]]
+        },
+        layout: 'noBorders'
       },
-      {
-        title: 'Article 8 - Vehicle Delivery:',
-        content: "Upon signing this Agreement, Party One will deliver the rented vehicle to Party Two according to the attached delivery receipt, which both Parties will sign. Party Two is responsible for any damage or violations related to the vehicle during the rental period."
+      
+      // Footer with legal notice
+      footer: (currentPage: number, pageCount: number) => {
+        return {
+          margin: [50, 20, 50, 30],
+          table: {
+            widths: ['*'],
+            body: [[
+              {
+                stack: [
+                  {
+                    text: contractLabels.legalNotice.ar,
+                    style: 'legalNotice',
+                    alignment: 'center',
+                    margin: [0, 0, 0, 5]
+                  },
+                  {
+                    text: `صفحة ${currentPage} من ${pageCount}`,
+                    style: 'pageNumber',
+                    alignment: 'center'
+                  }
+                ]
+              }
+            ]]
+          },
+          layout: 'noBorders'
+        };
       },
-      {
-        title: "Article 9 - Lessee's Representations and Warranties:",
-        content: "Party Two agrees to the following:\n• Responsibility for traffic violations during the rental period, to be settled within 30 days.\n• All operating costs for the vehicle, including fuel, oils, and consumables.\n• Responsibility for regular and non-regular maintenance of the vehicle.\n• Party Two is solely responsible for the vehicle's damage, either partial or total, due to negligence.\n• Party Two shall drive the vehicle solely for personal use and may not allow anyone else to drive it."
+      
+      // Main content
+      content: [
+        // Contract header information
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                createArabicTextBlock(`${contractLabels.agreementNumber.ar}: ${agreement.agreement_number || 'غير محدد'}`, 'contractInfo'),
+                createArabicTextBlock(`${contractLabels.contractDate.ar}: ${formatDateArabic(currentDate)}`, 'contractInfo')
+              ]
+            ]
+          },
+          layout: 'noBorders',
+          margin: [0, 20, 0, 20]
+        },
+        
+        // Parties section
+        {
+          text: contractLabels.firstParty.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        {
+          text: contractLabels.companyName.ar,
+          style: 'partyInfo',
+          margin: [20, 0, 0, 15]
+        },
+        
+        {
+          text: contractLabels.secondParty.ar,
+          style: 'sectionHeader',
+          margin: [0, 10, 0, 10]
+        },
+        
+        // Customer information table
+        {
+          table: {
+            widths: ['30%', '70%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.full_name || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.nationality || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.driver_license || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.phone_number || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.customers?.email || 'غير محدد', 'valueStyle')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Vehicle details section
+        {
+          text: contractLabels.vehicleDetails.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        
+        {
+          table: {
+            widths: ['30%', '70%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.make || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.model || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.year?.toString() || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.license_plate || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.color || 'غير محدد', 'valueStyle')
+              ],
+              [
+                createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
+                createArabicTextBlock(agreement.vehicles?.vin || 'غير محدد', 'valueStyle')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 20]
+        },
+        
+        // Contract terms section
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                createArabicTextBlock(`${contractLabels.startDate.ar}: ${formatDateArabic(agreement.start_date)}`, 'contractTerms'),
+                createArabicTextBlock(`${contractLabels.endDate.ar}: ${formatDateArabic(agreement.end_date)}`, 'contractTerms')
+              ],
+              [
+                createArabicTextBlock(`${contractLabels.duration.ar}: ${duration} شهر`, 'contractTerms'),
+                createArabicTextBlock(`${contractLabels.paymentDay.ar}: ${agreement.rent_due_day || 1}`, 'contractTerms')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 20, 0, 20]
+        },
+        
+        // Financial terms section
+        {
+          text: contractLabels.financialTerms.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 10]
+        },
+        
+        {
+          table: {
+            widths: ['40%', '60%'],
+            body: [
+              [
+                createArabicTextBlock(contractLabels.monthlyRent.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.rent_amount), 'financialValue')
+              ],
+              [
+                createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.total_amount), 'financialValue')
+              ],
+              [
+                createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
+                createArabicTextBlock(formatArabicCurrency(agreement.deposit_amount), 'financialValue')
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 30]
+        },
+        
+        // Terms and conditions
+        {
+          text: contractLabels.termsConditions.ar,
+          style: 'sectionHeader',
+          margin: [0, 20, 0, 15]
+        },
+        
+        {
+          stack: [
+            createArabicTextBlock(contractLabels.term1.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term2.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term3.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term4.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term5.ar, 'termText'),
+            createArabicTextBlock(contractLabels.term6.ar, 'termText')
+          ],
+          margin: [0, 0, 0, 40]
+        },
+        
+        // Signatures section
+        {
+          text: contractLabels.signatures.ar,
+          style: 'sectionHeader',
+          margin: [0, 30, 0, 20]
+        },
+        
+        {
+          table: {
+            widths: ['50%', '50%'],
+            body: [
+              [
+                {
+                  stack: [
+                    createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureLabel'),
+                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
+                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
+                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
+                  ]
+                },
+                {
+                  stack: [
+                    createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureLabel'),
+                    { text: '', margin: [0, 30, 0, 0] }, // Space for signature
+                    { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
+                    createArabicTextBlock(`${contractLabels.date.ar}: _______________`, 'signatureDate')
+                  ]
+                }
+              ]
+            ]
+          },
+          layout: 'noBorders',
+          margin: [0, 0, 0, 20]
+        }
+      ],
+      
+      // Enhanced styles for Arabic legal document
+      styles: {
+        companyName: {
+          fontSize: 18,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'center'
+        },
+        contractTitle: {
+          fontSize: 16,
+          bold: true,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'center'
+        },
+        contractInfo: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        sectionHeader: {
+          fontSize: 14,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'right'
+        },
+        partyInfo: {
+          fontSize: 12,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        labelStyle: {
+          fontSize: 11,
+          bold: true,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'right'
+        },
+        valueStyle: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        contractTerms: {
+          fontSize: 11,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right'
+        },
+        financialValue: {
+          fontSize: 12,
+          bold: true,
+          font: 'Amiri',
+          color: colors.primary,
+          alignment: 'right'
+        },
+        termText: {
+          fontSize: 10,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'right',
+          margin: [0, 0, 0, 8]
+        },
+        signatureLabel: {
+          fontSize: 11,
+          bold: true,
+          font: 'Amiri',
+          color: colors.text,
+          alignment: 'center'
+        },
+        signatureDate: {
+          fontSize: 10,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
+        },
+        legalNotice: {
+          fontSize: 8,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
+        },
+        pageNumber: {
+          fontSize: 8,
+          font: 'Amiri',
+          color: colors.textLight,
+          alignment: 'center'
+        }
       },
-      {
-        title: 'Article 10 - Insurance Requirements:',
-        content: "Party Two must provide comprehensive insurance coverage for the rented vehicle from an approved insurance company and maintain the policy throughout the rental period."
-      },
-      {
-        title: 'Article 11 - Purchase Option:',
-        content: "If Party Two wishes to purchase the vehicle at the end of the rental term, they must notify Party One in writing. The vehicle price is equal to the monthly rental value."
-      },
-      {
-        title: 'Article 12 - Default by Party Two:',
-        content: "The following actions will constitute a breach by Party Two:\n• Failure to pay rental payments or any amount due under this Agreement.\n• Breach of any non-financial obligation under this Agreement.\n• Bankruptcy or insolvency of Party Two.\n• Abandonment of the vehicle.\n• Departure or deportation of Party Two from the country.\n• Failure to pay traffic fines within 30 days of the violation."
-      },
-      {
-        title: 'Article 13 - Consequences of Default:',
-        content: "In the event of a default by Party Two, Party One may terminate the Agreement, immediately retrieve the vehicle, and impose a penalty of 5000 Qatari Riyals."
-      },
-      {
-        title: 'Article 14 - Early Payment:',
-        content: "Party Two may not terminate the Agreement early without Party One's prior written consent and must notify Party One a month in advance if they wish to pay off the remaining balance."
-      },
-      {
-        title: 'Article 15 - General Provisions:',
-        content: "• Governing Law and Jurisdiction: This Agreement is governed by the laws of Qatar, and the Parties agree to the exclusive jurisdiction of Qatari courts.\n• Communications: Any notices or communications under this Agreement may be made via WhatsApp, email, or text message.\n• Assignment: Party Two may not assign or transfer their rights or obligations under this Agreement without prior written consent from Party One.\n• Severability: If any provision of this Agreement is deemed unenforceable, the remainder of the Agreement shall remain in effect.\n• Entire Agreement: This Agreement constitutes the entire understanding between the Parties and supersedes any prior discussions or agreements.\n• Copies: This Agreement may be executed in multiple counterparts, each of which is considered an original."
+      
+      defaultStyle: {
+        font: 'Amiri',
+        fontSize: 11,
+        rtl: true,
+        alignment: 'right'
       }
-    ];
-    
-    for (const article of remainingArticles) {
-      // Check if we need a new page
-      if (y > 230) {
-        doc.addPage();
-        y = 20;
-      }
-      
-      doc.setFont('helvetica', 'bold');
-      doc.text(article.title, leftMargin, y);
-      y += lineHeight;
-      
-      doc.setFont('helvetica', 'normal');
-      const contentLines = article.content.split('\n');
-      
-      for (const line of contentLines) {
-        const splitContent = doc.splitTextToSize(line, 160);
-        doc.text(splitContent, leftMargin + 15, y);
-        y += splitContent.length * lineHeight;
-      }
-      
-      y += lineHeight;
-    }
-    
-    // Add signature section
-    if (y > 240) {
-      doc.addPage();
-      y = 20;
-    }
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('In witness whereof, this Agreement is signed by the Parties in two copies, one for each Party.', leftMargin, y);
-    y += lineHeight * 3;
-    
-    doc.text('Party One:', leftMargin, y);
-    doc.text('Party Two:', leftMargin + 100, y);
-    y += lineHeight;
-      doc.setFont('helvetica', 'normal');
-    doc.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
-    doc.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
-    
-    // Add footer image to all pages
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      
-      // Add footer image to center of the page
-      addFooterImage(doc);
-      
-      // Add page number
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 25, { align: 'center' });
-      doc.text('CONFIDENTIAL - ALARAF CAR RENTAL', doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 5, { align: 'center' });
-    }
-    
-    // Save the PDF with the agreement number
-    doc.save(`Rental_Agreement-${agreement.agreement_number}.pdf`);
+    };
+
+    // Generate and download the PDF
+    const fileName = prepareArabicForPDF(`عقد-إيجار-مركبة-${agreement.agreement_number || 'غير-محدد'}.pdf`);
+    pdfMake.createPdf(docDefinition).download(fileName);
     
     return true;
   } catch (error) {
-    console.error("Error generating PDF:", error);
+    console.error('Error generating Arabic vehicle rental contract PDF:', error);
     return false;
   }
-};
-
-// Helper function for date formatting
-export const formatDateForDisplay = (date: Date | string): string => {
-  const dateObj = date instanceof Date ? date : new Date(date);
-  return format(dateObj, 'MMMM d, yyyy');
-};
-
-// Function to check if a standard template exists
-export const checkStandardTemplateExists = async (): Promise<boolean> => {
-  try {
-    // This is a placeholder that would normally check for template existence
-    return true;
-  } catch (error) {
-    console.error("Error checking template existence:", error);
-    return false;
-  }
-};
-
-// Function to diagnose template access
-export const diagnosisTemplateAccess = async (): Promise<{
-  exists: boolean; 
-  accessible: boolean;
-  bucketExists: boolean;
-  templateExists: boolean;
-  errors: string[];
-}> => {
-  try {
-    // This is a placeholder function that would diagnose template access
-    return {
-      exists: true,
-      accessible: true,
-      bucketExists: true,
-      templateExists: true,
-      errors: []
-    };
-  } catch (error) {
-    console.error("Error diagnosing template access:", error);
-    return {
-      exists: false,
-      accessible: false,
-      bucketExists: false,
-      templateExists: false,
-      errors: [error instanceof Error ? error.message : String(error)]
-    };
-  }
-};
+}
