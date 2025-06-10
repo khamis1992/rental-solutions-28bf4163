@@ -200,12 +200,15 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function async
+  // Fix the type issue by making this function properly async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await Promise.resolve(onGenerateDocument());
+      await onGenerateDocument();
+    } else {
+      // Default behavior - generate Arabic contract
+      await handleDownloadPdf();
     }
-  }, [onGenerateDocument]);
+  }, [onGenerateDocument, handleDownloadPdf]);
 
   if (isLoadingAgreement) {
     return (

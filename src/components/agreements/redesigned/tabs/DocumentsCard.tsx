@@ -1,11 +1,14 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Agreement } from '@/types/agreement';
 import { AgreementActionButtons } from '../../details/AgreementActionButtons';
 import { AgreementTrafficFines } from '../../AgreementTrafficFines';
 import LegalCaseCard from '../../LegalCaseCard';
-import { FileText, AlertTriangle, Scale } from 'lucide-react';
+import { FileText, AlertTriangle, Scale, Download } from 'lucide-react';
+import { generateArabicContract } from '@/utils/contract-generator';
+import { toast } from 'sonner';
 
 interface DocumentsCardProps {
   agreement: Agreement;
@@ -37,6 +40,23 @@ export function DocumentsCard({
   const startDate = ensureDate(agreement.start_date);
   const endDate = ensureDate(agreement.end_date);
 
+  // Handle Arabic contract generation
+  const handleGenerateArabicContract = async () => {
+    try {
+      toast.info('جاري إنشاء عقد الإيجار العربي...');
+      const success = await generateArabicContract(agreement);
+      
+      if (success) {
+        toast.success('تم إنشاء العقد العربي بنجاح');
+      } else {
+        toast.error('فشل في إنشاء العقد العربي');
+      }
+    } catch (error) {
+      console.error('Error generating Arabic contract:', error);
+      toast.error('فشل في إنشاء العقد العربي');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Document Actions */}
@@ -52,6 +72,23 @@ export function DocumentsCard({
             <p className="text-sm text-muted-foreground">
               Generate, download, and manage agreement documents.
             </p>
+            
+            {/* Arabic Contract Button */}
+            <div className="mb-4">
+              <Button
+                onClick={handleGenerateArabicContract}
+                disabled={isGeneratingPdf}
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                عقد الإيجار العربي (Arabic Contract)
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">
+                Generate official Arabic rental agreement contract
+              </p>
+            </div>
+            
+            {/* Standard Action Buttons */}
             <AgreementActionButtons
               onEdit={onEdit}
               onDownloadPdf={onDownloadPdf}
