@@ -200,15 +200,6 @@ const Agreements = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {showFilters ? "Hide Filters" : "Advanced Filters"}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useDropzone } from 'react-dropzone';
 
 interface CSVImportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onImportComplete: () => void;
 }
 
@@ -36,7 +35,7 @@ interface CSVRow {
   [key: string]: string;
 }
 
-const CSVImportModal = ({ isOpen, onClose, onImportComplete }: CSVImportModalProps) => {
+export const CSVImportModal = ({ open, onOpenChange, onImportComplete }: CSVImportModalProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CSVRow[]>([]);
   const [importProgress, setImportProgress] = useState(0);
@@ -196,11 +195,11 @@ const CSVImportModal = ({ isOpen, onClose, onImportComplete }: CSVImportModalPro
 
   const handleClose = () => {
     resetModal();
-    onClose();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
