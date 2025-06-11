@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,6 +40,7 @@ import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 import { generateAndStoreContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
+import { AgreementType } from '@/types/agreement';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -197,6 +199,10 @@ const AgreementEditor = () => {
         end_date: formData.end_date.toISOString(),
         total_amount: formData.total_amount || 0,
         status: formData.status as LeaseStatus,
+        agreement_type: formData.agreement_type as AgreementType,
+        payment_frequency: formData.payment_frequency || 'monthly',
+        confirmation_email_sent: false,
+        down_payment: 0,
       };
       
       let result;
@@ -293,7 +299,10 @@ const AgreementEditor = () => {
                 driver_license: selectedCustomer.driver_license,
                 nationality: selectedCustomer.nationality
               } : null,
-              vehicles: selectedVehicle
+              vehicles: selectedVehicle,
+              payment_frequency: data.payment_frequency || 'monthly',
+              confirmation_email_sent: data.confirmation_email_sent || false,
+              down_payment: data.down_payment || 0
             };
             
             const contractResult = await generateAndStoreContract(agreementForContract);
@@ -354,7 +363,7 @@ const AgreementEditor = () => {
   
   // Update total when dates or rent amount changes
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
+    const subscription = form.watch((_, { name }) => {
       if (name === 'start_date' || name === 'end_date' || name === 'rent_amount') {
         calculateTotalAmount();
       }
@@ -472,7 +481,7 @@ const AgreementEditor = () => {
                     <FormField
                       control={form.control}
                       name="customer_id"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
                           <FormLabel>Customer</FormLabel>
                           <FormControl>
@@ -490,7 +499,7 @@ const AgreementEditor = () => {
                     <FormField
                       control={form.control}
                       name="vehicle_id"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
                           <FormLabel>Vehicle</FormLabel>
                           <FormControl>
@@ -683,3 +692,4 @@ const AgreementEditor = () => {
 };
 
 export default AgreementEditor;
+

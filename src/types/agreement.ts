@@ -1,4 +1,5 @@
 
+
 export type AgreementType = 'short_term' | 'long_term' | 'lease' | 'rental';
 export type AgreementStatus = 'active' | 'terminated' | 'pending' | 'expired';
 
@@ -65,3 +66,4 @@ export interface Agreement {
   customer_name?: string;
   vehicle_info?: string;
 }
+
