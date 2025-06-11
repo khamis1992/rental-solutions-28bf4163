@@ -1,12 +1,11 @@
-import React from 'react';
+
+import { useState } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers } from '@/hooks/use-customers';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { UseFormReturn } from 'react-hook-form';
-import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
 import CustomerSelector from '@/components/customers/CustomerSelector';
@@ -27,6 +26,7 @@ export const AgreementBasicDetails = ({
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
 
   const statusOptions = [
     { label: "Draft", value: AgreementStatus.DRAFT },
@@ -47,9 +47,6 @@ export const AgreementBasicDetails = ({
     }
   };
 
-  // Track selected customer for CustomerSelector
-  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
-
   const handleCustomerSelect = (customer: any) => {
     console.log('Customer selected:', customer);
     
@@ -58,7 +55,7 @@ export const AgreementBasicDetails = ({
       id: customer.id || '',
       full_name: customer.full_name || '',
       email: customer.email || '',
-      phone_number: customer.phone || customer.phone_number || '',
+      phone_number: customer.phone_number || customer.phone || '',
       driver_license: customer.driver_license || '',
       nationality: customer.nationality || '',
       address: customer.address || ''
@@ -118,7 +115,7 @@ export const AgreementBasicDetails = ({
         <FormField
           control={form.control}
           name="customer_id"
-          render={({ field }) => (
+          render={() => (
             <FormItem>
               <FormLabel>Customer</FormLabel>
               <CustomerSelector
