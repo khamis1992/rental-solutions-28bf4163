@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Calendar, Clock, DollarSign, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { Activity, Clock, DollarSign, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 interface AgreementStatsProps {
   className?: string;

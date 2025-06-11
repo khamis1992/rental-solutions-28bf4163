@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { format } from 'date-fns';
 import { Clock, ArrowRight } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";

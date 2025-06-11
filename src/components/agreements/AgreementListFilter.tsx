@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 
@@ -10,7 +10,7 @@ interface AgreementListFilterProps {
   onFilterChange: (filters: Record<string, any>) => void;
 }
 
-export const AgreementListFilter = ({ searchTerm, onSearch, onFilterChange }: AgreementListFilterProps) => {
+export const AgreementListFilter = ({ searchTerm, onSearch }: AgreementListFilterProps) => {
   const [search, setSearch] = useState(searchTerm || '');
   
   useEffect(() => {
