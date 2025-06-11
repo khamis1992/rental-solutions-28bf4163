@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -6,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
+import { supabase } from '@/lib/supabase';
 import { PaymentEntryDialog } from '../PaymentEntryDialog';
 import { AgreementDeletionDialog } from '../dialogs/AgreementDeletionDialog';
 import { Agreement } from '@/types/agreement';
@@ -99,28 +101,53 @@ export function RedesignedAgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
+  // Download PDF using Arabic template
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
-        toast.info("Preparing agreement PDF document...");
-        
+        toast.info("Preparing Arabic agreement PDF document...");
+
+        // Fetch customer
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', agreement.customer_id)
+          .single();
+        if (customerError) throw customerError;
+
+        // Fetch vehicle
+        const { data: vehicle, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', agreement.vehicle_id)
+          .single();
+        if (vehicleError) throw vehicleError;
+
+        // Fetch latest payment (optional, adjust as needed)
+        const { data: payments, error: paymentError } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', agreement.id)
+          .order('payment_date', { ascending: false });
+        if (paymentError) throw paymentError;
+        const payment = payments && payments.length > 0 ? payments[0] : null;
+
+        // Ensure date fields are strings for the PDF generator
         const agreementForPdf = {
           ...agreement,
-          start_date: ensureDate(agreement.start_date),
-          end_date: ensureDate(agreement.end_date),
-          created_at: ensureDate(agreement.created_at),
-          updated_at: ensureDate(agreement.updated_at),
+          start_date: typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date.toISOString(),
+          end_date: typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date.toISOString(),
         };
-        
-        const success = await generatePdfDocument(agreementForPdf as any);
-        
-        if (success) {
-          toast.success("Agreement PDF generated successfully");
-        } else {
-          toast.error("Failed to generate PDF document");
-        }
+
+        await generateAgreementPdfAndUploadAndDownload({
+          agreement: agreementForPdf,
+          customer,
+          vehicle,
+          payment,
+        });
+
+        toast.success("Arabic agreement PDF generated and downloaded successfully");
       } catch (error) {
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF document");
