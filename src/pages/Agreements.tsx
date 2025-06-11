@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
