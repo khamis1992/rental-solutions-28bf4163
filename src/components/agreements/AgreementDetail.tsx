@@ -132,8 +132,8 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - Fixed to return Promise<void>
-  const handleDownloadPdf = useCallback(async (): Promise<void> => {
+  // Download PDF
+  const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
@@ -200,15 +200,12 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function properly async
+  // Fix the type issue by making this function async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await onGenerateDocument();
-    } else {
-      // Default behavior - generate Arabic contract
-      await handleDownloadPdf();
+      await Promise.resolve(onGenerateDocument());
     }
-  }, [onGenerateDocument, handleDownloadPdf]);
+  }, [onGenerateDocument]);
 
   if (isLoadingAgreement) {
     return (

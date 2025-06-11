@@ -1,5 +1,5 @@
+
 import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 export interface FontConfig {
   normal: string;
@@ -12,46 +12,49 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Configure pdfMake with Roboto font for browser compatibility
-export function configurePdfMakeFonts(): void {
-  try {
-    // Assign the vfs to pdfMake, which contains the font data
-    if (pdfFonts && pdfFonts.pdfMake) {
-      pdfMake.vfs = pdfFonts.pdfMake.vfs;
-    }
+// Font configuration for Arabic support
+export const ARABIC_FONTS: FontMap = {
+  Amiri: {
+    normal: '/Amiri-Regular.ttf',
+    bold: '/Amiri-Bold.ttf',
+    italics: '/Amiri-Regular.ttf',
+    bolditalics: '/Amiri-Bold.ttf',
+  }
+};
 
-    // Use Roboto as the default font, pointing to the correct file names in the VFS
-    (pdfMake as any).fonts = {
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf'
-      }
-    };
+// Configure pdfMake with Arabic fonts
+export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
+  try {
+    // Set the fonts
+    (pdfMake as any).fonts = fonts;
     
-    console.log('PDF fonts configured with Roboto and VFS');
+    // Initialize VFS if not present
+    if (!(pdfMake as any).vfs) {
+      (pdfMake as any).vfs = {};
+    }
+    
+    console.log('PDF fonts configured successfully:', Object.keys(fonts));
   } catch (error) {
     console.error('Error configuring PDF fonts:', error);
-    // Leave fonts undefined to use browser defaults
+    throw new Error('Failed to configure PDF fonts');
   }
 }
 
-// Check if fonts are available
+// Check if fonts are loaded and available
 export function checkFontAvailability(): boolean {
   try {
-    return !!(pdfMake as any).fonts;
+    return !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
   } catch (error) {
     console.error('Error checking font availability:', error);
     return false;
   }
 }
 
-// Initialize fonts with minimal setup
+// Initialize fonts with error handling
 export async function initializeFonts(): Promise<boolean> {
   try {
     configurePdfMakeFonts();
-    return true;
+    return checkFontAvailability();
   } catch (error) {
     console.error('Font initialization failed:', error);
     return false;

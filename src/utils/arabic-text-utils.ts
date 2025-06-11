@@ -1,73 +1,78 @@
-// Simplified Arabic text utilities for PDF generation
+
+// Unified Arabic text utilities for PDF generation and display
 
 /**
- * Clean Arabic text for PDF rendering
+ * Prepares Arabic text for PDF generation by handling RTL and special characters
  */
 export function prepareArabicForPDF(text: string): string {
-  if (!text || typeof text !== 'string') return 'غير محدد';
+  if (!text) return '';
   
-  // Remove problematic characters and keep only safe ones
+  // Basic Arabic text preparation
+  // Remove any problematic characters and normalize the text
   return text
-    .replace(/\0/g, '') // Remove null bytes
-    .replace(/[\u200E\u200F\u202A-\u202E]/g, '') // Remove bidirectional marks
-    .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0020-\u007E\u000A\u000D]/g, '') // Keep only Arabic, Latin, and basic characters
-    .trim() || 'غير محدد';
+    .replace(/[\u200E\u200F\u202A-\u202E]/g, '') // Remove directional marks
+    .trim();
 }
 
 /**
- * Create safe Arabic text block
+ * Creates an Arabic text block for pdfMake with proper styling
  */
-export function createArabicTextBlock(text: string, style?: string) {
+export function createArabicTextBlock(text: string, style: string) {
   return {
     text: prepareArabicForPDF(text),
-    style: style || 'normal',
-    alignment: 'right' as const
+    style: style,
+    alignment: 'right',
+    rtl: true
   };
 }
 
 /**
- * Format currency for Arabic display
+ * Formats currency for Arabic display
  */
-export function formatArabicCurrency(amount: number | undefined | null): string {
-  if (!amount && amount !== 0) return 'غير محدد';
-  
-  try {
-    return `${amount.toFixed(2)} ريال قطري`;
-  } catch {
-    return 'غير محدد';
+export function formatArabicCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return prepareArabicForPDF('0 ريال قطري');
   }
+  
+  const formatted = new Intl.NumberFormat('ar-QA', {
+    style: 'currency',
+    currency: 'QAR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount);
+  
+  return prepareArabicForPDF(formatted);
 }
 
 /**
- * Format date for Arabic display
+ * Formats date for Arabic display
  */
-export function formatArabicDate(date: string | Date | undefined): string {
-  if (!date) return 'غير محدد';
+export function formatArabicDate(date: string | Date | null | undefined): string {
+  if (!date) return prepareArabicForPDF('محدد غير');
   
   try {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(d.getTime())) return 'غير محدد';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return 'غير محدد';
+    if (isNaN(dateObj.getTime())) {
+      return prepareArabicForPDF('محدد غير');
+    }
+    
+    const formatted = new Intl.DateTimeFormat('ar-QA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(dateObj);
+    
+    return prepareArabicForPDF(formatted);
+  } catch (error) {
+    console.error('Error formatting Arabic date:', error);
+    return prepareArabicForPDF('محدد غير');
   }
 }
 
 /**
- * Process Arabic text safely
+ * Handles Arabic text direction and formatting for RTL display
  */
-export function processArabicText(text: string): string {
+export function formatArabicText(text: string): string {
   return prepareArabicForPDF(text);
-}
-
-/**
- * Convert English numbers to Arabic numerals
- */
-export function toArabicNumerals(text: string): string {
-  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  return text.replace(/[0-9]/g, (digit) => arabicNumbers[parseInt(digit)]);
 }
