@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Download, FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
 import { generateAgreementReportPdfmake } from '@/utils/agreement-report-utils';
 
@@ -134,7 +133,7 @@ export function PdfTestingComponent() {
     // Test with Arabic-heavy content
     const arabicAgreement = {
       ...sampleAgreement,
-      agreement_number: 'عقد-٢٠٢٤-٠٠١'
+      agreement_number: 'عقد-١٢٣'
     };
     
     const arabicCustomer = {
@@ -286,13 +285,14 @@ export function PdfTestingComponent() {
                     </div>
                   </div>
                 ))}
+                
+                {/* Fix: Properly access the last result */}
+                {testResults.length > 0 && testResults[testResults.length - 1].message && testResults[testResults.length - 1].status === 'error' && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{testResults[testResults.length - 1].message}</p>
+                  </div>
+                )}
               </div>
-              
-              {result.message && result.status === 'error' && (
-                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">{result.message}</p>
-                </div>
-              )}
             </div>
           )}
 

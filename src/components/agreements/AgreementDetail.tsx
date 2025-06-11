@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -132,8 +133,8 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF
-  const handleDownloadPdf = useCallback(async () => {
+  // Download PDF - Fixed to return Promise<void>
+  const handleDownloadPdf = useCallback(async (): Promise<void> => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
@@ -200,12 +201,15 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function async
+  // Fix the type issue by making this function properly async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      await Promise.resolve(onGenerateDocument());
+      await onGenerateDocument();
+    } else {
+      // Default behavior - generate Arabic contract
+      await handleDownloadPdf();
     }
-  }, [onGenerateDocument]);
+  }, [onGenerateDocument, handleDownloadPdf]);
 
   if (isLoadingAgreement) {
     return (
