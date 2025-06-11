@@ -12,63 +12,37 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Simplified font configuration with fallbacks - ONLY Helvetica
-export const HELVETICA_FONTS: FontMap = {
-  Helvetica: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  }
-};
-
-// Configure pdfMake with fallback fonts
-export function configurePdfMakeFonts(fonts: FontMap = HELVETICA_FONTS): void {
+// Configure pdfMake to use built-in fonts only - NO custom font configuration
+export function configurePdfMakeFonts(): void {
   try {
-    (pdfMake as any).fonts = fonts;
-    console.log('PDF fonts configured successfully:', Object.keys(fonts));
-    console.log('Font configuration details:', fonts);
+    // Do NOT configure custom fonts - let PDFMake use its built-in fonts
+    console.log('Using PDFMake built-in fonts (no custom configuration)');
   } catch (error) {
-    console.error('Error configuring PDF fonts:', error);
-    // Use default fonts as fallback
-    (pdfMake as any).fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique',
-      }
-    };
-    console.log('Applied fallback font configuration');
+    console.error('Error in configurePdfMakeFonts:', error);
   }
 }
 
-// Check if fonts are loaded and available
+// Check if fonts are available (always return true for built-in fonts)
 export function checkFontAvailability(): boolean {
   try {
-    const fontsAvailable = !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
-    console.log('Font availability check:', fontsAvailable);
-    console.log('Available fonts:', Object.keys((pdfMake as any).fonts || {}));
-    return fontsAvailable;
+    console.log('Font availability check: using built-in fonts');
+    return true;
   } catch (error) {
     console.error('Error checking font availability:', error);
-    return false;
+    return true; // Always return true for built-in fonts
   }
 }
 
-// Initialize fonts with error handling and fallbacks
+// Initialize fonts with built-in font support
 export async function initializeFonts(): Promise<boolean> {
   try {
-    console.log('Starting font initialization...');
+    console.log('Starting font initialization with built-in fonts...');
     configurePdfMakeFonts();
     const available = checkFontAvailability();
     console.log('Font initialization result:', available);
-    console.log('Final font configuration:', (pdfMake as any).fonts);
     return available;
   } catch (error) {
-    console.error('Font initialization failed, using fallback:', error);
-    configurePdfMakeFonts();
-    console.log('Fallback font configuration applied');
-    return true; // Return true for fallback fonts
+    console.error('Font initialization failed, using built-in fonts:', error);
+    return true; // Return true since built-in fonts are always available
   }
 }

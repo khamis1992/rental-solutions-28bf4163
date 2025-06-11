@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { initializeFonts } from './font-loader';
 import { 
@@ -92,7 +91,7 @@ function calculateDurationSafe(startDate: Date, endDate: Date): number {
   }
 }
 
-// Create simplified document definition with ONLY Helvetica fonts
+// Create simplified document definition with NO custom fonts - use PDFMake defaults
 function createSimpleContractDocument(agreement: Agreement) {
   console.log('Creating contract document for agreement:', agreement.id);
   
@@ -281,69 +280,59 @@ function createSimpleContractDocument(agreement: Agreement) {
       }
     ],
     
-    // Updated styles - ALL explicitly use Helvetica with NO bold styles to avoid Amiri conflicts
+    // FIXED: Updated styles with NO font specifications - use PDFMake defaults
     styles: {
       companyName: {
         fontSize: 18,
-        font: 'Helvetica',
         color: colors.primary
       },
       contractTitle: {
         fontSize: 16,
-        font: 'Helvetica',
         color: colors.text
       },
       contractInfo: {
         fontSize: 11,
-        font: 'Helvetica',
         color: colors.text,
         alignment: 'right'
       },
       sectionHeader: {
         fontSize: 14,
-        font: 'Helvetica',
         color: colors.primary,
         alignment: 'right'
       },
       labelStyle: {
         fontSize: 11,
-        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'right'
       },
       valueStyle: {
         fontSize: 11,
-        font: 'Helvetica',
         color: colors.text,
         alignment: 'right'
       },
       financialValue: {
         fontSize: 12,
-        font: 'Helvetica',
         color: colors.primary,
         alignment: 'right'
       },
       termsList: {
         fontSize: 11,
-        font: 'Helvetica',
         color: colors.text,
         alignment: 'right'
       },
       signatureLabel: {
         fontSize: 11,
-        font: 'Helvetica',
         color: colors.text,
         alignment: 'center'
       },
       footerNotice: {
         fontSize: 8,
-        font: 'Helvetica',
         color: colors.textLight
       }
     },
     
+    // FIXED: Updated defaultStyle to NOT specify font - use PDFMake defaults
     defaultStyle: {
-      font: 'Helvetica',
       fontSize: 11,
       alignment: 'right'
     }

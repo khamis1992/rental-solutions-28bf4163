@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -15,11 +14,11 @@ export async function ensureFontsLoaded() {
   try {
     const fontsInitialized = await initializeFonts();
     if (!fontsInitialized) {
-      console.warn('Font initialization failed, using fallback configuration');
+      console.warn('Font initialization failed, using built-in fonts');
       configurePdfMakeFonts();
     }
   } catch (error) {
-    console.warn('Font loading failed, using default fonts:', error);
+    console.warn('Font loading failed, using built-in fonts:', error);
   }
 }
 
@@ -395,103 +394,83 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Enhanced styles for Arabic legal document
+      // Enhanced styles for Arabic legal document with NO font specifications
       styles: {
         companyName: {
           fontSize: 18,
-          bold: true,
-          font: 'Amiri',
           color: colors.primary,
           alignment: 'center'
         },
         contractTitle: {
           fontSize: 16,
-          bold: true,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'center'
         },
         contractInfo: {
           fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'right'
         },
         sectionHeader: {
           fontSize: 14,
-          bold: true,
-          font: 'Amiri',
           color: colors.primary,
           alignment: 'right'
         },
         partyInfo: {
           fontSize: 12,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'right'
         },
         labelStyle: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
           color: colors.textLight,
           alignment: 'right'
         },
         valueStyle: {
           fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'right'
         },
         contractTerms: {
           fontSize: 11,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'right'
         },
         financialValue: {
           fontSize: 12,
-          bold: true,
-          font: 'Amiri',
           color: colors.primary,
           alignment: 'right'
         },
         termText: {
           fontSize: 10,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'right',
           margin: [0, 0, 0, 8]
         },
         signatureLabel: {
           fontSize: 11,
-          bold: true,
-          font: 'Amiri',
           color: colors.text,
           alignment: 'center'
         },
         signatureDate: {
           fontSize: 10,
-          font: 'Amiri',
           color: colors.textLight,
           alignment: 'center'
         },
         legalNotice: {
           fontSize: 8,
-          font: 'Amiri',
           color: colors.textLight,
           alignment: 'center'
         },
         pageNumber: {
           fontSize: 8,
-          font: 'Amiri',
           color: colors.textLight,
           alignment: 'center'
         }
       },
       
+      // FIXED: Updated defaultStyle to NOT specify font - use PDFMake defaults
       defaultStyle: {
-        font: 'Amiri',
         fontSize: 11,
         rtl: true,
         alignment: 'right'
