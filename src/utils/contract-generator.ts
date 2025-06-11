@@ -92,7 +92,7 @@ function calculateDurationSafe(startDate: Date, endDate: Date): number {
   }
 }
 
-// Create simplified document definition
+// Create simplified document definition with ONLY Helvetica fonts
 function createSimpleContractDocument(agreement: Agreement) {
   console.log('Creating contract document for agreement:', agreement.id);
   
@@ -281,17 +281,15 @@ function createSimpleContractDocument(agreement: Agreement) {
       }
     ],
     
-    // Simplified styles using Helvetica
+    // Updated styles - ALL explicitly use Helvetica with NO bold styles to avoid Amiri conflicts
     styles: {
       companyName: {
         fontSize: 18,
-        bold: true,
         font: 'Helvetica',
         color: colors.primary
       },
       contractTitle: {
         fontSize: 16,
-        bold: true,
         font: 'Helvetica',
         color: colors.text
       },
@@ -303,14 +301,12 @@ function createSimpleContractDocument(agreement: Agreement) {
       },
       sectionHeader: {
         fontSize: 14,
-        bold: true,
         font: 'Helvetica',
         color: colors.primary,
         alignment: 'right'
       },
       labelStyle: {
         fontSize: 11,
-        bold: true,
         font: 'Helvetica',
         color: colors.textLight,
         alignment: 'right'
@@ -323,7 +319,6 @@ function createSimpleContractDocument(agreement: Agreement) {
       },
       financialValue: {
         fontSize: 12,
-        bold: true,
         font: 'Helvetica',
         color: colors.primary,
         alignment: 'right'
@@ -336,7 +331,6 @@ function createSimpleContractDocument(agreement: Agreement) {
       },
       signatureLabel: {
         fontSize: 11,
-        bold: true,
         font: 'Helvetica',
         color: colors.text,
         alignment: 'center'
@@ -370,6 +364,7 @@ export async function generateArabicContract(agreement: Agreement): Promise<bool
     console.log('Creating document definition...');
     const docDefinition = createSimpleContractDocument(agreement);
     console.log('Document definition created successfully');
+    console.log('Using font configuration:', (pdfMake as any).fonts);
     
     // Generate filename safely
     const safeAgreementNumber = agreement.agreement_number || 'غير-محدد';
