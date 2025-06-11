@@ -1,118 +1,58 @@
 
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Agreement } from '@/types/agreement';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { flexRender, useReactTable, getCoreRowModel, getSortedRowModel, SortingState } from '@tanstack/react-table';
-import { SimplePagination } from '@/components/ui/simple-pagination';
-import { getAgreementColumns } from './columns';
 
 interface TableContentProps {
   agreements: Agreement[];
   isLoading: boolean;
   compact?: boolean;
-  pagination?: {
-    page: number;
-    totalPages: number;
-    totalCount: number;
-    handlePageChange: (page: number) => void;
-  };
+  pagination?: any;
 }
 
-export function TableContent({
-  agreements,
-  isLoading,
-  compact = false,
-  pagination
-}: TableContentProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-
-  const columns = React.useMemo(
-    () => getAgreementColumns(compact),
-    [compact]
-  );
-
-  const table = useReactTable({
-    data: agreements || [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    state: {
-      sorting,
-    },
-  });
+export function TableContent({ agreements, isLoading, compact = false }: TableContentProps) {
+  const navigate = useNavigate();
 
   if (isLoading) {
-    return <div className="p-8 text-center">Loading agreements...</div>;
+    return <div>Loading...</div>;
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="relative w-full overflow-auto">
-        <table className="w-full caption-bottom text-sm">
-          <thead className="border-b">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th 
-                    key={header.id} 
-                    className="h-10 px-2 text-left align-middle font-medium text-muted-foreground"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b transition-colors hover:bg-muted/50"
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th>Agreement #</th>
+            <th>Customer</th>
+            <th>Vehicle</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agreements.map((agreement) => (
+            <tr key={agreement.id}>
+              <td>{agreement.agreement_number}</td>
+              <td>{agreement.customers?.full_name || 'N/A'}</td>
+              <td>{agreement.vehicles?.license_plate || 'N/A'}</td>
+              <td>
+                <Badge>{agreement.status}</Badge>
+              </td>
+              <td>{agreement.rent_amount}</td>
+              <td>
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate(`/agreements/${agreement.id}`)}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="p-2 align-middle">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={columns.length} className="h-24 text-center">
-                  No agreements found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-col items-center justify-center mt-2">
-          <SimplePagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={pagination.handlePageChange}
-          />
-          <div className="text-sm text-muted-foreground text-center mt-2">
-            Showing {agreements.length} of {pagination.totalCount} agreements
-          </div>
-        </div>
-      )}
+                  View
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

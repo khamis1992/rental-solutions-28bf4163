@@ -1,52 +1,74 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Agreement } from '@/types/agreement';
-import { Settings, Edit, Trash } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Settings, Edit, Trash2, AlertTriangle } from 'lucide-react';
 
 interface SettingsCardProps {
-  agreement: Agreement;
   onEdit: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
 export function SettingsCard({
-  agreement,
   onEdit,
   onDelete
 }: SettingsCardProps) {
+  const handleEdit = async () => {
+    await onEdit();
+  };
+
+  const handleDelete = async () => {
+    await onDelete();
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Settings className="h-4 w-4" />
           Agreement Settings
         </CardTitle>
+        <Badge variant="secondary">
+          Agreement ID: {/* agreement.id */}
+        </Badge>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <h4 className="font-semibold mb-2">Agreement Management</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Modify agreement details or permanently remove this agreement from the system.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onEdit}>
+      <CardContent>
+        <div className="grid gap-4">
+          <div className="border rounded-md p-4 bg-muted/50">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Edit Agreement</h3>
+              <Button variant="outline" size="sm" onClick={handleEdit}>
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Agreement
-              </Button>
-              <Button variant="destructive" onClick={onDelete}>
-                <Trash className="h-4 w-4 mr-2" />
-                Delete Agreement
+                Edit
               </Button>
             </div>
+            <p className="text-muted-foreground text-xs mt-2">
+              Modify agreement details such as dates, amounts, and other settings.
+            </p>
           </div>
 
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h4 className="font-semibold text-amber-800 mb-2">Important Notice</h4>
-            <p className="text-sm text-amber-700">
-              Deleting this agreement will permanently remove all associated data including payments, 
-              traffic fines, and legal cases. This action cannot be undone.
+          <div className="border rounded-md p-4 bg-muted/50">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Delete Agreement</h3>
+              <Button variant="destructive" size="sm" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+            <p className="text-muted-foreground text-xs mt-2">
+              Permanently remove this agreement from the system.
+            </p>
+          </div>
+
+          <div className="border rounded-md p-4 bg-muted/50">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-amber-500">Potential Issues</h3>
+              <Badge variant="warning">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                2 Issues
+              </Badge>
+            </div>
+            <p className="text-muted-foreground text-xs mt-2">
+              Review and resolve any potential issues with this agreement.
             </p>
           </div>
         </div>

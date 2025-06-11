@@ -1,167 +1,54 @@
-
-import React from 'react';
-import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Agreement } from '@/types/agreement';
-import { User, Car, DollarSign, Clock } from 'lucide-react';
+import { Calendar, DollarSign, User, Car, Clock } from 'lucide-react';
+import { CustomerInformationCard } from '../../details/CustomerInformationCard';
+import { VehicleInformationCard } from '../../details/VehicleInformationCard';
 
 interface AgreementOverviewCardProps {
-  agreement: Agreement;
+  agreement: any;
   duration: number;
-  rentAmount: number | null;
-  contractAmount: number | null;
+  rentAmount: number;
 }
-
-// Helper function to format currency without unnecessary decimals
-const formatCurrency = (amount: number | null): string => {
-  if (!amount) return 'N/A';
-  const formatted = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
-  return `QAR ${formatted}`;
-};
 
 export function AgreementOverviewCard({ 
   agreement, 
-  duration,
-  rentAmount,
-  contractAmount
+  duration, 
+  rentAmount 
 }: AgreementOverviewCardProps) {
   return (
-    <div className="space-y-6">
-      {/* Key Information Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Customer Info */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-500/10 rounded-full p-2">
-                <User className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-semibold truncate">
-                  {agreement.customers?.full_name || 'Unknown Customer'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Customer Information Card */}
+      <CustomerInformationCard agreement={agreement} />
 
-        {/* Vehicle Info */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-500/10 rounded-full p-2">
-                <Car className="h-5 w-5 text-green-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Vehicle</p>
-                <p className="font-semibold truncate">
-                  {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'Unknown Vehicle'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Vehicle Information Card */}
+      <VehicleInformationCard agreement={agreement} />
 
-        {/* Duration */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-purple-500/10 rounded-full p-2">
-                <Clock className="h-5 w-5 text-purple-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Duration</p>
-                <p className="font-semibold">
-                  {duration} {duration === 1 ? 'month' : 'months'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Monthly Amount */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="bg-amber-500/10 rounded-full p-2">
-                <DollarSign className="h-5 w-5 text-amber-500" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Monthly</p>
-                <p className="font-semibold">
-                  {formatCurrency(rentAmount)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Combined Customer & Vehicle Information */}
-      <Card>
+      {/* Agreement Details Card */}
+      <Card className="md:col-span-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Customer & Vehicle Details
-          </CardTitle>
+          <CardTitle>Agreement Details</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Customer Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-500" />
-                Customer Information
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{agreement.customers?.full_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">ID Number</p>
-                  <p className="font-medium">{agreement.customers?.driver_license || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium">{agreement.customers?.phone_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">{agreement.customers?.address || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Vehicle Information Section */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Car className="h-5 w-5 text-green-500" />
-                Vehicle Information
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Make & Model</p>
-                  <p className="font-medium">
-                    {agreement.vehicles ? `${agreement.vehicles.make} ${agreement.vehicles.model}` : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">License Plate</p>
-                  <p className="font-medium">{agreement.vehicles?.license_plate || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Year</p>
-                  <p className="font-medium">{agreement.vehicles?.year || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Color</p>
-                  <p className="font-medium">{agreement.vehicles?.color || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span>
+              {new Date(agreement.start_date).toLocaleDateString()} - {new Date(agreement.end_date).toLocaleDateString()} ({duration} months)
+            </span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span>{rentAmount} / month</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span>{agreement.customers?.full_name}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Car className="h-4 w-4 text-muted-foreground" />
+            <span>{agreement.vehicles?.make} {agreement.vehicles?.model}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span>Created at: {new Date(agreement.created_at).toLocaleDateString()}</span>
           </div>
         </CardContent>
       </Card>
