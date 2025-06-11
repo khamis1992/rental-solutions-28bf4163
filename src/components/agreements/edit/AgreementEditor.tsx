@@ -296,6 +296,7 @@ const AgreementEditor = () => {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               agreement_type: formData.agreement_type as AgreementType,
+              total_amount: data.total_amount || 0,
               customers: selectedCustomer ? {
                 id: selectedCustomer.id,
                 full_name: selectedCustomer.full_name,

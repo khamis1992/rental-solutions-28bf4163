@@ -370,5 +370,3 @@ export const CSVImportModal = ({ open, onOpenChange, onImportComplete }: CSVImpo
     </Dialog>
   );
 };
-
-export { CSVImportModal };
