@@ -287,7 +287,7 @@ const AgreementEditor = () => {
             console.log('Auto-generating comprehensive Arabic contract for new agreement:', agreementId);
             toast.info('جاري إنشاء العقد العربي الشامل...');
             
-            // Create a temporary agreement object for contract generation with proper types
+            // Create a proper agreement object for contract generation with the correct Customer type
             const agreementForContract = {
               ...result,
               start_date: formData.start_date.toISOString(),
@@ -301,7 +301,14 @@ const AgreementEditor = () => {
                 full_name: selectedCustomer.full_name,
                 email: selectedCustomer.email,
                 phone_number: selectedCustomer.phone_number,
-                driver_license: selectedCustomer.driver_license,
+                address: selectedCustomer.address || '',
+                city: '',
+                state: '',
+                zip_code: '',
+                role: 'customer',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                driver_license: selectedCustomer.driver_license || null,
                 nationality: selectedCustomer.nationality
               } : undefined,
               vehicles: selectedVehicle,

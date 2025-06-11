@@ -31,8 +31,6 @@ export function PaymentHistory({
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
-  leaseStartDate,
-  leaseEndDate,
   leaseId,
   agreement,
   fetchPayments

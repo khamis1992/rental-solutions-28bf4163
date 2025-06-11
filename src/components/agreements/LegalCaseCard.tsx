@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -96,34 +97,6 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
       toast.error("An error occurred while resolving the case");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-red-500">Active</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-      case 'resolved':
-        return <Badge className="bg-green-500">Resolved</Badge>;
-      case 'escalated':
-        return <Badge className="bg-purple-500">Escalated</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge className="bg-red-500">High Priority</Badge>;
-      case 'medium':
-        return <Badge className="bg-yellow-500">Medium Priority</Badge>;
-      case 'low':
-        return <Badge className="bg-blue-500">Low Priority</Badge>;
-      default:
-        return <Badge>{priority}</Badge>;
     }
   };
 
