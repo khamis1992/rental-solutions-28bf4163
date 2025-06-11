@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -201,13 +200,18 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function properly async
+  // Fix the generateDocument handler to properly return Promise<void>
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
-    if (onGenerateDocument) {
-      await onGenerateDocument();
-    } else {
-      // Default behavior - generate Arabic contract
-      await handleDownloadPdf();
+    try {
+      if (onGenerateDocument) {
+        await onGenerateDocument();
+      } else {
+        // Default behavior - generate Arabic contract
+        await handleDownloadPdf();
+      }
+    } catch (error) {
+      console.error('Error in handleGenerateDocument:', error);
+      toast.error('Failed to generate document');
     }
   }, [onGenerateDocument, handleDownloadPdf]);
 
