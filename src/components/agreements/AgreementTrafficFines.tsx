@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
@@ -30,13 +31,49 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   // Memoize the filtered fines to prevent recalculation on each render
   const filteredFines = React.useMemo(() => {
-    if (!trafficFines) return [];
-    return trafficFines.filter(
-      fine =>
-        fine.leaseId === agreementId &&
-        new Date(fine.violationDate) >= startDate &&
-        new Date(fine.violationDate) <= endDate
-    );
+    if (!trafficFines || !Array.isArray(trafficFines)) {
+      console.log('No traffic fines data or invalid format:', trafficFines);
+      return [];
+    }
+    
+    console.log('Total traffic fines:', trafficFines.length);
+    console.log('Filtering for agreement:', agreementId);
+    console.log('Date range:', { startDate, endDate });
+    
+    const filtered = trafficFines.filter(fine => {
+      // Check if fine is assigned to this lease/agreement
+      const isAssignedToLease = fine.leaseId === agreementId;
+      
+      if (!isAssignedToLease) {
+        return false;
+      }
+      
+      // Check date range
+      if (!fine.violationDate) {
+        console.log('Fine without violation date:', fine);
+        return false;
+      }
+      
+      // Ensure violationDate is a Date object
+      const violationDate = fine.violationDate instanceof Date 
+        ? fine.violationDate 
+        : new Date(fine.violationDate);
+      
+      const isInDateRange = violationDate >= startDate && violationDate <= endDate;
+      
+      console.log('Fine check:', {
+        fineId: fine.id,
+        leaseId: fine.leaseId,
+        violationDate: violationDate.toISOString(),
+        isAssignedToLease,
+        isInDateRange
+      });
+      
+      return isInDateRange;
+    });
+    
+    console.log('Filtered fines count:', filtered.length);
+    return filtered;
   }, [trafficFines, agreementId, startDate, endDate]);
 
   if (showLoader) {
@@ -76,31 +113,37 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             </tr>
           </thead>
           <tbody>
-            {filteredFines.map((fine) => (
-              <tr key={fine.id} className="border-b hover:bg-muted/50">
-                <td className="py-3 px-4">
-                  {fine.violationDate 
-                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
-                <td className="py-3 px-4 text-right">
-                  {fine.fineAmount 
-                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.paymentStatus === 'paid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {filteredFines.map((fine) => {
+              const violationDate = fine.violationDate instanceof Date 
+                ? fine.violationDate 
+                : new Date(fine.violationDate);
+              
+              return (
+                <tr key={fine.id} className="border-b hover:bg-muted/50">
+                  <td className="py-3 px-4">
+                    {fine.violationDate 
+                      ? format(violationDate, 'dd MMM yyyy') 
+                      : 'N/A'}
+                  </td>
+                  <td className="py-3 px-4">{fine.location || 'N/A'}</td>
+                  <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
+                  <td className="py-3 px-4 text-right">
+                    {fine.fineAmount 
+                      ? `QAR ${fine.fineAmount.toLocaleString()}` 
+                      : 'N/A'}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      fine.paymentStatus === 'paid' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
