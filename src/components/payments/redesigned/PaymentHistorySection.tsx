@@ -14,7 +14,9 @@ import {
   MoreHorizontal,
   TrendingUp,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { Payment } from '@/types/payment.types';
@@ -168,6 +170,37 @@ export function PaymentHistorySection({
     }).format(amount);
   };
 
+  // Helper function to get payment action button
+  const getPaymentActionButton = (payment: Payment) => {
+    if (payment.status === 'completed' || payment.status === 'paid') {
+      return null; // No action needed for completed payments
+    }
+
+    const isOverdue = payment.status === 'overdue';
+    const isPending = payment.status === 'pending';
+
+    return (
+      <Button
+        size="sm"
+        onClick={() => {
+          setSelectedPayment(payment);
+          setIsPaymentDialogOpen(true);
+        }}
+        className={`
+          font-semibold shadow-md transition-all duration-200 hover:scale-105 min-w-[140px]
+          ${isOverdue 
+            ? 'bg-red-600 hover:bg-red-700 text-white border-red-700' 
+            : 'bg-green-600 hover:bg-green-700 text-white border-green-700'
+          }
+        `}
+        variant={isOverdue ? 'destructive' : 'default'}
+      >
+        <CreditCard className="h-4 w-4 mr-2" />
+        {isOverdue ? 'Pay Overdue' : 'Clear Payment'}
+      </Button>
+    );
+  };
+
   if (isLoading) {
     return (
       <Card className="border-0 shadow-lg">
@@ -296,7 +329,7 @@ export function PaymentHistorySection({
               <div key={payment.id}>
                 <div className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 flex-1">
                       <div className="flex-shrink-0">
                         {getStatusIcon(payment.status)}
                       </div>
@@ -386,20 +419,11 @@ export function PaymentHistorySection({
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
-                      {payment.status !== 'completed' && payment.status !== 'paid' && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPayment(payment);
-                            setIsPaymentDialogOpen(true);
-                          }}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Clear Payment
-                        </Button>
-                      )}
+                    <div className="flex items-center space-x-3 ml-4">
+                      {/* Main Payment Action Button */}
+                      {getPaymentActionButton(payment)}
                       
+                      {/* More Options Dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">

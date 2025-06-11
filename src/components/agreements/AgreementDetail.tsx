@@ -1,51 +1,45 @@
-
 import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { differenceInMonths } from 'date-fns';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { generateAgreementPdfAndUploadAndDownload } from '@/utils/generateAgreementPdf';
-import { supabase } from '@/lib/supabase';
+import { generatePdfDocument } from '@/utils/agreementUtils';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementDeletionDialog } from './dialogs/AgreementDeletionDialog';
-import { Agreement } from '@/types/agreement';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { Payment } from '@/types/payment.types';
-import { CustomerInformationCard } from './details/CustomerInformationCard';
-import { VehicleInformationCard } from './details/VehicleInformationCard';
-import { AgreementDetailsCard } from './details/AgreementDetailsCard';
-import { AgreementActionButtons } from './details/AgreementActionButtons';
-import { AgreementPaymentAnalytics } from './analytics/AgreementPaymentAnalytics';
+import { supabase } from '@/lib/supabase';
 import { usePaymentManagement } from '@/hooks/payment/use-payment-management';
 import { useLoadingStates } from '@/hooks/payment/use-loading-states';
 import { useDialogVisibility } from '@/utils/api/dialog-utils';
 import { usePaymentCalculation } from '@/hooks/payment/use-payment-calculation';
 import { PaymentSyncButton } from './PaymentSyncButton';
 import { PaymentDebugPanel } from '@/components/debug/PaymentDebugPanel';
-import LegalCaseCard from './LegalCaseCard';
+import { AgreementOverviewCard } from './redesigned/tabs/AgreementOverviewCard';
+import { PaymentManagementCard } from './redesigned/tabs/PaymentManagementCard';
+import { DocumentsCard } from './redesigned/tabs/DocumentsCard';
+import { SettingsCard } from './redesigned/tabs/SettingsCard';
+import { FileText, CreditCard, FileImage, Settings, Bug } from 'lucide-react';
 
 interface AgreementDetailProps {
-  agreement: Agreement | null;
   onDelete: (id: string) => void;
-  rentAmount: number | null;
-  contractAmount: number | null;
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
-  onGenerateDocument?: () => void;
+  onGenerateDocument?: () => Promise<void>;
 }
 
 export function AgreementDetail({
-  agreement,
   onDelete,
-  rentAmount,
-  contractAmount,
   onPaymentDeleted,
   onDataRefresh,
   onGenerateDocument
 }: AgreementDetailProps) {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Use the dialog management hook
   const { openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
@@ -59,6 +53,43 @@ export function AgreementDetail({
   });
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+
+  // Fetch agreement data
+  const { data: agreement, isLoading: isLoadingAgreement } = useQuery({
+    queryKey: ['agreement', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Agreement ID is required');
+      
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers (
+            id,
+            full_name,
+            email,
+            phone_number,
+            driver_license,
+            nationality
+          ),
+          vehicles (
+            id,
+            make,
+            model,
+            year,
+            license_plate,
+            vin,
+            color
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id
+  });
 
   // Use payment management hook
   const {
@@ -78,10 +109,10 @@ export function AgreementDetail({
     return dateValue;
   };
 
-  // Use payment calculation hook with correct parameters - fix date handling
+  // Use payment calculation hook with correct parameters
   const paymentMetrics = usePaymentCalculation(
     payments, 
-    contractAmount,
+    agreement?.total_amount,
     agreement?.start_date ? ensureDate(agreement.start_date) : null,
     agreement?.end_date ? ensureDate(agreement.end_date) : null
   );
@@ -101,53 +132,28 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  // Download PDF - ensure dates are Date objects
-  const handleDownloadPdf = useCallback(async () => {
+  // Download PDF - Fixed to return Promise<void>
+  const handleDownloadPdf = useCallback(async (): Promise<void> => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
         toast.info("Preparing agreement PDF document...");
-
-        // Fetch customer
-        const { data: customer, error: customerError } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('id', agreement.customer_id)
-          .single();
-        if (customerError) throw customerError;
-
-        // Fetch vehicle
-        const { data: vehicle, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('id', agreement.vehicle_id)
-          .single();
-        if (vehicleError) throw vehicleError;
-
-        // Fetch latest payment (optional, adjust as needed)
-        const { data: payments, error: paymentError } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', agreement.id)
-          .order('payment_date', { ascending: false });
-        if (paymentError) throw paymentError;
-        const payment = payments && payments.length > 0 ? payments[0] : null;
-
-        // Ensure date fields are strings for the PDF generator
+        
         const agreementForPdf = {
           ...agreement,
-          start_date: typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date.toISOString(),
-          end_date: typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date.toISOString(),
+          start_date: ensureDate(agreement.start_date),
+          end_date: ensureDate(agreement.end_date),
+          created_at: ensureDate(agreement.created_at),
+          updated_at: ensureDate(agreement.updated_at),
         };
-
-        await generateAgreementPdfAndUploadAndDownload({
-          agreement: agreementForPdf,
-          customer,
-          vehicle,
-          payment,
-        });
-
-        toast.success("Agreement PDF generated and downloaded successfully");
+        
+        const success = await generatePdfDocument(agreementForPdf as any);
+        
+        if (success) {
+          toast.success("Agreement PDF generated successfully");
+        } else {
+          toast.error("Failed to generate PDF document");
+        }
       } catch (error) {
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF document");
@@ -167,7 +173,7 @@ export function AgreementDetail({
     }
   }, [addPaymentMutation, onDataRefresh]);
 
-  // Update payment - fix the mutation call
+  // Update payment
   const handleUpdatePayment = useCallback(async (payment: Partial<Payment>) => {
     if (payment.id) {
       try {
@@ -184,7 +190,7 @@ export function AgreementDetail({
     return false;
   }, [updatePaymentMutation, onDataRefresh]);
 
-  // Delete payment - fix the mutation call
+  // Delete payment
   const handleDeletePayment = useCallback(async (paymentId: string) => {
     try {
       await deletePaymentMutation.mutateAsync(paymentId);
@@ -194,26 +200,37 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Convert onGenerateDocument to a Promise - fix the async handling
+  // Fix the type issue by making this function properly async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = onGenerateDocument();
-      return Promise.resolve(result);
+      await onGenerateDocument();
+    } else {
+      // Default behavior - generate Arabic contract
+      await handleDownloadPdf();
     }
-    return Promise.resolve();
-  }, [onGenerateDocument]);
+  }, [onGenerateDocument, handleDownloadPdf]);
 
-  if (!agreement) {
+  if (isLoadingAgreement) {
     return (
       <Card className="p-6">
         <div className="text-center text-muted-foreground">
-          No agreement selected
+          Loading agreement details...
         </div>
       </Card>
     );
   }
 
-  // Calculate duration for details card - handle both string and Date types
+  if (!agreement) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          No agreement found
+        </div>
+      </Card>
+    );
+  }
+
+  // Calculate duration for details card
   const startDate = ensureDate(agreement.start_date);
   const endDate = ensureDate(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
@@ -228,9 +245,26 @@ export function AgreementDetail({
 
   return (
     <div className="space-y-6">
-      {/* Debug Panel Toggle */}
-      <div className="flex justify-between items-center">
-        <div></div>
+      {/* Header with Agreement Info and Debug Toggle */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Agreement Details</h1>
+            <Badge variant="outline" className="px-3 py-1">
+              {agreement.agreement_number || 'No Number'}
+            </Badge>
+            <Badge 
+              variant={agreement.status === 'active' ? 'default' : 'secondary'}
+              className="px-3 py-1"
+            >
+              {agreement.status}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground">
+            Manage agreement information, payments, and related documents
+          </p>
+        </div>
+        
         <div className="flex gap-2">
           <Button
             size="sm"
@@ -238,6 +272,7 @@ export function AgreementDetail({
             onClick={() => setShowDebugPanel(!showDebugPanel)}
             className="text-xs"
           >
+            <Bug className="h-4 w-4 mr-1" />
             {showDebugPanel ? 'Hide' : 'Show'} Debug
           </Button>
           <PaymentSyncButton 
@@ -256,68 +291,78 @@ export function AgreementDetail({
         />
       )}
 
-      {/* Agreement Information Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CustomerInformationCard agreement={agreement} />
-        <VehicleInformationCard agreement={agreement} />
-      </div>
+      {/* Main Tabbed Interface */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">Payments</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FileImage className="h-4 w-4" />
+            <span className="hidden sm:inline">Documents</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <AgreementDetailsCard 
-        agreement={agreement}
-        duration={duration}
-        rentAmount={rentAmount}
-        contractAmount={contractAmount}
-      />
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          <AgreementOverviewCard
+            agreement={agreement}
+            duration={duration}
+            rentAmount={agreement.rent_amount}
+            contractAmount={agreement.total_amount}
+          />
+        </TabsContent>
 
-      {/* Payment Analytics Section */}
-      <AgreementPaymentAnalytics
-        totalAmount={paymentMetrics.totalAmount}
-        amountPaid={paymentMetrics.amountPaid}
-        balance={paymentMetrics.balance}
-        lateFees={paymentMetrics.lateFees}
-        paidOnTime={paymentMetrics.paidOnTime}
-        paidLate={paymentMetrics.paidLate}
-        unpaid={paymentMetrics.unpaid}
-      />
-      
-      {/* Action Buttons */}
-      <AgreementActionButtons
-        onEdit={handleEdit}
-        onDelete={() => openDialog('delete')}
-        onDownloadPdf={handleDownloadPdf}
-        onGenerateDocument={handleGenerateDocument}
-        isGeneratingPdf={loadingStates.generatingPdf}
-      />
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-6 mt-6">
+          <PaymentManagementCard
+            agreement={agreement}
+            payments={payments}
+            isLoading={isLoadingPayments}
+            rentAmount={agreement.rent_amount}
+            contractAmount={agreement.total_amount}
+            paymentMetrics={paymentMetrics}
+            onPaymentDeleted={handleDeletePayment}
+            onPaymentUpdated={handleUpdatePayment}
+            onRecordPayment={handleRecordPayment}
+            fetchPayments={fetchPayments}
+            getDateString={getDateString}
+          />
+        </TabsContent>
 
-      {/* Payment History Section - Pass leaseStartDate and leaseEndDate as strings */}
-      <PaymentHistory
-        payments={payments}
-        isLoading={isLoadingPayments}
-        rentAmount={rentAmount}
-        contractAmount={contractAmount}
-        onPaymentDeleted={handleDeletePayment}
-        onPaymentUpdated={handleUpdatePayment}
-        onRecordPayment={handleRecordPayment}
-        leaseStartDate={getDateString(agreement.start_date)}
-        leaseEndDate={getDateString(agreement.end_date)}
-        leaseId={agreement.id}
-        agreement={agreement}
-        fetchPayments={fetchPayments}
-      />
+        {/* Documents & Legal Tab */}
+        <TabsContent value="documents" className="space-y-6 mt-6">
+          <DocumentsCard
+            agreement={agreement}
+            onEdit={handleEdit}
+            onDownloadPdf={handleDownloadPdf}
+            onGenerateDocument={handleGenerateDocument}
+            onDelete={() => openDialog('delete')}
+            isGeneratingPdf={loadingStates.generatingPdf}
+            getDateString={getDateString}
+          />
+        </TabsContent>
 
-      {/* Traffic Fines Section */}
-      <AgreementTrafficFines 
-        agreementId={agreement.id}
-        startDate={getDateString(agreement.start_date)}
-        endDate={getDateString(agreement.end_date)}
-      />
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6 mt-6">
+          <SettingsCard
+            agreement={agreement}
+            onEdit={handleEdit}
+            onDelete={() => openDialog('delete')}
+          />
+        </TabsContent>
+      </Tabs>
 
-      {/* Legal Cases Section */}
-      <LegalCaseCard 
-        agreementId={agreement.id}
-      />
-
-      {/* Enhanced Delete Confirmation Dialog */}
+      {/* Dialogs */}
       <AgreementDeletionDialog
         open={isDialogVisible('delete')}
         onOpenChange={() => closeDialog('delete')}
@@ -326,7 +371,6 @@ export function AgreementDetail({
         onConfirmDelete={confirmDelete}
       />
 
-      {/* Payment Entry Dialog */}
       {isDialogVisible('payment') && (
         <PaymentEntryDialog
           open={isDialogVisible('payment')}
@@ -345,11 +389,11 @@ export function AgreementDetail({
             closeDialog('payment');
             return true;
           }}
-          defaultAmount={rentAmount || 0}
+          defaultAmount={agreement.rent_amount || 0}
           title="Record Payment"
           description="Add a new payment to this agreement"
           leaseId={agreement.id}
-          rentAmount={rentAmount}
+          rentAmount={agreement.rent_amount}
           selectedPayment={null}
         />
       )}
