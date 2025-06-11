@@ -60,11 +60,12 @@ const AgreementFormWithVehicleCheck = ({
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   
+  // Fix the payment status type issue
   const mockPendingPayments = [
     {
       id: '1',
       amount: 500,
-      status: 'pending',
+      status: 'pending' as const, // Explicitly type as const to match PaymentRecord status
       due_date: new Date().toISOString(),
     }
   ];
@@ -172,7 +173,12 @@ const AgreementFormWithVehicleCheck = ({
                 acknowledgedPayments={acknowledgedPayments}
                 onAcknowledgePayments={setAcknowledgedPayments}
                 isPaymentHistoryOpen={isPaymentHistoryOpen}
-                formatDate={(date) => formatDate(new Date(date))}
+                formatDate={(date) => {
+                  // Fix the date handling issue
+                  if (!date) return 'N/A';
+                  const dateObj = typeof date === 'string' ? new Date(date) : date;
+                  return formatDate(dateObj);
+                }}
               />
             </div>
           </CardContent>

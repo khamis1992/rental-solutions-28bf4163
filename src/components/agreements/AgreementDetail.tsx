@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -118,8 +117,8 @@ export function AgreementDetail({
     agreement?.end_date ? ensureDate(agreement.end_date) : null
   );
 
-  // Handle agreement deletion
-  const confirmDelete = useCallback(() => {
+  // Handle agreement deletion - Fixed to return Promise<void>
+  const confirmDelete = useCallback(async (): Promise<void> => {
     if (agreement) {
       onDelete(agreement.id);
       closeDialog('delete');
@@ -347,7 +346,7 @@ export function AgreementDetail({
             onEdit={handleEdit}
             onDownloadPdf={handleDownloadPdf}
             onGenerateDocument={handleGenerateDocument}
-            onDelete={() => openDialog('delete')}
+            onDelete={confirmDelete}
             isGeneratingPdf={loadingStates.generatingPdf}
             getDateString={getDateString}
           />
@@ -358,7 +357,7 @@ export function AgreementDetail({
           <SettingsCard
             agreement={agreement}
             onEdit={handleEdit}
-            onDelete={() => openDialog('delete')}
+            onDelete={confirmDelete}
           />
         </TabsContent>
       </Tabs>

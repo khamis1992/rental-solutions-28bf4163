@@ -7,7 +7,7 @@ import { Settings, Edit, Trash } from 'lucide-react';
 interface SettingsCardProps {
   agreement: Agreement;
   onEdit: () => Promise<void>;
-  onDelete: () => void;
+  onDelete: () => Promise<void>; // Changed to Promise<void> for consistency
 }
 
 export function SettingsCard({
