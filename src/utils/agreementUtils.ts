@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -394,12 +393,12 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Enhanced styles for Arabic legal document using PDFMake defaults
+      // FIXED: Updated styles with NO font specifications - let PDFMake use defaults
       styles: {
         companyName: {
-          fontSize: 18,
+          fontSize: 16,
           color: colors.primary,
-          alignment: 'center'
+          alignment: 'right'
         },
         contractTitle: {
           fontSize: 16,
@@ -469,7 +468,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       },
       
-      // Updated defaultStyle to use PDFMake defaults
+      // FIXED: Updated defaultStyle to NOT specify font - use PDFMake defaults
       defaultStyle: {
         fontSize: 11,
         rtl: true,

@@ -1,7 +1,7 @@
 import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
-import { configurePdfMakeFonts, initializeFonts } from './font-loader';
+import { initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
   createArabicTextBlock, 
@@ -9,16 +9,14 @@ import {
   formatArabicDate 
 } from './arabic-text-utils';
 
-// Enhanced font configuration with better Arabic support
+// Simplified font configuration - no custom fonts, use PDFMake defaults
 export async function ensureFontsLoaded() {
   try {
-    const fontsInitialized = await initializeFonts();
-    if (!fontsInitialized) {
-      console.warn('Font initialization failed, using built-in fonts');
-      configurePdfMakeFonts();
-    }
+    console.log('Using PDFMake default fonts (Roboto)');
+    return true;
   } catch (error) {
     console.warn('Font loading failed, using built-in fonts:', error);
+    return true; // Always return true since we're using defaults
   }
 }
 
