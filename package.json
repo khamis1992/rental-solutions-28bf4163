@@ -11,7 +11,8 @@
     "check-boundaries": "tsc --noEmit",
     "start:server": "cd server && npm start",
     "dev:server": "cd server && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
+    "build:dev": "vite build --mode development"
   },
   "dependencies": {
     "@eslint/js": "^9.28.0",
