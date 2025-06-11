@@ -12,7 +12,7 @@ import { CustomerInfo } from '@/types/customer';
 import CustomerSelector from '@/components/customers/CustomerSelector';
 
 interface AgreementBasicDetailsProps {
-  form: UseFormReturn<Agreement>;
+  form: any;
   isEdit: boolean;
   onVehicleChange: (vehicleId: string, vehicleData: any) => void;
   onCustomerChange: (customerId: string, customerData: CustomerInfo) => void;
@@ -49,6 +49,25 @@ export const AgreementBasicDetails = ({
 
   // Track selected customer for CustomerSelector
   const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
+
+  const handleCustomerSelect = (customer: any) => {
+    console.log('Customer selected:', customer);
+    
+    // Convert to CustomerInfo format with proper phone_number mapping
+    const customerInfo: CustomerInfo = {
+      id: customer.id || '',
+      full_name: customer.full_name || '',
+      email: customer.email || '',
+      phone_number: customer.phone || customer.phone_number || '',
+      driver_license: customer.driver_license || '',
+      nationality: customer.nationality || '',
+      address: customer.address || ''
+    };
+    
+    setSelectedCustomer(customerInfo);
+    form.setValue('customer_id', customer.id);
+    onCustomerChange(customer.id, customerInfo);
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -104,10 +123,7 @@ export const AgreementBasicDetails = ({
               <FormLabel>Customer</FormLabel>
               <CustomerSelector
                 selectedCustomer={selectedCustomer}
-                onCustomerSelect={(customer) => {
-                  field.onChange(customer.id);
-                  onCustomerChange(customer.id, customer);
-                }}
+                onCustomerSelect={handleCustomerSelect}
                 disabled={isLoadingCustomers}
               />
               <FormMessage />

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -32,6 +31,18 @@ export const AgreementDetails = ({
   setStatus,
   standardTemplateExists
 }: AgreementDetailsProps) => {
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (date) {
+      setStartDate(date);
+    }
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    if (date) {
+      setEndDate(date);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Agreement Details</h3>
@@ -67,7 +78,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={startDate} 
-          setDate={setStartDate} 
+          setDate={handleStartDateChange} 
         />
       </div>
       
@@ -96,7 +107,7 @@ export const AgreementDetails = ({
         </label>
         <DatePicker 
           date={endDate}
-          setDate={setEndDate}
+          setDate={handleEndDateChange}
         />
       </div>
       

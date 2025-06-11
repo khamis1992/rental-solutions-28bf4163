@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -288,9 +287,11 @@ const AgreementEditor = () => {
             console.log('Auto-generating comprehensive Arabic contract for new agreement:', agreementId);
             toast.info('جاري إنشاء العقد العربي الشامل...');
             
-            // Create a temporary agreement object for contract generation
+            // Create a temporary agreement object for contract generation with proper string dates
             const agreementForContract = {
               ...result,
+              start_date: formData.start_date.toISOString(),
+              end_date: formData.end_date.toISOString(),
               customers: selectedCustomer ? {
                 id: selectedCustomer.id,
                 full_name: selectedCustomer.full_name,
@@ -692,4 +693,3 @@ const AgreementEditor = () => {
 };
 
 export default AgreementEditor;
-
