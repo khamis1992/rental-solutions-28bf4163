@@ -394,86 +394,101 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Enhanced styles for Arabic legal document with NO font specifications
+      // Enhanced styles for Arabic legal document using built-in fonts
       styles: {
         companyName: {
           fontSize: 18,
           color: colors.primary,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         },
         contractTitle: {
           fontSize: 16,
           color: colors.text,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         },
         contractInfo: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         sectionHeader: {
           fontSize: 14,
           color: colors.primary,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         partyInfo: {
           fontSize: 12,
           color: colors.text,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         labelStyle: {
           fontSize: 11,
           color: colors.textLight,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         valueStyle: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         contractTerms: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         financialValue: {
           fontSize: 12,
           color: colors.primary,
-          alignment: 'right'
+          alignment: 'right',
+          font: 'Helvetica'
         },
         termText: {
           fontSize: 10,
           color: colors.text,
           alignment: 'right',
-          margin: [0, 0, 0, 8]
+          margin: [0, 0, 0, 8],
+          font: 'Helvetica'
         },
         signatureLabel: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         },
         signatureDate: {
           fontSize: 10,
           color: colors.textLight,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         },
         legalNotice: {
           fontSize: 8,
           color: colors.textLight,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         },
         pageNumber: {
           fontSize: 8,
           color: colors.textLight,
-          alignment: 'center'
+          alignment: 'center',
+          font: 'Helvetica'
         }
       },
       
-      // FIXED: Updated defaultStyle to NOT specify font - use PDFMake defaults
+      // Updated defaultStyle to use built-in fonts
       defaultStyle: {
         fontSize: 11,
         rtl: true,
-        alignment: 'right'
+        alignment: 'right',
+        font: 'Helvetica'
       }
     };
 

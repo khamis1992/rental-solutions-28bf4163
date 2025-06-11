@@ -12,37 +12,55 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Configure pdfMake to use built-in fonts only - NO custom font configuration
+// Configure pdfMake to use built-in browser fonts
 export function configurePdfMakeFonts(): void {
   try {
-    // Do NOT configure custom fonts - let PDFMake use its built-in fonts
-    console.log('Using PDFMake built-in fonts (no custom configuration)');
+    // Use built-in browser fonts that are available across all systems
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+      },
+      // Add fallback font family
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+      }
+    };
+    console.log('PDFMake configured with built-in browser fonts');
   } catch (error) {
-    console.error('Error in configurePdfMakeFonts:', error);
+    console.error('Error configuring PDFMake fonts:', error);
   }
 }
 
-// Check if fonts are available (always return true for built-in fonts)
+// Check if fonts are configured properly
 export function checkFontAvailability(): boolean {
   try {
-    console.log('Font availability check: using built-in fonts');
-    return true;
+    const fonts = (pdfMake as any).fonts;
+    const hasRoboto = fonts && fonts.Roboto;
+    console.log('Font availability check:', { hasRoboto, fonts });
+    return hasRoboto;
   } catch (error) {
     console.error('Error checking font availability:', error);
-    return true; // Always return true for built-in fonts
+    return false;
   }
 }
 
 // Initialize fonts with built-in font support
 export async function initializeFonts(): Promise<boolean> {
   try {
-    console.log('Starting font initialization with built-in fonts...');
+    console.log('Starting font initialization with built-in browser fonts...');
     configurePdfMakeFonts();
     const available = checkFontAvailability();
     console.log('Font initialization result:', available);
     return available;
   } catch (error) {
-    console.error('Font initialization failed, using built-in fonts:', error);
-    return true; // Return true since built-in fonts are always available
+    console.error('Font initialization failed:', error);
+    // Always return true since we're using built-in fonts
+    return true;
   }
 }
