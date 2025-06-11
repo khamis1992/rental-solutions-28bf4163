@@ -32,7 +32,7 @@ export function AgreementList({
   } = useAgreementTable();
 
   // Convert SimpleAgreement to Agreement if needed
-  const convertedInternalAgreements = internalAgreements?.map((agreement: SimpleAgreement): Agreement => ({
+  const convertedInternalAgreements = (internalAgreements as SimpleAgreement[])?.map((agreement: SimpleAgreement): Agreement => ({
     // Core database fields from SimpleAgreement
     id: agreement.id,
     agreement_number: agreement.agreement_number,
@@ -134,3 +134,4 @@ export function AgreementList({
     </div>
   );
 }
+

@@ -51,7 +51,7 @@ const agreementSchema = z.object({
   end_date: z.date(),
   total_amount: z.number().min(0, "Amount must be a positive number"),
   rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
-  payment_frequency: z.string().default('monthly'),
+  payment_frequency: z.enum(['monthly', 'weekly', 'daily']).default('monthly'),
   payment_day: z.number().min(1).max(31).default(1),
   notes: z.string().optional(),
   daily_late_fee: z.number().min(0).optional(),
@@ -73,7 +73,6 @@ const AgreementEditor = () => {
   
   // Add payment schedule management
   const {
-    generatePaymentSchedule: generateScheduleHook,
     isGenerating
   } = usePaymentScheduleManagement(id);
   
@@ -132,7 +131,7 @@ const AgreementEditor = () => {
             end_date: endDate,
             total_amount: agreement.total_amount || 0,
             rent_amount: agreement.rent_amount || 0,
-            payment_frequency: agreement.payment_frequency || 'monthly',
+            payment_frequency: (agreement.payment_frequency as 'monthly' | 'weekly' | 'daily') || 'monthly',
             payment_day: agreement.payment_day || 1,
             notes: agreement.notes || '',
             daily_late_fee: agreement.daily_late_fee || 0,
@@ -193,6 +192,9 @@ const AgreementEditor = () => {
     try {
       const data = {
         ...formData,
+        // Convert dates to strings for API
+        start_date: formData.start_date.toISOString(),
+        end_date: formData.end_date.toISOString(),
         total_amount: formData.total_amount || 0,
         status: formData.status as LeaseStatus,
       };
@@ -220,8 +222,8 @@ const AgreementEditor = () => {
             console.log('Generating payment schedule for new agreement:', agreementId);
             
             const schedule = generatePaymentSchedule({
-              startDate: data.start_date,
-              endDate: data.end_date,
+              startDate: formData.start_date,
+              endDate: formData.end_date,
               rentAmount: data.rent_amount || 0,
               paymentFrequency: data.payment_frequency || 'monthly',
               paymentDay: typeof data.payment_day === 'number' && !isNaN(data.payment_day) ? data.payment_day : 1,
@@ -652,7 +654,7 @@ const AgreementEditor = () => {
                     rentAmount={rentAmount || 0}
                     paymentFrequency={paymentFrequency || 'monthly'}
                     paymentDay={paymentDay || 1}
-                    onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
+                    onFrequencyChange={(value) => form.setValue('payment_frequency', value as 'monthly' | 'weekly' | 'daily')}
                     onPaymentDayChange={(value) => form.setValue('payment_day', value)}
                   />
                 </TabsContent>

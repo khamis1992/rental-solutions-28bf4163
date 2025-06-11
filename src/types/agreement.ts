@@ -1,4 +1,5 @@
 
+
 export type AgreementType = 'short_term' | 'long_term' | 'lease' | 'rental';
 export type AgreementStatus = 'active' | 'terminated' | 'pending' | 'expired';
 
@@ -54,6 +55,8 @@ export interface Agreement {
   updated_at: string;
   agreement_type: AgreementType;
   total_amount: number;
+  terms_accepted?: boolean;
+  additional_drivers?: string[];
   
   // Relationship data
   customers?: Customer;
@@ -63,3 +66,4 @@ export interface Agreement {
   customer_name?: string;
   vehicle_info?: string;
 }
+
