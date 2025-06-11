@@ -66,7 +66,6 @@ function DeletionWarning({ type, count = 0 }: DeletionWarningProps) {
 export function AgreementDeletionDialog({
   open,
   onOpenChange,
-  agreementId,
   agreementNumber,
   onConfirmDelete
 }: AgreementDeletionDialogProps) {

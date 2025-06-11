@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, ArrowRight, CheckCircle, User, Car } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle, Car } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,6 @@ interface PendingPayment {
 const ReassignmentWizard = ({
   isOpen,
   onClose,
-  agreementId,
   currentVehicle,
   onReassignComplete
 }: ReassignmentWizardProps) => {

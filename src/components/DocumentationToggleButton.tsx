@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useDocumentationMode } from '@/context/DocumentationModeContext';
 import { HelpCircle } from 'lucide-react';
 

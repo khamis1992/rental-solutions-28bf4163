@@ -6,7 +6,7 @@ import { SimpleAgreement } from '@/types/simple-agreement';
 import { SimplePagination } from '@/components/ui/simple-pagination';
 
 interface AgreementListProps {
-  agreements?: SimpleAgreement[];
+  agreements?: Agreement[];
   isLoading?: boolean;
   onDeleteAgreement?: (id: string) => void;
   pagination?: {
@@ -31,31 +31,8 @@ export function AgreementList({
     pagination: internalPagination,
   } = useAgreementTable();
 
-  const agreements = externalAgreements ?? internalAgreements;
-  const isLoading = externalLoading ?? internalLoading;
-  
-  // Handle delete function - either use provided function or delete single agreement
-  const handleDelete = onDeleteAgreement ?? (async (id: string) => {
-    await deleteAgreements([id]);
-  });
-  
-  const pagination = externalPagination ?? {
-    page: internalPagination.pageIndex + 1,
-    totalPages: Math.ceil(internalPagination.total / internalPagination.pageSize),
-    totalCount: internalPagination.total,
-    handlePageChange: () => {} // Simple implementation
-  };
-
-  if (isLoading) {
-    return <div>Loading agreements...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-
-  // Transform SimpleAgreement to Agreement with proper type safety
-  const typedAgreements = agreements?.map((agreement: SimpleAgreement): Agreement => ({
+  // Convert SimpleAgreement to Agreement if needed
+  const convertedInternalAgreements = internalAgreements?.map((agreement: SimpleAgreement): Agreement => ({
     // Core database fields from SimpleAgreement
     id: agreement.id,
     agreement_number: agreement.agreement_number,
@@ -77,7 +54,7 @@ export function AgreementList({
     updated_at: agreement.updated_at,
     
     // Required database fields with defaults
-    agreement_type: 'short_term',
+    agreement_type: 'short_term' as const,
     total_amount: agreement.rent_amount || 0,
     
     // Relationship data
@@ -111,10 +88,33 @@ export function AgreementList({
     vehicle_info: agreement.vehicle_info
   })) || [];
 
+  const agreements = externalAgreements ?? convertedInternalAgreements;
+  const isLoading = externalLoading ?? internalLoading;
+  
+  // Handle delete function - either use provided function or delete single agreement
+  const handleDelete = onDeleteAgreement ?? (async (id: string) => {
+    await deleteAgreements([id]);
+  });
+  
+  const pagination = externalPagination ?? {
+    page: internalPagination.pageIndex + 1,
+    totalPages: Math.ceil(internalPagination.total / internalPagination.pageSize),
+    totalCount: internalPagination.total,
+    handlePageChange: () => {} // Simple implementation
+  };
+
+  if (isLoading) {
+    return <div>Loading agreements...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
   return (
     <div className="space-y-6">
       <AgreementCardView
-        agreements={typedAgreements}
+        agreements={agreements}
         isLoading={isLoading}
         onDeleteAgreement={handleDelete}
       />

@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Loader2 } from 'lucide-react';
 import AgreementForm from '../AgreementForm';
 import { Agreement } from '@/types/agreement';
@@ -17,7 +16,6 @@ interface EditAgreementContentProps {
 
 export function EditAgreementContent({
   id,
-  userId,
   agreement,
   isLoading,
   vehicleData,
