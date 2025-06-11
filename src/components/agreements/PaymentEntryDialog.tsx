@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { Payment } from '@/types/payment.types';
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -19,16 +18,21 @@ interface PaymentEntryDialogProps {
   onSubmit: (
     amount: number,
     date: Date,
-    notes: string | undefined,
-    method: string | undefined,
-    reference: string | undefined
+    notes?: string,
+    method?: string,
+    reference?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    paymentType?: string,
+    paymentId?: string
   ) => Promise<boolean>;
   defaultAmount?: number;
   title?: string;
   description?: string;
-  leaseId?: string;
+  leaseId: string;
   rentAmount?: number | null;
-  selectedPayment?: any;
+  selectedPayment?: Payment | null;
+  pendingPayments?: Payment[];
 }
 
 export function PaymentEntryDialog({
@@ -36,52 +40,106 @@ export function PaymentEntryDialog({
   onOpenChange,
   onSubmit,
   defaultAmount = 0,
-  title = 'Record Payment',
-  description = 'Enter payment details',
+  title = "Record Payment",
+  description = "Enter payment details",
+  leaseId,
+  rentAmount,
+  selectedPayment,
+  pendingPayments = []
 }: PaymentEntryDialogProps) {
-  const [amount, setAmount] = useState(defaultAmount.toString());
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string>(defaultAmount.toString());
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState('');
-  const [method, setMethod] = useState<string>('');
-  const [reference, setReference] = useState('');
+  const [description_text, setDescription] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Find the selected payment from the list
+  const selectedScheduledPayment = useMemo(() => {
+    return pendingPayments.find(p => p.id === selectedPaymentId) || null;
+  }, [pendingPayments, selectedPaymentId]);
+
+  // Calculate late fee
+  const calculatedLateFee = useMemo(() => {
+    if (!selectedScheduledPayment) return 0;
+    const dueDate = selectedScheduledPayment.original_due_date ? new Date(selectedScheduledPayment.original_due_date) : null;
+    if (!dueDate) return 0;
+    const today = new Date();
+    if (!isAfter(today, dueDate)) return 0;
+    const daysLate = differenceInCalendarDays(today, dueDate);
+    let fee = daysLate * 120;
+    if (fee > 3000) fee = 3000;
+    return fee;
+  }, [selectedScheduledPayment]);
+
+  // Calculate total due
+  const totalDue = useMemo(() => {
+    if (!selectedScheduledPayment) return 0;
+    return (selectedScheduledPayment.amount || 0) + calculatedLateFee;
+  }, [selectedScheduledPayment, calculatedLateFee]);
+
+  // Reset form when dialog opens or selectedPayment changes
   useEffect(() => {
-    if (open) {
+    if (selectedPayment) {
+      setAmount((selectedPayment.amount || 0).toString());
+      setPaymentDate(new Date(selectedPayment.payment_date));
+      setDescription(selectedPayment.description || '');
+      setPaymentMethod(selectedPayment.payment_method || 'cash');
+      setReferenceNumber(selectedPayment.reference_number || '');
+      setSelectedPaymentId(selectedPayment.id);
+    } else if (pendingPayments.length > 0) {
+      setSelectedPaymentId(pendingPayments[0].id);
+      setAmount(((pendingPayments[0].amount || 0) + (calculatedLateFee || 0)).toString());
+      setPaymentDate(new Date());
+      setDescription('');
+      setPaymentMethod('cash');
+      setReferenceNumber('');
+    } else {
+      setSelectedPaymentId(null);
       setAmount(defaultAmount.toString());
       setPaymentDate(new Date());
-      setNotes('');
-      setMethod('');
-      setReference('');
+      setDescription('');
+      setPaymentMethod('cash');
+      setReferenceNumber('');
     }
-  }, [open, defaultAmount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPayment, defaultAmount, open, pendingPayments.length]);
+
+  // Update amount when selected payment or late fee changes
+  useEffect(() => {
+    if (selectedScheduledPayment) {
+      setAmount((totalDue).toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedScheduledPayment, totalDue]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const amountValue = parseFloat(amount);
-    if (isNaN(amountValue) || amountValue <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const success = await onSubmit(
-        amountValue,
+        parseFloat(amount),
         paymentDate,
-        notes || undefined,
-        method || undefined,
-        reference || undefined
+        description_text,
+        paymentMethod,
+        referenceNumber,
+        !!calculatedLateFee,
+        parseFloat(amount) < totalDue,
+        selectedScheduledPayment?.type,
+        selectedScheduledPayment?.id
       );
-      
       if (success) {
-        toast.success('Payment recorded successfully');
         onOpenChange(false);
+        setAmount(defaultAmount.toString());
+        setPaymentDate(new Date());
+        setDescription('');
+        setPaymentMethod('cash');
+        setReferenceNumber('');
+        setSelectedPaymentId(null);
       }
     } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('Failed to record payment');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,8 +152,35 @@ export function PaymentEntryDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Payment selection dropdown */}
+          {pendingPayments.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="scheduled-payment">Select Payment</Label>
+              <Select value={selectedPaymentId || ''} onValueChange={setSelectedPaymentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a payment to pay" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pendingPayments.map((p) => (
+                    <SelectItem value={p.id} key={p.id}>
+                      {p.description || format(new Date(p.original_due_date || p.payment_date || ''), 'MMM yyyy')} - QAR {p.amount}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Show due, late fee, total */}
+          {selectedScheduledPayment && (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <div>Due Amount: <span className="font-semibold text-black">QAR {selectedScheduledPayment.amount}</span></div>
+              <div>Late Fee: <span className="font-semibold text-black">QAR {calculatedLateFee}</span></div>
+              <div>Total Due: <span className="font-semibold text-black">QAR {totalDue}</span></div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (QAR)</Label>
             <Input
@@ -104,9 +189,14 @@ export function PaymentEntryDialog({
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder="Enter payment amount"
               required
+              min={0.01}
+              max={totalDue}
             />
+            {selectedScheduledPayment && parseFloat(amount) < totalDue && (
+              <div className="text-xs text-orange-600">Partial payment: QAR {totalDue - parseFloat(amount)} will remain pending.</div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -116,15 +206,15 @@ export function PaymentEntryDialog({
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !paymentDate && 'text-muted-foreground'
+                    "w-full justify-start text-left font-normal",
+                    !paymentDate && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {paymentDate ? format(paymentDate, 'PPP') : 'Pick a date'}
+                  {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={paymentDate}
@@ -137,7 +227,7 @@ export function PaymentEntryDialog({
 
           <div className="space-y-2">
             <Label htmlFor="method">Payment Method</Label>
-            <Select value={method} onValueChange={setMethod}>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
@@ -145,8 +235,8 @@ export function PaymentEntryDialog({
                 <SelectItem value="cash">Cash</SelectItem>
                 <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                 <SelectItem value="check">Check</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="online">Online Payment</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -155,30 +245,25 @@ export function PaymentEntryDialog({
             <Label htmlFor="reference">Reference Number</Label>
             <Input
               id="reference"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
               placeholder="Transaction reference (optional)"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes (optional)"
+              id="description"
+              value={description_text}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Payment description or notes (optional)"
               rows={3}
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
