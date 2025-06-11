@@ -1,5 +1,6 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Phone, MapPin, FileText, User, Calendar } from 'lucide-react';
+import { Mail, Phone, MapPin, FileText, User } from 'lucide-react';
 import { CustomerInfo } from '@/types/customer';
 
 interface CustomerSectionProps {
@@ -19,25 +20,6 @@ const CustomerSection = ({ customer }: CustomerSectionProps) => {
       </Card>
     );
   }
-
-  const formatDisplayValue = (value: string | number | boolean | null | undefined): string => {
-    if (value === null || value === undefined) {
-      return 'Not provided';
-    }
-    return String(value);
-  };
-
-  const formatDate = (dateString: string | undefined): string => {
-    if (!dateString) {
-      return 'Not provided';
-    }
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return 'Invalid date';
-    }
-  };
 
   return (
     <Card>
