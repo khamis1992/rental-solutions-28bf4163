@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -125,8 +126,8 @@ export function AgreementDetail({
     }
   }, [agreement, onDelete, closeDialog]);
 
-  // Edit agreement
-  const handleEdit = useCallback(() => {
+  // Edit agreement - Fixed to return Promise<void>
+  const handleEdit = useCallback(async (): Promise<void> => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
     }
