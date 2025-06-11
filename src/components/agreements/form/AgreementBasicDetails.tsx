@@ -4,7 +4,6 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCustomers } from '@/hooks/use-customers';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
@@ -23,7 +22,6 @@ export const AgreementBasicDetails = ({
   onVehicleChange,
   onCustomerChange
 }: AgreementBasicDetailsProps) => {
-  const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -121,7 +119,7 @@ export const AgreementBasicDetails = ({
               <CustomerSelector
                 selectedCustomer={selectedCustomer}
                 onCustomerSelect={handleCustomerSelect}
-                disabled={isLoadingCustomers}
+                disabled={false}
               />
               <FormMessage />
             </FormItem>
