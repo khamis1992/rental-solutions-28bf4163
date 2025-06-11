@@ -92,7 +92,7 @@ function calculateDurationSafe(startDate: Date, endDate: Date): number {
   }
 }
 
-// Create simplified document definition using built-in fonts
+// Create simplified document definition using PDFMake defaults
 function createSimpleContractDocument(agreement: Agreement) {
   console.log('Creating contract document for agreement:', agreement.id);
   
@@ -281,72 +281,61 @@ function createSimpleContractDocument(agreement: Agreement) {
       }
     ],
     
-    // Updated styles to use built-in fonts only
+    // Updated styles to use PDFMake defaults (no font specification)
     styles: {
       companyName: {
         fontSize: 18,
-        color: colors.primary,
-        font: 'Helvetica'
+        color: colors.primary
       },
       contractTitle: {
         fontSize: 16,
-        color: colors.text,
-        font: 'Helvetica'
+        color: colors.text
       },
       contractInfo: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       sectionHeader: {
         fontSize: 14,
         color: colors.primary,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       labelStyle: {
         fontSize: 11,
         color: colors.textLight,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       valueStyle: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       financialValue: {
         fontSize: 12,
         color: colors.primary,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       termsList: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       },
       signatureLabel: {
         fontSize: 11,
         color: colors.text,
-        alignment: 'center',
-        font: 'Helvetica'
+        alignment: 'center'
       },
       footerNotice: {
         fontSize: 8,
-        color: colors.textLight,
-        font: 'Helvetica'
+        color: colors.textLight
       }
     },
     
-    // Updated defaultStyle to use built-in fonts
+    // Updated defaultStyle to use PDFMake defaults
     defaultStyle: {
       fontSize: 11,
-      alignment: 'right',
-      font: 'Helvetica'
+      alignment: 'right'
     }
   };
 }
@@ -356,7 +345,7 @@ export async function generateArabicContract(agreement: Agreement): Promise<bool
   console.log('Starting Arabic contract generation for agreement:', agreement.id);
   
   try {
-    // Initialize fonts with fallback
+    // Initialize fonts (no-op now)
     console.log('Initializing fonts...');
     const fontsReady = await initializeFonts();
     console.log('Fonts initialization result:', fontsReady);
@@ -365,7 +354,6 @@ export async function generateArabicContract(agreement: Agreement): Promise<bool
     console.log('Creating document definition...');
     const docDefinition = createSimpleContractDocument(agreement);
     console.log('Document definition created successfully');
-    console.log('Using font configuration:', (pdfMake as any).fonts);
     
     // Generate filename safely
     const safeAgreementNumber = agreement.agreement_number || 'غير-محدد';

@@ -1,5 +1,6 @@
 
-import pdfMake from 'pdfmake/build/pdfmake';
+// Simplified font loader that doesn't configure custom fonts
+// PDFMake will use its default Roboto fonts
 
 export interface FontConfig {
   normal: string;
@@ -12,55 +13,24 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// Configure pdfMake to use built-in browser fonts
+// No-op font configuration - let PDFMake use defaults
 export function configurePdfMakeFonts(): void {
-  try {
-    // Use built-in browser fonts that are available across all systems
-    pdfMake.fonts = {
-      Roboto: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      },
-      // Add fallback font family
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      }
-    };
-    console.log('PDFMake configured with built-in browser fonts');
-  } catch (error) {
-    console.error('Error configuring PDFMake fonts:', error);
-  }
+  console.log('Using PDFMake default fonts (no custom configuration)');
 }
 
-// Check if fonts are configured properly
+// Simple availability check
 export function checkFontAvailability(): boolean {
-  try {
-    const fonts = (pdfMake as any).fonts;
-    const hasRoboto = fonts && fonts.Roboto;
-    console.log('Font availability check:', { hasRoboto, fonts });
-    return hasRoboto;
-  } catch (error) {
-    console.error('Error checking font availability:', error);
-    return false;
-  }
+  console.log('Using PDFMake default fonts');
+  return true;
 }
 
-// Initialize fonts with built-in font support
+// Initialize with default fonts
 export async function initializeFonts(): Promise<boolean> {
   try {
-    console.log('Starting font initialization with built-in browser fonts...');
-    configurePdfMakeFonts();
-    const available = checkFontAvailability();
-    console.log('Font initialization result:', available);
-    return available;
+    console.log('PDFMake will use default Roboto fonts');
+    return true;
   } catch (error) {
     console.error('Font initialization failed:', error);
-    // Always return true since we're using built-in fonts
-    return true;
+    return true; // Always return true since we're using defaults
   }
 }

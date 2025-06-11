@@ -1,7 +1,8 @@
+
 import { Agreement } from '@/types/agreement';
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
-import { configurePdfMakeFonts, initializeFonts } from './font-loader';
+import { initializeFonts } from './font-loader';
 import { 
   prepareArabicForPDF, 
   createArabicTextBlock, 
@@ -14,11 +15,10 @@ export async function ensureFontsLoaded() {
   try {
     const fontsInitialized = await initializeFonts();
     if (!fontsInitialized) {
-      console.warn('Font initialization failed, using built-in fonts');
-      configurePdfMakeFonts();
+      console.warn('Font initialization failed, using PDFMake defaults');
     }
   } catch (error) {
-    console.warn('Font loading failed, using built-in fonts:', error);
+    console.warn('Font loading failed, using PDFMake defaults:', error);
   }
 }
 
@@ -121,7 +121,7 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
     const endDate = new Date(agreement.end_date);
     const duration = calculateDurationMonths(startDate, endDate);
     
-    // Enhanced document definition for Arabic vehicle rental contract
+    // Enhanced document definition for Arabic vehicle rental contract using PDFMake defaults
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [50, 80, 50, 100],
@@ -394,101 +394,86 @@ export async function generatePdfDocument(agreement: Agreement): Promise<boolean
         }
       ],
       
-      // Enhanced styles for Arabic legal document using built-in fonts
+      // Enhanced styles for Arabic legal document using PDFMake defaults
       styles: {
         companyName: {
           fontSize: 18,
           color: colors.primary,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         },
         contractTitle: {
           fontSize: 16,
           color: colors.text,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         },
         contractInfo: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         sectionHeader: {
           fontSize: 14,
           color: colors.primary,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         partyInfo: {
           fontSize: 12,
           color: colors.text,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         labelStyle: {
           fontSize: 11,
           color: colors.textLight,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         valueStyle: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         contractTerms: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         financialValue: {
           fontSize: 12,
           color: colors.primary,
-          alignment: 'right',
-          font: 'Helvetica'
+          alignment: 'right'
         },
         termText: {
           fontSize: 10,
           color: colors.text,
           alignment: 'right',
-          margin: [0, 0, 0, 8],
-          font: 'Helvetica'
+          margin: [0, 0, 0, 8]
         },
         signatureLabel: {
           fontSize: 11,
           color: colors.text,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         },
         signatureDate: {
           fontSize: 10,
           color: colors.textLight,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         },
         legalNotice: {
           fontSize: 8,
           color: colors.textLight,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         },
         pageNumber: {
           fontSize: 8,
           color: colors.textLight,
-          alignment: 'center',
-          font: 'Helvetica'
+          alignment: 'center'
         }
       },
       
-      // Updated defaultStyle to use built-in fonts
+      // Updated defaultStyle to use PDFMake defaults
       defaultStyle: {
         fontSize: 11,
         rtl: true,
-        alignment: 'right',
-        font: 'Helvetica'
+        alignment: 'right'
       }
     };
 
