@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Agreement } from '@/types/agreement';
@@ -12,7 +11,7 @@ import { toast } from 'sonner';
 
 interface DocumentsCardProps {
   agreement: Agreement;
-  onEdit: () => void;
+  onEdit: () => Promise<void>;
   onDownloadPdf: () => Promise<void>;
   onGenerateDocument: () => Promise<void>;
   onDelete: () => void;
