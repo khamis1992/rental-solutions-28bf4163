@@ -335,7 +335,6 @@ export function AgreementDetail({
             onPaymentUpdated={handleUpdatePayment}
             onRecordPayment={handleRecordPayment}
             fetchPayments={fetchPayments}
-            getDateString={getDateString}
           />
         </TabsContent>
 
@@ -348,7 +347,6 @@ export function AgreementDetail({
             onGenerateDocument={handleGenerateDocument}
             onDelete={confirmDelete}
             isGeneratingPdf={loadingStates.generatingPdf}
-            getDateString={getDateString}
           />
         </TabsContent>
 

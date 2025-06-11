@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, DollarSign, User, Car, Clock } from 'lucide-react';
 import { CustomerInformationCard } from '../../details/CustomerInformationCard';
@@ -6,13 +7,15 @@ import { VehicleInformationCard } from '../../details/VehicleInformationCard';
 interface AgreementOverviewCardProps {
   agreement: any;
   duration: number;
-  rentAmount: number;
+  rentAmount: number | null;
+  contractAmount?: number | null;
 }
 
 export function AgreementOverviewCard({ 
   agreement, 
   duration, 
-  rentAmount 
+  rentAmount,
+  contractAmount 
 }: AgreementOverviewCardProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -36,7 +39,7 @@ export function AgreementOverviewCard({
           </div>
           <div className="flex items-center space-x-2">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span>{rentAmount} / month</span>
+            <span>{rentAmount || 0} / month</span>
           </div>
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4 text-muted-foreground" />
@@ -50,6 +53,12 @@ export function AgreementOverviewCard({
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span>Created at: {new Date(agreement.created_at).toLocaleDateString()}</span>
           </div>
+          {contractAmount && (
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span>Total Contract: {contractAmount}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,8 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PaymentHistory } from '../../PaymentHistory';
-import { PaymentSyncButton } from '../../PaymentSyncButton';
 import { formatCurrency } from '@/lib/utils';
 import { CreditCard, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
@@ -10,8 +10,8 @@ interface PaymentManagementCardProps {
   agreement: any;
   payments: any[];
   isLoading: boolean;
-  rentAmount: number;
-  contractAmount: number;
+  rentAmount: number | null;
+  contractAmount: number | null;
   paymentMetrics: any;
   onPaymentDeleted: (id: string) => void;
   onPaymentUpdated: (payment: any) => Promise<boolean>;
@@ -23,8 +23,6 @@ export function PaymentManagementCard({
   agreement,
   payments,
   isLoading,
-  rentAmount,
-  contractAmount,
   paymentMetrics,
   onPaymentDeleted,
   onPaymentUpdated,
@@ -60,7 +58,7 @@ export function PaymentManagementCard({
               <div className="flex items-center mt-4">
                 <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +{paymentMetrics?.collectionRate}%
+                  +{paymentMetrics?.collectionRate || 0}%
                 </Badge>
                 <span className="text-xs text-muted-foreground ml-2">from last month</span>
               </div>
@@ -77,15 +75,15 @@ export function PaymentManagementCard({
                 </div>
               </div>
               <div className="flex items-center mt-4">
-                {paymentMetrics?.outstandingBalanceTrend > 0 ? (
+                {(paymentMetrics?.outstandingBalanceTrend || 0) > 0 ? (
                   <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    +{paymentMetrics?.outstandingBalanceTrend}%
+                    +{paymentMetrics?.outstandingBalanceTrend || 0}%
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
                     <TrendingDown className="h-3 w-3 mr-1" />
-                    {paymentMetrics?.outstandingBalanceTrend}%
+                    {paymentMetrics?.outstandingBalanceTrend || 0}%
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground ml-2">from last month</span>
@@ -101,8 +99,17 @@ export function PaymentManagementCard({
             ) : hasPayments ? (
               <PaymentHistory
                 payments={payments}
+                isLoading={isLoading}
+                rentAmount={agreement?.rent_amount || null}
+                contractAmount={agreement?.total_amount || null}
                 onPaymentDeleted={onPaymentDeleted}
                 onPaymentUpdated={onPaymentUpdated}
+                onRecordPayment={onRecordPayment}
+                leaseStartDate={agreement?.start_date || null}
+                leaseEndDate={agreement?.end_date || null}
+                leaseId={agreement?.id}
+                agreement={agreement}
+                fetchPayments={fetchPayments}
               />
             ) : (
               <div className="text-center py-4 text-muted-foreground">No payment history available.</div>

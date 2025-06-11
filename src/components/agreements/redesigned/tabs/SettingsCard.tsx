@@ -1,14 +1,17 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Edit, Trash2, AlertTriangle } from 'lucide-react';
 
 interface SettingsCardProps {
+  agreement?: any;
   onEdit: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
 export function SettingsCard({
+  agreement,
   onEdit,
   onDelete
 }: SettingsCardProps) {
@@ -28,7 +31,7 @@ export function SettingsCard({
           Agreement Settings
         </CardTitle>
         <Badge variant="secondary">
-          Agreement ID: {/* agreement.id */}
+          Agreement ID: {agreement?.id || 'Unknown'}
         </Badge>
       </CardHeader>
       <CardContent>
@@ -62,7 +65,7 @@ export function SettingsCard({
           <div className="border rounded-md p-4 bg-muted/50">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm text-amber-500">Potential Issues</h3>
-              <Badge variant="warning">
+              <Badge variant="secondary">
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 2 Issues
               </Badge>

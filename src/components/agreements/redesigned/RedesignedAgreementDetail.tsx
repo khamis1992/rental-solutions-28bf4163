@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -85,7 +86,7 @@ export function RedesignedAgreementDetail({
   );
 
   // Handle agreement deletion
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async (): Promise<void> => {
     if (agreement) {
       onDelete(agreement.id);
       closeDialog('delete');
@@ -93,14 +94,14 @@ export function RedesignedAgreementDetail({
   }, [agreement, onDelete, closeDialog]);
 
   // Edit agreement
-  const handleEdit = useCallback(() => {
+  const handleEdit = useCallback(async (): Promise<void> => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
     }
   }, [agreement, navigate]);
 
   // Download PDF
-  const handleDownloadPdf = useCallback(async () => {
+  const handleDownloadPdf = useCallback(async (): Promise<void> => {
     if (agreement) {
       try {
         setLoading('generatingPdf');
@@ -190,14 +191,6 @@ export function RedesignedAgreementDetail({
   const startDate = ensureDate(agreement.start_date);
   const endDate = ensureDate(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
-
-  // Helper function to get date string safely
-  const getDateString = (date: string | Date): string => {
-    if (typeof date === 'string') {
-      return date;
-    }
-    return date.toISOString();
-  };
 
   return (
     <div className="space-y-6">
@@ -291,7 +284,6 @@ export function RedesignedAgreementDetail({
             onPaymentUpdated={handleUpdatePayment}
             onRecordPayment={handleRecordPayment}
             fetchPayments={fetchPayments}
-            getDateString={getDateString}
           />
         </TabsContent>
 
@@ -304,7 +296,6 @@ export function RedesignedAgreementDetail({
             onGenerateDocument={handleGenerateDocument}
             onDelete={() => openDialog('delete')}
             isGeneratingPdf={loadingStates.generatingPdf}
-            getDateString={getDateString}
           />
         </TabsContent>
 
