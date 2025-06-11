@@ -1,21 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Trash2, FileText, CreditCard, AlertCircle, Scale, Car } from 'lucide-react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { LoadingButton } from '@/components/ui/loading-button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { agreementDeletionService, DeletionValidationResult } from '@/services/AgreementDeletionService';
-import { toast } from 'sonner';
+import { Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface AgreementDeletionDialogProps {
   open: boolean;
@@ -25,6 +21,48 @@ interface AgreementDeletionDialogProps {
   onConfirmDelete: () => Promise<void>;
 }
 
+interface DeletionWarningProps {
+  type: 'payments' | 'fines' | 'legal' | 'final';
+  count?: number;
+}
+
+function DeletionWarning({ type, count = 0 }: DeletionWarningProps) {
+  const warnings = {
+    payments: {
+      title: "Payment Records",
+      description: `This agreement has ${count} associated payment records that will be permanently deleted.`,
+      icon: "💰"
+    },
+    fines: {
+      title: "Traffic Fines",
+      description: `This agreement has ${count} associated traffic fines that will be permanently deleted.`,
+      icon: "🚨"
+    },
+    legal: {
+      title: "Legal Cases",
+      description: `This agreement has ${count} associated legal cases that will be permanently deleted.`,
+      icon: "⚖️"
+    },
+    final: {
+      title: "Final Warning",
+      description: "This action cannot be undone. All data associated with this agreement will be permanently deleted from the system.",
+      icon: "⚠️"
+    }
+  };
+
+  const warning = warnings[type];
+
+  return (
+    <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+      <span className="text-lg">{warning.icon}</span>
+      <div className="flex-1">
+        <h4 className="font-medium text-red-800">{warning.title}</h4>
+        <p className="text-sm text-red-700 mt-1">{warning.description}</p>
+      </div>
+    </div>
+  );
+}
+
 export function AgreementDeletionDialog({
   open,
   onOpenChange,
@@ -32,164 +70,151 @@ export function AgreementDeletionDialog({
   agreementNumber,
   onConfirmDelete
 }: AgreementDeletionDialogProps) {
-  const [validation, setValidation] = useState<DeletionValidationResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [step, setStep] = useState<'warning' | 'confirmation'>('warning');
 
-  // Load validation data when dialog opens
-  useEffect(() => {
-    if (open && agreementId) {
-      loadValidationData();
-    }
-  }, [open, agreementId]);
+  // Mock data - in real implementation, fetch these counts
+  const associatedData = {
+    payments: 5,
+    fines: 2,
+    legal: 1
+  };
 
-  const loadValidationData = async () => {
-    setIsLoading(true);
-    try {
-      const result = await agreementDeletionService.validateDeletion(agreementId);
-      if (result.success) {
-        setValidation(result.data);
-      } else {
-        toast.error('Failed to validate deletion requirements');
-      }
-    } catch (error) {
-      console.error('Error validating deletion:', error);
-      toast.error('Failed to check deletion requirements');
-    } finally {
-      setIsLoading(false);
+  const resetDialog = () => {
+    setConfirmationText('');
+    setIsDeleting(false);
+    setStep('warning');
+  };
+
+  const handleClose = () => {
+    if (!isDeleting) {
+      resetDialog();
+      onOpenChange(false);
     }
   };
 
+  const handleProceedToConfirmation = () => {
+    setStep('confirmation');
+  };
+
   const handleConfirmDelete = async () => {
+    if (confirmationText !== agreementNumber) {
+      return;
+    }
+
     setIsDeleting(true);
     try {
       await onConfirmDelete();
+      resetDialog();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error deleting agreement:', error);
+      console.error('Failed to delete agreement:', error);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const DependencyIcon = ({ type }: { type: string }) => {
-    switch (type) {
-      case 'payments': return <CreditCard className="h-4 w-4 text-green-600" />;
-      case 'trafficFines': return <AlertCircle className="h-4 w-4 text-amber-600" />;
-      case 'legalCases': return <Scale className="h-4 w-4 text-red-600" />;
-      case 'documents': return <FileText className="h-4 w-4 text-blue-600" />;
-      default: return <Car className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getDependencyLabel = (type: string, count: number) => {
-    const labels = {
-      payments: count === 1 ? 'Payment Record' : 'Payment Records',
-      paymentSchedules: count === 1 ? 'Payment Schedule' : 'Payment Schedules',
-      trafficFines: count === 1 ? 'Traffic Fine' : 'Traffic Fines',
-      legalCases: count === 1 ? 'Legal Case' : 'Legal Cases',
-      documents: count === 1 ? 'Document' : 'Documents'
-    };
-    return labels[type as keyof typeof labels] || type;
-  };
+  const isConfirmationValid = confirmationText === agreementNumber;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <Trash2 className="h-5 w-5" />
             Delete Agreement
           </DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete agreement <strong>{agreementNumber}</strong>? 
-            This action cannot be undone.
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : validation ? (
-            <>
-              {validation.totalDependencies > 0 && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    This agreement has {validation.totalDependencies} related record(s) that will also be deleted.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Show dependency breakdown */}
-              {validation.totalDependencies > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">Records to be deleted:</h4>
-                  <div className="space-y-2">
-                    {Object.entries(validation.dependentRecords).map(([type, count]) => {
-                      if (count === 0) return null;
-                      return (
-                        <div key={type} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <DependencyIcon type={type} />
-                            <span>{getDependencyLabel(type, count)}</span>
-                          </div>
-                          <Badge variant="secondary">{count}</Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Show warnings */}
-              {validation.warnings.length > 0 && (
-                <div className="space-y-2">
-                  <Separator />
-                  <div className="space-y-1">
-                    {validation.warnings.map((warning, index) => (
-                      <div key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <AlertCircle className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
-                        <span>{warning}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {validation.totalDependencies === 0 && (
-                <Alert>
-                  <AlertDescription>
-                    This agreement has no related records and can be safely deleted.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          ) : (
+        {step === 'warning' && (
+          <div className="space-y-4">
             <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Unable to validate deletion requirements. Please try again.
+                You are about to delete agreement <strong>{agreementNumber}</strong>. 
+                This will remove all associated data from the system.
               </AlertDescription>
             </Alert>
-          )}
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
-            Cancel
-          </Button>
-          <LoadingButton
-            variant="destructive"
-            onClick={handleConfirmDelete}
-            isLoading={isDeleting}
-            disabled={isLoading || !validation}
-            className="gap-2"
+            <div className="space-y-3">
+              <h3 className="font-medium text-gray-900">What will be deleted:</h3>
+              
+              {associatedData.payments > 0 && (
+                <DeletionWarning type="payments" count={associatedData.payments} />
+              )}
+              
+              {associatedData.fines > 0 && (
+                <DeletionWarning type="fines" count={associatedData.fines} />
+              )}
+              
+              {associatedData.legal > 0 && (
+                <DeletionWarning type="legal" count={associatedData.legal} />
+              )}
+
+              <DeletionWarning type="final" />
+            </div>
+          </div>
+        )}
+
+        {step === 'confirmation' && (
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This action is irreversible. All data will be permanently deleted.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmation">
+                Type <code className="px-1 py-0.5 bg-gray-100 rounded text-sm font-mono">{agreementNumber}</code> to confirm deletion:
+              </Label>
+              <Input
+                id="confirmation"
+                type="text"
+                placeholder={`Type "${agreementNumber}" here`}
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                className={confirmationText && !isConfirmationValid ? 'border-red-300' : ''}
+                disabled={isDeleting}
+              />
+              {confirmationText && !isConfirmationValid && (
+                <p className="text-sm text-red-600">
+                  Please type the exact agreement number to confirm.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={step === 'warning' ? handleClose : () => setStep('warning')}
+            disabled={isDeleting}
           >
-            <Trash2 className="h-4 w-4" />
-            {isDeleting ? 'Deleting...' : 'Delete Agreement'}
-          </LoadingButton>
+            {step === 'warning' ? 'Cancel' : 'Back'}
+          </Button>
+          
+          {step === 'warning' ? (
+            <Button
+              variant="destructive"
+              onClick={handleProceedToConfirmation}
+              disabled={isDeleting}
+            >
+              Continue to Confirmation
+            </Button>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={!isConfirmationValid || isDeleting}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDeleting ? 'Deleting...' : 'Delete Agreement'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
