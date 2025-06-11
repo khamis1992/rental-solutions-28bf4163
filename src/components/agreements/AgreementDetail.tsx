@@ -42,7 +42,7 @@ export function AgreementDetail({
   const [activeTab, setActiveTab] = useState('overview');
   
   // Use the dialog management hook
-  const { openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
+  const { closeDialog, isDialogVisible } = useDialogVisibility({
     delete: false,
     payment: false
   });

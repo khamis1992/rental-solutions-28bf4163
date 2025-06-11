@@ -8,7 +8,7 @@ interface AgreementActionButtonsProps {
   onEdit: () => Promise<void>;
   onDownloadPdf: () => Promise<void>;
   onGenerateDocument: () => Promise<void>;
-  onDelete: () => Promise<void>; // Changed to Promise<void> for consistency
+  onDelete: () => Promise<void>;
   isGeneratingPdf?: boolean;
 }
 

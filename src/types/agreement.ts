@@ -1,3 +1,4 @@
+
 import { Database } from './database';
 
 // Base Agreement type that matches the database schema exactly
@@ -15,6 +16,12 @@ export type Agreement = Database['public']['Tables']['leases']['Row'] & {
   vehicle_make?: string;
   vehicle_model?: string;
   next_payment_date?: string;
+  
+  // Additional properties for compatibility
+  payment_frequency?: string;
+  confirmation_email_sent?: boolean;
+  down_payment?: number;
+  total_amount?: number;
 };
 
 // Database operation types
