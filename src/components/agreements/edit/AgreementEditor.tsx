@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -133,8 +132,8 @@ const AgreementEditor = () => {
             end_date: endDate,
             total_amount: agreement.total_amount || 0,
             rent_amount: agreement.rent_amount || 0,
-            payment_frequency: (agreement.payment_frequency as 'monthly' | 'weekly' | 'daily') || 'monthly',
-            payment_day: agreement.payment_day || 1,
+            payment_frequency: (agreement as any).payment_frequency as 'monthly' | 'weekly' | 'daily' || 'monthly',
+            payment_day: (agreement as any).payment_day || 1,
             notes: agreement.notes || '',
             daily_late_fee: agreement.daily_late_fee || 0,
             deposit_amount: agreement.deposit_amount || 0,
@@ -304,7 +303,7 @@ const AgreementEditor = () => {
                 phone_number: selectedCustomer.phone_number,
                 driver_license: selectedCustomer.driver_license,
                 nationality: selectedCustomer.nationality
-              } : null,
+              } : undefined,
               vehicles: selectedVehicle,
               payment_frequency: data.payment_frequency || 'monthly',
               confirmation_email_sent: data.confirmation_email_sent || false,

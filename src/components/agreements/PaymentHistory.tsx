@@ -74,14 +74,6 @@ export function PaymentHistory({
     syncCheckPerformed: syncCheckRef.current
   });
 
-  // Convert dates to strings for the PaymentHistorySection
-  const startDateString = leaseStartDate 
-    ? (typeof leaseStartDate === 'string' ? leaseStartDate : leaseStartDate.toISOString()) 
-    : null;
-  const endDateString = leaseEndDate 
-    ? (typeof leaseEndDate === 'string' ? leaseEndDate : leaseEndDate.toISOString()) 
-    : null;
-
   return (
     <div className="space-y-4">
       {/* Synchronization Status Alert - Only show if there are actual sync issues */}

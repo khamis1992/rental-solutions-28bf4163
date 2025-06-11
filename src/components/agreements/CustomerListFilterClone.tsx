@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ interface CustomerListFilterProps {
   onFilterChange: (filters: Record<string, any>) => void;
 }
 
-export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ searchTerm, onSearch, onFilterChange }) => {
+export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ searchTerm, onSearch }) => {
   const [search, setSearch] = useState(searchTerm || '');
   
   useEffect(() => {
@@ -24,11 +25,6 @@ export const CustomerListFilterClone: React.FC<CustomerListFilterProps> = ({ sea
 
   const handleSearchSubmit = () => {
     onSearch(search);
-  };
-  
-  const handleClearSearch = () => {
-    setSearch('');
-    onSearch('');
   };
 
   return (
