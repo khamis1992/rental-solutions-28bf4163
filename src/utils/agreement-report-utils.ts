@@ -1,3 +1,4 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement'; 
 import { formatCurrency } from '@/lib/utils';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -170,7 +171,7 @@ export async function generateAgreementReportPdfmake(
   const metrics = calculateFinancialMetrics(payments, contractAmount);
   const currentDate = formatArabicDate(new Date());
   
-  // Enhanced document definition with proper Arabic RTL support
+  // Enhanced document definition with ONLY Helvetica fonts - NO Amiri or bold styles
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [40, 60, 40, 80],
@@ -415,7 +416,7 @@ export async function generateAgreementReportPdfmake(
               ],
               ...payments.slice(0, 10).map(payment => [
                 { text: payment.payment_method || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
-                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, bold: payment.status === 'pending', border: [false, false, false, false] },
+                { text: payment.status === 'pending' ? 'Pending' : payment.status || prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', color: payment.status === 'pending' ? colors.warning : colors.text, border: [false, false, false, false] },
                 { text: toEnglishNumber(payment.amount), style: 'tableCell', alignment: 'center', border: [false, false, false, false] },
                 { text: payment.payment_date ? formatArabicDate(payment.payment_date) : prepareArabicForPDF('محدد غير'), style: 'tableCell', alignment: 'center', border: [false, false, false, false] }
               ])
@@ -501,18 +502,17 @@ export async function generateAgreementReportPdfmake(
       ] : [])
     ],
     
-    // Enhanced styles with proper Arabic text handling
+    // FIXED: Updated styles with ONLY Helvetica fonts and NO bold styles to match contract generator
     styles: {
       companyName: {
         fontSize: 16,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.primary,
         alignment: 'right'
       },
       companyDetails: {
         fontSize: 10,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'right'
       },
@@ -522,16 +522,14 @@ export async function generateAgreementReportPdfmake(
       },
       reportTitle: {
         fontSize: 20,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         margin: [0, 10, 0, 10],
         alignment: 'center',
         color: 'white'
       },
       sectionHeader: {
         fontSize: 16,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.primary,
         fillColor: colors.lighter,
         margin: [5, 8, 5, 8],
@@ -539,72 +537,67 @@ export async function generateAgreementReportPdfmake(
       },
       cardLabel: {
         fontSize: 10,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'center'
       },
       cardValue: {
         fontSize: 12,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.text,
         alignment: 'center'
       },
       labelStyle: {
         fontSize: 11,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'right'
       },
       valueStyle: {
         fontSize: 11,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.text,
         alignment: 'right'
       },
       metricLabel: {
         fontSize: 10,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'center'
       },
       metricValue: {
         fontSize: 14,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         alignment: 'center'
       },
       tableHeader: {
         fontSize: 11,
-        bold: true,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.primary,
         fillColor: colors.lighter,
         alignment: 'center'
       },
       tableCell: {
         fontSize: 10,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.text,
         alignment: 'center'
       },
       footerText: {
         fontSize: 8,
-        font: 'Amiri',
+        font: 'Helvetica',
         color: colors.textLight,
         alignment: 'center'
       },
       arabicText: {
-        font: 'Amiri',
+        font: 'Helvetica',
         alignment: 'right'
       }
     },
     
+    // FIXED: Updated defaultStyle to use only Helvetica
     defaultStyle: {
-      font: 'Amiri',
+      font: 'Helvetica',
       fontSize: 12,
       rtl: true,
       alignment: 'right'

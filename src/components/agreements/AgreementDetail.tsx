@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -200,7 +201,7 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the generateDocument handler to properly return Promise<void>
+  // FIXED: Fix the generateDocument handler to properly return Promise<void>
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     try {
       if (onGenerateDocument) {
