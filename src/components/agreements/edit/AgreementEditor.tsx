@@ -37,6 +37,8 @@ import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedu
 import { paymentService } from '@/services/PaymentService';
 import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
+import { generateAndStoreContract } from '@/utils/contract-generator';
+import { toast } from 'sonner';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -61,7 +63,7 @@ const agreementSchema = z.object({
 const AgreementEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: useToastHook } = useToast();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("details");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
@@ -158,7 +160,7 @@ const AgreementEditor = () => {
           }
         } else {
           console.log('No agreement found with ID:', id);
-          toast({
+          useToastHook({
             title: "Not Found",
             description: "Agreement not found",
             variant: "destructive",
@@ -168,7 +170,7 @@ const AgreementEditor = () => {
       } catch (error: any) {
         console.error("Error loading agreement:", error);
         const errorMessage = error?.message || 'Failed to load agreement details';
-        toast({
+        useToastHook({
           title: "Error",
           description: errorMessage,
           variant: "destructive",
@@ -183,9 +185,9 @@ const AgreementEditor = () => {
     };
     
     loadAgreement();
-  }, [id, agreementService, form, toast, navigate]);
+  }, [id, agreementService, form, useToastHook, navigate]);
   
-  // Handle form submission with automatic schedule generation
+  // Handle form submission with automatic schedule and contract generation
   const handleSubmitForm = async (formData: z.infer<typeof agreementSchema>): Promise<void> => {
     setIsLoading(true);
     try {
@@ -255,7 +257,7 @@ const AgreementEditor = () => {
             
             if (!paymentResult.success) {
               console.error('Failed to generate payment records:', paymentResult.error);
-              toast({
+              useToastHook({
                 title: "Partial Success",
                 description: "Agreement created but payment records may need manual sync",
                 variant: "destructive",
@@ -266,19 +268,56 @@ const AgreementEditor = () => {
             
           } catch (scheduleError) {
             console.error('Error generating payment schedule:', scheduleError);
-            toast({
+            useToastHook({
               title: "Partial Success",
               description: `Agreement created but failed to generate payment schedule: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`,
               variant: "destructive",
             });
           }
+
+          // Auto-generate comprehensive Arabic contract for new agreements
+          try {
+            console.log('Auto-generating comprehensive Arabic contract for new agreement:', agreementId);
+            toast.info('جاري إنشاء العقد العربي الشامل...');
+            
+            // Create a temporary agreement object for contract generation
+            const agreementForContract = {
+              ...result,
+              customers: selectedCustomer ? {
+                id: selectedCustomer.id,
+                full_name: selectedCustomer.full_name,
+                email: selectedCustomer.email,
+                phone_number: selectedCustomer.phone_number,
+                driver_license: selectedCustomer.driver_license,
+                nationality: selectedCustomer.nationality
+              } : null,
+              vehicles: selectedVehicle
+            };
+            
+            const contractResult = await generateAndStoreContract(agreementForContract);
+            
+            if (contractResult.success) {
+              console.log('Comprehensive Arabic contract generated successfully');
+              toast.success('تم إنشاء الاتفاقية والعقد العربي الشامل بنجاح!');
+            } else {
+              console.error('Failed to generate comprehensive Arabic contract:', contractResult.error);
+              toast.warning(`Agreement created but comprehensive contract generation failed: ${contractResult.error}`);
+            }
+          } catch (contractError) {
+            console.error('Error auto-generating comprehensive contract:', contractError);
+            toast.warning(`Agreement created but comprehensive contract generation failed: ${contractError instanceof Error ? contractError.message : 'Unknown error'}`);
+          }
         }
       }
       
       if (result && agreementId) {
-        toast({
+        const successMessage = isNewAgreement 
+          ? "Agreement, payment schedule, and comprehensive contract created successfully" 
+          : "Agreement updated successfully";
+          
+        useToastHook({
           title: "Success",
-          description: isNewAgreement ? "Agreement and payment schedule created successfully" : "Agreement updated successfully",
+          description: successMessage,
         });
         
         navigate(`/agreements/${agreementId}`);
@@ -287,7 +326,7 @@ const AgreementEditor = () => {
       }
     } catch (error) {
       console.error("Error saving agreement:", error);
-      toast({
+      useToastHook({
         title: "Error",
         description: "Failed to save agreement",
         variant: "destructive",
@@ -629,7 +668,7 @@ const AgreementEditor = () => {
                   </Button>
                   <Button type="submit" disabled={isLoading || isGenerating}>
                     {(isLoading || isGenerating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement & Generate Schedule"}
+                    {id && id !== 'undefined' ? "Update Agreement" : "Create Agreement & Generate Comprehensive Contract"}
                   </Button>
                 </div>
               </form>
