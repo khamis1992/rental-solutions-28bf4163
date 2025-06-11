@@ -1,6 +1,5 @@
 
-// Simplified font loader that doesn't configure custom fonts
-// PDFMake will use its default Roboto fonts
+import pdfMake from 'pdfmake/build/pdfmake';
 
 export interface FontConfig {
   normal: string;
@@ -13,24 +12,51 @@ export interface FontMap {
   [fontName: string]: FontConfig;
 }
 
-// No-op font configuration - let PDFMake use defaults
-export function configurePdfMakeFonts(): void {
-  console.log('Using PDFMake default fonts (no custom configuration)');
+// Font configuration for Arabic support
+export const ARABIC_FONTS: FontMap = {
+  Amiri: {
+    normal: '/Amiri-Regular.ttf',
+    bold: '/Amiri-Bold.ttf',
+    italics: '/Amiri-Regular.ttf',
+    bolditalics: '/Amiri-Bold.ttf',
+  }
+};
+
+// Configure pdfMake with Arabic fonts
+export function configurePdfMakeFonts(fonts: FontMap = ARABIC_FONTS): void {
+  try {
+    // Set the fonts
+    (pdfMake as any).fonts = fonts;
+    
+    // Initialize VFS if not present
+    if (!(pdfMake as any).vfs) {
+      (pdfMake as any).vfs = {};
+    }
+    
+    console.log('PDF fonts configured successfully:', Object.keys(fonts));
+  } catch (error) {
+    console.error('Error configuring PDF fonts:', error);
+    throw new Error('Failed to configure PDF fonts');
+  }
 }
 
-// Simple availability check
+// Check if fonts are loaded and available
 export function checkFontAvailability(): boolean {
-  console.log('Using PDFMake default fonts');
-  return true;
+  try {
+    return !!(pdfMake as any).fonts && Object.keys((pdfMake as any).fonts).length > 0;
+  } catch (error) {
+    console.error('Error checking font availability:', error);
+    return false;
+  }
 }
 
-// Initialize with default fonts
+// Initialize fonts with error handling
 export async function initializeFonts(): Promise<boolean> {
   try {
-    console.log('PDFMake will use default Roboto fonts');
-    return true;
+    configurePdfMakeFonts();
+    return checkFontAvailability();
   } catch (error) {
     console.error('Font initialization failed:', error);
-    return true; // Always return true since we're using defaults
+    return false;
   }
 }

@@ -201,18 +201,13 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // FIXED: Fix the generateDocument handler to properly return Promise<void>
+  // Fix the type issue by making this function properly async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
-    try {
-      if (onGenerateDocument) {
-        await onGenerateDocument();
-      } else {
-        // Default behavior - generate Arabic contract
-        await handleDownloadPdf();
-      }
-    } catch (error) {
-      console.error('Error in handleGenerateDocument:', error);
-      toast.error('Failed to generate document');
+    if (onGenerateDocument) {
+      await onGenerateDocument();
+    } else {
+      // Default behavior - generate Arabic contract
+      await handleDownloadPdf();
     }
   }, [onGenerateDocument, handleDownloadPdf]);
 
