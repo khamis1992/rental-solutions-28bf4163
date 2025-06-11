@@ -6,7 +6,7 @@ import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react
 
 interface AgreementActionButtonsProps {
   onEdit: () => void;
-  onDownloadPdf: () => void;
+  onDownloadPdf: () => Promise<void>;
   onGenerateDocument: () => Promise<void>;
   onDelete: () => void;
   isGeneratingPdf?: boolean;

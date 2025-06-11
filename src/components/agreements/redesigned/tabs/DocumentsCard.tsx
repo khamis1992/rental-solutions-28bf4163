@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 interface DocumentsCardProps {
   agreement: Agreement;
   onEdit: () => void;
-  onDownloadPdf: () => void;
-  onGenerateDocument: () => void;
+  onDownloadPdf: () => Promise<void>;
+  onGenerateDocument: () => Promise<void>;
   onDelete: () => void;
   isGeneratingPdf: boolean;
   getDateString: (date: string | Date) => string;
