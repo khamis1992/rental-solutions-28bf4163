@@ -11,11 +11,18 @@ interface Vehicle {
 }
 
 interface VehicleSelectorProps {
-  onSelect: (vehicleId: string) => void;
-  selectedVehicleId?: string;
+  onVehicleSelect: (vehicle: any) => void;
+  selectedVehicle?: any;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
-export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelectorProps) {
+export function VehicleSelector({ 
+  onVehicleSelect, 
+  selectedVehicle, 
+  placeholder = "Select a vehicle",
+  disabled = false 
+}: VehicleSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,11 +52,17 @@ export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelector
         placeholder="Search vehicles..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
+        disabled={disabled}
       />
       
-      <Select onValueChange={onSelect} value={selectedVehicleId}>
+      <Select onValueChange={(value) => {
+        const vehicle = filteredVehicles.find(v => v.id === value);
+        if (vehicle) {
+          onVehicleSelect(vehicle);
+        }
+      }} value={selectedVehicle?.id} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder="Select a vehicle" />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {isLoading ? (

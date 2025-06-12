@@ -5,11 +5,18 @@ import { Input } from '@/components/ui/input';
 import { useCustomerService } from '@/hooks/services/useCustomerService';
 
 interface CustomerSelectorProps {
-  onSelect: (customerId: string) => void;
+  onCustomerSelect: (customer: any) => void;
   selectedCustomerId?: string;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
-export function CustomerSelector({ onSelect, selectedCustomerId }: CustomerSelectorProps) {
+export function CustomerSelector({ 
+  onCustomerSelect, 
+  selectedCustomerId, 
+  placeholder = "Select a customer",
+  disabled = false 
+}: CustomerSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const { customers, isLoading } = useCustomerService();
 
@@ -24,11 +31,17 @@ export function CustomerSelector({ onSelect, selectedCustomerId }: CustomerSelec
         placeholder="Search customers..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
+        disabled={disabled}
       />
       
-      <Select onValueChange={onSelect} value={selectedCustomerId}>
+      <Select onValueChange={(value) => {
+        const customer = filteredCustomers.find(c => c.id === value);
+        if (customer) {
+          onCustomerSelect(customer);
+        }
+      }} value={selectedCustomerId} disabled={disabled}>
         <SelectTrigger>
-          <SelectValue placeholder="Select a customer" />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {isLoading ? (

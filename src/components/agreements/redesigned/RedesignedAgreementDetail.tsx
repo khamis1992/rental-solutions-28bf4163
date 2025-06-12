@@ -39,7 +39,9 @@ const RedesignedAgreementDetail = () => {
           start_date: typeof data.start_date === 'string' ? data.start_date : new Date(data.start_date).toISOString(),
           end_date: typeof data.end_date === 'string' ? data.end_date : new Date(data.end_date).toISOString(),
           created_at: typeof data.created_at === 'string' ? data.created_at : new Date(data.created_at).toISOString(),
-          updated_at: typeof data.updated_at === 'string' ? data.updated_at : new Date(data.updated_at).toISOString()
+          updated_at: typeof data.updated_at === 'string' ? data.updated_at : new Date(data.updated_at).toISOString(),
+          total_amount: data.total_amount || 0,
+          rent_amount: data.rent_amount || 0
         };
         setAgreement(typedAgreement);
       } catch (error) {
@@ -110,8 +112,10 @@ const RedesignedAgreementDetail = () => {
     }
   };
 
-  // Calculate duration and rent amount for the overview card
-  const duration = differenceInDays(new Date(agreement.end_date), new Date(agreement.start_date));
+  // Calculate duration and rent amount for the overview card - handle potential undefined dates
+  const startDate = agreement.start_date ? new Date(agreement.start_date) : new Date();
+  const endDate = agreement.end_date ? new Date(agreement.end_date) : new Date();
+  const duration = differenceInDays(endDate, startDate);
   const rentAmount = agreement.rent_amount || 0;
 
   return (
@@ -228,9 +232,9 @@ const RedesignedAgreementDetail = () => {
             rentAmount={agreement.rent_amount || null}
             contractAmount={agreement.total_amount}
             paymentMetrics={{}}
-            onPaymentDeleted={async () => true}
-            onPaymentUpdated={async () => true}
-            onRecordPayment={async () => true}
+            onPaymentDeleted={async () => { return true; }}
+            onPaymentUpdated={async () => { return true; }}
+            onRecordPayment={async () => { return true; }}
             fetchPayments={async () => {}}
           />
         </TabsContent>
