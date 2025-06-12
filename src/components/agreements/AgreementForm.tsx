@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -97,10 +98,7 @@ const AgreementForm = ({
           address: customerData.address || '',
           city: (customerData as any).city || '',
           state: (customerData as any).state || '',
-          zip_code: (customerData as any).zip_code || '',
-          role: (customerData as any).role || '',
-          created_at: (customerData as any).created_at || '',
-          updated_at: (customerData as any).updated_at || ''
+          zip_code: customerData.zip_code || ''
         };
         
         setSelectedCustomer(customer);

@@ -188,7 +188,6 @@ export function PaymentEntryForm({
             <div>
               <Label htmlFor="paymentDate">Payment Date</Label>
               <DatePicker
-                id="paymentDate"
                 date={paymentDate}
                 setDate={handlePaymentDateChange}
               />

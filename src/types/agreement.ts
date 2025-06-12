@@ -1,7 +1,7 @@
 
 import { Database } from './database';
 
-export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled' | 'expired';
+export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled' | 'expired' | 'closed';
 export type AgreementType = 'short_term' | 'lease_to_own';
 export type PaymentFrequency = 'monthly' | 'weekly' | 'daily';
 

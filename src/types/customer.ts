@@ -27,4 +27,5 @@ export interface CustomerInfo {
   address?: string;
   city?: string;
   state?: string;
+  zip_code?: string;
 }
