@@ -1,21 +1,20 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
-import { Agreement } from '@/types/agreement';
+import { Agreement, AgreementStatus } from '@/types/agreement';
 import { AgreementOverviewCard } from './tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
 import { SettingsCard } from './tabs/SettingsCard';
 import { Loader2, ArrowLeft, Edit, Car, User } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 
 const RedesignedAgreementDetail = () => {
@@ -26,7 +25,7 @@ const RedesignedAgreementDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   const { getAgreementDetails, updateAgreement } = useAgreementService();
-  const { regenerateSchedule, isGenerating } = usePaymentScheduleManagement(id);
+  const { generatePaymentSchedule, isGenerating } = usePaymentScheduleManagement(id);
 
   useEffect(() => {
     const loadAgreement = async () => {
@@ -47,7 +46,7 @@ const RedesignedAgreementDetail = () => {
     loadAgreement();
   }, [id, getAgreementDetails]);
 
-  const handleStatusUpdate = async (status: string): Promise<void> => {
+  const handleStatusUpdate = async (status: AgreementStatus): Promise<void> => {
     if (!agreement) return;
 
     try {
@@ -68,7 +67,13 @@ const RedesignedAgreementDetail = () => {
     if (!agreement) return;
 
     try {
-      await regenerateSchedule();
+      await generatePaymentSchedule(
+        new Date(agreement.start_date),
+        new Date(agreement.end_date),
+        agreement.rent_amount || 0,
+        agreement.payment_frequency || 'monthly',
+        agreement.payment_day || 1
+      );
       toast.success('Payment schedule regenerated successfully');
     } catch (error) {
       console.error('Error regenerating schedule:', error);
@@ -105,6 +110,10 @@ const RedesignedAgreementDetail = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Calculate duration and rent amount for the overview card
+  const duration = differenceInDays(new Date(agreement.end_date), new Date(agreement.start_date));
+  const rentAmount = agreement.rent_amount || 0;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -205,7 +214,11 @@ const RedesignedAgreementDetail = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <AgreementOverviewCard agreement={agreement} />
+          <AgreementOverviewCard 
+            agreement={agreement} 
+            duration={duration}
+            rentAmount={rentAmount}
+          />
         </TabsContent>
 
         <TabsContent value="payments" className="space-y-4">
@@ -217,7 +230,7 @@ const RedesignedAgreementDetail = () => {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
-          <DocumentsCard agreementId={agreement.id} />
+          <DocumentsCard agreement={agreement} />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">

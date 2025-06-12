@@ -21,6 +21,11 @@ const AgreementActionButtons = ({
     onImport?.();
   };
 
+  const handleImportComplete = () => {
+    setIsImportModalOpen(false);
+    // Refresh the data or show success message
+  };
+
   return (
     <div className="flex gap-2">
       <Button onClick={onNewAgreement}>
@@ -38,6 +43,7 @@ const AgreementActionButtons = ({
       <CSVImportModal 
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
+        onImportComplete={handleImportComplete}
       />
     </div>
   );

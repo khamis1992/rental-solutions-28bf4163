@@ -9,7 +9,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
 import { Customer } from '@/types/customer.types';
 import { MoreHorizontal, Edit } from 'lucide-react';
@@ -24,6 +23,7 @@ interface CustomerDataGridProps {
   customers: Customer[];
   onEdit?: (customer: Customer) => void;
   onDelete?: (customerId: string) => void;
+  onCustomerSelect?: (customer: Customer) => void;
   isLoading?: boolean;
 }
 
@@ -31,11 +31,16 @@ export function CustomerDataGrid({
   customers, 
   onEdit, 
   onDelete,
+  onCustomerSelect,
   isLoading = false 
 }: CustomerDataGridProps) {
   if (isLoading) {
     return <div>Loading customers...</div>;
   }
+
+  const handleRowClick = (customer: Customer) => {
+    onCustomerSelect?.(customer);
+  };
 
   return (
     <div className="rounded-md border">
@@ -51,7 +56,11 @@ export function CustomerDataGrid({
         </TableHeader>
         <TableBody>
           {customers.map((customer) => (
-            <TableRow key={customer.id}>
+            <TableRow 
+              key={customer.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => handleRowClick(customer)}
+            >
               <TableCell className="font-medium">
                 {customer.full_name || customer.name || 'N/A'}
               </TableCell>

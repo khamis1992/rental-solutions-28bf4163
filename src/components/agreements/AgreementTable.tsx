@@ -7,9 +7,20 @@ interface AgreementTableProps {
   compact?: boolean;
   agreements?: any[];
   isLoading?: boolean;
+  pagination?: {
+    page: number;
+    totalPages: number;
+    totalCount: number;
+    handlePageChange: (page: number) => void;
+  };
 }
 
-export default function AgreementTable({ compact = false, agreements: externalAgreements, isLoading: externalLoading }: AgreementTableProps) {
+export default function AgreementTable({ 
+  compact = false, 
+  agreements: externalAgreements, 
+  isLoading: externalLoading,
+  pagination 
+}: AgreementTableProps) {
   const {
     agreements: internalAgreements,
     isLoading: internalLoading,
@@ -31,7 +42,7 @@ export default function AgreementTable({ compact = false, agreements: externalAg
       agreements={typedAgreements}
       isLoading={isLoading}
       compact={compact}
-      pagination={undefined}
+      pagination={pagination}
     />
   );
 }
