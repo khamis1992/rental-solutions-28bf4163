@@ -1,4 +1,22 @@
 
+import { Database } from './database';
+
+export type Customer = Database['public']['Tables']['customers']['Row'] & {
+  agreements?: Array<{
+    id: string;
+    start_date: string;
+    end_date: string;
+    status: string;
+    rent_amount?: number;
+    vehicle_make?: string;
+    vehicle_model?: string;
+    license_plate?: string;
+  }>;
+};
+
+export type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
+export type CustomerUpdate = Database['public']['Tables']['customers']['Update'];
+
 export interface CustomerInfo {
   id: string;
   full_name: string;
@@ -7,26 +25,4 @@ export interface CustomerInfo {
   driver_license?: string;
   nationality?: string;
   address?: string;
-  status?: string;
-  created_at?: string;
-  // Additional properties that might come from database joins
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  role?: string;
-  updated_at?: string;
-}
-
-export interface CustomerListItem {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  status: string;
-  created_at: string;
-}
-
-export interface CustomerSearchParams {
-  query: string;
-  status: string;
 }

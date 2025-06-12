@@ -235,14 +235,6 @@ export function AgreementDetail({
   const endDate = ensureDate(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
 
-  // Helper function to get date string safely
-  const getDateString = (date: string | Date): string => {
-    if (typeof date === 'string') {
-      return date;
-    }
-    return date.toISOString();
-  };
-
   return (
     <div className="space-y-6">
       {/* Header with Agreement Info and Debug Toggle */}

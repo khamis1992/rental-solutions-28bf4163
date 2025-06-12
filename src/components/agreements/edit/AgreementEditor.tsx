@@ -675,8 +675,8 @@ const AgreementEditor = () => {
                     rentAmount={rentAmount || 0}
                     paymentFrequency={paymentFrequency || 'monthly'}
                     paymentDay={paymentDay || 1}
-                    onFrequencyChange={(value) => form.setValue('payment_frequency', value as 'monthly' | 'weekly' | 'daily')}
-                    onPaymentDayChange={(value) => form.setValue('payment_day', value)}
+                    onFrequencyChange={(value: string) => form.setValue('payment_frequency', value as 'monthly' | 'weekly' | 'daily')}
+                    onPaymentDayChange={(value: number) => form.setValue('payment_day', value)}
                   />
                 </TabsContent>
                 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,268 +9,212 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { CalendarIcon, Filter, X } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { X } from 'lucide-react';
+
+interface FilterOption {
+  id: string;
+  label: string;
+  value: string;
+}
 
 interface AgreementFilterPanelProps {
   onFilterChange: (filters: Record<string, any>) => void;
-  currentFilters?: Record<string, any>;
+  onClose: () => void;
+  initialFilters?: Record<string, any>;
 }
 
-export function AgreementFilterPanel({ onFilterChange, currentFilters = {} }: AgreementFilterPanelProps) {
-  const [agreementNumber, setAgreementNumber] = useState(currentFilters?.agreement_number || '');
-  const [startDateFrom, setStartDateFrom] = useState(
-    currentFilters?.start_date_after ? new Date(currentFilters.start_date_after) : undefined
-  );
-  const [startDateTo, setStartDateTo] = useState(
-    currentFilters?.start_date_before ? new Date(currentFilters.start_date_before) : undefined
-  );
-  const [endDateFrom, setEndDateFrom] = useState(
-    currentFilters?.end_date_after ? new Date(currentFilters.end_date_after) : undefined
-  );
-  const [endDateTo, setEndDateTo] = useState(
-    currentFilters?.end_date_before ? new Date(currentFilters.end_date_before) : undefined
-  );
-  const [licensePlate, setLicensePlate] = useState(currentFilters?.license_plate || '');
-  const [minRent, setMinRent] = useState(currentFilters?.rent_min || '');
-  const [maxRent, setMaxRent] = useState(currentFilters?.rent_max || '');
-  const [status, setStatus] = useState(currentFilters?.status || 'all');
+export function AgreementFilterPanel({
+  onFilterChange,
+  onClose,
+  initialFilters = {},
+}: AgreementFilterPanelProps) {
+  const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
+  const [activeFilters, setActiveFilters] = useState<FilterOption[]>([]);
 
-  const handleApplyFilters = () => {
-    const filters: Record<string, any> = {};
-    
-    if (agreementNumber) filters.agreement_number = agreementNumber;
-    if (status && status !== 'all') filters.status = status;
-    if (licensePlate) filters.license_plate = licensePlate;
-    
-    // Date filters
-    if (startDateFrom) filters.start_date_after = startDateFrom.toISOString();
-    if (startDateTo) filters.start_date_before = startDateTo.toISOString();
-    if (endDateFrom) filters.end_date_after = endDateFrom.toISOString();
-    if (endDateTo) filters.end_date_before = endDateTo.toISOString();
-    
-    // Rent range
-    if (minRent) filters.rent_min = minRent;
-    if (maxRent) filters.rent_max = maxRent;
-    
-    onFilterChange(filters);
+  const handleFilterChange = (key: string, value: any) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+
+    // Update active filters
+    const existingFilterIndex = activeFilters.findIndex(
+      (filter) => filter.id === key
+    );
+
+    if (value) {
+      const filterLabel = getFilterLabel(key);
+      const filterValue = getFilterValue(key, value);
+
+      if (existingFilterIndex >= 0) {
+        const updatedFilters = [...activeFilters];
+        updatedFilters[existingFilterIndex] = {
+          id: key,
+          label: filterLabel,
+          value: filterValue,
+        };
+        setActiveFilters(updatedFilters);
+      } else {
+        setActiveFilters([
+          ...activeFilters,
+          { id: key, label: filterLabel, value: filterValue },
+        ]);
+      }
+    } else if (existingFilterIndex >= 0) {
+      const updatedFilters = [...activeFilters];
+      updatedFilters.splice(existingFilterIndex, 1);
+      setActiveFilters(updatedFilters);
+    }
   };
 
-  const handleResetFilters = () => {
-    setAgreementNumber('');
-    setStartDateFrom(undefined);
-    setStartDateTo(undefined);
-    setEndDateFrom(undefined);
-    setEndDateTo(undefined);
-    setMinRent('');
-    setMaxRent('');
-    setStatus('all');
-    setLicensePlate('');
-    
-    onFilterChange({
-      agreement_number: undefined,
-      status: undefined,
-      start_date_after: undefined,
-      start_date_before: undefined,
-      end_date_after: undefined,
-      end_date_before: undefined,
-      rent_min: undefined,
-      rent_max: undefined,
-      license_plate: undefined,
-    });
+  const removeFilter = (filterId: string) => {
+    const newFilters = { ...filters };
+    delete newFilters[filterId];
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+
+    const updatedFilters = activeFilters.filter(
+      (filter) => filter.id !== filterId
+    );
+    setActiveFilters(updatedFilters);
+  };
+
+  const clearAllFilters = () => {
+    setFilters({});
+    setActiveFilters([]);
+    onFilterChange({});
+  };
+
+  const getFilterLabel = (key: string): string => {
+    switch (key) {
+      case 'status':
+        return 'Status';
+      case 'customer':
+        return 'Customer';
+      case 'vehicle':
+        return 'Vehicle';
+      case 'dateRange':
+        return 'Date Range';
+      case 'amount':
+        return 'Amount';
+      default:
+        return key.charAt(0).toUpperCase() + key.slice(1);
+    }
+  };
+
+  const getFilterValue = (key: string, value: any): string => {
+    switch (key) {
+      case 'status':
+        return value.charAt(0).toUpperCase() + value.slice(1);
+      case 'dateRange':
+        return `${value.start} to ${value.end}`;
+      default:
+        return String(value);
+    }
   };
 
   return (
-    <div className="p-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Quick Filters */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold mb-2">Common Filters</h3>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={() => onFilterChange({ status: 'active' })}
-            >
-              Active Agreements
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={() => {
-                const next30Days = new Date();
-                next30Days.setDate(next30Days.getDate() + 30);
-                onFilterChange({ 
-                  end_date_after: new Date().toISOString(),
-                  end_date_before: next30Days.toISOString()
-                });
-              }}
-            >
-              Expiring in 30 Days
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={() => onFilterChange({ status: 'pending' })}
-            >
-              Pending Agreements
-            </Button>
-          </div>
-        </div>
-
-        {/* Main Filter Form */}
-        <div className="md:col-span-2 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="agreement-number">Agreement Number</Label>
-            <Input
-              id="agreement-number"
-              placeholder="Filter by number"
-              value={agreementNumber}
-              onChange={(e) => setAgreementNumber(e.target.value)}
-              className="h-9"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="license-plate">License Plate</Label>
-            <Input
-              id="license-plate"
-              placeholder="Filter by plate"
-              value={licensePlate}
-              onChange={(e) => setLicensePlate(e.target.value)}
-              className="h-9"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Filter Agreements</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Status Filter */}
+          <div>
+            <Label htmlFor="status-filter">Status</Label>
             <Select
-              value={status}
-              onValueChange={setStatus}
-              >
-                <SelectTrigger id="status" className="h-9">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rent-min">Minimum Rent</Label>
-              <Input
-                id="rent-min"
-                placeholder="Min amount"
-                type="number"
-                value={minRent}
-                onChange={(e) => setMinRent(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rent-max">Maximum Rent</Label>
-              <Input
-                id="rent-max"
-                placeholder="Max amount"
-                type="number"
-                value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Start Date Range</Label>
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
+              value={filters.status || ''}
+              onValueChange={(value) => handleFilterChange('status', value)}
+            >
+              <SelectTrigger id="status-filter">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Customer Search */}
+          <div>
+            <Label htmlFor="customer-filter">Customer</Label>
+            <Input
+              id="customer-filter"
+              placeholder="Search by customer name"
+              value={filters.customer || ''}
+              onChange={(e) => handleFilterChange('customer', e.target.value)}
+            />
+          </div>
+
+          {/* Vehicle Search */}
+          <div>
+            <Label htmlFor="vehicle-filter">Vehicle</Label>
+            <Input
+              id="vehicle-filter"
+              placeholder="Search by vehicle info"
+              value={filters.vehicle || ''}
+              onChange={(e) => handleFilterChange('vehicle', e.target.value)}
+            />
+          </div>
+
+          {/* Amount Range */}
+          <div>
+            <Label htmlFor="amount-filter">Minimum Amount</Label>
+            <Input
+              id="amount-filter"
+              type="number"
+              placeholder="Minimum amount"
+              value={filters.amount || ''}
+              onChange={(e) =>
+                handleFilterChange('amount', e.target.value ? Number(e.target.value) : '')
+              }
+            />
+          </div>
+
+          {/* Active Filters */}
+          {activeFilters.length > 0 && (
+            <div className="pt-4">
+              <Label>Active Filters</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {activeFilters.map((filter) => (
+                  <Badge
+                    key={filter.id}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    {filter.label}: {filter.value}
                     <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-9"
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 ml-1"
+                      onClick={() => removeFilter(filter.id)}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDateFrom ? (
-                        format(startDateFrom, "MMM d, yyyy")
-                      ) : (
-                        "From"
-                      )}
+                      <X className="h-3 w-3" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDateFrom}
-                      onSelect={setStartDateFrom}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                  </Badge>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={clearAllFilters}
+                >
+                  Clear All
+                </Button>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Start Date To</Label>
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-9"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDateTo ? (
-                        format(startDateTo, "MMM d, yyyy")
-                      ) : (
-                        "To"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDateTo}
-                      onSelect={setStartDateTo}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-8"
-            >
-              <X className="mr-1 h-3 w-3" />
-              Reset
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleApplyFilters}
-              className="h-8"
-            >
-              <Filter className="mr-1 h-3 w-3" />
-              Apply Filters
-            </Button>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

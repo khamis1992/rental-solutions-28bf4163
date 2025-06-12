@@ -1,67 +1,71 @@
 
-export type AgreementType = 'short_term' | 'long_term' | 'lease' | 'rental';
-export type AgreementStatus = 'active' | 'terminated' | 'pending' | 'expired';
+import { Database } from './database';
 
-export interface Customer {
-  id: string;
-  full_name: string;
-  email: string;
-  phone_number: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
-  driver_license: any;
-}
-
-export interface Vehicle {
-  id: string;
-  make?: string;
-  model?: string;
-  year?: number;
-  license_plate?: string;
-  color?: string;
-  vin: string;
-  attention_needed_notes: string;
-  engine_number: string;
-  model_number: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
-}
+export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled';
+export type AgreementType = 'short_term' | 'lease_to_own';
+export type PaymentFrequency = 'monthly' | 'weekly' | 'daily';
 
 export interface Agreement {
   id: string;
+  customer_id: string;
+  vehicle_id: string;
   agreement_number?: string;
-  status: string;
+  agreement_type: AgreementType;
+  status: AgreementStatus;
   start_date: string;
   end_date: string;
-  rent_amount?: number;
-  customer_id?: string;
-  vehicle_id?: string;
-  payment_frequency: string;
-  payment_day?: number;
-  rent_due_day?: number;
-  confirmation_email_sent: boolean;
-  daily_late_fee?: number;
-  deposit_amount?: number;
-  down_payment: number;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-  agreement_type: AgreementType;
   total_amount: number;
+  rent_amount?: number;
+  deposit_amount?: number;
+  daily_late_fee?: number;
+  payment_frequency?: PaymentFrequency;
+  payment_day?: number;
+  notes?: string;
   terms_accepted?: boolean;
   additional_drivers?: string[];
+  confirmation_email_sent?: boolean;
+  down_payment?: number;
+  created_at: string;
+  updated_at: string;
   
-  // Relationship data
-  customers?: Customer;
-  vehicles?: Vehicle;
+  // Relations
+  customers?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone_number: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    role?: string;
+    created_at: string;
+    updated_at: string;
+    driver_license?: string;
+    nationality?: string;
+  };
   
-  // Computed fields
-  customer_name?: string;
-  vehicle_info?: string;
+  vehicles?: {
+    id: string;
+    make: string;
+    model: string;
+    year?: number;
+    license_plate?: string;
+    vin?: string;
+    color?: string;
+  };
+  
+  // Additional properties for CustomerDetail compatibility
+  license_plate?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+}
+
+export interface AgreementFilterParams {
+  statuses?: AgreementStatus[];
+  customerId?: string;
+  vehicleId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  searchTerm?: string;
 }

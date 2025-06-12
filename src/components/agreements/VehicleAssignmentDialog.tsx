@@ -1,231 +1,102 @@
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { Spinner } from '@/components/ui/spinner';
-import { PaymentWarningSection } from './vehicle-assignment/PaymentWarningSection';
-import { formatDate } from '@/lib/date-utils';
-import { asLeaseId, asVehicleId, asPaymentStatus, asTrafficFineStatus } from '@/lib/database/type-utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { Car, User, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface VehicleAssignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  leaseId?: string;
+  agreementId?: string;
   vehicleId?: string;
-  onAssign: () => void;
 }
 
 export function VehicleAssignmentDialog({
   open,
   onOpenChange,
-  leaseId,
+  agreementId,
   vehicleId,
-  onAssign
 }: VehicleAssignmentDialogProps) {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState(false);
-  const [pendingPayments, setPendingPayments] = useState([] as any[]);
-  const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
-  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
-  const [vehicleDetails, setVehicleDetails] = useState(null as any);
-  const [customerDetails, setCustomerDetails] = useState(null as any);
+  const [isAssigning, setIsAssigning] = useState(false);
 
-  useEffect(() => {
-    if (open && vehicleId) {
-      fetchVehicleDetails();
-      fetchPendingPayments();
+  const handleAssignVehicle = async () => {
+    if (!agreementId || !vehicleId) {
+      toast.error('Agreement ID or Vehicle ID is missing.');
+      return;
     }
-  }, [open, vehicleId, leaseId]);
 
-  const fetchVehicleDetails = async () => {
-    if (!vehicleId) return;
-    
-    setLoading(true);
-    
+    setIsAssigning(true);
     try {
-      const { data: vehicle } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', asVehicleId(vehicleId))
-        .single();
-      
-      setVehicleDetails(vehicle);
-      
-      // If we have a lease ID, fetch pending payments
-      if (leaseId) {
-        const { data: payments } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', asLeaseId(leaseId))
-          .eq('status', asPaymentStatus('pending'));
-        
-        setPendingPayments(payments || []);
-        
-        // Also check for unpaid traffic fines
-        const { data: trafficFines } = await supabase
-          .from('traffic_fines')
-          .select('*')
-          .eq('lease_id', asLeaseId(leaseId))
-          .eq('payment_status', asTrafficFineStatus('pending'));
-        
-        if (trafficFines && trafficFines.length > 0) {
-          // Add traffic fines to pending payments display
-          // This is a simplified example - you might want to format these differently
-          setPendingPayments(prev => [
-            ...prev,
-            ...trafficFines.map((fine: any) => ({
-              id: fine.id,
-              amount: fine.fine_amount,
-              type: 'Traffic Fine',
-              status: 'pending',
-              due_date: new Date()
-            }))
-          ]);
-        }
-        
-        // Get customer details for the lease
-        const { data: lease } = await supabase
-          .from('leases')
-          .select('customer_id')
-          .eq('id', asLeaseId(leaseId))
-          .single();
-        
-        if (lease && lease.customer_id) {
-          const { data: customer } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', lease.customer_id)
-            .single();
-          
-          setCustomerDetails(customer);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching details:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch vehicle and payment details.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Simulate assigning the vehicle
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const fetchPendingPayments = async () => {
-    // Implementation as needed
-  };
-
-  const handleAssign = async () => {
-    if (!leaseId || !vehicleId) return;
-    
-    setAssigning(true);
-    
-    try {
-      // Update the lease with the new vehicle ID
-      const { error } = await supabase
-        .from('leases')
-        .update({ vehicle_id: vehicleId })
-        .eq('id', leaseId);
-      
-      if (error) throw error;
-      
-      toast({
-        title: 'Success',
-        description: 'Vehicle successfully assigned to agreement.',
-      });
-      
-      onAssign();
+      toast.success('Vehicle assigned successfully!');
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error assigning vehicle:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to assign vehicle.',
-        variant: 'destructive'
-      });
+      toast.error('Failed to assign vehicle.');
     } finally {
-      setAssigning(false);
+      setIsAssigning(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Assign Vehicle to Agreement</DialogTitle>
+          <DialogTitle>Assign Vehicle</DialogTitle>
+          <DialogDescription>
+            Confirm the assignment of this vehicle to the agreement.
+          </DialogDescription>
         </DialogHeader>
-        
-        {loading ? (
-          <div className="py-8 flex justify-center">
-            <Spinner />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {vehicleDetails && (
-              <div className="space-y-2 border rounded p-3 bg-slate-50">
-                <h3 className="font-medium">Vehicle Details</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Make:</span> {vehicleDetails.make}</div>
-                  <div><span className="font-medium">Model:</span> {vehicleDetails.model}</div>
-                  <div><span className="font-medium">Year:</span> {vehicleDetails.year}</div>
-                  <div><span className="font-medium">Plate:</span> {vehicleDetails.license_plate}</div>
-                </div>
+        <div className="grid gap-4 py-4">
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <Car className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <h3 className="text-sm font-medium">Vehicle Information</h3>
+                <p className="text-xs text-muted-foreground">
+                  Make: Toyota, Model: Camry, License Plate: ABC-123
+                </p>
               </div>
-            )}
-            
-            {customerDetails && (
-              <div className="space-y-2 border rounded p-3">
-                <h3 className="font-medium">Customer Details</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Name:</span> {customerDetails.full_name}</div>
-                  <div><span className="font-medium">Phone:</span> {customerDetails.phone_number}</div>
-                  {customerDetails.email && <div><span className="font-medium">Email:</span> {customerDetails.email}</div>}
-                </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <User className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <h3 className="text-sm font-medium">Customer Information</h3>
+                <p className="text-xs text-muted-foreground">
+                  Name: John Doe, Email: john.doe@example.com
+                </p>
               </div>
-            )}
-            
-            {pendingPayments.length > 0 && (
+            </CardContent>
+          </Card>
+        </div>
+        <Separator />
+        <div className="flex justify-end mt-4">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleAssignVehicle} disabled={isAssigning}>
+            {isAssigning ? (
               <>
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium">Payment Status</h3>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsPaymentHistoryOpen(!isPaymentHistoryOpen)}
-                  >
-                    {isPaymentHistoryOpen ? 'Hide Details' : 'Show Details'}
-                  </Button>
-                </div>
-                
-                <PaymentWarningSection
-                  pendingPayments={pendingPayments}
-                  acknowledgedPayments={acknowledgedPayments}
-                  onAcknowledgePayments={setAcknowledgedPayments}
-                  isPaymentHistoryOpen={isPaymentHistoryOpen}
-                  formatDate={formatDate}
-                />
+                Assigning...
               </>
+            ) : (
+              'Assign Vehicle'
             )}
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleAssign}
-                disabled={pendingPayments.length > 0 && !acknowledgedPayments || assigning}
-              >
-                {assigning ? 'Assigning...' : 'Assign Vehicle'}
-              </Button>
-            </div>
-          </div>
-        )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

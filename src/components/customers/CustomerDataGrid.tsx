@@ -1,284 +1,324 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CustomerInfo } from '@/types/customer';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  FilterFn,
+  SortingState,
+  getSortedRowModel,
+} from '@tanstack/react-table';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
   TableCell,
+  TableCaption,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  MoreHorizontal, 
-  ChevronLeft, 
-  ChevronRight, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  User, 
-  Calendar, 
-  Mail, 
-  Phone 
-} from 'lucide-react';
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useCustomerService } from '@/hooks/services/useCustomerService';
-import { toast } from "sonner";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { MoreDropdownMenu } from '../ui/MoreDropdownMenu';
+import { Customer } from '@/types/customer';
+import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
+import { CustomerStatusBadge } from './CustomerStatusBadge';
 
 interface CustomerDataGridProps {
-  customers: CustomerInfo[];
-  isLoading: boolean;
-  onCustomerSelect?: (customer: CustomerInfo) => void;
+  customers: Customer[];
+  refetch: () => void;
 }
 
-export const CustomerDataGrid: React.FC<CustomerDataGridProps> = ({ 
-  customers, 
-  isLoading,
-  onCustomerSelect
-}) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+// Define a custom filter function
+const fuzzyFilter: FilterFn<any> = (row, columnId, value) => {
+  if (!value) {
+    return true;
+  }
 
-  const { deleteCustomer } = useCustomerService();
+  const cellValue = row.getValue(columnId);
+  if (typeof cellValue !== 'string') {
+    return false;
+  }
 
-  const totalPages = Math.ceil((customers?.length || 0) / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCustomers = Array.isArray(customers) ? customers.slice(startIndex, endIndex) : [];
+  const searchTerm = value.toLowerCase();
+  const cellText = cellValue.toLowerCase();
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  // Simple fuzzy matching logic
+  let searchIndex = 0;
+  for (let i = 0; i < cellText.length; i++) {
+    if (cellText[i] === searchTerm[searchIndex]) {
+      searchIndex++;
+    }
+    if (searchIndex === searchTerm.length) {
+      return true;
+    }
+  }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: string, icon: any }> = {
-      active: { variant: "success", icon: CheckCircle },
-      inactive: { variant: "inactive", icon: XCircle },
-      blacklisted: { variant: "destructive", icon: XCircle },
-      pending_review: { variant: "warning", icon: AlertTriangle },
-      pending_payment: { variant: "info", icon: AlertTriangle },
-    };
-    const { variant, icon: Icon } = statusConfig[status] || statusConfig.active;
+  return false;
+};
 
-    return (
-      <Badge variant={variant as any} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" aria-hidden="true" />
-        <span className="capitalize">{status.replace('_', ' ')}</span>
-      </Badge>
-    );
-  };
+export function CustomerDataGrid({ customers, refetch }: CustomerDataGridProps) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const navigate = useNavigate();
 
-  const handleDeleteCustomer = (e: React.MouseEvent, customer: CustomerInfo) => {
-    e.stopPropagation();
-    
-    toast.warning(
-      "Delete Customer",
-      {
-        description: `Are you sure you want to delete ${customer.full_name}?`,
-        action: {
-          label: "Delete",
-          onClick: () => deleteCustomer(customer.id)
-        }
+  const columns: ColumnDef<Customer>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected()
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'full_name',
+      header: 'Name',
+      filterFn: fuzzyFilter,
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      filterFn: fuzzyFilter,
+    },
+    {
+      accessorKey: 'phone_number',
+      header: 'Phone Number',
+    },
+    {
+      accessorKey: 'driver_license',
+      header: 'Driver License',
+    },
+    {
+      accessorKey: 'nationality',
+      header: 'Nationality',
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <CustomerStatusBadge status={row.original.status} />
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const customer = row.original;
+
+        return (
+          <MoreDropdownMenu>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(`/customers/${customer.id}`)}
+            >
+              View
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(`/customers/edit/${customer.id}`)}
+            >
+              Edit
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the customer from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteCustomer(customer.id)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </MoreDropdownMenu>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: customers,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting: sorting,
+      globalFilter: globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
+  const deleteCustomer = async (customerId: string | undefined) => {
+    if (!customerId) {
+      toast.error('Invalid customer ID');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+
+      if (error) {
+        toast.error(`Failed to delete customer: ${error.message}`);
+      } else {
+        toast.success('Customer deleted successfully');
+        refetch();
       }
-    );
+    } catch (error: any) {
+      toast.error(`An unexpected error occurred: ${error.message}`);
+    }
   };
 
-  if (isLoading) {
-    return (
+  return (
+    <div className="w-full">
+      <div className="flex items-center py-4">
+        <Input
+          placeholder="Filter customers..."
+          value={globalFilter ?? ""}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          className="ml-auto w-1/4"
+        />
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Date Added</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={`skeleton-${i}`} className="hover:bg-muted/50">
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="flex flex-col gap-1">
-                      <Skeleton className="h-4 w-[140px]" />
-                      <Skeleton className="h-3 w-[100px]" />
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <Skeleton className="h-3 w-[160px]" />
-                    <Skeleton className="h-3 w-[120px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-4 w-[100px]" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-5 w-[100px]" />
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end">
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                  </div>
-                </TableCell>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} className="text-left">
+                      {header.isPlaceholder
+                        ? null
+                        : (
+                          <div
+                            {...{
+                              className: header.column.getCanSort()
+                                ? "cursor-pointer select-none"
+                                : "",
+                              onClick: header.column.getToggleSortingHandler(),
+                            }}
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                            {{
+                              asc: " ⬆️",
+                              desc: " ⬇️",
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </div>
+                        )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
-    );
-  }
-
-  if (!Array.isArray(customers) || customers.length === 0) {
-    return (
-      <div className="rounded-md border p-8 flex flex-col items-center justify-center">
-        <User className="h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
-        <h3 className="font-medium text-lg">No customers found</h3>
-        <p className="text-muted-foreground text-sm mb-4">Try adjusting your search filters or add a new customer.</p>
-        <Button asChild>
-          <Link to="/customers/add">Add Customer</Link>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead className="hidden md:table-cell">Date Added</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentCustomers.map((customer) => (
-              <TableRow 
-                key={customer.id} 
-                className="hover:bg-muted/50 cursor-pointer"
-                onClick={() => onCustomerSelect?.(customer)}
-              >
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {customer.full_name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-medium">{customer.full_name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ID: {customer.id.substring(0, 8)}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col text-sm">
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      <span>{customer.email}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      <span>{customer.phone_number}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                    <span className="text-sm">
-                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(customer.status)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {/* Stop propagation to prevent opening sidebar when clicking the dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[160px]">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to={`/customers/${customer.id}`}>View details</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to={`/customers/edit/${customer.id}`}>Edit customer</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => handleDeleteCustomer(e, customer)}
-                      >
-                        Delete customer
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination Controls */}
-      {customers.length > ITEMS_PER_PAGE && (
-        <div className="flex justify-between items-center pt-4">
-          <p className="text-sm text-muted-foreground">
-            Showing {startIndex + 1} to {Math.min(endIndex, customers.length)} of {customers.length} customers
-          </p>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </Button>
-            <div className="text-sm">
-              Page {currentPage} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
-};
-
-export default CustomerDataGrid;
+}

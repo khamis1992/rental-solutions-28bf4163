@@ -1,10 +1,43 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/utils';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import { 
+  AlertTriangle, 
+  DollarSign, 
+  Calendar, 
+  TrendingUp, 
+  FileText,
+  CheckCircle,
+  Clock,
+  XCircle
+} from 'lucide-react';
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
-import { Loader2, AlertCircle, CheckCircle2, CircleDollarSign, CalendarDays } from 'lucide-react';
-import { format, differenceInMonths } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+// Define TrafficFine interface locally since it's not exported from the hook
+interface TrafficFine {
+  id: string;
+  fine_number: string;
+  amount: number;
+  fine_date: string;
+  status: 'pending' | 'paid' | 'disputed';
+  description?: string;
+  vehicle_id?: string;
+  agreement_id?: string;
+}
 
 interface AgreementTrafficFineAnalyticsProps {
   agreementId: string;
@@ -12,191 +45,185 @@ interface AgreementTrafficFineAnalyticsProps {
   endDate: Date;
 }
 
-export function AgreementTrafficFineAnalytics({ agreementId, startDate, endDate }: AgreementTrafficFineAnalyticsProps) {
-  const { trafficFines = [], isLoading } = useTrafficFines();
-  
-  const agreementFines = useMemo(() => {
-    if (!trafficFines) return [];
-    return trafficFines.filter(fine => fine.leaseId === agreementId);
-  }, [trafficFines, agreementId]);
-  
-  const totalFineAmount = useMemo(() => {
-    return agreementFines.reduce((total, fine) => total + (fine.fineAmount || 0), 0);
-  }, [agreementFines]);
-  
-  const paymentStatusData = useMemo(() => {
-    const statusCounts: Record<string, number> = { paid: 0, pending: 0, disputed: 0 };
-    
-    agreementFines.forEach(fine => {
-      const status = fine.paymentStatus || 'pending';
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
-    
-    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-  }, [agreementFines]);
-  
-  const monthlyFineData = useMemo(() => {
-    if (agreementFines.length === 0) return [];
-    
-    // Create a map of months within the agreement period
-    const months: Record<string, number> = {};
-    const totalMonths = differenceInMonths(endDate, startDate) + 1;
-    
-    for (let i = 0; i < totalMonths; i++) {
-      const date = new Date(startDate);
-      date.setMonth(date.getMonth() + i);
-      const monthKey = format(date, 'MMM yyyy');
-      months[monthKey] = 0;
-    }
-    
-    // Count fines in each month
-    agreementFines.forEach(fine => {
-      if (!fine.violationDate) return;
-      const date = new Date(fine.violationDate);
-      const monthKey = format(date, 'MMM yyyy');
-      
-      // Only count if it's within our range
-      if (months[monthKey] !== undefined) {
-        months[monthKey] += 1;
+export function AgreementTrafficFineAnalytics({ 
+  agreementId, 
+  startDate, 
+  endDate 
+}: AgreementTrafficFineAnalyticsProps) {
+  const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTrafficFines = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/traffic-fines?agreementId=${agreementId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data: TrafficFine[] = await response.json();
+        setTrafficFines(data);
+      } catch (e: any) {
+        setError(e.message || 'Failed to fetch traffic fines');
+      } finally {
+        setIsLoading(false);
       }
-    });
-    
-    return Object.entries(months).map(([month, count]) => ({
-      month,
-      count
-    }));
-  }, [agreementFines, startDate, endDate]);
-  
-  const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
-  
+    };
+
+    fetchTrafficFines();
+  }, [agreementId, startDate, endDate]);
+
+  const totalFinesAmount = trafficFines.reduce((sum, fine) => sum + fine.amount, 0);
+  const paidFinesAmount = trafficFines.filter(fine => fine.status === 'paid').reduce((sum, fine) => sum + fine.amount, 0);
+  const pendingFinesAmount = trafficFines.filter(fine => fine.status === 'pending').reduce((sum, fine) => sum + fine.amount, 0);
+  const disputedFinesAmount = trafficFines.filter(fine => fine.status === 'disputed').reduce((sum, fine) => sum + fine.amount, 0);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  const pieChartData = [
+    { name: 'Paid', value: paidFinesAmount },
+    { name: 'Pending', value: pendingFinesAmount },
+    { name: 'Disputed', value: disputedFinesAmount },
+  ];
+
+  const hasFines = trafficFines.length > 0;
+
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Fines Analytics</CardTitle>
-          <CardDescription>Loading traffic fine analytics...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <p>Loading traffic fine data...</p>;
   }
-  
-  if (agreementFines.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Fines Analytics</CardTitle>
-          <CardDescription>No traffic fines recorded for this agreement</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-6 text-center">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">There are no traffic fines recorded for this rental period.</p>
-        </CardContent>
-      </Card>
-    );
+
+  if (error) {
+    return <p className="text-red-500">Error: {error}</p>;
   }
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Traffic Fines Analytics</CardTitle>
-        <CardDescription>
-          Analysis of traffic violations during the rental period
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="flex items-center p-4 rounded-lg bg-muted/50">
-            <CheckCircle2 className="h-8 w-8 text-muted-foreground mr-4" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Fines</p>
-              <p className="text-2xl font-bold">{agreementFines.length}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-4 rounded-lg bg-muted/50">
-            <CircleDollarSign className="h-8 w-8 text-muted-foreground mr-4" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold">
-                QAR {totalFineAmount.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center p-4 rounded-lg bg-muted/50">
-            <CalendarDays className="h-8 w-8 text-muted-foreground mr-4" />
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Date Range</p>
-              <p className="text-base font-medium">
-                {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h3 className="text-sm font-medium mb-4">Monthly Distribution</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={monthlyFineData}
-                  margin={{ top: 5, right: 5, left: 0, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  {/* @ts-ignore - Recharts component type issues */}
-                  <XAxis dataKey="month" angle={-45} textAnchor="end" tick={{ fontSize: 12 }} />
-                  {/* @ts-ignore - Recharts component type issues */}
-                  <YAxis allowDecimals={false} />
-                  {/* @ts-ignore - Recharts component type issues */}
-                  <Tooltip 
-                    formatter={(value: number) => [`${value} fines`, 'Count']}
-                  />
-                  {/* @ts-ignore - Recharts component type issues */}
-                  <Bar dataKey="count" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium mb-4">Payment Status</h3>
-            <div className="h-64 flex flex-col items-center justify-center">
-              {paymentStatusData.some(item => item.value > 0) ? (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Traffic Fine Analytics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasFines ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Summary Metrics */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium">Total Fines: {formatCurrency(totalFinesAmount)}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Total amount of traffic fines recorded for this agreement.
+                </p>
+                <Separator />
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <h4 className="text-md font-medium">Paid: {formatCurrency(paidFinesAmount)}</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                  <h4 className="text-md font-medium">Pending: {formatCurrency(pendingFinesAmount)}</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  <h4 className="text-md font-medium">Disputed: {formatCurrency(disputedFinesAmount)}</h4>
+                </div>
+              </div>
+
+              {/* Pie Chart */}
+              <div className="w-full h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    {/* @ts-ignore - Recharts component type issues */}
+                  <PieChart width={400} height={400}>
                     <Pie
-                      data={paymentStatusData}
+                      data={pieChartData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
+                      labelLine={false}
                       outerRadius={80}
                       fill="#8884d8"
-                      paddingAngle={5}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label
                     >
-                      {paymentStatusData.map((entry, index) => (
+                      {pieChartData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    {/* @ts-ignore - Recharts component type issues */}
-                    <Tooltip formatter={(value: number) => [`${value} fines`, 'Count']} />
+                    <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  No payment status data available
-                </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="flex items-center p-4 bg-amber-50 text-amber-800 rounded-md">
+              <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <p>No traffic fines found for this agreement.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Traffic Fines List */}
+      {hasFines && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Traffic Fines List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fine Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {trafficFines.map((fine) => (
+                    <tr key={fine.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{fine.fine_number}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{formatCurrency(fine.amount)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{new Date(fine.fine_date).toLocaleDateString()}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant={
+                          fine.status === 'paid' ? 'success' :
+                          fine.status === 'pending' ? 'secondary' :
+                          'destructive'
+                        }>
+                          {fine.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{fine.description || 'N/A'}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

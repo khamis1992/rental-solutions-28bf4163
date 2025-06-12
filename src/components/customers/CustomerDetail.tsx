@@ -1,465 +1,203 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
-  Card, CardContent, 
-  Badge, Button, 
-  Tabs, TabsContent, TabsList, TabsTrigger,
-  Textarea
-} from "@/components/ui";
-import { FormField } from "@/components/ui/form-components";
-import { useToast } from "@/components/ui/use-toast";
-import { useMutation } from '@tanstack/react-query';
+  User, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Car, 
+  DollarSign,
+  Edit,
+  FileText,
+  CreditCard
+} from 'lucide-react';
+import { Customer } from '@/types/customer';
+import { Agreement } from '@/types/agreement';
 import { supabase } from '@/lib/supabase';
-import { Edit, Trash2, Mail, Phone, MapPin, FileText, Clock, Save, X } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
-import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
-import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
-import { Customer } from '@/types/customer.types';
+import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface CustomerDetailProps {
-  customerId: string;
+  id?: string;
 }
 
-// Function to handle customer data updates
-const updateCustomer = (id: string, data: any) => {
-  return supabase
-    .from('profiles')
-    .update(data)
-    .eq('id', id)
-    .then(({ data, error }) => {
-      if (error) throw error;
-      return data;
-    });
-};
-
-export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
+export function CustomerDetail() {
+  const { id } = useParams<CustomerDetailProps>();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [notes, setNotes] = useState("");
-
-  // Add debugging console logs
-  console.log("CustomerDetail: Rendered with customerId:", customerId);
 
   useEffect(() => {
-    console.log("CustomerDetail: useEffect triggered with customerId:", customerId);
-    
     const fetchCustomer = async () => {
-      if (!customerId) {
-        console.error("CustomerDetail: No customer ID provided");
-        setError("No customer ID provided");
+      if (!id) {
+        console.error("No customer ID provided");
         setIsLoading(false);
         return;
       }
-      
+
       setIsLoading(true);
-      setError(null);
-      
       try {
-        console.log("CustomerDetail: Fetching customer data for ID:", customerId);
-        
-        // Get customer and their agreements using maybeSingle instead of single to handle not found case
         const { data, error } = await supabase
-          .from('profiles')
+          .from('customers')
           .select(`
             *,
-            agreements:leases(
-              id, 
-              agreement_number, 
-              start_date, 
-              end_date, 
-              status
+            leases (
+              id,
+              start_date,
+              end_date,
+              status,
+              rent_amount,
+              vehicles (make, model, license_plate)
             )
           `)
-          .eq('id', customerId)
-          .maybeSingle();
+          .eq('id', id)
+          .single();
 
         if (error) {
-          console.error("CustomerDetail: Error fetching customer:", error);
-          setError(error.message);
-          toast({
-            title: "Error fetching customer",
-            description: error.message,
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
+          throw error;
         }
 
-        if (!data) {
-          console.error("CustomerDetail: Customer not found for ID:", customerId);
-          setError("Customer not found");
-          toast({
-            title: "Customer not found",
-            description: "The requested customer could not be found",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
+        // Map the leases data to the agreements property
+        const customerWithAgreements = {
+          ...data,
+          agreements: data.leases?.map(lease => ({
+            id: lease.id,
+            start_date: lease.start_date,
+            end_date: lease.end_date,
+            status: lease.status,
+            rent_amount: lease.rent_amount,
+            vehicle_make: lease.vehicles?.make,
+            vehicle_model: lease.vehicles?.model,
+            license_plate: lease.vehicles?.license_plate
+          })) || []
+        } as Customer;
 
-        console.log("CustomerDetail: Customer data fetched successfully:", data);
-        setCustomer(data);
-        setNotes(data.notes || "");
-        setIsLoading(false);
+        setCustomer(customerWithAgreements);
       } catch (error: any) {
-        console.error("CustomerDetail: Unexpected error fetching customer:", error);
-        setError(error.message);
+        console.error("Error fetching customer:", error);
+        toast.error(`Failed to fetch customer: ${error.message}`);
+      } finally {
         setIsLoading(false);
-        toast({
-          title: "Unexpected error",
-          description: error.message,
-          variant: "destructive",
-        });
       }
     };
 
-    if (customerId) {
-      fetchCustomer();
-    } else {
-      setIsLoading(false);
-      setError("No customer ID provided");
-    }
-  }, [customerId, toast]); // Proper dependency array
+    fetchCustomer();
+  }, [id]);
 
-  // Handle customer updates
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await updateCustomer(id, data);
-    },
-    onSuccess: (_, variables) => {
-      // Update local state after successful mutation
-      if (customer) {
-        setCustomer({
-          ...customer,
-          ...variables.data
-        });
-      }
-      toast({
-        title: "Customer updated",
-        description: "Customer details have been updated successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleUpdateCustomer = async (data: any) => {
-    if (!customerId) return;
-    updateMutation.mutate({ id: customerId, data });
-  };
-
-  const handleSaveNotes = () => {
-    if (!customerId) return;
-    updateMutation.mutate({ 
-      id: customerId, 
-      data: { notes } 
-    });
-    setEditingNotes(false);
-  };
-
-  const handleCancelEditNotes = () => {
-    setNotes(customer?.notes || "");
-    setEditingNotes(false);
-  };
-
-  const handleDelete = () => {
-    toast({
-      title: "Delete functionality",
-      description: "Delete functionality is not implemented yet.",
-      variant: "destructive",
-    });
-  };
-
-  // Show explicit loading indicator
   if (isLoading) {
-    console.log("CustomerDetail: Rendering loading state");
-    return (
-      <div className="flex items-center justify-center p-6">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <p>Loading customer details...</p>;
   }
 
-  // Show explicit error state
-  if (error || !customer) {
-    console.log("CustomerDetail: Rendering error state:", error);
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <p className="text-destructive">{error || "Customer data not found"}</p>
-        </CardContent>
-      </Card>
-    );
+  if (!customer) {
+    return <p>Customer not found.</p>;
   }
 
-  // Count active agreements
-  const activeAgreements = customer.agreements?.filter(
-    (agreement: any) => agreement.status === 'active'
-  ).length || 0;
+  const activeAgreements = customer?.agreements?.filter(agreement => 
+    agreement.status === 'active'
+  ) || [];
 
-  // Get total agreements
-  const totalAgreements = customer.agreements?.length || 0;
+  const totalAgreements = customer?.agreements?.length || 0;
 
-  console.log("CustomerDetail: Rendering customer detail view for:", customer.full_name);
-  
   return (
     <div className="space-y-6">
-      {/* Customer Header Card */}
-      <Card className="w-full border rounded-lg overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
-                {customer.full_name?.charAt(0) || "C"}
-              </div>
+      {/* Customer Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Customer Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <Avatar>
+                <AvatarFallback>{customer.full_name.charAt(0)}</AvatarFallback>
+              </Avatar>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
-                </div>
-                <p className="text-gray-500">Customer since {formatDate(customer.created_at)}</p>
-                <div className="mt-2 flex gap-6">
-                  <div className="flex items-center gap-1">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.email || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.phone_number || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm">{customer.nationality || "N/A"}</span>
-                  </div>
-                </div>
+                <h2 className="text-lg font-semibold">{customer.full_name}</h2>
+                <p className="text-sm text-muted-foreground">
+                  Customer ID: {customer.id}
+                </p>
               </div>
             </div>
-            <div className="flex gap-2 mt-4 md:mt-0">
-              <Button asChild variant="outline">
-                <Link to={`/customers/edit/${customerId}`}> 
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Link>
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Total Agreements</p>
-              <p className="text-3xl font-bold">{totalAgreements}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Active Agreements</p>
-              <p className="text-3xl font-bold">{activeAgreements}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-500 mb-1">Last Updated</p>
-              <p className="text-3xl font-bold">{formatDate(customer.updated_at || customer.created_at)}</p>
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span>{customer.email}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{customer.phone_number}</span>
+              </div>
+              {customer.driver_license && (
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span>Driver's License: {customer.driver_license}</span>
+                </div>
+              )}
+              {customer.nationality && (
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>Nationality: {customer.nationality}</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
-      
-      {/* Tabs for different sections */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="agreements">Agreements</TabsTrigger>
-          <TabsTrigger value="legal">Legal Obligations</TabsTrigger>
-          <TabsTrigger value="fines">Traffic Fines</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Contact Information Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                Contact Information
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-500 mb-1">Email Address</p>
-                  <p className="font-medium">{customer.email || "N/A"}</p>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Phone Number</p>
-                  <p className="font-medium">{customer.phone_number || "N/A"}</p>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Address</p>
-                  <p className="font-medium">{customer.address || "N/A"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Customer Details Card */}
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Customer Details
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-500 mb-1">Status</p>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Driver License</p>
-                  <p className="font-medium">{customer.driver_license || "N/A"}</p>
-                </div>
-                
-                <div>
-                  <p className="text-gray-500 mb-1">Last Updated</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {formatDate(customer.updated_at || customer.created_at)} 3:25 PM
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Additional Notes with Edit Functionality */}
-          <Card className="w-full md:col-span-2">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Additional Notes</h3>
-                {!editingNotes ? (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setEditingNotes(true)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" /> Edit Notes
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCancelEditNotes}
-                    >
-                      <X className="h-4 w-4 mr-1" /> Cancel
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      onClick={handleSaveNotes}
-                      disabled={updateMutation.isPending}
-                    >
-                      <Save className="h-4 w-4 mr-1" /> Save
-                    </Button>
+
+      {/* Agreements Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="h-5 w-5" />
+            Current Agreements ({customer?.agreements?.length || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {customer?.agreements && customer.agreements.length > 0 ? (
+            <div className="space-y-4">
+              {customer.agreements.map((agreement) => (
+                <div key={agreement.id} className="border rounded-lg p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="text-md font-semibold">Agreement ID: {agreement.id}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Start Date: {new Date(agreement.start_date).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        End Date: {new Date(agreement.end_date).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Status: {agreement.status}
+                      </p>
+                      {agreement.rent_amount && (
+                        <p className="text-sm text-muted-foreground">
+                          Rent Amount: {formatCurrency(agreement.rent_amount)}
+                        </p>
+                      )}
+                      {agreement.vehicle_make && agreement.vehicle_model && (
+                        <p className="text-sm text-muted-foreground">
+                          Vehicle: {agreement.vehicle_make} {agreement.vehicle_model} ({agreement.license_plate})
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant="secondary">{agreement.status}</Badge>
                   </div>
-                )}
-              </div>
-              
-              {!editingNotes ? (
-                <p className="text-gray-500 italic">
-                  {customer.notes || "No additional notes for this customer."}
-                </p>
-              ) : (
-                <FormField
-                  label="Customer Notes"
-                  htmlFor="notes"
-                >
-                  <Textarea 
-                    id="notes"
-                    placeholder="Enter notes about this customer..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </FormField>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="agreements">
-          {customer.agreements && customer.agreements.length > 0 ? (
-            <div className="bg-white rounded-md shadow">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Agreement #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Start Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      End Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {customer.agreements.map((agreement: any) => (
-                    <tr key={agreement.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{agreement.agreement_number}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.start_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(agreement.end_date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={
-                          agreement.status === 'active' ? 'bg-green-100 text-green-800' : 
-                          agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'
-                        }>
-                          {agreement.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                </div>
+              ))}
             </div>
           ) : (
-            <Card className="w-full">
-              <CardContent className="p-6 text-center">
-                <p className="text-gray-500">No agreements found for this customer.</p>
-              </CardContent>
-            </Card>
+            <p className="text-muted-foreground">No agreements found for this customer.</p>
           )}
-        </TabsContent>
-
-        <TabsContent value="legal">
-          {customerId && <CustomerLegalObligationsPage customerId={customerId} />}
-        </TabsContent>
-        
-        <TabsContent value="fines">
-          {customerId && <CustomerTrafficFines customerId={customerId} />}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
-};
+}

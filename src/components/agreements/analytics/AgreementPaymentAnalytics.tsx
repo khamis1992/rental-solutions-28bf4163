@@ -1,133 +1,178 @@
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Calendar, 
+  CreditCard,
+  AlertTriangle,
+  CheckCircle
+} from 'lucide-react';
 
-interface PaymentAnalyticsProps {
-  totalAmount: number;
-  amountPaid: number;
-  balance: number;
-  lateFees: number;
-  paidOnTime: number;
-  paidLate: number;
-  unpaid: number;
+interface AgreementPaymentAnalyticsProps {
+  agreementId: string;
+  payments: any[];
+  rentAmount: number | null;
+  contractAmount: number | null;
 }
 
 export function AgreementPaymentAnalytics({
-  totalAmount,
-  amountPaid,
-  balance,
-  lateFees,
-  paidOnTime,
-  paidLate,
-  unpaid
-}: PaymentAnalyticsProps) {
-  const totalPayments = paidOnTime + paidLate + unpaid;
-  const paymentProgress = totalAmount > 0 ? (amountPaid / totalAmount) * 100 : 0;
+  agreementId,
+  payments,
+  rentAmount,
+  contractAmount
+}: AgreementPaymentAnalyticsProps) {
+  const [paymentSummary, setPaymentSummary] = useState({
+    totalCollected: 0,
+    outstandingBalance: 0,
+    collectionRate: 0,
+  });
 
-  const paidOnTimePercentage = totalPayments > 0 ? (paidOnTime / totalPayments) * 100 : 0;
-  const paidLatePercentage = totalPayments > 0 ? (paidLate / totalPayments) * 100 : 0;
-  const unpaidPercentage = totalPayments > 0 ? (unpaid / totalPayments) * 100 : 0;
+  useEffect(() => {
+    if (payments && payments.length > 0) {
+      const totalCollected = payments.reduce((sum, payment) => sum + payment.amount, 0);
+      const outstandingBalance = (contractAmount || 0) - totalCollected;
+      const collectionRate = (totalCollected / (contractAmount || 1)) * 100;
+
+      setPaymentSummary({
+        totalCollected,
+        outstandingBalance,
+        collectionRate,
+      });
+    } else {
+      // Reset summary if no payments
+      setPaymentSummary({
+        totalCollected: 0,
+        outstandingBalance: 0,
+        collectionRate: 0,
+      });
+    }
+  }, [payments, contractAmount]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  const data = [
+    { name: 'Collected', value: paymentSummary.totalCollected },
+    { name: 'Outstanding', value: paymentSummary.outstandingBalance },
+  ];
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Payment Analytics</CardTitle>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Total Collected</p>
+                  <p className="text-2xl font-semibold">{formatCurrency(paymentSummary.totalCollected)}</p>
+                </div>
+                <div className="bg-green-500/10 rounded-full p-2">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+              <div className="flex items-center mt-4">
+                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {paymentSummary.collectionRate.toFixed(2)}%
+                </Badge>
+                <span className="text-xs text-muted-foreground ml-2">from total contract</span>
+              </div>
+            </div>
+
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Outstanding Balance</p>
+                  <p className="text-2xl font-semibold">{formatCurrency(paymentSummary.outstandingBalance)}</p>
+                </div>
+                <div className="bg-red-500/10 rounded-full p-2">
+                  <CreditCard className="h-5 w-5 text-red-500" />
+                </div>
+              </div>
+              <div className="flex items-center mt-4">
+                {paymentSummary.outstandingBalance > 0 ? (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    +{paymentSummary.outstandingBalance.toFixed(2)}%
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                    <TrendingDown className="h-3 w-3 mr-1" />
+                    {paymentSummary.outstandingBalance.toFixed(2)}%
+                  </Badge>
+                )}
+                <span className="text-xs text-muted-foreground ml-2">from last month</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart width={400} height={300}>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  width={500}
+                  height={300}
+                  data={payments}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="payment_date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="amount" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </CardContent>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Financial Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg border">
-            <p className="text-sm font-medium text-green-600 mb-1">Amount Paid</p>
-            <p className="text-2xl font-bold text-green-900">QAR {formatCurrency(amountPaid)}</p>
-          </div>
-          <div className="bg-orange-50 p-4 rounded-lg border">
-            <p className="text-sm font-medium text-orange-600 mb-1">Remaining Balance</p>
-            <p className="text-2xl font-bold text-orange-900">QAR {formatCurrency(balance)}</p>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg border">
-            <p className="text-sm font-medium text-red-600 mb-1">Late Fees</p>
-            <p className="text-2xl font-bold text-red-900">QAR {formatCurrency(lateFees)}</p>
-          </div>
-        </div>
-
-        {/* Payment Progress */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-700">Payment Progress</h4>
-            <span className="text-sm font-medium text-gray-600">{Math.round(paymentProgress)}%</span>
-          </div>
-          <Progress value={paymentProgress} className="h-3" />
-        </div>
-
-        {/* Payment Status Indicators */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-gray-700">Payment Status</h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Paid on Time */}
-            <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-700">Paid on Time</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-green-600">{paidOnTime} payments</span>
-                  <span className="text-xs font-medium text-green-700">{Math.round(paidOnTimePercentage)}%</span>
-                </div>
-                <div className="mt-2">
-                  <div className="w-full bg-green-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${paidOnTimePercentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Paid Late */}
-            <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-yellow-700">Paid Late</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-yellow-600">{paidLate} payments</span>
-                  <span className="text-xs font-medium text-yellow-700">{Math.round(paidLatePercentage)}%</span>
-                </div>
-                <div className="mt-2">
-                  <div className="w-full bg-yellow-200 rounded-full h-2">
-                    <div 
-                      className="bg-yellow-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${paidLatePercentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Unpaid */}
-            <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg border">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-700">Unpaid</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-red-600">{unpaid} payments</span>
-                  <span className="text-xs font-medium text-red-700">{Math.round(unpaidPercentage)}%</span>
-                </div>
-                <div className="mt-2">
-                  <div className="w-full bg-red-200 rounded-full h-2">
-                    <div 
-                      className="bg-red-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${unpaidPercentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
     </Card>
   );
 }

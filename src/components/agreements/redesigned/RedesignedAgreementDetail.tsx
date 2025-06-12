@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMonths } from 'date-fns';
@@ -93,7 +92,7 @@ export function RedesignedAgreementDetail({
     }
   }, [agreement, onDelete, closeDialog]);
 
-  // Edit agreement
+  // Edit agreement - Fixed to return Promise<void>
   const handleEdit = useCallback(async (): Promise<void> => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
@@ -168,14 +167,14 @@ export function RedesignedAgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Convert onGenerateDocument to a Promise
+  // Convert onGenerateDocument to a Promise - Fixed return type
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      const result = onGenerateDocument();
-      return Promise.resolve(result);
+      await onGenerateDocument();
+    } else {
+      await handleDownloadPdf();
     }
-    return Promise.resolve();
-  }, [onGenerateDocument]);
+  }, [onGenerateDocument, handleDownloadPdf]);
 
   if (!agreement) {
     return (
