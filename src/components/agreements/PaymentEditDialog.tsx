@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +45,7 @@ export function PaymentEditDialog({
   useEffect(() => {
     if (payment) {
       setAmount(payment.amount);
-      setPaymentDate(new Date(payment.payment_date));
+      setPaymentDate(new Date(payment.payment_date || new Date()));
       setNotes(payment.description || '');
       setPaymentMethod(payment.payment_method || 'cash');
       setReferenceNumber(payment.reference_number || '');
@@ -71,6 +72,12 @@ export function PaymentEditDialog({
     }
   };
 
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setPaymentDate(date);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -89,7 +96,7 @@ export function PaymentEditDialog({
               type="number"
               id="amount"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
               className="col-span-3"
             />
           </div>
@@ -99,7 +106,7 @@ export function PaymentEditDialog({
             </Label>
             <DatePicker
               date={paymentDate}
-              setDate={setPaymentDate}
+              setDate={handleDateChange}
               className="col-span-3"
             />
           </div>

@@ -25,4 +25,5 @@ export interface CustomerInfo {
   driver_license?: string;
   nationality?: string;
   address?: string;
+  city?: string;
 }

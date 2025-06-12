@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,7 +27,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
 import CustomerSelector from '@/components/customers/CustomerSelector';
@@ -39,7 +39,7 @@ import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 import { generateAndStoreContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
-import { AgreementType } from '@/types/agreement';
+import { AgreementType, AgreementStatus } from '@/types/agreement';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -197,7 +197,7 @@ const AgreementEditor = () => {
         start_date: formData.start_date.toISOString(),
         end_date: formData.end_date.toISOString(),
         total_amount: formData.total_amount || 0,
-        status: formData.status as LeaseStatus,
+        status: formData.status as AgreementStatus,
         agreement_type: formData.agreement_type as AgreementType,
         payment_frequency: formData.payment_frequency || 'monthly',
         confirmation_email_sent: false,

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,10 +9,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Car, User, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Car, User } from 'lucide-react';
 
 interface VehicleAssignmentDialogProps {
   open: boolean;

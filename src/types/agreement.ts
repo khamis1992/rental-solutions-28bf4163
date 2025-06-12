@@ -20,6 +20,7 @@ export interface Agreement {
   daily_late_fee?: number;
   payment_frequency?: PaymentFrequency;
   payment_day?: number;
+  rent_due_day?: number;
   notes?: string;
   terms_accepted?: boolean;
   additional_drivers?: string[];
