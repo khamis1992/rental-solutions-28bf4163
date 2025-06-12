@@ -32,6 +32,19 @@ export const CustomerVehicleSection = ({
     CacheSynchronization.setQueryClient(queryClient);
   }, [queryClient]);
 
+  const handleCustomerSelect = (customer: any) => {
+    const customerInfo: CustomerInfo = {
+      id: customer.id || '',
+      full_name: customer.full_name || '',
+      email: customer.email || '',
+      phone_number: customer.phone_number || customer.phone || '',
+      driver_license: customer.driver_license || '',
+      nationality: customer.nationality || '',
+      address: customer.address || ''
+    };
+    setSelectedCustomer(customerInfo);
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Customer & Vehicle</h3>
@@ -42,8 +55,8 @@ export const CustomerVehicleSection = ({
         </label>
         
         <CustomerSelector
-          onCustomerSelect={setSelectedCustomer}
-          selectedCustomer={selectedCustomer}
+          onCustomerSelect={handleCustomerSelect}
+          selectedCustomerId={selectedCustomer?.id}
           placeholder="Search for customer..."
         />
         

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -116,7 +117,7 @@ export const AgreementBasicDetails = ({
             <FormItem>
               <FormLabel>Customer</FormLabel>
               <CustomerSelector
-                selectedCustomer={selectedCustomer}
+                selectedCustomerId={selectedCustomer?.id}
                 onCustomerSelect={handleCustomerSelect}
                 disabled={false}
               />

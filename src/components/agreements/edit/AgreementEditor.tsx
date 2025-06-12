@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -385,9 +384,18 @@ const AgreementEditor = () => {
   }, [form]);
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: CustomerInfo): void => {
+  const handleCustomerSelect = (customer: any): void => {
     console.log('Customer selected in AgreementEditor:', customer);
-    setSelectedCustomer(customer);
+    const customerInfo: CustomerInfo = {
+      id: customer.id || '',
+      full_name: customer.full_name || '',
+      email: customer.email || '',
+      phone_number: customer.phone_number || customer.phone || '',
+      driver_license: customer.driver_license || '',
+      nationality: customer.nationality || '',
+      address: customer.address || ''
+    };
+    setSelectedCustomer(customerInfo);
     form.setValue('customer_id', customer.id);
   };
 
@@ -499,7 +507,7 @@ const AgreementEditor = () => {
                           <FormControl>
                             <CustomerSelector 
                               onCustomerSelect={handleCustomerSelect}
-                              selectedCustomer={selectedCustomer}
+                              selectedCustomerId={selectedCustomer?.id}
                               placeholder="Search for a customer..."
                             />
                           </FormControl>

@@ -1,8 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useVehicleService } from '@/hooks/services/useVehicleService';
 
 interface Vehicle {
   id: string;
@@ -18,15 +17,27 @@ interface VehicleSelectorProps {
 
 export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { vehicles, isLoading } = useVehicleService({
-    filters: { statuses: ['available'] }
-  });
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredVehicles = vehicles?.filter((vehicle: Vehicle) => 
+  useEffect(() => {
+    // Mock data for now - replace with actual API call
+    const mockVehicles: Vehicle[] = [
+      { id: '1', make: 'Toyota', model: 'Camry', license_plate: 'ABC123' },
+      { id: '2', make: 'Honda', model: 'Civic', license_plate: 'XYZ789' }
+    ];
+    
+    setTimeout(() => {
+      setVehicles(mockVehicles);
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+
+  const filteredVehicles = vehicles.filter((vehicle: Vehicle) => 
     vehicle.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vehicle.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vehicle.license_plate?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
   return (
     <div className="space-y-4">

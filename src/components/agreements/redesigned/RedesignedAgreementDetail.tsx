@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { Agreement, AgreementStatus, AgreementType } from '@/types/agreement';
+import { Agreement, AgreementType } from '@/types/agreement';
 import { AgreementOverviewCard } from './tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
@@ -23,7 +23,7 @@ const RedesignedAgreementDetail = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { getAgreementDetails, updateAgreement } = useAgreementService();
+  const { getAgreementDetails } = useAgreementService();
 
   useEffect(() => {
     const loadAgreement = async () => {
@@ -32,10 +32,14 @@ const RedesignedAgreementDetail = () => {
       try {
         setIsLoading(true);
         const data = await getAgreementDetails(id);
-        // Ensure agreement_type is properly typed
+        // Ensure agreement_type is properly typed and dates are strings
         const typedAgreement: Agreement = {
           ...data,
-          agreement_type: (data.agreement_type || 'short_term') as AgreementType
+          agreement_type: (data.agreement_type || 'short_term') as AgreementType,
+          start_date: typeof data.start_date === 'string' ? data.start_date : new Date(data.start_date).toISOString(),
+          end_date: typeof data.end_date === 'string' ? data.end_date : new Date(data.end_date).toISOString(),
+          created_at: typeof data.created_at === 'string' ? data.created_at : new Date(data.created_at).toISOString(),
+          updated_at: typeof data.updated_at === 'string' ? data.updated_at : new Date(data.updated_at).toISOString()
         };
         setAgreement(typedAgreement);
       } catch (error) {
@@ -221,12 +225,12 @@ const RedesignedAgreementDetail = () => {
             agreement={agreement}
             payments={[]}
             isLoading={false}
-            rentAmount={agreement.rent_amount}
+            rentAmount={agreement.rent_amount || null}
             contractAmount={agreement.total_amount}
             paymentMetrics={{}}
-            onPaymentDeleted={async () => {}}
-            onPaymentUpdated={async () => {}}
-            onRecordPayment={async () => {}}
+            onPaymentDeleted={async () => true}
+            onPaymentUpdated={async () => true}
+            onRecordPayment={async () => true}
             fetchPayments={async () => {}}
           />
         </TabsContent>
