@@ -42,8 +42,7 @@ const AgreementList = () => {
     total_amount: agreement.total_amount || agreement.rent_amount || 0,
     customers: agreement.customers,
     vehicles: agreement.vehicles,
-    customer_name: agreement.customer_name,
-    vehicle_info: agreement.vehicle_info
+    customer_name: agreement.customer_name
   }));
 
   return (

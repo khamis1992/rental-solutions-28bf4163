@@ -104,11 +104,12 @@ export function PaymentEditDialog({
             <Label htmlFor="paymentDate" className="text-right">
               Payment Date
             </Label>
-            <DatePicker
-              date={paymentDate}
-              setDate={handleDateChange}
-              className="col-span-3"
-            />
+            <div className="col-span-3">
+              <DatePicker
+                date={paymentDate}
+                setDate={handleDateChange}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="paymentMethod" className="text-right">

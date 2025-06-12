@@ -56,8 +56,7 @@ export function AgreementList({
     additional_drivers: agreement.additional_drivers,
     customers: agreement.customers,
     vehicles: agreement.vehicles,
-    customer_name: agreement.customer_name,
-    vehicle_info: agreement.vehicle_info
+    customer_name: agreement.customer_name
   }));
 
   const agreements = externalAgreements ?? convertedInternalAgreements;
@@ -106,4 +105,3 @@ export function AgreementList({
     </div>
   );
 }
-

@@ -27,7 +27,6 @@ export function processAgreementData(rawAgreements: any[]): Agreement[] {
     additional_drivers: agreement.additional_drivers ?? [],
     customers: agreement.customers,
     vehicles: agreement.vehicles,
-    customer_name: agreement.customer_name,
-    vehicle_info: agreement.vehicle_info
+    customer_name: agreement.customer_name
   }));
 }

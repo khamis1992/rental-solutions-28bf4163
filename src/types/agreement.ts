@@ -43,7 +43,7 @@ export interface Agreement {
     role?: string;
     created_at: string;
     updated_at: string;
-    driver_license?: string;
+    driver_license?: string; // Changed from string | null to string | undefined
     nationality?: string;
   };
   
