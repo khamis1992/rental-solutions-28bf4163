@@ -1,6 +1,6 @@
 
 import { Agreement } from '@/types/agreement';
-import { AgreementTable } from './AgreementTable';
+import AgreementTable from './AgreementTable';
 
 interface TableContentProps {
   agreements: Agreement[];
@@ -16,9 +16,7 @@ interface TableContentProps {
 
 export function TableContent({ 
   agreements, 
-  isLoading, 
-  compact = false,
-  pagination 
+  isLoading 
 }: TableContentProps) {
   if (isLoading) {
     return <div>Loading agreements...</div>;
@@ -27,7 +25,6 @@ export function TableContent({
   return (
     <AgreementTable 
       agreements={agreements}
-      pagination={pagination}
       isLoading={false}
     />
   );

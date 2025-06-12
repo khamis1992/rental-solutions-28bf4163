@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
-import CustomerSelector from '@/components/customers/CustomerSelector';
+import { CustomerSelector } from '@/components/customers/CustomerSelector';
 
 interface AgreementBasicDetailsProps {
   form: any;

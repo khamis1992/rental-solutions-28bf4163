@@ -1,7 +1,7 @@
 
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { TableContent } from './table/TableContent';
-import { processAgreementData } from './table/agreement-data';
+import { TableContent } from './TableContent';
+import { processAgreementData } from './agreement-data';
 
 interface AgreementTableProps {
   compact?: boolean;

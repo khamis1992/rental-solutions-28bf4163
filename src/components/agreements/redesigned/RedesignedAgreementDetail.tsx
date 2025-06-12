@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -5,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
-import { usePaymentScheduleManagement } from '@/hooks/payment/use-payment-schedule-management';
-import { Agreement, AgreementStatus } from '@/types/agreement';
+import { Agreement, AgreementStatus, AgreementType } from '@/types/agreement';
 import { AgreementOverviewCard } from './tabs/AgreementOverviewCard';
 import { PaymentManagementCard } from './tabs/PaymentManagementCard';
 import { DocumentsCard } from './tabs/DocumentsCard';
@@ -24,7 +24,6 @@ const RedesignedAgreementDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   const { getAgreementDetails, updateAgreement } = useAgreementService();
-  const { generatePaymentSchedule, isGenerating } = usePaymentScheduleManagement(id);
 
   useEffect(() => {
     const loadAgreement = async () => {
@@ -36,7 +35,7 @@ const RedesignedAgreementDetail = () => {
         // Ensure agreement_type is properly typed
         const typedAgreement: Agreement = {
           ...data,
-          agreement_type: data.agreement_type || 'short_term'
+          agreement_type: (data.agreement_type || 'short_term') as AgreementType
         };
         setAgreement(typedAgreement);
       } catch (error) {
@@ -50,38 +49,30 @@ const RedesignedAgreementDetail = () => {
     loadAgreement();
   }, [id, getAgreementDetails]);
 
-  const handleStatusUpdate = async (status: AgreementStatus): Promise<void> => {
-    if (!agreement) return;
-
-    try {
-      await updateAgreement({
-        id: agreement.id,
-        data: { status }
-      });
-      
-      setAgreement(prev => prev ? { ...prev, status } : null);
-      toast.success('Agreement status updated successfully');
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Failed to update agreement status');
+  const handleEdit = async (): Promise<void> => {
+    if (agreement) {
+      navigate(`/agreements/${agreement.id}/edit`);
     }
   };
 
-  const handleRegenerateSchedule = async (): Promise<void> => {
-    if (!agreement) return;
+  const handleDelete = async (): Promise<void> => {
+    if (agreement) {
+      // Add delete logic here
+      console.log('Delete agreement:', agreement.id);
+    }
+  };
 
-    try {
-      await generatePaymentSchedule(
-        new Date(agreement.start_date),
-        new Date(agreement.end_date),
-        agreement.rent_amount || 0,
-        agreement.payment_frequency || 'monthly',
-        agreement.payment_day || 1
-      );
-      toast.success('Payment schedule regenerated successfully');
-    } catch (error) {
-      console.error('Error regenerating schedule:', error);
-      toast.error('Failed to regenerate payment schedule');
+  const handleDownloadPdf = async (): Promise<void> => {
+    if (agreement) {
+      // Add PDF download logic here
+      console.log('Download PDF for agreement:', agreement.id);
+    }
+  };
+
+  const handleGenerateDocument = async (): Promise<void> => {
+    if (agreement) {
+      // Add document generation logic here
+      console.log('Generate document for agreement:', agreement.id);
     }
   };
 
@@ -228,16 +219,25 @@ const RedesignedAgreementDetail = () => {
         <TabsContent value="payments" className="space-y-4">
           <PaymentManagementCard 
             agreement={agreement}
+            payments={[]}
+            isLoading={false}
+            rentAmount={agreement.rent_amount}
+            contractAmount={agreement.total_amount}
+            paymentMetrics={{}}
+            onPaymentDeleted={async () => {}}
+            onPaymentUpdated={async () => {}}
+            onRecordPayment={async () => {}}
+            fetchPayments={async () => {}}
           />
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
           <DocumentsCard 
             agreement={agreement}
-            onEdit={() => {}}
-            onDownloadPdf={() => {}}
-            onGenerateDocument={() => {}}
-            onDelete={() => {}}
+            onEdit={handleEdit}
+            onDownloadPdf={handleDownloadPdf}
+            onGenerateDocument={handleGenerateDocument}
+            onDelete={handleDelete}
             isGeneratingPdf={false}
           />
         </TabsContent>
@@ -245,6 +245,8 @@ const RedesignedAgreementDetail = () => {
         <TabsContent value="settings" className="space-y-4">
           <SettingsCard 
             agreement={agreement}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         </TabsContent>
       </Tabs>

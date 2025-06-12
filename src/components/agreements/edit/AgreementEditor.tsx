@@ -29,7 +29,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
-import CustomerSelector from '@/components/customers/CustomerSelector';
+import { CustomerSelector } from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
 import { CustomerInfo } from '@/types/customer';

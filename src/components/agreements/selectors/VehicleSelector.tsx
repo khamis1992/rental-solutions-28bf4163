@@ -2,8 +2,14 @@
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
+
+interface Vehicle {
+  id: string;
+  make?: string;
+  model?: string;
+  license_plate?: string;
+}
 
 interface VehicleSelectorProps {
   onSelect: (vehicleId: string) => void;
@@ -12,11 +18,11 @@ interface VehicleSelectorProps {
 
 export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { vehicles, isLoadingVehicles } = useVehicleService({
+  const { vehicles, isLoading } = useVehicleService({
     filters: { statuses: ['available'] }
   });
 
-  const filteredVehicles = vehicles?.filter(vehicle => 
+  const filteredVehicles = vehicles?.filter((vehicle: Vehicle) => 
     vehicle.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vehicle.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     vehicle.license_plate?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -35,10 +41,10 @@ export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelector
           <SelectValue placeholder="Select a vehicle" />
         </SelectTrigger>
         <SelectContent>
-          {isLoadingVehicles ? (
+          {isLoading ? (
             <SelectItem value="" disabled>Loading vehicles...</SelectItem>
           ) : (
-            filteredVehicles.map((vehicle) => (
+            filteredVehicles.map((vehicle: Vehicle) => (
               <SelectItem key={vehicle.id} value={vehicle.id}>
                 {vehicle.make} {vehicle.model} - {vehicle.license_plate}
               </SelectItem>

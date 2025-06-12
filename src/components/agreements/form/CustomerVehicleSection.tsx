@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { CustomerInfo } from "@/types/customer";
 import VehicleSelector from "@/components/vehicles/VehicleSelector";
-import CustomerSelector from "@/components/customers/CustomerSelector";
+import { CustomerSelector } from "@/components/customers/CustomerSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useQueryClient } from '@tanstack/react-query';
