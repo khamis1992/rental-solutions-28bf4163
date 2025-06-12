@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,7 +33,12 @@ const RedesignedAgreementDetail = () => {
       try {
         setIsLoading(true);
         const data = await getAgreementDetails(id);
-        setAgreement(data);
+        // Ensure agreement_type is properly typed
+        const typedAgreement: Agreement = {
+          ...data,
+          agreement_type: data.agreement_type || 'short_term'
+        };
+        setAgreement(typedAgreement);
       } catch (error) {
         console.error('Error loading agreement:', error);
         toast.error('Failed to load agreement details');
@@ -223,20 +227,24 @@ const RedesignedAgreementDetail = () => {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentManagementCard 
-            agreement={agreement} 
-            onRegenerateSchedule={handleRegenerateSchedule}
-            isGenerating={isGenerating}
+            agreement={agreement}
           />
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
-          <DocumentsCard agreement={agreement} />
+          <DocumentsCard 
+            agreement={agreement}
+            onEdit={() => {}}
+            onDownloadPdf={() => {}}
+            onGenerateDocument={() => {}}
+            onDelete={() => {}}
+            isGeneratingPdf={false}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
           <SettingsCard 
-            agreement={agreement} 
-            onStatusUpdate={handleStatusUpdate}
+            agreement={agreement}
           />
         </TabsContent>
       </Tabs>

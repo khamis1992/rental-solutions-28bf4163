@@ -1,87 +1,51 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useVehicleService } from '@/hooks/services/useVehicleService';
 
 interface VehicleSelectorProps {
-  value?: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  selectedVehicle?: any;
-  onVehicleSelect?: (vehicle: any) => void;
+  onSelect: (vehicleId: string) => void;
+  selectedVehicleId?: string;
 }
 
-const VehicleSelector = ({
-  value,
-  onChange,
-  placeholder = "Select a vehicle",
-  selectedVehicle,
-  onVehicleSelect
-}: VehicleSelectorProps) => {
-  const { data: vehicles, isLoading } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('status', 'available')
-          .order('make');
-        
-        if (error) {
-          throw error;
-        }
-        
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching vehicles:", error);
-        return [];
-      }
-    }
+export function VehicleSelector({ onSelect, selectedVehicleId }: VehicleSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { vehicles, isLoadingVehicles } = useVehicleService({
+    filters: { statuses: ['available'] }
   });
-  
-  // Handle the vehicle selection
-  const handleSelectionChange = (vehicleId: string) => {
-    onChange(vehicleId);
-    
-    if (onVehicleSelect) {
-      const selectedVehicle = vehicles?.find(v => v.id === vehicleId);
-      if (selectedVehicle) {
-        onVehicleSelect(selectedVehicle);
-      }
-    }
-  };
+
+  const filteredVehicles = vehicles?.filter(vehicle => 
+    vehicle.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vehicle.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vehicle.license_plate?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
-    <Select 
-      value={value} 
-      onValueChange={handleSelectionChange}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {isLoading ? (
-          <SelectItem value="loading" disabled>Loading...</SelectItem>
-        ) : vehicles && vehicles.length > 0 ? (
-          vehicles.map((vehicle: any) => (
-            <SelectItem key={vehicle.id} value={vehicle.id}>
-              {vehicle.make} {vehicle.model} - {vehicle.license_plate}
-            </SelectItem>
-          ))
-        ) : (
-          <SelectItem value="none" disabled>No vehicles available</SelectItem>
-        )}
-      </SelectContent>
-    </Select>
+    <div className="space-y-4">
+      <Input
+        placeholder="Search vehicles..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      
+      <Select onValueChange={onSelect} value={selectedVehicleId}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a vehicle" />
+        </SelectTrigger>
+        <SelectContent>
+          {isLoadingVehicles ? (
+            <SelectItem value="" disabled>Loading vehicles...</SelectItem>
+          ) : (
+            filteredVehicles.map((vehicle) => (
+              <SelectItem key={vehicle.id} value={vehicle.id}>
+                {vehicle.make} {vehicle.model} - {vehicle.license_plate}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
+    </div>
   );
-};
-
-export default VehicleSelector;
+}

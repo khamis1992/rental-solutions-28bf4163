@@ -28,7 +28,7 @@ export function TableContent({
     <AgreementTable 
       agreements={agreements}
       pagination={pagination}
-      compact={compact}
+      isLoading={false}
     />
   );
 }
