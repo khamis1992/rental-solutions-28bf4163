@@ -148,8 +148,8 @@ const AgreementEditor = () => {
               full_name: agreement.customers.full_name || '',
               email: agreement.customers.email || '',
               phone_number: agreement.customers.phone_number || '',
-              driver_license: agreement.customers.driver_license || '',
-              nationality: agreement.customers.nationality || '',
+              driver_license: agreement.customers.driver_license || undefined,
+              nationality: agreement.customers.nationality || undefined,
               address: agreement.customers.address || ''
             };
             setSelectedCustomer(customerData);
@@ -308,7 +308,7 @@ const AgreementEditor = () => {
                 role: 'customer',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                driver_license: selectedCustomer.driver_license || null,
+                driver_license: selectedCustomer.driver_license || undefined,
                 nationality: selectedCustomer.nationality
               } : undefined,
               vehicles: selectedVehicle,
