@@ -1,7 +1,7 @@
 
 import { Database } from './database';
 
-export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled';
+export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled' | 'expired';
 export type AgreementType = 'short_term' | 'lease_to_own';
 export type PaymentFrequency = 'monthly' | 'weekly' | 'daily';
 
@@ -28,6 +28,7 @@ export interface Agreement {
   down_payment?: number;
   created_at: string;
   updated_at: string;
+  customer_name?: string;
   
   // Relations
   customers?: {

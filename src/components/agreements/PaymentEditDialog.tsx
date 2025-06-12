@@ -37,10 +37,10 @@ export function PaymentEditDialog({
   onSubmit
 }: PaymentEditDialogProps) {
   const [amount, setAmount] = useState(payment.amount);
-  const [paymentDate, setPaymentDate] = useState<Date>(new Date(payment.payment_date));
-  const [notes, setNotes] = useState(payment.description || '');
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date(payment.payment_date || new Date()));
+  const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(payment.payment_method || 'cash');
-  const [referenceNumber, setReferenceNumber] = useState(payment.reference_number || '');
+  const [referenceNumber, setReferenceNumber] = useState('');
 
   useEffect(() => {
     if (payment) {

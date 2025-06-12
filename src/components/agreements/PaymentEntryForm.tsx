@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,18 +13,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
-import { differenceInDays, startOfMonth, addMonths, isAfter, isBefore } from 'date-fns';
-import { Calculator, AlertTriangle, CheckCircle } from 'lucide-react';
+import { differenceInDays, isBefore } from 'date-fns';
+import { Calculator, AlertTriangle } from 'lucide-react';
 import { Payment } from '@/types/payment.types';
 
 interface PaymentEntryFormProps {
   onSubmit: (amount: number, date: Date, notes: string, method: string, reference: string) => Promise<boolean>;
   onCancel: () => void;
   defaultAmount?: number;
-  leaseId?: string;
   rentAmount?: number | null;
   selectedPayment?: Payment | null;
   leaseStartDate?: string | null;
@@ -34,7 +33,6 @@ export function PaymentEntryForm({
   onSubmit,
   onCancel,
   defaultAmount = 0,
-  leaseId,
   rentAmount,
   selectedPayment,
   leaseStartDate,
@@ -49,12 +47,28 @@ export function PaymentEntryForm({
   const [dailyLateFeeRate, setDailyLateFeeRate] = useState(0.01); // 1% daily late fee
   const [showCalculator, setShowCalculator] = useState(false);
 
+  const calculateLateFees = useCallback(() => {
+    if (!leaseStartDate || !rentAmount) {
+      return 0;
+    }
+
+    const startDate = new Date(leaseStartDate);
+
+    if (isBefore(paymentDate, startDate)) {
+      return 0;
+    }
+
+    const daysLate = differenceInDays(paymentDate, startDate);
+    const lateFee = daysLate > 0 ? daysLate * dailyLateFeeRate : 0;
+    return parseFloat(lateFee.toFixed(2));
+  }, [paymentDate, rentAmount, dailyLateFeeRate, leaseStartDate]);
+
   useEffect(() => {
     if (selectedPayment) {
       setAmount(selectedPayment.amount);
-      setPaymentDate(new Date(selectedPayment.payment_date));
+      setPaymentDate(new Date(selectedPayment.payment_date || new Date()));
       setNotes(selectedPayment.description || '');
-      setPaymentMethod(selectedPayment.payment_method);
+      setPaymentMethod(selectedPayment.payment_method || 'cash');
       setReferenceNumber(selectedPayment.reference_number || '');
     } else {
       setAmount(defaultAmount);
@@ -73,9 +87,6 @@ export function PaymentEntryForm({
 
   useEffect(() => {
     if (leaseStartDate && leaseEndDate) {
-      const startDate = new Date(leaseStartDate);
-      const endDate = new Date(leaseEndDate);
-      const daysBetween = differenceInDays(endDate, startDate);
       const dailyRate = rentAmount ? rentAmount / 30 : 0;
       setDailyLateFeeRate(dailyRate > 0 ? dailyRate * 0.01 : 0.01);
     }
@@ -94,37 +105,23 @@ export function PaymentEntryForm({
     setAmount(isNaN(newAmount) ? 0 : newAmount);
   };
 
-  const handlePaymentDateChange = (date: Date) => {
-    setPaymentDate(date);
+  const handlePaymentDateChange = (date: Date | undefined) => {
+    if (date) {
+      setPaymentDate(date);
+    }
   };
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNotes(e.target.value);
   };
 
-  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPaymentMethod(e.target.value);
+  const handlePaymentMethodChange = (value: string) => {
+    setPaymentMethod(value);
   };
 
   const handleReferenceNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setReferenceNumber(e.target.value);
   };
-
-  const calculateLateFees = useCallback(() => {
-    if (!leaseStartDate || !rentAmount) {
-      return 0;
-    }
-
-    const startDate = new Date(leaseStartDate);
-
-    if (isBefore(paymentDate, startDate)) {
-      return 0;
-    }
-
-    const daysLate = differenceInDays(paymentDate, startDate);
-    const lateFee = daysLate > 0 ? daysLate * dailyLateFeeRate : 0;
-    return parseFloat(lateFee.toFixed(2));
-  }, [paymentDate, rentAmount, dailyLateFeeRate, leaseStartDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
