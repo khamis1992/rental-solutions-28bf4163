@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMaintenance } from '@/hooks/use-maintenance';
@@ -9,12 +8,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getAllRecords, update } = useMaintenance();
   const { toast } = useToast();
+  const { language } = useLanguage();
   const [maintenance, setMaintenance] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,18 +36,18 @@ const EditMaintenance = () => {
           setMaintenance(record);
         } else {
           console.error("Maintenance record not found for ID:", id);
-          setError('Maintenance record not found');
+          setError(language === 'ar' ? 'لم يتم العثور على سجل الصيانة' : 'Maintenance record not found');
         }
       } catch (err) {
         console.error('Error fetching maintenance record:', err);
-        setError('Failed to load maintenance record');
+        setError(language === 'ar' ? 'فشل في تحميل سجل الصيانة' : 'Failed to load maintenance record');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchMaintenance();
-  }, [id, getAllRecords]);
+  }, [id, getAllRecords, language]);
 
   // Convert string maintenance type to enum with default fallback
   const mapStringToMaintenanceType = (typeString: string): keyof typeof MaintenanceType => {
@@ -92,15 +93,15 @@ const EditMaintenance = () => {
       });
       
       toast({
-        title: "Success",
-        description: "Maintenance record updated successfully",
+        title: language === 'ar' ? 'نجح' : 'Success',
+        description: language === 'ar' ? 'تم تحديث سجل الصيانة بنجاح' : 'Maintenance record updated successfully',
         variant: "default"
       });
       
       navigate('/maintenance');
     } catch (err) {
       console.error('Error updating maintenance record:', err);
-      setError('Failed to update maintenance record. Please try again.');
+      setError(language === 'ar' ? 'فشل في تحديث سجل الصيانة. يرجى المحاولة مرة أخرى.' : 'Failed to update maintenance record. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +109,10 @@ const EditMaintenance = () => {
 
   if (isLoading) {
     return (
-      <PageContainer title="Edit Maintenance Record" description="Loading maintenance details...">
+      <PageContainer 
+        title={language === 'ar' ? 'تحرير سجل الصيانة' : 'Edit Maintenance Record'} 
+        description={language === 'ar' ? 'جاري تحميل تفاصيل الصيانة...' : 'Loading maintenance details...'}
+      >
         <div className="space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-72 w-full" />
@@ -119,12 +123,17 @@ const EditMaintenance = () => {
 
   if (error || !maintenance) {
     return (
-      <PageContainer title="Edit Maintenance Record" description="Error loading maintenance details">
-        <Alert variant="destructive">
+      <PageContainer 
+        title={language === 'ar' ? 'تحرير سجل الصيانة' : 'Edit Maintenance Record'} 
+        description={language === 'ar' ? 'خطأ في تحميل تفاصيل الصيانة' : 'Error loading maintenance details'}
+      >
+        <Alert variant="destructive" dir={language === 'ar' ? 'rtl' : 'ltr'}>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error || 'Unable to load maintenance record'}
+          <AlertTitle className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'خطأ' : 'Error'}
+          </AlertTitle>
+          <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+            {error || (language === 'ar' ? 'غير قادر على تحميل سجل الصيانة' : 'Unable to load maintenance record')}
           </AlertDescription>
         </Alert>
       </PageContainer>
@@ -147,14 +156,18 @@ const EditMaintenance = () => {
 
   return (
     <PageContainer 
-      title="Edit Maintenance Record" 
-      description="Update maintenance record details"
+      title={language === 'ar' ? 'تحرير سجل الصيانة' : 'Edit Maintenance Record'} 
+      description={language === 'ar' ? 'تحديث تفاصيل سجل الصيانة' : 'Update maintenance record details'}
     >
       {error && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert variant="destructive" className="mb-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertTitle className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'خطأ' : 'Error'}
+          </AlertTitle>
+          <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+            {error}
+          </AlertDescription>
         </Alert>
       )}
       

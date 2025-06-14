@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -8,9 +7,11 @@ import TrafficFinesList from "@/components/fines/TrafficFinesList";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
+  const { language } = useLanguage();
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -23,28 +24,28 @@ const TrafficFines = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="Traffic Fines Management"
-        description="Record, track, validate, and manage traffic violations"
+        title={language === 'ar' ? 'إدارة المخالفات المرورية' : 'Traffic Fines Management'}
+        description={language === 'ar' ? 'تسجيل وتتبع والتحقق من وإدارة المخالفات المرورية' : 'Record, track, validate, and manage traffic violations'}
         icon={AlertTriangle}
       />
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
-          <TabsTrigger value="list" className="flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            Fines List
+          <TabsTrigger value="list" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <FileText className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            {language === 'ar' ? 'قائمة المخالفات' : 'Fines List'}
           </TabsTrigger>
-          <TabsTrigger value="add" className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Record New Fine
+          <TabsTrigger value="add" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <AlertTriangle className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            {language === 'ar' ? 'تسجيل مخالفة جديدة' : 'Record New Fine'}
           </TabsTrigger>
-          <TabsTrigger value="validate" className="flex items-center">
-            <Search className="h-4 w-4 mr-2" />
-            Fines Validation
+          <TabsTrigger value="validate" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <Search className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            {language === 'ar' ? 'التحقق من المخالفات' : 'Fines Validation'}
           </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center">
-            <BarChart2 className="h-4 w-4 mr-2" />
-            Fine Analytics
+          <TabsTrigger value="reports" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <BarChart2 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+            {language === 'ar' ? 'تحليلات المخالفات' : 'Fine Analytics'}
           </TabsTrigger>
         </TabsList>
         

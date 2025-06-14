@@ -38,8 +38,8 @@ const RolePermissionsTable = () => {
 
       setPermissions(base);
     } catch (err: any) {
-      console.error('Error loading permissions:', err.message);
-      toast.error('Failed to load permissions');
+      console.error('خطأ في تحميل الصلاحيات:', err.message);
+      toast.error('فشل في تحميل الصلاحيات');
     } finally {
       setLoading(false);
     }
@@ -73,42 +73,56 @@ const RolePermissionsTable = () => {
         if (insErr) throw insErr;
       }
 
-      toast.success('Permissions updated');
+      toast.success('تم تحديث الصلاحيات');
     } catch (err: any) {
-      console.error('Error saving permissions:', err.message);
-      toast.error('Failed to save permissions');
+      console.error('خطأ في حفظ الصلاحيات:', err.message);
+      toast.error('فشل في حفظ الصلاحيات');
     } finally {
       setSaving(false);
       fetchPermissions(role);
     }
   };
 
+  const translateFeatureName = (key: string) => {
+    const translations: Record<string, string> = {
+      'agreements': 'العقود',
+      'customers': 'العملاء',
+      'vehicles': 'المركبات',
+      'payments': 'المدفوعات',
+      'maintenance': 'الصيانة',
+      'reports': 'التقارير',
+      'users': 'المستخدمون',
+      'settings': 'الإعدادات'
+    };
+    return translations[key.toLowerCase()] || key.replace(/([A-Z])/g, ' $1').trim();
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <div>
-        <Label htmlFor="role-select" className="mb-2 block">Role</Label>
+        <Label htmlFor="role-select" className="mb-2 block text-right">الدور</Label>
         <Select value={role} onValueChange={value => setRole(value as UserRole)}>
           <SelectTrigger id="role-select" className="w-[150px]">
-            <SelectValue placeholder="Select role" />
+            <SelectValue placeholder="اختر الدور" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="staff">Staff</SelectItem>
+            <SelectItem value="admin">مدير</SelectItem>
+            <SelectItem value="staff">موظف</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="rounded-md border">
         <div className="grid grid-cols-5 p-4 font-medium border-b">
-          <div>Feature</div>
-          <div className="text-center">View</div>
-          <div className="text-center">Create</div>
-          <div className="text-center">Edit</div>
-          <div className="text-center">Delete</div>
+          <div className="text-right">الميزة</div>
+          <div className="text-center">عرض</div>
+          <div className="text-center">إنشاء</div>
+          <div className="text-center">تعديل</div>
+          <div className="text-center">حذف</div>
         </div>
         {Object.entries(permissions).map(([key, perm], index) => (
           <div key={key} className={`grid grid-cols-5 p-4 ${index === Object.keys(permissions).length - 1 ? '' : 'border-b'} items-center`}>
-            <div className="font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}</div>
+            <div className="font-medium text-right">{translateFeatureName(key)}</div>
             <div className="text-center">
               <Switch checked={perm.view} onCheckedChange={val => updatePermission(key as keyof RolePermissions, 'view', val)} />
             </div>
@@ -125,8 +139,10 @@ const RolePermissionsTable = () => {
         ))}
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={savePermissions} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+      <div className="flex justify-end flex-row-reverse">
+        <Button onClick={savePermissions} disabled={saving}>
+          {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+        </Button>
       </div>
     </div>
   );

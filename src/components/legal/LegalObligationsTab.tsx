@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { CustomerObligation } from './CustomerLegalObligations';
+import { CustomerObligation, fetchCustomerObligations } from './CustomerLegalObligations';
 import { supabase } from '@/lib/supabase';
 
 interface LegalObligationsTabProps {
@@ -31,40 +30,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
       
       try {
         setLoading(true);
-        console.log("LegalObligationsTab: Fetching customer data for ID:", customerId);
-        
-        // Fetch customer name first
-        const { data: customerData, error: customerError } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', customerId)
-          .maybeSingle();
-          
-        if (customerError) {
-          console.error("LegalObligationsTab: Error fetching customer data:", customerError);
-          throw new Error("Failed to fetch customer information");
-        }
-
-        console.log("LegalObligationsTab: Customer data fetched:", customerData);
-
-        // For now, we'll use mock data while implementing the actual functionality
-        const mockObligations: CustomerObligation[] = [
-          {
-            id: "ob-1",
-            customerId: customerId,
-            customerName: customerData?.full_name || "Unknown Customer",
-            description: "Monthly vehicle lease payment",
-            status: "overdue",
-            dueDate: new Date(),
-            createdAt: new Date(), // Make sure createdAt is provided
-            amount: 1200,
-            urgency: "high",
-            daysOverdue: 5,
-            obligationType: "payment"
-          }
-        ];
-        
-        setObligations(mockObligations);
+        const obligations = await fetchCustomerObligations(customerId);
+        setObligations(obligations);
         setError(null);
       } catch (err: any) {
         console.error("LegalObligationsTab: Failed to load legal obligations:", err);
@@ -81,11 +48,11 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">مكتمل</Badge>;
       case 'pending':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Pending</Badge>;
+        return <Badge className="bg-blue-500 hover:bg-blue-600">قيد الانتظار</Badge>;
       case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
+        return <Badge variant="destructive">متأخر</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -95,13 +62,13 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Customer Obligations</CardTitle>
-          <CardDescription>Loading customer legal obligations...</CardDescription>
+          <CardTitle>التزامات العميل</CardTitle>
+          <CardDescription>جاري تحميل الالتزامات القانونية للعميل...</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center items-center h-64">
           <div className="flex flex-col items-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-muted-foreground">Loading obligations...</p>
+            <p className="text-muted-foreground">جاري التحميل...</p>
           </div>
         </CardContent>
       </Card>
@@ -112,8 +79,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Customer Obligations</CardTitle>
-          <CardDescription>An error occurred</CardDescription>
+          <CardTitle>التزامات العميل</CardTitle>
+          <CardDescription>حدث خطأ ما</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center text-destructive">
@@ -128,17 +95,17 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle>Legal Obligations</CardTitle>
-        <CardDescription>Customer's current legal and financial obligations</CardDescription>
+        <CardTitle>الالتزامات القانونية</CardTitle>
+        <CardDescription>الالتزامات القانونية والمالية الحالية للعميل</CardDescription>
       </CardHeader>
       <CardContent>
         {obligations.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>الوصف</TableHead>
+                <TableHead>تاريخ الاستحقاق</TableHead>
+                <TableHead>الحالة</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,7 +113,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                 <TableRow key={obligation.id}>
                   <TableCell>{obligation.description}</TableCell>
                   <TableCell>
-                    {obligation.dueDate ? formatDate(obligation.dueDate) : 'N/A'}
+                    {obligation.dueDate ? formatDate(obligation.dueDate) : 'غير متوفر'}
                   </TableCell>
                   <TableCell>{getStatusBadge(obligation.status)}</TableCell>
                 </TableRow>
@@ -155,7 +122,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
           </Table>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            No legal obligations found for this customer
+            لا توجد التزامات قانونية لهذا العميل
           </div>
         )}
       </CardContent>

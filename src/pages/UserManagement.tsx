@@ -34,7 +34,7 @@ const UserManagement = () => {
       .select("id, full_name, email, role, status, created_at")
       .not("role", "eq", "customer");
     if (error) {
-      toast.error("Failed to load users: " + error.message);
+      toast.error("فشل في تحميل المستخدمين: " + error.message);
       setUsers([]);
     } else {
       setUsers(data || []);
@@ -49,9 +49,9 @@ const UserManagement = () => {
       .update({ role: newRole })
       .eq("id", userId);
     if (error) {
-      toast.error("Failed to update role: " + error.message);
+      toast.error("فشل في تحديث الدور: " + error.message);
     } else {
-      toast.success("User role updated");
+      toast.success("تم تحديث دور المستخدم");
       setUsers(users => users.map(u => u.id === userId ? { ...u, role: newRole } : u));
     }
     setUpdatingId(null);
@@ -86,66 +86,67 @@ const UserManagement = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="User Management"
-        description="Manage system users, roles, and permissions"
+        title="إدارة المستخدمين"
+        description="إدارة مستخدمي النظام والأدوار والصلاحيات"
         icon={Users}
         actions={
           <CustomButton
             size="sm"
             variant="default"
-            onClick={() => toast('User invitation sent')}
+            onClick={() => toast('تم إرسال دعوة المستخدم')}
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite User
+            <UserPlus className="h-4 w-4 ml-2" />
+            دعوة مستخدم
           </CustomButton>
         }
       />
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full md:w-auto grid-cols-3 md:inline-flex">
-            <TabsTrigger value="users" className="flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Users
+            <TabsTrigger value="users" className="flex items-center space-x-reverse space-x-2">
+              <Users className="h-4 w-4 ml-2" />
+              المستخدمون
             </TabsTrigger>
-            <TabsTrigger value="permissions" className="flex items-center">
-              <Shield className="h-4 w-4 mr-2" />
-              Permissions
+            <TabsTrigger value="permissions" className="flex items-center space-x-reverse space-x-2">
+              <Shield className="h-4 w-4 ml-2" />
+              الصلاحيات
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center">
-              <ShieldCheck className="h-4 w-4 mr-2" />
-              Security
+            <TabsTrigger value="security" className="flex items-center space-x-reverse space-x-2">
+              <ShieldCheck className="h-4 w-4 ml-2" />
+              الأمان
             </TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>List of users and their roles</CardDescription>
+                <CardTitle className="text-right">المستخدمون</CardTitle>
+                <CardDescription className="text-right">قائمة المستخدمين وأدوارهم</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                   <div className="relative w-full md:w-1/3">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search users by name or email..."
-                      className="pl-8"
+                      placeholder="البحث في المستخدمين بالاسم أو البريد الإلكتروني..."
+                      className="pr-8 text-right"
                       value={search}
                       onChange={e => setSearch(e.target.value)}
+                      dir="rtl"
                     />
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex gap-2 w-full md:w-auto flex-row-reverse">
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
                       <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Filter by role" />
+                        <SelectValue placeholder="تصفية حسب الدور" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="all">جميع الأدوار</SelectItem>
+                        <SelectItem value="admin">مدير</SelectItem>
+                        <SelectItem value="staff">موظف</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-                      Refresh
+                      تحديث
                     </Button>
                   </div>
                 </div>
@@ -153,23 +154,23 @@ const UserManagement = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="px-4 py-2 text-left font-semibold">Name</th>
-                        <th className="px-4 py-2 text-left font-semibold">Email</th>
-                        <th className="px-4 py-2 text-left font-semibold">Role</th>
-                        <th className="px-4 py-2 text-left font-semibold">Status</th>
-                        <th className="px-4 py-2 text-left font-semibold">Joined</th>
+                        <th className="px-4 py-2 text-right font-semibold">الاسم</th>
+                        <th className="px-4 py-2 text-right font-semibold">البريد الإلكتروني</th>
+                        <th className="px-4 py-2 text-right font-semibold">الدور</th>
+                        <th className="px-4 py-2 text-right font-semibold">الحالة</th>
+                        <th className="px-4 py-2 text-right font-semibold">تاريخ الانضمام</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loading ? (
-                        <tr><td colSpan={5} className="text-center py-8">Loading users...</td></tr>
+                        <tr><td colSpan={5} className="text-center py-8">جاري تحميل المستخدمين...</td></tr>
                       ) : filteredUsers.length === 0 ? (
-                        <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No users found.</td></tr>
+                        <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">لم يتم العثور على مستخدمين.</td></tr>
                       ) : (
                         filteredUsers.map(user => (
                           <tr key={user.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <td className="px-4 py-2 font-medium">{user.full_name || 'N/A'}</td>
-                            <td className="px-4 py-2">{user.email}</td>
+                            <td className="px-4 py-2 font-medium text-right">{user.full_name || 'غير متوفر'}</td>
+                            <td className="px-4 py-2 text-right">{user.email}</td>
                             <td className="px-4 py-2">
                               <Select
                                 value={user.role}
@@ -177,16 +178,21 @@ const UserManagement = () => {
                                 disabled={profile?.id === user.id || updatingId === user.id}
                               >
                                 <SelectTrigger className="w-[130px] h-8">
-                                  <SelectValue placeholder="Select role" />
+                                  <SelectValue placeholder="اختر الدور" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                  <SelectItem value="staff">Staff</SelectItem>
+                                  <SelectItem value="admin">مدير</SelectItem>
+                                  <SelectItem value="staff">موظف</SelectItem>
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td className="px-4 py-2 capitalize">{user.status || 'N/A'}</td>
-                            <td className="px-4 py-2">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
+                            <td className="px-4 py-2 capitalize text-right">
+                              {user.status === 'active' ? 'نشط' : 
+                               user.status === 'inactive' ? 'غير نشط' : 
+                               user.status === 'pending' ? 'معلق' : 
+                               user.status || 'غير متوفر'}
+                            </td>
+                            <td className="px-4 py-2 text-right">{user.created_at ? new Date(user.created_at).toLocaleDateString('ar-QA') : 'غير متوفر'}</td>
                           </tr>
                         ))
                       )}
@@ -199,9 +205,9 @@ const UserManagement = () => {
           <TabsContent value="permissions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Role Permissions</CardTitle>
-                <CardDescription>
-                  Define what each role can access in the system
+                <CardTitle className="text-right">صلاحيات الأدوار</CardTitle>
+                <CardDescription className="text-right">
+                  تحديد ما يمكن لكل دور الوصول إليه في النظام
                 </CardDescription>
               </CardHeader>
               <CardContent>

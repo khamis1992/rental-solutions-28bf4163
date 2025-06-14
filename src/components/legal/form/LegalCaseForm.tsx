@@ -61,61 +61,63 @@ export const LegalCaseForm: React.FC<LegalCaseFormProps> = ({
     onSubmit(data);
   };
 
-  // Define options for select inputs
+  // Define options for select inputs with Arabic labels
   const caseTypes = [
-    { value: 'payment_default', label: 'Payment Default' },
-    { value: 'contract_breach', label: 'Contract Breach' },
-    { value: 'vehicle_damage', label: 'Vehicle Damage' },
-    { value: 'traffic_violations', label: 'Traffic Violations' },
-    { value: 'insurance_dispute', label: 'Insurance Dispute' },
+    { value: 'payment_default', label: 'تخلف عن الدفع' },
+    { value: 'contract_breach', label: 'انتهاك العقد' },
+    { value: 'vehicle_damage', label: 'ضرر المركبة' },
+    { value: 'traffic_violations', label: 'مخالفات مرورية' },
+    { value: 'insurance_dispute', label: 'نزاع التأمين' },
   ];
 
   const casePriorities = [
-    { value: 'high', label: 'High' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'low', label: 'Low' },
+    { value: 'high', label: 'عالية' },
+    { value: 'medium', label: 'متوسطة' },
+    { value: 'low', label: 'منخفضة' },
   ];
 
   const caseStatuses = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'active', label: 'Active' },
-    { value: 'resolved', label: 'Resolved' },
-    { value: 'closed', label: 'Closed' },
+    { value: 'pending', label: 'معلقة' },
+    { value: 'active', label: 'نشطة' },
+    { value: 'resolved', label: 'محلولة' },
+    { value: 'closed', label: 'مغلقة' },
   ];
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)}>
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="pt-6">
-            <LegalCaseBasicInfo form={form} />
-          </CardContent>
-        </Card>
+    <div dir="rtl">
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <LegalCaseBasicInfo form={form} />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <LegalCaseCaseDetails 
-              form={form} 
-              caseTypes={caseTypes} 
-              casePriorities={casePriorities}
-              caseStatuses={caseStatuses}
-            />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <LegalCaseCaseDetails 
+                form={form} 
+                caseTypes={caseTypes} 
+                casePriorities={casePriorities}
+                caseStatuses={caseStatuses}
+              />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <LegalCaseDescription form={form} />
-          </CardContent>
-          <CardFooter className="border-t bg-muted/50 px-6">
-            <LegalCaseFormActions 
-              isSubmitting={isSubmitting} 
-              isEdit={isEdit}
-            />
-          </CardFooter>
-        </Card>
-      </div>
-    </form>
+          <Card>
+            <CardContent className="pt-6">
+              <LegalCaseDescription form={form} />
+            </CardContent>
+            <CardFooter className="border-t bg-muted/50 px-6">
+              <LegalCaseFormActions 
+                isSubmitting={isSubmitting} 
+                isEdit={isEdit}
+              />
+            </CardFooter>
+          </Card>
+        </div>
+      </form>
+    </div>
   );
 };
 

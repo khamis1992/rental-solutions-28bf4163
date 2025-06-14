@@ -1,161 +1,207 @@
-import React from 'react';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useCustomers } from '@/hooks/use-customers';
-import { useVehicles } from '@/hooks/use-vehicles';
+import React, { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { Agreement } from '@/types/agreement';
-import { AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { CustomerInfo } from '@/types/customer';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import CustomerSelector from '@/components/customers/CustomerSelector';
+import VehicleSelector from '@/components/vehicles/VehicleSelector';
+import { CustomerInfo } from '@/types/customer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AgreementBasicDetailsProps {
-  form: UseFormReturn<Agreement>;
-  isEdit: boolean;
-  onVehicleChange: (vehicleId: string, vehicleData: any) => void;
-  onCustomerChange: (customerId: string, customerData: CustomerInfo) => void;
+  form: UseFormReturn<any>;
+  isEdit?: boolean;
+  onVehicleChange?: (vehicle: any) => void;
+  onCustomerChange?: (customer: CustomerInfo) => void;
 }
 
-export const AgreementBasicDetails = ({
+export const AgreementBasicDetails: React.FC<AgreementBasicDetailsProps> = ({
   form,
-  isEdit,
+  isEdit = false,
   onVehicleChange,
   onCustomerChange
-}: AgreementBasicDetailsProps) => {
-  const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const vehiclesHook = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
+}) => {
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
-  const statusOptions = [
-    { label: "Draft", value: AgreementStatus.DRAFT },
-    { label: "Pending", value: AgreementStatus.PENDING },
-    { label: "Active", value: AgreementStatus.ACTIVE },
-    { label: "Expired", value: AgreementStatus.EXPIRED },
-    { label: "Cancelled", value: AgreementStatus.CANCELLED },
-    { label: "Closed", value: AgreementStatus.CLOSED }
-  ];
-
-  // When vehicle is selected, update selected vehicle state
-  const handleVehicleChange = (vehicleId: string) => {
-    if (vehicles && Array.isArray(vehicles)) {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      if (vehicle) {
-        onVehicleChange(vehicleId, vehicle);
-      }
-    }
+  const handleCustomerSelect = (customer: CustomerInfo) => {
+    setSelectedCustomer(customer);
+    form.setValue('customer_id', customer.id);
+    onCustomerChange?.(customer);
   };
 
-  // Track selected customer for CustomerSelector
-  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
+  const handleVehicleSelect = (vehicle: any) => {
+    setSelectedVehicle(vehicle);
+    form.setValue('vehicle_id', vehicle.id);
+    onVehicleChange?.(vehicle);
+  };
+
+  // Get agreement type labels in Arabic
+  const getAgreementTypeLabel = (type: string) => {
+    const translations: { [key: string]: string } = {
+      'short_term': 'قصير المدى',
+      'lease_to_own': 'إيجار منتهي بالتملك'
+    };
+    return translations[type] || type;
+  };
+
+  // Get status labels in Arabic
+  const getStatusLabel = (status: string) => {
+    const translations: { [key: string]: string } = {
+      'draft': 'مسودة',
+      'active': 'نشط',
+      'pending': 'معلق',
+      'completed': 'مكتمل',
+      'cancelled': 'ملغي'
+    };
+    return translations[status] || status;
+  };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <h2 className="text-xl font-semibold mb-4">Agreement Details</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="agreement_number"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Agreement Number</FormLabel>
-              <FormControl>
-                <Input placeholder="AGR-XXXXXX" {...field} disabled={isEdit} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-right">التفاصيل الأساسية</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6" dir="rtl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="agreement_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">رقم الاتفاقية</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                  <Input 
+                    placeholder="سيتم التوليد تلقائياً إذا ترك فارغاً" 
+                    {...field} 
+                    className="text-right"
+                    dir="rtl"
+                  />
                 </FormControl>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="customer_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Customer</FormLabel>
-              <CustomerSelector
-                selectedCustomer={selectedCustomer}
-                onCustomerSelect={(customer) => {
-                  field.onChange(customer.id);
-                  onCustomerChange(customer.id, customer);
-                }}
-                disabled={isLoadingCustomers}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="agreement_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">نوع الاتفاقية</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} dir="rtl">
+                  <FormControl>
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="اختر نوع الاتفاقية" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="short_term" className="text-right">قصير المدى</SelectItem>
+                    <SelectItem value="lease_to_own" className="text-right">إيجار منتهي بالتملك</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="vehicle_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Vehicle</FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  handleVehicleChange(value);
-                }}
-                defaultValue={field.value}
-              >
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">الحالة</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} dir="rtl">
+                  <FormControl>
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="اختر الحالة" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="draft" className="text-right">مسودة</SelectItem>
+                    <SelectItem value="active" className="text-right">نشط</SelectItem>
+                    <SelectItem value="pending" className="text-right">معلق</SelectItem>
+                    <SelectItem value="completed" className="text-right">مكتمل</SelectItem>
+                    <SelectItem value="cancelled" className="text-right">ملغي</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="customer_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">العميل</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a vehicle" />
-                  </SelectTrigger>
+                  <CustomerSelector
+                    selectedCustomer={selectedCustomer}
+                    onCustomerSelect={handleCustomerSelect}
+                    placeholder="البحث عن عميل..."
+                  />
                 </FormControl>
-                <SelectContent>
-                  {isLoadingVehicles ? (
-                    <SelectItem value="loading" disabled>
-                      <Skeleton className="h-5 w-full" />
-                    </SelectItem>
-                  ) : vehicles && Array.isArray(vehicles) && vehicles.length > 0 ? (
-                    vehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.make} {vehicle.model} - {vehicle.license_plate}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-vehicles" disabled>
-                      No vehicles available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vehicle_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right">المركبة</FormLabel>
+                <FormControl>
+                  <VehicleSelector
+                    selectedVehicle={selectedVehicle}
+                    onVehicleSelect={handleVehicleSelect}
+                    placeholder="البحث عن مركبة..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-right">تاريخ البداية</FormLabel>
+                <FormControl>
+                  <DatePicker
+                    date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
+                    setDate={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="end_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-right">تاريخ النهاية</FormLabel>
+                <FormControl>
+                  <DatePicker
+                    date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
+                    setDate={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };

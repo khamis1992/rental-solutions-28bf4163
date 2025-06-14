@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import LegalCaseCard from '../../LegalCaseCard';
 import { FileText, AlertTriangle, Scale, Download, Award } from 'lucide-react';
 import { generateArabicContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
+import { useTranslation } from '@/utils/translation-helper';
 
 interface DocumentsCardProps {
   agreement: Agreement;
@@ -29,6 +29,8 @@ export function DocumentsCard({
   isGeneratingPdf,
   getDateString
 }: DocumentsCardProps) {
+  const { t } = useTranslation();
+  
   // Convert date strings to Date objects for AgreementTrafficFines
   const ensureDate = (dateValue: string | Date): Date => {
     if (typeof dateValue === 'string') {
@@ -58,49 +60,46 @@ export function DocumentsCard({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Document Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-right">
             <FileText className="h-5 w-5" />
-            Document Management
+            إدارة الوثائق
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Generate professional Arabic contracts and manage agreement documents.
+            <p className="text-sm text-muted-foreground text-right">
+              إدارة العقود والوثائق المهنية العربية للإيجار
             </p>
             
             {/* Comprehensive Arabic Contract Button */}
             <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-row-reverse">
                 <Award className="h-5 w-5 text-emerald-600" />
-                <h4 className="font-semibold text-emerald-800">عقد إيجار شامل (Comprehensive Contract)</h4>
+                <h4 className="font-semibold text-emerald-800 text-right">العقد الشامل</h4>
               </div>
-              <p className="text-sm text-emerald-700 mb-3">
-                Professional Arabic rental agreement with complete legal articles, terms, and conditions
+              <p className="text-sm text-emerald-700 mb-3 text-right">
+                إدارة العقود والوثائق المهنية العربية للإيجار
               </p>
               <Button
                 onClick={handleGenerateComprehensiveContract}
                 disabled={isGeneratingPdf}
-                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2 flex-row-reverse"
               >
-                <Download className="h-4 w-4 mr-2" />
-                إنشاء العقد الشامل (Generate Full Contract)
+                <Download className="h-4 w-4" />
+                إنشاء العقد الكامل
               </Button>
             </div>
             
             {/* Standard Action Buttons */}
             <div className="pt-4 border-t">
-              <h4 className="font-medium mb-3">Other Document Options</h4>
+              <h4 className="font-medium mb-3 text-right">خيارات الوثائق الأخرى</h4>
               <AgreementActionButtons
                 onEdit={onEdit}
-                onDownloadPdf={onDownloadPdf}
-                onGenerateDocument={onGenerateDocument}
                 onDelete={onDelete}
-                isGeneratingPdf={isGeneratingPdf}
               />
             </div>
           </div>
@@ -110,9 +109,9 @@ export function DocumentsCard({
       {/* Traffic Fines */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-right flex-row-reverse">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Traffic Fines
+            المخالفات المرورية
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -127,9 +126,9 @@ export function DocumentsCard({
       {/* Legal Cases */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-right flex-row-reverse">
             <Scale className="h-5 w-5 text-purple-500" />
-            Legal Cases
+            القضايا القانونية
           </CardTitle>
         </CardHeader>
         <CardContent>

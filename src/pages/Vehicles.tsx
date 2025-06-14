@@ -15,6 +15,11 @@ import { VehicleSearch } from '@/components/vehicles/VehicleSearch';
 import { Badge } from '@/components/ui/badge';
 import { useVehicleService } from '@/hooks/services/useVehicleService';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useTranslation } from '@/utils/translation-helper';
+import PageHeader from '@/components/ui/PageHeader';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { vehicleService } from '@/services/VehicleService';
+import { enhancedVehicleSearch } from '@/utils/searchUtils';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -29,6 +34,8 @@ const VALID_STATUSES: VehicleStatus[] = [
 ];
 
 const Vehicles = () => {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
@@ -49,10 +56,83 @@ const Vehicles = () => {
   // Update vehicles state with proper type
   const [vehicles, setVehicles] = useState<ExtendedVehicle[]>([]);
   
-  // Fetch vehicles with pagination
+  // Enhanced search function that uses fuzzy matching
+  const performEnhancedSearch = async (searchTerm: string) => {
+    if (!searchTerm?.trim()) return [];
+    
+    try {
+      // Use the search method from VehicleService
+      const result = await vehicleService.searchVehicles(searchTerm);
+      
+      if (result.success) {
+        return result.data;
+      } else {
+        console.error('Enhanced search failed:', result.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Enhanced search error:', error);
+      return [];
+    }
+  };
+
+  // Fetch vehicles when filters or pagination changes
   const fetchVehicles = async () => {
     try {
       setError(null);
+      
+      // If there's a search term, use enhanced search
+      if (filters.searchTerm?.trim()) {
+        const searchResults = await performEnhancedSearch(filters.searchTerm);
+        
+        // Apply other filters to search results
+        let filteredVehicles = searchResults as ExtendedVehicle[];
+        
+        // Filter by status
+        if (filters.statuses?.length) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            filters.statuses?.includes(v.status)
+          );
+        }
+        
+        // Filter by make
+        if (filters.make) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.make.toLowerCase().includes(filters.make?.toLowerCase() || '')
+          );
+        }
+        
+        // Filter by location
+        if (filters.location) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.location.toLowerCase().includes(filters.location?.toLowerCase() || '')
+          );
+        }
+        
+        // Filter by year
+        if (filters.year) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.year === filters.year
+          );
+        }
+        
+        // Filter by vehicle type
+        if (filters.vehicle_type_id) {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.vehicle_type_id === filters.vehicle_type_id
+          );
+        }
+        
+        // Calculate pagination
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedVehicles = filteredVehicles.slice(startIndex, endIndex);
+        
+        setTotalItems(filteredVehicles.length);
+        return paginatedVehicles;
+      }
+      
+      // Otherwise use regular vehicle fetching
       const vehicles = await getAllVehicles();
       if (vehicles) {
         // Apply filters
@@ -93,17 +173,6 @@ const Vehicles = () => {
           );
         }
         
-        // Filter by search term
-        if (filters.searchTerm) {
-          const searchTerm = filters.searchTerm.toLowerCase();
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.vin.toLowerCase().includes(searchTerm) ||
-            v.make.toLowerCase().includes(searchTerm) ||
-            v.model.toLowerCase().includes(searchTerm) ||
-            v.license_plate?.toLowerCase().includes(searchTerm)
-          );
-        }
-        
         // Calculate pagination
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
@@ -140,13 +209,13 @@ const Vehicles = () => {
         }));
         
         setActiveTab(statusFromUrl);
-        toast.info(`Showing vehicles with status: ${statusFromUrl}`);
+        toast.info(language === 'ar' ? `عرض المركبات بحالة: ${statusFromUrl}` : `Showing vehicles with status: ${statusFromUrl}`);
       } else {
-        toast.error(`Invalid status filter: ${statusFromUrl}`);
+        toast.error(language === 'ar' ? `مرشح حالة غير صالح: ${statusFromUrl}` : `Invalid status filter: ${statusFromUrl}`);
         navigate('/vehicles');
       }
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, language]);
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);
@@ -217,17 +286,20 @@ const Vehicles = () => {
       value !== '');
 
   return (
-    <PageContainer 
-      title="Vehicle Management" 
-      description="Manage your fleet inventory"
-      className="max-w-full"
-    >
-      <div className="space-y-6">
+    <PageContainer className="max-w-full">
+      <PageHeader
+        title={language === 'ar' ? 'المركبات' : 'Vehicles'}
+        subtitle={language === 'ar' ? 'إدارة وتتبع أسطول المركبات' : 'Manage and track your fleet vehicles'}
+        icon={<Car className="w-6 h-6 text-blue-500" />}
+        align={language === 'ar' ? 'right' : 'left'}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      />
+      <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <VehicleStats />
         
         <Card className="overflow-hidden">
           <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
               <Tabs 
                 defaultValue={activeTab} 
                 value={activeTab} 
@@ -235,18 +307,19 @@ const Vehicles = () => {
                 className="w-full sm:w-auto"
               >
                 <TabsList>
-                  <TabsTrigger value="all">All Vehicles</TabsTrigger>
-                  <TabsTrigger value="available">Available</TabsTrigger>
-                  <TabsTrigger value="rented">Rented</TabsTrigger>
-                  <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+                  <TabsTrigger value="all">{language === 'ar' ? 'الكل' : 'All'}</TabsTrigger>
+                  <TabsTrigger value="available">{language === 'ar' ? 'متاحة' : 'Available'}</TabsTrigger>
+                  <TabsTrigger value="rented">{language === 'ar' ? 'مؤجرة' : 'Rented'}</TabsTrigger>
+                  <TabsTrigger value="maintenance">{language === 'ar' ? 'صيانة' : 'Maintenance'}</TabsTrigger>
                 </TabsList>
               </Tabs>
               
-              <div className="flex items-center space-x-2">
+              <div className={`flex items-center ${language === 'ar' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
                 <Button 
                   variant={viewMode === 'grid' ? 'default' : 'outline'} 
                   size="icon"
                   onClick={() => setViewMode('grid')}
+                  title={language === 'ar' ? 'عرض شبكي' : 'Grid View'}
                 >
                   <Grid3x3 size={18} />
                 </Button>
@@ -254,13 +327,14 @@ const Vehicles = () => {
                   variant={viewMode === 'table' ? 'default' : 'outline'} 
                   size="icon"
                   onClick={() => setViewMode('table')}
+                  title={language === 'ar' ? 'عرض جدولي' : 'Table View'}
                 >
                   <TableProperties size={18} />
                 </Button>
               </div>
             </div>
             
-            <div className="flex flex-col md:flex-row justify-between mt-4 gap-4">
+            <div className={`flex flex-col md:flex-row justify-between mt-4 gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
               <div className="flex-1 max-w-md">
                 <VehicleSearch
                   searchQuery={searchQuery}
@@ -268,13 +342,16 @@ const Vehicles = () => {
                 />
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
                 >
-                  {showFilters ? "Hide Filters" : "Show Filters"}
+                  {showFilters ? 
+                    (language === 'ar' ? 'إخفاء المرشحات' : 'Hide Filters') : 
+                    (language === 'ar' ? 'إظهار المرشحات' : 'Show Filters')
+                  }
                 </Button>
                 
                 <Button 
@@ -282,8 +359,8 @@ const Vehicles = () => {
                   size="sm"
                   onClick={() => navigate('/vehicles/status-update')}
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Status Update
+                  <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'تحديث الحالة' : 'Status Update'}
                 </Button>
                 
                 <Button 
@@ -291,35 +368,35 @@ const Vehicles = () => {
                   size="sm"
                   onClick={() => navigate('/maintenance/add')}
                 >
-                  <Wrench className="h-4 w-4 mr-2" />
-                  Add Maintenance
+                  <Wrench className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'إضافة صيانة' : 'Add Maintenance'}
                 </Button>
                 
                 <Button size="sm" onClick={handleAddVehicle}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Vehicle
+                  <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                  {language === 'ar' ? 'إضافة مركبة' : 'Add Vehicle'}
                 </Button>
               </div>
             </div>
             
             {activeFilters.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className={`mt-4 flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 {activeFilters.map(([key, value]) => (
                   <Badge
                     key={key}
                     variant="secondary"
-                    className="flex items-center gap-1"
+                    className={`flex items-center gap-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
                   >
-                    {key === 'searchTerm' ? 'search' : key}: {value}
+                    {key === 'searchTerm' ? (language === 'ar' ? 'البحث' : 'Search') : key}: {value}
                     <button
                       onClick={() => {
                         const updatedFilters = { ...filters };
                         delete updatedFilters[key as keyof VehicleFilterParams];
                         setFilters(updatedFilters);
                       }}
-                      className="ml-1 rounded-full hover:bg-accent p-1"
+                      className={`rounded-full hover:bg-accent p-1 ${language === 'ar' ? 'mr-1' : 'ml-1'}`}
                     >
-                      <span className="sr-only">Remove</span>
+                      <span className="sr-only">{language === 'ar' ? 'إزالة' : 'Remove'}</span>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                         <path d="M1 1L11 11M1 11L11 1" stroke="currentColor" strokeWidth="2" />
                       </svg>
@@ -336,7 +413,7 @@ const Vehicles = () => {
                     setFilters(cleanFilters);
                   }}
                 >
-                  Clear filters
+                  {language === 'ar' ? 'مسح المرشحات' : 'Clear Filters'}
                 </Button>
               </div>
             )}
@@ -374,9 +451,13 @@ const Vehicles = () => {
             )}
             
             {(error || serviceError) && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4">
-                <p className="font-medium">Error loading vehicles</p>
-                <p>{(error || serviceError)?.message || 'An unknown error occurred'}</p>
+              <div className={`p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm mt-4 ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                <p className="font-medium">
+                  {language === 'ar' ? 'خطأ في تحميل المركبات' : 'Error Loading Vehicles'}
+                </p>
+                <p>
+                  {(error || serviceError)?.message || (language === 'ar' ? 'خطأ غير معروف' : 'Unknown error')}
+                </p>
               </div>
             )}
             

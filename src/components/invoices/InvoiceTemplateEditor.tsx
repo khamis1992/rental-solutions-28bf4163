@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TemplateEditorSidebar from "./TemplateEditorSidebar";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import TemplateTestData from "./TemplateTestData";
-import TemplateActionButtons from "./TemplateActionButtons";
+import { TemplateActionButtons } from "./TemplateActionButtons";
 import AITemplateGeneratorDialog from './AITemplateGeneratorDialog';
 
 const InvoiceTemplateEditor: React.FC = () => {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,8 +35,8 @@ export function PaymentEntryDialog({
   onOpenChange,
   onSubmit,
   defaultAmount = 0,
-  title = 'Record Payment',
-  description = 'Enter payment details',
+  title = 'تسجيل دفعة',
+  description = 'أدخل تفاصيل الدفعة',
 }: PaymentEntryDialogProps) {
   const [amount, setAmount] = useState(defaultAmount.toString());
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -61,7 +60,7 @@ export function PaymentEntryDialog({
     
     const amountValue = parseFloat(amount);
     if (isNaN(amountValue) || amountValue <= 0) {
-      toast.error('Please enter a valid amount');
+      toast.error('يرجى إدخال مبلغ صحيح');
       return;
     }
 
@@ -76,12 +75,12 @@ export function PaymentEntryDialog({
       );
       
       if (success) {
-        toast.success('Payment recorded successfully');
+        toast.success('تم تسجيل الدفعة بنجاح');
         onOpenChange(false);
       }
     } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('Failed to record payment');
+      toast.error('فشل في تسجيل الدفعة');
     } finally {
       setIsSubmitting(false);
     }
@@ -89,15 +88,15 @@ export function PaymentEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px]" dir="rtl">
+        <DialogHeader className="text-right">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription className="text-right">{description}</DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (QAR)</Label>
+            <Label htmlFor="amount" className="text-right block">المبلغ (ر.ق)</Label>
             <Input
               id="amount"
               type="number"
@@ -106,22 +105,25 @@ export function PaymentEntryDialog({
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               required
+              className="text-right"
+              dir="rtl"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Payment Date</Label>
+            <Label className="text-right block">تاريخ الدفع</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal',
+                    'w-full justify-start text-right font-normal flex-row-reverse',
                     !paymentDate && 'text-muted-foreground'
                   )}
+                  dir="rtl"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {paymentDate ? format(paymentDate, 'PPP') : 'Pick a date'}
+                  <CalendarIcon className="h-4 w-4 ml-2" />
+                  {paymentDate ? format(paymentDate, 'PPP') : 'اختر التاريخ'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -136,53 +138,57 @@ export function PaymentEntryDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="method">Payment Method</Label>
+            <Label htmlFor="method" className="text-right block">طريقة الدفع</Label>
             <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
+              <SelectTrigger className="text-right" dir="rtl">
+                <SelectValue placeholder="اختر طريقة الدفع" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="check">Check</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="online">Online Payment</SelectItem>
+                <SelectItem value="cash">نقدي</SelectItem>
+                <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                <SelectItem value="check">شيك</SelectItem>
+                <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
+                <SelectItem value="online">دفع إلكتروني</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reference">Reference Number</Label>
+            <Label htmlFor="reference" className="text-right block">الرقم المرجعي</Label>
             <Input
               id="reference"
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              placeholder="Transaction reference (optional)"
+              placeholder="رقم المعاملة (اختياري)"
+              className="text-right"
+              dir="rtl"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes" className="text-right block">ملاحظات</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes (optional)"
+              placeholder="ملاحظات إضافية (اختياري)"
               rows={3}
+              className="text-right"
+              dir="rtl"
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-2 pt-4 space-x-reverse">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              Cancel
+              إلغاء
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Recording...' : 'Record Payment'}
+              {isSubmitting ? 'جاري التسجيل...' : 'تسجيل الدفعة'}
             </Button>
           </div>
         </form>

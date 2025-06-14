@@ -1,4 +1,3 @@
-
 import { differenceInMonths, addMonths, startOfMonth, format } from 'date-fns';
 
 export interface ScheduledPayment {
@@ -6,8 +5,8 @@ export interface ScheduledPayment {
   dueDate: Date;
   amount: number;
   description: string;
-  status: 'pending' | 'completed' | 'overdue';
-  type: 'rent' | 'deposit' | 'special';
+  status: 'معلق' | 'مكتمل' | 'متأخر';
+  type: 'إيجار' | 'تأمين' | 'خاص';
   monthNumber?: number;
   isProjected: boolean;
 }
@@ -41,9 +40,9 @@ export function generatePaymentSchedule(params: PaymentScheduleParams): Schedule
       id: `deposit-${startDate.getTime()}`,
       dueDate: startDate,
       amount: depositAmount,
-      description: 'Security Deposit',
-      status: 'pending',
-      type: 'deposit',
+      description: 'تأمين الضمان',
+      status: 'معلق',
+      type: 'تأمين',
       isProjected: true
     });
   }
@@ -62,9 +61,9 @@ export function generatePaymentSchedule(params: PaymentScheduleParams): Schedule
         id: `rent-${i}-${dueDate.getTime()}`,
         dueDate,
         amount: rentAmount,
-        description: `Monthly Rent - ${format(dueDate, 'MMM yyyy')}`,
-        status: 'pending',
-        type: 'rent',
+        description: `إيجار شهري - ${format(dueDate, 'MMM yyyy')}`,
+        status: 'معلق',
+        type: 'إيجار',
         monthNumber: i + 1,
         isProjected: true
       });
@@ -79,9 +78,9 @@ export function generatePaymentSchedule(params: PaymentScheduleParams): Schedule
         id: `rent-week-${weekNumber}-${currentDate.getTime()}`,
         dueDate: new Date(currentDate),
         amount: rentAmount,
-        description: `Weekly Rent - Week ${weekNumber}`,
-        status: 'pending',
-        type: 'rent',
+        description: `إيجار أسبوعي - الأسبوع ${weekNumber}`,
+        status: 'معلق',
+        type: 'إيجار',
         isProjected: true
       });
       
@@ -109,15 +108,15 @@ export function mergeActualWithScheduled(
       // Match by month/year for monthly payments
       return paymentDate.getMonth() === scheduledDate.getMonth() &&
              paymentDate.getFullYear() === scheduledDate.getFullYear() &&
-             scheduled.type === 'rent';
+             scheduled.type === 'إيجار';
     });
     
     if (matchingIndex >= 0) {
       merged[matchingIndex] = {
         ...merged[matchingIndex],
         id: payment.id,
-        status: payment.status === 'completed' ? 'completed' : 
-                payment.status === 'pending' ? 'pending' : 'overdue',
+        status: payment.status === 'completed' ? 'مكتمل' : 
+                payment.status === 'pending' ? 'معلق' : 'متأخر',
         isProjected: false,
         amount: payment.amount || merged[matchingIndex].amount
       };
@@ -127,10 +126,10 @@ export function mergeActualWithScheduled(
         id: payment.id,
         dueDate: new Date(payment.payment_date || payment.due_date),
         amount: payment.amount,
-        description: payment.description || 'Payment',
-        status: payment.status === 'completed' ? 'completed' : 
-                payment.status === 'pending' ? 'pending' : 'overdue',
-        type: payment.type || 'rent',
+        description: payment.description || 'دفعة',
+        status: payment.status === 'completed' ? 'مكتمل' : 
+                payment.status === 'pending' ? 'معلق' : 'متأخر',
+        type: payment.type || 'إيجار',
         isProjected: false
       });
     }

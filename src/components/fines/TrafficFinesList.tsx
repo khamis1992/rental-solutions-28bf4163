@@ -55,6 +55,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -64,6 +65,7 @@ interface TrafficFinesListProps {
 const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { trafficFines, isLoading, error, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
+  const { language } = useLanguage();
   const [assigningFines, setAssigningFines] = useState(false);
   const [dataValidation, setDataValidation] = useState<{ valid: boolean; issues: string[] }>({ 
     valid: true, 
@@ -205,26 +207,32 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   };
 
   const getStatusBadge = (status: string) => {
+    const iconClass = language === 'ar' ? 'ml-1 h-3 w-3' : 'mr-1 h-3 w-3';
+    const badgeClass = language === 'ar' ? 'flex-row-reverse' : '';
+    
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
+        return <Badge className={`bg-green-500 text-white border-green-600 ${badgeClass}`}><CheckCircle className={iconClass} /> {language === 'ar' ? 'مدفوعة' : 'Paid'}</Badge>;
       case 'disputed':
-        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
+        return <Badge className={`bg-amber-500 text-white border-amber-600 ${badgeClass}`}><AlertTriangle className={iconClass} /> {language === 'ar' ? 'متنازع عليها' : 'Disputed'}</Badge>;
       case 'pending':
       default:
-        return <Badge className="bg-red-500 text-white border-red-600"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
+        return <Badge className={`bg-red-500 text-white border-red-600 ${badgeClass}`}><X className={iconClass} /> {language === 'ar' ? 'معلقة' : 'Pending'}</Badge>;
     }
   };
 
   const getCustomerAssignmentStatus = (fine: any) => {
+    const iconClass = language === 'ar' ? 'ml-1 h-3 w-3' : 'mr-1 h-3 w-3';
+    const badgeClass = language === 'ar' ? 'flex-row-reverse' : '';
+    
     if (fine.customerId) {
       return (
-        <Badge className="bg-blue-500 text-white border-blue-600">
-          <UserCheck className="mr-1 h-3 w-3" /> Assigned
+        <Badge className={`bg-blue-500 text-white border-blue-600 ${badgeClass}`}>
+          <UserCheck className={iconClass} /> {language === 'ar' ? 'معين' : 'Assigned'}
         </Badge>
       );
     }
-    return <Badge variant="outline">Unassigned</Badge>;
+    return <Badge variant="outline">{language === 'ar' ? 'غير معين' : 'Unassigned'}</Badge>;
   };
 
   if (error) {
@@ -268,28 +276,28 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {renderDataValidationWarning()}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
-          title="Total Traffic Fines"
+          title={language === 'ar' ? 'إجمالي المخالفات المرورية' : 'Total Traffic Fines'}
           value={filteredFines.length.toString()}
-          description="Total number of traffic fines in the system"
+          description={language === 'ar' ? 'العدد الإجمالي للمخالفات المرورية في النظام' : 'Total number of traffic fines in the system'}
           icon={AlertTriangle}
           iconColor="text-amber-500"
         />
         <StatCard 
-          title="Assigned Fines"
+          title={language === 'ar' ? 'المخالفات المعينة' : 'Assigned Fines'}
           value={assignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(assignedFinesAmount)}`}
+          description={language === 'ar' ? `المبلغ الإجمالي: ${formatCurrency(assignedFinesAmount)}` : `Total amount: ${formatCurrency(assignedFinesAmount)}`}
           icon={UserCheck}
           iconColor="text-blue-500"
         />
         <StatCard 
-          title="Unassigned Fines"
+          title={language === 'ar' ? 'المخالفات غير المعينة' : 'Unassigned Fines'}
           value={unassignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(unassignedFinesAmount)}`}
+          description={language === 'ar' ? `المبلغ الإجمالي: ${formatCurrency(unassignedFinesAmount)}` : `Total amount: ${formatCurrency(unassignedFinesAmount)}`}
           icon={Users}
           iconColor="text-red-500"
         />
@@ -297,65 +305,70 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle>Traffic Fines</CardTitle>
+          <div className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${language === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+            <div className={language === 'ar' ? 'text-right' : ''}>
+              <CardTitle>{language === 'ar' ? 'المخالفات المرورية' : 'Traffic Fines'}</CardTitle>
               <CardDescription>
-                Manage and track traffic fines for your vehicles
+                {language === 'ar' ? 'إدارة وتتبع المخالفات المرورية للمركبات' : 'Manage and track traffic fines for your vehicles'}
               </CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className={`flex flex-col sm:flex-row gap-2 ${language === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
               <Button 
-                className="w-full md:w-auto"
+                className={`w-full md:w-auto ${language === 'ar' ? 'flex-row-reverse' : ''}`}
                 onClick={handleAutoAssignFines}
                 disabled={assigningFines || isAutoAssigning}
                 variant="secondary"
               >
                 {(assigningFines || isAutoAssigning) ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                    Assigning...
+                    <Loader2 className={`h-4 w-4 animate-spin ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                    {language === 'ar' ? 'جاري التعيين...' : 'Assigning...'}
                   </>
                 ) : (
                   <>
-                    <UserCheck className="mr-2 h-4 w-4" /> 
-                    Auto-Assign
+                    <UserCheck className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                    {language === 'ar' ? 'التعيين التلقائي' : 'Auto-Assign'}
                   </>
                 )}
               </Button>
               <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="secondary" className="w-full md:w-auto">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import CSV
+                  <Button variant="secondary" className={`w-full md:w-auto ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <Upload className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                    {language === 'ar' ? 'استيراد CSV' : 'Import CSV'}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[800px]">
+                <DialogContent className="sm:max-w-[800px]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                   <DialogHeader>
-                    <DialogTitle>Import Traffic Fines from CSV</DialogTitle>
-                    <DialogDescription>
-                      Upload a CSV file with traffic fine data. Make sure to include license plates.
+                    <DialogTitle className={language === 'ar' ? 'text-right' : ''}>
+                      {language === 'ar' ? 'استيراد المخالفات المرورية من CSV' : 'Import Traffic Fines from CSV'}
+                    </DialogTitle>
+                    <DialogDescription className={language === 'ar' ? 'text-right' : ''}>
+                      {language === 'ar' 
+                        ? 'ارفع ملف CSV يحتوي على بيانات المخالفات المرورية. تأكد من تضمين لوحات الترخيص.'
+                        : 'Upload a CSV file with traffic fine data. Make sure to include license plates.'}
                     </DialogDescription>
                   </DialogHeader>
                   <TrafficFineImport onImportComplete={handleImportComplete} />
                 </DialogContent>
               </Dialog>
               <Button 
-                className="w-full md:w-auto"
+                className={`w-full md:w-auto ${language === 'ar' ? 'flex-row-reverse' : ''}`}
                 onClick={onAddFine}
               >
-                <Plus className="mr-2 h-4 w-4" /> Add Fine
+                <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                {language === 'ar' ? 'إضافة مخالفة' : 'Add Fine'}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
+          <div className={`flex items-center mb-4 ${language === 'ar' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className={`absolute top-2.5 h-4 w-4 text-muted-foreground ${language === 'ar' ? 'right-2.5' : 'left-2.5'}`} />
               <Input
-                placeholder="Search by violation number, license plate, or charge..."
-                className="pl-8"
+                placeholder={language === 'ar' ? 'البحث برقم المخالفة أو لوحة الترخيص أو نوع المخالفة...' : 'Search by violation number, license plate, or charge...'}
+                className={language === 'ar' ? 'pr-8 text-right' : 'pl-8'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -363,16 +376,30 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
           </div>
           
           <div className="rounded-md border">
-            <Table>
+            <Table dir={language === 'ar' ? 'rtl' : 'ltr'}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Violation #</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead className="hidden md:table-cell">Violation Date</TableHead>
-                  <TableHead className="hidden md:table-cell">Location</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Customer</TableHead>
+                  <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' ? 'رقم المخالفة' : 'Violation #'}
+                  </TableHead>
+                  <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' ? 'لوحة الترخيص' : 'License Plate'}
+                  </TableHead>
+                  <TableHead className={`hidden md:table-cell ${language === 'ar' ? 'text-right' : ''}`}>
+                    {language === 'ar' ? 'تاريخ المخالفة' : 'Violation Date'}
+                  </TableHead>
+                  <TableHead className={`hidden md:table-cell ${language === 'ar' ? 'text-right' : ''}`}>
+                    {language === 'ar' ? 'الموقع' : 'Location'}
+                  </TableHead>
+                  <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' ? 'المبلغ' : 'Amount'}
+                  </TableHead>
+                  <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' ? 'الحالة' : 'Status'}
+                  </TableHead>
+                  <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                    {language === 'ar' ? 'العميل' : 'Customer'}
+                  </TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -380,9 +407,11 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                 {isLoading || isAutoAssigning ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      <div className="flex justify-center items-center">
-                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                        {isAutoAssigning ? "Auto-assigning traffic fines..." : "Loading traffic fines..."}
+                      <div className={`flex justify-center items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                        <Loader2 className={`h-6 w-6 animate-spin ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                        {isAutoAssigning 
+                          ? (language === 'ar' ? 'جاري التعيين التلقائي للمخالفات المرورية...' : 'Auto-assigning traffic fines...') 
+                          : (language === 'ar' ? 'جاري تحميل المخالفات المرورية...' : 'Loading traffic fines...')}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -395,14 +424,16 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                           {fine.violationNumber}
                         </div>
                       </TableCell>
-                      <TableCell className={!fine.licensePlate ? "text-red-500 font-bold" : ""}>
-                        {fine.licensePlate || "MISSING"}
+                      <TableCell className={`${!fine.licensePlate ? "text-red-500 font-bold" : ""} ${language === 'ar' ? 'text-right' : ''}`}>
+                        {fine.licensePlate || (language === 'ar' ? 'مفقود' : 'MISSING')}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className={`hidden md:table-cell ${language === 'ar' ? 'text-right' : ''}`}>
                         {formatDate(fine.violationDate)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
+                      <TableCell className={`hidden md:table-cell ${language === 'ar' ? 'text-right' : ''}`}>
+                        {fine.location || (language === 'ar' ? 'غير متوفر' : 'N/A')}
+                      </TableCell>
+                      <TableCell className={language === 'ar' ? 'text-right' : ''}>{formatCurrency(fine.fineAmount)}</TableCell>
                       <TableCell>
                         {getStatusBadge(fine.paymentStatus)}
                       </TableCell>
@@ -425,20 +456,26 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                             <DropdownMenuItem 
                               onClick={() => handlePayFine(fine.id)}
                               disabled={fine.paymentStatus === 'paid'}
+                              className={language === 'ar' ? 'flex-row-reverse' : ''}
                             >
-                              <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
+                              <CheckCircle className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                              {language === 'ar' ? 'دفع المخالفة' : 'Pay Fine'}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleDisputeFine(fine.id)}
                               disabled={fine.paymentStatus === 'disputed'}
+                              className={language === 'ar' ? 'flex-row-reverse' : ''}
                             >
-                              <X className="mr-2 h-4 w-4" /> Dispute Fine
+                              <X className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                              {language === 'ar' ? 'الاعتراض على المخالفة' : 'Dispute Fine'}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
+                              className={language === 'ar' ? 'flex-row-reverse' : ''}
                             >
-                              <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
+                              <UserCheck className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} /> 
+                              {language === 'ar' ? 'تعيين للعميل' : 'Assign to Customer'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -448,7 +485,9 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      {searchQuery ? "No matching traffic fines found." : "No traffic fines found."}
+                      {searchQuery 
+                        ? (language === 'ar' ? 'لم يتم العثور على مخالفات مرورية مطابقة.' : 'No matching traffic fines found.') 
+                        : (language === 'ar' ? 'لم يتم العثور على مخالفات مرورية.' : 'No traffic fines found.')}
                     </TableCell>
                   </TableRow>
                 )}

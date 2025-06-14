@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useProfile, Profile } from "@/contexts/ProfileContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const profileSchema = z.object({
-  full_name: z.string().min(3, "Full name must be at least 3 characters"),
-  email: z.string().email("Invalid email address").optional(),
+  full_name: z.string().min(3, "يجب أن يكون الاسم الكامل 3 أحرف على الأقل"),
+  email: z.string().email("عنوان البريد الإلكتروني غير صالح").optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -44,7 +44,7 @@ const UserProfile = () => {
       setIsUpdating(true);
       await updateProfile({ full_name: data.full_name });
     } catch (error) {
-      console.error("Profile update error:", error);
+      console.error("خطأ في تحديث الملف الشخصي:", error);
     } finally {
       setIsUpdating(false);
     }
@@ -54,29 +54,30 @@ const UserProfile = () => {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="mr-2 text-muted-foreground">جاري التحميل...</span>
       </div>
     );
   }
 
   return (
-    <Card>
+    <Card className="rtl" dir="rtl">
       <CardHeader>
-        <CardTitle>Your Profile</CardTitle>
-        <CardDescription>Manage your account settings and preferences</CardDescription>
+        <CardTitle className="text-right">الملف الشخصي</CardTitle>
+        <CardDescription className="text-right">إدارة إعدادات وتفضيلات حسابك</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" dir="rtl">
             <FormField
               control={form.control}
               name="full_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel className="text-right block">الاسم الكامل</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="محمد أحمد" {...field} className="text-right" dir="rtl" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-right" />
                 </FormItem>
               )}
             />
@@ -86,28 +87,34 @@ const UserProfile = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-right block">البريد الإلكتروني</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} disabled />
+                    <Input placeholder="name@example.com" {...field} disabled className="text-right" dir="ltr" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-right" />
                 </FormItem>
               )}
             />
 
-            <div className="flex items-center space-x-2">
-              <div className="font-medium">Role:</div>
-              <div className="text-muted-foreground">{profile?.role || "User"}</div>
+            <div className="flex items-center space-x-reverse space-x-2">
+              <div className="font-medium">الدور:</div>
+              <div className="text-muted-foreground">{profile?.role === "User" ? "مستخدم" : profile?.role === "admin" ? "مدير" : profile?.role === "staff" ? "موظف" : profile?.role}</div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <div className="font-medium">Account Status:</div>
-              <div className="text-muted-foreground">{profile ? "Active" : "Pending"}</div>
+            <div className="flex items-center space-x-reverse space-x-2">
+              <div className="font-medium">حالة الحساب:</div>
+              <div className="text-muted-foreground">{profile ? "نشط" : "معلق"}</div>
             </div>
 
-            <Button type="submit" disabled={isUpdating}>
-              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isUpdating ? "Updating..." : "Save changes"}
+            <Button type="submit" disabled={isUpdating} className="w-full">
+              {isUpdating ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري التحديث...
+                </>
+              ) : (
+                "حفظ التغييرات"
+              )}
             </Button>
           </form>
         </Form>

@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CarInstallmentContract } from '@/types/car-installment';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const contractSchema = z.object({
   car_type: z.string().min(1, 'Car type is required'),
@@ -46,6 +47,8 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
   onSubmit,
   onClose,
 }) => {
+  const { language } = useLanguage();
+  
   const form = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema),
     defaultValues: {
@@ -108,9 +111,9 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add Car Installment Contract</DialogTitle>
+      <DialogContent className="sm:max-w-[425px]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <DialogHeader className={language === 'ar' ? 'text-right' : 'text-left'}>
+          <DialogTitle>{language === 'ar' ? 'إضافة عقد تقسيط سيارة' : 'Add Car Installment Contract'}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -120,9 +123,11 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="car_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Car Type/Model</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'نوع/موديل السيارة' : 'Car Type/Model'}
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className={language === 'ar' ? 'text-right' : 'text-left'} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,12 +139,15 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="model_year"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Model Year</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'سنة الموديل' : 'Model Year'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      className={language === 'ar' ? 'text-right' : 'text-left'}
                     />
                   </FormControl>
                   <FormMessage />
@@ -152,12 +160,15 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="number_of_cars"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Number of Cars</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'عدد السيارات' : 'Number of Cars'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      className={language === 'ar' ? 'text-right' : 'text-left'}
                     />
                   </FormControl>
                   <FormMessage />
@@ -170,12 +181,15 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="price_per_car"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price per Car</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'السعر لكل سيارة' : 'Price per Car'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      className={language === 'ar' ? 'text-right' : 'text-left'}
                     />
                   </FormControl>
                   <FormMessage />
@@ -183,8 +197,10 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               )}
             />
 
-            <div className="py-2">
-              <div className="font-medium">Total Contract Value</div>
+            <div className={`py-2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+              <div className="font-medium">
+                {language === 'ar' ? 'القيمة الإجمالية للعقد' : 'Total Contract Value'}
+              </div>
               <div className="text-2xl font-bold">{totalContractValue.toLocaleString()}</div>
             </div>
 
@@ -193,12 +209,15 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="total_installments"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total Installments</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'إجمالي الأقساط' : 'Total Installments'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      className={language === 'ar' ? 'text-right' : 'text-left'}
                     />
                   </FormControl>
                   <FormMessage />
@@ -211,13 +230,16 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="installment_value"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Installment Value</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'قيمة القسط' : 'Installment Value'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       disabled
                       value={calculatedInstallmentValue.toFixed(2)}
+                      className={language === 'ar' ? 'text-right' : 'text-left'}
                     />
                   </FormControl>
                   <FormMessage />
@@ -230,17 +252,21 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
+                    {language === 'ar' ? 'الفئة' : 'Category'}
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className={language === 'ar' ? 'text-right' : 'text-left'} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <DialogFooter>
-              <Button type="submit">Create Contract</Button>
+            <DialogFooter className={language === 'ar' ? 'flex-row-reverse' : ''}>
+              <Button type="submit">
+                {language === 'ar' ? 'إنشاء عقد' : 'Create Contract'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

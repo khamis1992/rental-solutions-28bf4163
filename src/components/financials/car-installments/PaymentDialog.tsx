@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { z } from 'zod';
+import * as z from 'zod';
 import { useForm } from 'react-hook-form';
+import React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Dialog,
@@ -24,14 +23,14 @@ import { CarInstallmentPayment } from '@/types/car-installment';
 
 // Define schemas based on mode
 const recordPaymentSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.number().positive('يجب أن يكون المبلغ موجباً'),
 });
 
 const addPaymentSchema = z.object({
-  cheque_number: z.string().min(1, 'Cheque number is required'),
-  drawee_bank: z.string().min(1, 'Bank name is required'),
-  amount: z.number().positive('Amount must be positive'),
-  payment_date: z.string().min(1, 'Payment date is required'),
+  cheque_number: z.string().min(1, 'رقم الشيك مطلوب'),
+  drawee_bank: z.string().min(1, 'اسم البنك مطلوب'),
+  amount: z.number().positive('يجب أن يكون المبلغ موجباً'),
+  payment_date: z.string().min(1, 'تاريخ الدفع مطلوب'),
   payment_notes: z.string().optional(),
 });
 
@@ -98,10 +97,10 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px]" dir="rtl">
+        <DialogHeader className="text-right">
           <DialogTitle>
-            {recordMode ? 'Record Payment' : 'Add Payment Schedule'}
+            {recordMode ? 'تسجيل دفعة' : 'إضافة جدولة دفعات'}
           </DialogTitle>
         </DialogHeader>
 
@@ -115,9 +114,9 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
                   name="cheque_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cheque Number</FormLabel>
+                      <FormLabel className="text-right">رقم الشيك</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} className="text-right" dir="rtl" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -129,9 +128,9 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
                   name="drawee_bank"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Drawee Bank</FormLabel>
+                      <FormLabel className="text-right">البنك المسحوب عليه</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} className="text-right" dir="rtl" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -145,12 +144,14 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel className="text-right">المبلغ</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      className="text-right"
+                      dir="rtl"
                     />
                   </FormControl>
                   <FormMessage />
@@ -165,9 +166,9 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
                   name="payment_date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Payment Date</FormLabel>
+                      <FormLabel className="text-right">تاريخ الدفع</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} className="text-right" dir="rtl" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -179,9 +180,9 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
                   name="payment_notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel className="text-right">ملاحظات</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} className="text-right" dir="rtl" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -192,7 +193,7 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
 
             <DialogFooter>
               <Button type="submit">
-                {recordMode ? 'Record Payment' : 'Add Payment'}
+                {recordMode ? 'تسجيل دفعة' : 'إضافة دفعة'}
               </Button>
             </DialogFooter>
           </form>

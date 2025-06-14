@@ -64,29 +64,30 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
   }, [customerId]);
 
   return (
-    <>
+    <div dir="rtl">
       {/* Customer Search & Select */}
       <FormField
         control={form.control}
         name="customer_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Customer</FormLabel>
+            <FormLabel className="text-right">العميل</FormLabel>
             <FormControl>
               <div>
                 <Input
-                  placeholder="Search customer by name or email..."
+                  placeholder="البحث عن العميل بالاسم أو البريد الإلكتروني..."
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
-                  className="mb-2"
+                  className="mb-2 text-right"
+                  dir="rtl"
                 />
-                {customerLoading && <div className="text-xs text-muted-foreground">Searching...</div>}
+                {customerLoading && <div className="text-xs text-muted-foreground text-right">جاري البحث...</div>}
                 {customerSearch && customerResults.length > 0 && (
                   <div className="border rounded bg-white shadow max-h-40 overflow-y-auto z-10 relative">
                     {customerResults.map(c => (
                       <div
                         key={c.id}
-                        className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${field.value === c.id ? 'bg-gray-100' : ''}`}
+                        className={`px-3 py-2 cursor-pointer hover:bg-gray-100 text-right ${field.value === c.id ? 'bg-gray-100' : ''}`}
                         onClick={() => {
                           field.onChange(c.id);
                           setCustomerSearch(c.full_name);
@@ -94,7 +95,7 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
                         }}
                       >
                         <span className="font-medium">{c.full_name}</span>
-                        {c.email && <span className="ml-2 text-xs text-muted-foreground">{c.email}</span>}
+                        {c.email && <span className="mr-2 text-xs text-muted-foreground">{c.email}</span>}
                       </div>
                     ))}
                   </div>
@@ -111,10 +112,10 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
         name="agreement_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Agreement</FormLabel>
+            <FormLabel className="text-right">الاتفاقية</FormLabel>
             <FormControl>
-              <select {...field} className="border rounded px-3 py-2 w-full">
-                <option value="">Select agreement...</option>
+              <select {...field} className="border rounded px-3 py-2 w-full text-right" dir="rtl">
+                <option value="">اختر الاتفاقية...</option>
                 {filteredAgreements?.map((a: SimpleAgreement) => (
                   <option key={a.id} value={a.id}>
                     {a.agreement_number || a.id} — {a.customer_name}
@@ -124,8 +125,8 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
             </FormControl>
             <FormMessage />
             {selectedAgreement && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Customer: <span className="font-medium">{selectedAgreement.customer_name}</span>
+              <div className="text-xs text-muted-foreground mt-1 text-right">
+                العميل: <span className="font-medium">{selectedAgreement.customer_name}</span>
               </div>
             )}
           </FormItem>
@@ -137,7 +138,7 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
         name="amount_owed"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Amount Owed</FormLabel>
+            <FormLabel className="text-right">المبلغ المستحق</FormLabel>
             <FormControl>
               <Input
                 type="number"
@@ -145,13 +146,14 @@ export const LegalCaseBasicInfo: React.FC<LegalCaseBasicInfoProps> = ({ form }) 
                 step="0.01"
                 value={amountOwed}
                 readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                className="bg-gray-100 cursor-not-allowed text-right"
+                dir="rtl"
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 };

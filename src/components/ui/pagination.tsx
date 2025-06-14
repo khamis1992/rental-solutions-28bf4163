@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PaginationProps {
   currentPage: number;
@@ -18,11 +18,12 @@ export function Pagination({
   className = "",
   showFirstLast = true,
 }: PaginationProps) {
+  const { language } = useLanguage();
   const pageNumbers = getPageNumbers(currentPage, totalPages);
   
   return (
-    <div className={`flex items-center justify-center gap-2 ${className}`}>
-      <div className="flex items-center space-x-2">
+    <div className={`flex items-center justify-center gap-2 ${className}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className={`flex items-center space-x-2 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
         {/* First Page Button */}
         {showFirstLast && (
           <Button
@@ -31,9 +32,10 @@ export function Pagination({
             className="h-8 w-8"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
+            title={language === 'ar' ? 'الصفحة الأولى' : 'First page'}
           >
-            <ChevronsLeft className="h-4 w-4" />
-            <span className="sr-only">First page</span>
+            {language === 'ar' ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+            <span className="sr-only">{language === 'ar' ? 'الصفحة الأولى' : 'First page'}</span>
           </Button>
         )}
         
@@ -44,9 +46,10 @@ export function Pagination({
           className="h-8 w-8"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          title={language === 'ar' ? 'الصفحة السابقة' : 'Previous page'}
         >
-          <ChevronLeft className="h-4 w-4" />
-          <span className="sr-only">Previous page</span>
+          {language === 'ar' ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          <span className="sr-only">{language === 'ar' ? 'الصفحة السابقة' : 'Previous page'}</span>
         </Button>
 
         {/* Page Numbers */}
@@ -61,7 +64,7 @@ export function Pagination({
               variant={currentPage === page ? "default" : "outline"}
               size="icon"
               className="h-8 w-8"
-              onClick={() => onPageChange(page)}
+              onClick={() => onPageChange(Number(page))}
             >
               {page}
             </Button>
@@ -75,9 +78,10 @@ export function Pagination({
           className="h-8 w-8"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          title={language === 'ar' ? 'الصفحة التالية' : 'Next page'}
         >
-          <ChevronRight className="h-4 w-4" />
-          <span className="sr-only">Next page</span>
+          {language === 'ar' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <span className="sr-only">{language === 'ar' ? 'الصفحة التالية' : 'Next page'}</span>
         </Button>
 
         {/* Last Page Button */}
@@ -88,9 +92,10 @@ export function Pagination({
             className="h-8 w-8"
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
+            title={language === 'ar' ? 'الصفحة الأخيرة' : 'Last page'}
           >
-            <ChevronsRight className="h-4 w-4" />
-            <span className="sr-only">Last page</span>
+            {language === 'ar' ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
+            <span className="sr-only">{language === 'ar' ? 'الصفحة الأخيرة' : 'Last page'}</span>
           </Button>
         )}
       </div>

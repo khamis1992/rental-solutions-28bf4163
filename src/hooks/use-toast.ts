@@ -5,7 +5,7 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
+const TOAST_LIMIT = 3
 const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
@@ -13,6 +13,10 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  variant?: "default" | "destructive" | "success" | "warning" | "info"
+  showIcon?: boolean
+  duration?: number
+  persistent?: boolean
 }
 
 const actionTypes = {
@@ -90,14 +94,15 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
-        })
+      // If no toastId is provided, dismiss all toasts
+      if (toastId === undefined) {
+        return {
+          ...state,
+          toasts: state.toasts.map((t) => ({
+            ...t,
+            open: false,
+          })),
+        }
       }
 
       return {
@@ -139,6 +144,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+// Enhanced toast function with better defaults and Arabic support
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -147,7 +153,27 @@ function toast({ ...props }: Toast) {
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
+  
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  // Auto-dismiss logic with different durations based on variant
+  const getDefaultDuration = (variant?: string) => {
+    switch (variant) {
+      case "destructive":
+        return 8000 // Longer for errors
+      case "warning":
+        return 6000 // Medium for warnings
+      case "success":
+        return 4000 // Shorter for success
+      case "info":
+        return 5000 // Medium for info
+      default:
+        return 5000
+    }
+  }
+
+  const duration = props.duration ?? getDefaultDuration(props.variant)
+  const persistent = props.persistent ?? false
 
   dispatch({
     type: "ADD_TOAST",
@@ -158,14 +184,223 @@ function toast({ ...props }: Toast) {
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
+      showIcon: props.showIcon ?? true,
+      duration,
+      persistent,
     },
   })
+
+  // Auto-dismiss unless persistent
+  if (!persistent && duration > 0) {
+    setTimeout(() => {
+      dismiss()
+    }, duration)
+  }
 
   return {
     id: id,
     dismiss,
     update,
   }
+}
+
+// Convenience methods with Arabic support
+function getLanguageText(arabicText: string, englishText: string) {
+  const isArabic = document.dir === 'rtl' || document.documentElement.lang === 'ar'
+  return isArabic ? arabicText : englishText
+}
+
+// Common application-specific toasts
+toast.saveSuccess = (options?: Partial<Toast>) => {
+  return toast.successAr(
+    "تم الحفظ بنجاح",
+    "Saved successfully",
+    "تم حفظ التغييرات بنجاح",
+    "Changes have been saved successfully",
+    options
+  )
+}
+
+toast.saveError = (error?: string, options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "فشل في الحفظ",
+    "Save failed",
+    error || "حدث خطأ أثناء حفظ التغييرات",
+    error || "An error occurred while saving changes",
+    options
+  )
+}
+
+toast.deleteSuccess = (options?: Partial<Toast>) => {
+  return toast.successAr(
+    "تم الحذف بنجاح",
+    "Deleted successfully",
+    "تم حذف العنصر بنجاح",
+    "Item has been deleted successfully",
+    options
+  )
+}
+
+toast.deleteError = (error?: string, options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "فشل في الحذف",
+    "Delete failed",
+    error || "حدث خطأ أثناء حذف العنصر",
+    error || "An error occurred while deleting the item",
+    options
+  )
+}
+
+toast.networkError = (options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "خطأ في الاتصال",
+    "Network error",
+    "تحقق من اتصال الإنترنت وحاول مرة أخرى",
+    "Check your internet connection and try again",
+    options
+  )
+}
+
+toast.validationError = (message?: string, options?: Partial<Toast>) => {
+  return toast.warningAr(
+    "خطأ في البيانات",
+    "Validation error",
+    message || "يرجى التحقق من البيانات المدخلة",
+    message || "Please check the entered data",
+    options
+  )
+}
+
+// Enhanced convenience methods
+toast.success = (title: string, description?: string, options?: Partial<Toast>) => {
+  return toast({
+    variant: "success",
+    title,
+    description,
+    ...options,
+  })
+}
+
+toast.error = (title: string, description?: string, options?: Partial<Toast>) => {
+  return toast({
+    variant: "destructive",
+    title,
+    description,
+    persistent: true, // Errors should be persistent by default
+    ...options,
+  })
+}
+
+toast.warning = (title: string, description?: string, options?: Partial<Toast>) => {
+  return toast({
+    variant: "warning",
+    title,
+    description,
+    ...options,
+  })
+}
+
+toast.info = (title: string, description?: string, options?: Partial<Toast>) => {
+  return toast({
+    variant: "info",
+    title,
+    description,
+    ...options,
+  })
+}
+
+// Arabic-specific convenience methods
+toast.successAr = (titleAr: string, titleEn: string, descriptionAr?: string, descriptionEn?: string, options?: Partial<Toast>) => {
+  return toast.success(
+    getLanguageText(titleAr, titleEn),
+    descriptionAr && descriptionEn ? getLanguageText(descriptionAr, descriptionEn) : undefined,
+    options
+  )
+}
+
+toast.errorAr = (titleAr: string, titleEn: string, descriptionAr?: string, descriptionEn?: string, options?: Partial<Toast>) => {
+  return toast.error(
+    getLanguageText(titleAr, titleEn),
+    descriptionAr && descriptionEn ? getLanguageText(descriptionAr, descriptionEn) : undefined,
+    options
+  )
+}
+
+toast.warningAr = (titleAr: string, titleEn: string, descriptionAr?: string, descriptionEn?: string, options?: Partial<Toast>) => {
+  return toast.warning(
+    getLanguageText(titleAr, titleEn),
+    descriptionAr && descriptionEn ? getLanguageText(descriptionAr, descriptionEn) : undefined,
+    options
+  )
+}
+
+toast.infoAr = (titleAr: string, titleEn: string, descriptionAr?: string, descriptionEn?: string, options?: Partial<Toast>) => {
+  return toast.info(
+    getLanguageText(titleAr, titleEn),
+    descriptionAr && descriptionEn ? getLanguageText(descriptionAr, descriptionEn) : undefined,
+    options
+  )
+}
+
+// Common application-specific toasts
+toast.saveSuccess = (options?: Partial<Toast>) => {
+  return toast.successAr(
+    "تم الحفظ بنجاح",
+    "Saved successfully",
+    "تم حفظ التغييرات بنجاح",
+    "Changes have been saved successfully",
+    options
+  )
+}
+
+toast.saveError = (error?: string, options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "فشل في الحفظ",
+    "Save failed",
+    error || "حدث خطأ أثناء حفظ التغييرات",
+    error || "An error occurred while saving changes",
+    options
+  )
+}
+
+toast.deleteSuccess = (options?: Partial<Toast>) => {
+  return toast.successAr(
+    "تم الحذف بنجاح",
+    "Deleted successfully",
+    "تم حذف العنصر بنجاح",
+    "Item has been deleted successfully",
+    options
+  )
+}
+
+toast.deleteError = (error?: string, options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "فشل في الحذف",
+    "Delete failed",
+    error || "حدث خطأ أثناء حذف العنصر",
+    error || "An error occurred while deleting the item",
+    options
+  )
+}
+
+toast.networkError = (options?: Partial<Toast>) => {
+  return toast.errorAr(
+    "خطأ في الاتصال",
+    "Network error",
+    "تحقق من اتصال الإنترنت وحاول مرة أخرى",
+    "Check your internet connection and try again",
+    options
+  )
+}
+
+toast.validationError = (message?: string, options?: Partial<Toast>) => {
+  return toast.warningAr(
+    "خطأ في البيانات",
+    "Validation error",
+    message || "يرجى التحقق من البيانات المدخلة",
+    message || "Please check the entered data",
+    options
+  )
 }
 
 function useToast() {

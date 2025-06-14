@@ -1,4 +1,3 @@
-
 export * from './CustomerDataGrid';
 export * from './CustomerDetail';
 export * from './CustomerDetailsSidebar';
@@ -18,3 +17,6 @@ export * from './CustomerStatusBadge';
 export * from './CustomerTrafficFines';
 export * from './CSVImportModal';
 export * from './ImportHistoryList';
+export * from './CustomerCard';
+export * from './CustomerDetails';
+export * from './CustomerOnboardingWizard';

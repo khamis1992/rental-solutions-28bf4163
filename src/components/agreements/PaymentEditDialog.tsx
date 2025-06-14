@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -131,7 +130,7 @@ export const PaymentEditDialog = ({
             </Label>
             <div className="col-span-3">
               <DatePicker
-                date={paymentDate}
+                date={paymentDate ? (paymentDate instanceof Date ? paymentDate : new Date(paymentDate)) : undefined}
                 setDate={setPaymentDate}
               />
               {errors.payment_date && <p className="text-red-500 text-xs mt-1">{errors.payment_date}</p>}

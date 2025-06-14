@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -12,25 +11,25 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
   caseStatuses 
 }) => {
   return (
-    <>
+    <div dir="rtl">
       <FormField
         control={form.control}
         name="case_type"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Case Type</FormLabel>
+            <FormLabel className="text-right">نوع القضية</FormLabel>
             <Select 
               onValueChange={field.onChange} 
               defaultValue={field.value}
             >
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select case type" />
+                <SelectTrigger className="text-right" dir="rtl">
+                  <SelectValue placeholder="اختر نوع القضية" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {caseTypes.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value} value={type.value} className="text-right">
                     {type.label}
                   </SelectItem>
                 ))}
@@ -46,19 +45,19 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
         name="priority"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Priority</FormLabel>
+            <FormLabel className="text-right">الأولوية</FormLabel>
             <Select 
               onValueChange={field.onChange} 
               defaultValue={field.value}
             >
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
+                <SelectTrigger className="text-right" dir="rtl">
+                  <SelectValue placeholder="اختر الأولوية" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {casePriorities.map(priority => (
-                  <SelectItem key={priority.value} value={priority.value}>
+                  <SelectItem key={priority.value} value={priority.value} className="text-right">
                     {priority.label}
                   </SelectItem>
                 ))}
@@ -74,19 +73,19 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
         name="status"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Status</FormLabel>
+            <FormLabel className="text-right">الحالة</FormLabel>
             <Select 
               onValueChange={field.onChange} 
               defaultValue={field.value}
             >
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                <SelectTrigger className="text-right" dir="rtl">
+                  <SelectValue placeholder="اختر الحالة" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {caseStatuses.map(status => (
-                  <SelectItem key={status.value} value={status.value}>
+                  <SelectItem key={status.value} value={status.value} className="text-right">
                     {status.label}
                   </SelectItem>
                 ))}
@@ -96,6 +95,6 @@ export const LegalCaseCaseDetails: React.FC<LegalCaseCaseDetailsProps> = ({
           </FormItem>
         )}
       />
-    </>
+    </div>
   );
 };

@@ -5,12 +5,12 @@ import { DocumentEntityType } from '@/types/document.types';
 
 const LegalDocuments = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <Card>
         <CardHeader>
-          <CardTitle>Legal Documents</CardTitle>
-          <CardDescription>
-            Manage legal templates, policies, and forms
+          <CardTitle className="text-right">الوثائق القانونية</CardTitle>
+          <CardDescription className="text-right">
+            إدارة القوالب القانونية والسياسات والنماذج
           </CardDescription>
         </CardHeader>
         <CardContent>

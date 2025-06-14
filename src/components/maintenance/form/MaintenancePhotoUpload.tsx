@@ -1,62 +1,125 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { UploadCloud, Image as ImageIcon, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Card, CardContent } from '@/components/ui/card';
+import { UseFormReturn } from 'react-hook-form';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
-type MaintenancePhotoUploadProps = {
-  photos: string[];
-  onChange: (urls: string[]) => void;
-  maintenanceId?: string;
-};
+interface MaintenancePhotoUploadProps {
+  form: UseFormReturn<any>;
+}
 
-const MaintenancePhotoUpload: React.FC<MaintenancePhotoUploadProps> = ({ photos, onChange, maintenanceId }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const MaintenancePhotoUpload: React.FC<MaintenancePhotoUploadProps> = ({ form }) => {
+  const [uploading, setUploading] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    setError(null);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `maintenance/${maintenanceId || 'new'}/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from('maintenance').upload(filePath, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('maintenance').getPublicUrl(filePath);
-      onChange([...photos, publicUrl]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload photo');
-    } finally {
-      setIsUploading(false);
+  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newPreviewUrls: string[] = [];
+    const existingPhotos = form.getValues('photos') || [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const previewUrl = URL.createObjectURL(file);
+        newPreviewUrls.push(previewUrl);
+      }
     }
-  };
 
-  const handleRemove = (url: string) => {
-    onChange(photos.filter((p) => p !== url));
-  };
+    setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    form.setValue('photos', [...existingPhotos, ...Array.from(files)]);
+    setUploading(false);
+  }, [form]);
+
+  const removePhoto = useCallback((index: number) => {
+    const currentPhotos = form.getValues('photos') || [];
+    const newPhotos = currentPhotos.filter((_: any, i: number) => i !== index);
+    form.setValue('photos', newPhotos);
+    
+    setPreviewUrls(prev => {
+      const newUrls = [...prev];
+      URL.revokeObjectURL(newUrls[index]);
+      newUrls.splice(index, 1);
+      return newUrls;
+    });
+  }, [form]);
 
   return (
-    <div className="space-y-2">
-      <label className="block font-medium mb-1">Photos (optional)</label>
-      <div className="flex flex-wrap gap-2 mb-2">
-        {photos.map((url, idx) => (
-          <div key={idx} className="relative group">
-            <img src={url} alt="Maintenance" className="w-20 h-20 object-cover rounded" />
-            <button type="button" className="absolute top-1 right-1 bg-white/80 rounded-full p-1 hidden group-hover:block" onClick={() => handleRemove(url)}>
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </button>
-          </div>
-        ))}
-      </div>
-      <label htmlFor="maintenance-photo-upload" className="flex items-center gap-2 cursor-pointer text-blue-600">
-        <UploadCloud className="w-5 h-5" />
-        <span>{isUploading ? 'Uploading...' : 'Add Photo'}</span>
-        <Input id="maintenance-photo-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={isUploading} />
-      </label>
-      {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+    <div dir="rtl" className="space-y-4">
+      <FormField
+        control={form.control}
+        name="photos"
+        render={() => (
+          <FormItem>
+            <FormLabel className="text-right">صور الصيانة</FormLabel>
+            <FormControl>
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="photo-upload"
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="cursor-pointer flex flex-col items-center space-y-2"
+                  >
+                    <ImageIcon className="h-10 w-10 text-gray-400" />
+                    <div className="text-sm text-gray-600">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploading}
+                        className="pointer-events-none"
+                      >
+                        <Upload className="h-4 w-4 ml-2" />
+                        {uploading ? 'جاري الرفع...' : 'رفع الصور'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      PNG، JPG، GIF حتى 10MB
+                    </p>
+                  </label>
+                </div>
+
+                {previewUrls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {previewUrls.map((url, index) => (
+                      <Card key={index} className="relative">
+                        <CardContent className="p-2">
+                          <img
+                            src={url}
+                            alt={`صورة الصيانة ${index + 1}`}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 left-1 h-6 w-6 p-0"
+                            onClick={() => removePhoto(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 };

@@ -40,14 +40,14 @@ export const UserRoleManager = ({
       const result = await userService.updateUserRole(userId, newRole as UserRole);
 
       if (!result.success) {
-        throw result.error || new Error('Role update failed');
+        throw result.error || new Error('فشل في تحديث الدور');
       }
 
       setRole(newRole);
-      toast.success(`${fullName}'s role updated to ${newRole}`);
+      toast.success(`تم تحديث دور ${fullName} إلى ${newRole === 'admin' ? 'مدير' : 'موظف'}`);
     } catch (error: any) {
-      console.error('Error updating user role:', error?.message || error);
-      toast.error(`Failed to update ${fullName}'s role`);
+      console.error('خطأ في تحديث دور المستخدم:', error?.message || error);
+      toast.error(`فشل في تحديث دور ${fullName}`);
       setRole(currentRole);
     } finally {
       setIsChanging(false);
@@ -55,7 +55,7 @@ export const UserRoleManager = ({
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-reverse space-x-2" dir="rtl">
       {role === "admin" ? (
         <Shield className="h-4 w-4 text-primary" />
       ) : (
@@ -68,16 +68,16 @@ export const UserRoleManager = ({
         disabled={disabled || isChanging}
       >
         <SelectTrigger className="w-[130px] h-8">
-          <SelectValue placeholder="Select role" />
+          <SelectValue placeholder="اختر الدور" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="admin" className="flex items-center">
-            <Shield className="h-4 w-4 mr-2 text-primary" />
-            Admin
+          <SelectItem value="admin" className="flex items-center space-x-reverse space-x-2">
+            <Shield className="h-4 w-4 ml-2 text-primary" />
+            مدير
           </SelectItem>
-          <SelectItem value="staff" className="flex items-center">
-            <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-            Staff
+          <SelectItem value="staff" className="flex items-center space-x-reverse space-x-2">
+            <UserCog className="h-4 w-4 ml-2 text-blue-500" />
+            موظف
           </SelectItem>
         </SelectContent>
       </Select>

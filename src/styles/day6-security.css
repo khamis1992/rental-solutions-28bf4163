@@ -1,0 +1,672 @@
+/* Day 6: Security & Compliance Styles */
+
+/* Security Dashboard Styles */
+.security-dashboard {
+  @apply space-y-6;
+}
+
+.security-metrics-card {
+  @apply bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm;
+  transition: all 0.3s ease;
+}
+
+.security-metrics-card:hover {
+  @apply shadow-md;
+  transform: translateY(-2px);
+}
+
+.security-event-card {
+  @apply border-l-4 transition-all duration-300 hover:shadow-md;
+}
+
+.security-event-card.critical {
+  @apply border-red-500 bg-red-50;
+}
+
+.security-event-card.high {
+  @apply border-orange-500 bg-orange-50;
+}
+
+.security-event-card.medium {
+  @apply border-yellow-500 bg-yellow-50;
+}
+
+.security-event-card.low {
+  @apply border-blue-500 bg-blue-50;
+}
+
+.threat-detection-card {
+  @apply border-l-4 transition-all duration-300 hover:shadow-lg;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-left-width: 4px; }
+  50% { border-left-width: 6px; }
+}
+
+.threat-detection-card.active {
+  @apply bg-red-50;
+  animation: threat-alert 1s ease-in-out infinite alternate;
+}
+
+@keyframes threat-alert {
+  from { background-color: rgb(254 242 242); }
+  to { background-color: rgb(252 226 226); }
+}
+
+.audit-log-card {
+  @apply transition-all duration-300 hover:shadow-md hover:bg-gray-50;
+}
+
+.compliance-requirement {
+  @apply p-4 border rounded-lg transition-all duration-300;
+}
+
+.compliance-requirement.met {
+  @apply border-green-200 bg-green-50;
+}
+
+.compliance-requirement.partial {
+  @apply border-yellow-200 bg-yellow-50;
+}
+
+.compliance-requirement.not-met {
+  @apply border-red-200 bg-red-50;
+}
+
+/* Privacy Center Styles */
+.privacy-center {
+  @apply space-y-6;
+}
+
+.privacy-metrics-card {
+  @apply bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg shadow-sm;
+  transition: all 0.3s ease;
+}
+
+.privacy-request-card {
+  @apply border-l-4 transition-all duration-300 hover:shadow-md;
+}
+
+.privacy-request-card.overdue {
+  @apply bg-red-50;
+  animation: overdue-pulse 2s ease-in-out infinite;
+}
+
+@keyframes overdue-pulse {
+  0%, 100% { background-color: rgb(254 242 242); }
+  50% { background-color: rgb(252 226 226); }
+}
+
+.processing-activity-card {
+  @apply border-l-4 transition-all duration-300 hover:shadow-md;
+}
+
+.processing-activity-card.very-high-risk {
+  @apply border-red-500 bg-red-50;
+}
+
+.processing-activity-card.high-risk {
+  @apply border-orange-500 bg-orange-50;
+}
+
+.processing-activity-card.medium-risk {
+  @apply border-yellow-500 bg-yellow-50;
+}
+
+.processing-activity-card.low-risk {
+  @apply border-green-500 bg-green-50;
+}
+
+/* Security Badges */
+.security-badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  transition: all 0.2s ease;
+}
+
+.security-badge.critical {
+  @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.security-badge.high {
+  @apply bg-orange-100 text-orange-800 border border-orange-200;
+}
+
+.security-badge.medium {
+  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+}
+
+.security-badge.low {
+  @apply bg-blue-100 text-blue-800 border border-blue-200;
+}
+
+.security-badge.success {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.security-badge.blocked {
+  @apply bg-red-100 text-red-800 border border-red-200;
+  animation: blocked-flash 1s ease-in-out infinite alternate;
+}
+
+@keyframes blocked-flash {
+  from { background-color: rgb(254 226 226); }
+  to { background-color: rgb(252 165 165); }
+}
+
+/* Progress Indicators */
+.security-progress {
+  @apply w-full bg-gray-200 rounded-full h-2;
+  overflow: hidden;
+}
+
+.security-progress-bar {
+  @apply h-full transition-all duration-500 ease-out;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+.security-progress-bar.critical {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.security-progress-bar.warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.security-progress-bar.success {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+/* Risk Score Indicators */
+.risk-score-indicator {
+  @apply relative inline-flex items-center justify-center w-12 h-12 rounded-full text-sm font-bold;
+  transition: all 0.3s ease;
+}
+
+.risk-score-indicator.low {
+  @apply bg-green-100 text-green-800 border-2 border-green-300;
+}
+
+.risk-score-indicator.medium {
+  @apply bg-yellow-100 text-yellow-800 border-2 border-yellow-300;
+}
+
+.risk-score-indicator.high {
+  @apply bg-orange-100 text-orange-800 border-2 border-orange-300;
+}
+
+.risk-score-indicator.critical {
+  @apply bg-red-100 text-red-800 border-2 border-red-300;
+  animation: critical-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes critical-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Security Icons */
+.security-icon {
+  @apply w-5 h-5 transition-all duration-200;
+}
+
+.security-icon.pulse {
+  animation: icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.security-icon.rotate {
+  animation: icon-rotate 2s linear infinite;
+}
+
+@keyframes icon-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Compliance Status */
+.compliance-status {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.compliance-status.compliant {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.compliance-status.partial {
+  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+}
+
+.compliance-status.non-compliant {
+  @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.compliance-status.pending {
+  @apply bg-gray-100 text-gray-800 border border-gray-200;
+}
+
+/* Security Alerts */
+.security-alert {
+  @apply p-4 rounded-lg border-l-4 transition-all duration-300;
+}
+
+.security-alert.info {
+  @apply bg-blue-50 border-blue-400 text-blue-800;
+}
+
+.security-alert.warning {
+  @apply bg-yellow-50 border-yellow-400 text-yellow-800;
+}
+
+.security-alert.error {
+  @apply bg-red-50 border-red-400 text-red-800;
+  animation: alert-shake 0.5s ease-in-out;
+}
+
+@keyframes alert-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.security-alert.success {
+  @apply bg-green-50 border-green-400 text-green-800;
+}
+
+/* Touch-Friendly Buttons */
+.touch-friendly {
+  @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.security-button {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.security-button.primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+}
+
+.security-button.secondary {
+  @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+}
+
+.security-button.danger {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+.security-button:active {
+  transform: translateY(1px);
+}
+
+/* Data Tables */
+.security-table {
+  @apply w-full border-collapse;
+}
+
+.security-table th {
+  @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+}
+
+.security-table td {
+  @apply px-4 py-3 text-sm text-gray-900 border-b border-gray-200;
+}
+
+.security-table tr:hover {
+  @apply bg-gray-50;
+}
+
+/* Loading States */
+.security-loading {
+  @apply inline-flex items-center gap-2 text-gray-600;
+}
+
+.security-loading .spinner {
+  @apply w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Simulation Effects */
+.simulation-active {
+  @apply relative;
+}
+
+.simulation-active::before {
+  content: '';
+  @apply absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-20;
+  animation: simulation-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes simulation-glow {
+  from { opacity: 0.2; }
+  to { opacity: 0.4; }
+}
+
+.simulation-event {
+  @apply border-2 border-blue-400;
+  animation: new-event 0.5s ease-out;
+}
+
+@keyframes new-event {
+  from { 
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Arabic RTL Support */
+[dir="rtl"] .security-dashboard,
+[dir="rtl"] .privacy-center {
+  direction: rtl;
+}
+
+[dir="rtl"] .security-event-card,
+[dir="rtl"] .threat-detection-card,
+[dir="rtl"] .privacy-request-card {
+  border-left: none;
+  border-right: 4px solid;
+}
+
+[dir="rtl"] .security-alert {
+  border-left: none;
+  border-right: 4px solid;
+}
+
+[dir="rtl"] .security-table th,
+[dir="rtl"] .security-table td {
+  text-align: right;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .security-dashboard,
+  .privacy-center {
+    @apply space-y-4;
+  }
+  
+  .security-metrics-card,
+  .privacy-metrics-card {
+    @apply p-4;
+  }
+  
+  .security-event-card,
+  .threat-detection-card,
+  .privacy-request-card,
+  .processing-activity-card {
+    @apply p-3;
+  }
+  
+  .security-button {
+    @apply text-sm px-3 py-2;
+  }
+  
+  .security-table {
+    @apply text-xs;
+  }
+  
+  .security-table th,
+  .security-table td {
+    @apply px-2 py-2;
+  }
+  
+  .risk-score-indicator {
+    @apply w-10 h-10 text-xs;
+  }
+  
+  .security-badge {
+    @apply text-xs px-2 py-1;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .security-event-card,
+  .threat-detection-card,
+  .privacy-request-card,
+  .processing-activity-card {
+    @apply border-2;
+  }
+  
+  .security-badge {
+    @apply border-2;
+  }
+  
+  .security-button {
+    @apply border-2 border-current;
+  }
+  
+  .security-progress {
+    @apply border border-gray-400;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .security-event-card,
+  .threat-detection-card,
+  .privacy-request-card,
+  .processing-activity-card,
+  .security-button,
+  .security-badge,
+  .risk-score-indicator {
+    transition: none;
+    animation: none;
+  }
+  
+  .security-loading .spinner {
+    animation: none;
+    @apply border-t-transparent;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .security-metrics-card {
+    @apply bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600;
+  }
+  
+  .privacy-metrics-card {
+    @apply bg-gradient-to-r from-purple-900 to-pink-900 border-purple-700;
+  }
+  
+  .security-event-card.critical {
+    @apply bg-red-900 border-red-600;
+  }
+  
+  .security-event-card.high {
+    @apply bg-orange-900 border-orange-600;
+  }
+  
+  .security-event-card.medium {
+    @apply bg-yellow-900 border-yellow-600;
+  }
+  
+  .security-event-card.low {
+    @apply bg-blue-900 border-blue-600;
+  }
+  
+  .security-table th {
+    @apply bg-gray-800 text-gray-300;
+  }
+  
+  .security-table td {
+    @apply text-gray-100 border-gray-700;
+  }
+  
+  .security-table tr:hover {
+    @apply bg-gray-800;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .security-dashboard,
+  .privacy-center {
+    @apply text-black bg-white;
+  }
+  
+  .security-button,
+  .touch-friendly {
+    @apply hidden;
+  }
+  
+  .security-event-card,
+  .threat-detection-card,
+  .privacy-request-card,
+  .processing-activity-card {
+    @apply border border-gray-400 bg-white;
+    break-inside: avoid;
+  }
+  
+  .security-table {
+    @apply border border-gray-400;
+  }
+  
+  .security-table th,
+  .security-table td {
+    @apply border border-gray-300;
+  }
+}
+
+/* Accessibility Enhancements */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  clip: rect(0, 0, 0, 0);
+}
+
+.focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Security Status Indicators */
+.security-status-online {
+  @apply inline-block w-3 h-3 bg-green-500 rounded-full;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.security-status-warning {
+  @apply inline-block w-3 h-3 bg-yellow-500 rounded-full;
+  animation: status-pulse 1s ease-in-out infinite;
+}
+
+.security-status-offline {
+  @apply inline-block w-3 h-3 bg-red-500 rounded-full;
+  animation: status-pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Encryption Indicators */
+.encryption-active {
+  @apply relative;
+}
+
+.encryption-active::after {
+  content: '🔒';
+  @apply absolute -top-1 -right-1 text-xs;
+}
+
+/* Compliance Scores */
+.compliance-score {
+  @apply relative inline-flex items-center justify-center w-16 h-16 rounded-full text-lg font-bold;
+}
+
+.compliance-score.excellent {
+  @apply bg-green-100 text-green-800 border-4 border-green-300;
+}
+
+.compliance-score.good {
+  @apply bg-blue-100 text-blue-800 border-4 border-blue-300;
+}
+
+.compliance-score.fair {
+  @apply bg-yellow-100 text-yellow-800 border-4 border-yellow-300;
+}
+
+.compliance-score.poor {
+  @apply bg-red-100 text-red-800 border-4 border-red-300;
+}
+
+/* Security Metrics Grid */
+.security-metrics-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+.security-metric-item {
+  @apply p-4 bg-white rounded-lg border shadow-sm text-center;
+  transition: all 0.3s ease;
+}
+
+.security-metric-item:hover {
+  @apply shadow-md;
+  transform: translateY(-2px);
+}
+
+.security-metric-value {
+  @apply text-2xl font-bold mb-1;
+}
+
+.security-metric-label {
+  @apply text-sm text-gray-600;
+}
+
+/* Interactive Elements */
+.interactive-element {
+  @apply cursor-pointer transition-all duration-200;
+}
+
+.interactive-element:hover {
+  @apply scale-105;
+}
+
+.interactive-element:active {
+  @apply scale-95;
+}
+
+/* Security Timeline */
+.security-timeline {
+  @apply relative;
+}
+
+.security-timeline::before {
+  content: '';
+  @apply absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300;
+}
+
+.security-timeline-item {
+  @apply relative pl-10 pb-4;
+}
+
+.security-timeline-item::before {
+  content: '';
+  @apply absolute left-2.5 top-2 w-3 h-3 bg-blue-500 rounded-full border-2 border-white;
+}
+
+.security-timeline-item.critical::before {
+  @apply bg-red-500;
+}
+
+.security-timeline-item.warning::before {
+  @apply bg-yellow-500;
+}
+
+.security-timeline-item.success::before {
+  @apply bg-green-500;
+} 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
+import { useTranslation } from '@/utils/translation-helper';
 
 interface MaintenanceFormActionsProps {
   isSubmitting: boolean;
@@ -9,17 +10,19 @@ interface MaintenanceFormActionsProps {
 }
 
 export function MaintenanceFormActions({ isSubmitting, hasInitialData, onCancel }: MaintenanceFormActionsProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex gap-2">
-      <TooltipWrapper content="Save maintenance record.">
+      <TooltipWrapper content={t('maintenance.maintenanceDetails')}>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save'}
+          {isSubmitting ? t('common.loading') : t('common.save')}
         </Button>
       </TooltipWrapper>
       {hasInitialData && onCancel && (
-        <TooltipWrapper content="Cancel and return to the previous page.">
+        <TooltipWrapper content={t('common.cancel')}>
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </TooltipWrapper>
       )}
