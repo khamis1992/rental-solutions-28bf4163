@@ -53,18 +53,18 @@ const ReportBuilder = () => {
         return [
           {
             id: 'status',
-            name: 'Vehicle Status',
+            name: 'حالة المركبة',
             options: [
-              { id: 'available', label: 'Available', value: 'available' },
-              { id: 'rented', label: 'Rented', value: 'rented' },
-              { id: 'maintenance', label: 'Maintenance', value: 'maintenance' },
-              { id: 'out_of_service', label: 'Out of Service', value: 'out_of_service' }
+              { id: 'available', label: 'متوفرة', value: 'available' },
+              { id: 'rented', label: 'مؤجرة', value: 'rented' },
+              { id: 'maintenance', label: 'صيانة', value: 'maintenance' },
+              { id: 'out_of_service', label: 'خارج الخدمة', value: 'out_of_service' }
             ],
             type: 'select' as const
           },
           {
             id: 'vehicle_type',
-            name: 'Vehicle Type',
+            name: 'نوع المركبة',
             options: Array.from(new Set(data.map(v => v.vehicle_type)))
               .filter(Boolean)
               .map(type => ({ id: type, label: type, value: type })),
@@ -72,7 +72,7 @@ const ReportBuilder = () => {
           },
           {
             id: 'purchase_date',
-            name: 'Purchase Date',
+            name: 'تاريخ الشراء',
             options: [],
             type: 'dateRange' as const
           }
@@ -81,7 +81,7 @@ const ReportBuilder = () => {
         return [
           {
             id: 'transaction_type',
-            name: 'Transaction Type',
+            name: 'نوع المعاملة',
             options: Array.from(new Set(data.map(t => t.transaction_type)))
               .filter(Boolean)
               .map(type => ({ id: type, label: type, value: type })),
@@ -89,13 +89,13 @@ const ReportBuilder = () => {
           },
           {
             id: 'amount',
-            name: 'Amount',
+            name: 'المبلغ',
             options: [],
             type: 'number' as const
           },
           {
             id: 'date',
-            name: 'Transaction Date',
+            name: 'تاريخ المعاملة',
             options: [],
             type: 'dateRange' as const
           }
@@ -104,7 +104,7 @@ const ReportBuilder = () => {
         return [
           {
             id: 'status',
-            name: 'Customer Status',
+            name: 'حالة العميل',
             options: Array.from(new Set(data.map(c => c.status)))
               .filter(Boolean)
               .map(status => ({ id: status, label: status, value: status })),
@@ -112,7 +112,7 @@ const ReportBuilder = () => {
           },
           {
             id: 'created_at',
-            name: 'Registration Date',
+            name: 'تاريخ التسجيل',
             options: [],
             type: 'dateRange' as const
           }
@@ -121,7 +121,7 @@ const ReportBuilder = () => {
         return [
           {
             id: 'paymentStatus',
-            name: 'Payment Status',
+            name: 'حالة الدفع',
             options: Array.from(new Set(data.map(f => f.paymentStatus)))
               .filter(Boolean)
               .map(status => ({ id: status, label: status, value: status })),
@@ -129,13 +129,13 @@ const ReportBuilder = () => {
           },
           {
             id: 'violationDate',
-            name: 'Violation Date',
+            name: 'تاريخ المخالفة',
             options: [],
             type: 'dateRange' as const
           },
           {
             id: 'fineAmount',
-            name: 'Fine Amount',
+            name: 'مبلغ الغرامة',
             options: [],
             type: 'number' as const
           }
@@ -210,91 +210,91 @@ const ReportBuilder = () => {
   };
 
   return (
-    <PageContainer
-      title="Report Builder"
-      description="Create custom reports from any dataset"
-    >
-      <div className="mb-4 space-y-4">
-        <SectionHeader
-          title="Select Dataset"
-          description="Choose which dataset to build the report from"
-        />
-        <Select value={dataset} onValueChange={setDataset}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select dataset" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="fleet">Fleet</SelectItem>
-            <SelectItem value="financial">Financial</SelectItem>
-            <SelectItem value="customers">Customers</SelectItem>
-            <SelectItem value="traffic">Traffic Fines</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Add Advanced Filtering */}
-      <div className="mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <AdvancedFilterPanel
-              filterGroups={getFilterGroups()}
-              appliedFilters={filters}
-              onApplyFilter={handleApplyFilter}
-              onRemoveFilter={handleRemoveFilter}
-              onClearFilters={handleClearFilters}
-            />
-          </CardContent>
-        </Card>
-      </div>
+    <div dir="rtl">
+      <PageContainer
+        title="منشئ التقارير"
+        description="إنشاء تقارير مخصصة من أي مجموعة بيانات"
+      >
+        <div className="mb-4 space-y-4">
+          <SectionHeader
+            title="اختيار مجموعة البيانات"
+            description="اختر مجموعة البيانات التي تريد إنشاء التقرير منها"
+          />
+          <Select value={dataset} onValueChange={setDataset}>
+            <SelectTrigger className="w-[200px] text-right" dir="rtl">
+              <SelectValue placeholder="اختر مجموعة البيانات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fleet" className="text-right">الأسطول</SelectItem>
+              <SelectItem value="financial" className="text-right">المالية</SelectItem>
+              <SelectItem value="customers" className="text-right">العملاء</SelectItem>
+              <SelectItem value="traffic" className="text-right">المخالفات المرورية</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Add Advanced Filtering */}
+        <div className="mb-6">
+          <Card>
+            <CardContent className="pt-6">
+              <AdvancedFilterPanel
+                filterGroups={getFilterGroups()}
+                appliedFilters={filters}
+                onApplyFilter={handleApplyFilter}
+                onRemoveFilter={handleRemoveFilter}
+                onClearFilters={handleClearFilters}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-      {columns.length > 0 && (
         <div className="mb-6">
           <SectionHeader
-            title="Select Columns"
-            description="Pick the fields to include in the report"
+            title="اختيار الأعمدة"
+            description="اختر الحقول التي تريد تضمينها في التقرير"
           />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
             {columns.map(col => (
-              <label key={col} className="flex items-center gap-2">
+              <label key={col} className="flex items-center gap-2 flex-row-reverse">
                 <Checkbox
                   checked={selectedColumns.includes(col)}
                   onCheckedChange={() => toggleColumn(col)}
                 />
-                <span className="text-sm capitalize">{col.replace(/_/g, ' ')}</span>
+                <span className="text-sm capitalize text-right">{col.replace(/_/g, ' ')}</span>
               </label>
             ))}
           </div>
         </div>
-      )}
 
-      <div className="mb-4">
-        <ReportDownloadOptions reportType="custom" getReportData={getReportData} />
-      </div>
+        <div className="mb-4">
+          <ReportDownloadOptions reportType="custom" getReportData={getReportData} />
+        </div>
 
-      <div className="rounded-md border overflow-auto max-h-[60vh]">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {selectedColumns.length > 0 ?
-                selectedColumns.map(col => (
-                  <TableHead key={col}>{col}</TableHead>
-                )) :
-                columns.map(col => <TableHead key={col}>{col}</TableHead>)
-              }
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {getReportData().slice(0, 20).map((row, idx) => (
-              <TableRow key={idx}>
-                {(selectedColumns.length > 0 ? selectedColumns : columns).map(col => (
-                  <TableCell key={col}>{(row as any)[col]?.toString() || ''}</TableCell>
-                ))}
+        <div className="rounded-md border overflow-auto max-h-[60vh]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {selectedColumns.length > 0 ?
+                  selectedColumns.map(col => (
+                    <TableHead key={col} className="text-right">{col}</TableHead>
+                  )) :
+                  columns.map(col => <TableHead key={col} className="text-right">{col}</TableHead>)
+                }
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </PageContainer>
+            </TableHeader>
+            <TableBody>
+              {getReportData().slice(0, 20).map((row, idx) => (
+                <TableRow key={idx}>
+                  {(selectedColumns.length > 0 ? selectedColumns : columns).map(col => (
+                    <TableCell key={col} className="text-right">{(row as any)[col]?.toString() || ''}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </PageContainer>
+    </div>
   );
 };
 

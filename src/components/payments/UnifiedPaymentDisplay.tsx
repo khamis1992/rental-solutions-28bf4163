@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +55,7 @@ export function UnifiedPaymentDisplay({
         id: schedule.id || `schedule-${schedule.due_date}`,
         dueDate: new Date(schedule.due_date),
         amount: schedule.amount,
-        description: schedule.description || 'Scheduled payment',
+        description: schedule.description || 'دفعة مجدولة',
         status: matchingPayment ? 'completed' : 
                 schedule.status === 'overdue' ? 'overdue' : 'pending',
         type: matchingPayment ? 'actual' : 'scheduled',
@@ -80,8 +79,8 @@ export function UnifiedPaymentDisplay({
           id: payment.id || `payment-${Date.now()}`,
           dueDate: new Date(payment.payment_date || payment.created_at || ''),
           amount: payment.amount || 0,
-          description: payment.description || 'Unscheduled payment',
-          status: payment.status === 'completed' ? 'completed' : 
+          description: payment.description || 'دفعة غير مجدولة',
+          status: payment.status === 'paid' ? 'completed' : 
                   payment.status === 'pending' ? 'pending' : 'overdue',
           type: 'actual',
           actualPayment: payment
@@ -107,8 +106,9 @@ export function UnifiedPaymentDisplay({
     const variant = status === 'completed' ? 'default' : 
                    status === 'overdue' ? 'destructive' : 'secondary';
     
-    const label = type === 'scheduled' && status === 'pending' ? 'Scheduled' : 
-                  status.charAt(0).toUpperCase() + status.slice(1);
+    const label = type === 'scheduled' && status === 'pending' ? 'مجدولة' : 
+                  status === 'completed' ? 'مكتملة' : 
+                  status === 'overdue' ? 'متأخرة' : 'معلقة';
     
     return <Badge variant={variant}>{label}</Badge>;
   };
@@ -124,57 +124,57 @@ export function UnifiedPaymentDisplay({
   }
 
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 flex-row-reverse text-right">
           <Calendar className="h-5 w-5" />
-          Payment Timeline
+          الجدول الزمني للدفعات
         </CardTitle>
       </CardHeader>
       <CardContent>
         {unifiedItems.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No payment schedule or history available</p>
+            <p className="text-right">لا توجد جدولة دفعات أو سجل متاح</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                <TableHead className="text-right">المبلغ</TableHead>
+                <TableHead className="text-right">الوصف</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {unifiedItems.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-2 flex-row-reverse">
                       {getStatusIcon(item.status)}
                       {formatDate(item.dueDate)}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-1 flex-row-reverse">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       {formatCurrency(item.amount)}
                     </div>
                   </TableCell>
-                  <TableCell>{item.description}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">{item.description}</TableCell>
+                  <TableCell className="text-right">
                     {getStatusBadge(item.status, item.type)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     {item.type === 'scheduled' && item.status === 'pending' && onRecordPayment && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => onRecordPayment(item.scheduleItem!)}
                       >
-                        Record Payment
+                        تسجيل الدفعة
                       </Button>
                     )}
                   </TableCell>

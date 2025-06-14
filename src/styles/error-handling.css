@@ -1,0 +1,323 @@
+/* Error Handling Styles - Day 3 Enhancement */
+
+/* Error Boundary Styles */
+.error-boundary-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.error-boundary-card {
+  width: 100%;
+  max-width: 32rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+/* Error Message Component Styles */
+.error-message-container {
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.error-message-container:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.error-message-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.error-message-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-message-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.error-message-description {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.error-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Mobile-specific error styles */
+@media (max-width: 768px) {
+  .error-boundary-container {
+    padding: 0.75rem;
+  }
+  
+  .error-boundary-card {
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .error-message-actions {
+    flex-direction: column;
+  }
+  
+  .error-message-actions .touch-friendly {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* RTL Support for Error Components */
+[dir="rtl"] .error-message-container {
+  text-align: right;
+}
+
+[dir="rtl"] .error-message-actions {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .error-message-icon {
+  margin-left: 0;
+  margin-right: 0.75rem;
+}
+
+/* Toast Error Styles */
+.toast-error {
+  border-left: 4px solid #ef4444;
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+[dir="rtl"] .toast-error {
+  border-left: none;
+  border-right: 4px solid #ef4444;
+}
+
+.toast-success {
+  border-left: 4px solid #10b981;
+  background-color: #f0fdf4;
+  color: #065f46;
+}
+
+[dir="rtl"] .toast-success {
+  border-left: none;
+  border-right: 4px solid #10b981;
+}
+
+.toast-warning {
+  border-left: 4px solid #f59e0b;
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+[dir="rtl"] .toast-warning {
+  border-left: none;
+  border-right: 4px solid #f59e0b;
+}
+
+.toast-info {
+  border-left: 4px solid #3b82f6;
+  background-color: #eff6ff;
+  color: #1e40af;
+}
+
+[dir="rtl"] .toast-info {
+  border-left: none;
+  border-right: 4px solid #3b82f6;
+}
+
+/* Error Details Expansion */
+.error-details {
+  margin-top: 0.75rem;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #dc2626;
+  transition: color 0.2s ease;
+}
+
+.error-details summary:hover {
+  color: #b91c1c;
+}
+
+.error-details-content {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.error-details-content pre {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  color: #b91c1c;
+  overflow-x: auto;
+  max-height: 10rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .error-boundary-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  
+  .error-boundary-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .toast-error {
+    background-color: #7f1d1d;
+    color: #fecaca;
+  }
+  
+  .toast-success {
+    background-color: #064e3b;
+    color: #a7f3d0;
+  }
+  
+  .toast-warning {
+    background-color: #78350f;
+    color: #fde68a;
+  }
+  
+  .toast-info {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+  }
+  
+  .error-details-content {
+    background-color: #7f1d1d;
+    border-color: #b91c1c;
+  }
+  
+  .error-details-content pre {
+    color: #fecaca;
+  }
+}
+
+/* Animation for error states */
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.error-shake {
+  animation: errorShake 0.5s ease-in-out;
+}
+
+/* Loading error states */
+.error-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.error-retry-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.error-retry-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error badge styles */
+.error-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.success-badge {
+  background-color: #f0fdf4;
+  color: #065f46;
+  border-color: #bbf7d0;
+}
+
+.warning-badge {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.info-badge {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+/* Responsive error layout */
+.error-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (max-width: 640px) {
+  .error-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Error form styles */
+.error-form-field {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.error-form-field:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-form-message {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+/* Accessibility improvements */
+.error-message-container[role="alert"] {
+  border: 2px solid #ef4444;
+}
+
+.error-message-container:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .error-message-container {
+    border-width: 2px;
+  }
+  
+  .error-badge {
+    border-width: 2px;
+  }
+} 

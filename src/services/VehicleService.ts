@@ -17,6 +17,12 @@ import {
 } from '@/types/error.types';
 import { VehicleRepository } from '@/lib/database/vehicle-repository';
 import { createSuccessResult, createErrorResult, Result } from '@/types/response.types';
+import { 
+  enhancedSearchVehicles, 
+  searchVehiclesByLicensePlate,
+  searchVehicles as apiSearchVehicles
+} from '@/lib/vehicles/vehicle-api';
+import { enhancedVehicleSearch, isLicensePlatePattern } from '@/utils/searchUtils';
 
 export class VehicleService extends BaseService {
   private repository: VehicleRepository;
@@ -173,8 +179,10 @@ export class VehicleService extends BaseService {
 
   async searchVehicles(searchTerm: string): Promise<Result<ExtendedVehicle[]>> {
     try {
-      const { data, error } = await this.repository.findAll();
-      if (error) {
+      // Use the enhanced API search function
+      const data = await apiSearchVehicles(searchTerm);
+      
+      if (!data) {
         return createErrorResult(
           createServiceError('Failed to search vehicles', { 
             operation: 'searchVehicles',
@@ -182,22 +190,121 @@ export class VehicleService extends BaseService {
           })
         );
       }
-      const filteredData = data?.filter(vehicle => {
-        const make = vehicle.make?.toLowerCase() || '';
-        const model = vehicle.model?.toLowerCase() || '';
-        const licensePlate = vehicle.license_plate?.toLowerCase() || '';
-        const searchTermLower = searchTerm.toLowerCase();
-        
-        return make.includes(searchTermLower) ||
-               model.includes(searchTermLower) ||
-               licensePlate.includes(searchTermLower);
-      }) || [];
-      return createSuccessResult(filteredData);
+      
+      return createSuccessResult(data);
     } catch (error) {
       return createErrorResult(
         createServiceError('Unexpected error while searching vehicles', { 
           operation: 'searchVehicles',
           params: { searchTerm }
+        })
+      );
+    }
+  }
+
+  async enhancedSearchVehicles(
+    searchTerm: string,
+    options?: {
+      minConfidence?: number;
+      includeMatchDetails?: boolean;
+      maxResults?: number;
+    }
+  ): Promise<Result<(ExtendedVehicle & { matchScore?: number; matchDetails?: string[] })[]>> {
+    try {
+      const data = await enhancedSearchVehicles(searchTerm, options);
+      
+      if (!data) {
+        return createErrorResult(
+          createServiceError('Failed to perform enhanced search', { 
+            operation: 'enhancedSearchVehicles',
+            params: { searchTerm, options }
+          })
+        );
+      }
+      
+      return createSuccessResult(data);
+    } catch (error) {
+      return createErrorResult(
+        createServiceError('Unexpected error while performing enhanced search', { 
+          operation: 'enhancedSearchVehicles',
+          params: { searchTerm, options }
+        })
+      );
+    }
+  }
+
+  async searchVehiclesByLicensePlate(
+    licensePlateQuery: string,
+    options?: {
+      minConfidence?: number;
+      exactMatchOnly?: boolean;
+    }
+  ): Promise<Result<(ExtendedVehicle & { matchScore?: number; matchType?: string })[]>> {
+    try {
+      const data = await searchVehiclesByLicensePlate(licensePlateQuery, options);
+      
+      if (!data) {
+        return createErrorResult(
+          createServiceError('Failed to search vehicles by license plate', { 
+            operation: 'searchVehiclesByLicensePlate',
+            params: { licensePlateQuery, options }
+          })
+        );
+      }
+      
+      return createSuccessResult(data);
+    } catch (error) {
+      return createErrorResult(
+        createServiceError('Unexpected error while searching vehicles by license plate', { 
+          operation: 'searchVehiclesByLicensePlate',
+          params: { licensePlateQuery, options }
+        })
+      );
+    }
+  }
+
+  /**
+   * Smart search that automatically determines the best search strategy
+   * based on the search term pattern
+   */
+  async smartSearch(
+    searchTerm: string,
+    options?: {
+      minConfidence?: number;
+      maxResults?: number;
+    }
+  ): Promise<Result<(ExtendedVehicle & { matchScore?: number; matchDetails?: string[] })[]>> {
+    try {
+      // Determine if this looks like a license plate search
+      if (isLicensePlatePattern(searchTerm)) {
+        // Use license plate specific search
+        const plateResults = await this.searchVehiclesByLicensePlate(searchTerm, {
+          minConfidence: options?.minConfidence || 50,
+          exactMatchOnly: false
+        });
+        
+        if (plateResults.success && plateResults.data.length > 0) {
+          // Convert to enhanced search result format
+          const enhancedResults = plateResults.data.map(vehicle => ({
+            ...vehicle,
+            matchDetails: [`License Plate (${vehicle.matchType}): ${vehicle.matchScore?.toFixed(1)}%`]
+          }));
+          
+          return createSuccessResult(enhancedResults);
+        }
+      }
+      
+      // Fall back to enhanced general search
+      return this.enhancedSearchVehicles(searchTerm, {
+        minConfidence: options?.minConfidence || 30,
+        includeMatchDetails: true,
+        maxResults: options?.maxResults || 20
+      });
+    } catch (error) {
+      return createErrorResult(
+        createServiceError('Unexpected error while performing smart search', { 
+          operation: 'smartSearch',
+          params: { searchTerm, options }
         })
       );
     }

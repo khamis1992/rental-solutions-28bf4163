@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -14,57 +13,99 @@ interface PaymentListProps {
 
 export function PaymentList({ payments, onDeletePayment }: PaymentListProps) {
   const getStatusBadge = (status: string | undefined) => {
-    const style = status === 'completed' 
+    const style = status === 'completed' || status === 'paid'
       ? 'bg-green-100 text-green-800 hover:bg-green-200'
       : status === 'overdue'
-      ? 'bg-blue-100 text-blue-800'
-      : 'bg-red-100 text-red-800';
+      ? 'bg-red-100 text-red-800'
+      : status === 'pending'
+      ? 'bg-yellow-100 text-yellow-800'
+      : 'bg-gray-100 text-gray-800';
+
+    const statusText = status === 'completed' || status === 'paid' ? 'مدفوع' 
+      : status === 'overdue' ? 'متأخر' 
+      : status === 'pending' ? 'معلق'
+      : status === 'cancelled' ? 'ملغي'
+      : 'غير مدفوع';
 
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${style}`}>
-        {status === 'completed' ? 'completed' : status === 'overdue' ? 'overdue' : 'Unpaid'}
+        {statusText}
       </span>
     );
   };
 
+  const getPaymentMethodText = (method?: string) => {
+    if (!method) return 'غير محدد';
+    
+    switch (method.toLowerCase()) {
+      case 'cash':
+        return 'نقدي';
+      case 'bank_transfer':
+        return 'تحويل بنكي';
+      case 'credit_card':
+        return 'بطاقة ائتمان';
+      case 'debit_card':
+        return 'بطاقة مدين';
+      case 'cheque':
+      case 'check':
+        return 'شيك';
+      case 'online_payment':
+        return 'دفع إلكتروني';
+      default:
+        return method;
+    }
+  };
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Method</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {payments.map((payment) => (
-          <TableRow key={payment.id}>
-            <TableCell>{payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-            <TableCell>{formatCurrency(payment.amount)}</TableCell>
-            <TableCell>
-              {getStatusBadge(payment.status)}
-            </TableCell>
-            <TableCell>{payment.payment_method || 'N/A'}</TableCell>
-            <TableCell className="max-w-[200px] truncate">{payment.description || 'Monthly Rent'}</TableCell>
-            <TableCell className="text-right">
-              {onDeletePayment && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onDeletePayment(payment.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  Delete
-                </Button>
-              )}
-            </TableCell>
+    <div dir="rtl">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-right">التاريخ</TableHead>
+            <TableHead className="text-right">المبلغ</TableHead>
+            <TableHead className="text-right">الحالة</TableHead>
+            <TableHead className="text-right">طريقة الدفع</TableHead>
+            <TableHead className="text-right">الوصف</TableHead>
+            <TableHead className="text-right">الإجراءات</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {payments.map((payment) => (
+            <TableRow key={payment.id}>
+              <TableCell className="text-right">
+                {payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : 'غير محدد'}
+              </TableCell>
+              <TableCell className="text-right">{formatCurrency(payment.amount)} ر.ق</TableCell>
+              <TableCell className="text-right">
+                {getStatusBadge(payment.status)}
+              </TableCell>
+              <TableCell className="text-right">{getPaymentMethodText(payment.payment_method)}</TableCell>
+              <TableCell className="max-w-[200px] truncate text-right">
+                {payment.description || 'إيجار شهري'}
+              </TableCell>
+              <TableCell className="text-right">
+                {onDeletePayment && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onDeletePayment(payment.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    حذف
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {payments.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>لا توجد مدفوعات مسجلة</p>
+          <p className="text-sm mt-2">أضف دفعة جديدة للبدء</p>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useTranslation } from '@/utils/translation-helper';
 import {
   LayoutDashboard,
   Users,
   FileText,
   Wrench,
-  Settings,
   LogOut,
   BarChart2,
   AlertTriangle,
@@ -19,8 +21,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  UserCog,
-  Sliders,
   Car
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -100,6 +100,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const { isRTL } = useLanguage();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   const isActive = (path: string) => {
@@ -140,7 +142,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out",
+        "fixed inset-y-0 right-0 z-40 flex flex-col bg-[#111827] border-l border-gray-800 transition-all duration-300 ease-in-out",
         expanded ? "w-64" : "w-0 md:w-20",
         expanded ? "" : "md:px-2 md:py-4"
       )}
@@ -148,10 +150,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       <Button
         variant="ghost"
         size="icon"
-        className="hidden md:flex absolute -right-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
+        className="hidden md:flex absolute -left-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
         onClick={toggleSidebar}
       >
-        {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {expanded ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </Button>
 
       <div className={cn(
@@ -159,7 +161,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         expanded ? "" : "md:justify-center"
       )}>
         {expanded ? (
-          <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
+          <div className="flex items-center gap-2" dir="ltr">
+            <Car className="h-6 w-6 text-white" />
+            <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
+          </div>
         ) : (
           <div className="hidden md:block">
             <Car className="h-6 w-6 text-white" />
@@ -177,7 +182,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/dashboard"
                 icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
-                label="Dashboard"
+                label={t('navigation.dashboard')}
                 isActive={isActive('/dashboard')}
                 onClick={handleNavClick}
               />
@@ -185,7 +190,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/customers"
                 icon={<Users className="h-5 w-5 flex-shrink-0" />}
-                label="Customers"
+                label={t('navigation.customers')}
                 isActive={isActive('/customers')}
                 onClick={handleNavClick}
               />
@@ -193,7 +198,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/agreements"
                 icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-                label="Agreements"
+                label={t('navigation.agreements')}
                 isActive={isActive('/agreements')}
                 onClick={handleNavClick}
               />
@@ -201,7 +206,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/vehicles"
                 icon={<Car className="h-5 w-5 flex-shrink-0" />}
-                label="Vehicles"
+                label="المركبات"
                 isActive={isActive('/vehicles')}
                 onClick={handleNavClick}
               />
@@ -209,7 +214,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/maintenance"
                 icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-                label="Maintenance"
+                label="الصيانة"
                 isActive={isActive('/maintenance')}
                 onClick={handleNavClick}
               />
@@ -217,7 +222,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/fines"
                 icon={<AlertTriangle className="h-5 w-5 flex-shrink-0" />}
-                label="Traffic Fines"
+                label="المخالفات المرورية"
                 isActive={isActive('/fines')}
                 onClick={handleNavClick}
               />
@@ -225,7 +230,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/financials"
                 icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
-                label="Financials"
+                label="الإدارة المالية"
                 isActive={isActive('/financials')}
                 onClick={handleNavClick}
               />
@@ -233,7 +238,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/legal"
                 icon={<Scale className="h-5 w-5 flex-shrink-0" />}
-                label="Legal"
+                label="القانونية"
                 isActive={isActive('/legal')}
                 onClick={handleNavClick}
               />
@@ -241,7 +246,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/reports"
                 icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-                label="Reports"
+                label="التقارير"
                 isActive={isActive('/reports')}
                 onClick={handleNavClick}
               />
@@ -249,7 +254,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/reports/builder"
                 icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-                label="Report Builder"
+                label="منشئ التقارير"
                 isActive={isActive('/reports/builder')}
                 onClick={handleNavClick}
               />
@@ -257,7 +262,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/documents"
                 icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-                label="Documents"
+                label="المستندات"
                 isActive={isActive('/documents')}
                 onClick={handleNavClick}
               />
@@ -265,63 +270,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <NavLink
                 to="/users"
                 icon={<Users className="h-5 w-5 flex-shrink-0" />}
-                label="User Management"
+                label="إدارة المستخدمين"
                 isActive={isActive('/users')}
                 onClick={handleNavClick}
               />
-
-              {!expanded && (
-                <>
-                  <NavLink
-                    to="/settings"
-                    icon={<UserCog className="h-5 w-5 flex-shrink-0" />}
-                    label="User Settings"
-                    isActive={isActive('/settings') && !isActive('/settings/system')}
-                    onClick={handleNavClick}
-                  />
-                  
-                  <NavLink
-                    to="/settings/system"
-                    icon={<Sliders className="h-5 w-5 flex-shrink-0" />}
-                    label="System Settings"
-                    isActive={isActive('/settings/system')}
-                    onClick={handleNavClick}
-                  />
-                </>
-              )}
-              
-              {expanded && (
-                <NavGroup 
-                  label="Settings" 
-                  icon={<Settings className="h-5 w-5 flex-shrink-0" />}
-                  defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
-                  onSelect={isMobile ? handleNavClick : undefined}
-                >
-                  <Link
-                    to="/settings"
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                      isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
-                    )}
-                    onClick={handleNavClick}
-                  >
-                    <UserCog className="h-4 w-4 flex-shrink-0" />
-                    <span>User Settings</span>
-                  </Link>
-                  
-                  <Link
-                    to="/settings/system"
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                      isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
-                    )}
-                    onClick={handleNavClick}
-                  >
-                    <Sliders className="h-4 w-4 flex-shrink-0" />
-                    <span>System Settings</span>
-                  </Link>
-                </NavGroup>
-              )}
             </>
           )}
         </nav>
@@ -338,9 +290,9 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "User"}</span>
+              <span className="text-sm font-medium text-white truncate max-w-[120px]">{profile?.full_name || "مستخدم"}</span>
               <span className="text-xs text-gray-400 truncate max-w-[120px]">
-                Admin
+                مشرف
               </span>
             </div>
             <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">

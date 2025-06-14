@@ -34,11 +34,11 @@ const SecurityPreferences = ({ initialData }: SecurityPreferencesProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-security'] });
-      toast.success('Security preferences saved');
+      toast.success('تم حفظ تفضيلات الأمان');
     },
     onError: (error) => {
-      toast.error('Failed to save security preferences');
-      console.error('Error saving security preferences:', error);
+      toast.error('فشل في حفظ تفضيلات الأمان');
+      console.error('خطأ في حفظ تفضيلات الأمان:', error);
     }
   });
 
@@ -48,46 +48,46 @@ const SecurityPreferences = ({ initialData }: SecurityPreferencesProps) => {
   };
 
   return (
-    <Card>
+    <Card dir="rtl">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5" />
-          <div>
-            <CardTitle>Security Preferences</CardTitle>
-            <CardDescription>Manage authentication and security options</CardDescription>
+        <div className="flex items-center gap-2 flex-row-reverse">
+          <div className="text-right">
+            <CardTitle className="text-right">تفضيلات الأمان</CardTitle>
+            <CardDescription className="text-right">إدارة خيارات المصادقة والأمان</CardDescription>
           </div>
+          <ShieldCheck className="h-5 w-5" />
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="two_factor_auth" className="font-medium">Two-Factor Authentication</Label>
-              <p className="text-sm text-muted-foreground">Require an additional verification step on login</p>
-            </div>
+          <div className="flex items-center justify-between flex-row-reverse">
             <Switch
               id="two_factor_auth"
               checked={preferences.two_factor_auth}
               onCheckedChange={(checked) => handleSwitchChange('two_factor_auth', checked)}
             />
+            <div className="text-right">
+              <Label htmlFor="two_factor_auth" className="font-medium">المصادقة الثنائية</Label>
+              <p className="text-sm text-muted-foreground">تتطلب خطوة تحقق إضافية عند تسجيل الدخول</p>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="login_alerts" className="font-medium">Login Alerts</Label>
-              <p className="text-sm text-muted-foreground">Send an alert when a new device logs in</p>
-            </div>
+          <div className="flex items-center justify-between flex-row-reverse">
             <Switch
               id="login_alerts"
               checked={preferences.login_alerts}
               onCheckedChange={(checked) => handleSwitchChange('login_alerts', checked)}
             />
+            <div className="text-right">
+              <Label htmlFor="login_alerts" className="font-medium">تنبيهات تسجيل الدخول</Label>
+              <p className="text-sm text-muted-foreground">إرسال تنبيه عند دخول جهاز جديد</p>
+            </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" disabled={saveMutation.isPending} className="flex items-center gap-2">
+          <div className="flex justify-end flex-row-reverse">
+            <Button type="submit" disabled={saveMutation.isPending} className="flex items-center gap-2 space-x-reverse space-x-2">
               <Save className="h-4 w-4" />
-              {saveMutation.isPending ? 'Saving...' : 'Save Preferences'}
+              {saveMutation.isPending ? 'جاري الحفظ...' : 'حفظ التفضيلات'}
             </Button>
           </div>
         </form>

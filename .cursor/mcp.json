@@ -1,15 +1,51 @@
 {
-    "mcpServers": {
-      "supabase": {
-        "command": "cmd",
-        "args": [
-          "/c",
-          "npx",
-          "-y",
-          "@supabase/mcp-server-supabase@latest",
-          "--access-token",
-          "YOUR_SUPABASE_ACCESS_TOKEN_HERE"
-        ]
+  "mcpServers": {
+    "supabase": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_74e81cfe43e379a047b7e1e034d72cab980eb6c2"
+      ]
+    },
+    "Supabase": {
+      "command": "npx -y @supabase/mcp-server-postgrest@latest --apiUrl https://your-project-ref.supabase.co/rest/v1 --apiKey your-anon-key --schema public",
+      "env": {}
+    },
+    "Sequential Thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/server-sequential-thinking",
+        "--key",
+        "b9995628-3127-4a3e-98c5-433c4af5b2cf"
+      ],
+      "env": {}
+    },
+    "GitHub": {
+      "command": "docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
       }
+    },
+    "Netlify": {
+      "command": "npx -y @netlify/mcp",
+      "env": {}
+    },
+    "browser-tools": {
+      "command": "wsl",
+      "args": [
+        "bash",
+        "-c",
+        "cmd /c npx -y @agentdeskai/browser-tools-mcp@1.2.0"
+      ],
+      "enabled": true
     }
   }
+}

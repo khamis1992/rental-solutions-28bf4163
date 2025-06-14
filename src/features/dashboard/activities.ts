@@ -1,4 +1,3 @@
-
 export interface ActivityItem {
   id: string;
   type: 'agreement' | 'payment' | 'maintenance' | 'legal' | 'vehicle' | 'customer';
@@ -17,33 +16,33 @@ export const formatActivityDescription = (activity: ActivityItem): string => {
   
   switch (type) {
     case 'agreement':
-      if (action === 'created') return `New agreement created for ${metadata?.customerName}`;
-      if (action === 'updated') return `Agreement ${metadata?.agreementId} updated`;
-      if (action === 'terminated') return `Agreement ${metadata?.agreementId} terminated`;
+      if (action === 'created') return `تم إنشاء عقد جديد للعميل ${metadata?.customerName}`;
+      if (action === 'updated') return `تم تحديث العقد ${metadata?.agreementId}`;
+      if (action === 'terminated') return `تم إنهاء العقد ${metadata?.agreementId}`;
       break;
     case 'payment':
-      if (action === 'recorded') return `Payment of ${metadata?.amount} recorded`;
-      if (action === 'late') return `Late payment notification sent`;
+      if (action === 'recorded') return `تم تسجيل دفعة بقيمة ${metadata?.amount}`;
+      if (action === 'late') return `تم إرسال إشعار دفعة متأخرة`;
       break;
     case 'maintenance':
-      if (action === 'scheduled') return `Maintenance scheduled for ${metadata?.vehicleId}`;
-      if (action === 'completed') return `Maintenance completed on ${metadata?.vehicleId}`;
+      if (action === 'scheduled') return `تم جدولة صيانة للمركبة ${metadata?.vehicleId}`;
+      if (action === 'completed') return `تم إكمال صيانة المركبة ${metadata?.vehicleId}`;
       break;
     case 'legal':
-      if (action === 'case_created') return `New legal case created`;
-      if (action === 'case_updated') return `Legal case ${metadata?.caseId} updated`;
+      if (action === 'case_created') return `تم إنشاء قضية قانونية جديدة`;
+      if (action === 'case_updated') return `تم تحديث القضية القانونية ${metadata?.caseId}`;
       break;
     case 'vehicle':
-      if (action === 'added') return `New vehicle ${metadata?.vehicleId} added`;
-      if (action === 'status_changed') return `Vehicle ${metadata?.vehicleId} status changed`;
+      if (action === 'added') return `تم إضافة مركبة جديدة ${metadata?.vehicleId}`;
+      if (action === 'status_changed') return `تم تغيير حالة المركبة ${metadata?.vehicleId}`;
       break;
     case 'customer':
-      if (action === 'registered') return `New customer ${metadata?.customerName} registered`;
-      if (action === 'updated') return `Customer ${metadata?.customerName} profile updated`;
+      if (action === 'registered') return `تم تسجيل عميل جديد ${metadata?.customerName}`;
+      if (action === 'updated') return `تم تحديث ملف العميل ${metadata?.customerName}`;
       break;
   }
   
-  return activity.description || 'Unknown activity';
+  return activity.description || 'نشاط غير معروف';
 };
 
 export const getActivityIcon = (type: ActivityItem['type']): string => {
@@ -70,6 +69,38 @@ export const getActivityColor = (type: ActivityItem['type']): string => {
   };
   
   return colors[type] || 'gray';
+};
+
+export const getActivityTypeLabel = (type: ActivityItem['type']): string => {
+  const labels = {
+    agreement: 'العقود',
+    payment: 'المدفوعات',
+    maintenance: 'الصيانة',
+    legal: 'القانونية',
+    vehicle: 'المركبات',
+    customer: 'العملاء',
+  };
+  
+  return labels[type] || type;
+};
+
+export const getActionLabel = (action: string): string => {
+  const labels: { [key: string]: string } = {
+    created: 'تم الإنشاء',
+    updated: 'تم التحديث',
+    terminated: 'تم الإنهاء',
+    recorded: 'تم التسجيل',
+    late: 'متأخر',
+    scheduled: 'تم الجدولة',
+    completed: 'تم الإكمال',
+    case_created: 'تم إنشاء القضية',
+    case_updated: 'تم تحديث القضية',
+    added: 'تم الإضافة',
+    status_changed: 'تم تغيير الحالة',
+    registered: 'تم التسجيل',
+  };
+  
+  return labels[action] || action;
 };
 
 export const sortActivitiesByTimestamp = (activities: ActivityItem[]): ActivityItem[] => {

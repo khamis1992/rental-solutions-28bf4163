@@ -1,6 +1,6 @@
 import { Database } from './database.types';
 import { UnifiedPaymentStatus } from './status.types';
-import { isErrorResponse as isStandardErrorResponse } from '../types/error.types';
+import { isErrorResult as isStandardErrorResponse } from '../types/error.types';
 import { DbId } from './database-common';
 
 // Database types

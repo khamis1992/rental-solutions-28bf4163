@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -62,12 +61,12 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   
   const handleSubmit = async () => {
     if (!file) {
-      toast.error('Please select a file to upload');
+      toast.error('يرجى اختيار ملف للرفع');
       return;
     }
     
     if (!title) {
-      toast.error('Please enter a title for the document');
+      toast.error('يرجى إدخال عنوان للوثيقة');
       return;
     }
     
@@ -97,47 +96,78 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       // Error handling is done in the mutation
     }
   };
+
+  // Helper functions to translate categories and types
+  const getCategoryLabel = (cat: DocumentCategory) => {
+    const labels: Record<DocumentCategory, string> = {
+      [DocumentCategory.CONTRACT]: 'عقد',
+      [DocumentCategory.INSURANCE]: 'تأمين',
+      [DocumentCategory.MAINTENANCE]: 'صيانة',
+      [DocumentCategory.IDENTITY]: 'هوية',
+      [DocumentCategory.FINANCIAL]: 'مالي',
+      [DocumentCategory.LEGAL]: 'قانوني',
+      [DocumentCategory.OTHER]: 'أخرى'
+    };
+    return labels[cat] || cat;
+  };
+
+  const getTypeLabel = (t: DocumentType) => {
+    const labels: Record<DocumentType, string> = {
+      [DocumentType.AGREEMENT]: 'اتفاقية',
+      [DocumentType.INSURANCE_POLICY]: 'بوليصة تأمين',
+      [DocumentType.MAINTENANCE_REPORT]: 'تقرير صيانة',
+      [DocumentType.ID_CARD]: 'بطاقة هوية',
+      [DocumentType.LICENSE]: 'رخصة',
+      [DocumentType.RECEIPT]: 'إيصال',
+      [DocumentType.INVOICE]: 'فاتورة',
+      [DocumentType.LEGAL_NOTICE]: 'إشعار قانوني',
+      [DocumentType.OTHER]: 'أخرى'
+    };
+    return labels[t] || t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
   
   return (
-    <Card className="w-full">
+    <Card className="w-full" dir="rtl">
       <CardHeader>
-        <CardTitle>Upload Document</CardTitle>
+        <CardTitle className="text-right">رفع وثيقة</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="title" className="text-right">العنوان</Label>
           <Input
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter document title"
+            placeholder="أدخل عنوان الوثيقة"
+            className="text-right"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="description">Description (Optional)</Label>
+          <Label htmlFor="description" className="text-right">الوصف (اختياري)</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter document description"
+            placeholder="أدخل وصف الوثيقة"
+            className="text-right"
           />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category" className="text-right">الفئة</Label>
             <Select
               value={category}
               onValueChange={(value) => setCategory(value as DocumentCategory)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="اختر الفئة" />
               </SelectTrigger>
               <SelectContent>
                 {Object.values(DocumentCategory).map((cat) => (
                   <SelectItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    {getCategoryLabel(cat)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -145,18 +175,18 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="type">Document Type</Label>
+            <Label htmlFor="type" className="text-right">نوع الوثيقة</Label>
             <Select
               value={type}
               onValueChange={(value) => setType(value as DocumentType)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select type" />
+                <SelectValue placeholder="اختر النوع" />
               </SelectTrigger>
               <SelectContent>
                 {Object.values(DocumentType).map((t) => (
                   <SelectItem key={t} value={t}>
-                    {t.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    {getTypeLabel(t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -165,7 +195,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label>File</Label>
+          <Label className="text-right">الملف</Label>
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors
@@ -176,20 +206,20 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
               <div className="flex flex-col items-center justify-center text-center">
                 <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
                 <p className="mb-2 text-sm text-muted-foreground">
-                  <span className="font-semibold">Click to upload</span> or drag and drop
+                  <span className="font-semibold">انقر للرفع</span> أو اسحب وأفلت
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  PDF, DOCX, XLSX, JPG, PNG (MAX. 20MB)
+                  PDF, DOCX, XLSX, JPG, PNG (الحد الأقصى 20 ميجابايت)
                 </p>
               </div>
             ) : (
               <div className="flex items-center justify-between bg-muted p-3 rounded-md">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 space-x-reverse">
                   <File className="h-8 w-8 text-primary" />
-                  <div className="flex-1 truncate">
+                  <div className="flex-1 truncate text-right">
                     <p className="text-sm font-medium">{file.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(file.size / 1024).toFixed(2)} KB
+                      {(file.size / 1024).toFixed(2)} كيلوبايت
                     </p>
                   </div>
                 </div>
@@ -208,10 +238,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end space-x-2">
+      <CardFooter className="flex gap-2 flex-row-reverse">
         {onCancel && (
           <Button variant="outline" onClick={onCancel}>
-            Cancel
+            إلغاء
           </Button>
         )}
         <Button
@@ -220,11 +250,11 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         >
           {createDocument.isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              جاري الرفع...
             </>
           ) : (
-            'Upload Document'
+            'رفع الوثيقة'
           )}
         </Button>
       </CardFooter>

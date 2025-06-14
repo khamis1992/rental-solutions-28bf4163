@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -29,13 +28,13 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       .single();
 
     if (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('خطأ في جلب الملف الشخصي:', error);
       return null;
     }
 
     return data as UserProfile;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.error('خطأ في جلب الملف الشخصي:', error);
     return null;
   }
 };
@@ -54,16 +53,16 @@ export const updateUserProfile = async (
       .eq('id', userId);
 
     if (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      console.error('خطأ في تحديث الملف الشخصي:', error);
+      toast.error('فشل تحديث الملف الشخصي');
       return false;
     }
 
-    toast.success('Profile updated successfully');
+    toast.success('تم تحديث الملف الشخصي بنجاح');
     return true;
   } catch (error) {
-    console.error('Error updating profile:', error);
-    toast.error('Failed to update profile');
+    console.error('خطأ في تحديث الملف الشخصي:', error);
+    toast.error('فشل تحديث الملف الشخصي');
     return false;
   }
 };
@@ -78,8 +77,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       .upload(fileName, file, { upsert: true });
 
     if (uploadError) {
-      console.error('Error uploading avatar:', uploadError);
-      toast.error('Failed to upload avatar');
+      console.error('خطأ في رفع الصورة الشخصية:', uploadError);
+      toast.error('فشل رفع الصورة الشخصية');
       return null;
     }
 
@@ -89,8 +88,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
 
     return data.publicUrl;
   } catch (error) {
-    console.error('Error uploading avatar:', error);
-    toast.error('Failed to upload avatar');
+    console.error('خطأ في رفع الصورة الشخصية:', error);
+    toast.error('فشل رفع الصورة الشخصية');
     return null;
   }
 };

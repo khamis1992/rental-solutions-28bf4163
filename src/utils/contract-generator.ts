@@ -1,4 +1,3 @@
-
 import { Agreement } from '@/types/agreement';
 import { initializeFonts } from './font-loader';
 import { 
@@ -222,662 +221,495 @@ function mapAgreementData(agreement: Agreement) {
   };
 }
 
-// Create comprehensive contract document definition
-function createContractDocumentDefinition(agreementData: ReturnType<typeof mapAgreementData>) {
-  return {
-    pageSize: 'A4',
-    pageMargins: [40, 100, 40, 80],
-    
-    // Header with company branding
-    header: {
-      margin: [40, 20, 40, 0],
-      table: {
-        widths: ['*'],
-        body: [[
-          {
-            stack: [
-              {
-                text: contractLabels.companyName.ar,
-                style: 'companyHeaderName',
-                alignment: 'center',
-                margin: [0, 10, 0, 5]
-              },
-              {
-                text: contractLabels.companyAddress.ar,
-                style: 'companyHeaderInfo',
-                alignment: 'center',
-                margin: [0, 0, 0, 2]
-              },
-              {
-                text: `${contractLabels.companyPhone.ar} | ${contractLabels.companyEmail.ar}`,
-                style: 'companyHeaderInfo',
-                alignment: 'center',
-                margin: [0, 0, 0, 2]
-              },
-              {
-                text: contractLabels.commercialRecord.ar,
-                style: 'companyHeaderInfo',
-                alignment: 'center',
-                margin: [0, 0, 0, 10]
-              }
-            ],
-            fillColor: colors.headerBg,
-            color: colors.headerText
-          }
-        ]]
-      },
-      layout: 'noBorders'
-    },
-    
-    // Footer with legal notice
-    footer: (currentPage: number, pageCount: number) => {
-      return {
-        margin: [40, 10, 40, 20],
-        table: {
-          widths: ['*'],
-          body: [[
-            {
-              stack: [
-                {
-                  text: contractLabels.legalNotice.ar,
-                  style: 'footerNotice',
-                  alignment: 'center',
-                  margin: [0, 5, 0, 2]
-                },
-                {
-                  text: contractLabels.confidentialityNotice.ar,
-                  style: 'footerNotice',
-                  alignment: 'center',
-                  margin: [0, 0, 0, 5]
-                },
-                {
-                  text: `صفحة ${currentPage} من ${pageCount}`,
-                  style: 'pageNumber',
-                  alignment: 'center'
-                }
-              ],
-              fillColor: colors.lighter
-            }
-          ]]
-        },
-        layout: 'noBorders'
-      };
-    },
-    
-    // Main content
-    content: [
-      // Contract title and metadata
-      {
-        table: {
-          widths: ['50%', '50%'],
-          body: [
-            [
-              {
-                text: contractLabels.contractTitle.ar,
-                style: 'contractMainTitle',
-                alignment: 'center',
-                colSpan: 2,
-                margin: [0, 20, 0, 20]
-              },
-              {}
-            ],
-            [
-              createArabicTextBlock(`${contractLabels.documentNumber.ar}: ${agreementData.documentNumber}`, 'documentMeta'),
-              createArabicTextBlock(`${contractLabels.issueDate.ar}: ${agreementData.issueDate}`, 'documentMeta')
-            ]
-          ]
-        },
-        layout: 'noBorders',
-        margin: [0, 0, 0, 20]
-      },
-      
-      // First Party (Lessor) section
-      {
-        text: contractLabels.firstParty.ar,
-        style: 'sectionHeader',
-        margin: [0, 20, 0, 10]
-      },
-      {
-        table: {
-          widths: ['100%'],
-          body: [
-            [
-              {
-                stack: [
-                  createArabicTextBlock(contractLabels.companyName.ar, 'partyMainInfo'),
-                  createArabicTextBlock(contractLabels.companyAddress.ar, 'partySubInfo'),
-                  createArabicTextBlock(contractLabels.commercialRecord.ar, 'partySubInfo')
-                ],
-                margin: [10, 10, 10, 10]
-              }
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 20]
-      },
-      
-      // Second Party (Tenant) section
-      {
-        text: contractLabels.secondParty.ar,
-        style: 'sectionHeader',
-        margin: [0, 10, 0, 10]
-      },
-      
-      // Customer information table
-      {
-        table: {
-          widths: ['25%', '75%'],
-          body: [
-            [
-              createArabicTextBlock(contractLabels.customerName.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.customerName, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.nationality.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.nationality, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.idNumber.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.idNumber, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.phoneNumber.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.phoneNumber, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.email.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.email, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.address.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.address, 'valueStyle')
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 20]
-      },
-      
-      // Vehicle details section
-      {
-        text: contractLabels.vehicleDetails.ar,
-        style: 'sectionHeader',
-        margin: [0, 20, 0, 10]
-      },
-      
-      {
-        table: {
-          widths: ['25%', '75%'],
-          body: [
-            [
-              createArabicTextBlock(contractLabels.make.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.vehicleMake, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.model.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.vehicleModel, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.year.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.vehicleYear, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.licensePlate.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.licensePlate, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.color.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.vehicleColor, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.vinNumber.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.vinNumber, 'valueStyle')
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 20]
-      },
-      
-      // Contract terms section
-      {
-        table: {
-          widths: ['50%', '50%'],
-          body: [
-            [
-              createArabicTextBlock(`${contractLabels.startDate.ar}: ${agreementData.startDate}`, 'contractTerms'),
-              createArabicTextBlock(`${contractLabels.endDate.ar}: ${agreementData.endDate}`, 'contractTerms')
-            ],
-            [
-              createArabicTextBlock(`${contractLabels.duration.ar}: ${agreementData.duration}`, 'contractTerms'),
-              createArabicTextBlock(`${contractLabels.paymentDay.ar}: ${agreementData.paymentDay}`, 'contractTerms')
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 20, 0, 20]
-      },
-      
-      // Financial terms section
-      {
-        text: contractLabels.financialTerms.ar,
-        style: 'sectionHeader',
-        margin: [0, 20, 0, 10]
-      },
-      
-      {
-        table: {
-          widths: ['30%', '70%'],
-          body: [
-            [
-              createArabicTextBlock(contractLabels.monthlyRent.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.monthlyRent, 'financialValue')
-            ],
-            [
-              createArabicTextBlock(contractLabels.totalAmount.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.totalAmount, 'financialValue')
-            ],
-            [
-              createArabicTextBlock(contractLabels.depositAmount.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.depositAmount, 'financialValue')
-            ],
-            [
-              createArabicTextBlock(contractLabels.paymentMethod.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.paymentMethod, 'valueStyle')
-            ],
-            [
-              createArabicTextBlock(contractLabels.lateFee.ar, 'labelStyle'),
-              createArabicTextBlock(agreementData.lateFee, 'financialValue')
-            ]
-          ]
-        },
-        layout: 'lightHorizontalLines',
-        margin: [0, 0, 0, 30]
-      },
-      
-      // Contract articles title
-      {
-        text: contractLabels.articlesTitle.ar,
-        style: 'articlesTitle',
-        alignment: 'center',
-        margin: [0, 30, 0, 20]
-      },
-      
-      // Article 1
-      {
-        text: contractLabels.article1Title.ar,
-        style: 'articleTitle',
-        margin: [0, 15, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article1_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article1_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article1_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 2
-      {
-        text: contractLabels.article2Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article2_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article2_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article2_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 3
-      {
-        text: contractLabels.article3Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article3_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article3_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article3_3.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article3_4.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article3_5.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 4
-      {
-        text: contractLabels.article4Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article4_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article4_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article4_3.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article4_4.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 5
-      {
-        text: contractLabels.article5Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article5_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article5_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article5_3.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article5_4.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 6
-      {
-        text: contractLabels.article6Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article6_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article6_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article6_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 7
-      {
-        text: contractLabels.article7Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article7_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article7_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article7_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 8
-      {
-        text: contractLabels.article8Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article8_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article8_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article8_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 9
-      {
-        text: contractLabels.article9Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article9_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article9_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article9_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 15]
-      },
-      
-      // Article 10
-      {
-        text: contractLabels.article10Title.ar,
-        style: 'articleTitle',
-        margin: [0, 10, 0, 8]
-      },
-      {
-        stack: [
-          createArabicTextBlock(contractLabels.article10_1.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article10_2.ar, 'articleText'),
-          createArabicTextBlock(contractLabels.article10_3.ar, 'articleText')
-        ],
-        margin: [0, 0, 0, 30]
-      },
-      
-      // Signatures section
-      {
-        text: contractLabels.signatures.ar,
-        style: 'articlesTitle',
-        alignment: 'center',
-        margin: [0, 30, 0, 20]
-      },
-      
-      {
-        table: {
-          widths: ['33%', '33%', '34%'],
-          body: [
-            [
-              {
-                stack: [
-                  createArabicTextBlock(contractLabels.firstPartySignature.ar, 'signatureHeader'),
-                  { text: '', margin: [0, 25, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureName.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureDate.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureStamp.ar, 'signatureLabel')
-                ]
-              },
-              {
-                stack: [
-                  createArabicTextBlock(contractLabels.secondPartySignature.ar, 'signatureHeader'),
-                  { text: '', margin: [0, 25, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureName.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureDate.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureStamp.ar, 'signatureLabel')
-                ]
-              },
-              {
-                stack: [
-                  createArabicTextBlock(contractLabels.witnessSignature.ar, 'signatureHeader'),
-                  { text: '', margin: [0, 25, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureName.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureDate.ar, 'signatureLabel'),
-                  { text: '', margin: [0, 10, 0, 0] },
-                  { text: '________________________', alignment: 'center', margin: [0, 0, 0, 5] },
-                  createArabicTextBlock(contractLabels.signatureStamp.ar, 'signatureLabel')
-                ]
-              }
-            ]
-          ]
-        },
-        layout: 'noBorders',
-        margin: [0, 0, 0, 20]
-      }
-    ],
-    
-    // Enhanced styles for professional Arabic legal document
-    styles: {
-      companyHeaderName: {
-        fontSize: 20,
-        bold: true,
-        font: 'Amiri',
-        color: colors.headerText,
-        alignment: 'center'
-      },
-      companyHeaderInfo: {
-        fontSize: 11,
-        font: 'Amiri',
-        color: colors.headerText,
-        alignment: 'center'
-      },
-      contractMainTitle: {
-        fontSize: 24,
-        bold: true,
-        font: 'Amiri',
-        color: colors.primary,
-        alignment: 'center'
-      },
-      documentMeta: {
-        fontSize: 10,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'right'
-      },
-      sectionHeader: {
-        fontSize: 16,
-        bold: true,
-        font: 'Amiri',
-        color: colors.primary,
-        alignment: 'right',
-        decoration: 'underline'
-      },
-      partyMainInfo: {
-        fontSize: 14,
-        bold: true,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'right'
-      },
-      partySubInfo: {
-        fontSize: 11,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'right'
-      },
-      labelStyle: {
-        fontSize: 11,
-        bold: true,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'right'
-      },
-      valueStyle: {
-        fontSize: 12,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'right'
-      },
-      contractTerms: {
-        fontSize: 11,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'right'
-      },
-      financialValue: {
-        fontSize: 13,
-        bold: true,
-        font: 'Amiri',
-        color: colors.primary,
-        alignment: 'right'
-      },
-      articlesTitle: {
-        fontSize: 18,
-        bold: true,
-        font: 'Amiri',
-        color: colors.primary,
-        alignment: 'center',
-        decoration: 'underline'
-      },
-      articleTitle: {
-        fontSize: 14,
-        bold: true,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'right'
-      },
-      articleText: {
-        fontSize: 11,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'right',
-        margin: [0, 0, 0, 6],
-        lineHeight: 1.4
-      },
-      signatureHeader: {
-        fontSize: 12,
-        bold: true,
-        font: 'Amiri',
-        color: colors.text,
-        alignment: 'center'
-      },
-      signatureLabel: {
-        fontSize: 9,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'center'
-      },
-      footerNotice: {
-        fontSize: 8,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'center'
-      },
-      pageNumber: {
-        fontSize: 8,
-        font: 'Amiri',
-        color: colors.textLight,
-        alignment: 'center'
-      }
-    },
-    
-    defaultStyle: {
-      font: 'Amiri',
-      fontSize: 11,
-      rtl: true,
-      alignment: 'right',
-      lineHeight: 1.3
-    }
-  };
-}
-
 // Main contract generation function
 export async function generateArabicContract(agreement: Agreement): Promise<boolean> {
   try {
     console.log('Starting comprehensive Arabic contract generation for agreement:', agreement.id);
     
-    // Ensure fonts are loaded
-    await initializeFonts();
-    
     // Map agreement data to contract placeholders
     const contractData = mapAgreementData(agreement);
     console.log('Mapped comprehensive contract data:', contractData);
     
-    // Create document definition
-    const docDefinition = createContractDocumentDefinition(contractData);
+    // Create a printable window with proper Arabic support
+    const printWindow = window.open('', '');
+    if (!printWindow) {
+      throw new Error('Could not open print window');
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>عقد إيجار مركبة شامل</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 20mm;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 20px;
+            border-radius: 8px;
+          }
+          .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1e40af;
+          }
+          .company-details {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 5px;
+          }
+          .contract-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #1e40af;
+            text-align: center;
+            border: 2px solid #1e40af;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f0f8ff;
+          }
+          .contract-subtitle {
+            font-size: 16px;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          .section {
+            margin: 25px 0;
+            page-break-inside: avoid;
+          }
+          .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1e40af;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+          }
+          .info-grid {
+            display: table;
+            width: 100%;
+            margin: 15px 0;
+          }
+          .info-row {
+            display: table-row;
+          }
+          .info-item {
+            display: table-cell;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+            width: 50%;
+          }
+          .info-label {
+            font-weight: bold;
+            color: #475569;
+            margin-left: 8px;
+          }
+          .info-value {
+            color: #1e293b;
+          }
+          .amount {
+            color: #dc2626;
+            font-weight: bold;
+            font-size: 16px;
+          }
+          .article {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fafafa;
+          }
+          .article-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+          }
+          .article-text {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 8px 0;
+            color: #374151;
+          }
+          .parties-section {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #bfdbfe;
+            margin: 20px 0;
+          }
+          .party-header {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+          }
+          .party-details {
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 8px 0;
+            color: #374151;
+          }
+          .signatures {
+            margin-top: 40px;
+            page-break-inside: avoid;
+          }
+          .signature-section {
+            display: table;
+            width: 100%;
+            margin: 30px 0;
+          }
+          .signature-row {
+            display: table-row;
+          }
+          .signature-cell {
+            display: table-cell;
+            width: 50%;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+          }
+          .signature-title {
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: #1e40af;
+          }
+          .signature-line {
+            border-top: 1px solid #000;
+            margin: 10px 0;
+            padding-top: 5px;
+            font-size: 12px;
+            color: #64748b;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            font-size: 12px;
+            color: #64748b;
+            page-break-inside: avoid;
+          }
+          .vehicle-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          .vehicle-table th, .vehicle-table td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: right;
+          }
+          .vehicle-table th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            color: #1e40af;
+          }
+          .phone-ltr {
+            direction: ltr;
+            text-align: left;
+            display: inline-block;
+          }
+          @media print {
+            body { print-color-adjust: exact; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">شركة العراف لتأجير السيارات ذ.م.م</div>
+          <div class="company-details">منطقة أم صلال علي، الدوحة، قطر، ص.ب 36126</div>
+          <div class="company-details">سجل تجاري رقم: 146832</div>
+          <div class="company-details">هاتف: <span class="phone-ltr">+974 31411919 - 31151919</span> | البريد الإلكتروني: info@alaraf.qa</div>
+        </div>
+
+        <div class="contract-title">
+          عقد إيجار مركبة
+        </div>
+        <div class="contract-subtitle">
+          رقم العقد: ${contractData.agreementNumber}
+        </div>
+
+        <div class="section">
+          <div class="article-text">
+            تم تحرير هذا العقد وإبرامه بتاريخ: ${contractData.contractDate} ("تاريخ النفاذ")
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="info-grid">
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">تاريخ العقد:</span>
+                <span class="info-value">${contractData.contractDate}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">تاريخ الانتهاء:</span>
+                <span class="info-value">${contractData.endDate}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">رقم العقد:</span>
+                <span class="info-value">${contractData.agreementNumber}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">مدة الإيجار:</span>
+                <span class="info-value">${contractData.duration}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="parties-section">
+          <div class="section-title">بين كل من:</div>
+          
+          <div class="party-header">الطرف الأول:</div>
+          <div class="party-details">
+            شركة العراف لتأجير السيارات ذ.م.م، شركة ذات مسؤولية محدودة مسجلة وفقًا لقوانين دولة قطر، وتحمل السجل التجاري رقم (146832)، ومقرها الرئيسي في منطقة أم صلال علي، الدوحة – قطر، صندوق بريد رقم 36126، ويمثلها قانونًا السيد/ خميس هاشم الجبر، المدير المفوض بالتوقيع، ويُشار إليها لاحقًا بـ "المؤجر" أو "الطرف الأول".
+          </div>
+
+          <div class="party-header" style="margin-top: 20px;">و</div>
+          <div class="party-header">الطرف الثاني:</div>
+          <div class="party-details">
+            السيد/ ${contractData.customerName}، حامل رخصة القيادة رقم ${contractData.idNumber}، وجنسيته ${contractData.nationality}، ومقيم في دولة قطر، رقم الجوال: <span class="phone-ltr">${contractData.phoneNumber}</span>، ويُشار إليه لاحقًا بـ "المستأجر" أو "الطرف الثاني".
+          </div>
+          
+          <div class="party-details" style="margin-top: 15px;">
+            ويُشار إلى الطرفين مجتمعين بـ "الأطراف"، ومنفردين بـ "الطرف".
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (1): التمهيد</div>
+          <div class="article-text">
+            يُعد التمهيد أعلاه جزءًا لا يتجزأ من هذا العقد ويُقرأ ويُفسر ضمن شروطه وأحكامه.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (2): بيانات المركبة المؤجرة</div>
+          <div class="article-text">
+            يؤجر الطرف الأول بموجب هذا العقد الطرف الثاني القابل لذلك المركبة التالية:
+          </div>
+          <table class="vehicle-table">
+            <thead>
+              <tr>
+                <th>البيان</th>
+                <th>التفاصيل</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>نوع المركبة</td>
+                <td>${contractData.vehicleMake} - ${contractData.vehicleModel}</td>
+              </tr>
+              <tr>
+                <td>سنة الصنع</td>
+                <td>${contractData.vehicleYear}</td>
+              </tr>
+              <tr>
+                <td>رقم اللوحة</td>
+                <td>${contractData.licensePlate}</td>
+              </tr>
+              <tr>
+                <td>رقم الهيكل (VIN)</td>
+                <td>${contractData.vinNumber}</td>
+              </tr>
+              <tr>
+                <td>اللون</td>
+                <td>${contractData.vehicleColor}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (3): مدة الإيجار</div>
+          <div class="article-text">
+            تُحدد مدة هذا العقد بـ ${contractData.duration} تبدأ اعتبارًا من تاريخ النفاذ، وتنتهي تلقائيًا دون حاجة لأي إجراء. لا يجوز للطرف الثاني إنهاء العقد قبل انتهاء مدته إلا بموافقة خطية مسبقة من الطرف الأول.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (4): الأجرة</div>
+          <div class="article-text">
+            يلتزم الطرف الثاني بسداد مبلغ وقدره ${contractData.monthlyRent} ريال قطري شهريًا بموجب جدول الدفعات المرفق. يتم السداد في بداية كل شهر، دون أي خصومات أو مقاصة أو مطالبات.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (5): غرامة التأخير</div>
+          <div class="article-text">
+            في حال تأخر الطرف الثاني عن السداد لأي مبلغ مستحق، تُفرض عليه غرامة تأخير مقدارها ${contractData.lateFee} ريال قطري عن كل يوم تأخير دون حاجة لإنذار أو إعذار. تستحق الغرامات والمبالغ المتأخرة فورًا.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (6): وديعة الضمان</div>
+          <div class="article-text">
+            يدفع الطرف الثاني عند توقيع العقد وديعة ضمان مقدارها ${contractData.depositAmount} ريال قطري، تُحتجز لدى الطرف الأول لضمان حسن تنفيذ التزاماته. يحق للطرف الأول خصم أي مبالغ مستحقة من هذه الوديعة دون موافقة مسبقة. لا تُرد الوديعة في حال الإنهاء المبكر من قبل الطرف الثاني.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (7): المعاينة</div>
+          <div class="article-text">
+            يقر الطرف الثاني بأنه عاين المركبة معاينة نافيه للجهالة وقبلها بحالتها الراهنة دون أي تحفظ. ولا يحق له الادعاء بوجود عيوب لاحقًا. لا يقدم الطرف الأول أي ضمانات على المركبة.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (8): استلام المركبة</div>
+          <div class="article-text">
+            يتم تسليم المركبة وفق محضر استلام مرفق. يكون الطرف الثاني مسؤولًا عن أي أضرار أو مخالفات تقع على المركبة أو تتسبب بها أثناء فترة الإيجار.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (9): التزامات الطرف الثاني</div>
+          <div class="article-text">يقر الطرف الثاني ويتعهد بما يلي:</div>
+          <div class="article-text">9.1 دفع جميع المخالفات المرورية خلال 30 يومًا من تاريخ تحريرها.</div>
+          <div class="article-text">9.2 تحمل مصاريف التشغيل والصيانة.</div>
+          <div class="article-text">9.3 إجراء الفحص الفني الدوري وضمان اجتيازه.</div>
+          <div class="article-text">9.4 تحمُّل المسؤولية عن أي هلاك كلي أو جزئي للمركبة حتى وإن كان بسبب الغير، في حال الإهمال أو التقصير.</div>
+          <div class="article-text">9.5 عدم السماح لأي شخص بقيادة المركبة أو استخدامها دون موافقة كتابية من الطرف الأول.</div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (10): التأمين</div>
+          <div class="article-text">
+            يلتزم الطرف الثاني بإصدار بوليصة تأمين شاملة من شركة معتمدة طوال مدة الإيجار، وتقديم نسخة للطرف الأول.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (11): خيار الشراء</div>
+          <div class="article-text">
+            يجوز للطرف الثاني التقدم بطلب شراء المركبة في نهاية مدة العقد، شريطة إخطار الطرف الأول كتابيًا، ويُحتسب سعر المركبة وفق ما يتفق عليه الطرفان لاحقًا كتابيًا. لا يترتب على هذا العقد التزام نهائي بالبيع.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (12): الإخلال بالعقد</div>
+          <div class="article-text">يُعد الطرف الثاني في حالة إخلال إذا:</div>
+          <div class="article-text">12.1 تأخر في السداد.</div>
+          <div class="article-text">12.2 خالف أي بند من بنود هذا العقد.</div>
+          <div class="article-text">12.3 أُعلن إفلاسه أو أعساره.</div>
+          <div class="article-text">12.4 ترك المركبة دون إشراف.</div>
+          <div class="article-text">12.5 غادر البلاد نهائيًا.</div>
+          <div class="article-text">12.6 لم يسدد المخالفات خلال المهلة المحددة.</div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (13): نتائج الإخلال</div>
+          <div class="article-text">يترتب على الإخلال:</div>
+          <div class="article-text">13.1 إنهاء العقد فورًا وسحب المركبة دون إذن قضائي.</div>
+          <div class="article-text">13.2 دفع غرامة إنهاء تعاقد بمقدار 5000 ريال قطري.</div>
+          <div class="article-text">13.3 دفع تعويض يومي قدره 200 ريال قطري عن كل يوم تأخير في تسليم المركبة.</div>
+          <div class="article-text">13.4 مصادرة أي ممتلكات داخل السيارة دون مسؤولية مدنية أو جزائية على الطرف الأول.</div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (14): السداد المبكر</div>
+          <div class="article-text">
+            لا يجوز السداد المبكر إلا بعد إخطار الطرف الأول كتابيًا قبل 30 يومًا والحصول على موافقة صريحة منه. لا يُعد السداد المبكر مبررًا لإلغاء أي غرامات أو التزامات متعلقة بالعقد.
+          </div>
+        </div>
+
+        <div class="article">
+          <div class="article-title">المادة (15): أحكام عامة</div>
+          <div class="article-text">15.1 القانون الحاكم: يخضع هذا العقد لقوانين دولة قطر وتختص محاكمها بأي نزاع.</div>
+          <div class="article-text">15.2 الإشعارات: تتم عبر البريد الإلكتروني أو تطبيق واتساب أو الرسائل النصية.</div>
+          <div class="article-text">15.3 التنازل: لا يجوز للطرف الثاني التنازل عن العقد أو حقوقه دون موافقة خطية مسبقة.</div>
+          <div class="article-text">15.4 قابلية الفصل: إذا تبيّن أن أي بند غير قانوني، تبقى باقي البنود نافذة.</div>
+          <div class="article-text">15.5 الاتفاق الكامل: يُمثل هذا العقد كامل الاتفاق بين الأطراف ويُلغي ما سبقه من تفاهمات.</div>
+          <div class="article-text">15.6 النسخ: يُوقع العقد من نسختين أصليتين لكل طرف نسخة، ولهما ذات الحجية القانونية.</div>
+        </div>
+
+        <div class="signatures">
+          <div class="section-title">التوقيعات</div>
+          <div class="signature-section">
+            <div class="signature-row">
+              <div class="signature-cell">
+                <div class="signature-title">الطرف الأول (المؤجر)</div>
+                <div style="height: 60px;"></div>
+                <div class="signature-line">الاسم: خميس هاشم الجبر</div>
+                <div class="signature-line">التاريخ: _______________</div>
+                <div class="signature-line">الختم: _______________</div>
+              </div>
+              <div class="signature-cell">
+                <div class="signature-title">الطرف الثاني (المستأجر)</div>
+                <div style="height: 60px;"></div>
+                <div class="signature-line">الاسم: ${contractData.customerName}</div>
+                <div class="signature-line">التاريخ: _______________</div>
+                <div class="signature-line">التوقيع: _______________</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>هذا العقد محرر باللغة العربية ويخضع للقوانين المعمول بها في دولة قطر</div>
+          <div>تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-QA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</div>
+          <div>هذه الوثيقة سرية وخاصة بالأطراف المذكورة فقط</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() {
+                window.close();
+              }, 1000);
+            }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
     
-    // Generate and download the PDF
-    const fileName = prepareArabicForPDF(`عقد-إيجار-مركبة-شامل-${agreement.agreement_number || 'غير-محدد'}.pdf`);
-    
-    console.log('Generating comprehensive PDF with filename:', fileName);
-    pdfMake.createPdf(docDefinition).download(fileName);
-    
-    toast.success('تم إنشاء عقد الإيجار الشامل بنجاح');
+    toast.success('تم فتح نافذة الطباعة - يمكنك حفظ العقد كـ PDF');
     return true;
     
   } catch (error) {

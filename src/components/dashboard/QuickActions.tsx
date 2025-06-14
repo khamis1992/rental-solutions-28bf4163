@@ -1,36 +1,39 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, FileText, CreditCard, Wrench } from 'lucide-react';
 import { RecordPaymentDialog } from '@/components/payments/RecordPaymentDialog';
+import { useTranslation } from '@/utils/translation-helper';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export const QuickActions = () => {
   const navigate = useNavigate();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   
   const quickActions = [
     { 
-      title: "Add Customer", 
+      title: "إضافة عميل جديد", 
       icon: UserPlus, 
       color: "bg-green-500", 
       onClick: () => navigate('/customers/add') 
     },
     { 
-      title: "Create Agreement", 
+      title: "إضافة عقد جديد", 
       icon: FileText, 
       color: "bg-violet-500", 
       onClick: () => navigate('/agreements/add') 
     },
     { 
-      title: "Record Payment", 
+      title: "تسجيل دفعة", 
       icon: CreditCard, 
       color: "bg-green-500", 
       onClick: () => setShowPaymentDialog(true)
     },
     { 
-      title: "Schedule Maintenance", 
+      title: "إضافة صيانة", 
       icon: Wrench, 
       color: "bg-amber-500", 
       onClick: () => navigate('/maintenance/add') 
@@ -39,10 +42,14 @@ export const QuickActions = () => {
 
   return (
     <>
-      <Card className="mb-6 border border-border/60 shadow-sm">
+      <Card className="mb-6 border border-border/60 shadow-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
-          <CardDescription>Common tasks and operations</CardDescription>
+          <CardTitle className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+            الإجراءات السريعة
+          </CardTitle>
+          <CardDescription className={language === 'ar' ? 'text-right' : ''}>
+            الوصول السريع للمهام الأساسية
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

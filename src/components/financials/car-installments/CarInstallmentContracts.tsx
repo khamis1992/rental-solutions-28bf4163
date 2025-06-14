@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useCarInstallments } from '@/hooks/use-car-installments';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { ContractSummaryCards } from './ContractSummaryCards';
 import { ContractDialog } from './ContractDialog';
 import { ContractDetailDialog } from './ContractDetailDialog';
 import { CarInstallmentContract } from '@/types/car-installment';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const CarInstallmentContracts = () => {
   const {
@@ -17,6 +17,8 @@ const CarInstallmentContracts = () => {
     fetchContracts,
     createContract
   } = useCarInstallments();
+
+  const { language } = useLanguage();
 
   const [isContractDialogOpen, setIsContractDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -59,12 +61,14 @@ const CarInstallmentContracts = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold mb-4">Car Installment Contracts</h2>
-        <Button onClick={handleAddContract}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Contract
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className={`flex justify-between items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <h2 className={`text-2xl font-semibold mb-4 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+          {language === 'ar' ? 'عقود تقسيط السيارات' : 'Car Installment Contracts'}
+        </h2>
+        <Button onClick={handleAddContract} className={language === 'ar' ? 'flex-row-reverse' : ''}>
+          <Plus className={language === 'ar' ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"} />
+          {language === 'ar' ? 'إضافة عقد' : 'Add Contract'}
         </Button>
       </div>
 

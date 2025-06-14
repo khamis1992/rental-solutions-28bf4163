@@ -93,17 +93,17 @@ const AddMaintenance = () => {
       await create.mutateAsync(preparedData);
       setSubmitted(true);
       toast({
-        title: "Success",
-        description: "Maintenance record created successfully",
+        title: "نجح",
+        description: "تم إنشاء سجل الصيانة بنجاح",
         variant: "default"
       });
     } catch (err: any) {
       console.error('Error creating maintenance record:', err);
-      setError(err.message || 'Failed to create maintenance record. Please try again.');
+      setError(err.message || 'فشل في إنشاء سجل الصيانة. يرجى المحاولة مرة أخرى.');
       savePendingMaintenance(preparedData);
       toast({
-        title: "Offline",
-        description: "You are offline or the request failed. The record will be synced when you are back online.",
+        title: "غير متصل",
+        description: "أنت غير متصل أو فشل الطلب. سيتم مزامنة السجل عند العودة للاتصال.",
         variant: "destructive"
       });
     } finally {
@@ -113,18 +113,26 @@ const AddMaintenance = () => {
 
   if (submitted) {
     return (
-      <PageContainer title="Maintenance Submitted">
-        <div className="flex flex-col items-center justify-center py-12">
+      <PageContainer title="تم إرسال الصيانة">
+        <div className="flex flex-col items-center justify-center py-12 text-right" dir="rtl">
           <div className="rounded-full bg-green-100 p-4 mb-4">
             <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Maintenance record submitted!</h2>
-          <p className="mb-6 text-gray-600">Thank you. The record has been saved.</p>
-          <div className="flex gap-2">
-            <Button onClick={() => navigate('/maintenance')}>Back to Maintenance</Button>
-            <Button variant="outline" onClick={() => { setSubmitted(false); }}>Add Another</Button>
+          <h2 className="text-2xl font-bold mb-2">
+            تم إرسال سجل الصيانة!
+          </h2>
+          <p className="mb-6 text-gray-600">
+            شكراً لك. تم حفظ السجل.
+          </p>
+          <div className="flex gap-2 flex-row-reverse">
+            <Button onClick={() => navigate('/maintenance')}>
+              العودة إلى الصيانة
+            </Button>
+            <Button variant="outline" onClick={() => { setSubmitted(false); }}>
+              إضافة آخر
+            </Button>
           </div>
         </div>
       </PageContainer>
@@ -133,22 +141,24 @@ const AddMaintenance = () => {
 
   return (
     <PageContainer 
-      title="Add Maintenance Record" 
-      description="Create a new maintenance record for a vehicle"
+      title="إضافة سجل صيانة"
+      description="إنشاء سجل صيانة جديد للمركبة"
     >
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      <MaintenanceForm
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        initialData={{ vehicle_id: prefilledVehicleId, agreement_id: prefilledAgreementId }}
-      />
+      <div dir="rtl">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4 ml-2" />
+            <AlertTitle>خطأ</AlertTitle>
+            <AlertDescription className="text-right">{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <MaintenanceForm
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          initialData={{ vehicle_id: prefilledVehicleId, agreement_id: prefilledAgreementId }}
+        />
+      </div>
     </PageContainer>
   );
 };

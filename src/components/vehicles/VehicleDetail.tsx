@@ -1,19 +1,21 @@
-
 import React from 'react';
 import { formatCurrency } from '@/lib/formatters';
-import { Vehicle } from '@/types/vehicle';
+import { VehicleData } from '@/types/vehicle.types';
 import { VehicleMainInfo } from './detail/VehicleMainInfo';
 import { VehicleStatusCard } from './detail/VehicleStatusCard';
 import { VehicleQuickActions } from './detail/VehicleQuickActions';
 import { VehicleTabContent } from './detail/VehicleTabContent';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VehicleDetailProps {
-  vehicle: Vehicle;
+  vehicle: VehicleData;
 }
 
 const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+  const { language } = useLanguage();
+  
   if (!vehicle) {
-    return <div>No vehicle data available</div>;
+    return <div className={language === 'ar' ? 'text-right' : ''}>{language === 'ar' ? 'لا توجد بيانات للمركبة' : 'No vehicle data available'}</div>;
   }
 
   // Log the vehicle object to see what we're working with
@@ -22,32 +24,30 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     make: vehicle.make,
     model: vehicle.model,
     status: vehicle.status,
-    hasVehicleType: !!vehicle.vehicleType,
-    vehicleTypeName: vehicle.vehicleType?.name,
-    dailyRate: vehicle.dailyRate || vehicle.rent_amount
+    rent_amount: vehicle.rent_amount
   }));
 
   // Safe access to nested properties with fallbacks
-  const vehicleTypeName = vehicle.vehicleType?.name || 'Standard';
-  const dailyRate = vehicle.dailyRate || vehicle.rent_amount || 0;
+  const vehicleTypeName = (language === 'ar' ? 'قياسي' : 'Standard');
+  const dailyRate = vehicle.rent_amount || 0;
 
   // Format vehicle details for display with defensive coding
   const vehicleDetails = [
-    { label: "Make", value: vehicle.make },
-    { label: "Model", value: vehicle.model },
-    { label: "Year", value: vehicle.year },
-    { label: "Color", value: vehicle.color || 'Not specified' },
-    { label: "License Plate", value: vehicle.license_plate || 'Not specified' },
-    { label: "VIN", value: vehicle.vin || 'Not specified' },
-    { label: "Mileage", value: vehicle.mileage ? `${vehicle.mileage} km` : "Not recorded" },
-    { label: "Daily Rate", value: dailyRate ? formatCurrency(dailyRate) : "Not set" },
-    { label: "Type", value: vehicleTypeName },
-    { label: "Description", value: vehicle.description || "No description available" },
+    { label: language === 'ar' ? "الماركة" : "Make", value: vehicle.make },
+    { label: language === 'ar' ? "الموديل" : "Model", value: vehicle.model },
+    { label: language === 'ar' ? "السنة" : "Year", value: vehicle.year },
+    { label: language === 'ar' ? "اللون" : "Color", value: vehicle.color || (language === 'ar' ? 'غير محدد' : 'Not specified') },
+    { label: language === 'ar' ? "لوحة الترخيص" : "License Plate", value: vehicle.license_plate || (language === 'ar' ? 'غير محدد' : 'Not specified') },
+    { label: language === 'ar' ? "رقم الهيكل" : "VIN", value: vehicle.vin || (language === 'ar' ? 'غير محدد' : 'Not specified') },
+    { label: language === 'ar' ? "عداد المسافة" : "Mileage", value: vehicle.mileage ? `${vehicle.mileage} ${language === 'ar' ? 'كم' : 'km'}` : (language === 'ar' ? "غير مسجل" : "Not recorded") },
+    { label: language === 'ar' ? "السعر اليومي" : "Daily Rate", value: dailyRate ? `${formatCurrency(dailyRate)} ${language === 'ar' ? 'ر.ق' : ''}` : (language === 'ar' ? "غير محدد" : "Not set") },
+    { label: language === 'ar' ? "النوع" : "Type", value: vehicleTypeName },
+    { label: language === 'ar' ? "الوصف" : "Description", value: (language === 'ar' ? "لا يوجد وصف متاح" : "No description available") },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${language === 'ar' ? 'md:grid-flow-col-dense' : ''}`}>
         <VehicleMainInfo vehicle={vehicle} vehicleDetails={vehicleDetails} />
 
         <div className="space-y-6">

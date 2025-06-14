@@ -2,10 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 import { ExtendedVehicle, VehicleStatus, VehicleUpdate } from '@/types/vehicle';
 
-const supabase = createClient<Database>(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
+// Use fallback values if environment variables are not set
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vqdlsidkucrownbfuouq.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y';
+
+const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 interface UpdateResult {
   success: boolean;
@@ -204,10 +205,11 @@ export async function updateVehicleStatus(
     if (!vehicle) {
       return {
         success: false,
-        message: `Vehicle not found with ID: ${id}`
+        message: 'Vehicle not found or update failed'
       };
     }
 
+    console.log(`Successfully updated vehicle status:`, vehicle);
     return {
       success: true,
       message: 'Vehicle status updated successfully',
@@ -215,6 +217,42 @@ export async function updateVehicleStatus(
     };
   } catch (err) {
     console.error('Unexpected error updating vehicle status:', err);
+    return {
+      success: false,
+      message: `Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
+ * Get all vehicles with their types
+ */
+export async function getAllVehicles(): Promise<{
+  success: boolean;
+  message: string;
+  data?: ExtendedVehicle[];
+}> {
+  try {
+    const { data: vehicles, error } = await supabase
+      .from('vehicles')
+      .select('*, vehicle_types(*)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching vehicles:', error);
+      return {
+        success: false,
+        message: `Error fetching vehicles: ${error.message}`
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Vehicles fetched successfully',
+      data: vehicles as ExtendedVehicle[]
+    };
+  } catch (err) {
+    console.error('Unexpected error fetching vehicles:', err);
     return {
       success: false,
       message: `Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`

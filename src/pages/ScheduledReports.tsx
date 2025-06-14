@@ -54,7 +54,7 @@ import { useNavigate } from 'react-router-dom';
 const SCHEDULED_REPORTS = [
   {
     id: '1',
-    name: 'Monthly Fleet Status',
+    name: 'حالة الأسطول الشهرية',
     type: 'fleet',
     frequency: 'monthly',
     recipients: ['admin@example.com', 'manager@example.com'],
@@ -64,7 +64,7 @@ const SCHEDULED_REPORTS = [
   },
   {
     id: '2',
-    name: 'Weekly Financial Summary',
+    name: 'الملخص المالي الأسبوعي',
     type: 'financial',
     frequency: 'weekly',
     recipients: ['finance@example.com'],
@@ -74,7 +74,7 @@ const SCHEDULED_REPORTS = [
   },
   {
     id: '3',
-    name: 'Customer Retention Report',
+    name: 'تقرير الاحتفاظ بالعملاء',
     type: 'customers',
     frequency: 'quarterly',
     recipients: ['marketing@example.com', 'sales@example.com'],
@@ -84,7 +84,7 @@ const SCHEDULED_REPORTS = [
   },
   {
     id: '4',
-    name: 'Maintenance Schedule',
+    name: 'جدول الصيانة',
     type: 'maintenance',
     frequency: 'weekly',
     recipients: ['maintenance@example.com'],
@@ -94,7 +94,7 @@ const SCHEDULED_REPORTS = [
   },
   {
     id: '5',
-    name: 'Legal Compliance Review',
+    name: 'مراجعة الامتثال القانوني',
     type: 'legal',
     frequency: 'monthly',
     recipients: ['legal@example.com'],
@@ -228,19 +228,19 @@ const ScheduledReports = () => {
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Report Type</FormLabel>
+                        <FormLabel>نوع التقرير</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select report type" />
+                              <SelectValue placeholder="اختر نوع التقرير" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="fleet">Fleet Report</SelectItem>
-                            <SelectItem value="financial">Financial Report</SelectItem>
-                            <SelectItem value="customers">Customer Report</SelectItem>
-                            <SelectItem value="maintenance">Maintenance Report</SelectItem>
-                            <SelectItem value="legal">Legal Report</SelectItem>
+                            <SelectItem value="fleet">تقرير الأسطول</SelectItem>
+                            <SelectItem value="financial">التقرير المالي</SelectItem>
+                            <SelectItem value="customers">تقرير العملاء</SelectItem>
+                            <SelectItem value="maintenance">تقرير الصيانة</SelectItem>
+                            <SelectItem value="legal">التقرير القانوني</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

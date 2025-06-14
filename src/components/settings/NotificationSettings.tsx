@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase';
 import { Bell, Save } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface NotificationSettingsProps {
   initialData?: Record<string, any>;
@@ -15,6 +16,7 @@ interface NotificationSettingsProps {
 
 const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
   
   // Notification settings state
   const [notificationSettings, setNotificationSettings] = useState({
@@ -59,10 +61,10 @@ const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
-      toast.success("Your notification preferences have been updated successfully");
+      toast.success("تم تحديث تفضيلات الإشعارات بنجاح");
     },
     onError: (error) => {
-      toast.error("Failed to save notification settings");
+      toast.error("فشل في حفظ إعدادات الإشعارات");
       console.error("Error saving notification settings:", error);
     }
   });
@@ -74,156 +76,156 @@ const NotificationSettings = ({ initialData }: NotificationSettingsProps) => {
   };
 
   return (
-    <Card>
+    <Card dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <CardHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-row-reverse">
+          <CardTitle className="text-right">إعدادات الإشعارات</CardTitle>
           <Bell className="h-5 w-5" />
-          <CardTitle>Notification Settings</CardTitle>
         </div>
-        <CardDescription>
-          Manage your notification preferences and alerts
+        <CardDescription className="text-right">
+          إدارة تفضيلات الإشعارات والتنبيهات الخاصة بك
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <h3 className="font-medium">Communication Channels</h3>
+            <h3 className="font-medium text-right">قنوات التواصل</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="email_notifications" className="font-medium">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="email_notifications" 
                   checked={notificationSettings.email_notifications}
                   onCheckedChange={(checked) => handleSwitchChange('email_notifications', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="email_notifications" className="font-medium text-right">إشعارات البريد الإلكتروني</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي الإشعارات عبر البريد الإلكتروني</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="system_notifications" className="font-medium">System Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive in-app notifications</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="system_notifications" 
                   checked={notificationSettings.system_notifications}
                   onCheckedChange={(checked) => handleSwitchChange('system_notifications', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="system_notifications" className="font-medium text-right">إشعارات النظام</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي الإشعارات داخل التطبيق</p>
+                </div>
               </div>
             </div>
             
             <Separator className="my-6" />
             
-            <h3 className="font-medium">Notification Types</h3>
+            <h3 className="font-medium text-right">التنبيهات المتخصصة</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="maintenance_reminders" className="font-medium">Maintenance Reminders</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about scheduled maintenance</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="maintenance_reminders" 
                   checked={notificationSettings.maintenance_reminders}
                   onCheckedChange={(checked) => handleSwitchChange('maintenance_reminders', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="maintenance_reminders" className="font-medium text-right">تذكيرات الصيانة</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول الصيانة المجدولة</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="payment_reminders" className="font-medium">Payment Reminders</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about upcoming and overdue payments</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="payment_reminders" 
                   checked={notificationSettings.payment_reminders}
                   onCheckedChange={(checked) => handleSwitchChange('payment_reminders', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="payment_reminders" className="font-medium text-right">تذكيرات الدفع</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول المدفوعات القادمة والمتأخرة</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="report_notifications" className="font-medium">Report Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Get notified when reports are generated</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="report_notifications" 
                   checked={notificationSettings.report_notifications}
                   onCheckedChange={(checked) => handleSwitchChange('report_notifications', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="report_notifications" className="font-medium text-right">إشعارات التقارير</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات عند إنتاج التقارير</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="document_expiration" className="font-medium">Document Expiration</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about expiring documents</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="document_expiration" 
                   checked={notificationSettings.document_expiration}
                   onCheckedChange={(checked) => handleSwitchChange('document_expiration', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="document_expiration" className="font-medium text-right">انتهاء صلاحية الوثائق</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول الوثائق المنتهية الصلاحية</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="customer_activity" className="font-medium">Customer Activity</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about customer interactions</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="customer_activity" 
                   checked={notificationSettings.customer_activity}
                   onCheckedChange={(checked) => handleSwitchChange('customer_activity', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="customer_activity" className="font-medium text-right">نشاط العملاء</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول تفاعلات العملاء</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="vehicle_alerts" className="font-medium">Vehicle Alerts</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about vehicle status changes</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="vehicle_alerts" 
                   checked={notificationSettings.vehicle_alerts}
                   onCheckedChange={(checked) => handleSwitchChange('vehicle_alerts', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="vehicle_alerts" className="font-medium text-right">تنبيهات المركبات</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول تغييرات حالة المركبات</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="financial_alerts" className="font-medium">Financial Alerts</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about financial events</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="financial_alerts" 
                   checked={notificationSettings.financial_alerts}
                   onCheckedChange={(checked) => handleSwitchChange('financial_alerts', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="financial_alerts" className="font-medium text-right">التنبيهات المالية</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول الأحداث المالية</p>
+                </div>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div>
-                  <Label htmlFor="legal_notifications" className="font-medium">Legal Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Get notified about legal matters</p>
-                </div>
+              <div className="flex items-center justify-between space-x-2 space-x-reverse">
                 <Switch 
                   id="legal_notifications" 
                   checked={notificationSettings.legal_notifications}
                   onCheckedChange={(checked) => handleSwitchChange('legal_notifications', checked)}
                 />
+                <div className="text-right">
+                  <Label htmlFor="legal_notifications" className="font-medium text-right">الإشعارات القانونية</Label>
+                  <p className="text-sm text-muted-foreground text-right">تلقي إشعارات حول المسائل القانونية</p>
+                </div>
               </div>
             </div>
           </div>
           
-          <div className="pt-4">
+          <div className="flex justify-end">
             <Button 
               type="submit" 
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-row-reverse"
               disabled={saveSettingsMutation.isPending}
             >
+              {saveSettingsMutation.isPending ? 'جارٍ الحفظ...' : 'حفظ إعدادات الإشعارات'}
               <Save className="h-4 w-4" />
-              {saveSettingsMutation.isPending ? 'Saving...' : 'Save Notification Settings'}
             </Button>
           </div>
         </form>

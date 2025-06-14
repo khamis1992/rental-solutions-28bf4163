@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -164,16 +163,17 @@ export function PaymentHistorySection({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-QA', {
-      style: 'currency',
-      currency: 'QAR'
+    return new Intl.NumberFormat('en-US', {
+      style: 'decimal',
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0
     }).format(amount);
   };
 
   // Helper function to get payment action button
   const getPaymentActionButton = (payment: Payment) => {
-    if (payment.status === 'completed' || payment.status === 'paid') {
-      return null; // No action needed for completed payments
+    if (payment.status === 'paid') {
+      return null; // لا حاجة لإجراء للمدفوعات المكتملة
     }
 
     const isOverdue = payment.status === 'overdue';
@@ -195,8 +195,8 @@ export function PaymentHistorySection({
         `}
         variant={isOverdue ? 'destructive' : 'default'}
       >
-        <CreditCard className="h-4 w-4 mr-2" />
-        {isOverdue ? 'Pay Overdue' : 'Clear Payment'}
+        <CreditCard className="h-4 w-4 ml-2" />
+        {isOverdue ? 'دفع المتأخرات' : 'تسوية الدفعة'}
       </Button>
     );
   };
@@ -204,16 +204,16 @@ export function PaymentHistorySection({
   if (isLoading) {
     return (
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b text-right" dir="rtl">
+          <CardTitle className="flex items-center gap-2 flex-row-reverse">
             <DollarSign className="h-5 w-5 text-blue-600" />
-            Payment History & Management
+            سجل المدفوعات والإدارة
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 text-right" dir="rtl">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading payment history...</p>
+            <p className="text-muted-foreground">جاري تحميل سجل المدفوعات...</p>
           </div>
         </CardContent>
       </Card>
@@ -222,18 +222,18 @@ export function PaymentHistorySection({
 
   return (
     <Card className="border-0 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-        <div className="flex justify-between items-start">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b text-right" dir="rtl">
+        <div className="flex justify-between items-start flex-row-reverse">
           <div>
-            <CardTitle className="flex items-center gap-2 text-xl">
+            <CardTitle className="flex items-center gap-2 text-xl flex-row-reverse">
               <DollarSign className="h-6 w-6 text-blue-600" />
-              Payment History & Management
+              سجل المدفوعات والإدارة
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Track payments and financial transactions for this agreement
+            <p className="text-sm text-muted-foreground mt-1 text-right">
+              تتبع المدفوعات والمعاملات المالية لهذا العقد
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-row-reverse">
             {leaseId && (
               <Button
                 variant="outline"
@@ -242,8 +242,8 @@ export function PaymentHistorySection({
                 disabled={isPending?.all}
                 className="bg-white"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isPending?.all ? 'animate-spin' : ''}`} />
-                Sync
+                <RefreshCw className={`h-4 w-4 ml-2 ${isPending?.all ? 'animate-spin' : ''}`} />
+                مزامنة
               </Button>
             )}
             <Button
@@ -254,42 +254,42 @@ export function PaymentHistorySection({
               }}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Record Payment
+              <Plus className="h-4 w-4 ml-2" />
+              تسجيل دفعة
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
+      <CardContent className="p-6" dir="rtl">
         {/* Analytics Overview */}
         {showAnalytics && payments.length > 0 && (
           <div className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-green-700">Total Paid</p>
-                    <p className="text-2xl font-bold text-green-900">{formatCurrency(totalPaid)}</p>
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-green-700">إجمالي المدفوع</p>
+                    <p className="text-2xl font-bold text-green-900">{formatCurrency(totalPaid)} ر.ق</p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-green-600" />
                 </div>
               </div>
               
               <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-yellow-700">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-900">{formatCurrency(pendingAmount)}</p>
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-yellow-700">معلق</p>
+                    <p className="text-2xl font-bold text-yellow-900">{formatCurrency(pendingAmount)} ر.ق</p>
                   </div>
                   <Clock className="h-8 w-8 text-yellow-600" />
                 </div>
               </div>
               
               <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-red-700">Overdue</p>
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-red-700">متأخر</p>
                     <p className="text-2xl font-bold text-red-900">{overduePayments.length}</p>
                   </div>
                   <AlertTriangle className="h-8 w-8 text-red-600" />
@@ -297,67 +297,74 @@ export function PaymentHistorySection({
               </div>
               
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-700">Completion</p>
-                    <p className="text-2xl font-bold text-blue-900">{completionRate.toFixed(0)}%</p>
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-blue-700">نسبة الإكمال</p>
+                    <p className="text-2xl font-bold text-blue-900">{completionRate.toFixed(1)}%</p>
                   </div>
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    <Progress value={completionRate} className="w-8 h-2" />
-                  </div>
+                  <CheckCircle2 className="h-8 w-8 text-blue-600" />
                 </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* Payment History */}
         {payments.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-              <DollarSign className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No payments recorded yet</h3>
-            <p className="text-muted-foreground mb-4">Start by recording your first payment</p>
-            <Button onClick={() => setIsPaymentDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Record First Payment
-            </Button>
+          <div className="text-center py-12 text-muted-foreground">
+            <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium mb-2">لا توجد مدفوعات مسجلة بعد</p>
+            <p className="text-sm">ابدأ بتسجيل أول دفعة لهذا العقد</p>
           </div>
         ) : (
           <div className="space-y-4">
             {payments.map((payment, index) => (
               <div key={payment.id}>
-                <div className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 flex-1">
-                      <div className="flex-shrink-0">
-                        {getStatusIcon(payment.status)}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h4 className="font-semibold text-lg">
-                            {formatCurrency(payment.amount)}
+                <div className="flex items-start justify-between p-6 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start space-x-4 flex-1 space-x-reverse">
+                    <div className="flex-shrink-0">
+                      {getStatusIcon(payment.status)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <h4 className="text-lg font-bold text-gray-900">
+                            {formatCurrency(payment.amount)} ر.ق
                           </h4>
-                          <Badge variant={getStatusColor(payment.status)}>
-                            {payment.status || 'pending'}
+                          <Badge variant={getStatusColor(payment.status)} className="text-xs">
+                            {payment.status === 'paid' ? 'مدفوع' : 
+                             payment.status === 'pending' ? 'معلق' : 
+                             payment.status === 'overdue' ? 'متأخر' : 
+                             payment.status === 'completed' ? 'مكتمل' : payment.status}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
-                            {payment.payment_method || 'N/A'}
+                            {payment.payment_method === 'cash' ? 'نقدي' :
+                             payment.payment_method === 'credit_card' ? 'بطاقة ائتمان' :
+                             payment.payment_method === 'bank_transfer' ? 'تحويل بنكي' :
+                             payment.payment_method || 'غير محدد'}
                           </Badge>
                         </div>
-                        
+                      </div>
+                      
+                      <div className="space-y-1 text-sm text-gray-600">
                         {payment.payment_date && (
-                          <p className="text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3 inline mr-1" />
-                            Payment Date: {format(new Date(payment.payment_date), 'MMM d, yyyy')}
-                          </p>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <Calendar className="h-4 w-4 ml-1" />
+                            <span>تاريخ الدفع: {format(new Date(payment.payment_date), 'd MMMM yyyy', { locale: undefined })}</span>
+                          </div>
                         )}
                         
                         {payment.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {payment.description}
-                          </p>
+                          <div className="text-sm text-gray-600 mt-1">
+                            <strong>الوصف:</strong> {payment.description}
+                          </div>
+                        )}
+                        
+                        {payment.reference_number && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            <strong>الرقم المرجعي:</strong> {payment.reference_number}
+                          </div>
                         )}
                         
                         {/* Late Fee Section */}
@@ -369,10 +376,10 @@ export function PaymentHistorySection({
                             const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
                             const fee = Math.min(daysLate * 120, 3000);
                             return (
-                              <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 rounded border border-red-200">
+                              <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 rounded border border-red-200 flex-row-reverse">
                                 <AlertTriangle className="h-4 w-4 text-red-600" />
                                 <span className="text-sm text-red-700">
-                                  Late Fee: {formatCurrency(payment.late_fine_amount ?? fee)}
+                                  رسوم التأخير: {formatCurrency(payment.late_fine_amount ?? fee)} ر.ق
                                 </span>
                                 <Button
                                   size="sm"
@@ -384,19 +391,19 @@ export function PaymentHistorySection({
                                   }}
                                   className="text-xs h-6"
                                 >
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  Edit
+                                  <Edit className="h-3 w-3 ml-1" />
+                                  تعديل
                                 </Button>
                               </div>
                             );
                           }
                           
-                          if (['completed', 'paid', 'partially_paid'].includes(String(payment.status)) && 
+                          if (['completed', 'paid', 'partially_paid'].includes(payment.status) && 
                               payment.late_fine_amount && payment.late_fine_amount > 0) {
                             return (
-                              <div className="flex items-center gap-2 mt-2 p-2 bg-gray-50 rounded border">
+                              <div className="flex items-center gap-2 mt-2 p-2 bg-gray-50 rounded border flex-row-reverse">
                                 <span className="text-sm text-gray-700">
-                                  Late Fee Paid: {formatCurrency(payment.late_fine_amount)}
+                                  رسوم التأخير المدفوعة: {formatCurrency(payment.late_fine_amount)} ر.ق
                                 </span>
                                 <Button
                                   size="sm"
@@ -408,8 +415,8 @@ export function PaymentHistorySection({
                                   }}
                                   className="text-xs h-6"
                                 >
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  Edit
+                                  <Edit className="h-3 w-3 ml-1" />
+                                  تعديل
                                 </Button>
                               </div>
                             );
@@ -419,7 +426,7 @@ export function PaymentHistorySection({
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3 ml-4">
+                    <div className="flex items-center space-x-3 mr-4 space-x-reverse">
                       {/* Main Payment Action Button */}
                       {getPaymentActionButton(payment)}
                       
@@ -437,14 +444,14 @@ export function PaymentHistorySection({
                               setIsPaymentDialogOpen(true);
                             }}
                           >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Payment
+                            <Edit className="h-4 w-4 ml-2" />
+                            تعديل الدفعة
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => onPaymentDeleted(payment.id)}
                           >
-                            Delete Payment
+                            حذف الدفعة
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -466,19 +473,18 @@ export function PaymentHistorySection({
         }}
         onSubmit={handleRecordPayment}
         defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
-        title="Record Payment"
-        description={selectedPayment ? "Clear this payment" : "Add a new payment to this agreement"}
+        title="تسجيل دفعة"
+        description={selectedPayment ? "تسوية هذه الدفعة" : "إضافة دفعة جديدة لهذا العقد"}
         leaseId={leaseId || ''}
         rentAmount={rentAmount}
         selectedPayment={selectedPayment}
-        pendingPayments={pendingPayments}
       />
 
       {/* Edit Late Fee Dialog */}
       <Dialog open={isEditLateFeeDialogOpen} onOpenChange={setIsEditLateFeeDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Late Fee</DialogTitle>
+        <DialogContent dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle>تعديل رسوم التأخير</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={async (e) => {
@@ -495,7 +501,7 @@ export function PaymentHistorySection({
           >
             <div className="space-y-4">
               <div>
-                <Label htmlFor="lateFee">Late Fee (QAR)</Label>
+                <Label htmlFor="lateFee" className="text-right block">رسوم التأخير (ر.ق)</Label>
                 <Input
                   id="lateFee"
                   type="number"
@@ -504,18 +510,19 @@ export function PaymentHistorySection({
                   min={0}
                   step={1}
                   required
-                  className="mt-1"
+                  className="mt-1 text-right"
+                  dir="rtl"
                 />
               </div>
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">Save Changes</Button>
+              <div className="flex gap-2 pt-4 flex-row-reverse">
+                <Button type="submit" className="flex-1">حفظ التغييرات</Button>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsEditLateFeeDialogOpen(false)}
                   className="flex-1"
                 >
-                  Cancel
+                  إلغاء
                 </Button>
               </div>
             </div>

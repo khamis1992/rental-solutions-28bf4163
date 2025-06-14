@@ -41,6 +41,38 @@ export const agreementSchema = z.object({
   }
 );
 
+// Update schema for existing agreements (more flexible validation)
+export const updateAgreementSchema = z.object({
+  agreement_number: z.string().min(1, "Agreement number is required"),
+  start_date: z.date().optional(), // Make optional for updates
+  end_date: z.date().optional(), // Make optional for updates
+  customer_id: z.string().min(1, "Customer is required"),
+  vehicle_id: z.string().min(1, "Vehicle is required"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]) as z.ZodEnum<[ValidationLeaseStatus, ...ValidationLeaseStatus[]]>,
+  rent_amount: z.number().positive("Rent amount must be positive"),
+  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
+  total_amount: z.number().positive("Total amount must be positive"),
+  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_type: z.enum(["short_term", "lease_to_own"]).default("short_term"),
+  agreement_duration: z.string().optional(),
+  notes: z.string().optional(),
+  terms_accepted: z.boolean().default(false).optional(),
+  payment_frequency: z.enum(["weekly", "monthly", "quarterly"]).default("monthly").optional(),
+  payment_day: z.number().min(1).max(31).default(1).optional(),
+}).refine(
+  (data) => {
+    // Only validate date relationship if both dates are provided
+    if (data.start_date && data.end_date) {
+      return data.end_date > data.start_date;
+    }
+    return true;
+  },
+  {
+    message: "End date must be after start date",
+    path: ["end_date"],
+  }
+);
+
 // Enum for payment status
 export const PaymentStatus = {
   PENDING: 'pending',

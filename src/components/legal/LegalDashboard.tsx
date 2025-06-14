@@ -21,77 +21,77 @@ const LegalDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-        <span className="text-muted-foreground">Loading dashboard...</span>
+      <div className="flex justify-center items-center h-40" dir="rtl">
+        <Loader2 className="h-8 w-8 animate-spin text-primary ml-2" />
+        <span className="text-muted-foreground">جاري تحميل لوحة التحكم...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center bg-red-50 p-4 rounded">
-        <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-        <span className="text-red-700">Error loading dashboard: {error instanceof Error ? error.message : String(error)}</span>
+      <div className="flex items-center bg-red-50 p-4 rounded" dir="rtl">
+        <AlertTriangle className="h-5 w-5 text-red-500 ml-2" />
+        <span className="text-red-700">خطأ في تحميل لوحة التحكم: {error instanceof Error ? error.message : String(error)}</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Total Cases</CardTitle>
+            <CardTitle className="text-right">إجمالي القضايا</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold">{totalCases}</span>
+            <span className="text-2xl font-bold text-right">{totalCases}</span>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Open Cases</CardTitle>
+            <CardTitle className="text-right">القضايا المفتوحة</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold">{openCases}</span>
+            <span className="text-2xl font-bold text-right">{openCases}</span>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Resolved Cases</CardTitle>
+            <CardTitle className="text-right">القضايا المحلولة</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold">{resolvedCases}</span>
+            <span className="text-2xl font-bold text-right">{resolvedCases}</span>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>High Priority</CardTitle>
+            <CardTitle className="text-right">عالية الأولوية</CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-2xl font-bold">{highPriorityCases}</span>
+            <span className="text-2xl font-bold text-right">{highPriorityCases}</span>
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Cases */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Recent Cases</h3>
+        <h3 className="text-lg font-semibold mb-2 text-right">القضايا الحديثة</h3>
         {recentCases.length === 0 ? (
-          <div className="text-muted-foreground">No recent cases found.</div>
+          <div className="text-muted-foreground text-right">لا توجد قضايا حديثة.</div>
         ) : (
           <div className="space-y-2">
             {recentCases.map((c) => (
               <Card key={c.id} className="border p-2">
                 <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <div>
-                    <div className="font-medium">{c.description || c.id}</div>
-                    <div className="text-xs text-muted-foreground">{formatDate(c.created_at)}</div>
+                  <div className="text-right">
+                    <div className="font-medium text-right">{c.description || c.id}</div>
+                    <div className="text-xs text-muted-foreground text-right">{formatDate(c.created_at)}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{c.status || 'unknown'}</Badge>
-                    <Badge variant="outline">{c.priority || 'unknown'}</Badge>
+                  <div className="flex items-center gap-2 flex-row-reverse">
+                    <Badge variant="outline">{getStatusBadge(c.status || 'غير معروف')}</Badge>
+                    <Badge variant="outline">{getPriorityBadge(c.priority || 'غير معروف')}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -101,6 +101,39 @@ const LegalDashboard: React.FC = () => {
       </div>
     </div>
   );
+};
+
+// Helper functions to translate status and priority
+const getStatusBadge = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return 'نشطة';
+    case 'pending':
+      return 'معلقة';
+    case 'resolved':
+      return 'محلولة';
+    case 'closed':
+      return 'مغلقة';
+    case 'escalated':
+      return 'مصعدة';
+    default:
+      return status;
+  }
+};
+
+const getPriorityBadge = (priority: string) => {
+  switch (priority.toLowerCase()) {
+    case 'high':
+      return 'عالية';
+    case 'medium':
+      return 'متوسطة';
+    case 'low':
+      return 'منخفضة';
+    case 'critical':
+      return 'حرجة';
+    default:
+      return priority;
+  }
 };
 
 export default LegalDashboard;

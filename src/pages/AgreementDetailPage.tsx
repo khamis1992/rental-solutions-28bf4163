@@ -157,7 +157,7 @@ const AgreementDetailPage = () => {
   // Render loading state while fetching agreement
   if (isLoading) {
     return (
-      <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -173,18 +173,16 @@ const AgreementDetailPage = () => {
   // Render error state if agreement couldn't be loaded
   if (error) {
     return (
-      <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Error Loading Agreement</h3>
+          <h3 className="text-lg font-semibold mb-2">حدث خطأ أثناء تحميل العقد</h3>
           <p className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : 'An unknown error occurred while fetching the agreement details.'}
+            {error instanceof Error ? error.message : 'حدث خطأ غير معروف أثناء جلب تفاصيل العقد.'}
           </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
+          <Button variant="outline" onClick={() => navigate("/agreements")}>العودة إلى العقود</Button>
         </div>
       </PageContainer>
     );
@@ -193,18 +191,16 @@ const AgreementDetailPage = () => {
   // Render not found state if agreement doesn't exist
   if (!agreement) {
     return (
-      <PageContainer title="Agreement Details" description="View and manage rental agreement details" backLink="/agreements">
+      <PageContainer title="تفاصيل العقد" description="عرض وإدارة تفاصيل عقد الإيجار" backLink="/agreements">
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
+          <h3 className="text-lg font-semibold mb-2">العقد غير موجود</h3>
           <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
+            العقد الذي تبحث عنه غير موجود أو تم حذفه.
           </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
+          <Button variant="outline" onClick={() => navigate("/agreements")}>العودة إلى العقود</Button>
         </div>
       </PageContainer>
     );
@@ -213,11 +209,48 @@ const AgreementDetailPage = () => {
   // Main component rendering with agreement data
   return (
     <PageContainer 
-      title="Agreement Details" 
-      description="View and manage rental agreement details" 
+      title="تفاصيل العقد" 
+      description="عرض وإدارة تفاصيل عقد الإيجار" 
       backLink="/agreements" 
-      actions={
-        <>
+    >
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-3xl font-bold tracking-tight">
+            عقد رقم {agreement.agreement_number}
+          </h2>
+          <Badge variant={getStatusBadgeVariant(agreement.status)}>
+            {agreement.status.toUpperCase() === 'ACTIVE' && 'نشط'}
+            {agreement.status.toUpperCase() === 'PENDING' && 'معلق'}
+            {agreement.status.toUpperCase() === 'CLOSED' && 'مغلق'}
+            {agreement.status.toUpperCase() === 'CANCELLED' && 'ملغى'}
+            {agreement.status.toUpperCase() === 'EXPIRED' && 'منتهي'}
+            {agreement.status.toUpperCase() === 'DRAFT' && 'مسودة'}
+            {!['ACTIVE','PENDING','CLOSED','CANCELLED','EXPIRED','DRAFT'].includes(agreement.status.toUpperCase()) && agreement.status}
+          </Badge>
+        </div>
+        
+        {/* All action buttons moved to far left */}
+        <div className="flex items-center gap-2">
+          <HoverCard openDelay={300} closeDelay={200}>
+            <HoverCardTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleGenerateReport} 
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                إنشاء تقرير
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
+              <h4 className="font-medium mb-1">تقرير العقد</h4>
+              <p className="text-sm text-muted-foreground">
+                إنشاء تقرير PDF مفصل لهذا العقد يشمل سجل الدفعات وتفاصيل العقد.
+              </p>
+            </HoverCardContent>
+          </HoverCard>
+          
           {agreement && agreement.status === AgreementStatus.ACTIVE && (
             <HoverCard openDelay={300} closeDelay={200}>
               <HoverCardTrigger asChild>
@@ -226,40 +259,21 @@ const AgreementDetailPage = () => {
                   size="sm" 
                   onClick={handleGeneratePayment} 
                   disabled={paymentIsPending.generatePayment} 
-                  className="gap-2 mr-2"
+                  className="gap-2"
                 >
                   <Calendar className="h-4 w-4" />
-                  {paymentIsPending.generatePayment ? "Generating..." : "Generate Payment Schedule"}
+                  {paymentIsPending.generatePayment ? "جاري الإنشاء..." : "إنشاء جدول الدفعات"}
                 </Button>
               </HoverCardTrigger>
               <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-                <h4 className="font-medium mb-1">Payment Schedule Generation</h4>
+                <h4 className="font-medium mb-1">إنشاء جدول الدفعات</h4>
                 <p className="text-sm text-muted-foreground">
-                  Creates a new monthly payment record for this agreement with automatically calculated due amount and late fees. 
-                  The payment status will be set to "pending".
+                  ينشئ سجل دفعة شهرية جديدة لهذا العقد مع حساب المبلغ المستحق تلقائيًا ورسوم التأخير. سيتم تعيين حالة الدفعة إلى "معلقة".
                 </p>
               </HoverCardContent>
             </HoverCard>
           )}
-          <HoverCard openDelay={300} closeDelay={200}>
-            <HoverCardTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleGenerateReport} 
-                className="gap-2 mr-2"
-              >
-                <FileText className="h-4 w-4" />
-                Generate Report
-              </Button>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-              <h4 className="font-medium mb-1">Agreement Report</h4>
-              <p className="text-sm text-muted-foreground">
-                Generate a detailed PDF report of this agreement including payment history and contract details.
-              </p>
-            </HoverCardContent>
-          </HoverCard>
+          
           <HoverCard openDelay={300} closeDelay={200}>
             <HoverCardTrigger asChild>
               <Button 
@@ -270,28 +284,16 @@ const AgreementDetailPage = () => {
                 className="gap-2"
               >
                 <RefreshCcw className="h-4 w-4" />
-                {paymentIsPending.runMaintenance ? "Running..." : "Run Payment Maintenance"}
+                {paymentIsPending.runMaintenance ? "جاري الفحص..." : "تشغيل صيانة الدفعات"}
               </Button>
             </HoverCardTrigger>
             <HoverCardContent className="w-80 p-4 bg-white border shadow-lg rounded-lg">
-              <h4 className="font-medium mb-1">Payment Maintenance</h4>
+              <h4 className="font-medium mb-1">صيانة الدفعات</h4>
               <p className="text-sm text-muted-foreground">
-                Checks and fixes payment schedules by detecting missing or duplicate payments, 
-                updating payment statuses, and recalculating late fees if needed.
+                يتحقق ويصلح جداول الدفعات من خلال اكتشاف الدفعات المفقودة أو المكررة، وتحديث حالات الدفعات، وإعادة حساب رسوم التأخير إذا لزم الأمر.
               </p>
             </HoverCardContent>
           </HoverCard>
-        </>
-      }
-    >
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Agreement {agreement.agreement_number}
-          </h2>
-          <Badge variant={getStatusBadgeVariant(agreement.status)}>
-            {agreement.status.toUpperCase()}
-          </Badge>
         </div>
       </div>
 
@@ -300,36 +302,36 @@ const AgreementDetailPage = () => {
           <div className="flex flex-col md:flex-row justify-between">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">
-                {agreement.created_at && <>Created on {format(new Date(agreement.created_at), 'MMMM d, yyyy')}</>}
+                {agreement.created_at && <>تم الإنشاء في {format(new Date(agreement.created_at), 'd MMMM, yyyy', {locale: undefined})}</>}
               </p>
             </div>
           </div>
           
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">Monthly Rent</p>
-              <p className="text-2xl font-bold">QAR {rentAmount?.toLocaleString() || 0}</p>
+              <p className="text-sm font-medium text-muted-foreground">الإيجار الشهري</p>
+              <p className="text-2xl font-bold">ر.ق {rentAmount?.toLocaleString() || 0}</p>
             </div>
             <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">Contract Total</p>
-              <p className="text-2xl font-bold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
+              <p className="text-sm font-medium text-muted-foreground">إجمالي العقد</p>
+              <p className="text-2xl font-bold">ر.ق {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || 0}</p>
             </div>
             <div className="bg-white bg-opacity-80 p-4 rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">Deposit</p>
-              <p className="text-2xl font-bold">QAR {agreement.deposit_amount?.toLocaleString() || 0}</p>
+              <p className="text-sm font-medium text-muted-foreground">الضمان</p>
+              <p className="text-2xl font-bold">ر.ق {agreement.deposit_amount?.toLocaleString() || 0}</p>
             </div>
           </div>
           
           {agreement.start_date && agreement.end_date && (
             <div className="mt-6">
               <div className="flex justify-between text-sm mb-1">
-                <span>Contract Progress</span>
+                <span>تقدم العقد</span>
                 <span>{calculateProgress()}%</span>
               </div>
               <Progress value={calculateProgress()} className="h-2" />
               <div className="flex justify-between text-xs mt-1">
-                <span>{format(new Date(agreement.start_date), "MMM d, yyyy")}</span>
-                <span>{format(new Date(agreement.end_date), "MMM d, yyyy")}</span>
+                <span>{format(new Date(agreement.start_date), "d MMMM, yyyy", {locale: undefined})}</span>
+                <span>{format(new Date(agreement.end_date), "d MMMM, yyyy", {locale: undefined})}</span>
               </div>
             </div>
           )}

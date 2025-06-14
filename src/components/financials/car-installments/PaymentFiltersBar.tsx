@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Select, 
@@ -9,6 +8,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { PaymentFilters } from '@/types/car-installment';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PaymentFiltersBarProps {
   filters: PaymentFilters;
@@ -19,6 +19,8 @@ export const PaymentFiltersBar: React.FC<PaymentFiltersBarProps> = ({
   filters, 
   onFilterChange 
 }) => {
+  const { language } = useLanguage();
+
   const handleStatusChange = (value: string) => {
     onFilterChange({ 
       ...filters, 
@@ -34,40 +36,50 @@ export const PaymentFiltersBar: React.FC<PaymentFiltersBarProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={`flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Select 
         value={filters.status || 'all'} 
         onValueChange={handleStatusChange}
       >
-        <SelectTrigger className="w-36">
-          <SelectValue placeholder="Status" />
+        <SelectTrigger className={`w-36 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+          <SelectValue placeholder={language === 'ar' ? 'الحالة' : 'Status'} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="paid">Paid</SelectItem>
-          <SelectItem value="overdue">Overdue</SelectItem>
-          <SelectItem value="cancelled">Cancelled</SelectItem>
+          <SelectItem value="all" className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'جميع الحالات' : 'All Status'}
+          </SelectItem>
+          <SelectItem value="pending" className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'معلق' : 'Pending'}
+          </SelectItem>
+          <SelectItem value="paid" className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'مدفوع' : 'Paid'}
+          </SelectItem>
+          <SelectItem value="overdue" className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'متأخر' : 'Overdue'}
+          </SelectItem>
+          <SelectItem value="cancelled" className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'ملغي' : 'Cancelled'}
+          </SelectItem>
         </SelectContent>
       </Select>
 
-      <div className="flex flex-wrap gap-2">
+      <div className={`flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
         <div>
           <Input
             type="date"
-            placeholder="From"
+            placeholder={language === 'ar' ? 'من' : 'From'}
             value={filters.dateFrom || ''}
             onChange={(e) => handleDateChange('dateFrom', e.target.value)}
-            className="w-36"
+            className={`w-36 ${language === 'ar' ? 'text-right' : 'text-left'}`}
           />
         </div>
         <div>
           <Input
             type="date"
-            placeholder="To"
+            placeholder={language === 'ar' ? 'إلى' : 'To'}
             value={filters.dateTo || ''}
             onChange={(e) => handleDateChange('dateTo', e.target.value)}
-            className="w-36"
+            className={`w-36 ${language === 'ar' ? 'text-right' : 'text-left'}`}
           />
         </div>
       </div>
