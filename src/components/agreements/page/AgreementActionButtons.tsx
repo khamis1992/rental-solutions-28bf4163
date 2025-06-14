@@ -1,52 +1,123 @@
-
-import { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CSVImportModal } from '../CSVImportModal';
+import { TooltipWrapper } from '@/components/ui/TooltipWrapper';
+import { 
+  Link, 
+  Download, 
+  Upload, 
+  Plus, 
+  FileUp, 
+  MoreHorizontal, 
+  FileDown,
+  Printer 
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from 'react-router-dom';
 
 interface AgreementActionButtonsProps {
-  onNewAgreement: () => void;
-  onImport?: () => void;
-  onExport?: () => void;
+  isImportModalOpen: boolean;
+  setIsImportModalOpen: (open: boolean) => void;
+  isEdgeFunctionAvailable: boolean;
 }
 
-const AgreementActionButtons = ({ 
-  onNewAgreement,
-  onImport,
-  onExport 
-}: AgreementActionButtonsProps) => {
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+export function AgreementActionButtons({ 
+  isImportModalOpen, 
+  setIsImportModalOpen, 
+  isEdgeFunctionAvailable 
+}: AgreementActionButtonsProps) {
+  const navigate = useNavigate();
 
-  const handleImport = () => {
-    setIsImportModalOpen(true);
-    onImport?.();
+  const handleAddAgreement = () => {
+    navigate('/agreements/add');
   };
 
-  const handleImportComplete = () => {
-    setIsImportModalOpen(false);
-    // Refresh the data or show success message
+  const handleImportAgreements = () => {
+    if (!isEdgeFunctionAvailable) {
+      alert('Import feature is currently unavailable. Please try again later.');
+      return;
+    }
+    setIsImportModalOpen(true);
+  };
+
+  const handleExportAgreements = () => {
+    // This would be implemented based on the backend capabilities
+    console.log('Export agreements');
   };
 
   return (
-    <div className="flex gap-2">
-      <Button onClick={onNewAgreement}>
-        New Agreement
-      </Button>
+    <div className="flex items-center space-x-2">
+      <TooltipWrapper content="Create a new rental agreement.">
+        <Button 
+          onClick={handleAddAgreement} 
+          className="hidden sm:flex"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Agreement
+        </Button>
+      </TooltipWrapper>
       
-      <Button variant="outline" onClick={handleImport}>
-        Import
-      </Button>
-      
-      <Button variant="outline" onClick={onExport}>
-        Export
+      <Button 
+        onClick={handleAddAgreement}
+        size="icon" 
+        className="sm:hidden"
+      >
+        <Plus className="h-4 w-4" />
       </Button>
 
-      <CSVImportModal 
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        onImportComplete={handleImportComplete}
-      />
+      <TooltipWrapper content="Import agreements from a file.">
+        <Button 
+          variant="outline" 
+          onClick={handleImportAgreements}
+          disabled={!isEdgeFunctionAvailable}
+          className="hidden sm:flex"
+        >
+          <FileUp className="mr-2 h-4 w-4" />
+          Import
+        </Button>
+      </TooltipWrapper>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem 
+              onClick={handleExportAgreements}
+              className="cursor-pointer"
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              <span>Export to CSV</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem className="cursor-pointer">
+              <Printer className="mr-2 h-4 w-4" />
+              <span>Print Agreements</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={handleImportAgreements} 
+              className="sm:hidden cursor-pointer"
+              disabled={!isEdgeFunctionAvailable}
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              <span>Import CSV</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
-};
-
-export default AgreementActionButtons;
+}

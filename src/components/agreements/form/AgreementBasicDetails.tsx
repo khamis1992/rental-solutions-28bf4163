@@ -1,16 +1,18 @@
-
-import { useState } from 'react';
+import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCustomers } from '@/hooks/use-customers';
 import { useVehicles } from '@/hooks/use-vehicles';
+import { UseFormReturn } from 'react-hook-form';
+import { Agreement } from '@/types/agreement';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { CustomerInfo } from '@/types/customer';
-import { CustomerSelector } from '@/components/customers/CustomerSelector';
+import CustomerSelector from '@/components/customers/CustomerSelector';
 
 interface AgreementBasicDetailsProps {
-  form: any;
+  form: UseFormReturn<Agreement>;
   isEdit: boolean;
   onVehicleChange: (vehicleId: string, vehicleData: any) => void;
   onCustomerChange: (customerId: string, customerData: CustomerInfo) => void;
@@ -22,9 +24,9 @@ export const AgreementBasicDetails = ({
   onVehicleChange,
   onCustomerChange
 }: AgreementBasicDetailsProps) => {
+  const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);
 
   const statusOptions = [
     { label: "Draft", value: AgreementStatus.DRAFT },
@@ -45,24 +47,8 @@ export const AgreementBasicDetails = ({
     }
   };
 
-  const handleCustomerSelect = (customer: any) => {
-    console.log('Customer selected:', customer);
-    
-    // Convert to CustomerInfo format with proper phone_number mapping
-    const customerInfo: CustomerInfo = {
-      id: customer.id || '',
-      full_name: customer.full_name || '',
-      email: customer.email || '',
-      phone_number: customer.phone_number || customer.phone || '',
-      driver_license: customer.driver_license || '',
-      nationality: customer.nationality || '',
-      address: customer.address || ''
-    };
-    
-    setSelectedCustomer(customerInfo);
-    form.setValue('customer_id', customer.id);
-    onCustomerChange(customer.id, customerInfo);
-  };
+  // Track selected customer for CustomerSelector
+  const selectedCustomer = customers?.find(c => c.id === form.watch('customer_id')) || null;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -113,13 +99,16 @@ export const AgreementBasicDetails = ({
         <FormField
           control={form.control}
           name="customer_id"
-          render={() => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Customer</FormLabel>
               <CustomerSelector
-                selectedCustomerId={selectedCustomer?.id}
-                onCustomerSelect={handleCustomerSelect}
-                disabled={false}
+                selectedCustomer={selectedCustomer}
+                onCustomerSelect={(customer) => {
+                  field.onChange(customer.id);
+                  onCustomerChange(customer.id, customer);
+                }}
+                disabled={isLoadingCustomers}
               />
               <FormMessage />
             </FormItem>

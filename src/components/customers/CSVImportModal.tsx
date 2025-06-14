@@ -24,7 +24,7 @@ interface CSVImportModalProps {
   onImportComplete: () => void;
 }
 
-export const CSVImportModal = ({ open, onOpenChange, onImportComplete }: CSVImportModalProps) => {
+export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');

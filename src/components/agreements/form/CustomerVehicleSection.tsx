@@ -1,8 +1,8 @@
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { CustomerInfo } from "@/types/customer";
 import VehicleSelector from "@/components/vehicles/VehicleSelector";
-import { CustomerSelector } from "@/components/customers/CustomerSelector";
+import CustomerSelector from "@/components/customers/CustomerSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,19 +32,6 @@ export const CustomerVehicleSection = ({
     CacheSynchronization.setQueryClient(queryClient);
   }, [queryClient]);
 
-  const handleCustomerSelect = (customer: any) => {
-    const customerInfo: CustomerInfo = {
-      id: customer.id || '',
-      full_name: customer.full_name || '',
-      email: customer.email || '',
-      phone_number: customer.phone_number || customer.phone || '',
-      driver_license: customer.driver_license || '',
-      nationality: customer.nationality || '',
-      address: customer.address || ''
-    };
-    setSelectedCustomer(customerInfo);
-  };
-
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">Customer & Vehicle</h3>
@@ -55,8 +42,8 @@ export const CustomerVehicleSection = ({
         </label>
         
         <CustomerSelector
-          onCustomerSelect={handleCustomerSelect}
-          selectedCustomerId={selectedCustomer?.id}
+          onCustomerSelect={setSelectedCustomer}
+          selectedCustomer={selectedCustomer}
           placeholder="Search for customer..."
         />
         

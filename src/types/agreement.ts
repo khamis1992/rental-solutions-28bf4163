@@ -1,73 +1,99 @@
-
 import { Database } from './database';
 
-export type AgreementStatus = 'draft' | 'active' | 'pending' | 'completed' | 'cancelled' | 'expired' | 'closed';
-export type AgreementType = 'short_term' | 'lease_to_own';
-export type PaymentFrequency = 'monthly' | 'weekly' | 'daily';
-
-export interface Agreement {
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  agreement_number?: string;
-  agreement_type: AgreementType;
-  status: AgreementStatus;
-  start_date: string;
-  end_date: string;
-  total_amount: number;
-  rent_amount?: number;
-  deposit_amount?: number;
-  daily_late_fee?: number;
-  payment_frequency?: PaymentFrequency;
-  payment_day?: number;
-  rent_due_day?: number;
-  notes?: string;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  confirmation_email_sent?: boolean;
-  down_payment?: number;
-  created_at: string;
-  updated_at: string;
+// Base Agreement type that matches the database schema exactly
+export type Agreement = Database['public']['Tables']['leases']['Row'] & {
+  // Relationship data
+  customers?: Database['public']['Tables']['profiles']['Row'];
+  profiles?: Database['public']['Tables']['profiles']['Row'];
+  vehicles?: Database['public']['Tables']['vehicles']['Row'];
+  
+  // Computed/derived fields
   customer_name?: string;
-  
-  // Relations
-  customers?: {
-    id: string;
-    full_name: string;
-    email: string;
-    phone_number: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip_code?: string;
-    role?: string;
-    created_at: string;
-    updated_at: string;
-    driver_license?: string; // Changed from string | null to string | undefined
-    nationality?: string;
-  };
-  
-  vehicles?: {
-    id: string;
-    make: string;
-    model: string;
-    year?: number;
-    license_plate?: string;
-    vin?: string;
-    color?: string;
-  };
-  
-  // Additional properties for CustomerDetail compatibility
+  vehicle_info?: string;
+  terms_accepted?: boolean;
   license_plate?: string;
   vehicle_make?: string;
   vehicle_model?: string;
-}
+  next_payment_date?: string;
+};
 
+// Database operation types
+export type AgreementInsert = Database['public']['Tables']['leases']['Insert'];
+export type AgreementUpdate = Database['public']['Tables']['leases']['Update'];
+
+// Status type from database enum
+export type AgreementStatus = Database['public']['Tables']['leases']['Row']['status'];
+
+// Filter parameters for agreement queries
 export interface AgreementFilterParams {
-  statuses?: AgreementStatus[];
   customerId?: string;
   vehicleId?: string;
-  startDate?: Date;
-  endDate?: Date;
+  status?: AgreementStatus;
+  startDate?: string;
+  endDate?: string;
+  agreementNumber?: string;
+  agreementType?: Database['public']['Tables']['leases']['Row']['agreement_type'];
   searchTerm?: string;
+}
+
+// Helper function to ensure type safety when creating agreements
+export function createAgreementData(data: Partial<Agreement>): AgreementInsert {
+  // Extract only the fields that belong to the leases table insert type
+  const {
+    agreement_number,
+    customer_id,
+    vehicle_id,
+    start_date,
+    end_date,
+    rent_amount,
+    deposit_amount,
+    down_payment,
+    daily_late_fee,
+    payment_frequency,
+    payment_day,
+    rent_due_day,
+    status,
+    agreement_type,
+    notes,
+    confirmation_email_sent
+  } = data;
+
+  return {
+    agreement_number,
+    customer_id,
+    vehicle_id,
+    start_date,
+    end_date,
+    rent_amount,
+    deposit_amount,
+    down_payment,
+    daily_late_fee,
+    payment_frequency,
+    payment_day,
+    rent_due_day,
+    status,
+    agreement_type,
+    notes,
+    confirmation_email_sent
+  } as AgreementInsert;
+}
+
+// Helper function to validate agreement status
+export function isValidAgreementStatus(status: string): status is AgreementStatus {
+  const validStatuses = ['active', 'closed', 'cancelled', 'draft', 'pending', 'expired'] as const;
+  return validStatuses.includes(status as AgreementStatus);
+}
+
+// Helper function to get display name for agreement type
+export function getAgreementTypeDisplay(type: string | null): string {
+  switch (type) {
+    case 'short_term':
+      return 'Short Term';
+    case 'long_term':
+      return 'Long Term';
+    case 'lease_to_own':
+      return 'Lease to Own';
+    default:
+      return 'Standard';
+  }
 }

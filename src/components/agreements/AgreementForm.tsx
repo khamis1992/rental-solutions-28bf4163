@@ -34,7 +34,6 @@ const AgreementForm = ({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
       ...initialData || {
-        id: '',
         customer_id: '',
         vehicle_id: '',
         start_date: new Date().toISOString(),
@@ -49,12 +48,6 @@ const AgreementForm = ({
         additional_drivers: [],
         payment_frequency: 'monthly',
         payment_day: 1,
-        down_payment: 0,
-        confirmation_email_sent: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        agreement_type: 'short_term',
-        terms_accepted: false
       }
     },
   });
@@ -98,7 +91,10 @@ const AgreementForm = ({
           address: customerData.address || '',
           city: (customerData as any).city || '',
           state: (customerData as any).state || '',
-          zip_code: customerData.zip_code || ''
+          zip_code: (customerData as any).zip_code || '',
+          role: (customerData as any).role || '',
+          created_at: (customerData as any).created_at || '',
+          updated_at: (customerData as any).updated_at || ''
         };
         
         setSelectedCustomer(customer);
@@ -152,7 +148,7 @@ const AgreementForm = ({
       const finalData = {
         ...data,
         terms_accepted: termsAccepted,
-        id: initialData?.id || data.id || ''
+        id: initialData?.id
       };
       
       console.log('Submitting agreement data:', finalData);

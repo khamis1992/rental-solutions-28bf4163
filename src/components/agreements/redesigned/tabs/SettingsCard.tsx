@@ -1,13 +1,15 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Agreement } from '@/types/agreement';
 import { Settings, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface SettingsCardProps {
-  agreement?: any;
-  onEdit: () => Promise<void>;
-  onDelete: () => Promise<void>;
+  agreement: Agreement;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 export function SettingsCard({
@@ -15,67 +17,95 @@ export function SettingsCard({
   onEdit,
   onDelete
 }: SettingsCardProps) {
-  const handleEdit = async () => {
-    await onEdit();
-  };
-
-  const handleDelete = async () => {
-    await onDelete();
-  };
+  const createdAt = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at);
+  const updatedAt = agreement.updated_at instanceof Date ? agreement.updated_at : new Date(agreement.updated_at);
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          Agreement Settings
-        </CardTitle>
-        <Badge variant="secondary">
-          Agreement ID: {agreement?.id || 'Unknown'}
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          <div className="border rounded-md p-4 bg-muted/50">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Edit Agreement</h3>
-              <Button variant="outline" size="sm" onClick={handleEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            </div>
-            <p className="text-muted-foreground text-xs mt-2">
-              Modify agreement details such as dates, amounts, and other settings.
-            </p>
+    <div className="space-y-6">
+      {/* Agreement Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Agreement Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button onClick={onEdit} className="flex-1">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Agreement
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={onDelete}
+              className="flex-1"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Agreement
+            </Button>
           </div>
+          
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-amber-800">Important Notice</h4>
+                <p className="text-sm text-amber-700 mt-1">
+                  Deleting an agreement is permanent and cannot be undone. All associated payments, 
+                  documents, and history will be removed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          <div className="border rounded-md p-4 bg-muted/50">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Delete Agreement</h3>
-              <Button variant="destructive" size="sm" onClick={handleDelete}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+      {/* Agreement Metadata */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Agreement Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Created</p>
+              <p className="font-medium">{format(createdAt, "PPP 'at' p")}</p>
             </div>
-            <p className="text-muted-foreground text-xs mt-2">
-              Permanently remove this agreement from the system.
-            </p>
+            <div>
+              <p className="text-sm text-muted-foreground">Last Modified</p>
+              <p className="font-medium">{format(updatedAt, "PPP 'at' p")}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Agreement ID</p>
+              <p className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                {agreement.id}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Agreement Type</p>
+              <p className="font-medium capitalize">
+                {agreement.agreement_type?.replace('_', ' ') || 'Standard'}
+              </p>
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="border rounded-md p-4 bg-muted/50">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-amber-500">Potential Issues</h3>
-              <Badge variant="secondary">
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                2 Issues
-              </Badge>
-            </div>
-            <p className="text-muted-foreground text-xs mt-2">
-              Review and resolve any potential issues with this agreement.
-            </p>
+      {/* System Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>System Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>• All changes are automatically saved</p>
+            <p>• Payment history is preserved across edits</p>
+            <p>• Documents are linked to this agreement permanently</p>
+            <p>• Audit logs track all modifications</p>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -5,10 +5,10 @@ import { TooltipWrapper } from "@/components/ui/TooltipWrapper";
 import { CalendarClock, Download, FileEdit, FileText, Trash } from "lucide-react";
 
 interface AgreementActionButtonsProps {
-  onEdit: () => Promise<void>;
-  onDownloadPdf: () => Promise<void>;
+  onEdit: () => void;
+  onDownloadPdf: () => void;
   onGenerateDocument: () => Promise<void>;
-  onDelete: () => Promise<void>;
+  onDelete: () => void;
   isGeneratingPdf?: boolean;
 }
 

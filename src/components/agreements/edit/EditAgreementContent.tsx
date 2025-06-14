@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Loader2 } from 'lucide-react';
 import AgreementForm from '../AgreementForm';
 import { Agreement } from '@/types/agreement';
@@ -16,6 +17,7 @@ interface EditAgreementContentProps {
 
 export function EditAgreementContent({
   id,
+  userId,
   agreement,
   isLoading,
   vehicleData,
@@ -52,15 +54,12 @@ export function EditAgreementContent({
   // Convert the agreement to have proper date types for the form
   const agreementForForm: Agreement = {
     ...agreement,
-    start_date: agreement.start_date,
-    end_date: agreement.end_date,
-    created_at: agreement.created_at,
-    updated_at: agreement.updated_at,
+    start_date: typeof agreement.start_date === 'string' ? agreement.start_date : agreement.start_date.toISOString(),
+    end_date: typeof agreement.end_date === 'string' ? agreement.end_date : agreement.end_date.toISOString(),
+    created_at: typeof agreement.created_at === 'string' ? agreement.created_at : agreement.created_at.toISOString(),
+    updated_at: typeof agreement.updated_at === 'string' ? agreement.updated_at : agreement.updated_at.toISOString(),
     // Ensure we have the required fields with proper types
     agreement_type: agreement.agreement_type || 'short_term',
-    payment_frequency: agreement.payment_frequency || 'monthly',
-    confirmation_email_sent: agreement.confirmation_email_sent || false,
-    down_payment: agreement.down_payment || 0,
     vehicles: vehicleData,
     customers: customerData
   };
@@ -73,4 +72,3 @@ export function EditAgreementContent({
     />
   );
 }
-

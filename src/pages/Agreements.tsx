@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
@@ -197,6 +197,15 @@ const Agreements = () => {
               />
               
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  {showFilters ? "Hide Filters" : "Advanced Filters"}
+                </Button>
+                
                 <Button 
                   variant="outline" 
                   size="sm"

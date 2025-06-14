@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,9 +26,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAgreementService } from '@/hooks/services/useAgreementService';
+import { LeaseStatus } from '@/types/lease-types';
 import { Loader2 } from 'lucide-react';
 import VehicleSelector from '@/components/vehicles/VehicleSelector';
-import { CustomerSelector } from '@/components/customers/CustomerSelector';
+import CustomerSelector from '@/components/customers/CustomerSelector';
 import PaymentScheduleEditor from '../payments/PaymentScheduleEditor';
 import { PaymentScheduleSection } from '../form/PaymentScheduleSection';
 import { CustomerInfo } from '@/types/customer';
@@ -38,7 +39,6 @@ import { paymentScheduleService } from '@/services/PaymentScheduleService';
 import { generatePaymentSchedule } from '@/utils/payment-schedule-generator';
 import { generateAndStoreContract } from '@/utils/contract-generator';
 import { toast } from 'sonner';
-import { AgreementType, AgreementStatus } from '@/types/agreement';
 
 // Define the validation schema
 const agreementSchema = z.object({
@@ -51,7 +51,7 @@ const agreementSchema = z.object({
   end_date: z.date(),
   total_amount: z.number().min(0, "Amount must be a positive number"),
   rent_amount: z.number().min(0, "Rent amount must be a positive number").optional(),
-  payment_frequency: z.enum(['monthly', 'weekly', 'daily']).default('monthly'),
+  payment_frequency: z.string().default('monthly'),
   payment_day: z.number().min(1).max(31).default(1),
   notes: z.string().optional(),
   daily_late_fee: z.number().min(0).optional(),
@@ -73,6 +73,7 @@ const AgreementEditor = () => {
   
   // Add payment schedule management
   const {
+    generatePaymentSchedule: generateScheduleHook,
     isGenerating
   } = usePaymentScheduleManagement(id);
   
@@ -131,8 +132,8 @@ const AgreementEditor = () => {
             end_date: endDate,
             total_amount: agreement.total_amount || 0,
             rent_amount: agreement.rent_amount || 0,
-            payment_frequency: (agreement as any).payment_frequency as 'monthly' | 'weekly' | 'daily' || 'monthly',
-            payment_day: (agreement as any).payment_day || 1,
+            payment_frequency: agreement.payment_frequency || 'monthly',
+            payment_day: agreement.payment_day || 1,
             notes: agreement.notes || '',
             daily_late_fee: agreement.daily_late_fee || 0,
             deposit_amount: agreement.deposit_amount || 0,
@@ -147,8 +148,8 @@ const AgreementEditor = () => {
               full_name: agreement.customers.full_name || '',
               email: agreement.customers.email || '',
               phone_number: agreement.customers.phone_number || '',
-              driver_license: agreement.customers.driver_license || undefined,
-              nationality: agreement.customers.nationality || undefined,
+              driver_license: agreement.customers.driver_license || '',
+              nationality: agreement.customers.nationality || '',
               address: agreement.customers.address || ''
             };
             setSelectedCustomer(customerData);
@@ -192,15 +193,8 @@ const AgreementEditor = () => {
     try {
       const data = {
         ...formData,
-        // Convert dates to strings for API
-        start_date: formData.start_date.toISOString(),
-        end_date: formData.end_date.toISOString(),
         total_amount: formData.total_amount || 0,
-        status: formData.status as AgreementStatus,
-        agreement_type: formData.agreement_type as AgreementType,
-        payment_frequency: formData.payment_frequency || 'monthly',
-        confirmation_email_sent: false,
-        down_payment: 0,
+        status: formData.status as LeaseStatus,
       };
       
       let result;
@@ -226,8 +220,8 @@ const AgreementEditor = () => {
             console.log('Generating payment schedule for new agreement:', agreementId);
             
             const schedule = generatePaymentSchedule({
-              startDate: formData.start_date,
-              endDate: formData.end_date,
+              startDate: data.start_date,
+              endDate: data.end_date,
               rentAmount: data.rent_amount || 0,
               paymentFrequency: data.payment_frequency || 'monthly',
               paymentDay: typeof data.payment_day === 'number' && !isNaN(data.payment_day) ? data.payment_day : 1,
@@ -286,34 +280,18 @@ const AgreementEditor = () => {
             console.log('Auto-generating comprehensive Arabic contract for new agreement:', agreementId);
             toast.info('جاري إنشاء العقد العربي الشامل...');
             
-            // Create a proper agreement object for contract generation with the correct Customer type
+            // Create a temporary agreement object for contract generation
             const agreementForContract = {
               ...result,
-              start_date: formData.start_date.toISOString(),
-              end_date: formData.end_date.toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              agreement_type: formData.agreement_type as AgreementType,
-              total_amount: data.total_amount || 0,
               customers: selectedCustomer ? {
                 id: selectedCustomer.id,
                 full_name: selectedCustomer.full_name,
                 email: selectedCustomer.email,
                 phone_number: selectedCustomer.phone_number,
-                address: selectedCustomer.address || '',
-                city: '',
-                state: '',
-                zip_code: '',
-                role: 'customer',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                driver_license: selectedCustomer.driver_license || undefined,
+                driver_license: selectedCustomer.driver_license,
                 nationality: selectedCustomer.nationality
-              } : undefined,
-              vehicles: selectedVehicle,
-              payment_frequency: data.payment_frequency || 'monthly',
-              confirmation_email_sent: data.confirmation_email_sent || false,
-              down_payment: data.down_payment || 0
+              } : null,
+              vehicles: selectedVehicle
             };
             
             const contractResult = await generateAndStoreContract(agreementForContract);
@@ -374,7 +352,7 @@ const AgreementEditor = () => {
   
   // Update total when dates or rent amount changes
   useEffect(() => {
-    const subscription = form.watch((_, { name }) => {
+    const subscription = form.watch((value, { name }) => {
       if (name === 'start_date' || name === 'end_date' || name === 'rent_amount') {
         calculateTotalAmount();
       }
@@ -384,18 +362,9 @@ const AgreementEditor = () => {
   }, [form]);
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: any): void => {
+  const handleCustomerSelect = (customer: CustomerInfo): void => {
     console.log('Customer selected in AgreementEditor:', customer);
-    const customerInfo: CustomerInfo = {
-      id: customer.id || '',
-      full_name: customer.full_name || '',
-      email: customer.email || '',
-      phone_number: customer.phone_number || customer.phone || '',
-      driver_license: customer.driver_license || '',
-      nationality: customer.nationality || '',
-      address: customer.address || ''
-    };
-    setSelectedCustomer(customerInfo);
+    setSelectedCustomer(customer);
     form.setValue('customer_id', customer.id);
   };
 
@@ -501,13 +470,13 @@ const AgreementEditor = () => {
                     <FormField
                       control={form.control}
                       name="customer_id"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Customer</FormLabel>
                           <FormControl>
                             <CustomerSelector 
                               onCustomerSelect={handleCustomerSelect}
-                              selectedCustomerId={selectedCustomer?.id}
+                              selectedCustomer={selectedCustomer}
                               placeholder="Search for a customer..."
                             />
                           </FormControl>
@@ -519,7 +488,7 @@ const AgreementEditor = () => {
                     <FormField
                       control={form.control}
                       name="vehicle_id"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Vehicle</FormLabel>
                           <FormControl>
@@ -683,8 +652,8 @@ const AgreementEditor = () => {
                     rentAmount={rentAmount || 0}
                     paymentFrequency={paymentFrequency || 'monthly'}
                     paymentDay={paymentDay || 1}
-                    onFrequencyChange={(value: string) => form.setValue('payment_frequency', value as 'monthly' | 'weekly' | 'daily')}
-                    onPaymentDayChange={(value: number) => form.setValue('payment_day', value)}
+                    onFrequencyChange={(value) => form.setValue('payment_frequency', value)}
+                    onPaymentDayChange={(value) => form.setValue('payment_day', value)}
                   />
                 </TabsContent>
                 

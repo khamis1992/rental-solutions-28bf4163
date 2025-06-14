@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -60,12 +60,11 @@ const AgreementFormWithVehicleCheck = ({
   const [acknowledgedPayments, setAcknowledgedPayments] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   
-  // Fix the payment status type issue
   const mockPendingPayments = [
     {
       id: '1',
       amount: 500,
-      status: 'pending' as const, // Explicitly type as const to match PaymentRecord status
+      status: 'pending',
       due_date: new Date().toISOString(),
     }
   ];
@@ -173,12 +172,7 @@ const AgreementFormWithVehicleCheck = ({
                 acknowledgedPayments={acknowledgedPayments}
                 onAcknowledgePayments={setAcknowledgedPayments}
                 isPaymentHistoryOpen={isPaymentHistoryOpen}
-                formatDate={(date) => {
-                  // Fix the date handling issue
-                  if (!date) return 'N/A';
-                  const dateObj = typeof date === 'string' ? new Date(date) : date;
-                  return formatDate(dateObj);
-                }}
+                formatDate={(date) => formatDate(new Date(date))}
               />
             </div>
           </CardContent>

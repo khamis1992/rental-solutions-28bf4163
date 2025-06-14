@@ -31,6 +31,8 @@ export function PaymentHistory({
   onPaymentDeleted,
   onPaymentUpdated,
   onRecordPayment,
+  leaseStartDate,
+  leaseEndDate,
   leaseId,
   agreement,
   fetchPayments
@@ -71,6 +73,14 @@ export function PaymentHistory({
     isSynchronized,
     syncCheckPerformed: syncCheckRef.current
   });
+
+  // Convert dates to strings for the PaymentHistorySection
+  const startDateString = leaseStartDate 
+    ? (typeof leaseStartDate === 'string' ? leaseStartDate : leaseStartDate.toISOString()) 
+    : null;
+  const endDateString = leaseEndDate 
+    ? (typeof leaseEndDate === 'string' ? leaseEndDate : leaseEndDate.toISOString()) 
+    : null;
 
   return (
     <div className="space-y-4">

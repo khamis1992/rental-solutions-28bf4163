@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ export function AgreementDetail({
   const [activeTab, setActiveTab] = useState('overview');
   
   // Use the dialog management hook
-  const { closeDialog, isDialogVisible } = useDialogVisibility({
+  const { openDialog, closeDialog, isDialogVisible } = useDialogVisibility({
     delete: false,
     payment: false
   });
@@ -117,16 +118,16 @@ export function AgreementDetail({
     agreement?.end_date ? ensureDate(agreement.end_date) : null
   );
 
-  // Handle agreement deletion - Fixed to return Promise<void>
-  const confirmDelete = useCallback(async (): Promise<void> => {
+  // Handle agreement deletion
+  const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
       closeDialog('delete');
     }
   }, [agreement, onDelete, closeDialog]);
 
-  // Edit agreement - Fixed to return Promise<void>
-  const handleEdit = useCallback(async (): Promise<void> => {
+  // Edit agreement
+  const handleEdit = useCallback(() => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
     }
@@ -200,13 +201,13 @@ export function AgreementDetail({
     }
   }, [deletePaymentMutation, onPaymentDeleted]);
   
-  // Fix the type issue by making this function properly async and return Promise<void>
+  // Fix the type issue by making this function properly async
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      return await onGenerateDocument();
+      await onGenerateDocument();
     } else {
       // Default behavior - generate Arabic contract
-      return await handleDownloadPdf();
+      await handleDownloadPdf();
     }
   }, [onGenerateDocument, handleDownloadPdf]);
 
@@ -234,6 +235,14 @@ export function AgreementDetail({
   const startDate = ensureDate(agreement.start_date);
   const endDate = ensureDate(agreement.end_date);
   const duration = startDate && endDate ? differenceInMonths(endDate, startDate) : 0;
+
+  // Helper function to get date string safely
+  const getDateString = (date: string | Date): string => {
+    if (typeof date === 'string') {
+      return date;
+    }
+    return date.toISOString();
+  };
 
   return (
     <div className="space-y-6">
@@ -327,6 +336,7 @@ export function AgreementDetail({
             onPaymentUpdated={handleUpdatePayment}
             onRecordPayment={handleRecordPayment}
             fetchPayments={fetchPayments}
+            getDateString={getDateString}
           />
         </TabsContent>
 
@@ -337,8 +347,9 @@ export function AgreementDetail({
             onEdit={handleEdit}
             onDownloadPdf={handleDownloadPdf}
             onGenerateDocument={handleGenerateDocument}
-            onDelete={confirmDelete}
+            onDelete={() => openDialog('delete')}
             isGeneratingPdf={loadingStates.generatingPdf}
+            getDateString={getDateString}
           />
         </TabsContent>
 
@@ -347,7 +358,7 @@ export function AgreementDetail({
           <SettingsCard
             agreement={agreement}
             onEdit={handleEdit}
-            onDelete={confirmDelete}
+            onDelete={() => openDialog('delete')}
           />
         </TabsContent>
       </Tabs>
