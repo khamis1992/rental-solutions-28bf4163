@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,12 @@ interface AgreementOnboardingWizardProps {
   open: boolean;
   onClose: () => void;
   onComplete: (formData: any) => void;
-  preSelectedCustomerId?: string | null;
 }
 
 export function AgreementOnboardingWizard({
   open,
   onClose,
-  onComplete,
-  preSelectedCustomerId
+  onComplete
 }: AgreementOnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState('basic');
   const [formData, setFormData] = useState({
@@ -48,24 +46,6 @@ export function AgreementOnboardingWizard({
 
   const { data: customers = [] } = useCustomers();
   const { data: vehicles = [] } = useVehicles();
-
-  // Auto-fill customer when preSelectedCustomerId is provided
-  useEffect(() => {
-    if (preSelectedCustomerId && customers.length > 0) {
-      const customer = customers.find(c => c.id === preSelectedCustomerId);
-      if (customer) {
-        setFormData(prev => ({
-          ...prev,
-          customer_id: preSelectedCustomerId
-        }));
-        // Auto-advance to selection step if customer is pre-selected
-        if (currentStep === 'basic') {
-          setCurrentStep('selection');
-        }
-        toast.success(`تم تحديد العميل مسبقاً: ${customer.full_name}`);
-      }
-    }
-  }, [preSelectedCustomerId, customers, currentStep]);
 
   const steps = [
     { id: 'basic', label: 'المعلومات الأساسية', icon: User },
@@ -243,56 +223,40 @@ export function AgreementOnboardingWizard({
     </div>
   );
 
-  const renderSelection = () => {
-    const selectedCustomer = customers.find(c => c.id === formData.customer_id);
-    
-    return (
-      <div className="space-y-4" dir="rtl">
-        {preSelectedCustomerId && selectedCustomer && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-3">
-            <p className="text-sm text-green-800 text-right">
-              ✓ تم تحديد العميل مسبقاً: <strong>{selectedCustomer.full_name}</strong>
-            </p>
-          </div>
-        )}
-        <div className="space-y-2">
-          <Label htmlFor="customer_id" className="text-right">العميل *</Label>
-          <Select 
-            onValueChange={(value) => handleSelectChange('customer_id', value)} 
-            value={formData.customer_id} 
-            dir="rtl"
-            disabled={!!preSelectedCustomerId}
-          >
-            <SelectTrigger className="text-right">
-              <SelectValue placeholder="اختر العميل" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((customer: any) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.full_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="vehicle_id" className="text-right">المركبة *</Label>
-          <Select onValueChange={(value) => handleSelectChange('vehicle_id', value)} value={formData.vehicle_id} dir="rtl">
-            <SelectTrigger className="text-right">
-              <SelectValue placeholder="اختر المركبة" />
-            </SelectTrigger>
-            <SelectContent>
-              {vehicles.filter((vehicle: any) => vehicle.status === 'available').map((vehicle: any) => (
-                <SelectItem key={vehicle.id} value={vehicle.id}>
-                  {vehicle.make} {vehicle.model} - {vehicle.license_plate}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+  const renderSelection = () => (
+    <div className="space-y-4" dir="rtl">
+      <div className="space-y-2">
+        <Label htmlFor="customer_id" className="text-right">العميل *</Label>
+        <Select onValueChange={(value) => handleSelectChange('customer_id', value)} value={formData.customer_id} dir="rtl">
+          <SelectTrigger className="text-right">
+            <SelectValue placeholder="اختر العميل" />
+          </SelectTrigger>
+          <SelectContent>
+            {customers.map((customer: any) => (
+              <SelectItem key={customer.id} value={customer.id}>
+                {customer.full_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-    );
-  };
+      <div className="space-y-2">
+        <Label htmlFor="vehicle_id" className="text-right">المركبة *</Label>
+        <Select onValueChange={(value) => handleSelectChange('vehicle_id', value)} value={formData.vehicle_id} dir="rtl">
+          <SelectTrigger className="text-right">
+            <SelectValue placeholder="اختر المركبة" />
+          </SelectTrigger>
+          <SelectContent>
+            {vehicles.filter((vehicle: any) => vehicle.status === 'available').map((vehicle: any) => (
+              <SelectItem key={vehicle.id} value={vehicle.id}>
+                {vehicle.make} {vehicle.model} - {vehicle.license_plate}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   const renderPayment = () => (
     <div className="space-y-4" dir="rtl">
