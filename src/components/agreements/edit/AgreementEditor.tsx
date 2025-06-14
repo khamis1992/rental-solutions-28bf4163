@@ -203,29 +203,29 @@ const AgreementEditor = () => {
   // Enhanced agreement loading with better error handling
   const loadAgreement = async (): Promise<void> => {
     if (!id || id === 'undefined' || id === 'null') return;
-    
-    setIsLoading(true);
-    try {
-      const agreement = await agreementService.getAgreementDetails(id);
       
+      setIsLoading(true);
+      try {
+        const agreement = await agreementService.getAgreementDetails(id);
+          
       if (agreement) {
         const formData = {
-          agreement_number: agreement.agreement_number || '',
+            agreement_number: agreement.agreement_number || '',
           agreement_type: agreement.agreement_type as 'short_term' | 'lease_to_own' || 'short_term',
           status: agreement.status as LeaseStatus || 'draft',
-          customer_id: agreement.customer_id || '',
-          vehicle_id: agreement.vehicle_id || '',
+            customer_id: agreement.customer_id || '',
+            vehicle_id: agreement.vehicle_id || '',
           start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
           end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-          total_amount: agreement.total_amount || 0,
-          rent_amount: agreement.rent_amount || 0,
+            total_amount: agreement.total_amount || 0,
+            rent_amount: agreement.rent_amount || 0,
           deposit_amount: agreement.deposit_amount || 0,
           daily_late_fee: agreement.daily_late_fee || 120,
           payment_frequency: agreement.payment_frequency as 'weekly' | 'monthly' | 'quarterly' || 'monthly',
-          payment_day: agreement.payment_day || 1,
-          notes: agreement.notes || '',
-          terms_accepted: agreement.terms_accepted || false,
-          additional_drivers: agreement.additional_drivers || [],
+            payment_day: agreement.payment_day || 1,
+            notes: agreement.notes || '',
+            terms_accepted: agreement.terms_accepted || false,
+            additional_drivers: agreement.additional_drivers || [],
         };
 
         // Set form values
@@ -233,30 +233,30 @@ const AgreementEditor = () => {
         setOriginalData(formData);
         
         // Set selected customer and vehicle if available
-        if (agreement.customers) {
+          if (agreement.customers) {
           setSelectedCustomer(agreement.customers);
         }
-        if (agreement.vehicles) {
-          setSelectedVehicle(agreement.vehicles);
-        }
+          if (agreement.vehicles) {
+            setSelectedVehicle(agreement.vehicles);
+          }
 
         toast.success('تم تحميل بيانات الاتفاقية بنجاح');
-      } else {
+        } else {
         throw new Error('فشل في تحميل الاتفاقية');
       }
     } catch (error) {
       console.error('خطأ في تحميل الاتفاقية:', error);
       toast.error('فشل في تحميل بيانات الاتفاقية');
-      useToastHook({
+        useToastHook({
         title: "خطأ",
         description: "فشل في تحميل بيانات الاتفاقية",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
   useEffect(() => {
     loadAgreement();
   }, [id]);
@@ -584,7 +584,7 @@ const AgreementEditor = () => {
           : "تم تحديث الاتفاقية بنجاح";
           
         console.log('✅ Success! Navigating to agreement details:', agreementId);
-        
+          
         useToastHook({
           title: "نجح",
           description: successMessage,
@@ -627,7 +627,7 @@ const AgreementEditor = () => {
   
   // Update total when relevant values change
   useEffect(() => {
-    calculateTotalAmount();
+        calculateTotalAmount();
   }, [startDate, endDate, rentAmount, form.watch('deposit_amount'), calculateTotalAmount]);
 
   // Handle customer selection
@@ -704,7 +704,7 @@ const AgreementEditor = () => {
     // Call the actual submit function
     handleSubmitForm(transformedValues);
   }, [form]);
-
+  
   if (isLoading && !form.formState.isSubmitting) {
     return (
       <div className="space-y-6" dir="rtl">
@@ -842,273 +842,273 @@ const AgreementEditor = () => {
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-right">المعلومات الأساسية</h3>
                     <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="agreement_number"
-                        render={({ field }) => (
-                          <FormItem>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="agreement_number"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">رقم الاتفاقية</FormLabel>
-                            <FormControl>
+                          <FormControl>
                               <Input 
                                 placeholder="سيتم التوليد تلقائياً إذا ترك فارغاً" 
                                 {...field} 
                                 className="text-right" 
                                 dir="rtl" 
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="agreement_type"
-                        render={({ field }) => (
-                          <FormItem>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="agreement_type"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">نوع الاتفاقية</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                          <Select 
+                            onValueChange={field.onChange} 
                               value={field.value}
                               dir="rtl"
-                            >
-                              <FormControl>
+                          >
+                            <FormControl>
                                 <SelectTrigger className="text-right">
                                   <SelectValue placeholder="اختر نوع الاتفاقية" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
                                 <SelectItem value="short_term" className="text-right">قصير المدى</SelectItem>
                                 <SelectItem value="lease_to_own" className="text-right">إيجار منتهي بالتملك</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">الحالة</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                          <Select 
+                            onValueChange={field.onChange} 
                               value={field.value}
                               dir="rtl"
-                            >
-                              <FormControl>
+                          >
+                            <FormControl>
                                 <SelectTrigger className="text-right">
                                   <SelectValue placeholder="اختر الحالة" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
                                 <SelectItem value="draft" className="text-right">مسودة</SelectItem>
                                 <SelectItem value="active" className="text-right">نشط</SelectItem>
                                 <SelectItem value="pending" className="text-right">معلق</SelectItem>
                                 <SelectItem value="completed" className="text-right">مكتمل</SelectItem>
                                 <SelectItem value="cancelled" className="text-right">ملغي</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     </div>
                   </div>
-
+                    
                   {/* Customer and Vehicle Selection */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-right">العميل والمركبة</h3>
                     <Separator />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="customer_id"
-                        render={({ field }) => (
-                          <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="customer_id"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">العميل *</FormLabel>
-                            <FormControl>
-                              <CustomerSelector 
-                                onCustomerSelect={handleCustomerSelect}
-                                selectedCustomer={selectedCustomer}
+                          <FormControl>
+                            <CustomerSelector 
+                              onCustomerSelect={handleCustomerSelect}
+                              selectedCustomer={selectedCustomer}
                                 placeholder="البحث عن عميل..."
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="vehicle_id"
-                        render={({ field }) => (
-                          <FormItem>
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="vehicle_id"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">المركبة *</FormLabel>
-                            <FormControl>
-                              <VehicleSelector 
-                                selectedVehicle={selectedVehicle}
-                                onVehicleSelect={handleVehicleSelect}
+                          <FormControl>
+                            <VehicleSelector 
+                              selectedVehicle={selectedVehicle}
+                              onVehicleSelect={handleVehicleSelect}
                                 placeholder="البحث عن مركبة..."
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     </div>
                   </div>
-
+                    
                   {/* Date and Duration */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-right">التواريخ والمدة</h3>
                     <Separator />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="start_date"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
+                    <FormField
+                      control={form.control}
+                      name="start_date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
                             <FormLabel className="text-right">تاريخ البداية</FormLabel>
-                            <FormControl>
-                              <DatePicker
+                          <FormControl>
+                            <DatePicker
                                 date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
-                                setDate={field.onChange}
+                              setDate={field.onChange}
                                 placeholder="اختر تاريخ البداية"
-                              />
-                            </FormControl>
+                            />
+                          </FormControl>
                             <div className="text-xs text-muted-foreground text-right">
                               اختياري للتحديث - اتركه فارغاً للاحتفاظ بالتاريخ الحالي
                             </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="end_date"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="end_date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
                             <FormLabel className="text-right">تاريخ النهاية</FormLabel>
-                            <FormControl>
-                              <DatePicker
+                          <FormControl>
+                            <DatePicker
                                 date={field.value ? (field.value instanceof Date ? field.value : new Date(field.value)) : undefined}
-                                setDate={field.onChange}
+                              setDate={field.onChange}
                                 placeholder="اختر تاريخ النهاية"
-                              />
-                            </FormControl>
+                            />
+                          </FormControl>
                             <div className="text-xs text-muted-foreground text-right">
                               اختياري للتحديث - اتركه فارغاً للاحتفاظ بالتاريخ الحالي
                             </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     </div>
                   </div>
-
+                    
                   {/* Financial Details */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-right">التفاصيل المالية</h3>
                     <Separator />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="rent_amount"
-                        render={({ field }) => (
-                          <FormItem>
+                    <FormField
+                      control={form.control}
+                      name="rent_amount"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">مبلغ الإيجار الشهري *</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="0.00" 
-                                {...field}
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              {...field}
                                 className="text-right"
                                 dir="rtl"
-                                onChange={(e) => {
-                                  field.onChange(parseFloat(e.target.value) || 0);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
+                              onChange={(e) => {
+                                field.onChange(parseFloat(e.target.value) || 0);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
                         name="deposit_amount"
-                        render={({ field }) => (
-                          <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">مبلغ الضمان</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="0.00" 
-                                {...field}
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              {...field}
                                 className="text-right"
                                 dir="rtl"
-                                onChange={(e) => {
-                                  field.onChange(parseFloat(e.target.value) || 0);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
+                              onChange={(e) => {
+                                field.onChange(parseFloat(e.target.value) || 0);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
                         name="total_amount"
-                        render={({ field }) => (
-                          <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">المبلغ الإجمالي</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="0.00" 
-                                {...field}
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              {...field}
                                 className="text-right"
                                 dir="rtl"
                                 readOnly
                                 disabled
-                              />
-                            </FormControl>
+                            />
+                          </FormControl>
                             <div className="text-xs text-muted-foreground text-right">
                               يتم حساب هذا المبلغ تلقائياً
                             </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="daily_late_fee"
-                        render={({ field }) => (
-                          <FormItem>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="daily_late_fee"
+                      render={({ field }) => (
+                        <FormItem>
                             <FormLabel className="text-right">رسوم التأخير اليومية</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
+                          <FormControl>
+                            <Input 
+                              type="number" 
                                 placeholder="120.00" 
-                                {...field}
+                              {...field}
                                 className="text-right"
                                 dir="rtl"
-                                onChange={(e) => {
-                                  field.onChange(parseFloat(e.target.value) || 0);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              onChange={(e) => {
+                                field.onChange(parseFloat(e.target.value) || 0);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     </div>
                   </div>
 
@@ -1178,24 +1178,24 @@ const AgreementEditor = () => {
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-right">ملاحظات إضافية</h3>
                     <Separator />
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
                           <FormLabel className="text-right">ملاحظات</FormLabel>
-                          <FormControl>
-                            <Textarea 
+                        <FormControl>
+                          <Textarea 
                               placeholder="أدخل أي ملاحظات إضافية هنا..." 
                               className="text-right min-h-[100px]" 
                               dir="rtl" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   </div>
                 </TabsContent>
                 
@@ -1233,7 +1233,7 @@ const AgreementEditor = () => {
                   </div>
                   
                   <Button 
-                    type="button"
+                    type="button" 
                     disabled={isLoading || isGenerating}
                     className="min-w-[180px] min-h-[44px] touch-manipulation"
                     onClick={async (e) => {
@@ -1312,7 +1312,7 @@ const AgreementEditor = () => {
                           إعادة إنشاء جدولة الدفعات
                         </>
                       )}
-                    </Button>
+                  </Button>
                   )}
                 </div>
               </form>
