@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,14 +31,14 @@ const RedesignedAgreementDetail = () => {
       try {
         setIsLoading(true);
         const data = await getAgreementDetails(id);
-        // Ensure agreement_type is properly typed and dates are strings
+        // Ensure agreement_type is properly typed and dates are strings, with fallbacks for undefined dates
         const typedAgreement: Agreement = {
           ...data,
           agreement_type: (data.agreement_type || 'short_term') as AgreementType,
-          start_date: typeof data.start_date === 'string' ? data.start_date : new Date(data.start_date).toISOString(),
-          end_date: typeof data.end_date === 'string' ? data.end_date : new Date(data.end_date).toISOString(),
-          created_at: typeof data.created_at === 'string' ? data.created_at : new Date(data.created_at).toISOString(),
-          updated_at: typeof data.updated_at === 'string' ? data.updated_at : new Date(data.updated_at).toISOString(),
+          start_date: data.start_date ? (typeof data.start_date === 'string' ? data.start_date : new Date(data.start_date).toISOString()) : new Date().toISOString(),
+          end_date: data.end_date ? (typeof data.end_date === 'string' ? data.end_date : new Date(data.end_date).toISOString()) : new Date().toISOString(),
+          created_at: data.created_at ? (typeof data.created_at === 'string' ? data.created_at : new Date(data.created_at).toISOString()) : new Date().toISOString(),
+          updated_at: data.updated_at ? (typeof data.updated_at === 'string' ? data.updated_at : new Date(data.updated_at).toISOString()) : new Date().toISOString(),
           total_amount: data.total_amount || 0,
           rent_amount: data.rent_amount || 0
         };
@@ -232,9 +231,9 @@ const RedesignedAgreementDetail = () => {
             rentAmount={agreement.rent_amount || null}
             contractAmount={agreement.total_amount}
             paymentMetrics={{}}
-            onPaymentDeleted={async () => { return true; }}
-            onPaymentUpdated={async () => { return true; }}
-            onRecordPayment={async () => { return true; }}
+            onPaymentDeleted={async (_payment: any) => { /* Placeholder for delete logic */ }}
+            onPaymentUpdated={async () => { /* Placeholder for update logic */ }}
+            onRecordPayment={async () => { /* Placeholder for record logic */ }}
             fetchPayments={async () => {}}
           />
         </TabsContent>
