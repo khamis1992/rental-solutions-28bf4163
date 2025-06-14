@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -10,25 +11,22 @@ interface LegalCaseDescriptionProps {
 
 export const LegalCaseDescription: React.FC<LegalCaseDescriptionProps> = ({ form }) => {
   return (
-    <div dir="rtl">
-      <FormField
-        control={form.control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-right">الوصف</FormLabel>
-            <FormControl>
-              <Textarea 
-                placeholder="قدم تفاصيل حول القضية"
-                className="min-h-[120px] text-right"
-                dir="rtl"
-                {...field} 
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
+    <FormField
+      control={form.control}
+      name="description"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Description</FormLabel>
+          <FormControl>
+            <Textarea 
+              placeholder="Provide details about the case"
+              className="min-h-[120px]"
+              {...field} 
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 };

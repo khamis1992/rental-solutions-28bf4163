@@ -4,4 +4,4 @@ export { MaintenanceDateFields } from './MaintenanceDateFields';
 export { MaintenanceCostFields } from './MaintenanceCostFields';
 export { MaintenanceDescriptionFields } from './MaintenanceDescriptionFields';
 export { MaintenanceFormActions } from './MaintenanceFormActions';
-export { default as MaintenancePhotoUpload } from './MaintenancePhotoUpload'; 
+export { default as MaintenancePhotoUpload } from './MaintenancePhotoUpload';

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
-import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PieChart, FileText, BarChartBig, FileSpreadsheet, Printer } from "lucide-react";
 import FinancialDashboard from "@/components/financials/FinancialDashboard";
@@ -23,7 +22,6 @@ const Financials = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoiceDialog, setInvoiceDialog] = useState(false);
   const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
-  const { language } = useLanguage();
   
   const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
     setInvoiceType(type);
@@ -32,43 +30,42 @@ const Financials = () => {
   
   return (
     <PageContainer>
-      <PageHeader
-        title={language === 'ar' ? "الإدارة المالية" : "Financial Management"}
-        subtitle={language === 'ar' ? "إدارة المدفوعات والفواتير والتقارير المالية وعقود التقسيط" : "Manage payments, invoices, financial reporting and installment contracts"}
-        icon={<PieChart className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
-      >
-        {activeTab === "invoices" && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleOpenInvoiceGenerator('agreement')}
-            className={`h-9 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
-          >
-            <Printer className={language === 'ar' ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"} />
-            {language === 'ar' ? "إنشاء فاتورة" : "Generate Invoice"}
-          </Button>
-        )}
-      </PageHeader>
+      <SectionHeader 
+        title="Financial Management" 
+        description="Manage payments, invoices, financial reporting and installment contracts" 
+        icon={PieChart}
+        actions={
+          activeTab === "invoices" && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleOpenInvoiceGenerator('agreement')}
+              className="h-9"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Generate Invoice
+            </Button>
+          )
+        }
+      />
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
-          <TabsTrigger value="dashboard" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <BarChartBig className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
-            {language === 'ar' ? "لوحة التحكم المالية" : "Financial Dashboard"}
+          <TabsTrigger value="dashboard" className="flex items-center">
+            <BarChartBig className="h-4 w-4 mr-2" />
+            Financial Dashboard
           </TabsTrigger>
-          <TabsTrigger value="invoices" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <FileText className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
-            {language === 'ar' ? "قوالب الفواتير" : "Invoice Templates"}
+          <TabsTrigger value="invoices" className="flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Invoice Templates
           </TabsTrigger>
-          <TabsTrigger value="payments" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <PieChart className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
-            {language === 'ar' ? "إعدادات الدفع" : "Payment Settings"}
+          <TabsTrigger value="payments" className="flex items-center">
+            <PieChart className="h-4 w-4 mr-2" />
+            Payment Settings
           </TabsTrigger>
-          <TabsTrigger value="installments" className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <FileSpreadsheet className={language === 'ar' ? "h-4 w-4 ml-2" : "h-4 w-4 mr-2"} />
-            {language === 'ar' ? "عقود التقسيط" : "Installment Contracts"}
+          <TabsTrigger value="installments" className="flex items-center">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Installment Contracts
           </TabsTrigger>
         </TabsList>
         
@@ -91,11 +88,11 @@ const Financials = () => {
       </Tabs>
       
       <Dialog open={invoiceDialog} onOpenChange={setInvoiceDialog}>
-        <DialogContent className="max-w-3xl" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-          <DialogHeader className={language === 'ar' ? 'text-right' : 'text-left'}>
-            <DialogTitle>{language === 'ar' ? "إنشاء فاتورة" : "Generate Invoice"}</DialogTitle>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Generate Invoice</DialogTitle>
             <DialogDescription>
-              {language === 'ar' ? "إنشاء وتخصيص فاتورة من قالب" : "Create and customize an invoice from a template"}
+              Create and customize an invoice from a template
             </DialogDescription>
           </DialogHeader>
           

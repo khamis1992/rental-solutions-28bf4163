@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { toast } from "sonner";
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MaintenanceSchedulingWizardProps {
   open: boolean;
@@ -25,39 +24,34 @@ export function MaintenanceSchedulingWizard({
   onComplete,
   vehicleId
 }: MaintenanceSchedulingWizardProps) {
-  const [currentStep, setCurrentStep] = useState<'type' | 'details' | 'confirm'>('type');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { language } = useLanguage();
-
+  const [currentStep, setCurrentStep] = useState('type');
   const [formData, setFormData] = useState({
+    id: '',  // Empty ID for new records
     vehicle_id: vehicleId || '',
     maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+    service_type: 'maintenance', // Add missing property
     description: '',
-    scheduled_date: new Date().toISOString().slice(0, 16),
+    scheduled_date: '',
     estimated_cost: '',
+    notes: '',
     assigned_to: '',
-    notes: ''
+    status: MaintenanceStatus.SCHEDULED
   });
-
-  const { createMaintenanceRecord } = useMaintenance();
-
-  const firstInputRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    if (open && firstInputRef.current) {
-      setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 100);
-    }
-  }, [open]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { create } = useMaintenance();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      [field]: value
+    });
   };
 
   const handleContinue = () => {
@@ -69,68 +63,44 @@ export function MaintenanceSchedulingWizard({
   };
 
   const handleBack = () => {
-    if (currentStep === 'details') {
-      setCurrentStep('type');
-    } else if (currentStep === 'confirm') {
+    if (currentStep === 'confirm') {
       setCurrentStep('details');
+    } else if (currentStep === 'details') {
+      setCurrentStep('type');
     }
   };
 
   const handleSubmit = async () => {
     setIsProcessing(true);
     try {
-      await createMaintenanceRecord({
-        ...formData,
-        status: MaintenanceStatus.SCHEDULED,
-        cost: parseFloat(formData.estimated_cost) || 0
-      });
-      toast.success(language === 'ar'
-        ? 'تم إنشاء سجل الصيانة بنجاح'
-        : 'Maintenance record created successfully');
+      // The formData now includes the required id field
+      await create.mutateAsync(formData);
+      toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();
     } catch (error) {
-      console.error('Failed to schedule maintenance:', error);
-      toast.error(language === 'ar'
-        ? 'فشل في إنشاء سجل الصيانة. يرجى المحاولة مرة أخرى'
-        : 'Failed to create maintenance record. Please try again');
+      toast.error("Failed to schedule maintenance");
+      console.error(error);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const maintenanceTypeOptions = [
-    { value: MaintenanceType.REGULAR_INSPECTION, label: language === 'ar' ? 'فحص دوري' : 'Regular Inspection' },
-    { value: MaintenanceType.OIL_CHANGE, label: language === 'ar' ? 'تغيير الزيت' : 'Oil Change' },
-    { value: MaintenanceType.TIRE_REPLACEMENT, label: language === 'ar' ? 'استبدال الإطارات' : 'Tire Replacement' },
-    { value: MaintenanceType.BRAKE_SERVICE, label: language === 'ar' ? 'خدمة الفرامل' : 'Brake Service' },
-    { value: MaintenanceType.ENGINE_REPAIR, label: language === 'ar' ? 'إصلاح المحرك' : 'Engine Repair' },
-    { value: MaintenanceType.TRANSMISSION_SERVICE, label: language === 'ar' ? 'خدمة ناقل الحركة' : 'Transmission Service' },
-    { value: MaintenanceType.BATTERY_REPLACEMENT, label: language === 'ar' ? 'استبدال البطارية' : 'Battery Replacement' },
-    { value: MaintenanceType.AIR_CONDITIONING, label: language === 'ar' ? 'تكييف الهواء' : 'Air Conditioning' },
-    { value: MaintenanceType.ELECTRICAL_REPAIR, label: language === 'ar' ? 'إصلاح كهربائي' : 'Electrical Repair' }
-  ];
-
   const renderTypeSelection = () => (
-    <div className="space-y-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'نوع الصيانة' : 'Maintenance Type'}
-        </Label>
+        <Label>Maintenance Type</Label>
         <Select
           value={formData.maintenance_type}
           onValueChange={(value) => handleSelectChange('maintenance_type', value)}
         >
-          <SelectTrigger
-            ref={firstInputRef}
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-          >
-            <SelectValue placeholder={language === 'ar' ? 'اختيار نوع الصيانة' : 'Select maintenance type'} />
+          <SelectTrigger>
+            <SelectValue placeholder="Select maintenance type" />
           </SelectTrigger>
           <SelectContent>
-            {maintenanceTypeOptions.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
+            {Object.values(MaintenanceType).map((type) => (
+              <SelectItem key={type} value={type}>
+                {type.replace(/_/g, ' ')}
               </SelectItem>
             ))}
           </SelectContent>
@@ -138,41 +108,33 @@ export function MaintenanceSchedulingWizard({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="description" className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'الوصف' : 'Description'}
-        </Label>
+        <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleInputChange}
-          placeholder={language === 'ar' ? 'وصف أعمال الصيانة المطلوبة' : 'Describe the maintenance work needed'}
-          className={language === 'ar' ? 'text-right' : ''}
+          placeholder="Describe the maintenance work needed"
         />
       </div>
     </div>
   );
 
   const renderDetails = () => (
-    <div className="space-y-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="scheduled_date" className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'التاريخ المجدول' : 'Scheduled Date'}
-        </Label>
+        <Label htmlFor="scheduled_date">Scheduled Date</Label>
         <Input
           type="datetime-local"
           id="scheduled_date"
           name="scheduled_date"
           value={formData.scheduled_date}
           onChange={handleInputChange}
-          className={language === 'ar' ? 'text-right' : ''}
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="estimated_cost" className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'التكلفة المقدرة' : 'Estimated Cost'}
-        </Label>
+        <Label htmlFor="estimated_cost">Estimated Cost</Label>
         <Input
           type="number"
           id="estimated_cost"
@@ -180,62 +142,53 @@ export function MaintenanceSchedulingWizard({
           value={formData.estimated_cost}
           onChange={handleInputChange}
           placeholder="0.00"
-          className={language === 'ar' ? 'text-right' : ''}
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="assigned_to" className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'مسند إلى' : 'Assigned To'}
-        </Label>
+        <Label htmlFor="assigned_to">Assigned To</Label>
         <Input
           id="assigned_to"
           name="assigned_to"
           value={formData.assigned_to}
           onChange={handleInputChange}
-          placeholder={language === 'ar' ? 'اسم أو معرف الفني' : 'Technician name or ID'}
-          className={language === 'ar' ? 'text-right' : ''}
+          placeholder="Technician name or ID"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="notes" className={language === 'ar' ? 'text-right' : ''}>
-          {language === 'ar' ? 'ملاحظات إضافية' : 'Additional Notes'}
-        </Label>
+        <Label htmlFor="notes">Additional Notes</Label>
         <Textarea
           id="notes"
           name="notes"
           value={formData.notes}
           onChange={handleInputChange}
-          placeholder={language === 'ar' ? 'أي ملاحظات أو تعليمات إضافية' : 'Any additional notes or instructions'}
-          className={language === 'ar' ? 'text-right' : ''}
+          placeholder="Any additional notes or instructions"
         />
       </div>
     </div>
   );
 
   const renderConfirmation = () => (
-    <div className="space-y-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-4">
       <div className="bg-slate-50 p-4 rounded-md">
-        <h3 className={`text-sm font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
-          {language === 'ar' ? 'ملخص الصيانة' : 'Maintenance Summary'}
-        </h3>
+        <h3 className="text-sm font-medium mb-3">Maintenance Summary</h3>
         <div className="space-y-2 text-sm">
-          <div className={`grid grid-cols-2 gap-2 ${language === 'ar' ? 'text-right' : ''}`}>
-            <span className="text-slate-500">{language === 'ar' ? 'النوع:' : 'Type:'}</span>
-            <span>{maintenanceTypeOptions.find(t => t.value === formData.maintenance_type)?.label}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Type:</span>
+            <span>{formData.maintenance_type.replace(/_/g, ' ')}</span>
           </div>
-          <div className={`grid grid-cols-2 gap-2 ${language === 'ar' ? 'text-right' : ''}`}>
-            <span className="text-slate-500">{language === 'ar' ? 'التاريخ المجدول:' : 'Scheduled Date:'}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Scheduled Date:</span>
             <span>{new Date(formData.scheduled_date).toLocaleString()}</span>
           </div>
-          <div className={`grid grid-cols-2 gap-2 ${language === 'ar' ? 'text-right' : ''}`}>
-            <span className="text-slate-500">{language === 'ar' ? 'التكلفة المقدرة:' : 'Estimated Cost:'}</span>
-            <span>{language === 'ar' ? 'ر.س' : '$'}{parseFloat(formData.estimated_cost || '0').toFixed(2)}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Estimated Cost:</span>
+            <span>${parseFloat(formData.estimated_cost || '0').toFixed(2)}</span>
           </div>
-          <div className={`grid grid-cols-2 gap-2 ${language === 'ar' ? 'text-right' : ''}`}>
-            <span className="text-slate-500">{language === 'ar' ? 'مسند إلى:' : 'Assigned To:'}</span>
-            <span>{formData.assigned_to || (language === 'ar' ? 'غير مسند' : 'Not assigned')}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <span className="text-slate-500">Assigned To:</span>
+            <span>{formData.assigned_to || 'Not assigned'}</span>
           </div>
         </div>
       </div>
@@ -244,27 +197,19 @@ export function MaintenanceSchedulingWizard({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md md:max-w-lg" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <DialogContent className="sm:max-w-md md:max-w-lg">
         <DialogHeader>
-          <DialogTitle className={language === 'ar' ? 'text-right' : ''}>
-            {language === 'ar' ? 'جدولة الصيانة' : 'Schedule Maintenance'}
-          </DialogTitle>
-          <DialogDescription className={language === 'ar' ? 'text-right' : ''}>
-            {language === 'ar' ? 'جدولة وتخطيط أعمال الصيانة خطوة بخطوة' : 'Schedule and plan maintenance work step by step'}
+          <DialogTitle>Schedule Maintenance</DialogTitle>
+          <DialogDescription>
+            Schedule and plan maintenance work step by step
           </DialogDescription>
         </DialogHeader>
         
         <Tabs value={currentStep} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="type" disabled>
-              {language === 'ar' ? 'النوع' : 'Type'}
-            </TabsTrigger>
-            <TabsTrigger value="details" disabled>
-              {language === 'ar' ? 'التفاصيل' : 'Details'}
-            </TabsTrigger>
-            <TabsTrigger value="confirm" disabled>
-              {language === 'ar' ? 'تأكيد' : 'Confirm'}
-            </TabsTrigger>
+            <TabsTrigger value="type" disabled>Type</TabsTrigger>
+            <TabsTrigger value="details" disabled>Details</TabsTrigger>
+            <TabsTrigger value="confirm" disabled>Confirm</TabsTrigger>
           </TabsList>
           
           <TabsContent value="type" className="pt-4">
@@ -282,31 +227,24 @@ export function MaintenanceSchedulingWizard({
         
         <Separator />
         
-        <DialogFooter className={`gap-2 sm:gap-0 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <DialogFooter className="gap-2 sm:gap-0">
           {currentStep !== 'type' && (
             <Button variant="outline" onClick={handleBack} disabled={isProcessing}>
-              {language === 'ar' ? 'السابق' : 'Back'}
+              Back
             </Button>
           )}
           
           {currentStep !== 'confirm' ? (
             <Button onClick={handleContinue}>
-              {language === 'ar' ? 'متابعة' : 'Continue'}
+              Continue
             </Button>
           ) : (
             <Button 
               onClick={handleSubmit} 
               disabled={isProcessing}
-              className="bg-green-600 hover:bg-green-700 text-white w-full"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isProcessing ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white border-t-2"></span>
-                  {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
-                </span>
-              ) : (
-                language === 'ar' ? 'حفظ' : 'Save'
-              )}
+              {isProcessing ? 'Processing...' : 'Schedule Maintenance'}
             </Button>
           )}
         </DialogFooter>

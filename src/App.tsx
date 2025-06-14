@@ -14,7 +14,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Auth components
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -77,7 +76,6 @@ const LegalCompliancePage = lazy(() => import("./pages/LegalCompliancePage"));
 const LegalActivityPage = lazy(() => import("./pages/LegalActivityPage"));
 
 // Other Features
-const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 const TrafficFines = lazy(() => import("./pages/TrafficFines"));
 const Financials = lazy(() => import("./pages/Financials"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -117,7 +115,6 @@ function App() {
     <DocumentationModeProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <LanguageProvider>
           <AuthProvider>
             <ProfileProvider>
               <SettingsProvider>
@@ -199,7 +196,6 @@ function App() {
                                   <Route path="/legal/activity" element={withErrorBoundary(LegalActivityPage)} />
                                   
                                   {/* Other Features */}
-                                  <Route path="/activity" element={withErrorBoundary(ActivityPage)} />
                                   <Route path="/traffic-fines" element={withErrorBoundary(TrafficFines)} />
                                   <Route path="/financials" element={withErrorBoundary(Financials)} />
                                   <Route path="/reports" element={withErrorBoundary(Reports)} />
@@ -228,7 +224,6 @@ function App() {
               </SettingsProvider>
             </ProfileProvider>
           </AuthProvider>
-          </LanguageProvider>
         </BrowserRouter>
         <DocumentationToggleButton />
       </QueryClientProvider>

@@ -1,22 +1,22 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { SectionHeader } from '@/components/ui/section-header';
 import { FileText } from 'lucide-react';
 import LegalDocuments from '@/components/legal/LegalDocuments';
 
 const LegalDocumentsPage = () => {
-  const { language } = useLanguage();
   return (
-    <PageContainer>
-      <PageHeader
-        title="الوثائق"
-        subtitle="إدارة القوالب والوثائق القانونية"
-        icon={<FileText className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+    <PageContainer
+      title="Legal Documents"
+      description="Manage legal templates and documents"
+      backLink="/legal"
+    >
+      <SectionHeader
+        title="Documents"
+        description="Manage legal templates and documents"
+        icon={FileText}
       />
-      <div className="mt-6" dir="rtl">
+      <div className="mt-6">
         <LegalDocuments />
       </div>
     </PageContainer>

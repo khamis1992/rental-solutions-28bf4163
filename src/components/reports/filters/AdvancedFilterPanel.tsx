@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -111,13 +112,13 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         return (
           <div className="space-y-2">
             {selectedGroup.options.map(option => (
-              <div key={option.id} className="flex items-center gap-2 flex-row-reverse">
+              <div key={option.id} className="flex items-center space-x-2">
                 <Checkbox 
                   id={option.id} 
                   checked={filterValue === option.value}
                   onCheckedChange={() => setFilterValue(option.value)}
                 />
-                <Label htmlFor={option.id} className="text-right">{option.label}</Label>
+                <Label htmlFor={option.id}>{option.label}</Label>
               </div>
             ))}
           </div>
@@ -126,13 +127,12 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         return (
           <div className="space-y-2">
             <div className="grid gap-2">
-              <Label className="text-right">اختيار التاريخ</Label>
+              <Label>Select Date</Label>
               <Calendar
                 mode="single"
                 selected={filterValue ? new Date(filterValue) : undefined}
                 onSelect={(date) => setFilterValue(date)}
                 className="rounded-md border"
-                dir="rtl"
               />
             </div>
           </div>
@@ -141,13 +141,12 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         return (
           <div className="space-y-2">
             <div className="grid gap-2">
-              <Label className="text-right">اختيار فترة زمنية</Label>
+              <Label>Select Date Range</Label>
               <Calendar
                 mode="range"
                 selected={dateRange}
                 onSelect={setDateRange}
                 className="rounded-md border"
-                dir="rtl"
               />
             </div>
           </div>
@@ -156,24 +155,22 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         return (
           <div className="space-y-2">
             <div className="grid gap-2">
-              <Label className="text-right">القيمة</Label>
-              <div className="flex gap-2 flex-row-reverse">
+              <Label>Value</Label>
+              <div className="flex space-x-2">
                 <select 
-                  className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground text-right"
+                  className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground"
                   value={selectedOperator}
                   onChange={(e) => setSelectedOperator(e.target.value as FilterOption['operator'])}
-                  dir="rtl"
                 >
-                  <option value="equals">يساوي</option>
-                  <option value="greaterThan">أكبر من</option>
-                  <option value="lessThan">أقل من</option>
+                  <option value="equals">Equals</option>
+                  <option value="greaterThan">Greater than</option>
+                  <option value="lessThan">Less than</option>
                 </select>
                 <input
                   type="number"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground text-right"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground"
                   value={filterValue || ''}
                   onChange={(e) => setFilterValue(parseFloat(e.target.value))}
-                  dir="rtl"
                 />
               </div>
             </div>
@@ -183,23 +180,21 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         return (
           <div className="space-y-2">
             <div className="grid gap-2">
-              <Label className="text-right">البحث النصي</Label>
-              <div className="flex gap-2 flex-row-reverse">
+              <Label>Text Search</Label>
+              <div className="flex space-x-2">
                 <select 
-                  className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground text-right"
+                  className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground"
                   value={selectedOperator}
                   onChange={(e) => setSelectedOperator(e.target.value as FilterOption['operator'])}
-                  dir="rtl"
                 >
-                  <option value="equals">يساوي</option>
-                  <option value="contains">يحتوي على</option>
+                  <option value="equals">Equals</option>
+                  <option value="contains">Contains</option>
                 </select>
                 <input
                   type="text"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground text-right"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground"
                   value={filterValue || ''}
                   onChange={(e) => setFilterValue(e.target.value)}
-                  dir="rtl"
                 />
               </div>
             </div>
@@ -211,9 +206,9 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-right">المرشحات</h3>
+        <h3 className="text-lg font-medium">Filters</h3>
         {appliedFilters.length > 0 && (
           <Button 
             variant="outline" 
@@ -222,28 +217,28 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
             className="h-8 gap-1"
           >
             <X className="h-3.5 w-3.5" />
-            مسح الكل
+            Clear All
           </Button>
         )}
       </div>
       
-      <div className="flex flex-wrap gap-2 flex-row-reverse">
+      <div className="flex flex-wrap gap-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 gap-1">
               <Filter className="h-3.5 w-3.5" />
-              إضافة مرشح
+              Add Filter
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[320px] p-0" align="start">
             <div className="grid grid-cols-2">
-              <div className="border-l p-2 max-h-[300px] overflow-y-auto">
+              <div className="border-r p-2 max-h-[300px] overflow-y-auto">
                 {filterGroups.map((group) => (
                   <Button
                     key={group.id}
                     variant={selectedGroup?.id === group.id ? "default" : "ghost"}
                     size="sm"
-                    className="justify-start w-full text-right"
+                    className="justify-start w-full"
                     onClick={() => handleGroupSelect(group)}
                   >
                     {group.name}
@@ -254,7 +249,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
               <div className="p-3 max-h-[300px] overflow-y-auto">
                 {selectedGroup ? (
                   <div className="space-y-3">
-                    <h4 className="font-medium text-right">{selectedGroup.name}</h4>
+                    <h4 className="font-medium">{selectedGroup.name}</h4>
                     <Separator />
                     {renderFilterInput()}
                     <Button 
@@ -263,12 +258,12 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
                       onClick={handleApplyFilter}
                       disabled={filterValue === null && !(selectedGroup.type === 'dateRange' && dateRange?.from && dateRange?.to)}
                     >
-                      تطبيق المرشح
+                      Apply Filter
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground text-right">
-                    اختر نوع المرشح
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    Select a filter type
                   </div>
                 )}
               </div>
@@ -278,10 +273,10 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
         
         {appliedFilters.map((filter, index) => (
           <Badge key={index} variant="outline" className="gap-1 h-8 px-2">
-            <span className="text-right">{filterGroups.find(g => g.id === filter.field)?.name}: {filter.displayValue}</span>
+            <span>{filterGroups.find(g => g.id === filter.field)?.name}: {filter.displayValue}</span>
             <button
               onClick={() => onRemoveFilter(filter)}
-              className="mr-1 rounded-full w-4 h-4 inline-flex items-center justify-center bg-muted hover:bg-muted-foreground hover:text-background"
+              className="ml-1 rounded-full w-4 h-4 inline-flex items-center justify-center bg-muted hover:bg-muted-foreground hover:text-background"
             >
               <X className="h-3 w-3" />
             </button>

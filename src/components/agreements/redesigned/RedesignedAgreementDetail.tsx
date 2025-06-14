@@ -170,15 +170,17 @@ export function RedesignedAgreementDetail({
   // Convert onGenerateDocument to a Promise
   const handleGenerateDocument = useCallback(async (): Promise<void> => {
     if (onGenerateDocument) {
-      onGenerateDocument();
+      const result = onGenerateDocument();
+      return Promise.resolve(result);
     }
+    return Promise.resolve();
   }, [onGenerateDocument]);
 
   if (!agreement) {
     return (
       <Card className="p-6">
-        <div className="text-center text-muted-foreground" dir="rtl">
-          لم يتم اختيار عقد
+        <div className="text-center text-muted-foreground">
+          No agreement selected
         </div>
       </Card>
     );
@@ -198,44 +200,42 @@ export function RedesignedAgreementDetail({
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Header with Agreement Info and Debug Toggle */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        {/* Diagnostic buttons moved to far left */}
-        <div className="flex gap-2 order-2 lg:order-1">
-          <PaymentSyncButton 
-            agreementId={agreement.id} 
-            variant="fix"
-            className="text-xs"
-          />
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Agreement Details</h1>
+            <Badge variant="outline" className="px-3 py-1">
+              {agreement.agreement_number || 'No Number'}
+            </Badge>
+            <Badge 
+              variant={agreement.status === 'active' ? 'default' : 'secondary'}
+              className="px-3 py-1"
+            >
+              {agreement.status}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground">
+            Manage agreement information, payments, and related documents
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowDebugPanel(!showDebugPanel)}
             className="text-xs"
           >
-            <Bug className="h-4 w-4 ml-1" />
-            {showDebugPanel ? 'إخفاء' : 'إظهار'} التشخيص
+            <Bug className="h-4 w-4 mr-1" />
+            {showDebugPanel ? 'Hide' : 'Show'} Debug
           </Button>
-        </div>
-        
-        {/* Title area moved to far right */}
-        <div className="space-y-2 text-right order-1 lg:order-2">
-          <div className="flex items-center gap-3 flex-row-reverse">
-            <h1 className="text-2xl font-bold">تفاصيل العقد</h1>
-            <Badge variant="outline" className="px-3 py-1">
-              {agreement.agreement_number || 'بدون رقم'}
-            </Badge>
-            <Badge 
-              variant={agreement.status === 'active' ? 'default' : 'secondary'}
-              className="px-3 py-1"
-            >
-              {agreement.status === 'active' ? 'نشط' : agreement.status}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground text-right">
-            إدارة معلومات العقد والمدفوعات والوثائق ذات الصلة
-          </p>
+          <PaymentSyncButton 
+            agreementId={agreement.id} 
+            variant="fix"
+            className="text-xs"
+          />
         </div>
       </div>
 
@@ -249,22 +249,22 @@ export function RedesignedAgreementDetail({
 
       {/* Main Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4" dir="rtl">
-          <TabsTrigger value="overview" className="flex items-center gap-2 flex-row-reverse">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">نظرة عامة</span>
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2 flex-row-reverse">
+          <TabsTrigger value="payments" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">المدفوعات</span>
+            <span className="hidden sm:inline">Payments</span>
           </TabsTrigger>
-          <TabsTrigger value="documents" className="flex items-center gap-2 flex-row-reverse">
+          <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileImage className="h-4 w-4" />
-            <span className="hidden sm:inline">الوثائق</span>
+            <span className="hidden sm:inline">Documents</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2 flex-row-reverse">
+          <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">الإعدادات</span>
+            <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
@@ -323,7 +323,7 @@ export function RedesignedAgreementDetail({
         open={isDialogVisible('delete')}
         onOpenChange={() => closeDialog('delete')}
         agreementId={agreement.id}
-        agreementNumber={agreement.agreement_number || 'غير معروف'}
+        agreementNumber={agreement.agreement_number || 'Unknown'}
         onConfirmDelete={confirmDelete}
       />
 
@@ -346,8 +346,8 @@ export function RedesignedAgreementDetail({
             return true;
           }}
           defaultAmount={rentAmount || 0}
-          title="تسجيل دفعة"
-          description="إضافة دفعة جديدة لهذا العقد"
+          title="Record Payment"
+          description="Add a new payment to this agreement"
           leaseId={agreement.id}
           rentAmount={rentAmount}
           selectedPayment={null}

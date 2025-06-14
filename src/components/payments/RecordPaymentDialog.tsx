@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,11 @@ export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle>تسجيل دفعة</DialogTitle>
-          <DialogDescription className="text-right">
-            اختر كيفية تسجيل هذه الدفعة
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Record Payment</DialogTitle>
+          <DialogDescription>
+            Choose how you would like to record this payment
           </DialogDescription>
         </DialogHeader>
 
@@ -39,9 +40,9 @@ export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogP
               onClick={() => handleOptionSelect('agreement')}
             >
               <CreditCard className="h-6 w-6" />
-              <span className="font-semibold">تسجيل دفعة لعقد</span>
-              <span className="text-sm text-muted-foreground text-center">
-                تسجيل دفعة لعقد إيجار موجود
+              <span className="font-semibold">Record Payment for an Agreement</span>
+              <span className="text-sm text-muted-foreground">
+                Record a payment for an existing rental agreement
               </span>
             </Button>
 
@@ -51,9 +52,9 @@ export function RecordPaymentDialog({ open, onOpenChange }: RecordPaymentDialogP
               onClick={() => handleOptionSelect('new')}
             >
               <FileText className="h-6 w-6" />
-              <span className="font-semibold">تسجيل دفعة جديدة</span>
-              <span className="text-sm text-muted-foreground text-center">
-                تسجيل دفعة مستقلة مع فاتورة اختيارية
+              <span className="font-semibold">Record a New Payment</span>
+              <span className="text-sm text-muted-foreground">
+                Record a standalone payment with optional invoice
               </span>
             </Button>
           </div>

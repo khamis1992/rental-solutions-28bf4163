@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementService, AgreementFilters } from '@/services/AgreementService';
@@ -46,40 +47,12 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
   // Mutation for updating an agreement
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Agreement> }) => {
-      console.log('🔄 updateAgreement mutationFn called with:', { id, data });
-      
       const result = await agreementService.updateAgreement(id, {
         ...data,
         updated_at: new Date().toISOString(),
       });
-      
-      console.log('🔍 updateAgreement result:', result);
-      
       if (!result.success) {
-        console.error('❌ updateAgreement failed:', result.error);
-        
-        // Extract meaningful error message from complex error objects
-        let errorMessage = 'Failed to update agreement';
-        
-        if (result.error) {
-          if (typeof result.error === 'string') {
-            errorMessage = result.error;
-          } else if (result.error instanceof Error) {
-            errorMessage = result.error.message;
-          } else if (typeof result.error === 'object' && result.error.message) {
-            errorMessage = result.error.message;
-          } else if (typeof result.error === 'object') {
-            // For complex objects, try to extract useful information
-            try {
-              errorMessage = JSON.stringify(result.error);
-            } catch {
-              errorMessage = 'Failed to update agreement - complex error object';
-            }
-          }
-        }
-        
-        console.error('❌ Processed error message:', errorMessage);
-        throw new Error(errorMessage);
+        throw new Error(result.error?.toString() || 'Failed to update agreement');
       }
       return result.data;
     },
@@ -88,7 +61,6 @@ export const useAgreementService = (initialFilters: AgreementFilters = {}) => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
     onError: (error) => {
-      console.error('❌ updateAgreement onError:', error);
       toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });

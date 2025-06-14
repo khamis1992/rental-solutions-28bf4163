@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog } from "@/components/ui/dialog";
 import { CustomButton } from "@/components/ui/custom-button";
@@ -23,23 +24,23 @@ export const PaymentProcessor = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <CustomButton
         onClick={() => handlePayment('card')}
         disabled={loading}
-        className="p-6 flex-row-reverse"
+        className="p-6"
       >
-        <CreditCard className="h-6 w-6 ml-2" />
-        دفع بالبطاقة
+        <CreditCard className="h-6 w-6 mr-2" />
+        Pay with Card
       </CustomButton>
       
       <CustomButton
         onClick={() => handlePayment('wallet')}
         disabled={loading}
-        className="p-6 flex-row-reverse"
+        className="p-6"
       >
-        <Wallet className="h-6 w-6 ml-2" />
-        المحفظة الرقمية
+        <Wallet className="h-6 w-6 mr-2" />
+        Digital Wallet
       </CustomButton>
     </div>
   );

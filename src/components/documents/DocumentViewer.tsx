@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Document as DocumentType } from '@/types/document.types';
 import { Button } from '@/components/ui/button';
@@ -38,32 +39,32 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
   };
   
   return (
-    <div className="flex flex-col space-y-4" dir="rtl">
+    <div className="flex flex-col space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-right">
+        <div>
           <p className="text-sm text-muted-foreground">
-            {document.file_name} ({(document.file_size / 1024).toFixed(2)} كيلوبايت)
+            {document.file_name} ({(document.file_size / 1024).toFixed(2)} KB)
           </p>
         </div>
-        <div className="flex space-x-2 space-x-reverse">
+        <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={handleDownload}>
-            <Download className="ml-2 h-4 w-4" /> تحميل
+            <Download className="mr-2 h-4 w-4" /> Download
           </Button>
           {document.public_url && (
             <Button variant="outline" size="sm" asChild>
               <a href={document.public_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="ml-2 h-4 w-4" /> فتح
+                <ExternalLink className="mr-2 h-4 w-4" /> Open
               </a>
             </Button>
           )}
         </div>
       </div>
       
-      <div className="border rounded-md p-4">
+      <div className="border rounded-md overflow-hidden bg-muted/20 min-h-[400px] flex items-center justify-center">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">جاري تحميل الوثيقة...</p>
+            <p className="text-sm text-muted-foreground">Loading document...</p>
           </div>
         ) : (
           <>
@@ -86,10 +87,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
             {!isImage && !isPdf && (
               <div className="flex flex-col items-center justify-center p-8 text-center">
                 <p className="text-muted-foreground mb-2">
-                  معاينة غير متاحة لهذا النوع من الملفات.
+                  Preview not available for this file type.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  يرجى تحميل الملف لعرض محتوياته.
+                  Please download the file to view its contents.
                 </p>
               </div>
             )}

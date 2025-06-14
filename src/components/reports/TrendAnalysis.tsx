@@ -51,25 +51,25 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = ({
   const formatter = selectedMetricObj?.formatter || ((value) => value?.toString() || '');
   
   return (
-    <Card dir="rtl">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-right">{title}</CardTitle>
-        {description && <CardDescription className="text-right">{description}</CardDescription>}
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center gap-4 mb-6 flex-row-reverse">
-          <div className="flex items-center gap-2 flex-row-reverse">
-            <Label className="text-right">المقياس</Label>
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <Label>Metric</Label>
             <Select
               value={selectedMetric}
               onValueChange={setSelectedMetric}
             >
-              <SelectTrigger className="w-[180px] text-right" dir="rtl">
-                <SelectValue placeholder="اختر المقياس" />
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select metric" />
               </SelectTrigger>
               <SelectContent>
                 {metrics.map(metric => (
-                  <SelectItem key={metric.key} value={metric.key} className="text-right">
+                  <SelectItem key={metric.key} value={metric.key}>
                     {metric.name}
                   </SelectItem>
                 ))}
@@ -78,19 +78,19 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = ({
           </div>
           
           {comparisonOptions.length > 0 && (
-            <div className="flex items-center gap-2 flex-row-reverse">
-              <Label className="text-right">المقارنة</Label>
+            <div className="flex items-center space-x-2">
+              <Label>Comparison</Label>
               <Select
                 value={comparisonType}
                 onValueChange={setComparisonType}
               >
-                <SelectTrigger className="w-[180px] text-right" dir="rtl">
-                  <SelectValue placeholder="اختر نوع المقارنة" />
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select comparison" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="text-right">بدون مقارنة</SelectItem>
+                  <SelectItem value="none">No Comparison</SelectItem>
                   {comparisonOptions.map(option => (
-                    <SelectItem key={option.key} value={option.key} className="text-right">
+                    <SelectItem key={option.key} value={option.key}>
                       {option.name}
                     </SelectItem>
                   ))}
@@ -138,14 +138,14 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = ({
                   <Line
                     type="monotone"
                     dataKey="current"
-                    name="الحالي"
+                    name="Current"
                     stroke="#3b82f6"
                     activeDot={{ r: 8 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="comparison"
-                    name="المقارنة"
+                    name="Comparison"
                     stroke="#f59e0b"
                     activeDot={{ r: 8 }}
                     strokeDasharray="5 5"
@@ -154,7 +154,7 @@ const TrendAnalysis: React.FC<TrendAnalysisProps> = ({
                     <Line
                       type="monotone"
                       dataKey="difference"
-                      name="الفرق"
+                      name="Difference"
                       stroke="#ef4444"
                       activeDot={{ r: 8 }}
                     />

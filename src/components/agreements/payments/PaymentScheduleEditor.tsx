@@ -1,3 +1,4 @@
+
 // No changes needed to the main component, already handling description correctly
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -72,23 +73,23 @@ const PaymentScheduleEditor = ({
     const warnings: string[] = [];
     
     if (!startDate || isNaN(startDate.getTime())) {
-      warnings.push('تاريخ البداية غير صحيح');
+      warnings.push('Start date is invalid');
     }
     
     if (!endDate || isNaN(endDate.getTime())) {
-      warnings.push('تاريخ النهاية غير صحيح');
+      warnings.push('End date is invalid');
     }
     
     if (startDate && endDate && startDate >= endDate) {
-      warnings.push('يجب أن يكون تاريخ النهاية بعد تاريخ البداية');
+      warnings.push('End date must be after start date');
     }
     
     if (!rentAmount || rentAmount <= 0) {
-      warnings.push('يجب أن يكون مبلغ الإيجار أكبر من 0');
+      warnings.push('Rent amount must be greater than 0');
     }
     
     if (!paymentDay || paymentDay < 1 || paymentDay > 31) {
-      warnings.push('يجب أن يكون يوم الدفع بين 1 و 31');
+      warnings.push('Payment day must be between 1 and 31');
     }
 
     return {
@@ -106,7 +107,7 @@ const PaymentScheduleEditor = ({
     
     if (!validation.isValid) {
       console.warn('❌ Invalid inputs for payment schedule:', validation.warnings);
-      setError('يرجى إصلاح أخطاء التحقق قبل إنشاء الجدولة');
+      setError('Please fix the validation errors before generating schedule');
       return [];
     }
 
@@ -141,7 +142,7 @@ const PaymentScheduleEditor = ({
         payments.push({
           dueDate: new Date(currentDate),
           amount: Math.round(amount * 100) / 100,
-          status: 'معلق'
+          status: 'pending'
         });
         
         paymentCount++;
@@ -162,7 +163,7 @@ const PaymentScheduleEditor = ({
       return payments;
     } catch (error) {
       console.error("❌ Error generating local payment schedule:", error);
-      setError(`فشل في إنشاء الجدولة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      setError(`Failed to generate schedule: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return [];
     }
   };
@@ -194,7 +195,7 @@ const PaymentScheduleEditor = ({
   // Save schedule to database
   const handleSaveSchedule = async () => {
     if (!agreementId) {
-      toast.error('معرف الاتفاقية مطلوب لحفظ الجدولة');
+      toast.error('Agreement ID is required to save schedule');
       return;
     }
 
@@ -211,18 +212,18 @@ const PaymentScheduleEditor = ({
 
   const canGenerateSchedule = startDate && endDate && rentAmount > 0;
   const displaySchedule = persistedSchedule.length > 0 ? persistedSchedule : localPaymentSchedule;
-  const totalScheduledAmount = displaySchedule.reduce((sum: number, payment: any) => {
+  const totalScheduledAmount = displaySchedule.reduce((sum, payment) => {
     return sum + (typeof payment.amount === 'number' ? payment.amount : 0);
   }, 0);
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Validation Warnings */}
       {validationWarnings.length > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <div className="space-y-1 text-right">
+            <div className="space-y-1">
               {validationWarnings.map((warning, index) => (
                 <div key={index}>• {warning}</div>
               ))}
@@ -235,7 +236,7 @@ const PaymentScheduleEditor = ({
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-right">{error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -243,8 +244,8 @@ const PaymentScheduleEditor = ({
       {hasUnsavedChanges && agreementId && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription className="text-right">
-            لديك تغييرات غير محفوظة في جدولة الدفعات. احفظ لحفظ التغييرات في قاعدة البيانات.
+          <AlertDescription>
+            You have unsaved changes to the payment schedule. Save to persist changes to the database.
           </AlertDescription>
         </Alert>
       )}
@@ -252,26 +253,25 @@ const PaymentScheduleEditor = ({
       {/* Input Controls */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <Label htmlFor="paymentFrequency" className="text-right">تكرار الدفع</Label>
+          <Label htmlFor="paymentFrequency">Payment Frequency</Label>
           <Select 
             value={paymentFrequency} 
             onValueChange={onFrequencyChange}
-            dir="rtl"
           >
-            <SelectTrigger id="paymentFrequency" className="text-right">
-              <SelectValue placeholder="اختر التكرار" />
+            <SelectTrigger id="paymentFrequency">
+              <SelectValue placeholder="Select frequency" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="weekly" className="text-right">أسبوعي</SelectItem>
-              <SelectItem value="biweekly" className="text-right">كل أسبوعين</SelectItem>
-              <SelectItem value="monthly" className="text-right">شهري</SelectItem>
-              <SelectItem value="quarterly" className="text-right">ربع سنوي</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="biweekly">Bi-weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="quarterly">Quarterly</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
         <div>
-          <Label htmlFor="paymentDay" className="text-right">يوم الدفع من الشهر (1-31)</Label>
+          <Label htmlFor="paymentDay">Payment Day of Month (1-31)</Label>
           <Input 
             id="paymentDay"
             type="number" 
@@ -279,17 +279,15 @@ const PaymentScheduleEditor = ({
             max={31} 
             value={paymentDay} 
             onChange={(e) => onPaymentDayChange(parseInt(e.target.value) || 1)}
-            className="text-right"
-            dir="rtl"
           />
-          <p className="text-xs text-muted-foreground mt-1 text-right">
+          <p className="text-xs text-muted-foreground mt-1">
             {paymentFrequency === 'monthly' || paymentFrequency === 'quarterly' 
-              ? "يوم الشهر المحدد لاستحقاق الدفع" 
-              : "سيتم استخدامه لتاريخ الدفعة الأولى"}
+              ? "Day of the month when payment is due" 
+              : "Will be used for the first payment date"}
           </p>
         </div>
         
-        <div className="flex items-end gap-2 flex-row-reverse">
+        <div className="flex items-end gap-2">
           {agreementId && hasUnsavedChanges && (
             <Button 
               onClick={handleSaveSchedule}
@@ -297,11 +295,11 @@ const PaymentScheduleEditor = ({
               className="flex-1"
             >
               {isGenerating ? (
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Save className="ml-2 h-4 w-4" />
+                <Save className="mr-2 h-4 w-4" />
               )}
-              حفظ الجدولة
+              Save Schedule
             </Button>
           )}
           
@@ -313,8 +311,8 @@ const PaymentScheduleEditor = ({
             }}
             disabled={isGenerating || !canGenerateSchedule}
           >
-            <RefreshCw className="ml-2 h-4 w-4" />
-            تحديث
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
           </Button>
         </div>
       </div>
@@ -323,11 +321,11 @@ const PaymentScheduleEditor = ({
       {displaySchedule.length > 0 && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
-          <AlertDescription className="text-right">
-            {persistedSchedule.length > 0 ? 'محفوظ' : 'معاينة'}: {displaySchedule.length} دفعات بإجمالي {formatCurrency(totalScheduledAmount)}
+          <AlertDescription>
+            {persistedSchedule.length > 0 ? 'Saved' : 'Preview'}: {displaySchedule.length} payments totaling {formatCurrency(totalScheduledAmount)}
             {persistedSchedule.length > 0 && (
-              <span className="block text-green-600 text-sm mt-1 text-right">
-                هذه الجدولة محفوظة في قاعدة البيانات وستظهر في سجل المدفوعات
+              <span className="block text-green-600 text-sm mt-1">
+                This schedule is saved to the database and will appear in Payment History
               </span>
             )}
           </AlertDescription>
@@ -337,10 +335,10 @@ const PaymentScheduleEditor = ({
       {/* Payment Schedule Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex justify-between items-center text-right">
-            <span>جدولة الدفعات {persistedSchedule.length > 0 ? '(محفوظة)' : '(معاينة)'}</span>
+          <CardTitle className="flex justify-between items-center">
+            <span>Payment Schedule {persistedSchedule.length > 0 ? '(Saved)' : '(Preview)'}</span>
             <span className="text-sm text-muted-foreground">
-              {displaySchedule.length} دفعات
+              {displaySchedule.length} payments
             </span>
           </CardTitle>
         </CardHeader>
@@ -348,26 +346,26 @@ const PaymentScheduleEditor = ({
           {!canGenerateSchedule ? (
             <div className="py-8 text-center text-muted-foreground">
               <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
-              <p className="text-right">يرجى ملء تاريخ البداية وتاريخ النهاية ومبلغ الإيجار لإنشاء جدولة الدفعات</p>
+              <p>Please fill in start date, end date, and rent amount to generate payment schedule</p>
             </div>
           ) : displaySchedule.length > 0 ? (
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">#</TableHead>
-                    <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
-                    <TableHead className="text-right">المبلغ</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead>#</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displaySchedule.map((payment: any, index: number) => (
+                  {displaySchedule.map((payment, index) => (
                     <TableRow key={index}>
-                      <TableCell className="text-right">{index + 1}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center flex-row-reverse">
-                          <CalendarIcon className="ml-2 h-4 w-4 text-muted-foreground" />
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                           {formatDate(
                             'due_date' in payment 
                               ? new Date(payment.due_date) 
@@ -375,12 +373,10 @@ const PaymentScheduleEditor = ({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell>
                         <span className="capitalize">
-                          {payment.status === 'pending' ? 'معلق' : 
-                           payment.status === 'completed' ? 'مكتمل' : 
-                           payment.status === 'overdue' ? 'متأخر' : payment.status}
+                          {payment.status}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -393,10 +389,10 @@ const PaymentScheduleEditor = ({
               {isGenerating || isLoadingPersisted ? (
                 <div className="flex flex-col items-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                  <p className="text-right">جاري تحميل جدولة الدفعات...</p>
+                  <p>Loading payment schedule...</p>
                 </div>
               ) : (
-                <p className="text-right">لم يتم إنشاء جدولة دفعات بعد</p>
+                <p>No payment schedule generated yet</p>
               )}
             </div>
           )}

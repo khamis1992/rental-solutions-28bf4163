@@ -56,25 +56,20 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-      case 'paid':
-        return <Badge className="bg-green-500">مدفوع</Badge>;
+        return <Badge className="bg-green-500">Completed</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500">معلق</Badge>;
+        return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'partially_paid':
-        return <Badge className="bg-blue-500">مدفوع جزئياً</Badge>;
+        return <Badge className="bg-blue-500">Partially Paid</Badge>;
       case 'overdue':
-        return <Badge className="bg-red-500">متأخر</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-gray-500">ملغي</Badge>;
-      case 'refunded':
-        return <Badge className="bg-purple-500">مسترد</Badge>;
+        return <Badge className="bg-red-500">Overdue</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'غير محدد';
+    if (!dateString) return 'Not set';
     return format(new Date(dateString), 'dd MMM yyyy');
   };
 
@@ -85,7 +80,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
     try {
       // Only proceed if we have valid data
       if (!data?.leaseId) {
-        throw new Error('لم يتم العثور على اتفاقية صالحة');
+        throw new Error('No valid agreement found');
       }
 
       // If a specific payment is selected, use that payment
@@ -96,25 +91,25 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         const selectedPayment = data.allPayments.find(p => p.id === selectedPaymentId);
         
         if (!selectedPayment) {
-          throw new Error('الدفعة المحددة غير موجودة');
+          throw new Error('Selected payment not found');
         }
 
         // Update the existing payment to mark it as completed
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update({
-            status: 'paid',
+            status: 'completed',
             payment_date: new Date().toISOString(),
             payment_method: 'cash',
-            description: `دفعة لـ ${data.agreementNumber}`
+            description: `Payment for ${data.agreementNumber}`
           })
           .eq('id', selectedPaymentId);
 
         if (updateError) throw updateError;
         
         toast({
-          title: "تم تسجيل الدفعة",
-          description: `تم تسجيل الدفعة المحددة بمبلغ ${selectedPayment.amount} ريال قطري كمكتملة.`,
+          title: "Payment Recorded",
+          description: `The selected payment of ${selectedPayment.amount} QAR has been marked as completed.`,
         });
       } else {
         // Create a new payment if no specific payment was selected or "new" was selected
@@ -123,8 +118,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
           payment_date: new Date().toISOString(),
           lease_id: data.leaseId,
           payment_method: 'cash',
-          description: `دفعة إيجار شهرية لـ ${data.agreementNumber}`,
-          status: 'paid' as const,
+          description: `Monthly rent payment for ${data.agreementNumber}`,
+          status: 'completed',
           type: 'Income',
           late_fine_amount: data.lateFeeAmount || 0
         };
@@ -132,8 +127,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         await addPayment(paymentData);
         
         toast({
-          title: "تم تسجيل الدفعة",
-          description: "تم تسجيل الدفعة بنجاح.",
+          title: "Payment Recorded",
+          description: "The payment has been successfully recorded.",
         });
       }
       
@@ -141,8 +136,8 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
     } catch (error) {
       console.error('Error recording payment:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في تسجيل الدفعة. يرجى المحاولة مرة أخرى.",
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -151,39 +146,37 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Button
         type="button"
         variant="ghost"
-        className="mb-2 flex-row-reverse"
+        className="mb-2"
         onClick={onBack}
       >
-        <ChevronLeft className="h-4 w-4 ml-2" />
-        العودة
+        <ChevronLeft className="h-4 w-4 mr-2" />
+        Back
       </Button>
 
       <div className="space-y-2">
-        <Label htmlFor="carNumber" className="text-right">رقم السيارة</Label>
+        <Label htmlFor="carNumber">Car Number</Label>
         <Input
           id="carNumber"
-          placeholder="أدخل رقم السيارة"
+          placeholder="Enter car number"
           value={carNumber}
           onChange={(e) => {
             setCarNumber(e.target.value);
             setSelectedPaymentId(null); // Reset selection when car number changes
           }}
           required
-          className="text-right"
-          dir="rtl"
         />
       </div>
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground text-right">جاري تحميل تفاصيل الدفع...</div>
+        <div className="text-sm text-muted-foreground">Loading payment details...</div>
       )}
 
       {error && (
-        <div className="text-sm text-destructive text-right">{error}</div>
+        <div className="text-sm text-destructive">{error}</div>
       )}
 
       {data && (
@@ -191,49 +184,49 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
           <div className="rounded-lg border p-4 space-y-2">
             {data.agreementNumber && (
               <div className="flex justify-between text-sm">
-                <span className="text-right">رقم الاتفاقية:</span>
-                <span className="font-semibold text-right">{data.agreementNumber}</span>
+                <span>Agreement Number:</span>
+                <span className="font-semibold">{data.agreementNumber}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-right">مبلغ الإيجار الحالي:</span>
-              <span className="font-semibold text-right">{data.rentAmount.toFixed(2)} ر.ق</span>
+              <span>Current Rent Amount:</span>
+              <span className="font-semibold">QAR {data.rentAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-right">رسوم التأخير:</span>
-              <span className="font-semibold text-destructive text-right">
-                {data.lateFeeAmount.toFixed(2)} ر.ق
+              <span>Late Payment Fee:</span>
+              <span className="font-semibold text-destructive">
+                QAR {data.lateFeeAmount.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between border-t pt-2">
-              <span className="text-right">إجمالي المبلغ المستحق:</span>
-              <span className="font-semibold text-right">{data.totalDue.toFixed(2)} ر.ق</span>
+              <span>Default Total Due:</span>
+              <span className="font-semibold">QAR {data.totalDue.toFixed(2)}</span>
             </div>
             {data.contractAmount !== null && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span className="text-right">إجمالي مبلغ العقد:</span>
-                <span className="text-right">{data.contractAmount.toFixed(2)} ر.ق</span>
+                <span>Total Contract Amount:</span>
+                <span>QAR {data.contractAmount.toFixed(2)}</span>
               </div>
             )}
           </div>
 
           {data.allPayments && data.allPayments.length > 0 ? (
             <div className="space-y-3">
-              <Label className="text-right">اختر دفعة للتسجيل</Label>
+              <Label>Select a Payment to Record</Label>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid grid-cols-4">
                   <TabsTrigger value="pending" className="text-xs">
-                    معلقة ({groupedPayments.pending.length})
+                    Pending ({groupedPayments.pending.length})
                   </TabsTrigger>
                   <TabsTrigger value="completed" className="text-xs">
-                    مكتملة ({groupedPayments.completed.length})
+                    Completed ({groupedPayments.completed.length})
                   </TabsTrigger>
                   <TabsTrigger value="overdue" className="text-xs">
-                    متأخرة ({groupedPayments.overdue.length})
+                    Overdue ({groupedPayments.overdue.length})
                   </TabsTrigger>
                   <TabsTrigger value="new" className="text-xs">
-                    دفعة جديدة
+                    New Payment
                   </TabsTrigger>
                 </TabsList>
                 
@@ -245,26 +238,26 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                       className="space-y-2"
                     >
                       {groupedPayments.pending.map((payment) => (
-                        <div key={payment.id} className="flex items-center space-x-reverse space-x-2 border rounded-md p-3" dir="rtl">
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
                           <RadioGroupItem value={payment.id} id={payment.id} />
                           <div className="grid flex-1">
                             <div className="flex justify-between">
-                              <Label htmlFor={payment.id} className="font-medium text-right">
-                                {payment.amount.toFixed(2)} ر.ق
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
                               </Label>
                               {getStatusBadge(payment.status)}
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground text-right">
-                                {payment.description || 'دفعة'}
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
                               </span>
-                              <span className="text-sm text-muted-foreground text-right">
-                                الاستحقاق: {payment.due_date ? formatDate(payment.due_date) : 'غير محدد'}
+                              <span className="text-sm text-muted-foreground">
+                                Due: {payment.due_date ? formatDate(payment.due_date) : 'Not set'}
                               </span>
                             </div>
                             {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                              <div className="text-sm text-red-500 mt-1 text-right">
-                                رسوم التأخير: {payment.late_fine_amount.toFixed(2)} ر.ق
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
                               </div>
                             )}
                           </div>
@@ -273,7 +266,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                     </RadioGroup>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">
-                      لا توجد دفعات معلقة
+                      No pending payments found
                     </div>
                   )}
                 </TabsContent>
@@ -286,26 +279,26 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                       className="space-y-2"
                     >
                       {groupedPayments.completed.map((payment) => (
-                        <div key={payment.id} className="flex items-center space-x-reverse space-x-2 border rounded-md p-3" dir="rtl">
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
                           <RadioGroupItem value={payment.id} id={payment.id} />
                           <div className="grid flex-1">
                             <div className="flex justify-between">
-                              <Label htmlFor={payment.id} className="font-medium text-right">
-                                {payment.amount.toFixed(2)} ر.ق
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
                               </Label>
                               {getStatusBadge(payment.status)}
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground text-right">
-                                {payment.description || 'دفعة'}
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
                               </span>
-                              <span className="text-sm text-muted-foreground text-right">
-                                تم الدفع: {payment.payment_date ? formatDate(payment.payment_date) : 'غير محدد'}
+                              <span className="text-sm text-muted-foreground">
+                                Paid: {payment.payment_date ? formatDate(payment.payment_date) : 'Not set'}
                               </span>
                             </div>
                             {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                              <div className="text-sm text-red-500 mt-1 text-right">
-                                رسوم التأخير: {payment.late_fine_amount.toFixed(2)} ر.ق
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
                               </div>
                             )}
                           </div>
@@ -314,7 +307,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                     </RadioGroup>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">
-                      لا توجد دفعات مكتملة
+                      No completed payments found
                     </div>
                   )}
                 </TabsContent>
@@ -327,26 +320,26 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                       className="space-y-2"
                     >
                       {groupedPayments.overdue.map((payment) => (
-                        <div key={payment.id} className="flex items-center space-x-reverse space-x-2 border rounded-md p-3" dir="rtl">
+                        <div key={payment.id} className="flex items-center space-x-2 border rounded-md p-3">
                           <RadioGroupItem value={payment.id} id={payment.id} />
                           <div className="grid flex-1">
                             <div className="flex justify-between">
-                              <Label htmlFor={payment.id} className="font-medium text-right">
-                                {payment.amount.toFixed(2)} ر.ق
+                              <Label htmlFor={payment.id} className="font-medium">
+                                QAR {payment.amount.toFixed(2)}
                               </Label>
                               {getStatusBadge(payment.status)}
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground text-right">
-                                {payment.description || 'دفعة'}
+                              <span className="text-sm text-muted-foreground">
+                                {payment.description || 'Payment'}
                               </span>
-                              <span className="text-sm text-red-500 font-medium text-right">
-                                متأخر منذ: {payment.due_date ? formatDate(payment.due_date) : 'غير محدد'}
+                              <span className="text-sm text-red-500 font-medium">
+                                Overdue since: {payment.due_date ? formatDate(payment.due_date) : 'Not set'}
                               </span>
                             </div>
                             {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                              <div className="text-sm text-red-500 mt-1 text-right">
-                                رسوم التأخير: {payment.late_fine_amount.toFixed(2)} ر.ق
+                              <div className="text-sm text-red-500 mt-1">
+                                Late Fee: QAR {payment.late_fine_amount.toFixed(2)}
                               </div>
                             )}
                           </div>
@@ -355,23 +348,23 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                     </RadioGroup>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">
-                      لا توجد دفعات متأخرة
+                      No overdue payments found
                     </div>
                   )}
                 </TabsContent>
                 
                 <TabsContent value="new" className="pt-2">
                   <RadioGroup value={selectedPaymentId === 'new' ? 'new' : ''} onValueChange={() => setSelectedPaymentId('new')}>
-                    <div className="flex items-center space-x-reverse space-x-2 border rounded-md p-3" dir="rtl">
+                    <div className="flex items-center space-x-2 border rounded-md p-3">
                       <RadioGroupItem value="new" id="new-payment" />
                       <div className="grid flex-1">
-                        <Label htmlFor="new-payment" className="font-medium text-right">إنشاء دفعة جديدة</Label>
-                        <span className="text-sm text-muted-foreground text-right">
-                          المبلغ: {data.totalDue.toFixed(2)} ر.ق (الإيجار + رسوم التأخير)
+                        <Label htmlFor="new-payment" className="font-medium">Create New Payment</Label>
+                        <span className="text-sm text-muted-foreground">
+                          Amount: QAR {data.totalDue.toFixed(2)} (Rent + Late Fee)
                         </span>
                         {data.lateFeeAmount > 0 && (
-                          <span className="text-sm text-red-500 text-right">
-                            يشمل رسوم التأخير: {data.lateFeeAmount.toFixed(2)} ر.ق
+                          <span className="text-sm text-red-500">
+                            Includes Late Fee: QAR {data.lateFeeAmount.toFixed(2)}
                           </span>
                         )}
                       </div>
@@ -382,9 +375,9 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
             </div>
           ) : (
             <div className="text-center p-4 border rounded-md">
-              <p className="text-muted-foreground text-right">لا توجد دفعات لهذه الاتفاقية.</p>
-              <p className="text-sm text-muted-foreground mt-2 text-right">
-                يمكنك إنشاء دفعة جديدة أدناه.
+              <p className="text-muted-foreground">No payments found for this agreement.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                You can create a new payment below.
               </p>
               <div className="mt-4">
                 <Button 
@@ -393,7 +386,7 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
                   className="w-full"
                   onClick={() => setSelectedPaymentId('new')}
                 >
-                  إنشاء دفعة جديدة
+                  Create New Payment
                 </Button>
               </div>
             </div>
@@ -401,15 +394,15 @@ export function PaymentForAgreement({ onBack, onClose }: PaymentForAgreementProp
         </div>
       )}
 
-      <div className="flex justify-end gap-2 flex-row-reverse">
+      <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>
-          إلغاء
+          Cancel
         </Button>
         <Button 
           type="submit" 
           disabled={!carNumber || loading || isLoading || !!error || !data || (!selectedPaymentId && selectedPaymentId !== 'new')}
         >
-          تسجيل الدفعة
+          Record Payment
         </Button>
       </div>
     </form>

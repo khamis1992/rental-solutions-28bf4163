@@ -1,3 +1,4 @@
+
 import { Payment } from '@/types/payment.types';
 import { PaymentHistorySection } from '@/components/payments/PaymentHistorySection';
 import { Agreement } from '@/types/agreement';
@@ -82,16 +83,16 @@ export function PaymentHistory({
     : null;
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4">
       {/* Synchronization Status Alert - Only show if there are actual sync issues */}
       {syncStatus && !isSynchronized && syncStatus.unsyncedCount > 0 && (
         <Alert className="border-yellow-200 bg-yellow-50">
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="flex items-center justify-between flex-row-reverse">
+          <AlertDescription className="flex items-center justify-between">
             <div>
-              <span className="text-yellow-800 text-right">
-                تحتاج جدولة الدفعات إلى مزامنة 
-                ({syncStatus.unsyncedCount} من {syncStatus.totalSchedule} عنصر يحتاج إلى اهتمام)
+              <span className="text-yellow-800">
+                Payment schedule needs synchronization 
+                ({syncStatus.unsyncedCount} of {syncStatus.totalSchedule} items need attention)
               </span>
             </div>
             <Button
@@ -99,9 +100,9 @@ export function PaymentHistory({
               variant="outline"
               onClick={checkAndSync}
               disabled={loadingStates.autoSync}
-              className="mr-4"
+              className="ml-4"
             >
-              {loadingStates.autoSync ? 'جاري المزامنة...' : 'مزامنة الآن'}
+              {loadingStates.autoSync ? 'Syncing...' : 'Sync Now'}
             </Button>
           </AlertDescription>
         </Alert>
@@ -111,8 +112,8 @@ export function PaymentHistory({
       {syncStatus && isSynchronized && (
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-right">
-            <span className="text-green-800">جدولة الدفعات متزامنة</span>
+          <AlertDescription>
+            <span className="text-green-800">Payment schedule is synchronized</span>
           </AlertDescription>
         </Alert>
       )}

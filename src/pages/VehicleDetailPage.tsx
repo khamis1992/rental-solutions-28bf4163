@@ -24,100 +24,95 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { asVehicleId } from '@/utils/database-type-helpers';
-import { useLanguage } from '@/contexts/LanguageContext';
 
-const VehicleDetailPage: React.FC = () => {
+const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { language } = useLanguage();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  const {
-    vehicle,
-    isLoading,
-    error,
-    deleteVehicle
-  } = useVehicleDetail(id);
-
+  // Remove the additional refetch on component mount
+  // This will rely only on the React Query fetching mechanism
+  const { vehicle, isLoading, error } = useVehicleDetail(id);
+  
   const handleDelete = async () => {
-    if (!vehicle?.id) return;
+    if (!id) return;
     
+    setIsDeleting(true);
     try {
-      await deleteVehicle.mutateAsync(asVehicleId(vehicle.id));
-      toast.success(language === 'ar' ? 'تم حذف المركبة بنجاح' : 'Vehicle deleted successfully');
-      navigate('/vehicles');
+      // We'll implement this in a future update
+      toast.error("Delete functionality will be available soon");
     } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error(language === 'ar' ? 'فشل في حذف المركبة' : 'Failed to delete vehicle');
+      console.error("Error deleting vehicle:", error);
+      toast.error("Failed to delete vehicle");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleScheduleMaintenance = () => {
-    if (vehicle?.id) {
-      navigate(`/maintenance/add?vehicle_id=${vehicle.id}`);
+    if (id) {
+      navigate(`/maintenance/schedule/${id}`);
+    } else {
+      toast('Feature coming soon', {
+        description: 'Maintenance scheduling will be available in a future update'
+      });
     }
   };
-
+  
   if (isLoading) {
     return (
       <PageContainer>
-        <div className="space-y-6 animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+        <div className="mb-6">
+          <Skeleton className="h-10 w-1/3" />
+          <Skeleton className="h-5 w-1/4 mt-1" />
+        </div>
+
+        {/* Skeleton for header area */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+          <Skeleton className="w-full lg:w-1/3 h-64 rounded-lg" />
+          <div className="w-full lg:w-2/3 space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <Skeleton className="h-16 rounded" />
+              <Skeleton className="h-16 rounded" />
+              <Skeleton className="h-16 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton for tabs */}
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       </PageContainer>
     );
   }
-
-  if (error) {
+  
+  if (error || !vehicle) {
+    console.error("VehicleDetailPage: Error or no vehicle data:", error);
     return (
       <PageContainer>
-        <div className={`text-center py-12 ${language === 'ar' ? 'text-right' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {language === 'ar' ? 'خطأ في تحميل تفاصيل المركبة' : 'Error loading vehicle details'}
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {language === 'ar' ? 'حدث خطأ أثناء تحميل معلومات المركبة.' : 'There was an error loading the vehicle information.'}
-          </p>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <AlertOctagon className="h-6 w-6 mr-2" />
+            <h2 className="text-xl font-semibold">Vehicle Not Found</h2>
+          </div>
+          <p className="mb-2">The vehicle you're looking for doesn't exist or has been removed.</p>
+          <p className="text-sm text-red-600">{error instanceof Error ? error.message : 'Failed to load vehicle data'}</p>
           <Button 
+            className="mt-4" 
+            variant="outline" 
             onClick={() => navigate('/vehicles')}
-            variant="outline"
-            className={language === 'ar' ? 'flex-row-reverse' : ''}
           >
-            <ArrowLeft className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-            {language === 'ar' ? 'العودة إلى المركبات' : 'Back to Vehicles'}
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Return to Vehicles
           </Button>
         </div>
       </PageContainer>
     );
   }
-
-  if (!vehicle) {
-    return (
-      <PageContainer>
-        <div className={`text-center py-12 ${language === 'ar' ? 'text-right' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-          <Car className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {language === 'ar' ? 'المركبة غير موجودة' : 'Vehicle not found'}
-          </h3>
-          <p className="text-gray-500 mb-4">
-            {language === 'ar' ? 'المركبة المطلوبة غير موجودة أو تم حذفها.' : 'The requested vehicle could not be found or has been deleted.'}
-          </p>
-          <Button 
-            onClick={() => navigate('/vehicles')}
-            variant="outline"
-            className={language === 'ar' ? 'flex-row-reverse' : ''}
-          >
-            <ArrowLeft className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-            {language === 'ar' ? 'العودة إلى المركبات' : 'Back to Vehicles'}
-          </Button>
-        </div>
-      </PageContainer>
-    );
-  }
-
   
   return (
     <PageContainer>
@@ -126,64 +121,60 @@ const VehicleDetailPage: React.FC = () => {
         description={`${vehicle.year} • ${vehicle.license_plate}`}
         icon={Car}
         actions={
-          <div className={`flex flex-wrap gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+          <div className="flex flex-wrap gap-2">
             <Button 
               size="sm" 
               variant="outline" 
               onClick={handleScheduleMaintenance}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
             >
-              <Calendar className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'جدولة صيانة' : 'Schedule Maintenance'}
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Maintenance
             </Button>
             <Button 
               size="sm" 
               variant="outline" 
               onClick={() => navigate('/vehicles')}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
             >
-              <ArrowLeft className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'العودة إلى المركبات' : 'Back to Vehicles'}
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Vehicles
             </Button>
             <Button 
               size="sm" 
               variant="outline" 
               onClick={() => navigate(`/vehicles/edit/${vehicle.id}`)}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
             >
-              <Edit className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-              {language === 'ar' ? 'تحرير المركبة' : 'Edit Vehicle'}
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Vehicle
             </Button>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
                   size="sm" 
                   variant="destructive"
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
                 >
-                  <Trash2 className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                  {language === 'ar' ? 'حذف المركبة' : 'Delete Vehicle'}
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Vehicle
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent dir={language === 'ar' ? 'rtl' : 'ltr'}>
+              <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className={language === 'ar' ? 'text-right' : ''}>
-                    {language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
+                  <AlertDialogTitle className="flex items-center">
+                    <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
+                    Are you absolutely sure?
                   </AlertDialogTitle>
-                  <AlertDialogDescription className={language === 'ar' ? 'text-right' : ''}>
-                    {language === 'ar' 
-                      ? 'هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المركبة وجميع بياناتها المرتبطة نهائياً.' 
-                      : 'This action cannot be undone. This will permanently delete the vehicle and all associated data.'
-                    }
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    {` ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`} from the fleet.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className={language === 'ar' ? 'flex-row-reverse' : ''}>
-                  <AlertDialogCancel>{language === 'ar' ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    {language === 'ar' ? 'حذف' : 'Delete'}
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isDeleting ? 'Deleting...' : 'Delete'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -192,16 +183,14 @@ const VehicleDetailPage: React.FC = () => {
         }
       />
       
-      <div className="section-transition mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="section-transition mt-6">
         <Tabs defaultValue="details" className="space-y-6">
-          <TabsList className={`grid grid-cols-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <TabsTrigger value="details" className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <Car className="h-4 w-4" /> 
-              {language === 'ar' ? 'تفاصيل المركبة' : 'Vehicle Details'}
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="details" className="flex gap-2">
+              <Car className="h-4 w-4" /> Vehicle Details
             </TabsTrigger>
-            <TabsTrigger value="documents" className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <FileText className="h-4 w-4" /> 
-              {language === 'ar' ? 'المستندات' : 'Documents'}
+            <TabsTrigger value="documents" className="flex gap-2">
+              <FileText className="h-4 w-4" /> Documents
             </TabsTrigger>
           </TabsList>
           
@@ -215,12 +204,8 @@ const VehicleDetailPage: React.FC = () => {
           <TabsContent value="documents" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'المستندات' : 'Documents'}
-                </CardTitle>
-                <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'إدارة المستندات المتعلقة بهذه المركبة' : 'Manage documents related to this vehicle'}
-                </CardDescription>
+                <CardTitle>Documents</CardTitle>
+                <CardDescription>Manage documents related to this vehicle</CardDescription>
               </CardHeader>
               <CardContent>
                 <DocumentList 

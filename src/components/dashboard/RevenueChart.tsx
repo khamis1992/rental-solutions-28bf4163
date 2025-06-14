@@ -1,35 +1,16 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import ChartTypeSelector from './revenue/ChartTypeSelector';
 import RevenueChartContent from './revenue/RevenueChartContent';
 import { RevenueChartProps, ChartType } from './revenue/types';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
   const [chartType, setChartType] = useState<ChartType>('area');
-  const { language } = useLanguage();
   
-  // Get current month name in Arabic - prioritize Dhul-Hijjah for revenue overview
-  const getCurrentMonthInArabic = () => {
-    const date = new Date();
-    const month = date.getMonth(); // 0-based month
-    
-    // Arabic month names (Hijri calendar references)
-    const arabicMonths = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ذو الحجة'
-    ];
-    
-    // For demonstration and revenue overview, prioritize Dhul-Hijjah
-    if (language === 'ar') {
-      return 'ذو الحجة'; // Always show Dhul-Hijjah for revenue overview as requested
-    }
-    
-    return date.toLocaleDateString('en-US', { month: 'long' });
-  };
-  
-  const currentMonth = getCurrentMonthInArabic();
+  // Get current month name for dynamic title
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
   // Calculate the total revenue for the current month
   const currentMonthData = data[data.length - 1];
@@ -42,10 +23,10 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
     ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
     : 0;
   
-  // Format the change indicator in Arabic
+  // Format the change indicator
   const formattedChange = revenueChange !== 0 
     ? `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%` 
-    : 'لا يوجد تغيير';
+    : 'No change';
   
   // Determine color based on change direction
   const changeColor = revenueChange > 0 
@@ -54,22 +35,17 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
       ? 'text-red-600' 
       : 'text-gray-600';
 
-  // Format currency with English digits but Arabic QAR symbol
-  const formatCurrencyArabic = (amount: number) => {
-    return `${amount.toLocaleString('en-US')} ر.ق`;
-  };
-
   return (
-    <Card className={`card-transition dashboard-card ${fullWidth ? 'col-span-full' : 'col-span-3'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <CardHeader className="pb-0 flex flex-col sm:flex-row sm:justify-between sm:items-center flex-row-reverse">
-        <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
-        <div className="mb-3 sm:mb-0 text-right">
-          <CardTitle>نظرة عامة على إيرادات {currentMonth}</CardTitle>
-          <div className="flex items-center mt-1 flex-row-reverse">
-            <span className={`text-sm mr-2 ${changeColor}`}>{formattedChange}</span>
-            <span className="text-lg font-semibold">{formatCurrencyArabic(currentMonthRevenue)}</span>
+    <Card className={`card-transition dashboard-card ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
+      <CardHeader className="pb-0 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+        <div className="mb-3 sm:mb-0">
+          <CardTitle>{`${currentMonth} Revenue Overview`}</CardTitle>
+          <div className="flex items-center mt-1">
+            <span className="text-lg font-semibold">{formatCurrency(currentMonthRevenue)}</span>
+            <span className={`text-sm ml-2 ${changeColor}`}>{formattedChange}</span>
           </div>
         </div>
+        <ChartTypeSelector chartType={chartType} onChartTypeChange={setChartType} />
       </CardHeader>
       <CardContent>
         <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -28,13 +29,13 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       .single();
 
     if (error) {
-      console.error('خطأ في جلب الملف الشخصي:', error);
+      console.error('Error fetching user profile:', error);
       return null;
     }
 
     return data as UserProfile;
   } catch (error) {
-    console.error('خطأ في جلب الملف الشخصي:', error);
+    console.error('Error fetching user profile:', error);
     return null;
   }
 };
@@ -53,16 +54,16 @@ export const updateUserProfile = async (
       .eq('id', userId);
 
     if (error) {
-      console.error('خطأ في تحديث الملف الشخصي:', error);
-      toast.error('فشل تحديث الملف الشخصي');
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
       return false;
     }
 
-    toast.success('تم تحديث الملف الشخصي بنجاح');
+    toast.success('Profile updated successfully');
     return true;
   } catch (error) {
-    console.error('خطأ في تحديث الملف الشخصي:', error);
-    toast.error('فشل تحديث الملف الشخصي');
+    console.error('Error updating profile:', error);
+    toast.error('Failed to update profile');
     return false;
   }
 };
@@ -77,8 +78,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
       .upload(fileName, file, { upsert: true });
 
     if (uploadError) {
-      console.error('خطأ في رفع الصورة الشخصية:', uploadError);
-      toast.error('فشل رفع الصورة الشخصية');
+      console.error('Error uploading avatar:', uploadError);
+      toast.error('Failed to upload avatar');
       return null;
     }
 
@@ -88,8 +89,8 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string |
 
     return data.publicUrl;
   } catch (error) {
-    console.error('خطأ في رفع الصورة الشخصية:', error);
-    toast.error('فشل رفع الصورة الشخصية');
+    console.error('Error uploading avatar:', error);
+    toast.error('Failed to upload avatar');
     return null;
   }
 };

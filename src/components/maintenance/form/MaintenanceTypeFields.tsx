@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,72 +20,28 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
     ? categories.filter(cat => cat?.is_active !== false)
     : [];
 
-  // Arabic translations for maintenance types
-  const getMaintenanceTypeLabel = (type: string) => {
-    const translations: { [key: string]: string } = {
-      'REGULAR_INSPECTION': 'فحص دوري',
-      'OIL_CHANGE': 'تغيير زيت',
-      'BRAKE_SERVICE': 'خدمة الفرامل',
-      'TIRE_ROTATION': 'تدوير الإطارات',
-      'ENGINE_REPAIR': 'إصلاح المحرك',
-      'TRANSMISSION_SERVICE': 'خدمة ناقل الحركة',
-      'AC_SERVICE': 'خدمة التكييف',
-      'BATTERY_REPLACEMENT': 'استبدال البطارية',
-      'BODY_WORK': 'أعمال الهيكل',
-      'ELECTRICAL_REPAIR': 'إصلاح كهربائي',
-      'SUSPENSION_REPAIR': 'إصلاح نظام التعليق',
-      'EXHAUST_REPAIR': 'إصلاح العادم',
-      'COOLING_SYSTEM': 'نظام التبريد',
-      'FUEL_SYSTEM': 'نظام الوقود',
-      'STEERING_REPAIR': 'إصلاح نظام القيادة',
-      'WINDSHIELD_REPAIR': 'إصلاح الزجاج الأمامي',
-      'PAINT_WORK': 'أعمال الطلاء',
-      'INTERIOR_REPAIR': 'إصلاح الداخلية',
-      'GENERAL_MAINTENANCE': 'صيانة عامة',
-      'EMERGENCY_REPAIR': 'إصلاح طارئ'
-    };
-    return translations[type] || type.replace(/_/g, ' ');
-  };
-
-  // Arabic translations for maintenance status
-  const getMaintenanceStatusLabel = (status: string) => {
-    const translations: { [key: string]: string } = {
-      'scheduled': 'مجدول',
-      'in_progress': 'قيد التنفيذ',
-      'completed': 'مكتمل',
-      'cancelled': 'ملغي',
-      'pending': 'معلق',
-      'delayed': 'متأخر',
-      'on_hold': 'في الانتظار'
-    };
-    return translations[status] || status;
-  };
-
   return (
-    <div dir="rtl" className="space-y-4">
+    <>
       <FormField
         control={form.control}
         name="maintenance_type"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-right">
-              نوع الصيانة
-            </FormLabel>
+            <FormLabel>Maintenance Type</FormLabel>
             <FormControl>
               <Select
                 onValueChange={(value) =>
                   field.onChange(value === 'none' ? '' : value)
                 }
                 value={field.value}
-                dir="rtl"
               >
-                <SelectTrigger className="text-right">
-                  <SelectValue placeholder="اختر النوع" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(MaintenanceType).map((type) => (
-                    <SelectItem key={type} value={type} className="text-right">
-                      {getMaintenanceTypeLabel(type)}
+                    <SelectItem key={type} value={type}>
+                      {type.replace(/_/g, ' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -100,24 +57,21 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
         name="status"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-right">
-              الحالة
-            </FormLabel>
+            <FormLabel>Status</FormLabel>
             <FormControl>
               <Select
                 onValueChange={(value) =>
                   field.onChange(value === 'none' ? '' : value)
                 }
                 value={field.value}
-                dir="rtl"
               >
-                <SelectTrigger className="text-right">
-                  <SelectValue placeholder="اختر الحالة" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(MaintenanceStatus).map((status) => (
-                    <SelectItem key={status} value={status} className="text-right">
-                      {getMaintenanceStatusLabel(status)}
+                    <SelectItem key={status} value={status}>
+                      {status.replace(/_/g, ' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -133,28 +87,21 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
         name="category_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-right">
-              الفئة
-            </FormLabel>
+            <FormLabel>Category</FormLabel>
             <FormControl>
               <Select
                 onValueChange={(value) =>
                   field.onChange(value === 'none' ? '' : value)
                 }
                 value={field.value}
-                dir="rtl"
               >
-                <SelectTrigger className="text-right">
-                  <SelectValue placeholder="اختر الفئة" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="text-right">
-                    بلا
-                  </SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {filteredCategories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id} className="text-right">
-                      {cat.name}
-                    </SelectItem>
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -163,6 +110,6 @@ export const MaintenanceTypeFields: React.FC<MaintenanceTypeFieldsProps> = ({
           </FormItem>
         )}
       />
-    </div>
+    </>
   );
 };

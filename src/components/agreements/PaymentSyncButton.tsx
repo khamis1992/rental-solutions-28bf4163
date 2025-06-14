@@ -102,8 +102,8 @@ export function PaymentSyncButton({
   
   if (variant === "fix") {
     return (
-      <div className="flex gap-1 flex-row-reverse" dir="rtl">
-        <TooltipWrapper content="إصلاح مشاكل مزامنة المدفوعات لهذا العقد.">
+      <div className="flex gap-1">
+        <TooltipWrapper content="Fix payment sync issues for this agreement.">
           <Button
             size="sm"
             variant="outline"
@@ -111,11 +111,11 @@ export function PaymentSyncButton({
             disabled={isFixing}
             className={className}
           >
-            <Zap className={`h-4 w-4 ml-1 ${isFixing ? "animate-pulse" : ""}`} />
-            {isFixing ? "جاري الإصلاح..." : "إصلاح المزامنة"}
+            <Zap className={`h-4 w-4 mr-1 ${isFixing ? "animate-pulse" : ""}`} />
+            {isFixing ? "Fixing..." : "Fix Sync"}
           </Button>
         </TooltipWrapper>
-        <TooltipWrapper content="فحص حالة المزامنة الحالية لهذا العقد.">
+        <TooltipWrapper content="Check the current sync status for this agreement.">
           <Button
             size="sm"
             variant="ghost"
@@ -131,8 +131,8 @@ export function PaymentSyncButton({
   }
   
   return (
-    <div className="flex gap-1 flex-row-reverse" dir="rtl">
-      <TooltipWrapper content="مزامنة المدفوعات والجداول لهذا العقد.">
+    <div className="flex gap-1">
+      <TooltipWrapper content="Sync payments and schedules for this agreement.">
         <Button
           size="sm"
           variant="outline"
@@ -140,11 +140,11 @@ export function PaymentSyncButton({
           disabled={isPending.sync}
           className={className}
         >
-          <RefreshCw className={`h-4 w-4 ml-1 ${isPending.sync ? "animate-spin" : ""}`} />
-          {isPending.sync ? "جاري المزامنة..." : "مزامنة"}
+          <RefreshCw className={`h-4 w-4 mr-1 ${isPending.sync ? "animate-spin" : ""}`} />
+          {isPending.sync ? "Syncing..." : "Sync"}
         </Button>
       </TooltipWrapper>
-      <TooltipWrapper content="إصلاح المدفوعات المكررة لهذا العقد.">
+      <TooltipWrapper content="Fix duplicate payments for this agreement.">
         <Button
           size="sm"
           variant="ghost"

@@ -26,7 +26,7 @@ export const LegalStats: React.FC<LegalStatsProps> = ({
         <CardContent className="p-4 flex flex-col">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground text-right">القضايا النشطة</p>
+              <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
               <h3 className="text-2xl font-bold text-primary">{activeCases}</h3>
             </div>
             <div className="p-2 rounded-full bg-primary/10">

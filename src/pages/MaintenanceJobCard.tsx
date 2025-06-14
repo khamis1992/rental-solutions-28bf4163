@@ -1,198 +1,159 @@
+
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useParams, useNavigate } from 'react-router-dom';
+import PageContainer from '@/components/layout/PageContainer';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Plus, ArrowLeft } from 'lucide-react';
+import { vehicleRepository } from '@/lib/database/vehicle-repository';
+import { useQuery } from '@tanstack/react-query';
 
-const MaintenanceJobCard: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const { data: maintenanceRecords } = useMaintenance();
-  
-  const record = maintenanceRecords?.find(r => r.id === id);
+const MaintenanceJobCard = () => {
+  const navigate = useNavigate();
+  const { vehicleId } = useParams<{ vehicleId: string }>();
+  const { useMaintenanceList } = useMaintenance();
 
-  if (!record) {
+  // Fetch maintenance records for the vehicle
+  const { data: records = [], isLoading: isLoadingMaintenance } = useMaintenanceList(vehicleId || '');
+
+  // Fetch vehicle details
+  const { data: vehicle, isLoading: isLoadingVehicle } = useQuery({
+    queryKey: ['vehicle', vehicleId],
+    queryFn: async () => {
+      if (!vehicleId) return null;
+      const result = await vehicleRepository.findById(vehicleId);
+      return result?.data || null;
+    },
+    enabled: !!vehicleId
+  });
+
+  const record = records?.[0];
+  const isLoading = isLoadingMaintenance || isLoadingVehicle;
+
+  const handleCreateMaintenance = () => {
+    navigate(`/maintenance/add?vehicle_id=${vehicleId}`);
+  };
+
+  const handleBack = () => {
+    navigate('/maintenance');
+  };
+
+  if (isLoading) {
     return (
-      <div className="container mx-auto p-4" dir="rtl">
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-gray-500">لم يتم العثور على سجل الصيانة</p>
-          </CardContent>
-        </Card>
-      </div>
+      <PageContainer title="Job Card" backLink="/maintenance">
+        <Skeleton className="h-8 w-1/3 mb-4" />
+        <Skeleton className="h-48 w-full" />
+      </PageContainer>
     );
   }
 
-  const getMaintenanceTypeLabel = (type: string) => {
-    const translations: { [key: string]: string } = {
-      'REGULAR_INSPECTION': 'فحص دوري',
-      'OIL_CHANGE': 'تغيير زيت',
-      'BRAKE_SERVICE': 'خدمة الفرامل',
-      'TIRE_ROTATION': 'تدوير الإطارات',
-      'ENGINE_REPAIR': 'إصلاح المحرك',
-      'TRANSMISSION_SERVICE': 'خدمة ناقل الحركة',
-      'AC_SERVICE': 'خدمة التكييف',
-      'BATTERY_REPLACEMENT': 'استبدال البطارية',
-      'BODY_WORK': 'أعمال الهيكل',
-      'ELECTRICAL_REPAIR': 'إصلاح كهربائي'
-    };
-    return translations[type] || type.replace(/_/g, ' ');
-  };
+  // No maintenance record exists
+  if (!record) {
+    return (
+      <PageContainer title="Job Card" backLink="/maintenance">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Vehicle Information'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-6 text-center">
+            <p className="text-muted-foreground mb-6">
+              No maintenance record found for this vehicle.
+            </p>
+            {vehicle && (
+              <div className="flex flex-col items-center space-y-2">
+                <Button 
+                  onClick={handleCreateMaintenance} 
+                  className="flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  Create Maintenance Record
+                </Button>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
+              <ArrowLeft size={16} />
+              Back to Maintenance
+            </Button>
+          </CardFooter>
+        </Card>
+      </PageContainer>
+    );
+  }
 
-  const getStatusLabel = (status: string) => {
-    const translations: { [key: string]: string } = {
-      'scheduled': 'مجدول',
-      'in_progress': 'قيد التنفيذ',
-      'completed': 'مكتمل',
-      'cancelled': 'ملغي'
-    };
-    return translations[status] || status;
-  };
-
-  const formatDateInArabic = (dateString: string) => {
+  // Maintenance record exists
+  const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return 'Not specified';
     try {
-      const date = new Date(dateString);
-      return format(date, 'dd MMMM yyyy', { locale: ar });
+      return format(new Date(date), 'PPP');
     } catch {
-      return dateString;
+      return 'Invalid date';
     }
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl" dir="rtl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-right">بطاقة العمل</h1>
-        <p className="text-gray-600 text-right">رقم المعرف: {record.id}</p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-right">معلومات الصيانة</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-right">
-              <label className="text-sm font-medium text-gray-600">نوع الصيانة</label>
-              <p className="text-lg">{getMaintenanceTypeLabel(record.maintenance_type)}</p>
+    <PageContainer title="Job Card" backLink="/maintenance">
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {vehicle 
+              ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` 
+              : record.maintenance_type?.replace(/_/g, ' ') || 'Maintenance'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <strong>Type:</strong> {record.maintenance_type?.replace(/_/g, ' ') || 'General Maintenance'}
+          </div>
+          <div>
+            <strong>Status:</strong> {record.status?.replace(/_/g, ' ')}
+          </div>
+          <div>
+            <strong>Scheduled:</strong> {formatDate(record.scheduled_date)}
+          </div>
+          {record.completed_date && (
+            <div>
+              <strong>Completed:</strong> {formatDate(record.completed_date)}
             </div>
-            
-            <div className="text-right">
-              <label className="text-sm font-medium text-gray-600">الحالة</label>
-              <div className="mt-1">
-                <Badge variant="outline" className="text-right">
-                  {getStatusLabel(record.status)}
-                </Badge>
-              </div>
+          )}
+          {record.description && (
+            <div>
+              <strong>Description:</strong> {record.description}
             </div>
-
-            <div className="text-right">
-              <label className="text-sm font-medium text-gray-600">التاريخ المجدول</label>
-              <p className="text-lg">
-                {record.scheduled_date ? formatDateInArabic(record.scheduled_date) : 'غير محدد'}
-              </p>
+          )}
+          {record.notes && (
+            <div>
+              <strong>Notes:</strong> {record.notes}
             </div>
-
-            {record.completed_date && (
-              <div className="text-right">
-                <label className="text-sm font-medium text-gray-600">تاريخ الإنجاز</label>
-                <p className="text-lg">{formatDateInArabic(record.completed_date)}</p>
-              </div>
-            )}
-
-            <div className="text-right">
-              <label className="text-sm font-medium text-gray-600">التكلفة</label>
-              <p className="text-lg">
-                {record.cost ? `${record.cost.toFixed(2)} ر.س` : 'غير محدد'}
-              </p>
+          )}
+          {record.cost !== undefined && (
+            <div>
+              <strong>Cost:</strong> ${record.cost.toFixed(2)}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-right">معلومات المركبة</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-right">
-              <label className="text-sm font-medium text-gray-600">معرف المركبة</label>
-              <p className="text-lg">{record.vehicle?.id || 'غير محدد'}</p>
+          )}
+          {record.performed_by && (
+            <div>
+              <strong>Performed by:</strong> {record.performed_by}
             </div>
-
-            {record.vehicle && (
-              <>
-                {(record.vehicle.make || record.vehicle.model || record.vehicle.year) && (
-                  <div className="text-right">
-                    <label className="text-sm font-medium text-gray-600">طراز المركبة</label>
-                    <p className="text-lg">
-                      {`${record.vehicle.make || ''} ${record.vehicle.model || ''} ${record.vehicle.year || ''}`.trim() || 'غير محدد'}
-                    </p>
-                  </div>
-                )}
-
-                {record.vehicle.license_plate && (
-                  <div className="text-right">
-                    <label className="text-sm font-medium text-gray-600">رقم اللوحة</label>
-                    <p className="text-lg">{record.vehicle.license_plate}</p>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {record.service_provider && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-right">معلومات الخدمة</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-right">
-                <label className="text-sm font-medium text-gray-600">مقدم الخدمة</label>
-                <p className="text-lg">{record.service_provider}</p>
-              </div>
-
-              {record.invoice_number && (
-                <div className="text-right">
-                  <label className="text-sm font-medium text-gray-600">رقم الفاتورة</label>
-                  <p className="text-lg">{record.invoice_number}</p>
-                </div>
-              )}
-
-              {record.performed_by && (
-                <div className="text-right">
-                  <label className="text-sm font-medium text-gray-600">تم بواسطة</label>
-                  <p className="text-lg">{record.performed_by}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {(record.description || record.notes) && (
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-right">الوصف والملاحظات</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {record.description && (
-                <div className="text-right">
-                  <label className="text-sm font-medium text-gray-600">الوصف</label>
-                  <p className="text-lg whitespace-pre-wrap">{record.description}</p>
-                </div>
-              )}
-
-              {record.notes && (
-                <div className="text-right">
-                  <label className="text-sm font-medium text-gray-600">ملاحظات</label>
-                  <p className="text-lg whitespace-pre-wrap">{record.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Maintenance
+          </Button>
+          <Button onClick={() => navigate(`/maintenance/${record.id}/edit`)}>
+            Edit Record
+          </Button>
+        </CardFooter>
+      </Card>
+    </PageContainer>
   );
 };
 

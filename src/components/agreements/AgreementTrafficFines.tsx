@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
@@ -85,13 +86,13 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   if (filteredFines.length === 0) {
     return (
-      <div className="space-y-4" dir="rtl">
+      <div className="space-y-4">
         <p className="text-center py-4 text-muted-foreground">
-          لم يتم تسجيل أي مخالفات مرورية خلال فترة الإيجار هذه.
+          No traffic fines recorded for this rental period.
         </p>
         <div className="flex justify-center">
           <Button onClick={handleRefresh} variant="outline" size="sm">
-            البحث عن مخالفات جديدة
+            Check for new fines
           </Button>
         </div>
       </div>
@@ -99,16 +100,16 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
   }
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className="text-right py-3 px-4">التاريخ</th>
-              <th className="text-right py-3 px-4">الموقع</th>
-              <th className="text-right py-3 px-4">المخالفة</th>
-              <th className="text-right py-3 px-4">المبلغ</th>
-              <th className="text-right py-3 px-4">الحالة</th>
+              <th className="text-left py-3 px-4">Date</th>
+              <th className="text-left py-3 px-4">Location</th>
+              <th className="text-left py-3 px-4">Violation</th>
+              <th className="text-right py-3 px-4">Amount</th>
+              <th className="text-right py-3 px-4">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -119,17 +120,17 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
               
               return (
                 <tr key={fine.id} className="border-b hover:bg-muted/50">
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-3 px-4">
                     {fine.violationDate 
                       ? format(violationDate, 'dd MMM yyyy') 
-                      : 'غير محدد'}
+                      : 'N/A'}
                   </td>
-                  <td className="py-3 px-4 text-right">{fine.location || 'غير محدد'}</td>
-                  <td className="py-3 px-4 text-right">{fine.violationCharge || 'غير محدد'}</td>
+                  <td className="py-3 px-4">{fine.location || 'N/A'}</td>
+                  <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
                   <td className="py-3 px-4 text-right">
                     {fine.fineAmount 
-                      ? `${fine.fineAmount.toLocaleString('en-US')} ر.ق` 
-                      : 'غير محدد'}
+                      ? `QAR ${fine.fineAmount.toLocaleString()}` 
+                      : 'N/A'}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className={`px-2 py-1 rounded-full text-xs ${
@@ -137,7 +138,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {fine.paymentStatus === 'paid' ? 'مدفوع' : 'معلق'}
+                      {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
                     </span>
                   </td>
                 </tr>
@@ -150,12 +151,12 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       <div className="flex justify-between items-center pt-4">
         <div>
           <p className="text-sm text-muted-foreground">
-            عرض {filteredFines.length} مخالفة{filteredFines.length !== 1 ? '' : ''}
+            Showing {filteredFines.length} fine{filteredFines.length !== 1 ? 's' : ''}
           </p>
         </div>
         
         <Button onClick={handleRefresh} variant="outline" size="sm">
-          تحديث
+          Refresh
         </Button>
       </div>
     </div>

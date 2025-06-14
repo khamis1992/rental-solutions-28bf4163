@@ -33,14 +33,6 @@ export class CustomerService extends BaseService {
         if (filters.offset) {
           query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
         }
-
-        if (filters.sort) {
-          if (filters.sort === 'desc') {
-            query = query.order('created_at', { ascending: false });
-          } else if (filters.sort === 'asc') {
-            query = query.order('created_at', { ascending: true });
-          }
-        }
       }
 
       const { data, error } = await query;

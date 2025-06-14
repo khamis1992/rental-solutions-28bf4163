@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -84,7 +85,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   };
   
   const handleDelete = async (document: Document) => {
-    if (confirm('هل أنت متأكد من حذف هذه الوثيقة؟')) {
+    if (confirm('Are you sure you want to delete this document?')) {
       await deleteDocument.mutateAsync(document.id);
     }
   };
@@ -93,35 +94,20 @@ const DocumentList: React.FC<DocumentListProps> = ({
     setSelectedDocument(document);
     setIsViewerOpen(true);
   };
-
-  // Helper function to translate document status
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'نشط';
-      case 'draft': return 'مسودة';
-      case 'archived': return 'مؤرشف';
-      default: return 'غير معروف';
-    }
-  };
-
-  // Helper function to translate document type
-  const getTypeLabel = (type: string) => {
-    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
   
   return (
     <>
-      <Card dir="rtl">
+      <Card>
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex-1">
                 {showSearch && (
                   <div className="relative">
-                    <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="البحث في الوثائق..."
-                      className="pr-8 text-right"
+                      placeholder="Search documents..."
+                      className="pl-8"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -131,20 +117,20 @@ const DocumentList: React.FC<DocumentListProps> = ({
               
               {showUploadButton && (
                 <Button onClick={() => setIsUploadDialogOpen(true)}>
-                  رفع وثيقة
+                  Upload Document
                 </Button>
               )}
             </div>
             
-            <div className="rounded-md border" style={{ maxHeight }}>
+            <div className={`overflow-auto ${maxHeight ? `max-h-[${maxHeight}]` : ''}`}>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">الوثيقة</TableHead>
-                    <TableHead className="hidden md:table-cell text-right">النوع</TableHead>
-                    <TableHead className="hidden md:table-cell text-right">الفئة</TableHead>
-                    <TableHead className="hidden md:table-cell text-right">تاريخ الرفع</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead>Document</TableHead>
+                    <TableHead className="hidden md:table-cell">Type</TableHead>
+                    <TableHead className="hidden md:table-cell">Category</TableHead>
+                    <TableHead className="hidden md:table-cell">Uploaded</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -161,24 +147,24 @@ const DocumentList: React.FC<DocumentListProps> = ({
                     filteredDocuments.map((doc) => (
                       <TableRow key={doc.id}>
                         <TableCell className="font-medium">
-                          <div className="flex items-center flex-row-reverse">
-                            <FileText className="ml-2 h-4 w-4 text-muted-foreground" />
-                            <div className="text-right">
+                          <div className="flex items-center">
+                            <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <div>
                               <div>{doc.title}</div>
                               <div className="text-xs text-muted-foreground">{doc.file_name}</div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell capitalize text-right">
-                          {getTypeLabel(doc.type)}
+                        <TableCell className="hidden md:table-cell capitalize">
+                          {doc.type.split('_').join(' ')}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell capitalize text-right">
+                        <TableCell className="hidden md:table-cell capitalize">
                           {doc.category}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-right">
+                        <TableCell className="hidden md:table-cell">
                           {formatDate(new Date(doc.created_at))}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           <Badge 
                             variant={
                               doc.status === 'active' ? 'default' : 
@@ -187,7 +173,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                               'destructive'
                             }
                           >
-                            {getStatusLabel(doc.status)}
+                            {doc.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -199,13 +185,13 @@ const DocumentList: React.FC<DocumentListProps> = ({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleView(doc)}>
-                                <Eye className="ml-2 h-4 w-4" /> عرض
+                                <Eye className="mr-2 h-4 w-4" /> View
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDownload(doc)}>
-                                <Download className="ml-2 h-4 w-4" /> تحميل
+                                <Download className="mr-2 h-4 w-4" /> Download
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDelete(doc)}>
-                                <Trash2 className="ml-2 h-4 w-4" /> حذف
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -215,7 +201,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        لم يتم العثور على وثائق.
+                        No documents found.
                       </TableCell>
                     </TableRow>
                   )}
@@ -228,9 +214,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
       
       {/* Upload Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md md:max-w-2xl" dir="rtl">
+        <DialogContent className="sm:max-w-md md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-right">رفع وثيقة</DialogTitle>
+            <DialogTitle>Upload Document</DialogTitle>
           </DialogHeader>
           <DocumentUpload
             entityType={entityType}
@@ -243,9 +229,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
       
       {/* Document Viewer */}
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="sm:max-w-md md:max-w-4xl lg:max-w-6xl" dir="rtl">
+        <DialogContent className="sm:max-w-md md:max-w-4xl lg:max-w-6xl">
           <DialogHeader>
-            <DialogTitle className="text-right">{selectedDocument?.title}</DialogTitle>
+            <DialogTitle>{selectedDocument?.title}</DialogTitle>
           </DialogHeader>
           {selectedDocument && (
             <DocumentViewer

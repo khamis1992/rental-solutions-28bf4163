@@ -1,26 +1,22 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import PageHeader from '@/components/ui/PageHeader';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { SectionHeader } from '@/components/ui/section-header';
 import { RecentLegalActivity } from '@/components/legal/activity/RecentLegalActivity';
 import { Clock } from 'lucide-react';
 
 const LegalActivityPage = () => {
-  const { language } = useLanguage();
   return (
     <PageContainer
-      title="النشاط القانوني الحديث"
-      description="آخر التحديثات من القضايا والوثائق القانونية"
+      title="Recent Legal Activity"
+      description="Latest updates from legal cases and documents"
       backLink="/legal"
     >
-      <PageHeader
-        title="النشاط الحديث"
-        subtitle="آخر التحديثات والتغييرات"
-        icon={<Clock className="w-6 h-6 text-blue-500" />}
-        align={language === 'ar' ? 'right' : 'left'}
-        dir={language === 'ar' ? 'rtl' : 'ltr'}
+      <SectionHeader
+        title="Recent Activity"
+        description="Latest updates and changes"
+        icon={Clock}
       />
-      <div className="mt-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="mt-6">
         <RecentLegalActivity />
       </div>
     </PageContainer>

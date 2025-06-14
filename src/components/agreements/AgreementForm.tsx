@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -51,60 +52,96 @@ const AgreementForm = ({
     },
   });
 
-  // Set initial selections if editing
+  // Set form values from initialData
   useEffect(() => {
-    if (initialData?.customers) {
-      setSelectedCustomer(initialData.customers);
+    if (initialData?.id) {
+      form.setValue('id', initialData.id);
     }
-    if (initialData?.vehicles) {
-      setSelectedVehicle(initialData.vehicles);
+
+    if (initialData?.rent_amount) {
+      console.log("Setting rent_amount from initialData:", initialData.rent_amount);
+      form.setValue('rent_amount', initialData.rent_amount);
     }
-  }, [initialData]);
 
-  // Handle vehicle selection changes
-  const handleVehicleChange = (vehicle: any) => {
-    setSelectedVehicle(vehicle);
-    form.setValue('vehicle_id', vehicle?.id || '');
-  };
-
-  // Handle customer selection changes
-  const handleCustomerChange = (customer: CustomerInfo) => {
-    setSelectedCustomer(customer);
-    form.setValue('customer_id', customer?.id || '');
-  };
-
-  // Calculate total amount based on start/end dates and rent amount
-  const calculateTotalAmount = () => {
-    const startDate = form.getValues('start_date');
-    const endDate = form.getValues('end_date');
-    const rentAmount = form.getValues('rent_amount') || 0;
-
-    if (startDate && endDate && rentAmount > 0) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const months = diffDays / 30; // Approximate
-      const totalAmount = months * rentAmount;
+    if (initialData?.vehicle_id) {
+      console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
+      form.setValue('vehicle_id', initialData.vehicle_id);
       
-      form.setValue('total_amount', parseFloat(totalAmount.toFixed(2)));
+      if (initialData.vehicles) {
+        console.log("Setting selected vehicle from initialData:", initialData.vehicles);
+        setSelectedVehicle(initialData.vehicles);
+      }
     }
+    
+    if (initialData?.customer_id) {
+      console.log("Setting customer_id from initialData:", initialData.customer_id);
+      form.setValue('customer_id', initialData.customer_id);
+      
+      if (initialData.customers) {
+        const customerData = initialData.customers;
+        console.log("Setting selected customer from initialData:", customerData);
+        
+        const customer: CustomerInfo = {
+          id: customerData.id || initialData.customer_id,
+          full_name: customerData.full_name || '',
+          email: customerData.email || '',
+          phone_number: customerData.phone_number || '',
+          driver_license: (customerData as any).driver_license || '',
+          nationality: (customerData as any).nationality || '',
+          address: customerData.address || '',
+          city: (customerData as any).city || '',
+          state: (customerData as any).state || '',
+          zip_code: (customerData as any).zip_code || '',
+          role: (customerData as any).role || '',
+          created_at: (customerData as any).created_at || '',
+          updated_at: (customerData as any).updated_at || ''
+        };
+        
+        setSelectedCustomer(customer);
+      }
+    }
+
+    if (initialData?.total_amount) {
+      console.log("Setting total_amount from initialData:", initialData.total_amount);
+      form.setValue('total_amount', initialData.total_amount);
+    }
+
+    if (initialData?.deposit_amount) {
+      console.log("Setting deposit_amount from initialData:", initialData.deposit_amount);
+      form.setValue('deposit_amount', initialData.deposit_amount);
+    }
+
+    if (initialData?.daily_late_fee) {
+      console.log("Setting daily_late_fee from initialData:", initialData.daily_late_fee);
+      form.setValue('daily_late_fee', initialData.daily_late_fee);
+    }
+
+    if (initialData?.notes) {
+      console.log("Setting notes from initialData:", initialData.notes);
+      form.setValue('notes', initialData.notes);
+    }
+
+    if (initialData?.agreement_number) {
+      form.setValue('agreement_number', initialData.agreement_number);
+    }
+  }, [initialData, form]);
+
+  const handleVehicleChange = (vehicleId: string, vehicleData: any) => {
+    console.log("Vehicle changed:", vehicleId, vehicleData);
+    setSelectedVehicle(vehicleData);
+    form.setValue('vehicle_id', vehicleId);
   };
 
-  // Recalculate total when relevant fields change
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'start_date' || name === 'end_date' || name === 'rent_amount') {
-        calculateTotalAmount();
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+  const handleCustomerChange = (customerId: string, customerData: CustomerInfo) => {
+    console.log("Customer changed:", customerId, customerData);
+    setSelectedCustomer(customerData);
+    form.setValue('customer_id', customerId);
+  };
 
   const handleSubmit = async (data: Agreement) => {
     try {
       if (!termsAccepted) {
-        toast.error("يجب موافقة على الشروط والأحكام");
+        toast.error("You must accept the terms and conditions");
         return;
       }
       
@@ -114,77 +151,73 @@ const AgreementForm = ({
         id: initialData?.id
       };
       
-      console.log('إرسال بيانات الاتفاقية:', finalData);
+      console.log('Submitting agreement data:', finalData);
       
       // Call the parent onSubmit function first
       await onSubmit(finalData);
 
       // Only generate payment schedule for NEW agreements (not edits)
       if (!initialData?.id && finalData.id) {
-        console.log('إنشاء جدولة الدفعات للاتفاقية الجديدة:', finalData.id);
+        console.log('Creating payment schedule for new agreement:', finalData.id);
         
         try {
           const result = await agreementPaymentService.createPaymentScheduleForAgreement(finalData);
           
           if (result.success) {
-            console.log(`تم إنشاء جدولة الدفعات بنجاح: ${result.scheduleCount} بند جدولة، ${result.paymentCount} سجل دفع`);
-            toast.success(`تم إنشاء الاتفاقية وجدولة الدفعات بنجاح (${result.paymentCount} دفعة)`);
+            console.log(`Payment schedule created successfully: ${result.scheduleCount} schedule items, ${result.paymentCount} payment records`);
+            toast.success(`Agreement and payment schedule created successfully (${result.paymentCount} payments)`);
           } else {
-            console.error('فشل في إنشاء جدولة الدفعات:', result.error);
-            toast.warning(`تم إنشاء الاتفاقية ولكن فشل في إنشاء جدولة الدفعات: ${result.error}`);
+            console.error('Failed to create payment schedule:', result.error);
+            toast.warning(`Agreement created but payment schedule creation failed: ${result.error}`);
           }
         } catch (scheduleError) {
-          console.error('خطأ في إنشاء جدولة الدفعات:', scheduleError);
-          toast.warning(`تم إنشاء الاتفاقية ولكن فشل في إنشاء جدولة الدفعات: ${scheduleError instanceof Error ? scheduleError.message : 'خطأ غير معروف'}`);
+          console.error('Error creating payment schedule:', scheduleError);
+          toast.warning(`Agreement created but payment schedule creation failed: ${scheduleError instanceof Error ? scheduleError.message : 'Unknown error'}`);
         }
       }
     } catch (error) {
-      console.error("خطأ في handleSubmit:", error);
-      toast.error("فشل في حفظ الاتفاقية");
+      console.error("Error in handleSubmit:", error);
+      toast.error("Failed to save agreement");
     }
   };
 
   const isEdit = !!initialData?.id;
 
   return (
-    <div dir="rtl">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
-          <AgreementBasicDetails 
-            form={form} 
-            isEdit={isEdit} 
-            onVehicleChange={handleVehicleChange}
-            onCustomerChange={handleCustomerChange} 
-          />
-          
-          {selectedCustomer && (
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-3 text-right">معلومات العميل</h3>
-              <CustomerSection customer={selectedCustomer} />
-            </div>
-          )}
-
-          {selectedVehicle && (
-            <VehicleDetailsCard vehicle={selectedVehicle} />
-          )}
-
-          <AgreementContractTerms 
-            form={form} 
-            termsAccepted={termsAccepted} 
-            setTermsAccepted={setTermsAccepted} 
-          />
-
-          <div className="flex justify-start space-x-2 flex-row-reverse gap-2">
-            <Button variant="outline" type="button" onClick={() => window.history.back()}>
-              إلغاء
-            </Button>
-            <Button type="submit" className="bg-primary" disabled={isSubmitting}>
-              {isSubmitting ? "جاري الحفظ..." : "حفظ الاتفاقية"}
-            </Button>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
+        <AgreementBasicDetails 
+          form={form} 
+          isEdit={isEdit} 
+          onVehicleChange={handleVehicleChange}
+          onCustomerChange={handleCustomerChange} 
+        />
+        
+        {selectedCustomer && (
+          <div className="mb-6">
+            <h3 className="text-lg font-medium mb-3">Customer Information</h3>
+            <CustomerSection customer={selectedCustomer} />
           </div>
-        </form>
-      </Form>
-    </div>
+        )}
+
+        {selectedVehicle && (
+          <VehicleDetailsCard vehicle={selectedVehicle} />
+        )}
+
+        <AgreementContractTerms 
+          form={form} 
+          termsAccepted={termsAccepted} 
+          setTermsAccepted={setTermsAccepted} 
+        />
+
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" type="button" onClick={() => window.history.back()}>Cancel</Button>
+          <Button type="submit" className="bg-primary" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Agreement"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

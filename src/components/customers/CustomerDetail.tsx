@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Card, CardContent, 
   Badge, Button, 
@@ -15,9 +15,6 @@ import { formatDate } from '@/lib/date-utils';
 import CustomerTrafficFines from '../traffic-fines/CustomerTrafficFines';
 import CustomerLegalObligationsPage from '../legal/CustomerLegalObligationsPage';
 import { Customer } from '@/types/customer.types';
-import { useTranslation } from '@/utils/translation-helper';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useCustomerService } from '@/hooks/services/useCustomerService';
 
 interface CustomerDetailProps {
   customerId: string;
@@ -35,15 +32,6 @@ const updateCustomer = (id: string, data: any) => {
     });
 };
 
-// Helper to format phone number as +974 رقم الهاتف
-function formatQatarPhone(phone?: string) {
-  if (!phone) return 'غير متوفر';
-  let num = phone.trim().replace(/\D/g, ''); // Remove non-digits
-  if (num.startsWith('974')) num = num.slice(3);
-  if (num.startsWith('0')) num = num.slice(1);
-  return '+974' + num;
-}
-
 export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +40,6 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
   const [activeTab, setActiveTab] = useState("profile");
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
-  const { t } = useTranslation();
-  const { language } = useLanguage();
-  const { deleteCustomer } = useCustomerService();
-  const navigate = useNavigate();
 
   // Add debugging console logs
   console.log("CustomerDetail: Rendered with customerId:", customerId);
@@ -187,23 +171,12 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     setEditingNotes(false);
   };
 
-  const handleDelete = async () => {
-    if (!customerId) return;
-    if (!window.confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا العميل؟' : 'Are you sure you want to delete this customer?')) return;
-    try {
-      await deleteCustomer(customerId);
-      toast({
-        title: language === 'ar' ? 'تم حذف العميل بنجاح' : 'Customer deleted successfully',
-        variant: 'default',
-      });
-      navigate('/customers');
-    } catch (error: any) {
-      toast({
-        title: language === 'ar' ? 'فشل في حذف العميل' : 'Failed to delete customer',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+  const handleDelete = () => {
+    toast({
+      title: "Delete functionality",
+      description: "Delete functionality is not implemented yet.",
+      variant: "destructive",
+    });
   };
 
   // Show explicit loading indicator
@@ -212,7 +185,6 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     return (
       <div className="flex items-center justify-center p-6">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <span className="mr-4 text-lg">جاري التحميل...</span>
       </div>
     );
   }
@@ -223,7 +195,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
     return (
       <Card className="w-full">
         <CardContent className="p-6">
-          <p className="text-destructive">{error || "تعذر العثور على بيانات العميل"}</p>
+          <p className="text-destructive">{error || "Customer data not found"}</p>
         </CardContent>
       </Card>
     );
@@ -244,64 +216,58 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       {/* Customer Header Card */}
       <Card className="w-full border rounded-lg overflow-hidden">
         <CardContent className="p-6">
-          <div
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-            className="flex flex-col md:flex-row-reverse justify-between items-start md:items-center mb-6"
-          >
-            {/* Buttons: always first in DOM, so they appear left in RTL */}
-            <div className="flex gap-2 mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
+                {customer.full_name?.charAt(0) || "C"}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold">{customer.full_name}</h2>
+                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
+                </div>
+                <p className="text-gray-500">Customer since {formatDate(customer.created_at)}</p>
+                <div className="mt-2 flex gap-6">
+                  <div className="flex items-center gap-1">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{customer.email || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Phone className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{customer.phone_number || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{customer.nationality || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4 md:mt-0">
               <Button asChild variant="outline">
-                <Link to={`/customers/edit/${customerId}`}>
-                  <Edit className="ml-2 h-4 w-4" />
-                  {language === 'ar' ? 'تعديل' : 'Edit'}
+                <Link to={`/customers/edit/${customerId}`}> 
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
                 </Link>
               </Button>
               <Button variant="destructive" onClick={handleDelete}>
-                <Trash2 className="ml-2 h-4 w-4" />
-                {language === 'ar' ? 'حذف' : 'Delete'}
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </Button>
-            </div>
-            {/* Info */}
-            <div className={`flex items-center gap-4 ${language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
-              {/* Avatar */}
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center text-lg font-bold">
-                {customer.full_name?.charAt(0) || "ع"}
-              </div>
-              <div className="text-right">
-                <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}> 
-                  <h2 className="text-2xl font-bold">{customer.full_name}</h2>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">نشط</Badge>
-                </div>
-                <p className="text-gray-500">عميل منذ {formatDate(customer.created_at)}</p>
-                <div className="mt-2 flex gap-6 flex-row-reverse">
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <Mail className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm">{customer.email || "غير متوفر"}</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <Phone className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm ltr:text-left" dir="ltr">{formatQatarPhone(customer.phone_number)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-row-reverse">
-                    <FileText className="h-4 w-4 text-gray-500 ml-1" />
-                    <span className="text-sm">{customer.nationality || "غير متوفر"}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">إجمالي العقود</p>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-500 mb-1">Total Agreements</p>
               <p className="text-3xl font-bold">{totalAgreements}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">العقود النشطة</p>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-500 mb-1">Active Agreements</p>
               <p className="text-3xl font-bold">{activeAgreements}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-right">
-              <p className="text-gray-500 mb-1">آخر تحديث</p>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-500 mb-1">Last Updated</p>
               <p className="text-3xl font-bold">{formatDate(customer.updated_at || customer.created_at)}</p>
             </div>
           </div>
@@ -309,45 +275,37 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
       </Card>
       
       {/* Tabs for different sections */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <TabsList className="grid grid-cols-4 w-full mb-4">
-          {language === 'ar' ? (
-            <>
-              <TabsTrigger value="profile">{t('customers.profileTab')}</TabsTrigger>
-              <TabsTrigger value="agreements">{t('customers.agreementsTab')}</TabsTrigger>
-              <TabsTrigger value="legal">{t('customers.legalObligationsTab')}</TabsTrigger>
-              <TabsTrigger value="fines">{t('customers.trafficFinesTab')}</TabsTrigger>
-            </>
-          ) : (
-            <>
-              <TabsTrigger value="fines">{t('customers.trafficFinesTab')}</TabsTrigger>
-              <TabsTrigger value="legal">{t('customers.legalObligationsTab')}</TabsTrigger>
-              <TabsTrigger value="agreements">{t('customers.agreementsTab')}</TabsTrigger>
-              <TabsTrigger value="profile">{t('customers.profileTab')}</TabsTrigger>
-            </>
-          )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="agreements">Agreements</TabsTrigger>
+          <TabsTrigger value="legal">Legal Obligations</TabsTrigger>
+          <TabsTrigger value="fines">Traffic Fines</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="profile" className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${language === 'ar' ? 'text-right' : ''}`}>
+        <TabsContent value="profile" className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Contact Information Card */}
           <Card className="w-full">
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Phone className="w-5 h-5" />
-                معلومات التواصل
+                Contact Information
               </h3>
+              
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">البريد الإلكتروني</p>
-                  <p className="font-medium">{customer.email || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">Email Address</p>
+                  <p className="font-medium">{customer.email || "N/A"}</p>
                 </div>
+                
                 <div>
-                  <p className="text-gray-500 mb-1">رقم الهاتف</p>
-                  <p className="font-medium text-sm ltr:text-left" dir="ltr">{formatQatarPhone(customer.phone_number)}</p>
+                  <p className="text-gray-500 mb-1">Phone Number</p>
+                  <p className="font-medium">{customer.phone_number || "N/A"}</p>
                 </div>
+                
                 <div>
-                  <p className="text-gray-500 mb-1">العنوان</p>
-                  <p className="font-medium">{customer.address || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">Address</p>
+                  <p className="font-medium">{customer.address || "N/A"}</p>
                 </div>
               </div>
             </CardContent>
@@ -358,25 +316,25 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                تفاصيل العميل
+                Customer Details
               </h3>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-500 mb-1">الحالة</p>
-                  <Badge className="bg-blue-500 hover:bg-blue-600">نشط</Badge>
+                  <p className="text-gray-500 mb-1">Status</p>
+                  <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
                 </div>
                 
                 <div>
-                  <p className="text-gray-500 mb-1">رخصة القيادة</p>
-                  <p className="font-medium">{customer.driver_license || 'غير متوفر'}</p>
+                  <p className="text-gray-500 mb-1">Driver License</p>
+                  <p className="font-medium">{customer.driver_license || "N/A"}</p>
                 </div>
                 
                 <div>
-                  <p className="text-gray-500 mb-1">آخر تحديث</p>
+                  <p className="text-gray-500 mb-1">Last Updated</p>
                   <p className="font-medium flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {formatDate(customer.updated_at || customer.created_at)}
+                    {formatDate(customer.updated_at || customer.created_at)} 3:25 PM
                   </p>
                 </div>
               </div>
@@ -384,17 +342,17 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           </Card>
           
           {/* Additional Notes with Edit Functionality */}
-          <Card className="w-full col-span-2">
+          <Card className="w-full md:col-span-2">
             <CardContent className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">ملاحظات إضافية</h3>
+                <h3 className="text-lg font-semibold">Additional Notes</h3>
                 {!editingNotes ? (
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setEditingNotes(true)}
                   >
-                    <Edit className="h-4 w-4 mr-1" /> تعديل الملاحظات
+                    <Edit className="h-4 w-4 mr-1" /> Edit Notes
                   </Button>
                 ) : (
                   <div className="flex gap-2">
@@ -403,7 +361,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                       size="sm" 
                       onClick={handleCancelEditNotes}
                     >
-                      <X className="h-4 w-4 mr-1" /> إلغاء
+                      <X className="h-4 w-4 mr-1" /> Cancel
                     </Button>
                     <Button 
                       variant="default" 
@@ -411,7 +369,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                       onClick={handleSaveNotes}
                       disabled={updateMutation.isPending}
                     >
-                      <Save className="h-4 w-4 mr-1" /> حفظ
+                      <Save className="h-4 w-4 mr-1" /> Save
                     </Button>
                   </div>
                 )}
@@ -419,16 +377,16 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
               
               {!editingNotes ? (
                 <p className="text-gray-500 italic">
-                  {customer.notes || 'لا توجد ملاحظات إضافية'}
+                  {customer.notes || "No additional notes for this customer."}
                 </p>
               ) : (
                 <FormField
-                  label="ملاحظات العميل"
+                  label="Customer Notes"
                   htmlFor="notes"
                 >
                   <Textarea 
                     id="notes"
-                    placeholder="أدخل ملاحظات حول العميل..."
+                    placeholder="Enter notes about this customer..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-[100px]"
@@ -446,16 +404,16 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      رقم العقد
+                      Agreement #
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      تاريخ البدء
+                      Start Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      تاريخ الانتهاء
+                      End Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      الحالة
+                      Status
                     </th>
                   </tr>
                 </thead>
@@ -477,7 +435,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
                           agreement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
                           'bg-gray-100 text-gray-800'
                         }>
-                          {agreement.status === 'active' ? 'نشط' : agreement.status === 'pending' ? 'قيد الانتظار' : 'غير معروف'}
+                          {agreement.status}
                         </Badge>
                       </td>
                     </tr>
@@ -488,7 +446,7 @@ export const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) =>
           ) : (
             <Card className="w-full">
               <CardContent className="p-6 text-center">
-                <p className="text-gray-500">لا توجد عقود لهذا العميل.</p>
+                <p className="text-gray-500">No agreements found for this customer.</p>
               </CardContent>
             </Card>
           )}

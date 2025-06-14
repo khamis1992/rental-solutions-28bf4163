@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -11,20 +12,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const validationSchema = z.object({
   licensePlate: z.string().min(1, 'License plate is required'),
 });
 
 type ValidationFormValues = z.infer<typeof validationSchema>;
+type TrafficFineStatusType = 'paid' | 'pending' | 'disputed';
 
 const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
   const { trafficFines, assignToCustomer } = useTrafficFines();
-  const { language } = useLanguage();
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -68,9 +68,10 @@ const TrafficFineValidation: React.FC = () => {
           },
           status: 'completed'
         }] as any);
-      
+        
       if (validationError) {
-        console.error('Error saving validation:', validationError);
+        console.error('Error recording validation:', validationError);
+        toast.error('Error recording validation result');
       }
       
       setValidationResult({
@@ -81,51 +82,53 @@ const TrafficFineValidation: React.FC = () => {
         fines: relevantFines
       });
       
-      toast.success(language === 'ar' ? 'تم التحقق من المخالفات بنجاح' : 'Validation completed successfully');
     } catch (error) {
       console.error('Validation error:', error);
-      toast.error(language === 'ar' ? 'فشل في التحقق من المخالفات' : 'Failed to validate traffic fines');
+      toast.error('Failed to validate license plate');
     } finally {
       setIsValidating(false);
     }
   };
 
-  const handleAssignToCustomer = async (fineId: string) => {
-    if (!validationResult) return;
-    
-    setAssigningFine(fineId);
+  const handleAssignToCustomer = async (id: string) => {
+    if (!id) {
+      toast.error("Invalid fine ID");
+      return;
+    }
+
     try {
-      await assignToCustomer.mutateAsync({
-        fineId,
-        licensePlate: validationResult.licensePlate
-      });
+      setAssigningFine(id);
+      await assignToCustomer.mutateAsync({ id });
+      toast.success("Fine assigned to customer successfully");
       
-      toast.success(language === 'ar' ? 'تم تعيين المخالفة للعميل بنجاح' : 'Fine assigned to customer successfully');
-      
-      // Update the validation result to reflect the assignment
-      setValidationResult(prev => ({
-        ...prev,
-        fines: prev.fines.map((fine: any) => 
-          fine.id === fineId ? { ...fine, customerId: 'assigned' } : fine
-        )
-      }));
+      if (validationResult && validationResult.fines) {
+        setValidationResult({
+          ...validationResult,
+          fines: validationResult.fines.map((fine: any) => {
+            if (fine.id === id) {
+              return { ...fine, isAssigned: true };
+            }
+            return fine;
+          })
+        });
+      }
     } catch (error) {
-      console.error('Assignment error:', error);
-      toast.error(language === 'ar' ? 'فشل في تعيين المخالفة للعميل' : 'Failed to assign fine to customer');
+      console.error("Error assigning fine to customer:", error);
+      toast.error("Failed to assign fine to customer", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
     } finally {
       setAssigningFine(null);
     }
   };
 
   return (
-    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className={language === 'ar' ? 'text-right' : ''}>
-            {language === 'ar' ? 'التحقق من المخالفات المرورية' : 'Traffic Fine Validation'}
-          </CardTitle>
-          <CardDescription className={language === 'ar' ? 'text-right' : ''}>
-            {language === 'ar' ? 'تحقق من وجود مخالفات مرورية معلقة للمركبة' : 'Check if a vehicle has any pending traffic fines'}
+          <CardTitle>Traffic Fine Validation</CardTitle>
+          <CardDescription>
+            Check if a vehicle has any pending traffic fines
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -138,15 +141,12 @@ const TrafficFineValidation: React.FC = () => {
                     name="licensePlate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className={language === 'ar' ? 'text-right' : ''}>
-                          {language === 'ar' ? 'لوحة الترخيص' : 'License Plate'}
-                        </FormLabel>
+                        <FormLabel>License Plate</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder={language === 'ar' ? 'أدخل لوحة الترخيص' : 'Enter license plate'} 
+                            placeholder="Enter license plate" 
                             {...field} 
                             disabled={isValidating}
-                            className={language === 'ar' ? 'text-right' : ''}
                           />
                         </FormControl>
                         <FormMessage />
@@ -162,13 +162,13 @@ const TrafficFineValidation: React.FC = () => {
                   >
                     {isValidating ? (
                       <>
-                        <Loader2 className={`h-4 w-4 animate-spin ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                        {language === 'ar' ? 'جاري التحقق...' : 'Validating...'}
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Validating...
                       </>
                     ) : (
                       <>
-                        <Search className={`h-4 w-4 ${language === 'ar' ? 'ml-2' : 'mr-2'}`} />
-                        {language === 'ar' ? 'تحقق' : 'Validate'}
+                        <Search className="mr-2 h-4 w-4" />
+                        Validate
                       </>
                     )}
                   </Button>
@@ -183,47 +183,38 @@ const TrafficFineValidation: React.FC = () => {
               <Alert 
                 variant={validationResult.finesCount > 0 ? "destructive" : "default"}
                 className={validationResult.finesCount > 0 ? "mb-4" : ""}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
               >
                 {validationResult.finesCount > 0 ? (
                   <AlertCircle className="h-4 w-4" />
                 ) : (
                   <Check className="h-4 w-4" />
                 )}
-                <AlertTitle className={language === 'ar' ? 'text-right' : ''}>
+                <AlertTitle>
                   {validationResult.finesCount > 0 
-                    ? (language === 'ar' ? `تم العثور على ${validationResult.finesCount} مخالفة مرورية` : `${validationResult.finesCount} Traffic Fine(s) Found`)
-                    : (language === 'ar' ? 'لم يتم العثور على مخالفات مرورية' : 'No Traffic Fines Found')}
+                    ? `${validationResult.finesCount} Traffic Fine(s) Found` 
+                    : 'No Traffic Fines Found'}
                 </AlertTitle>
-                <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+                <AlertDescription>
                   {validationResult.finesCount > 0 
-                    ? (language === 'ar' 
-                        ? `المبلغ الإجمالي: ${validationResult.totalAmount.toFixed(2)} ر.س، المبلغ المعلق: ${validationResult.pendingAmount.toFixed(2)} ر.س`
-                        : `Total amount: QAR ${validationResult.totalAmount.toFixed(2)}, Pending amount: QAR ${validationResult.pendingAmount.toFixed(2)}`)
-                    : (language === 'ar' 
-                        ? `لم يتم العثور على مخالفات مرورية للوحة الترخيص ${validationResult.licensePlate}`
-                        : `No traffic fines found for license plate ${validationResult.licensePlate}`)}
+                    ? `Total amount: QAR ${validationResult.totalAmount.toFixed(2)}, Pending amount: QAR ${validationResult.pendingAmount.toFixed(2)}`
+                    : `No traffic fines found for license plate ${validationResult.licensePlate}`}
                 </AlertDescription>
               </Alert>
 
               {validationResult.finesCount > 0 && (
                 <div className="mt-4 border rounded-md p-4">
-                  <h3 className={`font-semibold mb-2 ${language === 'ar' ? 'text-right' : ''}`}>
-                    {language === 'ar' ? 'تفاصيل المخالفات' : 'Fine Details'}
-                  </h3>
+                  <h3 className="font-semibold mb-2">Fine Details</h3>
                   <div className="space-y-2">
                     {validationResult.fines.map((fine: any) => (
-                      <div key={fine.id} className={`p-2 border rounded flex justify-between items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                        <div className={language === 'ar' ? 'text-right' : ''}>
+                      <div key={fine.id} className="p-2 border rounded flex justify-between items-center">
+                        <div>
                           <p className="font-medium">{fine.violationNumber}</p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(fine.violationDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className={`flex flex-col ${language === 'ar' ? 'items-start' : 'items-end'}`}>
-                          <p className="font-medium">
-                            {language === 'ar' ? 'ر.س' : 'QAR'} {fine.fineAmount.toFixed(2)}
-                          </p>
+                        <div className="flex flex-col items-end">
+                          <p className="font-medium">QAR {fine.fineAmount.toFixed(2)}</p>
                           <p className={`text-sm ${
                             fine.paymentStatus === 'paid' 
                               ? 'text-green-600' 
@@ -231,33 +222,36 @@ const TrafficFineValidation: React.FC = () => {
                                 ? 'text-amber-600' 
                                 : 'text-red-600'
                           }`}>
-                            {language === 'ar' ? (
-                              fine.paymentStatus === 'paid' ? 'مدفوعة' :
-                              fine.paymentStatus === 'disputed' ? 'متنازع عليها' : 'معلقة'
-                            ) : (
-                              fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)
-                            )}
+                            {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
                           </p>
+                        </div>
+                        <div className="ml-4">
                           {!fine.customerId && (
                             <Button
-                              size="sm"
                               variant="outline"
+                              size="sm"
                               onClick={() => handleAssignToCustomer(fine.id)}
                               disabled={assigningFine === fine.id}
-                              className={`mt-1 ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+                              className="flex items-center"
                             >
                               {assigningFine === fine.id ? (
                                 <>
-                                  <Loader2 className={`h-3 w-3 animate-spin ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                                  {language === 'ar' ? 'جاري التعيين...' : 'Assigning...'}
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  Assigning...
                                 </>
                               ) : (
                                 <>
-                                  <UserCheck className={`h-3 w-3 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                                  {language === 'ar' ? 'تعيين للعميل' : 'Assign to Customer'}
+                                  <UserCheck className="h-3 w-3 mr-1" />
+                                  Assign
                                 </>
                               )}
                             </Button>
+                          )}
+                          {fine.customerId && (
+                            <div className="text-xs text-green-600 flex items-center">
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Assigned
+                            </div>
                           )}
                         </div>
                       </div>

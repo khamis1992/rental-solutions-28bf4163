@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,10 +123,9 @@ export function PaymentHistorySection({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'decimal',
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat('en-QA', {
+      style: 'currency',
+      currency: 'QAR'
     }).format(amount);
   };
 
@@ -133,10 +133,10 @@ export function PaymentHistorySection({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>سجل المدفوعات</CardTitle>
+          <CardTitle>Payment History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">جاري تحميل سجل المدفوعات...</div>
+          <div className="text-center py-8">Loading payment history...</div>
         </CardContent>
       </Card>
     );
@@ -145,9 +145,9 @@ export function PaymentHistorySection({
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center flex-row-reverse" dir="rtl">
-          <CardTitle>سجل المدفوعات</CardTitle>
-          <div className="flex gap-2 flex-row-reverse">
+        <div className="flex justify-between items-center">
+          <CardTitle>Payment History</CardTitle>
+          <div className="flex gap-2">
             {leaseId && (
               <Button
                 variant="outline"
@@ -155,8 +155,8 @@ export function PaymentHistorySection({
                 onClick={syncAll}
                 disabled={isPending?.all}
               >
-                <RefreshCw className={`h-4 w-4 ml-2 ${isPending?.all ? 'animate-spin' : ''}`} />
-                مزامنة المدفوعات
+                <RefreshCw className={`h-4 w-4 mr-2 ${isPending?.all ? 'animate-spin' : ''}`} />
+                Sync Payments
               </Button>
             )}
             <Button
@@ -166,20 +166,19 @@ export function PaymentHistorySection({
                 setIsPaymentDialogOpen(true);
               }}
             >
-              <Plus className="h-4 w-4 ml-2" />
-              تسجيل دفعة
+              <Plus className="h-4 w-4 mr-2" />
+              Record Payment
             </Button>
           </div>
         </div>
-        <div className="text-muted-foreground text-sm mt-1 text-right" dir="rtl">
-          تتبع المدفوعات والمعاملات المالية لهذا العقد
+        <div className="text-muted-foreground text-sm mt-1">
+          Track payments and financial transactions for this agreement
         </div>
       </CardHeader>
-      
       <CardContent>
         {payments.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            لا توجد مدفوعات مسجلة بعد
+            No payments recorded yet
           </div>
         ) : (
           <div className="space-y-4">
@@ -187,20 +186,18 @@ export function PaymentHistorySection({
               <div
                 key={payment.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                dir="rtl"
               >
-                <div className="flex items-center space-x-4 space-x-reverse">
+                <div className="flex items-center space-x-4">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="font-medium">
-                      {formatCurrency(payment.amount)} ر.ق
+                      {formatCurrency(payment.amount)}
                     </div>
                     {payment.payment_date && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        تاريخ الدفع: {format(new Date(payment.payment_date), 'd MMM yyyy')}
+                        Payment Date: {format(new Date(payment.payment_date), 'MMM d, yyyy')}
                       </div>
                     )}
-                    
                     {(() => {
                       // Show dynamic late fee for pending/overdue
                       if ((payment.status === 'pending' || payment.status === 'overdue') && payment.payment_date) {
@@ -210,9 +207,9 @@ export function PaymentHistorySection({
                         const daysLate = Math.max(0, differenceInCalendarDays(today, firstOfMonth));
                         const fee = Math.min(daysLate * 120, 3000);
                         return (
-                          <div className="flex items-center gap-2 flex-row-reverse">
+                          <div className="flex items-center gap-2">
                             <div className="text-xs text-red-600 mt-1">
-                              رسوم التأخير: {formatCurrency(payment.late_fine_amount ?? fee)} ر.ق
+                              Late Fee: {formatCurrency(payment.late_fine_amount ?? fee)}
                             </div>
                             <Button
                               size="sm"
@@ -223,17 +220,17 @@ export function PaymentHistorySection({
                                 setIsEditLateFeeDialogOpen(true);
                               }}
                             >
-                              تعديل
+                              Edit
                             </Button>
                           </div>
                         );
                       }
                       // Show static late_fine_amount for paid/completed/partially_paid
-                      if ((['completed', 'paid', 'partially_paid'].includes(payment.status)) && payment.late_fine_amount && payment.late_fine_amount > 0) {
+                      if ((['completed', 'paid', 'partially_paid'].includes(String(payment.status))) && payment.late_fine_amount && payment.late_fine_amount > 0) {
                         return (
-                          <div className="flex items-center gap-2 flex-row-reverse">
+                          <div className="flex items-center gap-2">
                             <div className="text-xs text-red-600 mt-1">
-                              رسوم التأخير: {formatCurrency(payment.late_fine_amount)} ر.ق
+                              Late Fee: {formatCurrency(payment.late_fine_amount)}
                             </div>
                             <Button
                               size="sm"
@@ -244,7 +241,7 @@ export function PaymentHistorySection({
                                 setIsEditLateFeeDialogOpen(true);
                               }}
                             >
-                              تعديل
+                              Edit
                             </Button>
                           </div>
                         );
@@ -258,20 +255,12 @@ export function PaymentHistorySection({
                     )}
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2 space-x-reverse">
+                <div className="flex items-center space-x-2">
                   <Badge variant={getStatusColor(payment.status)}>
-                    {payment.status === 'paid' ? 'مدفوع' : 
-                     payment.status === 'pending' ? 'معلق' : 
-                     payment.status === 'overdue' ? 'متأخر' : 
-                     payment.status === 'completed' ? 'مكتمل' : payment.status}
+                    {payment.status || 'pending'}
                   </Badge>
                   <Badge variant="outline">
-                    {payment.payment_method === 'cash' ? 'نقدي' :
-                     payment.payment_method === 'credit_card' ? 'بطاقة ائتمان' :
-                     payment.payment_method === 'bank_transfer' ? 'تحويل بنكي' :
-                     payment.payment_method === 'check' ? 'شيك' :
-                     payment.payment_method ? payment.payment_method : 'غير محدد'}
+                    {payment.payment_method ? payment.payment_method : 'N/A'}
                   </Badge>
                   {payment.status !== 'completed' && payment.status !== 'paid' && (
                     <Button
@@ -282,7 +271,7 @@ export function PaymentHistorySection({
                         setIsPaymentDialogOpen(true);
                       }}
                     >
-                      تسوية
+                      Clear
                     </Button>
                   )}
                 </div>
@@ -300,18 +289,19 @@ export function PaymentHistorySection({
         }}
         onSubmit={handleRecordPayment}
         defaultAmount={selectedPayment ? selectedPayment.amount : rentAmount || 0}
-        title="تسجيل دفعة"
-        description={selectedPayment ? "تسوية هذه الدفعة" : "إضافة دفعة جديدة لهذا العقد"}
+        title="Record Payment"
+        description={selectedPayment ? "Clear this payment" : "Add a new payment to this agreement"}
         leaseId={leaseId || ''}
         rentAmount={rentAmount}
         selectedPayment={selectedPayment}
+        pendingPayments={pendingPayments}
       />
 
       {/* Edit Late Fee Dialog */}
       <Dialog open={isEditLateFeeDialogOpen} onOpenChange={setIsEditLateFeeDialogOpen}>
-        <DialogContent dir="rtl">
-          <DialogHeader className="text-right">
-            <DialogTitle>تعديل رسوم التأخير</DialogTitle>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Late Fee</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={async (e) => {
@@ -326,7 +316,7 @@ export function PaymentHistorySection({
               }
             }}
           >
-            <Label className="text-right block">رسوم التأخير (ر.ق)</Label>
+            <Label>Late Fee (QAR)</Label>
             <Input
               type="number"
               value={newLateFee}
@@ -334,10 +324,8 @@ export function PaymentHistorySection({
               min={0}
               step={1}
               required
-              className="text-right"
-              dir="rtl"
             />
-            <Button type="submit" className="mt-2">حفظ</Button>
+            <Button type="submit" className="mt-2">Save</Button>
           </form>
         </DialogContent>
       </Dialog>

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,7 +40,7 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
     e.preventDefault();
     
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      toast.error("يرجى إدخال مبلغ دفع صحيح");
+      toast.error("Please enter a valid payment amount");
       return;
     }
 
@@ -49,30 +50,30 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
       // Here we would normally process the payment and upload the file
       // Simulate a successful payment recording
       setTimeout(() => {
-        toast.success("تم تسجيل الدفعة بنجاح");
+        toast.success("Payment recorded successfully");
         onClose();
       }, 1000);
     } catch (error) {
-      toast.error("فشل في تسجيل الدفعة. يرجى المحاولة مرة أخرى.");
+      toast.error("Failed to record payment. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Button
         type="button"
         variant="ghost"
-        className="mb-2 flex-row-reverse"
+        className="mb-2"
         onClick={onBack}
       >
-        <ChevronLeft className="h-4 w-4 ml-2" />
-        العودة
+        <ChevronLeft className="h-4 w-4 mr-2" />
+        Back
       </Button>
 
       <div className="space-y-2">
-        <Label htmlFor="amount" className="text-right">مبلغ الدفعة</Label>
+        <Label htmlFor="amount">Payment Amount</Label>
         <Input
           id="amount"
           type="number"
@@ -80,42 +81,39 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           required
-          className="text-lg text-right"
+          className="text-lg"
           min="0.01"
           step="0.01"
-          dir="rtl"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="paymentMethod" className="text-right">طريقة الدفع</Label>
+        <Label htmlFor="paymentMethod">Payment Method</Label>
         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-          <SelectTrigger className="text-right" dir="rtl">
-            <SelectValue placeholder="اختر طريقة الدفع" />
+          <SelectTrigger>
+            <SelectValue placeholder="Select payment method" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="cash">نقدي</SelectItem>
-            <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-            <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
-            <SelectItem value="cheque">شيك</SelectItem>
+            <SelectItem value="cash">Cash</SelectItem>
+            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+            <SelectItem value="credit_card">Credit Card</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="note" className="text-right">ملاحظة الدفعة</Label>
+        <Label htmlFor="note">Payment Note</Label>
         <Textarea
           id="note"
-          placeholder="أدخل تفاصيل الدفعة (مثل: رقم الفاتورة #12345)"
+          placeholder="Enter payment details (e.g., Invoice #12345)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="text-right"
-          dir="rtl"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-right">رفع الفاتورة</Label>
+        <Label>Upload Invoice</Label>
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors ${
@@ -124,24 +122,24 @@ export function NewPaymentEntry({ onBack, onClose }: NewPaymentEntryProps) {
         >
           <input {...getInputProps()} />
           {file ? (
-            <p className="text-sm text-right">تم اختيار الملف: {file.name}</p>
+            <p className="text-sm">File selected: {file.name}</p>
           ) : isDragActive ? (
-            <p className="text-sm">أفلت الملف هنا...</p>
+            <p className="text-sm">Drop the file here...</p>
           ) : (
             <p className="text-sm">
-              اسحب وأفلت الفاتورة هنا، أو انقر للاختيار<br />
+              Drag & drop an invoice here, or click to select<br />
               (PDF, JPEG, PNG)
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 flex-row-reverse">
+      <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>
-          إلغاء
+          Cancel
         </Button>
         <Button type="submit" disabled={!amount || loading}>
-          {loading ? "جاري المعالجة..." : "تسجيل الدفعة"}
+          {loading ? "Processing..." : "Record Payment"}
         </Button>
       </div>
     </form>

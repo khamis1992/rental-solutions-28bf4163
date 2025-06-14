@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -32,17 +33,17 @@ export const AgreementDetails = ({
   standardTemplateExists
 }: AgreementDetailsProps) => {
   return (
-    <div className={`space-y-4 ${typeof window !== 'undefined' && document?.documentElement?.dir === 'rtl' ? 'text-right' : ''}`}>
-      <h3 className="font-medium text-lg">تفاصيل العقد</h3>
+    <div className="space-y-4">
+      <h3 className="font-medium text-lg">Agreement Details</h3>
       
       {/* Using Standard Template Section */}
       {standardTemplateExists && (
-        <div className={`mb-6 bg-green-50 p-4 rounded-md border border-green-200 ${typeof window !== 'undefined' && document?.documentElement?.dir === 'rtl' ? 'text-right' : ''}`}>
-          <div className={`flex items-center gap-2 ${typeof window !== 'undefined' && document?.documentElement?.dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-            <CheckCircle2 className={`h-5 w-5 text-green-500 ${typeof window !== 'undefined' && document?.documentElement?.dir === 'rtl' ? 'ml-2' : 'mr-2'}`} />
+        <div className="mb-6 bg-green-50 p-4 rounded-md border border-green-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
             <div>
-              <p className="font-medium text-green-800">يتم استخدام القالب القياسي</p>
-              <p className="text-sm text-green-700">سيتم استخدام القالب القياسي من قاعدة البيانات لهذا العقد.</p>
+              <p className="font-medium text-green-800">Using Standard Template</p>
+              <p className="text-sm text-green-700">The agreement will use the standard template from the database.</p>
             </div>
           </div>
         </div>
@@ -50,7 +51,7 @@ export const AgreementDetails = ({
       
       <div className="space-y-2">
         <label htmlFor="agreementNumber" className="text-sm font-medium">
-          رقم العقد
+          Agreement Number
         </label>
         <Input
           id="agreementNumber"
@@ -62,55 +63,55 @@ export const AgreementDetails = ({
       
       <div className="space-y-2">
         <label htmlFor="startDate" className="text-sm font-medium">
-          تاريخ البدء
+          Start Date
         </label>
         <DatePicker 
-          date={startDate ? (startDate instanceof Date ? startDate : new Date(startDate)) : undefined}
+          date={startDate} 
           setDate={setStartDate} 
         />
       </div>
       
       <div className="space-y-2">
         <label htmlFor="duration" className="text-sm font-medium">
-          المدة (بالأشهر)
+          Duration (Months)
         </label>
         <Select value={durationMonths} onValueChange={setDurationMonths}>
           <SelectTrigger>
-            <SelectValue placeholder="اختر المدة" />
+            <SelectValue placeholder="Select duration" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">شهر واحد</SelectItem>
-            <SelectItem value="3">٣ أشهر</SelectItem>
-            <SelectItem value="6">٦ أشهر</SelectItem>
-            <SelectItem value="12">١٢ شهر</SelectItem>
-            <SelectItem value="24">٢٤ شهر</SelectItem>
-            <SelectItem value="36">٣٦ شهر</SelectItem>
+            <SelectItem value="1">1 month</SelectItem>
+            <SelectItem value="3">3 months</SelectItem>
+            <SelectItem value="6">6 months</SelectItem>
+            <SelectItem value="12">12 months</SelectItem>
+            <SelectItem value="24">24 months</SelectItem>
+            <SelectItem value="36">36 months</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
       <div className="space-y-2">
         <label htmlFor="endDate" className="text-sm font-medium">
-          تاريخ الانتهاء
+          End Date
         </label>
         <DatePicker 
-          date={endDate ? (endDate instanceof Date ? endDate : new Date(endDate)) : undefined}
+          date={endDate}
           setDate={setEndDate}
         />
       </div>
       
       <div className="space-y-2">
         <label htmlFor="status" className="text-sm font-medium">
-          الحالة
+          Status
         </label>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger>
-            <SelectValue placeholder="اختر الحالة" />
+            <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="draft">مسودة</SelectItem>
-            <SelectItem value="pending">معلق</SelectItem>
-            <SelectItem value="active">نشط</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
           </SelectContent>
         </Select>
       </div>

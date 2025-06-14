@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Car, User, CreditCard, Wrench, AlertTriangle, Clock, Filter } from 'lucide-react';
@@ -13,8 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTranslation } from '@/utils/translation-helper';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -23,8 +22,6 @@ interface RecentActivityProps {
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<string | null>(null);
-  const { t } = useTranslation();
-  const { language } = useLanguage();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -44,94 +41,84 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
     ? activities.filter(activity => activity.type === filter)
     : activities;
 
-  const getFilterLabel = (filterType: string) => {
-    const labels: { [key: string]: string } = {
-      'rental': 'التأجير',
-      'payment': 'المدفوعات',
-      'maintenance': 'الصيانة',
-      'fine': 'المخالفات'
-    };
-    return labels[filterType] || filterType;
-  };
-
   return (
-    <Card className="col-span-4 card-transition dashboard-card" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <CardHeader className="pb-2 flex flex-row items-start justify-between flex-row-reverse">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center gap-2 flex-row-reverse">
-              <Filter className="h-3.5 w-3.5" />
-              تصفية
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel className="text-right">تصفية حسب النوع</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setFilter(null)} className="text-right">
-              جميع الأنشطة
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('rental')} className="flex items-center gap-2 flex-row-reverse text-right">
-              <Car className="h-3.5 w-3.5" />
-              التأجير
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('payment')} className="flex items-center gap-2 flex-row-reverse text-right">
-              <CreditCard className="h-3.5 w-3.5" />
-              المدفوعات
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('maintenance')} className="flex items-center gap-2 flex-row-reverse text-right">
-              <Wrench className="h-3.5 w-3.5" />
-              الصيانة
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter('fine')} className="flex items-center gap-2 flex-row-reverse text-right">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              المخالفات
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="text-right">
-          <CardTitle className="text-right">النشاط الأخير</CardTitle>
+    <Card className="col-span-4 card-transition dashboard-card">
+      <CardHeader className="pb-2 flex flex-row items-start justify-between">
+        <div>
+          <CardTitle>Recent Activity</CardTitle>
           {filter && (
             <Badge 
               variant="outline" 
-              className="mt-1 cursor-pointer text-right"
+              className="mt-1"
               onClick={() => setFilter(null)}
             >
-              مُصفى حسب: {getFilterLabel(filter)} ×
+              Filtered by: {filter} × 
             </Badge>
           )}
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="h-3.5 w-3.5 mr-1" />
+              Filter
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setFilter(null)}>
+              All activities
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('rental')}>
+              <Car className="h-3.5 w-3.5 mr-2" />
+              Rentals
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('payment')}>
+              <CreditCard className="h-3.5 w-3.5 mr-2" />
+              Payments
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('maintenance')}>
+              <Wrench className="h-3.5 w-3.5 mr-2" />
+              Maintenance
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter('fine')}>
+              <AlertTriangle className="h-3.5 w-3.5 mr-2" />
+              Fines
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         {filteredActivities.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            {filter ? `لا توجد أنشطة من نوع ${getFilterLabel(filter)}` : 'لا توجد أنشطة حديثة'}
+            {filter ? `No ${filter} activity to display` : "No recent activity to display"}
           </div>
         ) : (
           <div className="space-y-5">
             {filteredActivities.map((activity) => (
               <div 
                 key={activity.id} 
-                className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors flex-row-reverse"
+                className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className="flex-1 text-right pr-4">
-                  <div className="flex items-center justify-between flex-row-reverse">
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
+                  {getActivityIcon(activity.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">{activity.title}</h4>
                     <span className="text-xs text-muted-foreground">{activity.time}</span>
-                    <h4 className="font-medium text-right">{activity.title}</h4>
                   </div>
-                  <p className="text-muted-foreground mt-1 text-right">{activity.description}</p>
-                  <div className="mt-2 text-right">
+                  <p className="text-muted-foreground mt-1">{activity.description}</p>
+                  <div className="mt-2">
                     <Button 
                       variant="link" 
                       size="sm" 
                       className="h-auto p-0 text-xs text-primary"
                     >
-                      عرض التفاصيل ←
+                      View details →
                     </Button>
                   </div>
-                </div>
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} flex-shrink-0`}>
-                  {getActivityIcon(activity.type)}
                 </div>
               </div>
             ))}
@@ -139,8 +126,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
         )}
       </CardContent>
       <CardFooter className="pt-0">
-        <Button variant="outline" className="w-full text-right" onClick={() => navigate('/activity')}>
-          عرض جميع الأنشطة
+        <Button variant="outline" className="w-full" onClick={() => navigate('/activity')}>
+          View All Activity
         </Button>
       </CardFooter>
     </Card>

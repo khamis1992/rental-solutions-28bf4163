@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,9 +50,9 @@ const PaymentGatewaySettings = () => {
       // Simulating API call to save settings
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success("تم حفظ إعدادات بوابة الدفع بنجاح");
+      toast.success("Payment gateway settings saved successfully");
     } catch (error: any) {
-      toast.error("فشل في حفظ الإعدادات: " + error.message);
+      toast.error("Failed to save settings: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -64,41 +65,41 @@ const PaymentGatewaySettings = () => {
       // Simulating API call to test connection
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      toast.success("تم الاتصال بنجاح ببوابة الدفع");
+      toast.success("Successfully connected to payment gateway");
     } catch (error: any) {
-      toast.error("فشل في اختبار الاتصال: " + error.message);
+      toast.error("Connection test failed: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card className="w-full" dir="rtl">
-      <CardHeader className="text-right">
-        <CardTitle className="flex items-center flex-row-reverse">
-          <CreditCard className="ml-2 h-5 w-5" />
-          تكامل بوابة الدفع
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <CreditCard className="mr-2 h-5 w-5" />
+          Payment Gateway Integration
         </CardTitle>
-        <CardDescription className="text-right">
-          قم بتكوين بوابة الدفع الخاصة بك لمعالجة المعاملات الآمنة
+        <CardDescription>
+          Configure your payment gateway for secure transaction processing
         </CardDescription>
       </CardHeader>
       
       <CardContent>
         <Tabs defaultValue="stripe" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="stripe">سترايب</TabsTrigger>
-            <TabsTrigger value="paypal">باي بال</TabsTrigger>
-            <TabsTrigger value="custom" disabled>مخصص</TabsTrigger>
+            <TabsTrigger value="stripe">Stripe</TabsTrigger>
+            <TabsTrigger value="paypal">PayPal</TabsTrigger>
+            <TabsTrigger value="custom" disabled>Custom</TabsTrigger>
           </TabsList>
           
           <TabsContent value="stripe" className="space-y-4 mt-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between flex-row-reverse">
-                <div className="flex flex-col gap-2 text-right">
-                  <Label htmlFor="testMode" className="text-base">وضع الاختبار</Label>
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="testMode" className="text-base">Test Mode</Label>
                   <span className="text-muted-foreground text-sm">
-                    استخدم بيانات اعتماد الاختبار للتطوير
+                    Use test credentials for development
                   </span>
                 </div>
                 <Switch
@@ -110,8 +111,8 @@ const PaymentGatewaySettings = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="apiKey" className="text-right">
-                  {config.testMode ? 'مفتاح API للاختبار' : 'مفتاح API المباشر'}
+                <Label htmlFor="apiKey">
+                  {config.testMode ? 'Test API Key' : 'Live API Key'}
                 </Label>
                 <div className="relative">
                   <Input
@@ -120,16 +121,15 @@ const PaymentGatewaySettings = () => {
                     value={config.apiKey}
                     onChange={handleInputChange}
                     placeholder={config.testMode ? 'pk_test_...' : 'pk_live_...'}
-                    className="pr-9 text-right"
-                    dir="rtl"
+                    className="pl-9"
                   />
-                  <Shield className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Shield className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="secretKey" className="text-right">
-                  {config.testMode ? 'المفتاح السري للاختبار' : 'المفتاح السري المباشر'}
+                <Label htmlFor="secretKey">
+                  {config.testMode ? 'Test Secret Key' : 'Live Secret Key'}
                 </Label>
                 <div className="relative">
                   <Input
@@ -139,18 +139,17 @@ const PaymentGatewaySettings = () => {
                     value={config.secretKey}
                     onChange={handleInputChange}
                     placeholder={config.testMode ? 'sk_test_...' : 'sk_live_...'}
-                    className="pr-9 text-right"
-                    dir="rtl"
+                    className="pl-9"
                   />
-                  <Lock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground text-right">
-                  ملاحظة: يجب تخزين المفاتيح السرية بشكل آمن على الخادم الخاص بك، وليس في كود العميل.
+                <p className="text-xs text-muted-foreground">
+                  Note: Secret keys should be stored securely on your server, not in client-side code.
                 </p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="webhookSecret" className="text-right">سر Webhook</Label>
+                <Label htmlFor="webhookSecret">Webhook Secret</Label>
                 <div className="relative">
                   <Input
                     id="webhookSecret"
@@ -159,29 +158,28 @@ const PaymentGatewaySettings = () => {
                     value={config.webhookSecret}
                     onChange={handleInputChange}
                     placeholder="whsec_..."
-                    className="pr-9 text-right"
-                    dir="rtl"
+                    className="pl-9"
                   />
-                  <Lock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
               
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start flex-row-reverse">
-                <AlertCircle className="h-5 w-5 text-amber-500 ml-3 mt-0.5" />
-                <div className="text-right">
-                  <h4 className="text-sm font-medium text-amber-800">إشعار أمني مهم</h4>
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start">
+                <AlertCircle className="h-5 w-5 text-amber-500 mr-3 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800">Important Security Notice</h4>
                   <p className="text-sm text-amber-700 mt-1">
-                    مفاتيح API هي بيانات اعتماد حساسة. للإنتاج، قم بتخزين هذه القيم في متغيرات البيئة الآمنة.
-                    هذه الواجهة مخصصة لأغراض التطوير والاختبار فقط.
+                    API keys are sensitive credentials. For production, store these values in secure environment variables.
+                    This interface is for development and testing purposes only.
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between pt-2 flex-row-reverse">
-                <div className="flex flex-col gap-2 text-right">
-                  <Label htmlFor="enabled" className="text-base">تفعيل بوابة الدفع</Label>
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="enabled" className="text-base">Enable Payment Gateway</Label>
                   <span className="text-muted-foreground text-sm">
-                    تنشيط معالجة المدفوعات في موقعك
+                    Activate payment processing on your site
                   </span>
                 </div>
                 <Switch
@@ -196,18 +194,27 @@ const PaymentGatewaySettings = () => {
           
           <TabsContent value="paypal">
             <div className="flex items-center justify-center h-40">
-              <p className="text-muted-foreground text-right">تكامل باي بال قادم قريباً</p>
+              <p className="text-muted-foreground">PayPal integration coming soon</p>
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
       
-      <CardFooter className="flex gap-2 flex-row-reverse">
-        <Button onClick={handleSaveSettings} disabled={loading}>
-          {loading ? "جاري الحفظ..." : "حفظ الإعدادات"}
+      <CardFooter className="flex justify-between pt-2 gap-4">
+        <Button
+          variant="outline"
+          onClick={testConnection}
+          disabled={loading || !config.apiKey || !config.secretKey}
+          className="w-full sm:w-auto"
+        >
+          Test Connection
         </Button>
-        <Button variant="outline" onClick={testConnection} disabled={loading}>
-          {loading ? "جاري الاختبار..." : "اختبار الاتصال"}
+        <Button
+          onClick={handleSaveSettings}
+          disabled={loading || !config.apiKey || !config.secretKey}
+          className="w-full sm:w-auto"
+        >
+          {loading ? "Saving..." : "Save Settings"}
         </Button>
       </CardFooter>
     </Card>

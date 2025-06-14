@@ -1,11 +1,10 @@
+
 import React, { useMemo } from 'react';
 import { Car, DollarSign, Users, FileText } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '@/utils/translation-helper';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -14,8 +13,6 @@ interface DashboardStatsProps {
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { language } = useLanguage();
   
   // Generate sample sparkline data - in a real app, this would come from historical data
   const sparklineData = useMemo(() => ({
@@ -24,24 +21,20 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
     customers: [110, 125, 130, 145, 160, 175, 190],
     agreements: [80, 95, 105, 115, 125, 130, 140]
   }), []);
-
-  // Format currency with English digits but Arabic QAR symbol
-  const formatCurrencyArabic = (amount: number) => {
-    return `${amount.toLocaleString('en-US')} ر.ق`;
-  };
   
   if (!stats && !loading) return null;
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition">
       <StatCard
-        title="إجمالي المركبات"
-        value={loading ? '—' : stats?.vehicleStats.total.toString() || '0'}
-        description={loading ? 'جاري التحميل...' : `متاحة: ${stats?.vehicleStats.available || 0}`}
+        title="Total Vehicles"
+        value={loading ? "—" : stats?.vehicleStats.total.toString() || "0"}
+        description={loading ? "Loading..." : `Available: ${stats?.vehicleStats.available || 0}`}
         icon={Car}
         iconColor="text-blue-500"
-        trend={loading ? 0 : stats?.vehicleStats.available && stats?.vehicleStats.total > 0 ? Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
-        trendLabel="معدل التوفر"
+        trend={loading ? 0 : stats?.vehicleStats.available && stats?.vehicleStats.total > 0 ? 
+          Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
+        trendLabel="availability rate"
         className="transition-shadow hover:shadow-md"
         onClick={() => !loading && navigate('/vehicles')}
         sparkline={sparklineData.vehicles}
@@ -50,13 +43,13 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       />
       
       <StatCard
-        title="الإيرادات"
-        value={loading ? '—' : formatCurrencyArabic(stats?.financialStats.currentMonthRevenue || 0)}
-        description={loading ? 'جاري التحميل...' : 'هذا الشهر'}
+        title="Revenue"
+        value={loading ? "—" : formatCurrency(stats?.financialStats.currentMonthRevenue || 0)}
+        description={loading ? "Loading..." : "This month"}
         icon={DollarSign}
         iconColor="text-green-500"
         trend={loading ? 0 : stats?.financialStats.revenueGrowth || 0}
-        trendLabel="مقارنة بالشهر الماضي"
+        trendLabel="vs last month"
         className="transition-shadow hover:shadow-md"
         onClick={() => !loading && navigate('/financials')}
         sparkline={sparklineData.revenue}
@@ -65,13 +58,13 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       />
       
       <StatCard
-        title="العملاء النشطون"
-        value={loading ? '—' : stats?.customerStats.active.toString() || '0'}
-        description={loading ? 'جاري التحميل...' : `الإجمالي: ${stats?.customerStats.total || 0}`}
+        title="Active Customers"
+        value={loading ? "—" : stats?.customerStats.active.toString() || "0"}
+        description={loading ? "Loading..." : `Total: ${stats?.customerStats.total || 0}`}
         icon={Users}
         iconColor="text-violet-500"
         trend={loading ? 0 : stats?.customerStats.growth || 0}
-        trendLabel="مقارنة بالشهر الماضي"
+        trendLabel="vs last month"
         className="transition-shadow hover:shadow-md"
         onClick={() => !loading && navigate('/customers')}
         sparkline={sparklineData.customers}
@@ -80,13 +73,13 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, loading = false 
       />
       
       <StatCard
-        title="العقود"
-        value={loading ? '—' : stats?.agreementStats.active.toString() || '0'}
-        description={loading ? 'جاري التحميل...' : 'العقود النشطة'}
+        title="Contracts"
+        value={loading ? "—" : stats?.agreementStats.active.toString() || "0"}
+        description={loading ? "Loading..." : "Active agreements"}
         icon={FileText}
         iconColor="text-amber-500"
         trend={loading ? 0 : stats?.agreementStats.growth || 0}
-        trendLabel="مقارنة بالشهر الماضي"
+        trendLabel="vs last month"
         className="transition-shadow hover:shadow-md"
         onClick={() => !loading && navigate('/agreements')}
         sparkline={sparklineData.agreements}

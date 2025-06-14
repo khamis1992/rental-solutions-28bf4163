@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +9,6 @@ import RevenueChart from './RevenueChart';
 import VehicleStatusChart from './VehicleStatusChart';
 import RecentActivity from './RecentActivity';
 import { DashboardStats as DashboardStatsType, RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
-import { useTranslation } from '@/utils/translation-helper';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DashboardContentProps {
   isLoading: boolean;
@@ -32,22 +31,20 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   collapsedSections,
   onToggleSection
 }) => {
-  const { t } = useTranslation();
-  const { language } = useLanguage();
-  
   if (isError) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-right" dir="rtl">
-        فشل في تحميل بيانات لوحة التحكم
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        Failed to load dashboard data. Please try again later.
         {error && <p className="text-sm mt-1">{error.toString()}</p>}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="space-y-6">
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Key Performance Indicators</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -56,14 +53,17 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           >
             {collapsedSections['kpis'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">المؤشرات الرئيسية</h2>
         </div>
         {!collapsedSections['kpis'] && <DashboardStats stats={stats} loading={isLoading} />}
       </div>
       
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <div className="flex items-center gap-2 space-x-reverse">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Fleet Status</h2>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-background">
+              {isLoading ? "Loading..." : `${stats?.vehicleStats.total || 0} Total Vehicles`}
+            </Badge>
             <Button
               variant="ghost"
               size="sm"
@@ -72,11 +72,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             >
               {collapsedSections['fleet'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
-            <Badge variant="outline" className="bg-background">
-              {isLoading ? 'جاري التحميل...' : `إجمالي المركبات: ${stats?.vehicleStats.total || 0}`}
-            </Badge>
           </div>
-          <h2 className="text-lg font-semibold text-right">حالة الأسطول</h2>
         </div>
         {!collapsedSections['fleet'] && (
           isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <VehicleStatusChart data={stats?.vehicleStats} />
@@ -84,24 +80,30 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       </div>
       
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onToggleSection('revenue')}
-          >
-            {collapsedSections['revenue'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-          <h2 className="text-lg font-semibold text-right">تحليل الإيرادات</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Revenue Overview</h2>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-background">
+              Last 6 Months
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onToggleSection('revenue')}
+            >
+              {collapsedSections['revenue'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
         {!collapsedSections['revenue'] && (
-          isLoading ? <Skeleton className="h-[300px] w-full rounded-lg" /> : <RevenueChart data={revenue} />
+          isLoading ? <Skeleton className="h-[350px] w-full rounded-lg" /> : <RevenueChart data={revenue} fullWidth={true} />
         )}
       </div>
       
       <div className="dashboard-section animate-fade-in">
-        <div className="flex items-center justify-between mb-4 flex-row-reverse">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -110,10 +112,15 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           >
             {collapsedSections['activity'] ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
-          <h2 className="text-lg font-semibold text-right">النشاط الأخير</h2>
         </div>
         {!collapsedSections['activity'] && (
-          isLoading ? <Skeleton className="h-[200px] w-full rounded-lg" /> : <RecentActivity activities={activity} />
+          isLoading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-md" />
+              ))}
+            </div>
+          ) : <RecentActivity activities={activity} />
         )}
       </div>
     </div>

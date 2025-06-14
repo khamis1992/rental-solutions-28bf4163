@@ -45,11 +45,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         invoice_number: '',
         odometer_reading: 0,
         notes: '',
-        category_id: '',
-        photos: []
+        category_id: ''
       }
     }
   });
+
+  const [photos, setPhotos] = useState<string[]>(initialData?.photos || []);
 
   useEffect(() => {
     if (!initialData) return;
@@ -78,47 +79,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     if (initialData.odometer_reading) {
       form.setValue('odometer_reading', initialData.odometer_reading);
     }
-    if (initialData.photos) {
-      form.setValue('photos', initialData.photos);
-    }
   }, [initialData, form]);
 
   const handleSubmit = async (data: any) => {
     try {
-      await onSubmit(data);
+      await onSubmit({ ...data, photos });
     } catch (error) {
-      toast.error('فشل في حفظ البيانات');
+      toast.error('Failed to save maintenance record');
       console.error('Error in maintenance form:', error);
     }
   };
 
   return (
-    <div dir="rtl">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MaintenanceBasicFields form={form} />
-            <MaintenanceTypeFields form={form} categories={categories} />
-            <MaintenanceDateFields form={form} />
-            <MaintenanceCostFields form={form} />
-            <MaintenanceDescriptionFields form={form} />
-            <div className="md:col-span-2">
-              <MaintenancePhotoUpload form={form} />
-            </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <MaintenanceBasicFields form={form} />
+          <MaintenanceTypeFields form={form} categories={categories} />
+          <MaintenanceDateFields form={form} />
+          <MaintenanceCostFields form={form} />
+          <MaintenanceDescriptionFields form={form} />
+          <div className="md:col-span-2">
+            <MaintenancePhotoUpload photos={photos} onChange={setPhotos} />
           </div>
+        </div>
 
-          <div className="flex gap-4 justify-end">
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="min-w-32"
-            >
-              {isSubmitting ? 'جاري الحفظ...' : (isEditMode ? 'تحديث' : 'حفظ')}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+        <MaintenanceFormActions 
+          isSubmitting={isSubmitting}
+          hasInitialData={!!initialData?.id}
+        />
+      </form>
+    </Form>
   );
 };
 

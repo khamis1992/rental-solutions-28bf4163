@@ -314,7 +314,7 @@ export function useDashboardData() {
         leases.forEach(lease => {
           const typedLease = lease as unknown as LeaseWithRelations;
           
-          const customerName = typedLease.profiles?.full_name || 'عميل';
+          const customerName = typedLease.profiles?.full_name || 'Customer';
           const vehicleMake = typedLease.vehicles?.make || '';
           const vehicleModel = typedLease.vehicles?.model || '';
           const licensePlate = typedLease.vehicles?.license_plate || '';
@@ -322,8 +322,8 @@ export function useDashboardData() {
           activities.push({
             id: typedLease.id,
             type: 'rental',
-            title: 'تأجير جديد',
-            description: `${customerName} استأجر ${vehicleMake} ${vehicleModel} (${licensePlate})`,
+            title: 'New Rental',
+            description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
             time: getTimeAgo(new Date(typedLease.created_at))
           });
         });
@@ -334,8 +334,8 @@ export function useDashboardData() {
           activities.push({
             id: payment.id,
             type: 'payment',
-            title: 'دفعة مستلمة',
-            description: `${paymentAmount.toFixed(2)} ر.ق تم استلامها للعقد #${payment.lease_id}`,
+            title: 'Payment Received',
+            description: `QAR ${paymentAmount.toFixed(2)} received for lease #${payment.lease_id}`,
             time: getTimeAgo(new Date(payment.payment_date))
           });
         });
@@ -350,8 +350,8 @@ export function useDashboardData() {
           activities.push({
             id: typedItem.id,
             type: 'maintenance',
-            title: 'صيانة مجدولة',
-            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) مجدولة لـ ${typedItem.maintenance_type}`,
+            title: 'Maintenance Scheduled',
+            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${typedItem.maintenance_type}`,
             time: getTimeAgo(new Date(typedItem.created_at))
           });
         });
@@ -389,41 +389,25 @@ function getTimeAgo(date: Date): string {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMinutes < 1) {
-    return 'الآن';
-  } else if (diffInMinutes < 60) {
-    return `منذ ${diffInMinutes} ${diffInMinutes === 1 ? 'دقيقة' : 'دقائق'}`;
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minutes ago`;
   } else if (diffInHours < 24) {
-    return `منذ ${diffInHours} ${diffInHours === 1 ? 'ساعة' : diffInHours === 2 ? 'ساعتين' : 'ساعات'}`;
+    return `${diffInHours} hours ago`;
   } else {
-    return `منذ ${diffInDays} ${diffInDays === 1 ? 'يوم' : diffInDays === 2 ? 'يومين' : 'أيام'}`;
+    return `${diffInDays} days ago`;
   }
 }
 
 function parseTimeAgo(timeAgo: string): number {
-  // Handle both Arabic and English time formats for compatibility
-  if (timeAgo === 'الآن') return 0;
+  const match = timeAgo.match(/(\d+)\s+(\w+)/);
+  if (!match) return 9999;
   
-  const arabicMatch = timeAgo.match(/منذ\s+(\d+)\s+(\S+)/);
-  if (arabicMatch) {
-    const [_, value, unit] = arabicMatch;
-    const numValue = parseInt(value);
-    
-    if (unit.includes('دقيقة') || unit.includes('دقائق')) return numValue;
-    if (unit.includes('ساعة') || unit.includes('ساعتين') || unit.includes('ساعات')) return numValue * 60;
-    if (unit.includes('يوم') || unit.includes('يومين') || unit.includes('أيام')) return numValue * 60 * 24;
-  }
+  const [_, value, unit] = match;
+  const numValue = parseInt(value);
   
-  // Fallback to English parsing for backwards compatibility
-  const englishMatch = timeAgo.match(/(\d+)\s+(\w+)/);
-  if (englishMatch) {
-    const [_, value, unit] = englishMatch;
-    const numValue = parseInt(value);
-    
-    if (unit.includes('minute')) return numValue;
-    if (unit.includes('hour')) return numValue * 60;
-    if (unit.includes('day')) return numValue * 60 * 24;
-  }
+  if (unit.includes('minute')) return numValue;
+  if (unit.includes('hour')) return numValue * 60;
+  if (unit.includes('day')) return numValue * 60 * 24;
   
   return 9999;
 }

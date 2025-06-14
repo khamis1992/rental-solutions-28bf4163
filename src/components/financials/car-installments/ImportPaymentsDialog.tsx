@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -23,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, FileUp } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const formSchema = z.object({
   file: z.instanceof(File, {
@@ -42,7 +42,6 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
   onOpenChange,
   onSubmit,
 }) => {
-  const { language } = useLanguage();
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [parsingError, setParsingError] = useState<string | null>(null);
 
@@ -67,10 +66,7 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
       // Split the text into lines and remove any empty lines
       const lines = text.split('\n').filter(line => line.trim());
       if (lines.length < 2) {
-        throw new Error(language === 'ar' ? 
-          'يجب أن يحتوي ملف CSV على صف رأس وصف بيانات واحد على الأقل' :
-          'CSV file must contain a header row and at least one data row'
-        );
+        throw new Error('CSV file must contain a header row and at least one data row');
       }
 
       // Parse the header row
@@ -80,10 +76,7 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
       // Check if all required headers are present
       const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
       if (missingHeaders.length > 0) {
-        throw new Error(language === 'ar' ? 
-          `رؤوس مطلوبة مفقودة: ${missingHeaders.join(', ')}` :
-          `Missing required headers: ${missingHeaders.join(', ')}`
-        );
+        throw new Error(`Missing required headers: ${missingHeaders.join(', ')}`);
       }
 
       // Parse the data rows
@@ -105,10 +98,7 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
           if (header === 'amount') {
             const numValue = parseFloat(value);
             if (isNaN(numValue) || numValue <= 0) {
-              throw new Error(language === 'ar' ? 
-                `مبلغ غير صالح في الصف ${i}: ${value}` :
-                `Invalid amount on row ${i}: ${value}`
-              );
+              throw new Error(`Invalid amount on row ${i}: ${value}`);
             }
             row[header] = numValue;
           } else {
@@ -120,17 +110,12 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
       }
 
       if (parsedRows.length === 0) {
-        throw new Error(language === 'ar' ? 
-          'لم يتم العثور على بيانات دفع صالحة في ملف CSV' :
-          'No valid payment data found in the CSV file'
-        );
+        throw new Error('No valid payment data found in the CSV file');
       }
 
       setParsedData(parsedRows);
     } catch (error) {
-      setParsingError(error instanceof Error ? error.message : 
-        (language === 'ar' ? 'خطأ في تحليل ملف CSV' : 'Error parsing CSV file')
-      );
+      setParsingError(error instanceof Error ? error.message : 'Error parsing CSV file');
     }
   };
 
@@ -163,9 +148,9 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <DialogHeader className={language === 'ar' ? 'text-right' : 'text-left'}>
-          <DialogTitle>{language === 'ar' ? 'استيراد المدفوعات' : 'Import Payments'}</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Import Payments</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form className="space-y-4">
@@ -174,11 +159,9 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
               name="file"
               render={({ field: { value, onChange, ...fieldProps }, formState }) => (
                 <FormItem>
-                  <FormLabel className={language === 'ar' ? 'text-right' : 'text-left'}>
-                    {language === 'ar' ? 'ملف CSV' : 'CSV File'}
-                  </FormLabel>
+                  <FormLabel>CSV File</FormLabel>
                   <FormControl>
-                    <div className={`flex items-center gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                    <div className="flex items-center gap-2">
                       <input
                         id="csv-file"
                         type="file"
@@ -189,21 +172,18 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
                       />
                       <Label
                         htmlFor="csv-file"
-                        className={`cursor-pointer border rounded-md p-2 flex items-center gap-2 bg-muted hover:bg-muted/80 transition-colors ${language === 'ar' ? 'flex-row-reverse' : ''}`}
+                        className="cursor-pointer border rounded-md p-2 flex items-center gap-2 bg-muted hover:bg-muted/80 transition-colors"
                       >
                         <FileUp className="h-4 w-4" />
-                        {language === 'ar' ? 'اختر ملف CSV' : 'Choose CSV File'}
+                        Choose CSV File
                       </Label>
-                      <span className={`text-sm text-muted-foreground ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                        {value ? value.name : (language === 'ar' ? 'لم يتم اختيار ملف' : 'No file chosen')}
+                      <span className="text-sm text-muted-foreground">
+                        {value ? value.name : 'No file chosen'}
                       </span>
                     </div>
                   </FormControl>
-                  <FormDescription className={language === 'ar' ? 'text-right' : 'text-left'}>
-                    {language === 'ar' ? 
-                      'قم برفع ملف CSV مع الأعمدة: cheque_number, drawee_bank, amount, payment_date, notes (اختياري)' :
-                      'Upload a CSV file with columns: cheque_number, drawee_bank, amount, payment_date, notes (optional)'
-                    }
+                  <FormDescription>
+                    Upload a CSV file with columns: cheque_number, drawee_bank, amount, payment_date, notes (optional)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -213,85 +193,57 @@ export const ImportPaymentsDialog: React.FC<ImportPaymentsDialogProps> = ({
             {parsingError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{language === 'ar' ? 'خطأ' : 'Error'}</AlertTitle>
+                <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{parsingError}</AlertDescription>
               </Alert>
             )}
 
             {parsedData.length > 0 && (
-              <div className="space-y-4">
-                <h4 className={`text-sm font-medium ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                  {language === 'ar' ? 'معاينة البيانات المستوردة' : 'Preview of imported data'} ({parsedData.length} {language === 'ar' ? 'صفوف' : 'rows'})
-                </h4>
-                <div className="rounded-md border max-h-64 overflow-auto">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {parsedData.length} Payments to Import
+                </h3>
+                <div className="border rounded-md overflow-auto max-h-[40vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>
-                          {language === 'ar' ? 'رقم الشيك' : 'Cheque Number'}
-                        </TableHead>
-                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>
-                          {language === 'ar' ? 'البنك المسحوب عليه' : 'Drawee Bank'}
-                        </TableHead>
-                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>
-                          {language === 'ar' ? 'المبلغ' : 'Amount'}
-                        </TableHead>
-                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>
-                          {language === 'ar' ? 'تاريخ الدفع' : 'Payment Date'}
-                        </TableHead>
-                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>
-                          {language === 'ar' ? 'ملاحظات' : 'Notes'}
-                        </TableHead>
+                        <TableHead>Cheque Number</TableHead>
+                        <TableHead>Bank</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Payment Date</TableHead>
+                        <TableHead>Notes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {parsedData.slice(0, 10).map((row, index) => (
+                      {parsedData.map((row, index) => (
                         <TableRow key={index}>
-                          <TableCell className={language === 'ar' ? 'text-right' : 'text-left'}>
-                            {row.cheque_number}
-                          </TableCell>
-                          <TableCell className={language === 'ar' ? 'text-right' : 'text-left'}>
-                            {row.drawee_bank}
-                          </TableCell>
-                          <TableCell className={language === 'ar' ? 'text-right' : 'text-left'}>
-                            {row.amount}
-                          </TableCell>
-                          <TableCell className={language === 'ar' ? 'text-right' : 'text-left'}>
-                            {row.payment_date}
-                          </TableCell>
-                          <TableCell className={language === 'ar' ? 'text-right' : 'text-left'}>
-                            {row.notes || '-'}
-                          </TableCell>
+                          <TableCell>{row.cheque_number}</TableCell>
+                          <TableCell>{row.drawee_bank}</TableCell>
+                          <TableCell>{row.amount}</TableCell>
+                          <TableCell>{row.payment_date}</TableCell>
+                          <TableCell>{row.notes || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                  {parsedData.length > 10 && (
-                    <div className={`p-2 text-sm text-muted-foreground text-center ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                      {language === 'ar' ? 
-                        `و ${parsedData.length - 10} صفوف أخرى...` :
-                        `... and ${parsedData.length - 10} more rows`
-                      }
-                    </div>
-                  )}
                 </div>
               </div>
             )}
 
-            <DialogFooter className={language === 'ar' ? 'flex-row-reverse' : ''}>
-              <Button
-                type="button"
-                variant="outline"
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={() => onOpenChange(false)}
               >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                Cancel
               </Button>
-              <Button
+              <Button 
                 type="button"
-                onClick={handleSubmit}
                 disabled={parsedData.length === 0}
+                onClick={handleSubmit}
               >
-                {language === 'ar' ? `استيراد ${parsedData.length} مدفوعات` : `Import ${parsedData.length} Payments`}
+                Import {parsedData.length} Payment{parsedData.length !== 1 ? 's' : ''}
               </Button>
             </DialogFooter>
           </form>

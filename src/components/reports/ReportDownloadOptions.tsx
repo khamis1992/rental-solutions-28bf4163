@@ -21,7 +21,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     try {
       let data = getReportData();
       if (!data || data.length === 0) {
-        toast.error('لا توجد بيانات للتصدير');
+        toast.error('No data to export');
         return;
       }
       
@@ -35,7 +35,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         }));
         
         const doc = generateStandardReport(
-          'تقرير المخالفات المرورية',
+          'TRAFFIC FINES REPORT',
           { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() },
           (doc, startY) => {
             let y = startY;
@@ -55,8 +55,8 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
             doc.setTextColor(44, 62, 80);
-            doc.text(`إجمالي المخالفات: ${data.length}`, 20, y + 12);
-            doc.text(`إجمالي المبلغ: ${formatCurrency(totalAmount)}`, pageWidth - 40, y + 12, { align: 'right' });
+            doc.text(`Total Fines: ${data.length}`, 20, y + 12);
+            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, pageWidth - 40, y + 12, { align: 'right' });
             
             y += 30;
             
@@ -83,7 +83,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               
               y += 12;
               
-              const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'المبلغ'];
+              const headers = ['Violation #', 'License Plate', 'Date', 'Amount'];
               const columnWidths = [50, 50, 40, 40];
               const tableStartX = 15;
               
@@ -158,8 +158,8 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           }
         );
         
-        doc.save('تقرير-المخالفات-المرورية.pdf');
-        toast.success('تم تنزيل تقرير PDF بنجاح');
+        doc.save('traffic-fines-report.pdf');
+        toast.success('PDF Report downloaded successfully');
       } else {        // Handle other report types with proper pagination
         const pdf = new jsPDF();
         const pageWidth = pdf.internal.pageSize.getWidth();
@@ -172,13 +172,13 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         pdf.setFontSize(20);
         pdf.setTextColor(44, 62, 80);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(`تقرير ${reportType.toUpperCase()}`, 105, 20, { align: 'center' });
+        pdf.text(`${reportType.toUpperCase()} REPORT`, 105, 20, { align: 'center' });
         
         pdf.setFontSize(12);
         pdf.setTextColor(100, 100, 100);
         pdf.setFont('helvetica', 'normal');
         const date = formatDate(new Date());
-        pdf.text(`تم الإنشاء في: ${date}`, 105, 30, { align: 'center' });
+        pdf.text(`Generated on: ${date}`, 105, 30, { align: 'center' });
         
         let y = 40;
         
@@ -191,10 +191,10 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           }, 0);
           
           pdf.setFont('helvetica', 'bold');
-          pdf.text('ملخص التقرير', 20, 45);
+          pdf.text('Report Summary', 20, 45);
           pdf.setFont('helvetica', 'normal');
-          pdf.text(`إجمالي المخالفات: ${data.length}`, 20, 55);
-          pdf.text(`إجمالي المبلغ: ${formatCurrency(totalAmount)}`, 20, 62);
+          pdf.text(`Total Fines: ${data.length}`, 20, 55);
+          pdf.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 62);
         }
         
         if (reportType === 'traffic') {
@@ -222,7 +222,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             groupedData[month].push(item);
           });
           
-          const headers = ['رقم المخالفة', 'لوحة الترخيص', 'تاريخ المخالفة', 'المخالف', 'المبلغ'];
+          const headers = ['Violation #', 'License Plate', 'Date', 'Driver/Customer', 'Amount'];
           const columnWidths = [40, 30, 30, 50, 30];
           
           Object.entries(groupedData).forEach(([month, monthData]) => {
@@ -307,7 +307,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             });
             
             pdf.setFont('helvetica', 'bold');
-            pdf.text(`إجمالي الشهر: ${formatCurrency(monthTotal)}`, pdf.internal.pageSize.width - 60, y);
+            pdf.text(`Month Total: ${formatCurrency(monthTotal)}`, pdf.internal.pageSize.width - 60, y);
             y += 15;
           });
         } else {
@@ -380,7 +380,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               let displayValue = String(cell || '');
               
               if (typeof cell === 'boolean') {
-                displayValue = cell ? 'نعم' : 'لا';
+                displayValue = cell ? 'Yes' : 'No';
               }
               
               if (displayValue.length > 30 && !headers[i].includes('customer')) {
@@ -408,16 +408,16 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           pdf.setFont('helvetica', 'italic');
           pdf.setFontSize(10);
           pdf.setTextColor(150, 150, 150);
-          pdf.text(`صفحة ${i} من ${pageCount}`, 105, 260, { align: 'center' });
+          pdf.text(`Page ${i} of ${pageCount}`, 105, 260, { align: 'center' });
           pdf.text('CONFIDENTIAL - ALARAF CAR RENTAL', 105, 287, { align: 'center' });
         }
         
-        pdf.save(`تقرير-${reportType}-${formatDate(new Date())}.pdf`);
-        toast.success('تم تنزيل تقرير PDF بنجاح');
+        pdf.save(`${reportType.toLowerCase()}-report.pdf`);
+        toast.success('PDF Report downloaded successfully');
       }
     } catch (error) {
-      console.error('خطأ في إنشاء PDF:', error);
-      toast.error('خطأ في إنشاء ملف PDF');
+      console.error('Error generating PDF:', error);
+      toast.error('Error generating PDF');
     }
   };
 
@@ -425,7 +425,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     try {
       let data = getReportData();
       if (!data || data.length === 0) {
-        toast.error('لا توجد بيانات للتصدير');
+        toast.error('No data to export');
         return;
       }
       
@@ -441,11 +441,11 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       
       XLSX.utils.book_append_sheet(wb, ws, reportType);
       
-      XLSX.writeFile(wb, `تقرير-${reportType}-${formatDate(new Date())}.xlsx`);
-      toast.success('تم تنزيل تقرير Excel بنجاح');
+      XLSX.writeFile(wb, `${reportType.toLowerCase()}-report.xlsx`);
+      toast.success('Excel Report downloaded successfully');
     } catch (error) {
-      console.error('خطأ في إنشاء Excel:', error);
-      toast.error('خطأ في إنشاء ملف Excel');
+      console.error('Error generating Excel:', error);
+      toast.error('Error generating Excel file');
     }
   };
 
@@ -453,7 +453,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     try {
       let data = getReportData();
       if (!data || data.length === 0) {
-        toast.error('لا توجد بيانات للتصدير');
+        toast.error('No data to export');
         return;
       }
       
@@ -471,31 +471,31 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `تقرير-${reportType.toLowerCase()}.csv`);
+      link.setAttribute('download', `${reportType.toLowerCase()}-report.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      toast.success('تم تنزيل تقرير CSV بنجاح');
+      toast.success('CSV Report downloaded successfully');
     } catch (error) {
-      console.error('خطأ في إنشاء CSV:', error);
-      toast.error('خطأ في إنشاء ملف CSV');
+      console.error('Error generating CSV:', error);
+      toast.error('Error generating CSV file');
     }
   };
 
   return (
-    <div className="flex gap-2 mb-4 flex-row-reverse" dir="rtl">
+    <div className="flex gap-2 mb-4">
       <Button variant="outline" onClick={handleDownloadPDF}>
-        <Download className="ml-2 h-4 w-4" />
-        تصدير كـ PDF
+        <Download className="mr-2 h-4 w-4" />
+        Export as PDF
       </Button>
       <Button variant="outline" onClick={handleDownloadExcel}>
-        <FileText className="ml-2 h-4 w-4" />
-        تصدير كـ Excel
+        <FileText className="mr-2 h-4 w-4" />
+        Export as Excel
       </Button>
       <Button variant="outline" onClick={handleDownloadCSV}>
-        <FileText className="ml-2 h-4 w-4" />
-        تصدير كـ CSV
+        <FileText className="mr-2 h-4 w-4" />
+        Export as CSV
       </Button>
     </div>
   );

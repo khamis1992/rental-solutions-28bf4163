@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -39,10 +40,10 @@ export function UnifiedPaymentTable({
 
   if (!payments || payments.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground" dir="rtl">
-        <p className="text-right">لم يتم العثور على سجلات دفع</p>
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No payment records found</p>
         {showProjectedPayments && (
-          <p className="text-sm mt-2 text-right">لا يمكن إنشاء جدولة الدفعات</p>
+          <p className="text-sm mt-2">Payment schedule could not be generated</p>
         )}
       </div>
     );
@@ -51,59 +52,59 @@ export function UnifiedPaymentTable({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-500 text-white">مدفوع</Badge>;
+        return <Badge className="bg-green-500 text-white">Paid</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white">معلق</Badge>;
+        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
       case 'overdue':
-        return <Badge className="bg-red-500 text-white">متأخر</Badge>;
+        return <Badge className="bg-red-500 text-white">Overdue</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <div className="rounded-md border" dir="rtl">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
-            <TableHead className="text-right">الوصف</TableHead>
-            <TableHead className="text-right">المبلغ</TableHead>
-            <TableHead className="text-right">الحالة</TableHead>
-            <TableHead className="text-right">النوع</TableHead>
-            <TableHead className="text-right">الإجراءات</TableHead>
+            <TableHead>Due Date</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {payments.map((payment) => (
             <TableRow key={payment.id} className={payment.isProjected ? 'bg-blue-50' : ''}>
-              <TableCell className="text-right">
-                <div className="flex items-center flex-row-reverse">
-                  <Calendar className="h-4 w-4 ml-2 text-muted-foreground" />
+              <TableCell>
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                   {formatDate(payment.dueDate)}
                 </div>
               </TableCell>
-              <TableCell className="text-right">{payment.description}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center flex-row-reverse">
-                  <DollarSign className="h-4 w-4 ml-1 text-muted-foreground" />
+              <TableCell>{payment.description}</TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
                   {formatCurrency(payment.amount)}
                 </div>
               </TableCell>
-              <TableCell className="text-right">{getStatusBadge(payment.status)}</TableCell>
-              <TableCell className="text-right">
+              <TableCell>{getStatusBadge(payment.status)}</TableCell>
+              <TableCell>
                 <Badge variant="outline" className="capitalize">
                   {payment.type}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell>
                 {payment.isProjected && payment.status !== 'completed' && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => onRecordPayment(payment)}
                   >
-                    تسجيل الدفعة
+                    Record Payment
                   </Button>
                 )}
               </TableCell>

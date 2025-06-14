@@ -81,98 +81,71 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'pending': { 
-        variant: 'secondary' as const, 
-        icon: Clock, 
-        color: 'text-yellow-600',
-        label: 'معلق'
-      },
-      'in_progress': { 
-        variant: 'default' as const, 
-        icon: AlertTriangle, 
-        color: 'text-blue-600',
-        label: 'قيد التنفيذ'
-      },
-      'resolved': { 
-        variant: 'default' as const, 
-        icon: CheckCircle2, 
-        color: 'text-green-600',
-        label: 'محلول'
-      },
-      'closed': { 
-        variant: 'outline' as const, 
-        icon: FileText, 
-        color: 'text-gray-600',
-        label: 'مغلق'
-      }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className={`h-3 w-3 ${config.color}`} />
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const priorityConfig = {
-      'low': { variant: 'outline' as const, color: 'text-green-600', label: 'منخفض' },
-      'medium': { variant: 'secondary' as const, color: 'text-yellow-600', label: 'متوسط' },
-      'high': { variant: 'destructive' as const, color: 'text-red-600', label: 'عالي' },
-      'urgent': { variant: 'destructive' as const, color: 'text-red-800', label: 'عاجل' }
-    };
-
-    const config = priorityConfig[priority as keyof typeof priorityConfig] || priorityConfig.medium;
-
-    return (
-      <Badge variant={config.variant}>
-        {config.label}
-      </Badge>
-    );
-  };
-
   const handleResolveCase = async () => {
-    if (!legalCase || !resolutionNotes.trim()) {
-      toast.error('يرجى إدخال ملاحظات الحل');
-      return;
-    }
-
-    setIsSubmitting(true);
+    if (!legalCase) return;
+    
     try {
+      setIsSubmitting(true);
+      
       const { error } = await supabase
         .from('legal_cases')
         .update({
           status: 'resolved',
           resolution_notes: resolutionNotes,
-          resolved_at: new Date().toISOString()
+          resolution_date: new Date().toISOString()
         })
         .eq('id', legalCase.id);
-
-      if (error) throw error;
-
-      toast.success('تم حل القضية بنجاح');
+        
+      if (error) {
+        console.error("Error resolving case:", error);
+        toast.error("Failed to resolve legal case");
+        return;
+      }
+      
+      toast.success("Legal case resolved successfully");
       setIsResolutionDialogOpen(false);
-      setResolutionNotes('');
-      fetchLegalCase(); // Refresh the data
+      fetchLegalCase();
     } catch (error) {
-      console.error('Error resolving case:', error);
-      toast.error('فشل في حل القضية');
+      console.error("Error in handleResolveCase:", error);
+      toast.error("An error occurred while resolving the case");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-red-500">Active</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case 'resolved':
+        return <Badge className="bg-green-500">Resolved</Badge>;
+      case 'escalated':
+        return <Badge className="bg-purple-500">Escalated</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return <Badge className="bg-red-500">High Priority</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500">Medium Priority</Badge>;
+      case 'low':
+        return <Badge className="bg-blue-500">Low Priority</Badge>;
+      default:
+        return <Badge>{priority}</Badge>;
+    }
+  };
+
   if (isLoading) {
     return (
-      <Card dir="rtl">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-right">معلومات القضية القانونية</CardTitle>
+          <CardTitle>Legal Case Information</CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -183,15 +156,15 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
 
   if (!legalCase) {
     return (
-      <Card dir="rtl">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-right">معلومات القضية القانونية</CardTitle>
-          <CardDescription className="text-right">لم يتم العثور على قضايا قانونية لهذا العقد</CardDescription>
+          <CardTitle>Legal Case Information</CardTitle>
+          <CardDescription>No legal cases found for this agreement</CardDescription>
         </CardHeader>
         <CardContent className="text-center py-6">
           <div className="flex flex-col items-center justify-center">
             <FileText className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">لم يتم رفع أي قضايا قانونية لهذا العميل.</p>
+            <p className="text-muted-foreground">No legal cases have been filed for this customer.</p>
           </div>
         </CardContent>
       </Card>
@@ -199,14 +172,14 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   }
 
   return (
-    <Card dir="rtl">
+    <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <div className="text-right">
-            <CardTitle className="text-right">معلومات القضية القانونية</CardTitle>
-            <CardDescription className="text-right">تفاصيل القضية القانونية الخاصة بهذا العقد</CardDescription>
+          <div>
+            <CardTitle>Legal Case Information</CardTitle>
+            <CardDescription>Details about the legal case for this agreement</CardDescription>
           </div>
-          <div className="flex items-center space-x-2 space-x-reverse">
+          <div className="flex items-center space-x-2">
             {getStatusBadge(legalCase.status)}
             {legalCase.priority && getPriorityBadge(legalCase.priority)}
           </div>
@@ -215,82 +188,99 @@ export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
       <CardContent>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="text-right">
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">نوع القضية</h3>
-              <p>{legalCase.case_type || 'غير محدد'}</p>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Case Type</h3>
+              <p>{legalCase.case_type || 'N/A'}</p>
             </div>
-            <div className="text-right">
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">المبلغ المستحق</h3>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount Owed</h3>
               <p className="font-semibold text-red-600">
-                {legalCase.amount_owed ? `${legalCase.amount_owed.toLocaleString('en-US')} ر.ق` : 'غير محدد'}
+                {legalCase.amount_owed ? `QAR ${legalCase.amount_owed.toLocaleString()}` : 'N/A'}
               </p>
             </div>
-            <div className="text-right">
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">تاريخ الإنشاء</h3>
-              <p>{legalCase.created_at ? format(new Date(legalCase.created_at), 'PPP') : 'غير محدد'}</p>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Created Date</h3>
+              <p>{legalCase.created_at ? format(new Date(legalCase.created_at), 'PPP') : 'N/A'}</p>
             </div>
-            <div className="text-right">
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">مكلف إلى</h3>
-              <p>{legalCase.assigned_to || 'غير مكلف'}</p>
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h3>
+              <p>{legalCase.assigned_to || 'Unassigned'}</p>
             </div>
           </div>
           
-          <div className="text-right">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">الوصف</h3>
-            <p className="text-sm whitespace-pre-line">{legalCase.description || 'لم يتم تقديم وصف'}</p>
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+            <p className="text-sm whitespace-pre-line">{legalCase.description || 'No description provided'}</p>
           </div>
           
-          {legalCase.status !== 'resolved' && legalCase.status !== 'closed' && (
-            <div className="pt-4 border-t">
-              <Button
+          {legalCase.status === 'resolved' && (
+            <div className="bg-green-50 p-3 rounded-md border border-green-200">
+              <div className="flex items-center mb-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                <h3 className="text-sm font-medium text-green-800">Case Resolved</h3>
+              </div>
+              <p className="text-sm text-green-700 whitespace-pre-line">{legalCase.resolution_notes || 'No resolution notes provided'}</p>
+              {legalCase.resolution_date && (
+                <p className="text-xs text-green-600 mt-2">
+                  Resolved on {format(new Date(legalCase.resolution_date), 'PPP')}
+                </p>
+              )}
+            </div>
+          )}
+          
+          {legalCase.status !== 'resolved' && (
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
                 onClick={() => setIsResolutionDialogOpen(true)}
-                variant="outline"
-                size="sm"
-                className="text-right"
               >
-                حل القضية
+                Mark as Resolved
               </Button>
             </div>
           )}
         </div>
       </CardContent>
-
-      {/* Resolution Dialog */}
+      
       <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
-        <DialogContent dir="rtl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-right">حل القضية القانونية</DialogTitle>
-            <DialogDescription className="text-right">
-              يرجى إدخال ملاحظات حول كيفية حل هذه القضية.
+            <DialogTitle>Resolve Legal Case</DialogTitle>
+            <DialogDescription>
+              Enter resolution details to close this legal case.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="أدخل ملاحظات الحل..."
-              value={resolutionNotes}
-              onChange={(e) => setResolutionNotes(e.target.value)}
-              className="min-h-[100px] text-right"
-            />
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Resolution Notes</h4>
+              <Textarea
+                placeholder="Enter details about how this case was resolved..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                rows={5}
+              />
+            </div>
           </div>
-          <DialogFooter className="flex gap-2 flex-row-reverse">
-            <Button
-              variant="outline"
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
               onClick={() => setIsResolutionDialogOpen(false)}
               disabled={isSubmitting}
             >
-              إلغاء
+              Cancel
             </Button>
-            <Button
+            <Button 
               onClick={handleResolveCase}
               disabled={isSubmitting || !resolutionNotes.trim()}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحل...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resolving...
                 </>
               ) : (
-                'حل القضية'
+                'Resolve Case'
               )}
             </Button>
           </DialogFooter>

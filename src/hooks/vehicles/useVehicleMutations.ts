@@ -43,9 +43,6 @@ export function useVehicleMutations() {
   });
 
   return {
-    useCreate: () => createVehicleMutation,
-    useUpdate: () => updateVehicleMutation,
-    useDelete: () => deleteVehicleMutation,
     createVehicle: createVehicleMutation.mutate,
     updateVehicle: updateVehicleMutation.mutate,
     deleteVehicle: deleteVehicleMutation.mutate,

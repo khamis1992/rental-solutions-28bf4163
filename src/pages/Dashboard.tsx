@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useDashboardData } from '@/hooks/use-dashboard';
@@ -6,7 +7,6 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { CacheManager } from '@/lib/cache-utils';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -27,7 +27,6 @@ const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({});
-  const { language } = useLanguage();
   
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -39,8 +38,8 @@ const Dashboard = () => {
     setTimeout(() => {
       window.location.reload();
       toast({
-        title: "تم تحديث لوحة التحكم",
-        description: "تم تحديث جميع البيانات بأحدث المعلومات."
+        title: "Dashboard refreshed",
+        description: "All data has been updated with the latest information."
       });
     }, 600);
   }, []);
@@ -52,8 +51,8 @@ const Dashboard = () => {
     }));
   }, []);
   
-  // Get current date in Arabic format
-  const currentDate = new Date().toLocaleDateString('ar-SA', {
+  // Get current date in a formatted string
+  const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -94,26 +93,24 @@ const Dashboard = () => {
 
   return (
     <PageContainer>
-      <div dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <DashboardHeader 
-          currentDate={currentDate}
-          isRefreshing={isRefreshing}
-          onRefresh={handleRefresh}
-        />
-        
-        <QuickActions />
-        
-        <DashboardContent 
-          isLoading={isLoading}
-          isError={isError}
-          error={error}
-          stats={stats}
-          revenue={revenue}
-          activity={activity}
-          collapsedSections={collapsedSections}
-          onToggleSection={toggleSection}
-        />
-      </div>
+      <DashboardHeader 
+        currentDate={currentDate}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+      />
+      
+      <QuickActions />
+      
+      <DashboardContent 
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        stats={stats}
+        revenue={revenue}
+        activity={activity}
+        collapsedSections={collapsedSections}
+        onToggleSection={toggleSection}
+      />
     </PageContainer>
   );
 };

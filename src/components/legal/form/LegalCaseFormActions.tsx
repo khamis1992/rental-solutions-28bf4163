@@ -10,16 +10,16 @@ export interface LegalCaseFormActionsProps {
 
 export function LegalCaseFormActions({ onCancel, isSubmitting, isEdit }: LegalCaseFormActionsProps) {
   return (
-    <div className="flex gap-2 flex-row-reverse" dir="rtl">
-      <TooltipWrapper content={isEdit ? 'تحديث هذه القضية القانونية.' : 'إنشاء قضية قانونية جديدة.'}>
+    <div className="flex gap-2">
+      <TooltipWrapper content={isEdit ? 'Update this legal case.' : 'Create a new legal case.'}>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (isEdit ? 'جاري التحديث...' : 'جاري الإنشاء...') : (isEdit ? 'تحديث' : 'إنشاء')}
+          {isSubmitting ? (isEdit ? 'Updating...' : 'Creating...') : (isEdit ? 'Update' : 'Create')}
         </Button>
       </TooltipWrapper>
       {onCancel && (
-        <TooltipWrapper content="إلغاء والعودة إلى الصفحة السابقة.">
+        <TooltipWrapper content="Cancel and return to the previous page.">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-            إلغاء
+            Cancel
           </Button>
         </TooltipWrapper>
       )}

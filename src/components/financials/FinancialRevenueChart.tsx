@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -21,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RevenueData } from './revenue/types';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RevenueChartProps {
   data: RevenueData[];
@@ -32,20 +32,17 @@ interface RevenueChartProps {
 
 const FinancialRevenueChart: React.FC<RevenueChartProps> = ({ 
   data = [], 
-  title,
-  description,
+  title = "Financial Overview",
+  description = "Revenue, expenses, and profit trends",
   fullWidth = false 
 }) => {
   const [timePeriod, setTimePeriod] = useState<string>("6");
   const [viewType, setViewType] = useState<'area' | 'bar'>('area');
-  const { language } = useLanguage();
   
   const ensureCompleteData = (inputData: RevenueData[]): RevenueData[] => {
     if (!inputData || !Array.isArray(inputData) || inputData.length === 0) {
       console.log("No revenue data provided, showing placeholder data");
-      const months = language === 'ar' ? 
-        ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس'] :
-        ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
       return months.map(month => ({
         name: month,
         revenue: Math.floor(Math.random() * 5000) + 3000,
@@ -58,7 +55,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     // Ensure each data item has revenue and expenses properties
     return inputData.map(item => ({
       ...item,
-      name: item.name || (language === 'ar' ? 'غير معروف' : 'Unknown'),
+      name: item.name || 'Unknown',
       revenue: typeof item.revenue === 'number' ? item.revenue : 0,
       expenses: typeof item.expenses === 'number' ? item.expenses : Math.floor((item.revenue || 0) * 0.6)
     }));
@@ -80,17 +77,14 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     return revenue - expenses;
   };
 
-  const chartTitle = title || (language === 'ar' ? "نظرة عامة على إيرادات ذو الحجة" : "Dhul-Hijjah Revenue Overview");
-  const chartDescription = description || (language === 'ar' ? "اتجاهات الإيرادات والمصروفات والأرباح لشهر ذو الحجة" : "Revenue, expenses, and profit trends for Dhul-Hijjah");
-
   return (
-    <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <CardHeader className={`flex flex-row items-center justify-between pb-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-        <div className={language === 'ar' ? 'text-right' : 'text-left'}>
-          <CardTitle className="text-xl font-bold">{chartTitle}</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{chartDescription}</p>
+    <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-xl font-bold">{title}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         </div>
-        <div className={`flex items-center ${language === 'ar' ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
+        <div className="flex items-center space-x-2">
           <div className="flex items-center rounded-md border p-1">
             <Button
               variant={viewType === 'area' ? 'default' : 'ghost'}
@@ -111,13 +105,13 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
           </div>
           <Select value={timePeriod} onValueChange={setTimePeriod}>
             <SelectTrigger className="w-[160px] h-9">
-              <SelectValue placeholder={language === 'ar' ? 'اختيار الفترة' : 'Select Period'} />
+              <SelectValue placeholder="Select Period" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="3">{language === 'ar' ? 'آخر 3 أشهر' : 'Last 3 months'}</SelectItem>
-              <SelectItem value="6">{language === 'ar' ? 'آخر 6 أشهر' : 'Last 6 months'}</SelectItem>
-              <SelectItem value="12">{language === 'ar' ? 'آخر 12 شهراً' : 'Last 12 months'}</SelectItem>
-              <SelectItem value="24">{language === 'ar' ? 'آخر 24 شهراً' : 'Last 24 months'}</SelectItem>
+              <SelectItem value="3">Last 3 months</SelectItem>
+              <SelectItem value="6">Last 6 months</SelectItem>
+              <SelectItem value="12">Last 12 months</SelectItem>
+              <SelectItem value="24">Last 24 months</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -158,37 +152,24 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
                 tickFormatter={(value) => formatCurrency(value).split('.')[0]}
               />
               <Tooltip 
-                formatter={(value: number, name: any) => {
-                  if (name === 'expenses') return [
-                    formatCurrency(value), 
-                    language === 'ar' ? 'المصروفات' : 'Expenses'
-                  ];
-                  return [
-                    formatCurrency(value), 
-                    language === 'ar' ? 'الإيرادات' : 'Revenue'
-                  ];
+                formatter={(value: number, name: string) => {
+                  if (name === 'expenses') return [formatCurrency(value), 'Expenses'];
+                  return [formatCurrency(value), 'Revenue'];
                 }}
-                labelFormatter={(label) => language === 'ar' ? `الشهر: ${label}` : `Month: ${label}`}
-                content={({ active, payload, label }: any) => {
+                labelFormatter={(label) => `Month: ${label}`}
+                content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     const revenue = payload[0]?.value as number || 0;
                     const expenses = payload[1]?.value as number || 0;
                     const profit = getProfit(revenue, expenses);
                     
                     return (
-                      <div className={`custom-tooltip bg-white p-3 border border-gray-200 rounded-md shadow ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                      <div className="custom-tooltip bg-white p-3 border border-gray-200 rounded-md shadow">
                         <p className="font-medium">{label}</p>
-                        <p className="text-blue-600">
-                          {language === 'ar' ? 'الإيرادات: ' : 'Revenue: '}
-                          {formatCurrency(revenue)}
-                        </p>
-                        <p className="text-green-600">
-                          {language === 'ar' ? 'المصروفات: ' : 'Expenses: '}
-                          {formatCurrency(expenses)}
-                        </p>
+                        <p className="text-blue-600">Revenue: {formatCurrency(revenue)}</p>
+                        <p className="text-green-600">Expenses: {formatCurrency(expenses)}</p>
                         <p className={`font-medium ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          {language === 'ar' ? 'الربح: ' : 'Profit: '}
-                          {formatCurrency(profit)}
+                          Profit: {formatCurrency(profit)}
                         </p>
                       </div>
                     );
@@ -196,9 +177,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
                   return null;
                 }}
               />
-              <Legend 
-                formatter={(value) => language === 'ar' ? (value === 'Revenue' ? 'الإيرادات' : 'المصروفات') : value}
-              />
+              <Legend />
               <Area 
                 type="monotone" 
                 dataKey="revenue" 

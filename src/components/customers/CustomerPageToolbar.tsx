@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { CustomerListFilter } from '@/components/customers/CustomerListFilter';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Upload, RefreshCw, AlertTriangle } from 'lucide-react';
-import { useTranslation } from '@/utils/translation-helper';
 
 interface CustomerPageToolbarProps {
   filters: {
@@ -24,7 +23,6 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   onImportClick,
   isEdgeFunctionAvailable,
 }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleAddCustomer = () => {
@@ -32,23 +30,22 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row-reverse justify-between gap-4">
+    <div className="flex flex-col sm:flex-row justify-between gap-4">
       <CustomerListFilter 
         onSearch={(query) => setFilters({ ...filters, search: query })} 
         searchTerm={filters.search || ''}
-        onFilterChange={(filter) => setFilters({ ...filters, ...filter })}
       />
       
-      <div className="flex flex-wrap gap-2 flex-row-reverse">
+      <div className="flex flex-wrap gap-2">
         <Button 
           variant="outline" 
           size="sm" 
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex items-center gap-1 flex-row-reverse"
+          className="flex items-center gap-1"
         >
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          تحديث
+          Refresh
         </Button>
         
         <Button 
@@ -56,20 +53,20 @@ export const CustomerPageToolbar: React.FC<CustomerPageToolbarProps> = ({
           size="sm"
           onClick={onImportClick}
           disabled={!isEdgeFunctionAvailable}
-          className="flex items-center gap-1 flex-row-reverse"
+          className="flex items-center gap-1"
         >
           {!isEdgeFunctionAvailable && <AlertTriangle className="h-4 w-4 text-amber-500" />}
           <Upload className="h-4 w-4" />
-          استيراد ملف CSV
+          Import CSV
         </Button>
         
         <Button 
           onClick={handleAddCustomer}
           size="sm"
-          className="flex items-center gap-1 bg-primary text-primary-foreground hover:bg-primary/90 flex-row-reverse"
+          className="flex items-center gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <PlusCircle className="h-4 w-4" />
-          إضافة عميل
+          Add Customer
         </Button>
       </div>
     </div>

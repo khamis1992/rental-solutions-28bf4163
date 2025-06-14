@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -16,7 +17,6 @@ import { PaymentDialog } from './PaymentDialog';
 import { ImportPaymentsDialog } from './ImportPaymentsDialog';
 import { PaymentFiltersBar } from './PaymentFiltersBar';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ContractDetailDialogProps {
   open: boolean;
@@ -29,7 +29,6 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
   onOpenChange,
   contract,
 }) => {
-  const { language } = useLanguage();
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -164,10 +163,10 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className={`flex justify-between items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
+          <div className="flex justify-between items-center">
+            <DialogTitle>
               {contract.car_type} ({contract.model_year})
             </DialogTitle>
             <LoadingButton
@@ -175,22 +174,17 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
               variant="outline"
               onClick={handleRefreshSummary}
               isLoading={isRecalculating}
-              className={language === 'ar' ? 'flex-row-reverse' : ''}
             >
-              <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-              {language === 'ar' ? 'تحديث الملخص' : 'Refresh Summary'}
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh Summary
             </LoadingButton>
           </div>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview" className={language === 'ar' ? 'text-right' : 'text-left'}>
-              {language === 'ar' ? 'نظرة عامة' : 'Overview'}
-            </TabsTrigger>
-            <TabsTrigger value="payments" className={language === 'ar' ? 'text-right' : 'text-left'}>
-              {language === 'ar' ? 'جدول الدفع' : 'Payment Schedule'}
-            </TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="payments">Payment Schedule</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 pt-4">
@@ -198,42 +192,38 @@ export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4 pt-4">
-            <div className={`flex flex-wrap gap-3 justify-between items-center ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex gap-2 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+            <div className="flex flex-wrap gap-3 justify-between items-center">
+              <div className="flex gap-2">
                 <Button 
                   size="sm" 
                   onClick={handleAddPayment}
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
                 >
-                  <Plus className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                  {language === 'ar' ? 'إضافة دفعة' : 'Add Payment'}
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Payment
                 </Button>
                 <Button 
                   size="sm" 
                   variant="outline" 
                   onClick={() => setIsImportDialogOpen(true)}
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
                 >
-                  <FileUp className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                  {language === 'ar' ? 'استيراد' : 'Import'}
+                  <FileUp className="h-4 w-4 mr-1" />
+                  Import
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleExportTemplate}
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
                 >
-                  <FileDown className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                  {language === 'ar' ? 'قالب' : 'Template'}
+                  <FileDown className="h-4 w-4 mr-1" />
+                  Template
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={loadPayments}
-                  className={language === 'ar' ? 'flex-row-reverse' : ''}
                 >
-                  <RefreshCw className={`h-4 w-4 ${language === 'ar' ? 'ml-1' : 'mr-1'}`} />
-                  {language === 'ar' ? 'تحديث' : 'Refresh'}
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
                 </Button>
               </div>
               <PaymentFiltersBar

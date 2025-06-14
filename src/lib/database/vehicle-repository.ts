@@ -1,13 +1,16 @@
 import { Database } from '@/types/database.types';
 import { VehicleRow, VehicleInsert, VehicleUpdate, VehicleFilters, ExtendedVehicle, VehicleStatus } from '@/types/vehicle';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { isTableRow } from '@/lib/database/validation/typeGuards';
 
 export class VehicleRepository {
   private supabase;
 
   constructor() {
-    this.supabase = supabase;
+    this.supabase = createClient<Database>(
+      import.meta.env.VITE_SUPABASE_URL!,
+      import.meta.env.VITE_SUPABASE_ANON_KEY!
+    );
   }
 
   async findAll(filters?: VehicleFilters): Promise<{ data: ExtendedVehicle[] | null; error: Error | null }> {

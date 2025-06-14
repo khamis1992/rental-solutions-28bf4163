@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { ChartType, RevenueData } from './types';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RevenueChartContentProps {
   data: RevenueData[];
@@ -10,8 +10,6 @@ interface RevenueChartContentProps {
 }
 
 const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartType }) => {
-  const { language } = useLanguage();
-
   const renderChart = () => {
     const commonProps = {
       data,
@@ -30,18 +28,12 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
     };
 
     const tooltipProps = {
-      formatter: (value: number) => [
-        formatCurrency(value), 
-        language === 'ar' ? 'الإيرادات' : 'Revenue'
-      ],
-      labelFormatter: (label: string) => language === 'ar' ? `الفترة: ${label}` : `Period: ${label}`,
+      formatter: (value: number) => [formatCurrency(value), 'Revenue'],
       contentStyle: {
         backgroundColor: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '0.5rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        textAlign: language === 'ar' ? 'right' : 'left',
-        direction: language === 'ar' ? 'rtl' : 'ltr'
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
       }
     };
 
@@ -50,23 +42,10 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
         return (
           <BarChart {...commonProps}>
             <CartesianGrid {...commonCartesianProps} />
-            <XAxis 
-              dataKey="name" 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-            />
-            <YAxis 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-              tickFormatter={(value) => formatCurrency(value).split('.')[0]} 
-            />
+            <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
+            <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
             <Tooltip {...tooltipProps} />
-            <Bar 
-              dataKey="revenue" 
-              fill="#3b82f6" 
-              radius={[4, 4, 0, 0]} 
-              animationDuration={800} 
-            />
+            <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} animationDuration={800} />
           </BarChart>
         );
       
@@ -74,16 +53,8 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
         return (
           <LineChart {...commonProps}>
             <CartesianGrid {...commonCartesianProps} />
-            <XAxis 
-              dataKey="name" 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-            />
-            <YAxis 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-              tickFormatter={(value) => formatCurrency(value).split('.')[0]} 
-            />
+            <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
+            <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
             <Tooltip {...tooltipProps} />
             <Line 
               type="monotone" 
@@ -107,16 +78,8 @@ const RevenueChartContent: React.FC<RevenueChartContentProps> = ({ data, chartTy
               </linearGradient>
             </defs>
             <CartesianGrid {...commonCartesianProps} />
-            <XAxis 
-              dataKey="name" 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-            />
-            <YAxis 
-              {...commonAxisProps} 
-              tick={{ fill: '#64748b', fontSize: 12 }} 
-              tickFormatter={(value) => formatCurrency(value).split('.')[0]} 
-            />
+            <XAxis dataKey="name" {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} />
+            <YAxis {...commonAxisProps} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
             <Tooltip {...tooltipProps} />
             <Area 
               type="monotone" 

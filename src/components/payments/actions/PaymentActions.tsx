@@ -11,18 +11,18 @@ interface PaymentActionsProps {
 
 export function PaymentActions({ rentAmount, onRecordPaymentClick, onExportHistoryClick }: PaymentActionsProps) {
   return (
-    <div className="flex flex-wrap gap-2 flex-row-reverse" dir="rtl">
-      <TooltipWrapper content="تسجيل دفعة جديدة لهذا العقد.">
+    <div className="flex flex-wrap gap-2">
+      <TooltipWrapper content="Record a new payment for this agreement.">
         <Button onClick={onRecordPaymentClick}>
-          <Plus className="ml-2 h-4 w-4" />
-          تسجيل دفعة
+          <Plus className="mr-2 h-4 w-4" />
+          Record Payment
         </Button>
       </TooltipWrapper>
       {onExportHistoryClick && (
-        <TooltipWrapper content="تصدير سجل المدفوعات لهذا العقد.">
+        <TooltipWrapper content="Export the payment history for this agreement.">
           <Button variant="outline" onClick={onExportHistoryClick}>
-            <FileText className="ml-2 h-4 w-4" />
-            تصدير السجل
+            <FileText className="mr-2 h-4 w-4" />
+            Export History
           </Button>
         </TooltipWrapper>
       )}

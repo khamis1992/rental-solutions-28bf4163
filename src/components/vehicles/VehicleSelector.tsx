@@ -1,18 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Check, ChevronsUpDown, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ExtendedVehicle } from '@/types/vehicle';
-import { useVehicles } from '@/hooks/vehicles/useVehicles';
+import { Vehicle } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { vehicleService } from '@/services/VehicleService';
-import { enhancedVehicleSearch, isLicensePlatePattern } from '@/utils/searchUtils';
 
 interface VehicleSelectorProps {
-  selectedVehicle?: ExtendedVehicle | null;
-  onVehicleSelect: (vehicle: ExtendedVehicle) => void;
+  selectedVehicle: Vehicle | null;
+  onVehicleSelect: (vehicle: Vehicle) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -25,76 +24,23 @@ const VehicleSelector = ({
 }: VehicleSelectorProps) => {
   const [open, setOpen] = useState<boolean>(false);
   const [internalSearchQuery, setInternalSearchQuery] = useState<string>('');
-  const [enhancedResults, setEnhancedResults] = useState<ExtendedVehicle[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading, error } = vehiclesHook.useList();
 
-  // Enhanced search function
-  const performEnhancedSearch = async (searchTerm: string) => {
-    setIsSearching(true);
-    try {
-      // Use search method from vehicle service
-      const result = await vehicleService.searchVehicles(searchTerm);
-
-      if (result.success) {
-        setEnhancedResults(result.data);
-      } else {
-        console.error('Enhanced search failed:', result.error);
-        setEnhancedResults([]);
-      }
-    } catch (error) {
-      console.error('Enhanced search error:', error);
-      setEnhancedResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Debounced search effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (internalSearchQuery.trim()) {
-        performEnhancedSearch(internalSearchQuery);
-      } else {
-        setEnhancedResults([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [internalSearchQuery]);
-
   // Filter vehicles based on search query locally for better UX
-  const getFilteredVehicles = () => {
-    // If we have enhanced search results, use those
-    if (internalSearchQuery.trim() && enhancedResults.length > 0) {
-      return enhancedResults;
-    }
-
-    // If searching but no enhanced results yet, show loading or fallback to local filter
-    if (internalSearchQuery.trim() && isSearching) {
-      return []; // Show loading state
-    }
-
-    // Local filtering for immediate feedback
-    if (!internalSearchQuery.trim()) {
-      return vehicles || [];
-    }
-
-    return (vehicles || []).filter(vehicle => {
-      const searchTerm = internalSearchQuery.toLowerCase();
-      return (
-        vehicle.make?.toLowerCase().includes(searchTerm) ||
-        vehicle.model?.toLowerCase().includes(searchTerm) ||
-        vehicle.license_plate?.toLowerCase().includes(searchTerm) ||
-        vehicle.vin?.toLowerCase().includes(searchTerm) ||
-        vehicle.year?.toString().includes(searchTerm)
-      );
-    });
-  };
-
-  const filteredVehicles = getFilteredVehicles();
+  const filteredVehicles = (vehicles || []).filter(vehicle => {
+    if (!internalSearchQuery.trim()) return true;
+    
+    const searchTerm = internalSearchQuery.toLowerCase();
+    return (
+      vehicle.make?.toLowerCase().includes(searchTerm) ||
+      vehicle.model?.toLowerCase().includes(searchTerm) ||
+      vehicle.license_plate?.toLowerCase().includes(searchTerm) ||
+      vehicle.vin?.toLowerCase().includes(searchTerm) ||
+      vehicle.year?.toString().includes(searchTerm)
+    );
+  });
 
   // Handle vehicle selection
   const handleSelect = (vehicleSearchText: string): void => {
@@ -102,19 +48,10 @@ const VehicleSelector = ({
     const parts = vehicleSearchText.split('|');
     const vehicleId = parts[parts.length - 1]; // ID is always last
     
-    // Look in both regular vehicles and enhanced results
-    const allVehicles = [...(vehicles || []), ...enhancedResults];
-    const vehicle = allVehicles.find(v => v.id === vehicleId);
-    
+    const vehicle = vehicles?.find(v => v.id === vehicleId);
     if (vehicle) {
       console.log('Vehicle selected:', vehicle);
       onVehicleSelect(vehicle);
-      
-      // Show success message with match type if from enhanced search
-      const isEnhancedResult = enhancedResults.some(v => v.id === vehicleId);
-      if (isEnhancedResult && isLicensePlatePattern(internalSearchQuery)) {
-        toast.success('Vehicle found with enhanced license plate matching');
-      }
     }
     setOpen(false);
     setInternalSearchQuery(''); // Clear search after selection
@@ -124,7 +61,6 @@ const VehicleSelector = ({
   const handleRefresh = async () => {
     try {
       console.log('Manual refresh triggered');
-      setEnhancedResults([]); // Clear enhanced results
       toast.success('Vehicle list refreshed');
     } catch (error) {
       console.error('Refresh error:', error);
@@ -160,7 +96,7 @@ const VehicleSelector = ({
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
             <CommandInput
-              placeholder="Search vehicles (supports fuzzy license plate matching)..."
+              placeholder="Search vehicles..."
               onValueChange={(value) => {
                 console.log('Search input changed:', value);
                 setInternalSearchQuery(value);
@@ -173,45 +109,47 @@ const VehicleSelector = ({
               size="sm"
               onClick={handleRefresh}
               className="ml-2 h-8 w-8 p-0"
-              disabled={isLoading || isSearching}
+              disabled={isLoading}
             >
-              <RefreshCw className={cn("h-4 w-4", (isLoading || isSearching) && "animate-spin")} />
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
           </div>
-          
           <CommandList>
             {isLoading && (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Loading vehicles...
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading vehicles...</span>
               </div>
             )}
-            
-            {isSearching && internalSearchQuery.trim() && (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Searching with enhanced matching...
-              </div>
-            )}
-            
             {error && (
-              <div className="p-4 text-center text-sm text-red-500">
-                Error loading vehicles. Please try refreshing.
+              <div className="flex flex-col items-center justify-center py-4 px-3 space-y-2">
+                <div className="flex items-center text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Error loading vehicles
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  className="text-xs"
+                >
+                  Try Again
+                </Button>
               </div>
             )}
-            
-            {!isLoading && !isSearching && filteredVehicles.length === 0 && internalSearchQuery.trim() && (
+            {!isLoading && !error && filteredVehicles.length === 0 && (
               <CommandEmpty>
-                No vehicles found. Try a different search term or check the license plate.
+                {internalSearchQuery.trim() 
+                  ? `No vehicles found matching "${internalSearchQuery}"`
+                  : 'No vehicles available.'
+                }
               </CommandEmpty>
             )}
-            
             {!error && (
               <CommandGroup>
-                {!isLoading && !isSearching && filteredVehicles.map((vehicle) => {
+                {!isLoading && filteredVehicles.map((vehicle) => {
                   // Create a searchable value that includes make, model, license plate, and ID
                   const searchableValue = `${vehicle.make}|${vehicle.model}|${vehicle.license_plate}|${vehicle.id}`;
-                  
-                  // Check if this is from enhanced search
-                  const isEnhancedResult = enhancedResults.some(v => v.id === vehicle.id);
                   
                   return (
                     <CommandItem
@@ -222,16 +160,9 @@ const VehicleSelector = ({
                     >
                       <div className="flex items-center justify-between w-full">
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">
-                              {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                            </span>
-                            {isEnhancedResult && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                Enhanced Match
-                              </span>
-                            )}
-                          </div>
+                          <span className="font-medium text-sm">
+                            {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             Year: {vehicle.year || 'N/A'} • VIN: {vehicle.vin ? vehicle.vin.substring(0, 10) + '...' : 'N/A'}
                           </span>

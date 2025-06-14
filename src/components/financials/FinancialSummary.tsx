@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -8,7 +9,6 @@ import {
 } from 'lucide-react';
 import { FinancialSummary as FinancialSummaryType } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FinancialSummaryProps {
   summary?: FinancialSummaryType;
@@ -16,14 +16,12 @@ interface FinancialSummaryProps {
 }
 
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading }) => {
-  const { language } = useLanguage();
-
   // Get current month name for display
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(3)].map((_, index) => (
           <Card key={index} className="animate-pulse h-32">
             <CardContent className="p-6">
@@ -50,32 +48,29 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <StatCard
-        title={language === 'ar' ? 'إجمالي المصروفات' : 'Total Expenses'}
+        title="Total Expenses"
         value={formatCurrency(safeData.currentMonthDue)}
-        description={language === 'ar' ? 'الأقساط المستحقة للشهر الحالي' : "Current month's due installments"}
+        description="Current month's due installments"
         icon={TrendingDown}
         iconColor="text-red-500"
-        className={language === 'ar' ? 'text-right' : 'text-left'}
       />
       
       <StatCard
-        title={language === 'ar' ? 'صافي الإيرادات' : 'Net Revenue'}
+        title="Net Revenue"
         value={formatCurrency(safeData.netRevenue)}
-        description={language === 'ar' ? 'الدخل بعد المصروفات' : 'Income after expenses'}
+        description="Income after expenses"
         icon={DollarSign}
         iconColor="text-blue-500"
-        className={language === 'ar' ? 'text-right' : 'text-left'}
       />
       
       <StatCard
-        title={language === 'ar' ? 'المدفوعات المعلقة' : 'Pending Payments'}
+        title="Pending Payments"
         value={formatCurrency(safeData.pendingPayments)}
-        description={language === 'ar' ? 'مدفوعات الإيجار القادمة' : 'Upcoming rental payments'}
+        description="Upcoming rental payments"
         icon={Clock}
         iconColor="text-amber-500"
-        className={language === 'ar' ? 'text-right' : 'text-left'}
       />
     </div>
   );

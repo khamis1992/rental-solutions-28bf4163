@@ -1,3 +1,4 @@
+
 import {
   ShieldCheck,
   Car,
@@ -14,74 +15,74 @@ import { StatusConfig } from './types';
 export const statusConfig: StatusConfig[] = [
   { 
     key: 'available', 
-    name: 'متاحة', 
+    name: 'Available', 
     color: '#22c55e', 
     icon: ShieldCheck,
-    description: 'مركبات جاهزة للتأجير',
+    description: 'Ready for rental',
     filterValue: 'available'
   },
   { 
     key: 'rented', 
-    name: 'مؤجرة', 
+    name: 'Rented Out', 
     color: '#3b82f6', 
     icon: Car,
-    description: 'مركبات حالياً مع العملاء',
+    description: 'Currently with customer',
     filterValue: 'rented'
   },
   { 
     key: 'maintenance', 
-    name: 'تحت الصيانة', 
+    name: 'In Maintenance', 
     color: '#f59e0b', 
     icon: Wrench,
-    description: 'مركبات قيد الإصلاح أو الخدمة',
+    description: 'Undergoing service or repair',
     filterValue: 'maintenance'
   },
   { 
     key: 'reserved', 
-    name: 'محجوزة', 
+    name: 'Reserved', 
     color: '#8b5cf6', 
     icon: Clock,
-    description: 'مركبات محجوزة للعملاء',
+    description: 'Reserved for future rental',
     filterValue: 'reserved'
   },
   { 
     key: 'attention', 
-    name: 'تحتاج انتباه', 
+    name: 'Needs Attention', 
     color: '#ec4899', 
     icon: AlertTriangle,
-    description: 'مركبات تحتاج متابعة أو فحص',
+    description: 'Requires review',
     filterValue: 'maintenance'
   },
   { 
     key: 'police_station', 
-    name: 'في المرور', 
+    name: 'At Police Station', 
     color: '#64748b', 
     icon: ShieldAlert,
-    description: 'مركبات محتجزة لدى الشرطة',
+    description: 'Held at police station',
     filterValue: 'police_station'
   },
   { 
     key: 'accident', 
-    name: 'حادث', 
+    name: 'In Accident', 
     color: '#ef4444', 
     icon: CircleOff,
-    description: 'مركبات تعرضت لحوادث',
+    description: 'Involved in accident',
     filterValue: 'accident'
   },
   { 
     key: 'stolen', 
-    name: 'مسروقة', 
+    name: 'Reported Stolen', 
     color: '#dc2626', 
     icon: ShieldX,
-    description: 'مركبات مبلغ عن سرقتها',
+    description: 'Vehicle reported stolen',
     filterValue: 'stolen'
   },
   { 
     key: 'critical', 
-    name: 'حرجة', 
+    name: 'Critical Issues', 
     color: '#b91c1c', 
     icon: CircleDashed,
-    description: 'مركبات في حالة حرجة تحتاج تدخل فوري',
+    description: 'Critical issues pending',
     filterValue: 'maintenance'
   }
 ];

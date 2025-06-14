@@ -1,3 +1,4 @@
+
 import { useVehicleConnectionStatus } from './vehicles/useVehicleConnectionStatus';
 import { useVehicleTypes } from './vehicles/useVehicleTypes';
 import { useVehicleQueries } from './vehicles/useVehicleQueries';
@@ -12,7 +13,7 @@ export const useVehicles = () => {
   return {
     // Connection status
     connectionStatus: connectionHooks.connectionStatus,
-    isHealthy: connectionHooks.isHealthy,
+    useConnectionStatus: connectionHooks.useConnectionStatus,
     
     // Vehicle types
     useVehicleTypes: () => typesHook,
@@ -22,12 +23,9 @@ export const useVehicles = () => {
     useVehicle: queryHooks.useVehicle,
     useRealtimeUpdates: queryHooks.useRealtimeUpdates,
     
-    // Mutations - return the functions directly
-    createVehicle: mutationHooks.createVehicle,
-    updateVehicle: mutationHooks.updateVehicle,
-    deleteVehicle: mutationHooks.deleteVehicle,
-    isCreating: mutationHooks.isCreating,
-    isUpdating: mutationHooks.isUpdating,
-    isDeleting: mutationHooks.isDeleting,
+    // Mutations
+    useCreate: mutationHooks.useCreate,
+    useUpdate: mutationHooks.useUpdate,
+    useDelete: mutationHooks.useDelete,
   };
-}; 
+};

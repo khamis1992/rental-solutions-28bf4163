@@ -1,56 +1,40 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { CustomerOnboardingWizard } from '@/components/customers/CustomerOnboardingWizard';
+import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
-import { useAgreements } from '@/hooks/use-agreements';
+import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
   const { createCustomer } = useCustomers();
-  const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [wizardOpen, setWizardOpen] = useState(true);
 
-  const handleSubmit = async (customerData: any, agreementData?: any) => {
+  const handleSubmit = async (data: Customer) => {
     setIsSubmitting(true);
     try {
-      // Create customer first
-      const newCustomer = await createCustomer.mutateAsync(customerData);
-      toast.success('تم إنشاء العميل بنجاح');
-      
-      // If create_agreement flag is set, redirect to agreement creation page
-      if (agreementData && agreementData.create_agreement) {
-        toast.info('سيتم توجيهك لصفحة إنشاء اتفاقية جديدة');
-        navigate(`/agreements/add?customer_id=${newCustomer.id}`);
-      } else {
-        navigate('/customers');
-      }
+      await createCustomer.mutateAsync(data);
+      toast('Customer added successfully');
+      navigate('/customers');
     } catch (error) {
       console.error('Error creating customer:', error);
-      toast.error('فشل في إنشاء العميل');
+      toast('Failed to create customer', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    setWizardOpen(false);
-    navigate('/customers');
-  };
-
   return (
     <PageContainer
-      title="إضافة عميل جديد"
-      description="إضافة عميل جديد إلى النظام مع إمكانية إنشاء اتفاقية مباشرة."
+      title="Add New Customer"
+      description="Create a new customer record in the system."
       backLink="/customers"
     >
-      <CustomerOnboardingWizard
-        open={wizardOpen}
-        onClose={handleClose}
-        onComplete={handleSubmit}
-      />
+      <CustomerForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PageContainer>
   );
 };

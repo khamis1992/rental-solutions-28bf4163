@@ -26,10 +26,9 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
   const filterOptions = [
-    { label: "تم الإنشاء هذا الشهر", value: { createdThisMonth: 'true', hasActiveAgreement: '', missingDocuments: '', sort: '' } },
-    { label: "بعقود نشطة", value: { createdThisMonth: '', hasActiveAgreement: 'true', missingDocuments: '', sort: '' } },
-    { label: "بدون مستندات", value: { createdThisMonth: '', hasActiveAgreement: '', missingDocuments: 'true', sort: '' } },
-    { label: "ترتيب من الأحدث إلى الأقدم", value: { createdThisMonth: '', hasActiveAgreement: '', missingDocuments: '', sort: 'desc' } },
+    "Created this month",
+    "With active agreements",
+    "Without documents",
   ];
 
   // Sync search input with external search term
@@ -59,22 +58,22 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
   }, [onFilterChange]);
 
   return (
-    <div className="flex items-center gap-2 w-full sm:w-auto max-w-md flex-row-reverse">
+    <div className="flex items-center gap-2 w-full sm:w-auto max-w-md">
       {/* Search Input */}
       <div className="relative flex-1">
-        <Search className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="ابحث بالاسم أو البريد أو الجوال أو الرقم..."
-          className="pr-9 pl-8 h-10 text-right"
+          placeholder="Search by name, email, phone or ID..."
+          className="pl-9 pr-8 h-10"
           value={searchValue}
           onChange={handleSearchChange}
         />
         {searchValue && (
           <button
             onClick={handleClearSearch}
-            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
-            aria-label="مسح البحث"
+            className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
           >
             <X className="h-4 w-4" />
           </button>
@@ -86,16 +85,14 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
             <Filter className="h-4 w-4" />
-            <span className="sr-only">تصفية</span>
+            <span className="sr-only">Filter</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 text-right">
-          <DropdownMenuLabel>خيارات التصفية</DropdownMenuLabel>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {filterOptions.map((option, index) => (
-            <DropdownMenuItem key={index} onClick={() => onFilterChange && onFilterChange(option.value)}>
-              {option.label}
-            </DropdownMenuItem>
+            <DropdownMenuItem key={index}>{option}</DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="justify-center">
@@ -104,7 +101,7 @@ export const CustomerListFilter: React.FC<CustomerListFilterProps> = ({
               className="w-full text-xs" 
               onClick={resetFilters}
             >
-              إعادة تعيين جميع الفلاتر
+              Reset all filters
             </Button>
           </DropdownMenuItem>
         </DropdownMenuContent>

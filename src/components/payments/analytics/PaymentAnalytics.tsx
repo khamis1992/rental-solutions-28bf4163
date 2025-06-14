@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,13 +15,10 @@ interface PaymentAnalyticsProps {
   unpaid?: number;
 }
 
-// Helper function to format currency in Arabic style with English digits
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'decimal',
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0
-  }).format(amount);
+// Helper function to format currency without unnecessary decimals
+const formatCurrency = (amount: number): string => {
+  const formatted = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
+  return formatted;
 };
 
 export function PaymentAnalytics({ 
@@ -37,15 +35,15 @@ export function PaymentAnalytics({
   const onTimePercentage = totalPayments > 0 ? (paidOnTime / totalPayments) * 100 : 0;
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Main Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-r-4 border-r-green-500">
+        <Card className="border-l-4 border-l-green-500">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between flex-row-reverse">
-              <div className="text-right">
-                <p className="text-sm font-medium text-green-600">إجمالي المدفوع</p>
-                <p className="text-2xl font-bold text-green-700">{formatCurrency(amountPaid)} ر.ق</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Total Paid</p>
+                <p className="text-2xl font-bold text-green-700">QAR {formatCurrency(amountPaid)}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
                 <DollarSign className="h-6 w-6 text-green-600" />
@@ -54,12 +52,12 @@ export function PaymentAnalytics({
           </CardContent>
         </Card>
 
-        <Card className="border-r-4 border-r-blue-500">
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between flex-row-reverse">
-              <div className="text-right">
-                <p className="text-sm font-medium text-blue-600">الرصيد المتبقي</p>
-                <p className="text-2xl font-bold text-blue-700">{formatCurrency(balance)} ر.ق</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Remaining Balance</p>
+                <p className="text-2xl font-bold text-blue-700">QAR {formatCurrency(balance)}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full">
                 <TrendingUp className="h-6 w-6 text-blue-600" />
@@ -68,12 +66,12 @@ export function PaymentAnalytics({
           </CardContent>
         </Card>
 
-        <Card className="border-r-4 border-r-red-500">
+        <Card className="border-l-4 border-l-red-500">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between flex-row-reverse">
-              <div className="text-right">
-                <p className="text-sm font-medium text-red-600">رسوم التأخير</p>
-                <p className="text-2xl font-bold text-red-700">{formatCurrency(lateFees)} ر.ق</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-600">Late Fees</p>
+                <p className="text-2xl font-bold text-red-700">QAR {formatCurrency(lateFees)}</p>
               </div>
               <div className="bg-red-100 p-3 rounded-full">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
@@ -85,23 +83,23 @@ export function PaymentAnalytics({
 
       {/* Payment Progress */}
       <Card>
-        <CardHeader className="text-right">
-          <CardTitle className="flex items-center gap-2 flex-row-reverse">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            تقدم المدفوعات
+            Payment Progress
           </CardTitle>
-          <CardDescription className="text-right">تتبع حالة إكمال المدفوعات</CardDescription>
+          <CardDescription>Track your payment completion status</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>{paymentProgress.toFixed(1)}%</span>
-              <span>إكمال العقد</span>
+              <span>Contract Completion</span>
+              <span className="font-medium">{paymentProgress.toFixed(1)}%</span>
             </div>
             <Progress value={paymentProgress} className="h-3" />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatCurrency(totalAmount)} ر.ق الإجمالي</span>
-              <span>{formatCurrency(amountPaid)} ر.ق مدفوع</span>
+              <span>QAR {formatCurrency(amountPaid)} paid</span>
+              <span>QAR {formatCurrency(totalAmount)} total</span>
             </div>
           </div>
         </CardContent>
@@ -110,20 +108,20 @@ export function PaymentAnalytics({
       {/* Payment Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="text-right">
-            <CardTitle className="flex items-center gap-2 flex-row-reverse">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              أداء المدفوعات
+              Payment Performance
             </CardTitle>
-            <CardDescription className="text-right">إحصائيات الدفع في الوقت المحدد</CardDescription>
+            <CardDescription>On-time payment statistics</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">On-Time Rate</span>
                 <Badge variant={onTimePercentage >= 80 ? "default" : onTimePercentage >= 60 ? "secondary" : "destructive"}>
                   {onTimePercentage.toFixed(1)}%
                 </Badge>
-                <span className="text-sm font-medium">معدل الدفع في الوقت المحدد</span>
               </div>
               <div className="space-y-2">
                 <Progress value={onTimePercentage} className="h-2" />
@@ -131,15 +129,15 @@ export function PaymentAnalytics({
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center">
                   <div className="font-semibold text-green-600">{paidOnTime}</div>
-                  <div className="text-muted-foreground">في الوقت المحدد</div>
+                  <div className="text-muted-foreground">On Time</div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-orange-600">{paidLate}</div>
-                  <div className="text-muted-foreground">متأخر</div>
+                  <div className="text-muted-foreground">Late</div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-red-600">{unpaid}</div>
-                  <div className="text-muted-foreground">غير مدفوع</div>
+                  <div className="text-muted-foreground">Unpaid</div>
                 </div>
               </div>
             </div>
@@ -147,33 +145,33 @@ export function PaymentAnalytics({
         </Card>
 
         <Card>
-          <CardHeader className="text-right">
-            <CardTitle className="flex items-center gap-2 flex-row-reverse">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-600" />
-              ملخص المدفوعات
+              Payment Summary
             </CardTitle>
-            <CardDescription className="text-right">نظرة سريعة على حالة المدفوعات</CardDescription>
+            <CardDescription>Quick overview of payment status</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
+                <span className="text-sm">Total Payments</span>
                 <span className="font-semibold">{totalPayments}</span>
-                <span className="text-sm">إجمالي المدفوعات</span>
               </div>
               <div className="flex justify-between items-center">
+                <span className="text-sm">Payment Completion</span>
                 <span className="font-semibold">{paymentProgress.toFixed(1)}%</span>
-                <span className="text-sm">نسبة إكمال المدفوعات</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-red-600">{formatCurrency(balance + lateFees)} ر.ق</span>
-                <span className="text-sm">المبلغ المستحق</span>
+                <span className="text-sm">Outstanding Amount</span>
+                <span className="font-semibold text-red-600">QAR {formatCurrency(balance + lateFees)}</span>
               </div>
               {lateFees > 0 && (
                 <div className="flex justify-between items-center">
+                  <span className="text-sm">Late Fee Impact</span>
                   <span className="font-semibold text-red-600">
                     +{((lateFees / totalAmount) * 100).toFixed(1)}%
                   </span>
-                  <span className="text-sm">تأثير رسوم التأخير</span>
                 </div>
               )}
             </div>
@@ -183,39 +181,39 @@ export function PaymentAnalytics({
 
       {/* Status Indicators */}
       <Card>
-        <CardHeader className="text-right">
-          <CardTitle>حالة المدفوعات</CardTitle>
-          <CardDescription className="text-right">تقييم عام لأداء المدفوعات</CardDescription>
+        <CardHeader>
+          <CardTitle>Payment Health Status</CardTitle>
+          <CardDescription>Overall assessment of payment performance</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 flex-row-reverse">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <div className="text-right">
-                <div className="font-medium text-green-800">حالة الدفع</div>
+              <div>
+                <div className="font-medium text-green-800">Payment Status</div>
                 <div className="text-sm text-green-600">
-                  {balance === 0 ? 'مدفوع بالكامل' : paymentProgress >= 50 ? 'على المسار' : 'متأخر عن الجدول'}
+                  {balance === 0 ? 'Fully Paid' : paymentProgress >= 50 ? 'On Track' : 'Behind Schedule'}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 flex-row-reverse">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
               <TrendingUp className="h-5 w-5 text-blue-600" />
-              <div className="text-right">
-                <div className="font-medium text-blue-800">اتجاه التقدم</div>
+              <div>
+                <div className="font-medium text-blue-800">Progress Trend</div>
                 <div className="text-sm text-blue-600">
-                  {paymentProgress > 75 ? 'ممتاز' : paymentProgress > 50 ? 'جيد' : 'يحتاج انتباه'}
+                  {paymentProgress > 75 ? 'Excellent' : paymentProgress > 50 ? 'Good' : 'Needs Attention'}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-200 flex-row-reverse">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-200">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
-              <div className="text-right">
-                <div className="font-medium text-orange-800">مستوى المخاطر</div>
+              <div>
+                <div className="font-medium text-orange-800">Risk Level</div>
                 <div className="text-sm text-orange-600">
-                  {lateFees === 0 && onTimePercentage > 80 ? 'منخفض' : 
-                   lateFees > 0 || onTimePercentage < 60 ? 'عالي' : 'متوسط'}
+                  {lateFees === 0 && onTimePercentage > 80 ? 'Low' : 
+                   lateFees > 0 || onTimePercentage < 60 ? 'High' : 'Medium'}
                 </div>
               </div>
             </div>

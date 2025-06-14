@@ -1,14 +1,13 @@
+
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 import { TrendingDown, Clock, AlertTriangle } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const FinancialExpensesBreakdown: React.FC = () => {
   const { financialSummary, isLoadingSummary } = useFinancials();
-  const { language } = useLanguage();
 
   // Use memo to avoid recalculation on each render
   const financialData = useMemo(() => {
@@ -39,10 +38,10 @@ const FinancialExpensesBreakdown: React.FC = () => {
 
   if (isLoadingSummary) {
     return (
-      <Card className="col-span-full animate-pulse" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <CardHeader className={language === 'ar' ? 'text-right' : 'text-left'}>
-          <CardTitle>{language === 'ar' ? 'تحليل المصروفات' : 'Expense Analysis'}</CardTitle>
-          <CardDescription>{language === 'ar' ? 'جاري تحميل بيانات المصروفات...' : 'Loading expense data...'}</CardDescription>
+      <Card className="col-span-full animate-pulse">
+        <CardHeader>
+          <CardTitle>Expense Analysis</CardTitle>
+          <CardDescription>Loading expense data...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -56,63 +55,54 @@ const FinancialExpensesBreakdown: React.FC = () => {
   }
 
   return (
-    <Card className="col-span-full" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <CardHeader className={language === 'ar' ? 'text-right' : 'text-left'}>
-        <CardTitle>{language === 'ar' ? 'تحليل المصروفات' : 'Expense Analysis'}</CardTitle>
-        <CardDescription>{language === 'ar' ? 'تفصيل المصروفات حسب الحالة' : 'Breakdown of expenses by status'}</CardDescription>
+    <Card className="col-span-full">
+      <CardHeader>
+        <CardTitle>Expense Analysis</CardTitle>
+        <CardDescription>Breakdown of expenses by status</CardDescription>
       </CardHeader>
       <CardContent className="pt-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard
-            title={language === 'ar' ? 'إجمالي المصروفات' : 'Total Expenses'}
+            title="Total Expenses"
             value={formatCurrency(financialData.totalExpenses)}
-            description={language === 'ar' ? 'جميع المصروفات مجتمعة' : 'All expenses combined'}
+            description="All expenses combined"
             icon={TrendingDown}
             iconColor="text-red-500"
-            className={language === 'ar' ? 'text-right' : 'text-left'}
           />
           
           <StatCard
-            title={language === 'ar' ? 'المستحق هذا الشهر' : 'Current Month Due'}
+            title="Current Month Due"
             value={formatCurrency(financialData.currentMonthDue)}
-            description={language === 'ar' ? 'الأقساط المستحقة هذا الشهر' : 'Installments due this month'}
+            description="Installments due this month"
             icon={Clock}
             iconColor="text-amber-500"
-            className={language === 'ar' ? 'text-right' : 'text-left'}
           />
           
           <StatCard
-            title={language === 'ar' ? 'المصروفات المتأخرة' : 'Overdue Expenses'}
+            title="Overdue Expenses"
             value={formatCurrency(financialData.overdueExpenses)}
-            description={language === 'ar' ? 'مدفوعات الأقساط المتأخرة' : 'Past-due installment payments'}
+            description="Past-due installment payments"
             icon={AlertTriangle}
             iconColor="text-red-600"
             trend={financialData.overdueExpenses > 0 ? 100 : 0}
-            trendLabel={language === 'ar' ? 'يتطلب انتباه' : 'Requires attention'}
-            className={language === 'ar' ? 'text-right' : 'text-left'}
+            trendLabel="Requires attention"
           />
         </div>
         
         <div className="mt-6 p-4 bg-gray-50 rounded-md">
-          <h3 className={`text-sm font-medium text-gray-700 mb-2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-            {language === 'ar' ? 'تركيبة المصروفات' : 'Expense Composition'}
-          </h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Expense Composition</h3>
           <div className="space-y-3">
-            <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <span className={`text-sm ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                {language === 'ar' ? 'المصروفات العادية' : 'Regular Expenses'}
-              </span>
-              <span className={`text-sm font-medium ${language === 'ar' ? 'text-left' : 'text-right'}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Regular Expenses</span>
+              <span className="text-sm font-medium">
                 {formatCurrency(financialData.regularExpenses)}
               </span>
             </div>
             
             {financialData.overdueExpenses > 0 && (
-              <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-sm text-red-600 font-medium ${language === 'ar' ? 'text-right' : 'text-left'}`}>
-                  {language === 'ar' ? 'المصروفات المتأخرة' : 'Overdue Expenses'}
-                </span>
-                <span className={`text-sm font-medium text-red-600 ${language === 'ar' ? 'text-left' : 'text-right'}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-red-600 font-medium">Overdue Expenses</span>
+                <span className="text-sm font-medium text-red-600">
                   {formatCurrency(financialData.overdueExpenses)}
                 </span>
               </div>

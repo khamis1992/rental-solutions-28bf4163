@@ -1,36 +1,15 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Wrench, CheckCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
+import { useVehicleService } from '@/hooks/services/useVehicleService';
+import { Wrench, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
 const MaintenanceDashboard = () => {
   const { useUpcomingMaintenance } = useMaintenance();
   const { data: upcomingMaintenance, isLoading: isLoadingUpcoming } = useUpcomingMaintenance();
-
-  // Query for maintenance vehicles count
-  const { data: maintenanceCount, isLoading: isLoadingMaintenance } = useQuery({
-    queryKey: ['vehicles-maintenance-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('vehicles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'maintenance');
-      return count || 0;
-    }
-  });
-
-  // Query for accident vehicles count
-  const { data: accidentCount, isLoading: isLoadingAccidents } = useQuery({
-    queryKey: ['vehicles-accident-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('vehicles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'accident');
-      return count || 0;
-    }
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicleService({
+    statuses: ['maintenance', 'accident']
   });
 
   // Count maintenance records by status
@@ -51,31 +30,38 @@ const MaintenanceDashboard = () => {
   };
 
   const statusCounts = getStatusCounts();
+  const inMaintenanceCount = vehicles?.length || 0;
 
   const statCards = [
     {
-      title: 'مكتملة',
-      value: statusCounts.completed,
-      icon: CheckCircle,
-      color: 'text-green-500'
+      title: 'Total In Maintenance',
+      value: inMaintenanceCount,
+      icon: Wrench,
+      color: 'text-blue-500'
     },
     {
-      title: 'قيد التنفيذ',
-      value: maintenanceCount || 0,
+      title: 'Scheduled',
+      value: statusCounts.scheduled,
+      icon: Clock,
+      color: 'text-amber-500'
+    },
+    {
+      title: 'In Progress',
+      value: statusCounts.in_progress,
       icon: AlertTriangle,
       color: 'text-orange-500'
     },
     {
-      title: 'الحوادث',
-      value: accidentCount || 0,
-      icon: AlertOctagon,
-      color: 'text-red-500'
+      title: 'Completed',
+      value: statusCounts.completed,
+      icon: CheckCircle,
+      color: 'text-green-500'
     }
   ];
 
-  if (isLoadingUpcoming || isLoadingMaintenance || isLoadingAccidents) {
+  if (isLoadingUpcoming || isLoadingVehicles) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-pulse" dir="rtl">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-pulse">
         {[1, 2, 3, 4].map(i => (
           <Card key={i} className="bg-gray-100">
             <CardContent className="p-6 h-24"></CardContent>
@@ -86,12 +72,12 @@ const MaintenanceDashboard = () => {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" dir="rtl">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       {statCards.map((card, index) => (
         <Card key={index}>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between flex-row-reverse">
-              <div className="text-right">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
                 <p className="text-2xl font-bold">{card.value}</p>
               </div>
